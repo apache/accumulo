@@ -30,13 +30,20 @@ class IngestBenchmark(Benchmark):
 
     def setUp(self):
         code, out, err = cloudshell.run(self.username, self.password, 'table test_ingest\n')
-        if out.find('no such table') >= 0:
+        if out.find('does not exist') == -1:
             log.debug("Deleting table test_ingest")
-            code, out, err = cloudshell.run(self.username, self.password, 'deletetable test_ingest\n')
-            self.sleep(10)
+            code, out, err = cloudshell.run(self.username, self.password, 'deletetable test_ingest -f\n')
+            self.assertEquals(code, 0, "Could not delete the table 'test_ingest'")
         code, out, err = cloudshell.run(self.username, self.password, 'createtable test_ingest\n')
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, "Could not create the table 'test_ingest'")
         Benchmark.setUp(self)
+
+    def tearDown(self):
+        command = 'deletetable test_ingest -f\n'
+        log.debug("Running Command %r", command)
+        code, out, err = cloudshell.run(self.username, self.password, command)
+        self.assertEqual(code, 0, "Could not delete the table 'test_ingest'")
+        Benchmark.tearDown(self)
 
     def size(self):
         return 50
@@ -50,7 +57,7 @@ class IngestBenchmark(Benchmark):
     def runTest(self):
         commands = {}
         for i, s in enumerate(slaveNames()):
-            commands[s] = '%s %s -username %s -password %s -size %d -random %d %d %d %d' % (
+            commands[s] = '%s %s -u %s -p %s --size %d --random %d --rows %d --start %d --cols %d' % (
                 accumulo('bin', 'accumulo'),
                 'org.apache.accumulo.server.test.TestIngest',
                 self.username, self.password,
@@ -67,10 +74,6 @@ class IngestBenchmark(Benchmark):
         for code, slaves in codes.items():
             if code != 0:
                 self.assertEqual(code, 0, "Bad exit code (%d) from slaves %r" % (code, slaves))
-        command = 'deletetable test_ingest\n'
-        log.debug("Running Command %r", command)
-        code, out, err = cloudshell.run(self.username, self.password, command)
-        # print err
 
     def score(self):
         if self.finished:

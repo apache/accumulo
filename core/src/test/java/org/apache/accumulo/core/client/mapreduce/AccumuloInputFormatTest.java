@@ -17,129 +17,93 @@
 package org.apache.accumulo.core.client.mapreduce;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.List;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mapreduce.InputFormatBase.AccumuloIterator;
-import org.apache.accumulo.core.client.mapreduce.InputFormatBase.AccumuloIteratorOption;
-import org.apache.accumulo.core.client.mapreduce.InputFormatBase.RangeInputSplit;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.ContextFactory;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.junit.After;
+import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
 
 public class AccumuloInputFormatTest {
   
-  @After
-  public void tearDown() throws Exception {}
-  
-  /**
-   * Test basic setting & getting of max versions.
-   * 
-   * @throws IOException
-   *           Signals that an I/O exception has occurred.
-   */
-  @Test
-  public void testMaxVersions() throws IOException {
-    JobContext job = ContextFactory.createJobContext();
-    AccumuloInputFormat.setMaxVersions(job.getConfiguration(), 1);
-    int version = AccumuloInputFormat.getMaxVersions(job.getConfiguration());
-    assertEquals(1, version);
-  }
-  
-  /**
-   * Test max versions with an invalid value.
-   * 
-   * @throws IOException
-   *           Signals that an I/O exception has occurred.
-   */
-  @Test(expected = IOException.class)
-  public void testMaxVersionsLessThan1() throws IOException {
-    JobContext job = ContextFactory.createJobContext();
-    AccumuloInputFormat.setMaxVersions(job.getConfiguration(), 0);
-  }
-  
-  /**
-   * Test no max version configured.
-   */
-  @Test
-  public void testNoMaxVersion() {
-    JobContext job = ContextFactory.createJobContext();
-    assertEquals(-1, AccumuloInputFormat.getMaxVersions(job.getConfiguration()));
-  }
-  
   /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
+   * 
+   * @throws IOException
    */
   @Test
-  public void testSetIterator() {
-    JobContext job = ContextFactory.createJobContext();
+  public void testSetIterator() throws IOException {
+    Job job = new Job();
     
-    AccumuloInputFormat.addIterator(job.getConfiguration(), new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
+    IteratorSetting is = new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator");
+    AccumuloInputFormat.addIterator(job, is);
     Configuration conf = job.getConfiguration();
-    String iterators = conf.get("AccumuloInputFormat.iterators");
-    assertEquals("1:org.apache.accumulo.core.iterators.WholeRowIterator:WholeRow", iterators);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    is.write(new DataOutputStream(baos));
+    String iterators = conf.get("AccumuloInputFormat.ScanOpts.Iterators");
+    assertEquals(new String(Base64.encodeBase64(baos.toByteArray())), iterators);
   }
   
   @Test
-  public void testAddIterator() {
-    JobContext job = ContextFactory.createJobContext();
+  public void testAddIterator() throws IOException {
+    Job job = new Job();
     
-    AccumuloInputFormat.addIterator(job.getConfiguration(), new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
-    AccumuloInputFormat.addIterator(job.getConfiguration(), new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
     IteratorSetting iter = new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator");
     iter.addOption("v1", "1");
     iter.addOption("junk", "\0omg:!\\xyzzy");
-    AccumuloInputFormat.addIterator(job.getConfiguration(), iter);
+    AccumuloInputFormat.addIterator(job, iter);
     
-    List<AccumuloIterator> list = AccumuloInputFormat.getIterators(job.getConfiguration());
+    List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
     
     // Check the list size
     assertTrue(list.size() == 3);
     
     // Walk the list and make sure our settings are correct
-    AccumuloIterator setting = list.get(0);
+    IteratorSetting setting = list.get(0);
     assertEquals(1, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.user.WholeRowIterator", setting.getIteratorClass());
-    assertEquals("WholeRow", setting.getIteratorName());
+    assertEquals("WholeRow", setting.getName());
+    assertEquals(0, setting.getOptions().size());
     
     setting = list.get(1);
     assertEquals(2, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.VersioningIterator", setting.getIteratorClass());
-    assertEquals("Versions", setting.getIteratorName());
+    assertEquals("Versions", setting.getName());
+    assertEquals(0, setting.getOptions().size());
     
     setting = list.get(2);
     assertEquals(3, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.CountingIterator", setting.getIteratorClass());
-    assertEquals("Count", setting.getIteratorName());
-    
-    List<AccumuloIteratorOption> iteratorOptions = AccumuloInputFormat.getIteratorOptions(job.getConfiguration());
-    assertEquals(2, iteratorOptions.size());
-    assertEquals("Count", iteratorOptions.get(0).getIteratorName());
-    assertEquals("Count", iteratorOptions.get(1).getIteratorName());
-    assertEquals("v1", iteratorOptions.get(0).getKey());
-    assertEquals("1", iteratorOptions.get(0).getValue());
-    assertEquals("junk", iteratorOptions.get(1).getKey());
-    assertEquals("\0omg:!\\xyzzy", iteratorOptions.get(1).getValue());
+    assertEquals("Count", setting.getName());
+    assertEquals(2, setting.getOptions().size());
+    assertEquals("1", setting.getOptions().get("v1"));
+    assertEquals("\0omg:!\\xyzzy", setting.getOptions().get("junk"));
   }
   
   /**
@@ -155,97 +119,150 @@ public class AccumuloInputFormatTest {
     IteratorSetting someSetting = new IteratorSetting(1, "iterator", "Iterator.class");
     someSetting.addOption(key, value);
     Job job = new Job();
-    AccumuloInputFormat.addIterator(job.getConfiguration(), someSetting);
+    AccumuloInputFormat.addIterator(job, someSetting);
     
-    final String rawConfigOpt = new AccumuloIteratorOption("iterator", key, value).toString();
-    
-    assertEquals(rawConfigOpt, job.getConfiguration().get("AccumuloInputFormat.iterators.options"));
-    
-    List<AccumuloIteratorOption> opts = AccumuloInputFormat.getIteratorOptions(job.getConfiguration());
-    assertEquals(1, opts.size());
-    assertEquals(opts.get(0).getKey(), key);
-    assertEquals(opts.get(0).getValue(), value);
+    List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
+    assertEquals(1, list.size());
+    assertEquals(1, list.get(0).getOptions().size());
+    assertEquals(list.get(0).getOptions().get(key), value);
     
     someSetting.addOption(key + "2", value);
     someSetting.setPriority(2);
     someSetting.setName("it2");
-    AccumuloInputFormat.addIterator(job.getConfiguration(), someSetting);
-    opts = AccumuloInputFormat.getIteratorOptions(job.getConfiguration());
-    assertEquals(3, opts.size());
-    for (AccumuloIteratorOption opt : opts) {
-      assertEquals(opt.getKey().substring(0, key.length()), key);
-      assertEquals(opt.getValue(), value);
-    }
+    AccumuloInputFormat.addIterator(job, someSetting);
+    list = AccumuloInputFormat.getIterators(job);
+    assertEquals(2, list.size());
+    assertEquals(1, list.get(0).getOptions().size());
+    assertEquals(list.get(0).getOptions().get(key), value);
+    assertEquals(2, list.get(1).getOptions().size());
+    assertEquals(list.get(1).getOptions().get(key), value);
+    assertEquals(list.get(1).getOptions().get(key + "2"), value);
   }
   
   /**
    * Test getting iterator settings for multiple iterators set
+   * 
+   * @throws IOException
    */
   @Test
-  public void testGetIteratorSettings() {
-    JobContext job = ContextFactory.createJobContext();
+  public void testGetIteratorSettings() throws IOException {
+    Job job = new Job();
     
-    AccumuloInputFormat.addIterator(job.getConfiguration(), new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
-    AccumuloInputFormat.addIterator(job.getConfiguration(), new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
-    AccumuloInputFormat.addIterator(job.getConfiguration(), new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator"));
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator"));
     
-    List<AccumuloIterator> list = AccumuloInputFormat.getIterators(job.getConfiguration());
+    List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
     
     // Check the list size
     assertTrue(list.size() == 3);
     
     // Walk the list and make sure our settings are correct
-    AccumuloIterator setting = list.get(0);
+    IteratorSetting setting = list.get(0);
     assertEquals(1, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.WholeRowIterator", setting.getIteratorClass());
-    assertEquals("WholeRow", setting.getIteratorName());
+    assertEquals("WholeRow", setting.getName());
     
     setting = list.get(1);
     assertEquals(2, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.VersioningIterator", setting.getIteratorClass());
-    assertEquals("Versions", setting.getIteratorName());
+    assertEquals("Versions", setting.getName());
     
     setting = list.get(2);
     assertEquals(3, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.CountingIterator", setting.getIteratorClass());
-    assertEquals("Count", setting.getIteratorName());
+    assertEquals("Count", setting.getName());
     
   }
   
   @Test
-  public void testSetRegex() {
-    JobContext job = ContextFactory.createJobContext();
+  public void testSetRegex() throws IOException {
+    Job job = new Job();
     
     String regex = ">\"*%<>\'\\";
     
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
-    AccumuloInputFormat.addIterator(job.getConfiguration(), is);
+    AccumuloInputFormat.addIterator(job, is);
     
-    assertTrue(regex.equals(AccumuloInputFormat.getIterators(job.getConfiguration()).get(0).getIteratorName()));
+    assertTrue(regex.equals(AccumuloInputFormat.getIterators(job).get(0).getName()));
   }
   
-  static class TestMapper extends Mapper<Key,Value,Key,Value> {
-    Key key = null;
-    int count = 0;
+  private static AssertionError e1 = null;
+  private static AssertionError e2 = null;
+  
+  private static class MRTester extends Configured implements Tool {
+    private static class TestMapper extends Mapper<Key,Value,Key,Value> {
+      Key key = null;
+      int count = 0;
+      
+      @Override
+      protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
+        try {
+          if (key != null)
+            assertEquals(key.getRow().toString(), new String(v.get()));
+          assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
+          assertEquals(new String(v.get()), String.format("%09x", count));
+        } catch (AssertionError e) {
+          e1 = e;
+        }
+        key = new Key(k);
+        count++;
+      }
+      
+      @Override
+      protected void cleanup(Context context) throws IOException, InterruptedException {
+        try {
+          assertEquals(100, count);
+        } catch (AssertionError e) {
+          e2 = e;
+        }
+      }
+    }
     
     @Override
-    protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
-      if (key != null)
-        assertEquals(key.getRow().toString(), new String(v.get()));
-      assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
-      assertEquals(new String(v.get()), String.format("%09x", count));
-      key = new Key(k);
-      count++;
+    public int run(String[] args) throws Exception {
+      
+      if (args.length != 3) {
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table>");
+      }
+      
+      String user = args[0];
+      String pass = args[1];
+      String table = args[2];
+      
+      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      job.setJarByClass(this.getClass());
+      
+      job.setInputFormatClass(AccumuloInputFormat.class);
+      
+      AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(user, pass));
+      AccumuloInputFormat.setInputTableName(job, table);
+      AccumuloInputFormat.setMockInstance(job, "testmapinstance");
+      
+      job.setMapperClass(TestMapper.class);
+      job.setMapOutputKeyClass(Key.class);
+      job.setMapOutputValueClass(Value.class);
+      job.setOutputFormatClass(NullOutputFormat.class);
+      
+      job.setNumReduceTasks(0);
+      
+      job.waitForCompletion(true);
+      
+      return job.isSuccessful() ? 0 : 1;
+    }
+    
+    public static void main(String[] args) throws Exception {
+      assertEquals(0, ToolRunner.run(CachedConfiguration.getInstance(), new MRTester(), args));
     }
   }
   
   @Test
   public void testMap() throws Exception {
     MockInstance mockInstance = new MockInstance("testmapinstance");
-    Connector c = mockInstance.getConnector("root", new byte[] {});
+    Connector c = mockInstance.getConnector(new UserPassToken("root", ""));
     c.tableOperations().create("testtable");
-    BatchWriter bw = c.createBatchWriter("testtable", 10000L, 1000L, 4);
+    BatchWriter bw = c.createBatchWriter("testtable", new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
       m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
@@ -253,54 +270,8 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
     
-    Job job = new Job(new Configuration());
-    job.setInputFormatClass(AccumuloInputFormat.class);
-    job.setMapperClass(TestMapper.class);
-    job.setNumReduceTasks(0);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable", new Authorizations());
-    AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmapinstance");
-    
-    AccumuloInputFormat input = new AccumuloInputFormat();
-    List<InputSplit> splits = input.getSplits(job);
-    assertEquals(splits.size(), 1);
-    
-    TestMapper mapper = (TestMapper) job.getMapperClass().newInstance();
-    for (InputSplit split : splits) {
-      TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
-      RecordReader<Key,Value> reader = input.createRecordReader(split, tac);
-      Mapper<Key,Value,Key,Value>.Context context = ContextFactory.createMapContext(mapper, tac, reader, null, split);
-      reader.initialize(split, context);
-      mapper.run(context);
-    }
-  }
-  
-  @Test
-  public void testSimple() throws Exception {
-    MockInstance mockInstance = new MockInstance("testmapinstance");
-    Connector c = mockInstance.getConnector("root", new byte[] {});
-    c.tableOperations().create("testtable2");
-    BatchWriter bw = c.createBatchWriter("testtable2", 10000L, 1000L, 4);
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
-    }
-    bw.close();
-    
-    JobContext job = ContextFactory.createJobContext();
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable2", new Authorizations());
-    AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmapinstance");
-    AccumuloInputFormat input = new AccumuloInputFormat();
-    RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
-    RecordReader<Key,Value> rr = input.createRecordReader(ris, tac);
-    rr.initialize(ris, tac);
-    
-    TestMapper mapper = new TestMapper();
-    Mapper<Key,Value,Key,Value>.Context context = ContextFactory.createMapContext(mapper, tac, rr, null, ris);
-    rr.initialize(ris, tac);
-    while (rr.nextKeyValue()) {
-      mapper.map(rr.getCurrentKey(), rr.getCurrentValue(), (TestMapper.Context) context);
-    }
+    MRTester.main(new String[] {"root", "", "testtable"});
+    assertNull(e1);
+    assertNull(e2);
   }
 }

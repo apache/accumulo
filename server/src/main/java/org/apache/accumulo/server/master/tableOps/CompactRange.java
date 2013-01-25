@@ -40,7 +40,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TIteratorSetting;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
@@ -48,7 +47,6 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.MapCounter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.codec.binary.Hex;
@@ -78,8 +76,7 @@ class CompactionDriver extends MasterRepo {
   public long isReady(long tid, Master master) throws Exception {
     
     MapCounter<TServerInstance> serversToFlush = new MapCounter<TServerInstance>();
-    Instance instance = HdfsZooInstance.getInstance();
-    Connector conn = instance.getConnector(SecurityConstants.getSystemCredentials());
+    Connector conn = master.getConnector();
     Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
     
     Range range = new KeyExtent(new Text(tableId), null, startRow == null ? null : new Text(startRow)).toMetadataRange();
@@ -88,8 +85,8 @@ class CompactionDriver extends MasterRepo {
       range = range.clip(new Range(Constants.ROOT_TABLET_EXTENT.getMetadataEntry(), false, null, true));
     
     scanner.setRange(range);
-    ColumnFQ.fetch(scanner, Constants.METADATA_COMPACT_COLUMN);
-    ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+    Constants.METADATA_COMPACT_COLUMN.fetch(scanner);
+    Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     
     // TODO since not using tablet iterator, are there any issues w/ splits merges?
@@ -132,6 +129,7 @@ class CompactionDriver extends MasterRepo {
     
     long scanTime = System.currentTimeMillis() - t1;
     
+    Instance instance = master.getInstance();
     Tables.clearCache(instance);
     if (tabletCount == 0 && !Tables.exists(instance, tableId))
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
@@ -220,13 +218,16 @@ public class CompactRange extends MasterRepo {
           flushID++;
           
           String txidString = String.format("%016x", tid);
-          StringBuilder encodedIterators = new StringBuilder();
+          
           for (int i = 1; i < tokens.length; i++) {
             if (tokens[i].startsWith(txidString))
               continue; // skip self
-            encodedIterators.append(",");
-            encodedIterators.append(tokens[i]);
+
+            throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER,
+                "Another compaction with iterators is running");
           }
+
+          StringBuilder encodedIterators = new StringBuilder();
 
           if (iterators != null && iterators.getIterators().size() > 0) {
             Hex hex = new Hex();

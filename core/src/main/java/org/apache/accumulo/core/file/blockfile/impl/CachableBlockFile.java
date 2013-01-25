@@ -21,13 +21,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.SoftReference;
 
 import org.apache.accumulo.core.file.blockfile.ABlockReader;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.BlockFileReader;
 import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Writer.BlockAppender;
@@ -142,8 +143,8 @@ public class CachableBlockFile {
   public static class Reader implements BlockFileReader {
     private BCFile.Reader _bc;
     private String fileName = "not_available";
-    private LruBlockCache _dCache = null;
-    private LruBlockCache _iCache = null;
+    private BlockCache _dCache = null;
+    private BlockCache _iCache = null;
     private FSDataInputStream fin = null;
     private FileSystem fs;
     private Configuration conf;
@@ -224,12 +225,18 @@ public class CachableBlockFile {
        */
       
       fileName = dataFile.toString();
-      this._dCache = (LruBlockCache) data;
-      this._iCache = (LruBlockCache) index;
+      this._dCache = data;
+      this._iCache = index;
       this.fs = fs;
       this.conf = conf;
     }
     
+    public Reader(FSDataInputStream fsin, long len, Configuration conf, BlockCache data, BlockCache index) throws IOException {
+      this._dCache = data;
+      this._iCache = index;
+      init(fsin, len, conf);
+    }
+
     public Reader(FSDataInputStream fsin, long len, Configuration conf) throws IOException {
       // this.fin = fsin;
       init(fsin, len, conf);
@@ -255,13 +262,12 @@ public class CachableBlockFile {
     
     public BlockRead getCachedMetaBlock(String blockName) throws IOException {
       String _lookup = fileName + "M" + blockName;
-      byte b[] = null;
       
       if (_iCache != null) {
-        b = _iCache.getBlock(_lookup);
+        CacheEntry cacheEntry = _iCache.getBlock(_lookup);
         
-        if (b != null) {
-          return new BlockRead(new DataInputStream(new ByteArrayInputStream(b)), b.length);
+        if (cacheEntry != null) {
+          return new CachedBlockRead(cacheEntry, cacheEntry.getBuffer());
         }
         
       }
@@ -287,16 +293,16 @@ public class CachableBlockFile {
       }
     }
     
-    private BlockRead getBlock(String _lookup, LruBlockCache cache, BlockLoader loader) throws IOException {
+    private BlockRead getBlock(String _lookup, BlockCache cache, BlockLoader loader) throws IOException {
       
       BlockReader _currBlock;
       
       if (cache != null) {
-        byte b[] = null;
-        b = cache.getBlock(_lookup);
+        CacheEntry cb = null;
+        cb = cache.getBlock(_lookup);
         
-        if (b != null) {
-          return new BlockRead(new DataInputStream(new ByteArrayInputStream(b)), b.length);
+        if (cb != null) {
+          return new CachedBlockRead(cb, cb.getBuffer());
         }
         
       }
@@ -313,7 +319,7 @@ public class CachableBlockFile {
       
     }
     
-    private BlockRead cacheBlock(String _lookup, LruBlockCache cache, BlockReader _currBlock, String block) throws IOException {
+    private BlockRead cacheBlock(String _lookup, BlockCache cache, BlockReader _currBlock, String block) throws IOException {
       
       if ((cache == null) || (_currBlock.getRawSize() > cache.getMaxSize())) {
         return new BlockRead(_currBlock, _currBlock.getRawSize());
@@ -334,13 +340,17 @@ public class CachableBlockFile {
           _currBlock.close();
         }
         
+        CacheEntry ce = null;
         try {
-          cache.cacheBlock(_lookup, b);
+          ce = cache.cacheBlock(_lookup, b);
         } catch (Exception e) {
           log.warn("Already cached block: " + _lookup, e);
         }
         
-        return new BlockRead(new DataInputStream(new ByteArrayInputStream(b)), b.length);
+        if (ce == null)
+          return new BlockRead(new DataInputStream(new ByteArrayInputStream(b)), b.length);
+        else
+          return new CachedBlockRead(ce, ce.getBuffer());
         
       }
     }
@@ -399,6 +409,82 @@ public class CachableBlockFile {
     
   }
   
+  static class SeekableByteArrayInputStream extends ByteArrayInputStream {
+    
+    public SeekableByteArrayInputStream(byte[] buf) {
+      super(buf);
+    }
+    
+    public SeekableByteArrayInputStream(byte buf[], int offset, int length) {
+      super(buf, offset, length);
+      throw new UnsupportedOperationException("Seek code assumes offset is zero"); // do not need this constructor, documenting that seek will not work
+                                                                                  // unless offset it kept track of
+    }
+    
+    public void seek(int position) {
+      if (pos < 0 || pos >= buf.length)
+        throw new IllegalArgumentException("pos = " + pos + " buf.lenght = " + buf.length);
+      this.pos = position;
+    }
+    
+    public int getPosition() {
+      return this.pos;
+    }
+    
+  }
+
+  public static class CachedBlockRead extends BlockRead {
+    private SeekableByteArrayInputStream seekableInput;
+    private final CacheEntry cb;
+    
+    public CachedBlockRead(CacheEntry cb, byte buf[]) {
+      this(new SeekableByteArrayInputStream(buf), buf.length, cb);
+    }
+    
+    private CachedBlockRead(SeekableByteArrayInputStream seekableInput, long size, CacheEntry cb) {
+        super(seekableInput, size);
+        this.seekableInput = seekableInput;
+        this.cb = cb;
+      }
+
+    @Override
+    public void seek(int position) {
+      seekableInput.seek(position);
+    }
+    
+    @Override
+    public int getPosition() {
+      return seekableInput.getPosition();
+    }
+    
+    @Override
+    public boolean isIndexable() {
+      return true;
+    }
+    
+    @Override
+    public <T> T getIndex(Class<T> clazz) {
+      T bi = null;
+      synchronized (cb) {
+        @SuppressWarnings("unchecked")
+        SoftReference<T> softRef = (SoftReference<T>) cb.getIndex();
+        if (softRef != null)
+          bi = softRef.get();
+        
+        if (bi == null) {
+          try {
+            bi = clazz.newInstance();
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+          cb.setIndex(new SoftReference<T>(bi));
+        }
+      }
+      
+      return bi;
+    }
+  }
+
   /**
    * 
    * Class provides functionality to read one block from the underlying BCFile Since We are caching blocks in the Reader class as bytearrays, this class will
@@ -428,6 +514,26 @@ public class CachableBlockFile {
     @Override
     public DataInputStream getStream() throws IOException {
       return this;
+    }
+    
+    @Override
+    public boolean isIndexable() {
+      return false;
+    }
+    
+    @Override
+    public void seek(int position) {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public int getPosition() {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public <T> T getIndex(Class<T> clazz) {
+      throw new UnsupportedOperationException();
     }
     
   }

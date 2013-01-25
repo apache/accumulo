@@ -55,7 +55,7 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -104,7 +104,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       return new MultiIterator(allIters, false);
     }
   }
-
+  
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
   private KeyExtent currentExtent;
@@ -114,23 +114,22 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private Instance instance;
   private ScannerOptions options;
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
-
+  
   /**
-   * @param offlineScanner
    * @param instance
    * @param credentials
    * @param authorizations
    * @param table
    */
-  public OfflineIterator(ScannerOptions options, Instance instance, AuthInfo credentials, Authorizations authorizations, Text table, Range range) {
+  public OfflineIterator(ScannerOptions options, Instance instance, AccumuloToken<?,?> credentials, Authorizations authorizations, Text table, Range range) {
     this.options = new ScannerOptions(options);
     this.instance = instance;
     this.range = range;
     
     if (this.options.fetchedColumns.size() > 0) {
-      range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
+      this.range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
-
+    
     this.tableId = table.toString();
     this.authorizations = authorizations;
     this.readers = new ArrayList<SortedKeyValueIterator<Key,Value>>();
@@ -141,12 +140,12 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       
       while (iter != null && !iter.hasTop())
         nextTablet();
-
+      
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
-
+  
   @Override
   public boolean hasNext() {
     return iter != null && iter.hasTop();
@@ -158,7 +157,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       byte[] v = iter.getTopValue().get();
       // copy just like tablet server does, do this before calling next
       KeyValue ret = new KeyValue(new Key(iter.getTopKey()), Arrays.copyOf(v, v.length));
-
+      
       iter.next();
       
       while (iter != null && !iter.hasTop())
@@ -195,19 +194,19 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
         iter = null;
         return;
       }
-
+      
       if (range.afterEndKey(new Key(currentExtent.getEndRow()).followingKey(PartialKey.ROW))) {
         iter = null;
         return;
       }
-
+      
       nextRange = new Range(currentExtent.getMetadataEntry(), false, null, false);
     }
-
+    
     List<String> relFiles = new ArrayList<String>();
     
     Pair<KeyExtent,String> eloc = getTabletFiles(nextRange, relFiles);
-
+    
     while (eloc.getSecond() != null) {
       if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
         Tables.clearCache(instance);
@@ -226,7 +225,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (!extent.getTableId().toString().equals(tableId)) {
       throw new AccumuloException(" did not find tablets for table " + tableId + " " + extent);
     }
-
+    
     if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
     
@@ -259,7 +258,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     while (row.hasNext()) {
       Entry<Key,Value> entry = row.next();
       Key key = entry.getKey();
-
+      
       if (key.getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
         relFiles.add(key.getColumnQualifier().toString());
       }
@@ -272,11 +271,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key)) {
         extent = new KeyExtent(key.getRow(), entry.getValue());
       }
-
+      
     }
     return new Pair<KeyExtent,String>(extent, location);
   }
-
+  
   /**
    * @param absFiles
    * @return
@@ -299,7 +298,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
     
     readers.clear();
-
+    
     // TODO need to close files
     for (String file : absFiles) {
       FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, acuTableConf, null, null);
@@ -326,7 +325,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, extent, acuTableConf, options.serverSideIteratorList,
         options.serverSideIteratorOptions, iterEnv, false));
   }
-
+  
   @Override
   public void remove() {
     throw new UnsupportedOperationException();
@@ -344,28 +343,30 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private Range range;
   
   private Instance instance;
-  private AuthInfo credentials;
+  private AccumuloToken<?,?> credentials;
   private Authorizations authorizations;
   private Text tableId;
   
-  public OfflineScanner(Instance instance, AuthInfo credentials, String tableId, Authorizations authorizations) {
+  public OfflineScanner(Instance instance, AccumuloToken<?,?> credentials, String tableId, Authorizations authorizations) {
     ArgumentChecker.notNull(instance, credentials, tableId, authorizations);
     this.instance = instance;
     this.credentials = credentials;
     this.tableId = new Text(tableId);
     this.range = new Range((Key) null, (Key) null);
-
+    
     this.authorizations = authorizations;
     
     this.batchSize = Constants.SCAN_BATCH_SIZE;
     this.timeOut = Integer.MAX_VALUE;
   }
-
+  
+  @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
     this.timeOut = timeOut;
   }
   
+  @Deprecated
   @Override
   public int getTimeOut() {
     return timeOut;
@@ -405,5 +406,5 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   public Iterator<Entry<Key,Value>> iterator() {
     return new OfflineIterator(this, instance, credentials, authorizations, tableId, range);
   }
-
+  
 }

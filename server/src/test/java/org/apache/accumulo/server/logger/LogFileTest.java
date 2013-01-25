@@ -27,15 +27,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 
-import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.server.logger.LogEvents;
-import org.apache.accumulo.server.logger.LogFileKey;
-import org.apache.accumulo.server.logger.LogFileValue;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -53,7 +50,7 @@ public class LogFileTest {
     key.tablet = tablet;
     key.tserverSession = keyResult.tserverSession;
     LogFileValue value = new LogFileValue();
-    value.mutations = mutations != null ? mutations : new Mutation[0];
+    value.mutations = Arrays.asList(mutations != null ? mutations : new Mutation[0]);
     DataOutputBuffer out = new DataOutputBuffer();
     key.write(out);
     value.write(out);
@@ -63,18 +60,8 @@ public class LogFileTest {
     keyResult.readFields(in);
     valueResult.readFields(in);
     assertTrue(key.compareTo(keyResult) == 0);
-    assertTrue(Arrays.equals(value.mutations, valueResult.mutations));
+    assertEquals(value.mutations, valueResult.mutations);
     assertTrue(in.read() == -1);
-  }
-  
-  static void assertEqualsMutations(Mutation[] a, Mutation[] b) {
-    if (a.length == b.length)
-      for (int i = 0; i < a.length; i++) {
-        assertEquals(a[i], b[i]);
-        Collection<ColumnUpdate> au = a[i].getUpdates();
-        Collection<ColumnUpdate> bu = a[i].getUpdates();
-        assertEquals(au, bu);
-      }
   }
   
   @Test
@@ -99,18 +86,27 @@ public class LogFileTest {
     assertEquals(key.seq, 5);
     assertEquals(key.tid, 6);
     assertEquals(key.tablet, tablet);
-    Mutation m = new Mutation(new Text("row"));
+    Mutation m = new ServerMutation(new Text("row"));
     m.put(new Text("cf"), new Text("cq"), new Value("value".getBytes()));
     readWrite(MUTATION, 7, 8, null, null, new Mutation[] {m}, key, value);
     assertEquals(key.event, MUTATION);
     assertEquals(key.seq, 7);
     assertEquals(key.tid, 8);
-    assertEqualsMutations(value.mutations, new Mutation[] {m});
+    assertEquals(value.mutations, Arrays.asList(m));
+    m = new ServerMutation(new Text("row"));
+    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis"), 12345, new Value("value".getBytes()));
+    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"), new Value("value".getBytes()));
+    m.putDelete(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"));
+    readWrite(MUTATION, 8, 9, null, null, new Mutation[] {m}, key, value);
+    assertEquals(key.event, MUTATION);
+    assertEquals(key.seq, 8);
+    assertEquals(key.tid, 9);
+    assertEquals(value.mutations, Arrays.asList(m));
     readWrite(MANY_MUTATIONS, 9, 10, null, null, new Mutation[] {m, m}, key, value);
     assertEquals(key.event, MANY_MUTATIONS);
     assertEquals(key.seq, 9);
     assertEquals(key.tid, 10);
-    assertEqualsMutations(value.mutations, new Mutation[] {m, m});
+    assertEquals(value.mutations, Arrays.asList(m, m));
   }
   
   @Test

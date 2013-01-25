@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -122,12 +123,12 @@ public class TServersServlet extends BasicServlet {
     TabletStats historical = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<TabletStats>();
     try {
-      TabletClientService.Iface client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, Monitor.getSystemConfiguration());
+      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, Monitor.getSystemConfiguration());
       try {
         for (String tableId : Monitor.getMmi().tableMap.keySet()) {
-          tsStats.addAll(client.getTabletStats(null, SecurityConstants.getSystemCredentials(), tableId));
+          tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials(), tableId));
         }
-        historical = client.getHistoricalStats(null, SecurityConstants.getSystemCredentials());
+        historical = client.getHistoricalStats(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials());
       } finally {
         ThriftUtil.returnClient(client);
       }
@@ -157,8 +158,8 @@ public class TServersServlet extends BasicServlet {
         continue;
       }
       total.numEntries += info.numEntries;
-      TabletStatsKeeper.update(total.minor, info.minor);
-      TabletStatsKeeper.update(total.major, info.major);
+      TabletStatsKeeper.update(total.minors, info.minors);
+      TabletStatsKeeper.update(total.majors, info.majors);
       
       KeyExtent extent = new KeyExtent(info.extent);
       String tableId = extent.getTableId().toString();
@@ -175,36 +176,36 @@ public class TServersServlet extends BasicServlet {
       row.add(info.numEntries);
       row.add(info.ingestRate);
       row.add(info.queryRate);
-      row.add(info.minor.num != 0 ? info.minor.elapsed / info.minor.num : null);
-      row.add(stddev(info.minor.elapsed, info.minor.num, info.minor.sumDev));
-      row.add(info.minor.elapsed != 0 ? info.minor.count / info.minor.elapsed : null);
-      row.add(info.major.num != 0 ? info.major.elapsed / info.major.num : null);
-      row.add(stddev(info.major.elapsed, info.major.num, info.major.sumDev));
-      row.add(info.major.elapsed != 0 ? info.major.count / info.major.elapsed : null);
+      row.add(info.minors.num != 0 ? info.minors.elapsed / info.minors.num : null);
+      row.add(stddev(info.minors.elapsed, info.minors.num, info.minors.sumDev));
+      row.add(info.minors.elapsed != 0 ? info.minors.count / info.minors.elapsed : null);
+      row.add(info.majors.num != 0 ? info.majors.elapsed / info.majors.num : null);
+      row.add(stddev(info.majors.elapsed, info.majors.num, info.majors.sumDev));
+      row.add(info.majors.elapsed != 0 ? info.majors.count / info.majors.elapsed : null);
       perTabletResults.addRow(row);
     }
     
     // Calculate current averages oldServer adding in historical data
-    if (total.minor.num != 0)
-      currentMinorAvg = (long) (total.minor.elapsed / total.minor.num);
-    if (total.minor.elapsed != 0 && total.minor.num != 0)
-      currentMinorStdDev = stddev(total.minor.elapsed, total.minor.num, total.minor.sumDev);
-    if (total.major.num != 0)
-      currentMajorAvg = total.major.elapsed / total.major.num;
-    if (total.major.elapsed != 0 && total.major.num != 0 && total.major.elapsed > total.major.num)
-      currentMajorStdDev = stddev(total.major.elapsed, total.major.num, total.major.sumDev);
+    if (total.minors.num != 0)
+      currentMinorAvg = (long) (total.minors.elapsed / total.minors.num);
+    if (total.minors.elapsed != 0 && total.minors.num != 0)
+      currentMinorStdDev = stddev(total.minors.elapsed, total.minors.num, total.minors.sumDev);
+    if (total.majors.num != 0)
+      currentMajorAvg = total.majors.elapsed / total.majors.num;
+    if (total.majors.elapsed != 0 && total.majors.num != 0 && total.majors.elapsed > total.majors.num)
+      currentMajorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
     
     // After these += operations, these variables are now total for current
     // tablets and historical tablets
-    TabletStatsKeeper.update(total.minor, historical.minor);
-    TabletStatsKeeper.update(total.major, historical.major);
-    totalElapsedForAll += total.major.elapsed + historical.split.elapsed + total.minor.elapsed;
+    TabletStatsKeeper.update(total.minors, historical.minors);
+    TabletStatsKeeper.update(total.majors, historical.majors);
+    totalElapsedForAll += total.majors.elapsed + historical.splits.elapsed + total.minors.elapsed;
     
-    minorStdDev = stddev(total.minor.elapsed, total.minor.num, total.minor.sumDev);
-    minorQueueStdDev = stddev(total.minor.queueTime, total.minor.num, total.minor.queueSumDev);
-    majorStdDev = stddev(total.major.elapsed, total.major.num, total.major.sumDev);
-    majorQueueStdDev = stddev(total.major.queueTime, total.major.num, total.major.queueSumDev);
-    splitStdDev = stddev(historical.split.num, historical.split.elapsed, historical.split.sumDev);
+    minorStdDev = stddev(total.minors.elapsed, total.minors.num, total.minors.sumDev);
+    minorQueueStdDev = stddev(total.minors.queueTime, total.minors.num, total.minors.queueSumDev);
+    majorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
+    majorQueueStdDev = stddev(total.majors.queueTime, total.majors.num, total.majors.queueSumDev);
+    splitStdDev = stddev(historical.splits.num, historical.splits.elapsed, historical.splits.sumDev);
     
     doDetailTable(req, sb, address, tsStats.size(), total, historical);
     doAllTimeTable(req, sb, total, historical, majorQueueStdDev, minorQueueStdDev, totalElapsedForAll, splitStdDev, majorStdDev, minorStdDev);
@@ -236,14 +237,14 @@ public class TServersServlet extends BasicServlet {
     opHistoryDetails.addSortableColumn("Std.&nbsp;Dev.<br />Time", new SecondType(), null);
     opHistoryDetails.addSortableColumn("Percentage&nbsp;Time&nbsp;Spent", new ProgressChartType(totalElapsedForAll), null);
     
-    opHistoryDetails.addRow("Split", historical.split.num, historical.split.fail, null, null,
-        historical.split.num != 0 ? (historical.split.elapsed / historical.split.num) : null, splitStdDev, historical.split.elapsed);
-    opHistoryDetails.addRow("Major&nbsp;Compaction", total.major.num, total.major.fail,
-        total.major.num != 0 ? (total.major.queueTime / total.major.num) : null, majorQueueStdDev,
-        total.major.num != 0 ? (total.major.elapsed / total.major.num) : null, majorStdDev, total.major.elapsed);
-    opHistoryDetails.addRow("Minor&nbsp;Compaction", total.minor.num, total.minor.fail,
-        total.minor.num != 0 ? (total.minor.queueTime / total.minor.num) : null, minorQueueStdDev,
-        total.minor.num != 0 ? (total.minor.elapsed / total.minor.num) : null, minorStdDev, total.minor.elapsed);
+    opHistoryDetails.addRow("Split", historical.splits.num, historical.splits.fail, null, null,
+        historical.splits.num != 0 ? (historical.splits.elapsed / historical.splits.num) : null, splitStdDev, historical.splits.elapsed);
+    opHistoryDetails.addRow("Major&nbsp;Compaction", total.majors.num, total.majors.fail,
+        total.majors.num != 0 ? (total.majors.queueTime / total.majors.num) : null, majorQueueStdDev,
+        total.majors.num != 0 ? (total.majors.elapsed / total.majors.num) : null, majorStdDev, total.majors.elapsed);
+    opHistoryDetails.addRow("Minor&nbsp;Compaction", total.minors.num, total.minors.fail,
+        total.minors.num != 0 ? (total.minors.queueTime / total.minors.num) : null, minorQueueStdDev,
+        total.minors.num != 0 ? (total.minors.elapsed / total.minors.num) : null, minorStdDev, total.minors.elapsed);
     opHistoryDetails.generate(req, sb);
   }
   
@@ -255,7 +256,7 @@ public class TServersServlet extends BasicServlet {
     detailTable.addSortableColumn("Minor&nbsp;Compacting", new NumberType<Integer>(), null);
     detailTable.addSortableColumn("Major&nbsp;Compacting", new NumberType<Integer>(), null);
     detailTable.addSortableColumn("Splitting", new NumberType<Integer>(), null);
-    detailTable.addRow(numTablets, total.numEntries, total.minor.status, total.major.status, historical.split.status);
+    detailTable.addRow(numTablets, total.numEntries, total.minors.status, total.majors.status, historical.splits.status);
     detailTable.generate(req, sb);
   }
   

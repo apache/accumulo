@@ -21,32 +21,38 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.mapreduce.InputFormatBase.RangeInputSplit;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.util.ContextFactory;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.log4j.Logger;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 public class ChunkInputFormatTest extends TestCase {
-  private static final Logger log = Logger.getLogger(ChunkInputStream.class);
-  List<Entry<Key,Value>> data;
-  List<Entry<Key,Value>> baddata;
+  private static AssertionError e0 = null;
+  private static AssertionError e1 = null;
+  private static AssertionError e2 = null;
+  private static IOException e3 = null;
+  
+  private static final Authorizations AUTHS = new Authorizations("A", "B", "C", "D");
+  
+  private static List<Entry<Key,Value>> data;
+  private static List<Entry<Key,Value>> baddata;
   
   {
     data = new ArrayList<Entry<Key,Value>>();
@@ -71,11 +77,157 @@ public class ChunkInputFormatTest extends TestCase {
     assertEquals(e1.getValue(), e2.getValue());
   }
   
-  public void test() throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+  public static class CIFTester extends Configured implements Tool {
+    public static class TestMapper extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
+      int count = 0;
+      
+      @Override
+      protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
+        byte[] b = new byte[20];
+        int read;
+        try {
+          switch (count) {
+            case 0:
+              assertEquals(key.size(), 2);
+              entryEquals(key.get(0), data.get(0));
+              entryEquals(key.get(1), data.get(1));
+              assertEquals(read = value.read(b), 8);
+              assertEquals(new String(b, 0, read), "asdfjkl;");
+              assertEquals(read = value.read(b), -1);
+              break;
+            case 1:
+              assertEquals(key.size(), 2);
+              entryEquals(key.get(0), data.get(4));
+              entryEquals(key.get(1), data.get(5));
+              assertEquals(read = value.read(b), 10);
+              assertEquals(new String(b, 0, read), "qwertyuiop");
+              assertEquals(read = value.read(b), -1);
+              break;
+            default:
+              assertTrue(false);
+          }
+        } catch (AssertionError e) {
+          e1 = e;
+        } finally {
+          value.close();
+        }
+        count++;
+      }
+      
+      @Override
+      protected void cleanup(Context context) throws IOException, InterruptedException {
+        try {
+          assertEquals(2, count);
+        } catch (AssertionError e) {
+          e2 = e;
+        }
+      }
+    }
+    
+    public static class TestNoClose extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
+      int count = 0;
+      
+      @Override
+      protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
+        byte[] b = new byte[5];
+        int read;
+        try {
+          switch (count) {
+            case 0:
+              assertEquals(read = value.read(b), 5);
+              assertEquals(new String(b, 0, read), "asdfj");
+              break;
+            default:
+              assertTrue(false);
+          }
+        } catch (AssertionError e) {
+          e1 = e;
+        }
+        count++;
+        try {
+          context.nextKeyValue();
+          assertTrue(false);
+        } catch (IOException ioe) {
+          e3 = ioe;
+        }
+      }
+    }
+    
+    public static class TestBadData extends Mapper<List<Entry<Key,Value>>,InputStream,List<Entry<Key,Value>>,InputStream> {
+      @Override
+      protected void map(List<Entry<Key,Value>> key, InputStream value, Context context) throws IOException, InterruptedException {
+        byte[] b = new byte[20];
+        try {
+          assertEquals(key.size(), 2);
+          entryEquals(key.get(0), baddata.get(0));
+          entryEquals(key.get(1), baddata.get(1));
+        } catch (AssertionError e) {
+          e0 = e;
+        }
+        try {
+          value.read(b);
+          try {
+            assertTrue(false);
+          } catch (AssertionError e) {
+            e1 = e;
+          }
+        } catch (Exception e) {}
+        try {
+          value.close();
+          try {
+            assertTrue(false);
+          } catch (AssertionError e) {
+            e2 = e;
+          }
+        } catch (Exception e) {}
+      }
+    }
+    
+    @Override
+    public int run(String[] args) throws Exception {
+      if (args.length != 5) {
+        throw new IllegalArgumentException("Usage : " + CIFTester.class.getName() + " <instance name> <user> <pass> <table> <mapperClass>");
+      }
+      
+      String instance = args[0];
+      String user = args[1];
+      String pass = args[2];
+      String table = args[3];
+      
+      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      job.setJarByClass(this.getClass());
+      
+      job.setInputFormatClass(ChunkInputFormat.class);
+      
+      ChunkInputFormat.setConnectorInfo(job, new UserPassToken(user, pass));
+      ChunkInputFormat.setInputTableName(job, table);
+      ChunkInputFormat.setScanAuthorizations(job, AUTHS);
+      ChunkInputFormat.setMockInstance(job, instance);
+      
+      @SuppressWarnings("unchecked")
+      Class<? extends Mapper<?,?,?,?>> forName = (Class<? extends Mapper<?,?,?,?>>) Class.forName(args[4]);
+      job.setMapperClass(forName);
+      job.setMapOutputKeyClass(Key.class);
+      job.setMapOutputValueClass(Value.class);
+      job.setOutputFormatClass(NullOutputFormat.class);
+      
+      job.setNumReduceTasks(0);
+      
+      job.waitForCompletion(true);
+      
+      return job.isSuccessful() ? 0 : 1;
+    }
+    
+    public static int main(String[] args) throws Exception {
+      return ToolRunner.run(CachedConfiguration.getInstance(), new CIFTester(), args);
+    }
+  }
+  
+  public void test() throws Exception {
     MockInstance instance = new MockInstance("instance1");
-    Connector conn = instance.getConnector("root", "".getBytes());
+    Connector conn = instance.getConnector(new UserPassToken("root", ""));
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", 100000l, 100l, 5);
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(5));
     
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
@@ -85,48 +237,16 @@ public class ChunkInputFormatTest extends TestCase {
     }
     bw.close();
     
-    JobContext job = ContextFactory.createJobContext();
-    ChunkInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "test", new Authorizations("A", "B", "C", "D"));
-    ChunkInputFormat.setMockInstance(job.getConfiguration(), "instance1");
-    ChunkInputFormat cif = new ChunkInputFormat();
-    RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job.getConfiguration());
-    RecordReader<List<Entry<Key,Value>>,InputStream> rr = cif.createRecordReader(ris, tac);
-    rr.initialize(ris, tac);
-    
-    assertTrue(rr.nextKeyValue());
-    List<Entry<Key,Value>> info = rr.getCurrentKey();
-    InputStream cis = rr.getCurrentValue();
-    byte[] b = new byte[20];
-    int read;
-    assertEquals(info.size(), 2);
-    entryEquals(info.get(0), data.get(0));
-    entryEquals(info.get(1), data.get(1));
-    assertEquals(read = cis.read(b), 8);
-    assertEquals(new String(b, 0, read), "asdfjkl;");
-    assertEquals(read = cis.read(b), -1);
-    cis.close();
-    
-    assertTrue(rr.nextKeyValue());
-    info = rr.getCurrentKey();
-    cis = rr.getCurrentValue();
-    assertEquals(info.size(), 2);
-    entryEquals(info.get(0), data.get(4));
-    entryEquals(info.get(1), data.get(5));
-    assertEquals(read = cis.read(b), 10);
-    assertEquals(new String(b, 0, read), "qwertyuiop");
-    assertEquals(read = cis.read(b), -1);
-    cis.close();
-    
-    assertFalse(rr.nextKeyValue());
+    assertEquals(0, CIFTester.main(new String[] {"instance1", "root", "", "test", CIFTester.TestMapper.class.getName()}));
+    assertNull(e1);
+    assertNull(e2);
   }
   
-  public void testErrorOnNextWithoutClose() throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      TableExistsException {
+  public void testErrorOnNextWithoutClose() throws Exception {
     MockInstance instance = new MockInstance("instance2");
-    Connector conn = instance.getConnector("root", "".getBytes());
+    Connector conn = instance.getConnector(new UserPassToken("root", ""));
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", 100000l, 100l, 5);
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(5));
     
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
@@ -136,37 +256,17 @@ public class ChunkInputFormatTest extends TestCase {
     }
     bw.close();
     
-    JobContext job = ContextFactory.createJobContext();
-    ChunkInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "test", new Authorizations("A", "B", "C", "D"));
-    ChunkInputFormat.setMockInstance(job.getConfiguration(), "instance2");
-    ChunkInputFormat cif = new ChunkInputFormat();
-    RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job.getConfiguration());
-    RecordReader<List<Entry<Key,Value>>,InputStream> crr = cif.createRecordReader(ris, tac);
-    crr.initialize(ris, tac);
-    
-    assertTrue(crr.nextKeyValue());
-    InputStream cis = crr.getCurrentValue();
-    byte[] b = new byte[5];
-    int read;
-    assertEquals(read = cis.read(b), 5);
-    assertEquals(new String(b, 0, read), "asdfj");
-    
-    try {
-      crr.nextKeyValue();
-      assertNotNull(null);
-    } catch (Exception e) {
-      log.debug("EXCEPTION " + e.getMessage());
-      assertNull(null);
-    }
+    assertEquals(1, CIFTester.main(new String[] {"instance2", "root", "", "test", CIFTester.TestNoClose.class.getName()}));
+    assertNull(e1);
+    assertNull(e2);
+    assertNotNull(e3);
   }
   
-  public void testInfoWithoutChunks() throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      TableExistsException {
+  public void testInfoWithoutChunks() throws Exception {
     MockInstance instance = new MockInstance("instance3");
-    Connector conn = instance.getConnector("root", "".getBytes());
+    Connector conn = instance.getConnector(new UserPassToken("root", ""));
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", 100000l, 100l, 5);
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(5));
     for (Entry<Key,Value> e : baddata) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());
@@ -175,35 +275,9 @@ public class ChunkInputFormatTest extends TestCase {
     }
     bw.close();
     
-    JobContext job = ContextFactory.createJobContext();
-    ChunkInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "test", new Authorizations("A", "B", "C", "D"));
-    ChunkInputFormat.setMockInstance(job.getConfiguration(), "instance3");
-    ChunkInputFormat cif = new ChunkInputFormat();
-    RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job.getConfiguration());
-    RecordReader<List<Entry<Key,Value>>,InputStream> crr = cif.createRecordReader(ris, tac);
-    crr.initialize(ris, tac);
-    
-    assertTrue(crr.nextKeyValue());
-    List<Entry<Key,Value>> info = crr.getCurrentKey();
-    InputStream cis = crr.getCurrentValue();
-    byte[] b = new byte[20];
-    assertEquals(info.size(), 2);
-    entryEquals(info.get(0), baddata.get(0));
-    entryEquals(info.get(1), baddata.get(1));
-    try {
-      cis.read(b);
-      assertNotNull(null);
-    } catch (Exception e) {
-      log.debug("EXCEPTION " + e.getMessage());
-      assertNull(null);
-    }
-    try {
-      cis.close();
-      assertNotNull(null);
-    } catch (Exception e) {
-      log.debug("EXCEPTION " + e.getMessage());
-      assertNull(null);
-    }
+    assertEquals(0, CIFTester.main(new String[] {"instance3", "root", "", "test", CIFTester.TestBadData.class.getName()}));
+    assertNull(e0);
+    assertNull(e1);
+    assertNull(e2);
   }
 }

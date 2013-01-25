@@ -22,11 +22,13 @@ import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
@@ -40,7 +42,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.conf.Configuration;
@@ -56,15 +57,13 @@ public class ContinuousStatsCollector {
   static class StatsCollectionTask extends TimerTask {
     
     private final String tableId;
-    private ZooKeeperInstance instance;
-    private String user;
-    private String pass;
+    private final Opts opts;
+    private final int scanBatchSize;
     
-    public StatsCollectionTask(String tableName, String instanceName, String zooHosts, String user, String pass) {
-      this.instance = new ZooKeeperInstance(instanceName, zooHosts);
-      this.tableId = Tables.getNameToIdMap(instance).get(tableName);
-      this.user = user;
-      this.pass = pass;
+    public StatsCollectionTask(Opts opts, int scanBatchSize) {
+      this.opts = opts;
+      this.scanBatchSize = scanBatchSize;
+      this.tableId = Tables.getNameToIdMap(opts.getInstance()).get(opts.tableName);
       System.out
           .println("TIME TABLET_SERVERS TOTAL_ENTRIES TOTAL_INGEST TOTAL_QUERY TABLE_RECS TABLE_RECS_IN_MEM TABLE_INGEST TABLE_QUERY TABLE_TABLETS TABLE_TABLETS_ONLINE"
               + " ACCUMULO_DU ACCUMULO_DIRS ACCUMULO_FILES TABLE_DU TABLE_DIRS TABLE_FILES"
@@ -87,9 +86,10 @@ public class ContinuousStatsCollector {
     }
     
     private String getTabletStats() throws Exception {
-      Connector conn = instance.getConnector(user, pass);
       
-      Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+      Connector conn = opts.getConnector();
+      Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, opts.auths);
+      scanner.setBatchSize(scanBatchSize);
       scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
       scanner.addScanIterator(new IteratorSetting(1000, "cfc", ColumnFamilyCounter.class.getName()));
       scanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
@@ -125,8 +125,8 @@ public class ContinuousStatsCollector {
       
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnectionWithRetry(HdfsZooInstance.getInstance());
-        MasterMonitorInfo stats = client.getMasterStats(null, SecurityConstants.getSystemCredentials());
+        client = MasterClient.getConnectionWithRetry(opts.getInstance());
+        MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials());
         
         TableInfo all = new TableInfo();
         Map<String,TableInfo> tableSummaries = new HashMap<String,TableInfo>();
@@ -159,7 +159,6 @@ public class ContinuousStatsCollector {
   
   private static String getMRStats() throws Exception {
     Configuration conf = CachedConfiguration.getInstance();
-    @SuppressWarnings("deprecation")
     // No alternatives for hadoop 20
     JobClient jc = new JobClient(new org.apache.hadoop.mapred.JobConf(conf));
     
@@ -170,10 +169,16 @@ public class ContinuousStatsCollector {
     
   }
   
+  static class Opts extends ClientOnRequiredTable {
+  }
+  
   public static void main(String[] args) {
+    Opts opts = new Opts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(ContinuousStatsCollector.class.getName(), args, scanOpts);
     Timer jtimer = new Timer();
     
-    jtimer.schedule(new StatsCollectionTask(args[0], args[1], args[2], args[3], args[4]), 0, 30000);
+    jtimer.schedule(new StatsCollectionTask(opts, scanOpts.scanBatchSize), 0, 30000);
   }
   
 }

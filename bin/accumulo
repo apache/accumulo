@@ -15,15 +15,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+_readlink ()
+{
+  result=`readlink -f $1 2>/dev/null`
+  if [ $? -eq 0 ];
+  then
+    echo $result
+    return 0
+  fi
 
-bin=`dirname "$0"`
+  oldPath=$1
+  if [ -n `echo $oldPath | egrep "^[.]"` ]; then
+    oldPath=`echo $1 | sed -e 's#[.]/##'`
+  fi
+  if [ -z `echo $oldPath | egrep '^/'` ]; then
+    oldPath="`pwd`/$oldPath"
+  fi
+  newPath=$oldPath
+  while [ "$newPath" ];
+  do
+    oldPath=$newPath  
+    newPath=`readlink $newPath`
+  done
+
+  echo $oldPath
+  return 0
+}
+
+bin=`_readlink $0`
+bin=`dirname "$bin"`
 bin=`cd "$bin"; pwd`
 
 . "$bin"/config.sh
 
-START_JAR=$ACCUMULO_HOME/lib/accumulo-start-$ACCUMULO_VERSION.jar
-COMMONS_JCI_JARS=$ACCUMULO_HOME/lib/commons-jci-core-1.0.jar:$ACCUMULO_HOME/lib/commons-jci-fam-1.0.jar:$ACCUMULO_HOME/lib/log4j-1.2.16.jar:$ACCUMULO_HOME/lib/commons-logging-1.0.4.jar:$ACCUMULO_HOME/lib/commons-logging-api-1.0.4.jar
-START_CLASSES_DIR=$ACCUMULO_HOME/src/start/target/classes
+START_JAR=$ACCUMULO_HOME/lib/accumulo-start-$ACCUMULO_VERSION.jar:$ACCUMULO_HOME/lib/log4j-1.2.16.jar
 
 locationByProgram() 
 {
@@ -42,22 +67,6 @@ test -n "$ZOOKEEPER_HOME" || export ZOOKEEPER_HOME=`locationByProgram zkCli.sh`
 
 
 DEFAULT_GENERAL_JAVA_OPTS=""
-BIG=6g
-MED=3g
-SMALL=512m
-if ! "$JAVA_HOME/bin/java" -Xms10g -Xmx10g >/dev/null 2>&1 ; then
-   BIG=3g
-   MED=1g
-   SMALL=256m
-fi
-
-test -n "$ACCUMULO_TSERVER_OPTS" || export ACCUMULO_TSERVER_OPTS="-Xmx$BIG -Xms$BIG "
-test -n "$ACCUMULO_MASTER_OPTS"  || export ACCUMULO_MASTER_OPTS="-Xmx$MED -Xms$MED "
-test -n "$ACCUMULO_GC_OPTS"      || export ACCUMULO_GC_OPTS="-Xmx$SMALL -Xms$SMALL "
-test -n "$ACCUMULO_MONITOR_OPTS" || export ACCUMULO_MONITOR_OPTS="-Xmx$MED -Xms$SMALL "
-test -n "$ACCUMULO_LOGGER_OPTS"  || export ACCUMULO_LOGGER_OPTS="-Xmx$MED -Xms$SMALL "
-test -n "$ACCUMULO_GENERAL_OPTS" || export ACCUMULO_GENERAL_OPTS="$DEFAULT_GENERAL_JAVA_OPTS"
-test -n "$ACCUMULO_OTHER_OPTS"   || export ACCUMULO_OTHER_OPTS="-Xmx$MED -Xms$SMALL "
 
 # ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
 if [ "$1" = "-add" ] ; then
@@ -82,19 +91,27 @@ else
 fi
 
 XML_FILES=${ACCUMULO_HOME}/conf
-CLASSPATH=${XML_FILES}:${START_JAR}:${COMMONS_JCI_JARS}
+CLASSPATH=${XML_FILES}:${START_JAR}
 
 if [ -z $JAVA_HOME -o ! -d $JAVA_HOME ]; then
-    echo "JAVA_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-    exit 1
+  echo "JAVA_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+  exit 1
 fi
 if [ -z $HADOOP_HOME -o ! -d $HADOOP_HOME ]; then
-    echo "HADOOP_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-    exit 1
+  echo "HADOOP_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+  exit 1
 fi
 if [ -z $ZOOKEEPER_HOME -o ! -d $ZOOKEEPER_HOME ]; then
-    echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-    exit 1
+  echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+  exit 1
+fi
+if [ -z $ACCUMULO_LOG_DIR ]; then
+  echo "ACCUMULO_LOG_DIR is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+  exit 1
+fi
+
+if [ ! -d "$ACCUMULO_LOG_DIR" ]; then
+  mkdir -p $ACCUMULO_LOG_DIR;
 fi
 
 #Export the variables just in case they are not exported
@@ -107,4 +124,4 @@ JAVA=$JAVA_HOME/bin/java
 PLATFORM="`$JAVA -cp $CLASSPATH org.apache.accumulo.start.Platform`"
 
 # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
-exec $JAVA "-Dapp=$1" -classpath $CLASSPATH $ACCUMULO_OPTS -XX:OnOutOfMemoryError="kill -9 %p" -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl -Djava.library.path="$HADOOP_HOME/lib/native/$PLATFORM" -Dorg.apache.accumulo.core.home.dir="$ACCUMULO_HOME" -Dhadoop.home.dir="$HADOOP_HOME" -Dzookeeper.home.dir="$ZOOKEEPER_HOME" org.apache.accumulo.start.Main "$@"
+exec $JAVA "-Dapp=$1" $ACCUMULO_OPTS -classpath $CLASSPATH -XX:OnOutOfMemoryError="kill -9 %p" -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl -Djava.library.path="$HADOOP_HOME/lib/native/$PLATFORM" -Dorg.apache.accumulo.core.home.dir="$ACCUMULO_HOME" -Dhadoop.home.dir="$HADOOP_HOME" -Dzookeeper.home.dir="$ZOOKEEPER_HOME" org.apache.accumulo.start.Main "$@"

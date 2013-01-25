@@ -59,6 +59,21 @@ public class RegExFilterTest extends TestCase {
     IteratorSetting is = new IteratorSetting(1, RegExFilter.class);
     RegExFilter.setRegexs(is, ".*2", null, null, null, false);
     
+    assertTrue(rei.validateOptions(is.getOptions()));
+    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k3));
+    rei.next();
+    assertFalse(rei.hasTop());
+        
+    // -----------------------------------------------------
+    // Test substring regex
+    is.clearOptions();
+    
+    RegExFilter.setRegexs(is, null, null, null, "amst", false, true); // Should only match hamster
+    
     rei.validateOptions(is.getOptions());
     rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -72,7 +87,7 @@ public class RegExFilterTest extends TestCase {
     is.clearOptions();
     
     RegExFilter.setRegexs(is, null, "ya.*", null, null, false);
-    rei.validateOptions(is.getOptions());
+    assertTrue(rei.validateOptions(is.getOptions()));
     rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
     
@@ -85,7 +100,7 @@ public class RegExFilterTest extends TestCase {
     is.clearOptions();
     
     RegExFilter.setRegexs(is, null, null, ".*01", null, false);
-    rei.validateOptions(is.getOptions());
+    assertTrue(rei.validateOptions(is.getOptions()));
     rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
     
@@ -98,7 +113,7 @@ public class RegExFilterTest extends TestCase {
     is.clearOptions();
     
     RegExFilter.setRegexs(is, null, null, null, ".*at", false);
-    rei.validateOptions(is.getOptions());
+    assertTrue(rei.validateOptions(is.getOptions()));
     rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
     

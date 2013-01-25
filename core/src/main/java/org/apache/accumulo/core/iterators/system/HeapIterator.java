@@ -17,12 +17,9 @@
 package org.apache.accumulo.core.iterators.system;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Filterer;
-import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.commons.collections.buffer.PriorityBuffer;
 

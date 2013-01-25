@@ -18,9 +18,10 @@ package org.apache.accumulo.core.client.mapreduce.lib.partition;
 
 import static org.junit.Assert.assertTrue;
 
-import org.apache.accumulo.core.util.ContextFactory;
+import java.io.IOException;
+
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.Job;
 import org.junit.Test;
 
 public class RangePartitionerTest {
@@ -28,7 +29,7 @@ public class RangePartitionerTest {
   private static Text[] cutArray = new Text[] {new Text("A"), new Text("B"), new Text("C")};
   
   @Test
-  public void testNoSubBins() {
+  public void testNoSubBins() throws IOException {
     for (int i = -2; i < 2; ++i) {
       checkExpectedBins(i, new String[] {"A", "B", "C"}, new int[] {0, 1, 2});
       checkExpectedBins(i, new String[] {"C", "A", "B"}, new int[] {2, 0, 1});
@@ -37,7 +38,7 @@ public class RangePartitionerTest {
   }
   
   @Test
-  public void testSubBins() {
+  public void testSubBins() throws IOException {
     checkExpectedRangeBins(2, new String[] {"A", "B", "C"}, new int[] {1, 3, 5});
     checkExpectedRangeBins(2, new String[] {"C", "A", "B"}, new int[] {5, 1, 3});
     checkExpectedRangeBins(2, new String[] {"", "AA", "BB", "CC"}, new int[] {1, 3, 5, 7});
@@ -51,15 +52,15 @@ public class RangePartitionerTest {
     checkExpectedRangeBins(10, new String[] {"", "AA", "BB", "CC"}, new int[] {9, 19, 29, 39});
   }
   
-  private RangePartitioner prepPartitioner(int numSubBins) {
-    JobContext job = ContextFactory.createJobContext();
+  private RangePartitioner prepPartitioner(int numSubBins) throws IOException {
+    Job job = new Job();
     RangePartitioner.setNumSubBins(job, numSubBins);
     RangePartitioner rp = new RangePartitioner();
     rp.setConf(job.getConfiguration());
     return rp;
   }
   
-  private void checkExpectedRangeBins(int numSubBins, String[] strings, int[] rangeEnds) {
+  private void checkExpectedRangeBins(int numSubBins, String[] strings, int[] rangeEnds) throws IOException {
     assertTrue(strings.length == rangeEnds.length);
     for (int i = 0; i < strings.length; ++i) {
       int endRange = rangeEnds[i];
@@ -70,7 +71,7 @@ public class RangePartitionerTest {
     }
   }
   
-  private void checkExpectedBins(int numSubBins, String[] strings, int[] bins) {
+  private void checkExpectedBins(int numSubBins, String[] strings, int[] bins) throws IOException {
     assertTrue(strings.length == bins.length);
     for (int i = 0; i < strings.length; ++i) {
       int bin = bins[i], part = prepPartitioner(numSubBins).findPartition(new Text(strings[i]), cutArray, numSubBins);

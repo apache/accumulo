@@ -56,7 +56,7 @@ public class LogSorter {
   FileSystem fs;
   AccumuloConfiguration conf;
   
-  private Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<String,LogProcessor>());
+  private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<String,LogProcessor>());
 
   class LogProcessor implements Processor {
     

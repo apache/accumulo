@@ -63,7 +63,7 @@ abstract class MemoryUsageTest {
     double diff = actualBytesPerEntry - expectedBytesPerEntry;
     double ratio = actualBytesPerEntry / expectedBytesPerEntry * 100;
     
-    System.out.printf("%30s | %,10d | %6.2fGB | %6.2f | %6.2f | %6.2f | %6.2f%s\n", getName(), getNumPasses(), memSize / (1024 * 1024 * 1024.0),
+    System.out.printf("%30s | %,10d | %6.2fGB | %6.2f | %6.2f | %6.2f | %6.2f%s%n", getName(), getNumPasses(), memSize / (1024 * 1024 * 1024.0),
         actualBytesPerEntry, expectedBytesPerEntry, diff, ratio, "%");
     
     clear();

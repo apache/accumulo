@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -41,30 +42,43 @@ import org.apache.commons.cli.Options;
 
 public class SetScanIterCommand extends SetIterCommand {
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ShellCommandException {
+    Shell.log.warn("Deprecated, use " + new SetShellIterCommand().getName());
     return super.execute(fullCommand, cl, shellState);
   }
   
   @Override
-  protected void setTableProperties(CommandLine cl, Shell shellState, String tableName, int priority, Map<String,String> options, String classname, String name)
-      throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
+  protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
+      final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
+    
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
+
     // instead of setting table properties, just put the options in a list to use at scan time
-    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName()))
+    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
           + SortedKeyValueIterator.class.getName());
+    }
+    
+    for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
+      final Entry<String,String> entry = i.next();
+      if (entry.getValue() == null || entry.getValue().isEmpty()) {
+        i.remove();
+      }
+    }
+
     List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
     if (tableScanIterators == null) {
       tableScanIterators = new ArrayList<IteratorSetting>();
       shellState.scanIteratorOptions.put(tableName, tableScanIterators);
     }
-    IteratorSetting setting = new IteratorSetting(priority, name, classname);
+    final IteratorSetting setting = new IteratorSetting(priority, name, classname);
     setting.addOptions(options);
     
     // initialize a scanner to ensure the new setting does not conflict with existing settings
-    String user = shellState.getConnector().whoami();
-    Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
-    Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
+    final String user = shellState.getConnector().whoami();
+    final Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
+    final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
     for (IteratorSetting s : tableScanIterators) {
       scanner.addScanIterator(s);
     }
@@ -84,9 +98,9 @@ public class SetScanIterCommand extends SetIterCommand {
   public Options getOptions() {
     // Remove the options that specify which type of iterator this is, since
     // they are all scan iterators with this command.
-    HashSet<OptionGroup> groups = new HashSet<OptionGroup>();
-    Options parentOptions = super.getOptions();
-    Options modifiedOptions = new Options();
+    final HashSet<OptionGroup> groups = new HashSet<OptionGroup>();
+    final Options parentOptions = super.getOptions();
+    final Options modifiedOptions = new Options();
     for (Iterator<?> it = parentOptions.getOptions().iterator(); it.hasNext();) {
       Option o = (Option) it.next();
       if (!IteratorScope.majc.name().equals(o.getOpt()) && !IteratorScope.minc.name().equals(o.getOpt()) && !IteratorScope.scan.name().equals(o.getOpt())) {

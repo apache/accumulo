@@ -14,6 +14,7 @@
 # limitations under the License.
 
 # /
+*.pyc
 /logs
 /walogs
 /target
@@ -70,82 +71,73 @@
 /lib/native
 /lib/*.jar
 
-# /src/assemble/
-/src/assemble/target
-/src/assemble/.settings
-/src/assemble/.project
+# /assemble/
+/assemble/target
+/assemble/.settings
+/assemble/.project
 
-# /src/core/
-/src/core/target
-/src/core/.settings
-/src/core/.project
-/src/core/.classpath
+# /core/
+/core/target
+/core/.settings
+/core/.project
+/core/.classpath
 
-# /src/examples/
-/src/examples/target
-/src/examples/.settings
-/src/examples/.classpath
-/src/examples/.project
+# /examples/
+/examples/lib
+/examples/target
+/examples/.settings
+/examples/.classpath
+/examples/.project
 
-# /src/examples/simple/
-/src/examples/simple/target
-/src/examples/simple/.classpath
-/src/examples/simple/.project
-/src/examples/simple/.settings/
-
-
-# /src/examples/wikisearch/
-/src/examples/wikisearch/target
-/src/examples/wikisearch/.project
-/src/examples/wikisearch/.settings/
-
-# /src/examples/wikisearch/ingest/
-/src/examples/wikisearch/ingest/target
-/src/examples/wikisearch/ingest/lib
-/src/examples/wikisearch/ingest/.classpath
-/src/examples/wikisearch/ingest/.project
-/src/examples/wikisearch/ingest/.settings/
+# /examples/instamo/
+/examples/instamo/target
+/examples/instamo/.classpath
+/examples/instamo/.project
+/examples/instamo/.settings/
 
 
-# /src/examples/wikisearch/query/
-/src/examples/wikisearch/query/lib
-/src/examples/wikisearch/query/target
-/src/examples/wikisearch/query/.classpath
-/src/examples/wikisearch/query/.project
-/src/examples/wikisearch/query/.settings/
+# /examples/simple/
+/examples/simple/target
+/examples/simple/.classpath
+/examples/simple/.project
+/examples/simple/.settings/
 
+# /fate/
+/fate/target
+/fate/.settings
+/fate/.classpath
+/fate/.project
 
-# /src/examples/wikisearch/query-war/
-/src/examples/wikisearch/query-war/target
-/src/examples/wikisearch/query-war/.classpath
-/src/examples/wikisearch/query-war/.project
-/src/examples/wikisearch/query-war/.settings/
+# /server/
+/server/target
+/server/.project
+/server/.settings
+/server/.classpath
 
+# /server/src/main/c++/mlock/
+/server/src/main/c++/mlock/*.jnilib
+/server/src/main/c++/mlock/org_apache_accumulo_server_tabletserver_MLock.h
 
-# /src/server/
-/src/server/target
-/src/server/.project
-/src/server/.settings
-/src/server/.classpath
+# /server/src/main/c++/nativeMap/
+/server/src/main/c++/nativeMap/*.jnilib
 
-# /src/server/src/main/c++/mlock/
-/src/server/src/main/c++/mlock/*.jnilib
-/src/server/src/main/c++/mlock/org_apache_accumulo_server_tabletserver_MLock.h
+# /start/
+/start/target
+/start/.classpath
+/start/.project
+/start/.settings
 
-# /src/server/src/main/c++/nativeMap/
-/src/server/src/main/c++/nativeMap/*.jnilib
+# /trace/
+/trace/target
+/trace/.classpath
+/trace/.project
+/trace/.settings
 
-# /src/start/
-/src/start/target
-/src/start/.classpath
-/src/start/.project
-/src/start/.settings
-
-# /src/trace/
-/src/trace/target
-/src/trace/.classpath
-/src/trace/.project
-/src/trace/.settings
+# /test/
+/test/target
+/test/.classpath
+/test/.project
+/test/.settings
 
 # /test/system/auto/
 /test/system/auto/*.pyc
@@ -161,3 +153,7 @@
 /test/system/continuous/continuous-env.sh
 /test/system/continuous/walkers.txt
 /test/system/continuous/ingesters.txt
+
+# JetBrains IDE
+.idea
+*.iml

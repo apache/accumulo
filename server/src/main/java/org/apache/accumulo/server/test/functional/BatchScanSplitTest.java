@@ -22,12 +22,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Map.Entry;
+import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -60,7 +61,7 @@ public class BatchScanSplitTest extends FunctionalTest {
     
     int numRows = 1 << 18;
     
-    BatchWriter bw = getConnector().createBatchWriter("bss", 10000000, 60000l, 3);
+    BatchWriter bw = getConnector().createBatchWriter("bss", new BatchWriterConfig());
     
     for (int i = 0; i < numRows; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i)));
@@ -112,7 +113,7 @@ public class BatchScanSplitTest extends FunctionalTest {
       
       long t2 = System.currentTimeMillis();
       
-      System.out.printf("rate : %06.2f\n", ranges.size() / ((t2 - t1) / 1000.0));
+      System.out.printf("rate : %06.2f%n", ranges.size() / ((t2 - t1) / 1000.0));
       
       if (!found.equals(expected))
         throw new Exception("Found and expected differ " + found + " " + expected);

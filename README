@@ -15,9 +15,17 @@ ready to go on x86 GNU/Linux: there is no build step.
 
 However, if you only have source code, or you wish to make changes, you need to
 have maven configured to get Accumulo prerequisites from repositories.  See
-the pom.xml file for the necessary components.
+the pom.xml file for the necessary components. Activate the 'docs' profile to build
+the Accumulo developer and user manual.
 
-Run "mvn package -P assemble"
+Run "mvn package -P assemble" to build a distribution, or run 
+"mvn package -P assemble,docs" to also build the documentation. By default, 
+Accumulo compiles against Hadoop 1.0.4.  To compile against a different version
+that is compatible with Hadoop 1.0, specify hadoop.version on the command line,
+e.g. "-Dhadoop.version=0.20.205.0" or "-Dhadoop.version=1.1.0".  To compile 
+against Hadoop 2.0, specify "-Dhadoop.profile=2.0".  By default this uses
+2.0.2-alpha.  To compile against a different 2.0-compatible version, specify
+the profile and version, e.g. "-Dhadoop.profile=2.0 -Dhadoop.version=0.23.5".
 
 If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary
@@ -52,7 +60,7 @@ There are no steps for upgrading from 1.3 to 1.4.
 Apache Accumulo has two prerequisites, hadoop and zookeeper. Zookeeper must be 
 at least version 3.3.0. Both of these must be installed and configured. 
 Zookeeper normally only allows for 10 connections from one computer.  On a 
-single-host install, this number is a little two low.  Add the following to the 
+single-host install, this number is a little too low.  Add the following to the 
 $ZOOKEEPER_HOME/conf/zoo.cfg file:
 
    maxClientCnxns=100
@@ -62,8 +70,24 @@ the machines in the cluster and that hadoop and accumulo install files can be
 found in the same location on every machine in the cluster.  You will need to
 have password-less ssh set up as described in the hadoop documentation. 
 
-You will need to have hadoop installed and configured on your system.
-Accumulo ACCUMULO-652-SNAPSHOT has been tested with hadoop version 0.20.2.
+You will need to have hadoop installed and configured on your system.  Accumulo
+ACCUMULO-652-SNAPSHOT has been tested with hadoop version 0.20.2.  To avoid
+data loss, you must enable HDFS durable sync.  How you enable this depends on
+your version of Hadoop. Please consult the table below for information
+regarding your version.  If you need to set the coniguration, please be sure to
+restart HDFS. See ACCUMULO-623 for more information.
+
+HADOOP RELEASE          VERSION           SYNC NAME             DEFAULT
+Apache Hadoop           0.20.205          dfs.support.append    false
+Apache Hadoop            0.23.x           dfs.support.append    true
+Apache Hadoop             1.0.x           dfs.support.append    false
+Apache Hadoop             1.1.x           dfs.durable.sync      true
+Apache Hadoop          2.0.0-2.0.2        dfs.support.append    true
+Cloudera CDH             3u0-3u3             ????               true
+Cloudera CDH               3u4            dfs.support.append    true
+Hortonworks HDP           `1.0            dfs.support.append    false
+Hortonworks HDP           `1.1            dfs.support.append    false
+
 
 The example accumulo configuration files are placed in directories based on the 
 memory footprint for the accumulo processes.  If you are using native libraries

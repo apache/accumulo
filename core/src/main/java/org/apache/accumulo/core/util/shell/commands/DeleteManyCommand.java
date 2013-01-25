@@ -16,45 +16,50 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.DeleterFormatter;
+import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 
 public class DeleteManyCommand extends ScanCommand {
   private Option forceOpt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, ParseException {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
+    final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+
     // handle first argument, if present, the authorizations list to
     // scan with
-    Authorizations auths = getAuths(cl, shellState);
+    final Authorizations auths = getAuths(cl, shellState);
     final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
     
     scanner.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, "NOVALUE", SortedKeyIterator.class));
     
-    // handle remaining optional arguments
-    scanner.setRange(getRange(cl));
+    // handle session-specific scan iterators
+    addScanIterators(shellState, cl, scanner, tableName);
     
+    // handle remaining optional arguments
+    scanner.setRange(getRange(cl, interpeter));
+    
+    scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
+
     // handle columns
-    fetchColumns(cl, scanner);
+    fetchColumns(cl, scanner, interpeter);
     
     // output / delete the records
-    BatchWriter writer = shellState.getConnector().createBatchWriter(tableName, 1024 * 1024, 1000L, 4);
+    final BatchWriter writer = shellState.getConnector()
+        .createBatchWriter(tableName, new BatchWriterConfig().setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     shellState.printLines(new DeleterFormatter(writer, scanner, cl.hasOption(timestampOpt.getOpt()), shellState, cl.hasOption(forceOpt.getOpt())), false);
     
     return 0;
@@ -68,7 +73,7 @@ public class DeleteManyCommand extends ScanCommand {
   @Override
   public Options getOptions() {
     forceOpt = new Option("f", "force", false, "force deletion without prompting");
-    Options opts = super.getOptions();
+    final Options opts = super.getOptions();
     opts.addOption(forceOpt);
     opts.addOption(OptUtil.tableOpt("table to delete entries from"));
     return opts;

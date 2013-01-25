@@ -877,7 +877,6 @@ public class TFile {
      *          the input key
      * @param greater
      *          boolean flag
-     * @return
      * @throws IOException
      */
     Location getBlockContainsKey(RawComparable key, boolean greater) throws IOException {
@@ -2012,7 +2011,7 @@ public class TFile {
    *          A list of TFile paths.
    */
   public static void main(String[] args) {
-    System.out.printf("TFile Dumper (TFile %s, BCFile %s)\n", TFile.API_VERSION.toString(), BCFile.API_VERSION.toString());
+    System.out.printf("TFile Dumper (TFile %s, BCFile %s)%n", TFile.API_VERSION.toString(), BCFile.API_VERSION.toString());
     if (args.length == 0) {
       System.out.println("Usage: java ... org.apache.hadoop.io.file.tfile.TFile tfile-path [tfile-path ...]");
       System.exit(0);

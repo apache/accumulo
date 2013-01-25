@@ -50,6 +50,12 @@ public class DefaultLoadBalancer extends TabletBalancer {
     tableToBalance = table;
   }
   
+  List<TServerInstance> randomize(Set<TServerInstance> locations) {
+    List<TServerInstance> result = new ArrayList<TServerInstance>(locations);
+    Collections.shuffle(result);
+    return result;
+  }
+  
   public TServerInstance getAssignment(SortedMap<TServerInstance,TabletServerStatus> locations, KeyExtent extent, TServerInstance last) {
     if (locations.size() == 0)
       return null;
@@ -68,11 +74,11 @@ public class DefaultLoadBalancer extends TabletBalancer {
     // The strategy here is to walk through the locations and hand them back, one at a time
     // Grab an iterator off of the set of options; use a new iterator if it hands back something not in the current list.
     if (assignments == null || !assignments.hasNext())
-      assignments = locations.keySet().iterator();
+      assignments = randomize(locations.keySet()).iterator();
     TServerInstance result = assignments.next();
     if (!locations.containsKey(result)) {
       assignments = null;
-      return locations.keySet().iterator().next();
+      return randomize(locations.keySet()).iterator().next();
     }
     return result;
   }

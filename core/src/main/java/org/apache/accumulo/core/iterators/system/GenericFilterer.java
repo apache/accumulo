@@ -97,6 +97,7 @@ public class GenericFilterer extends WrappingIterator implements Filterer<Key,Va
     filters.add(filter);
     if(getSource() instanceof Filterer)
     {
+      @SuppressWarnings("unchecked")
       Filterer<Key,Value> source = (Filterer<Key,Value>)getSource();
       source.applyFilter(filter, false);
     }

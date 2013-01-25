@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -50,7 +51,7 @@ public class SparseColumnFamilyTest extends FunctionalTest {
   public void run() throws Exception {
     getConnector().tableOperations().create("scftt");
     
-    BatchWriter bw = getConnector().createBatchWriter("scftt", 10000000, 60000l, 3);
+    BatchWriter bw = getConnector().createBatchWriter("scftt", new BatchWriterConfig());
     
     // create file in the tablet that has mostly column family 0, with a few entries for column family 1
 

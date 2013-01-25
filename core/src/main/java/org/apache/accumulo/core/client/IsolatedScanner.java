@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.impl.IsolationException;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
@@ -45,11 +46,11 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     private Entry<Key,Value> nextRowStart;
     private Iterator<Entry<Key,Value>> rowIter;
     private ByteSequence lastRow = null;
+    private long timeout;
     
-    private Scanner scanner;
+    private final Scanner scanner;
     private ScannerOptions opts;
     private Range range;
-    private int timeOut;
     private int batchSize;
     
     private void readRow() {
@@ -120,7 +121,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       synchronized (scanner) {
         scanner.enableIsolation();
         scanner.setBatchSize(batchSize);
-        scanner.setTimeOut(timeOut);
+        scanner.setTimeout(timeout, TimeUnit.MILLISECONDS);
         scanner.setRange(r);
         setOptions((ScannerOptions) scanner, opts);
         
@@ -129,11 +130,11 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       }
     }
     
-    public RowBufferingIterator(Scanner scanner, ScannerOptions opts, Range range, int timeOut, int batchSize, RowBufferFactory bufferFactory) {
+    public RowBufferingIterator(Scanner scanner, ScannerOptions opts, Range range, long timeout, int batchSize, RowBufferFactory bufferFactory) {
       this.scanner = scanner;
       this.opts = new ScannerOptions(opts);
       this.range = range;
-      this.timeOut = timeOut;
+      this.timeout = timeout;
       this.batchSize = batchSize;
       
       buffer = bufferFactory.newBuffer();
@@ -172,6 +173,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   public static interface RowBuffer extends Iterable<Entry<Key,Value>> {
     void add(Entry<Key,Value> entry);
     
+    @Override
     Iterator<Entry<Key,Value>> iterator();
     
     void clear();
@@ -208,7 +210,6 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   
   private Scanner scanner;
   private Range range;
-  private int timeOut;
   private int batchSize;
   private RowBufferFactory bufferFactory;
   
@@ -219,7 +220,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   public IsolatedScanner(Scanner scanner, RowBufferFactory bufferFactory) {
     this.scanner = scanner;
     this.range = scanner.getRange();
-    this.timeOut = scanner.getTimeOut();
+    this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
     this.batchSize = scanner.getBatchSize();
     this.bufferFactory = bufferFactory;
   }
@@ -229,14 +230,22 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, bufferFactory);
   }
   
+  @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
-    this.timeOut = timeOut;
+    if (timeOut == Integer.MAX_VALUE)
+      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+    else
+      setTimeout(timeOut, TimeUnit.SECONDS);
   }
   
+  @Deprecated
   @Override
   public int getTimeOut() {
-    return timeOut;
+    long timeout = getTimeout(TimeUnit.SECONDS);
+    if (timeout >= Integer.MAX_VALUE)
+      return Integer.MAX_VALUE;
+    return (int) timeout;
   }
   
   @Override

@@ -47,6 +47,7 @@ public class ZooStore<T> implements TStore<T> {
   
   private String path;
   private IZooReaderWriter zk;
+  private String lastReserved = "";
   private Set<Long> reserved;
   private Map<Long,Long> defered;
   private SecureRandom idgenerator;
@@ -123,20 +124,33 @@ public class ZooStore<T> implements TStore<T> {
           events = statusChangeEvents;
         }
         
-        List<String> txdirs = zk.getChildren(path);
+        List<String> txdirs = new ArrayList<String>(zk.getChildren(path));
+        Collections.sort(txdirs);
+        
+        synchronized (this) {
+          if (txdirs.size() > 0 && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0)
+            lastReserved = "";
+        }
         
         for (String txdir : txdirs) {
           long tid = parseTid(txdir);
           
           synchronized (this) {
+            // this check makes reserve pick up where it left off, so that it cycles through all as it is repeatedly called.... failing to do so can lead to
+            // starvation where fate ops that sort higher and hold a lock are never reserved.
+            if (txdir.compareTo(lastReserved) <= 0)
+              continue;
+
             if (defered.containsKey(tid)) {
               if (defered.get(tid) < System.currentTimeMillis())
                 defered.remove(tid);
               else
                 continue;
             }
-            if (!reserved.contains(tid))
+            if (!reserved.contains(tid)) {
               reserved.add(tid);
+              lastReserved = txdir;
+            }
             else
               continue;
           }
@@ -410,6 +424,7 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
   
+  @Override
   public List<Long> list() {
     try {
       ArrayList<Long> l = new ArrayList<Long>();

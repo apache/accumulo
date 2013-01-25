@@ -199,12 +199,13 @@ public class Value implements WritableComparable<Object> {
   
   @Override
   public String toString() {
+	String retValue = "";
     try {
-      return new String(get(), Constants.VALUE_ENCODING);
+      retValue = new String(get(), Constants.VALUE_ENCODING);
     } catch (UnsupportedEncodingException e) {
       log.error(e.toString());
-      return null;
     }
+    return retValue;
   }
   
   /**

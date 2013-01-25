@@ -98,6 +98,36 @@ public interface TableOperations {
   public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException;
   
   /**
+   * Imports a table exported via exportTable and copied via hadoop distcp.
+   * 
+   * @param tableName
+   *          Name of a table to create and import into.
+   * @param importDir
+   *          Directory that contains the files copied by distcp from exportTable
+   * @throws TableExistsException
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  public void importTable(String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException;
+  
+  /**
+   * Exports a table. The tables data is not exported, just table metadata and a list of files to distcp. The table being exported must be offline and stay
+   * offline for the duration of distcp. To avoid losing access to a table it can be cloned and the clone taken offline for export.
+   * 
+   * <p>
+   * See docs/examples/README.export
+   * 
+   * @param tableName
+   *          Name of the table to export.
+   * @param exportDir
+   *          An empty directory in HDFS where files containing table metadata and list of files to distcp will be placed.
+   * @throws TableNotFoundException
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
    * @param tableName
    *          the name of the table
    * @param partitionKeys
@@ -281,6 +311,7 @@ public interface TableOperations {
    * 
    * @deprecated As of release 1.4, replaced by {@link #flush(String, Text, Text, boolean)}
    */
+  @Deprecated
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
   
   /**

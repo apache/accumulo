@@ -113,7 +113,7 @@ public class DynamicBloomFilter extends Filter {
    * @param nr
    *          The threshold for the maximum number of keys to record in a dynamic Bloom filter row.
    */
-  public DynamicBloomFilter(int vectorSize, int nbHash, int hashType, int nr) {
+  public DynamicBloomFilter(final int vectorSize, final int nbHash, final int hashType, final int nr) {
     super(vectorSize, nbHash, hashType);
     
     this.nr = nr;
@@ -124,7 +124,7 @@ public class DynamicBloomFilter extends Filter {
   }
   
   @Override
-  public boolean add(Key key) {
+  public boolean add(final Key key) {
     if (key == null) {
       throw new NullPointerException("Key can not be null");
     }
@@ -146,7 +146,7 @@ public class DynamicBloomFilter extends Filter {
   }
   
   @Override
-  public void and(Filter filter) {
+  public void and(final Filter filter) {
     if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be and-ed");
     }
@@ -163,7 +163,7 @@ public class DynamicBloomFilter extends Filter {
   }
   
   @Override
-  public boolean membershipTest(Key key) {
+  public boolean membershipTest(final Key key) {
     if (key == null) {
       return true;
     }
@@ -185,7 +185,7 @@ public class DynamicBloomFilter extends Filter {
   }
   
   @Override
-  public void or(Filter filter) {
+  public void or(final Filter filter) {
     if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be or-ed");
     }
@@ -201,7 +201,7 @@ public class DynamicBloomFilter extends Filter {
   }
   
   @Override
-  public void xor(Filter filter) {
+  public void xor(final Filter filter) {
     if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be xor-ed");
     }
@@ -230,7 +230,7 @@ public class DynamicBloomFilter extends Filter {
   // Writable
   
   @Override
-  public void write(DataOutput out) throws IOException {
+  public void write(final DataOutput out) throws IOException {
     super.write(out);
     out.writeInt(nr);
     out.writeInt(currentNbRecord);
@@ -241,7 +241,7 @@ public class DynamicBloomFilter extends Filter {
   }
   
   @Override
-  public void readFields(DataInput in) throws IOException {
+  public void readFields(final DataInput in) throws IOException {
     
     super.readFields(in);
     

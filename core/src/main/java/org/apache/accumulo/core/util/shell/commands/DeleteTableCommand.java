@@ -24,11 +24,12 @@ import org.apache.commons.cli.Options;
 public class DeleteTableCommand extends TableOperation {
   private Option forceOpt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    if (cl.hasOption(forceOpt.getOpt()))
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    if (cl.hasOption(forceOpt.getOpt())) {
       super.force();
-    else
+    } else {
       super.noForce();
+    }
     return super.execute(fullCommand, cl, shellState);
   }
   
@@ -38,17 +39,18 @@ public class DeleteTableCommand extends TableOperation {
   }
   
   @Override
-  protected void doTableOp(Shell shellState, String tableName) throws Exception {
+  protected void doTableOp(final Shell shellState, final String tableName) throws Exception {
     shellState.getConnector().tableOperations().delete(tableName);
     shellState.getReader().printString("Table: [" + tableName + "] has been deleted. \n");
-    if (shellState.getTableName().equals(tableName))
+    if (shellState.getTableName().equals(tableName)) {
       shellState.setTableName("");
+    }
   }
   
   @Override
   public Options getOptions() {
     forceOpt = new Option("f", "force", false, "force deletion without prompting");
-    Options opts = super.getOptions();
+    final Options opts = super.getOptions();
     
     opts.addOption(forceOpt);
     return opts;

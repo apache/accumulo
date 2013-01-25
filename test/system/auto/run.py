@@ -23,6 +23,7 @@ import unittest
 import glob
 import re
 import sys
+import socket
 from subprocess import Popen, PIPE
 
 from TestUtils import ACCUMULO_HOME, ACCUMULO_DIR
@@ -49,7 +50,7 @@ def parseArguments(parser, allTests):
         if hasattr(test, 'add_options'):
             test.add_options(parser)
     options, hosts = parser.parse_args()
-    options.hosts = hosts or ['localhost']
+    options.hosts = hosts or [socket.getfqdn()]
     return options
 
 def testName(test):

@@ -17,7 +17,10 @@
 package org.apache.accumulo.server.test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -26,20 +29,38 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import com.beust.jcommander.Parameter;
+
 public class BulkImportDirectory {
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names={"-s","--source"}, description="directory to import from")
+    String source = null;
+    @Parameter(names={"-f","--failures"}, description="directory to copy failures into: will be deleted before the bulk import")
+    String failures = null;
+    @Parameter(description="<username> <password> <tablename> <sourcedir> <failuredir>")
+    List<String> args = new ArrayList<String>();
+  }
+  
+  
   public static void main(String[] args) throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (args.length != 5)
-      throw new RuntimeException("Usage: bin/accumulo " + BulkImportDirectory.class.getName() + " <username> <password> <tablename> <sourcedir> <failuredir>");
-    
-    final String user = args[0];
-    final byte[] pass = args[1].getBytes();
-    final String tableName = args[2];
-    final String dir = args[3];
-    final String failureDir = args[4];
-    final Path failureDirPath = new Path(failureDir);
     final FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    fs.delete(failureDirPath, true);
-    fs.mkdirs(failureDirPath);
-    HdfsZooInstance.getInstance().getConnector(user, pass).tableOperations().importDirectory(tableName, dir, failureDir, false);
+    Opts opts = new Opts();
+    if (args.length == 5) {
+      System.err.println("Deprecated syntax for BulkImportDirectory, please use the new style (see --help)");
+      final String user = args[0];
+      final byte[] pass = args[1].getBytes();
+      final String tableName = args[2];
+      final String dir = args[3];
+      final String failureDir = args[4];
+      final Path failureDirPath = new Path(failureDir);
+      fs.delete(failureDirPath, true);
+      fs.mkdirs(failureDirPath);
+      HdfsZooInstance.getInstance().getConnector(user, pass).tableOperations().importDirectory(tableName, dir, failureDir, false);
+    } else {
+      opts.parseArgs(BulkImportDirectory.class.getName(), args);
+      fs.delete(new Path(opts.failures), true);
+      fs.mkdirs(new Path(opts.failures));
+      opts.getConnector().tableOperations().importDirectory(opts.tableName, opts.source, opts.failures, false);
+    }
   }
 }

@@ -36,9 +36,10 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.examples.simple.filedata.FileDataQuery;
 import org.apache.log4j.Logger;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Provides a GUI for browsing the file system information stored in Accumulo. See docs/examples/README.dirlist for instructions.
@@ -96,14 +97,14 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     }
   }
   
-  public Viewer(String instanceName, String zooKeepers, String user, String password, String tableName, String dataTableName, Authorizations auths, String path)
+  public Viewer(Opts opts)
       throws Exception {
     super("File Viewer");
     setSize(1000, 800);
     setDefaultCloseOperation(EXIT_ON_CLOSE);
-    q = new QueryUtil(instanceName, zooKeepers, user, password, tableName, auths);
-    fdq = new FileDataQuery(instanceName, zooKeepers, user, password, dataTableName, auths);
-    this.topPath = path;
+    q = new QueryUtil(opts);
+    fdq = new FileDataQuery(opts.instance, opts.zookeepers, opts.getAccumuloToken(), opts.dataTable, opts.auths);
+    this.topPath = opts.path;
   }
   
   public void populate(DefaultMutableTreeNode node) throws TableNotFoundException {
@@ -200,15 +201,16 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     }
   }
   
+  static class Opts extends QueryUtil.Opts {
+    @Parameter(names="--dataTable")
+    String dataTable = "dataTable";
+  }
+  
   public static void main(String[] args) throws Exception {
-    if (args.length != 7 && args.length != 8) {
-      System.out.println("usage: " + Viewer.class.getSimpleName() + " <instance> <zoo> <user> <pass> <table> <datatable> <auths> [rootpath]");
-      System.exit(1);
-    }
-    String rootpath = "/";
-    if (args.length == 8)
-      rootpath = args[7];
-    Viewer v = new Viewer(args[0], args[1], args[2], args[3], args[4], args[5], new Authorizations(args[6].split(",")), rootpath);
+    Opts opts = new Opts();
+    opts.parseArgs(Viewer.class.getName(), args);
+    
+    Viewer v = new Viewer(opts);
     v.init();
     v.setVisible(true);
   }

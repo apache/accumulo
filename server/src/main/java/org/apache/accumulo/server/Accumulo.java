@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map.Entry;
-import java.util.TimerTask;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
@@ -113,7 +112,7 @@ public class Accumulo {
     DOMConfigurator.configureAndWatch(logConfig, 5000);
     
     log.info(application + " starting");
-    log.info("Instance " + HdfsZooInstance.getInstance().getInstanceID());
+    log.info("Instance " + config.getInstance().getInstanceID());
     int dataVersion = Accumulo.getAccumuloPersistentVersion(fs);
     log.info("Data Version " + dataVersion);
     Accumulo.waitForZookeeperAndHdfs(fs);
@@ -128,7 +127,7 @@ public class Accumulo {
       sortedProps.put(entry.getKey(), entry.getValue());
     
     for (Entry<String,String> entry : sortedProps.entrySet()) {
-      if (entry.getKey().toLowerCase().contains("password"))
+      if (entry.getKey().toLowerCase().contains("password") || entry.getKey().toLowerCase().contains("secret"))
         log.info(entry.getKey() + " = <hidden>");
       else
         log.info(entry.getKey() + " = " + entry.getValue());
@@ -141,7 +140,7 @@ public class Accumulo {
    * 
    */
   public static void monitorSwappiness() {
-    SimpleTimer.getInstance().schedule(new TimerTask() {
+    SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
       public void run() {
         try {
@@ -168,7 +167,7 @@ public class Accumulo {
       }
     }, 1000, 10 * 1000);
   }
-
+  
   public static String getLocalAddress(String[] args) throws UnknownHostException {
     InetAddress result = InetAddress.getLocalHost();
     for (int i = 0; i < args.length - 1; i++) {

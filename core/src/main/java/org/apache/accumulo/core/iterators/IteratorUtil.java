@@ -38,7 +38,7 @@ import org.apache.accumulo.core.iterators.system.SynchronizedIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TIteratorSetting;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.log4j.Logger;
@@ -63,13 +63,22 @@ public class IteratorUtil {
     
   }
   
-  public static Map<String,String> generateInitialTableProperties() {
+  /**
+   * Generate the initial (default) properties for a table
+   * @param limitVersion
+   *   include a VersioningIterator at priority 20 that retains a single version of a given K/V pair.
+   * @return A map of Table properties
+   */
+  public static Map<String,String> generateInitialTableProperties(boolean limitVersion) {
     TreeMap<String,String> props = new TreeMap<String,String>();
     
-    for (IteratorScope iterScope : IteratorScope.values()) {
-      props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "20," + VersioningIterator.class.getName());
-      props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions", "1");
+    if (limitVersion) {
+        for (IteratorScope iterScope : IteratorScope.values()) {
+          props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "20," + VersioningIterator.class.getName());
+          props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions", "1");
+        }
     }
+    
     return props;
   }
   
@@ -201,12 +210,13 @@ public class IteratorUtil {
       }
     }
     
-    return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader);
+    return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader, conf.get(Property.TABLE_CLASSPATH));
   }
   
   @SuppressWarnings("unchecked")
   public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(SortedKeyValueIterator<K,V> source,
-      Collection<IterInfo> iters, Map<String,Map<String,String>> iterOpts, IteratorEnvironment env, boolean useAccumuloClassLoader) throws IOException {
+      Collection<IterInfo> iters, Map<String,Map<String,String>> iterOpts, IteratorEnvironment env, boolean useAccumuloClassLoader, String context)
+      throws IOException {
     // wrap the source in a SynchronizedIterator in case any of the additional configured iterators want to use threading
     SortedKeyValueIterator<K,V> prev = new SynchronizedIterator<K,V>(source);
     
@@ -215,7 +225,11 @@ public class IteratorUtil {
        
         Class<? extends SortedKeyValueIterator<K,V>> clazz;
         if (useAccumuloClassLoader){
-          clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloClassLoader.loadClass(iterInfo.className, SortedKeyValueIterator.class);
+          if (context != null && !context.equals(""))
+            clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader.getContextManager().loadClass(context, iterInfo.className,
+                SortedKeyValueIterator.class);
+          else
+            clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader.loadClass(iterInfo.className, SortedKeyValueIterator.class);
         }else{
           clazz = (Class<? extends SortedKeyValueIterator<K,V>>) Class.forName(iterInfo.className).asSubclass(SortedKeyValueIterator.class);
         }

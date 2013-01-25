@@ -198,6 +198,11 @@ public class FilterTest {
     AgeOffFilter.setTTL(is, 101l);
     AgeOffFilter.setCurrentTime(is, 1001l);
     AgeOffFilter.setNegate(is, true);
+    assertTrue(((AgeOffFilter) a).validateOptions(is.getOptions()));
+    try {
+      ((AgeOffFilter) a).validateOptions(EMPTY_OPTS);
+      assertTrue(false);
+    } catch (IllegalArgumentException e) {}
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a = a.deepCopy(null);
     SortedKeyValueIterator<Key,Value> copy = a.deepCopy(null);
@@ -224,6 +229,7 @@ public class FilterTest {
     assertTrue(tm.size() == 1000);
     
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
+    assertTrue(a.validateOptions(is.getOptions()));
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -431,6 +437,7 @@ public class FilterTest {
     assertEquals(size(a), 89);
     
     TimestampFilter.setStart(is, "19990101000011GMT", false);
+    assertTrue(a.validateOptions(is.getOptions()));
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 88);
@@ -442,9 +449,32 @@ public class FilterTest {
     assertEquals(size(a), 32);
     
     TimestampFilter.setEnd(is, "19990101000031GMT", false);
+    assertTrue(a.validateOptions(is.getOptions()));
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 31);
+    
+    TimestampFilter.setEnd(is, 253402300800001l, true);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
+    
+    is.clearOptions();
+    is.addOption(TimestampFilter.START, "19990101000011GMT");
+    assertTrue(a.validateOptions(is.getOptions()));
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
+    a.seek(new Range(), EMPTY_COL_FAMS, false);
+    assertEquals(size(a), 89);
+    
+    is.clearOptions();
+    is.addOption(TimestampFilter.END, "19990101000031GMT");
+    assertTrue(a.validateOptions(is.getOptions()));
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
+    a.seek(new Range(), EMPTY_COL_FAMS, false);
+    assertEquals(size(a), 32);
+    
+    try {
+      a.validateOptions(EMPTY_OPTS);
+      assertTrue(false);
+    } catch (IllegalArgumentException e) {}
   }
   
   @Test

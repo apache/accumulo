@@ -79,7 +79,7 @@ public class ThriftTransportPool {
   }
   
   private static class Closer implements Runnable {
-    ThriftTransportPool pool;
+    final ThriftTransportPool pool;
     
     public Closer(ThriftTransportPool pool) {
       this.pool = pool;
@@ -417,7 +417,7 @@ public class ThriftTransportPool {
               if (!cachedConnection.isReserved()) {
                 cachedConnection.setReserved(true);
                 if (log.isTraceEnabled())
-                  log.trace("Using existing connection to " + ttk.getLocation() + ":" + ttk.getPort());
+                  log.trace("Using existing connection to " + ttk.getLocation() + ":" + ttk.getPort() + " timeout " + ttk.getTimeout());
                 return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), cachedConnection.transport);
               }
             }

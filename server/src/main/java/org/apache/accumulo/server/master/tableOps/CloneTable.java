@@ -20,19 +20,19 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.log4j.Logger;
 
@@ -183,10 +183,10 @@ class ClonePermissions extends MasterRepo {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
-        ZKAuthenticator.getInstance().grantTablePermission(SecurityConstants.getSystemCredentials(), cloneInfo.user, cloneInfo.tableId, permission);
-      } catch (AccumuloSecurityException e) {
+        AuditedSecurityOperation.getInstance().grantTablePermission(SecurityConstants.getSystemCredentials(), cloneInfo.user, cloneInfo.tableId, permission);
+      } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
-        throw e.asThriftException();
+        throw e;
       }
     }
     
@@ -198,7 +198,7 @@ class ClonePermissions extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    ZKAuthenticator.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), cloneInfo.tableId);
+    AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), cloneInfo.tableId);
   }
 }
 

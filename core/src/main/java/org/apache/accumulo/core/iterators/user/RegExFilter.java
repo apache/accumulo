@@ -52,6 +52,7 @@ public class RegExFilter extends Filter {
   public static final String VALUE_REGEX = "valueRegex";
   public static final String OR_FIELDS = "orFields";
   public static final String ENCODING = "encoding";
+  public static final String MATCH_SUBSTRING = "matchSubstring";
   
   public static final String ENCODING_DEFAULT = "UTF-8";
   
@@ -60,6 +61,7 @@ public class RegExFilter extends Filter {
   private Matcher colqMatcher;
   private Matcher valueMatcher;
   private boolean orFields = false;
+  private boolean matchSubstring = false;
   
   private String encoding = ENCODING_DEFAULT;
   
@@ -74,7 +76,7 @@ public class RegExFilter extends Filter {
     if (matcher != null) {
       try {
         matcher.reset(new String(bs.getBackingArray(), bs.offset(), bs.length(), encoding));
-        return matcher.matches();
+        return matchSubstring ? matcher.find() : matcher.matches();
       } catch (UnsupportedEncodingException e) {
         e.printStackTrace();
       }
@@ -86,7 +88,7 @@ public class RegExFilter extends Filter {
     if (matcher != null) {
       try {
         matcher.reset(new String(data, offset, len, encoding));
-        return matcher.matches();
+        return matchSubstring ? matcher.find() : matcher.matches();
       } catch (UnsupportedEncodingException e) {
         e.printStackTrace();
       }
@@ -97,10 +99,12 @@ public class RegExFilter extends Filter {
   @Override
   public boolean accept(Key key, Value value) {
     if (orFields)
-      return matches(rowMatcher, key.getRowData()) || matches(colfMatcher, key.getColumnFamilyData()) || matches(colqMatcher, key.getColumnQualifierData())
-          || matches(valueMatcher, value.get(), 0, value.get().length);
-    return matches(rowMatcher, key.getRowData()) && matches(colfMatcher, key.getColumnFamilyData()) && matches(colqMatcher, key.getColumnQualifierData())
-        && matches(valueMatcher, value.get(), 0, value.get().length);
+      return ((matches(rowMatcher, rowMatcher == null ? null : key.getRowData()))
+          || (matches(colfMatcher, colfMatcher == null ? null : key.getColumnFamilyData()))
+          || (matches(colqMatcher, colqMatcher == null ? null : key.getColumnQualifierData())) || (matches(valueMatcher, value.get(), 0, value.get().length)));
+    return ((matches(rowMatcher, rowMatcher == null ? null : key.getRowData()))
+        && (matches(colfMatcher, colfMatcher == null ? null : key.getColumnFamilyData()))
+        && (matches(colqMatcher, colqMatcher == null ? null : key.getColumnQualifierData())) && (matches(valueMatcher, value.get(), 0, value.get().length)));
   }
   
   @Override
@@ -136,6 +140,12 @@ public class RegExFilter extends Filter {
       orFields = false;
     }
     
+    if (options.containsKey(MATCH_SUBSTRING)) {
+      matchSubstring = Boolean.parseBoolean(options.get(MATCH_SUBSTRING));
+    } else {
+      matchSubstring = false;
+    }
+    
     if (options.containsKey(ENCODING)) {
       encoding = options.get(ENCODING);
     }
@@ -150,34 +160,41 @@ public class RegExFilter extends Filter {
     io.addNamedOption(RegExFilter.COLF_REGEX, "regular expression on column family");
     io.addNamedOption(RegExFilter.COLQ_REGEX, "regular expression on column qualifier");
     io.addNamedOption(RegExFilter.VALUE_REGEX, "regular expression on value");
-    io.addNamedOption(RegExFilter.OR_FIELDS, "use OR instread of AND when multiple regexes given");
+    io.addNamedOption(RegExFilter.OR_FIELDS, "use OR instead of AND when multiple regexes given");
+    io.addNamedOption(RegExFilter.MATCH_SUBSTRING, "match on substrings");
     io.addNamedOption(RegExFilter.ENCODING, "character encoding of byte array value (default is " + ENCODING_DEFAULT + ")");
     return io;
   }
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    super.validateOptions(options);
-    if (options.containsKey(ROW_REGEX))
-      Pattern.compile(options.get(ROW_REGEX)).matcher("");
+    if (super.validateOptions(options) == false)
+      return false;
     
-    if (options.containsKey(COLF_REGEX))
-      Pattern.compile(options.get(COLF_REGEX)).matcher("");
-    
-    if (options.containsKey(COLQ_REGEX))
-      Pattern.compile(options.get(COLQ_REGEX)).matcher("");
-    
-    if (options.containsKey(VALUE_REGEX))
-      Pattern.compile(options.get(VALUE_REGEX)).matcher("");
+    try {
+      if (options.containsKey(ROW_REGEX))
+        Pattern.compile(options.get(ROW_REGEX)).matcher("");
+      
+      if (options.containsKey(COLF_REGEX))
+        Pattern.compile(options.get(COLF_REGEX)).matcher("");
+      
+      if (options.containsKey(COLQ_REGEX))
+        Pattern.compile(options.get(COLQ_REGEX)).matcher("");
+      
+      if (options.containsKey(VALUE_REGEX))
+        Pattern.compile(options.get(VALUE_REGEX)).matcher("");
+    } catch (Exception e) {
+      throw new IllegalArgumentException("bad regex", e);
+    }
     
     if (options.containsKey(ENCODING)) {
       try {
         this.encoding = options.get(ENCODING);
-        @SuppressWarnings("unused")
-        String test = new String("test".getBytes(), encoding);
+        if ("".equals(this.encoding))
+          encoding = ENCODING_DEFAULT;
+        new String("test".getBytes(), encoding);
       } catch (UnsupportedEncodingException e) {
-        e.printStackTrace();
-        return false;
+        throw new IllegalArgumentException("invalid encoding " + ENCODING + ":" + this.encoding, e);
       }
     }
     
@@ -185,7 +202,8 @@ public class RegExFilter extends Filter {
   }
   
   /**
-   * Encode the terms to match against in the iterator
+   * Encode the terms to match against in the iterator. Same as calling {@link #setRegexs(IteratorSetting, String, String, String, String, boolean, boolean)}
+   * with matchSubstring set to false
    * 
    * @param si
    *          ScanIterator config to be updated
@@ -201,6 +219,27 @@ public class RegExFilter extends Filter {
    *          if true, any of the non-null terms can match to return the entry
    */
   public static void setRegexs(IteratorSetting si, String rowTerm, String cfTerm, String cqTerm, String valueTerm, boolean orFields) {
+    setRegexs(si, rowTerm, cfTerm, cqTerm, valueTerm, orFields, false);
+  }
+  
+  /**
+   * Encode the terms to match against in the iterator
+   * 
+   * @param si
+   *          ScanIterator config to be updated
+   * @param rowTerm
+   *          the pattern to match against the Key's row. Not used if null.
+   * @param cfTerm
+   *          the pattern to match against the Key's column family. Not used if null.
+   * @param cqTerm
+   *          the pattern to match against the Key's column qualifier. Not used if null.
+   * @param valueTerm
+   *          the pattern to match against the Key's value. Not used if null.
+   * @param matchSubstring
+   *          if true then search expressions will match on partial strings
+   */
+  public static void setRegexs(IteratorSetting si, String rowTerm, String cfTerm, String cqTerm, String valueTerm, boolean orFields, boolean matchSubstring) {
+    
     if (rowTerm != null)
       si.addOption(RegExFilter.ROW_REGEX, rowTerm);
     if (cfTerm != null)
@@ -209,9 +248,9 @@ public class RegExFilter extends Filter {
       si.addOption(RegExFilter.COLQ_REGEX, cqTerm);
     if (valueTerm != null)
       si.addOption(RegExFilter.VALUE_REGEX, valueTerm);
-    if (orFields) {
-      si.addOption(RegExFilter.OR_FIELDS, "true");
-    }
+    si.addOption(RegExFilter.OR_FIELDS, String.valueOf(orFields));
+    si.addOption(RegExFilter.MATCH_SUBSTRING, String.valueOf(matchSubstring));
+    
   }
   
   /**

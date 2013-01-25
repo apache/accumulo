@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -54,7 +55,7 @@ public class RowDeleteTest extends FunctionalTest {
   
   @Override
   public void run() throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter("rdel1", 1000000, 60000l, 1);
+    BatchWriter bw = getConnector().createBatchWriter("rdel1", new BatchWriterConfig());
     
     bw.addMutation(nm("r1", "foo", "cf1", "v1"));
     bw.addMutation(nm("r1", "bar", "cf1", "v2"));

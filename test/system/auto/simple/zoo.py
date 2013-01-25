@@ -28,7 +28,7 @@ class SessionExpired(SunnyDayTest):
 
     def signal(self, which):
         for host in self.hosts:
-            self.pkill(host, ' tserver$', which)
+            self.pkill(host, '=tserver', which)
 
     def runTest(self):
         # stop the tservers from talking to zookeeeper

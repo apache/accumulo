@@ -17,11 +17,14 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -34,27 +37,39 @@ import org.apache.hadoop.io.Text;
 
 public class DeleteCommand extends Command {
   private Option deleteOptAuths, timestampOpt;
+  private Option timeoutOption;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, ConstraintViolationException {
+  protected long getTimeout(final CommandLine cl) {
+    if (cl.hasOption(timeoutOption.getLongOpt())) {
+      return AccumuloConfiguration.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
+    }
+    
+    return Long.MAX_VALUE;
+  }
+  
+  @Override
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, IOException, ConstraintViolationException {
     shellState.checkTableState();
     
-    Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
-    Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
-    Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
+    final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
+    final Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
+    final Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
     
     if (cl.hasOption(deleteOptAuths.getOpt())) {
-      ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
-      if (cl.hasOption(timestampOpt.getOpt()))
+      final ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
+      if (cl.hasOption(timestampOpt.getOpt())) {
         m.putDelete(colf, colq, le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
-      else
+      } else {
         m.putDelete(colf, colq, le);
-    } else if (cl.hasOption(timestampOpt.getOpt()))
+      }
+    } else if (cl.hasOption(timestampOpt.getOpt())) {
       m.putDelete(colf, colq, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
-    else
+    } else {
       m.putDelete(colf, colq);
-    
-    BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
+    }
+    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
+        new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024)).setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     bw.addMutation(m);
     bw.close();
     return 0;
@@ -72,7 +87,7 @@ public class DeleteCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     deleteOptAuths = new Option("l", "visibility-label", true, "formatted visibility");
     deleteOptAuths.setArgName("expression");
@@ -81,6 +96,11 @@ public class DeleteCommand extends Command {
     timestampOpt = new Option("ts", "timestamp", true, "timestamp to use for deletion");
     timestampOpt.setArgName("timestamp");
     o.addOption(timestampOpt);
+    
+    timeoutOption = new Option(null, "timeout", true,
+        "time before insert should fail if no data is written. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
+    timeoutOption.setArgName("timeout");
+    o.addOption(timeoutOption);
     
     return o;
   }

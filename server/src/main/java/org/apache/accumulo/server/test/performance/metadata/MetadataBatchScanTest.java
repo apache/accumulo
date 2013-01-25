@@ -27,6 +27,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
@@ -82,7 +82,7 @@ public class MetadataBatchScanTest {
     
     if (args[0].equals("write")) {
       
-      BatchWriter bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 3);
+      BatchWriter bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
       
       for (KeyExtent extent : extents) {
         Mutation mut = extent.getPrevRowUpdateMutation();
@@ -92,7 +92,7 @@ public class MetadataBatchScanTest {
       
       bw.close();
     } else if (args[0].equals("writeFiles")) {
-      BatchWriter bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 3);
+      BatchWriter bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
       
       for (KeyExtent extent : extents) {
         
@@ -100,7 +100,7 @@ public class MetadataBatchScanTest {
         
         String dir = "/t-" + UUID.randomUUID();
         
-        ColumnFQ.put(mut, Constants.METADATA_DIRECTORY_COLUMN, new Value(dir.getBytes()));
+        Constants.METADATA_DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
         
         for (int i = 0; i < 5; i++) {
           mut.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes()));
@@ -154,7 +154,7 @@ public class MetadataBatchScanTest {
       
       long t2 = System.currentTimeMillis();
       
-      System.out.printf("tt : %6.2f\n", (t2 - t1) / 1000.0);
+      System.out.printf("tt : %6.2f%n", (t2 - t1) / 1000.0);
       
     } else {
       throw new IllegalArgumentException();
@@ -170,7 +170,7 @@ public class MetadataBatchScanTest {
     
     BatchScanner bs = connector.createBatchScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 1);
     bs.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-    ColumnFQ.fetch(bs, Constants.METADATA_PREV_ROW_COLUMN);
+    Constants.METADATA_PREV_ROW_COLUMN.fetch(bs);
     
     bs.setRanges(ranges);
     

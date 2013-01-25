@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -29,9 +30,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class PrintInfo {
-  public static void printMetaBlockInfo(Configuration conf, FileSystem fs, Path path) throws Exception {
+  public static void printMetaBlockInfo(Configuration conf, FileSystem fs, Path path) throws IOException {
     FSDataInputStream fsin = fs.open(path);
-    BCFile.Reader bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf);
+    BCFile.Reader bcfr = null;
+    try {
+    bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf);
     
     Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
     
@@ -42,6 +45,11 @@ public class PrintInfo {
       out.println("      Compressed size      : " + String.format("%,d", entry.getValue().getRegion().getCompressedSize()) + " bytes");
       out.println("      Compression type     : " + entry.getValue().getCompressionAlgorithm().getName());
       out.println();
+    }
+    } finally {
+    	if (bcfr != null) {
+    		bcfr.close();
+    	}
     }
   }
   

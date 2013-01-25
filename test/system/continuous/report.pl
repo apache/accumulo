@@ -88,7 +88,7 @@ sub plot {
 	my $output = shift(@_);
 	my $title = shift(@_);
 
-	system("$cmd | $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.test.continuous.TimeBinner $period $time_col $data_col $op MM/dd/yy-HH:mm:ss > $REPORT_DIR/$output.dat");
+	system("$cmd | $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.test.continuous.TimeBinner --period $period --timeColumn $time_col --dataColumn $data_col --operation $op --dateFormat MM/dd/yy-HH:mm:ss > $REPORT_DIR/$output.dat");
 	gnuplot("$REPORT_DIR/$output.dat", "$REPORT_DIR/$output.png", $op eq "AMM" || $op eq "AMM_HACK1");
 
 	print HTML "<P><h2>$title</h2><img src='$output.png'>\n";

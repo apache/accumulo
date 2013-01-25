@@ -33,17 +33,18 @@ public class SetGroupsCommand extends Command {
   }
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
-    HashMap<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
+    final HashMap<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
     
     for (String arg : cl.getArgs()) {
-      String sa[] = arg.split("=", 2);
-      if (sa.length < 2)
+      final String sa[] = arg.split("=", 2);
+      if (sa.length < 2) {
         throw new IllegalArgumentException("Missing '='");
-      String group = sa[0];
-      HashSet<Text> colFams = new HashSet<Text>();
+      }
+      final String group = sa[0];
+      final HashSet<Text> colFams = new HashSet<Text>();
       
       for (String family : sa[1].split(",")) {
         colFams.add(new Text(family.getBytes(Shell.CHARSET)));
@@ -69,7 +70,7 @@ public class SetGroupsCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options opts = new Options();
+    final Options opts = new Options();
     opts.addOption(OptUtil.tableOpt("table to fetch locality groups for"));
     return opts;
   }

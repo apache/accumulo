@@ -16,13 +16,15 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -38,44 +40,47 @@ import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.ArgumentChecker;
 
 public class ConnectorImpl extends Connector {
   private Instance instance;
-  private AuthInfo credentials;
+  
+  // There are places where we need information from the token. But we don't want to convert to a thrift object for every call.
+  // So we'll keep both on hand and pass them around.
+  private InstanceTokenWrapper token;
   private SecurityOperations secops = null;
   private TableOperations tableops = null;
   private InstanceOperations instanceops = null;
   
-/**
-     * 
-     * Use {@link Instance#getConnector(String, byte[])}
-     * 
-     * @param instance
-     * @param user
-     * @param password
-     * @throws AccumuloException
-     * @throws AccumuloSecurityException
-     * @see Instance#getConnector(String user, byte[] password)
-     * @deprecated Not for client use
-     */
-  public ConnectorImpl(Instance instance, String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(instance, user, password);
+  /**
+   * 
+   * Use {@link Instance#getConnector(String, byte[])}
+   * 
+   * @param instance
+   * @param token
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   * @see Instance#getConnector(String user, byte[] password)
+   * @deprecated Not for client use
+   */
+  @Deprecated
+  public ConnectorImpl(Instance instance, final AccumuloToken<?,?> token2) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(instance, token2);
     this.instance = instance;
     
     // copy password so that user can clear it.... in future versions we can clear it...
-    byte[] passCopy = new byte[password.length];
-    System.arraycopy(password, 0, passCopy, 0, password.length);
-    this.credentials = new AuthInfo(user, ByteBuffer.wrap(password), instance.getInstanceID());
+    
+    this.token = new InstanceTokenWrapper(token2, instance.getInstanceID());
     
     // hardcoded string for SYSTEM user since the definition is
     // in server code
-    if (!user.equals("!SYSTEM")) {
-      ServerClient.execute(instance, new ClientExec<ClientService.Iface>() {
+    if (!token.getPrincipal().equals("!SYSTEM")) {
+      ServerClient.execute(instance, new ClientExec<ClientService.Client>() {
         @Override
-        public void execute(ClientService.Iface iface) throws Exception {
-          iface.authenticateUser(null, credentials, credentials.user, credentials.password);
+        public void execute(ClientService.Client iface) throws Exception {
+          iface.authenticateUser(Tracer.traceInfo(), token.toThrift(), token.toThrift().token);
         }
       });
     }
@@ -96,31 +101,55 @@ public class ConnectorImpl extends Connector {
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName, authorizations);
-    return new TabletServerBatchReader(instance, credentials, getTableId(tableName), authorizations, numQueryThreads);
+    return new TabletServerBatchReader(instance, token, getTableId(tableName), authorizations, numQueryThreads);
   }
   
+  @Deprecated
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName, authorizations);
-    return new TabletServerBatchDeleter(instance, credentials, getTableId(tableName), authorizations, numQueryThreads, maxMemory, maxLatency, maxWriteThreads);
+    return new TabletServerBatchDeleter(instance, token, getTableId(tableName), authorizations, numQueryThreads, new BatchWriterConfig()
+        .setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
   
+  @Override
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
+      throws TableNotFoundException {
+    ArgumentChecker.notNull(tableName, authorizations);
+    return new TabletServerBatchDeleter(instance, token, getTableId(tableName), authorizations, numQueryThreads, config);
+  }
+  
+  @Deprecated
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName);
-    return new BatchWriterImpl(instance, credentials, getTableId(tableName), maxMemory, maxLatency, maxWriteThreads);
+    return new BatchWriterImpl(instance, token, getTableId(tableName), new BatchWriterConfig().setMaxMemory(maxMemory)
+        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
   
   @Override
+  public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
+    ArgumentChecker.notNull(tableName);
+    return new BatchWriterImpl(instance, token, getTableId(tableName), config);
+  }
+  
+  @Deprecated
+  @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
-    return new MultiTableBatchWriterImpl(instance, credentials, maxMemory, maxLatency, maxWriteThreads);
+    return new MultiTableBatchWriterImpl(instance, token, new BatchWriterConfig().setMaxMemory(maxMemory)
+        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+  }
+  
+  @Override
+  public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
+    return new MultiTableBatchWriterImpl(instance, token, config);
   }
   
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName, authorizations);
-    return new ScannerImpl(instance, credentials, getTableId(tableName), authorizations);
+    return new ScannerImpl(instance, token, getTableId(tableName), authorizations);
   }
   
   /*
@@ -130,7 +159,7 @@ public class ConnectorImpl extends Connector {
    */
   @Override
   public String whoami() {
-    return credentials.user;
+    return token.getPrincipal();
   }
   
   /*
@@ -141,7 +170,7 @@ public class ConnectorImpl extends Connector {
   @Override
   public synchronized TableOperations tableOperations() {
     if (tableops == null)
-      tableops = new TableOperationsImpl(instance, credentials);
+      tableops = new TableOperationsImpl(instance, token);
     return tableops;
   }
   
@@ -153,7 +182,7 @@ public class ConnectorImpl extends Connector {
   @Override
   public synchronized SecurityOperations securityOperations() {
     if (secops == null)
-      secops = new SecurityOperationsImpl(instance, credentials);
+      secops = new SecurityOperationsImpl(instance, token);
     
     return secops;
   }
@@ -166,7 +195,7 @@ public class ConnectorImpl extends Connector {
   @Override
   public synchronized InstanceOperations instanceOperations() {
     if (instanceops == null)
-      instanceops = new InstanceOperationsImpl(instance, credentials);
+      instanceops = new InstanceOperationsImpl(instance, token);
     
     return instanceops;
   }

@@ -24,6 +24,7 @@ import org.apache.hadoop.io.Text;
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 public class AggregatorConfigurationTest extends TestCase {
   public void testBinary() {
     Text colf = new Text();

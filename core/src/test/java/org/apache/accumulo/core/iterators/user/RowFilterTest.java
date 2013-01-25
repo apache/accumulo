@@ -25,6 +25,7 @@ import junit.framework.TestCase;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -81,10 +83,10 @@ public class RowFilterTest extends TestCase {
 
   public void test1() throws Exception {
     MockInstance instance = new MockInstance("rft1");
-    Connector conn = instance.getConnector("", "".getBytes());
+    Connector conn = instance.getConnector(new UserPassToken("", ""));
     
     conn.tableOperations().create("table1");
-    BatchWriter bw = conn.createBatchWriter("table1", 1000000, 60000, 1);
+    BatchWriter bw = conn.createBatchWriter("table1", new BatchWriterConfig());
     
     Mutation m = new Mutation("0");
     m.put("cf1", "cq1", "1");

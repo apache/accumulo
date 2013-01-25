@@ -42,7 +42,6 @@ import java.util.WeakHashMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
@@ -50,7 +49,7 @@ import org.apache.hadoop.io.WritableComparable;
 
 public class KeyExtent implements WritableComparable<KeyExtent> {
   
-  private static WeakHashMap<Text,WeakReference<Text>> tableIds = new WeakHashMap<Text,WeakReference<Text>>();
+  private static final WeakHashMap<Text,WeakReference<Text>> tableIds = new WeakHashMap<Text,WeakReference<Text>>();
   
   private static Text dedupeTableId(Text tableId) {
     synchronized (tableIds) {
@@ -396,7 +395,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   
   public static Mutation getPrevRowUpdateMutation(KeyExtent ke) {
     Mutation m = new Mutation(ke.getMetadataEntry());
-    ColumnFQ.put(m, Constants.METADATA_PREV_ROW_COLUMN, encodePrevEndRow(ke.getPrevEndRow()));
+    Constants.METADATA_PREV_ROW_COLUMN.put(m, encodePrevEndRow(ke.getPrevEndRow()));
     return m;
   }
   

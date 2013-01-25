@@ -24,7 +24,7 @@ import java.util.NoSuchElementException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 /**
  * A Combiner that decodes each Value to type V before reducing, then encodes the result of typedReduce back to Value.
@@ -132,7 +132,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   protected void setEncoder(String encoderClass) {
     try {
       @SuppressWarnings("unchecked")
-      Class<? extends Encoder<V>> clazz = (Class<? extends Encoder<V>>) AccumuloClassLoader.loadClass(encoderClass, Encoder.class);
+      Class<? extends Encoder<V>> clazz = (Class<? extends Encoder<V>>) AccumuloVFSClassLoader.loadClass(encoderClass, Encoder.class);
       encoder = clazz.newInstance();
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException(e);
@@ -211,8 +211,13 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    super.validateOptions(options);
-    setLossyness(options);
+    if (super.validateOptions(options) == false)
+      return false;
+    try {
+      setLossyness(options);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("bad boolean " + LOSSY + ":" + options.get(LOSSY));
+    }
     return true;
   }
   

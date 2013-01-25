@@ -35,7 +35,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     SiteConfiguration.parent = parent;
   }
   
-  public static SiteConfiguration getInstance(AccumuloConfiguration parent) {
+  synchronized public static SiteConfiguration getInstance(AccumuloConfiguration parent) {
     if (instance == null) {
       instance = new SiteConfiguration(parent);
       ConfigSanityCheck.validate(instance);
@@ -43,7 +43,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     return instance;
   }
   
-  private static Configuration getXmlConfig() {
+  synchronized private static Configuration getXmlConfig() {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
     if (xmlConfig == null) {
       xmlConfig = new Configuration(false);

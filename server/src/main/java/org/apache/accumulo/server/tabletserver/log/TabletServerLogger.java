@@ -33,11 +33,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.thrift.TMutation;
-import org.apache.accumulo.core.tabletserver.thrift.TabletMutations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.tabletserver.Tablet;
 import org.apache.accumulo.server.tabletserver.Tablet.CommitSession;
+import org.apache.accumulo.server.tabletserver.TabletMutations;
 import org.apache.accumulo.server.tabletserver.TabletServer;
 import org.apache.accumulo.server.tabletserver.log.DfsLogger.LoggerOperation;
 import org.apache.log4j.Logger;
@@ -71,7 +70,7 @@ public class TabletServerLogger {
   private AtomicInteger logSetId = new AtomicInteger();
   
   // Use a ReadWriteLock to allow multiple threads to use the log set, but obtain a write lock to change them
-  private ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
+  private final ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
   
   private final AtomicInteger seqGen = new AtomicInteger();
   
@@ -98,7 +97,7 @@ public class TabletServerLogger {
    *          a test/work pair
    * @throws IOException
    */
-  private static void testLockAndRun(ReadWriteLock rwlock, TestCallWithWriteLock code) throws IOException {
+  private static void testLockAndRun(final ReadWriteLock rwlock, TestCallWithWriteLock code) throws IOException {
     // Get a read lock
     rwlock.readLock().lock();
     try {
@@ -366,10 +365,7 @@ public class TabletServerLogger {
         List<TabletMutations> copy = new ArrayList<TabletMutations>(loggables.size());
         for (Entry<CommitSession,List<Mutation>> entry : loggables.entrySet()) {
           CommitSession cs = entry.getKey();
-          ArrayList<TMutation> tmutations = new ArrayList<TMutation>(entry.getValue().size());
-          for (Mutation m : entry.getValue())
-            tmutations.add(m.toThrift());
-          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(), tmutations));
+          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(), entry.getValue()));
         }
         return logger.logManyTablets(copy);
       }

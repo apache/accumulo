@@ -27,20 +27,27 @@
 ### you may want to use smaller values, especially when running everything
 ### on a single machine.
 ###
+if [ -z "$HADOOP_HOME" ]
+then
+   test -z "$HADOOP_PREFIX"      && export HADOOP_PREFIX=/path/to/hadoop
+else
+   HADOOP_PREFIX="$HADOOP_HOME"
+   unset HADOOP_HOME
+fi
+test -z "$HADOOP_CONF_DIR"       && export HADOOP_CONF_DIR="$HADOOP_PREFIX/conf"
+
 
 test -z "$JAVA_HOME"             && export JAVA_HOME=/path/to/java
-test -z "$HADOOP_HOME"           && export HADOOP_HOME=/path/to/hadoop
 test -z "$ZOOKEEPER_HOME"        && export ZOOKEEPER_HOME=/path/to/zookeeper
 test -z "$ACCUMULO_LOG_DIR"      && export ACCUMULO_LOG_DIR=$ACCUMULO_HOME/logs
 if [ -f ${ACCUMULO_HOME}/conf/accumulo.policy ]
 then
    POLICY="-Djava.security.manager -Djava.security.policy=${ACCUMULO_HOME}/conf/accumulo.policy"
 fi
-test -z "$ACCUMULO_TSERVER_OPTS" && export ACCUMULO_TSERVER_OPTS="${POLICY} -Xmx768m -Xms768m -Xss128k"
+test -z "$ACCUMULO_TSERVER_OPTS" && export ACCUMULO_TSERVER_OPTS="${POLICY} -Xmx768m -Xms768m "
 test -z "$ACCUMULO_MASTER_OPTS"  && export ACCUMULO_MASTER_OPTS="${POLICY} -Xmx256m -Xms256m"
 test -z "$ACCUMULO_MONITOR_OPTS" && export ACCUMULO_MONITOR_OPTS="${POLICY} -Xmx128m -Xms64m" 
 test -z "$ACCUMULO_GC_OPTS"      && export ACCUMULO_GC_OPTS="-Xmx128m -Xms128m"
-test -z "$ACCUMULO_LOGGER_OPTS"  && export ACCUMULO_LOGGER_OPTS="-Xmx768m -Xms256m"
 test -z "$ACCUMULO_GENERAL_OPTS" && export ACCUMULO_GENERAL_OPTS="-XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75"
 test -z "$ACCUMULO_OTHER_OPTS"   && export ACCUMULO_OTHER_OPTS="-Xmx256m -Xms64m"
-export ACCUMULO_LOG_HOST=`(grep -v '^#' $ACCUMULO_HOME/conf/masters ; echo localhost ) 2>/dev/null | head -1`
+export ACCUMULO_LOG_HOST=`(grep -v '^#' $ACCUMULO_HOME/conf/monitor ; echo localhost ) 2>/dev/null | head -1`

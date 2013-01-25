@@ -21,14 +21,30 @@ bin=`cd "$bin"; pwd`
 
 . "$bin"/config.sh
 
+HOST=$1
+
+IFCONFIG=/sbin/ifconfig
+if [ ! -x $IFCONFIG ]
+then
+   IFCONFIG='/bin/netstat -ie'
+fi
+ip=`$IFCONFIG 2>/dev/null| grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1`
+if [ $? != 0 ]
+then
+  ip=`python -c 'import socket as s; print s.gethostbyname(s.getfqdn())'`
+fi
 
 # only stop if there's not one already running
-if [ "$1" = "`hostname`" ]; then
+if [ "$HOST" = "localhost" -o "$HOST" = "`hostname`" -o "$HOST" = "$ip" ]; then
 	PID=`ps -ef | grep "$ACCUMULO_HOME" | egrep ${2} | grep "Main ${3}" | grep -v grep | grep -v ssh | grep -v stop-server.sh | awk {'print \$2'} | head -1`
+  if [ ! -z $PID ]; then
+    echo "stopping ${3} on $1";
+    kill -s ${4} ${PID} 2>/dev/null
+  fi;
 else
 	PID=`ssh -q -o 'ConnectTimeout 8' $1 "ps -ef | grep \"$ACCUMULO_HOME\" |  egrep '${2}' | grep 'Main ${3}' | grep -v grep | grep -v ssh | grep -v stop-server.sh" | awk {'print $2'} | head -1`
+  if [ ! -z $PID ]; then
+    echo "stopping ${3} on $1";
+    ssh -q -o 'ConnectTimeout 8' $1 "kill -s ${4} ${PID} 2>/dev/null"
+  fi;
 fi
-if [ ! -z $PID ]; then
-        echo "stopping ${3} on $1";
-        ssh -q -o 'ConnectTimeout 8' $1 "kill -s ${4} ${PID} 2>/dev/null"
-fi;

@@ -81,19 +81,19 @@ public class TraceFormatter implements Formatter {
       SimpleDateFormat dateFormatter = new SimpleDateFormat(DATE_FORMAT);
       RemoteSpan span = getRemoteSpan(next);
       result.append("----------------------\n");
-      result.append(String.format(" %12s:%s\n", "name", span.description));
-      result.append(String.format(" %12s:%s\n", "trace", Long.toHexString(span.traceId)));
-      result.append(String.format(" %12s:%s\n", "loc", span.svc + "@" + span.sender));
-      result.append(String.format(" %12s:%s\n", "span", Long.toHexString(span.spanId)));
-      result.append(String.format(" %12s:%s\n", "parent", Long.toHexString(span.parentId)));
-      result.append(String.format(" %12s:%s\n", "start", dateFormatter.format(span.start)));
-      result.append(String.format(" %12s:%s\n", "ms", span.stop - span.start));
+      result.append(String.format(" %12s:%s%n", "name", span.description));
+      result.append(String.format(" %12s:%s%n", "trace", Long.toHexString(span.traceId)));
+      result.append(String.format(" %12s:%s%n", "loc", span.svc + "@" + span.sender));
+      result.append(String.format(" %12s:%s%n", "span", Long.toHexString(span.spanId)));
+      result.append(String.format(" %12s:%s%n", "parent", Long.toHexString(span.parentId)));
+      result.append(String.format(" %12s:%s%n", "start", dateFormatter.format(span.start)));
+      result.append(String.format(" %12s:%s%n", "ms", span.stop - span.start));
       for (Entry<String,String> entry : span.data.entrySet()) {
-        result.append(String.format(" %12s:%s\n", entry.getKey(), entry.getValue()));
+        result.append(String.format(" %12s:%s%n", entry.getKey(), entry.getValue()));
       }
       
       if (printTimeStamps) {
-        result.append(String.format(" %-12s:%d\n", "timestamp", next.getKey().getTimestamp()));
+        result.append(String.format(" %-12s:%d%n", "timestamp", next.getKey().getTimestamp()));
       }
       return result.toString();
     }

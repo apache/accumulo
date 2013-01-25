@@ -16,33 +16,31 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import java.io.IOException;
-
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 
 public class MaxRowCommand extends ScanCommand {
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, ParseException {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
-    Range range = getRange(cl);
-    Authorizations auths = getAuths(cl, shellState);
-    Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
-    Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
+    
+    final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+    
+    final Range range = getRange(cl, interpeter);
+    final Authorizations auths = getAuths(cl, shellState);
+    final Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
+    final Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
     
     try {
-      Text max = shellState.getConnector().tableOperations()
+      final Text max = shellState.getConnector().tableOperations()
           .getMaxRow(tableName, auths, startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
-      if (max != null)
+      if (max != null) {
         shellState.getReader().printString(max.toString() + "\n");
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }

@@ -19,109 +19,72 @@ package org.apache.accumulo.server.test;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.Parser;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.Parameter;
+
 public class CreateTestTable {
-  private static Option usernameOpt;
-  private static Option passwordOpt;
-  private static Option readonlyOpt;
   
-  private static Options opts;
+  static class Opts extends ClientOnDefaultTable {
+    @Parameter(names={"-readonly", "--readonly"}, description="read only")
+    boolean readOnly = false;
+    @Parameter(names={"-count", "--count"}, description="count", required = true)
+    int count = 10000;
+    Opts() { super("mrtest1"); }
+  }
   
-  // root user is needed for tests
-  private static String user;
-  private static String password;
-  private static boolean readOnly = false;
-  private static int count = 10000;
-  
-  private static void readBack(Connector conn, int last) throws Exception {
-    Scanner scanner = conn.createScanner("mrtest1", Constants.NO_AUTHS);
+  private static void readBack(Connector conn, Opts opts, ScannerOpts scanOpts) throws Exception {
+    Scanner scanner = conn.createScanner("mrtest1", opts.auths);
+    scanner.setBatchSize(scanOpts.scanBatchSize);
     int count = 0;
     for (Entry<Key,Value> elt : scanner) {
       String expected = String.format("%05d", count);
       assert (elt.getKey().getRow().toString().equals(expected));
       count++;
     }
-    assert (last == count);
-  }
-  
-  public static void setupOptions() {
-    usernameOpt = new Option("username", "username", true, "username");
-    passwordOpt = new Option("password", "password", true, "password");
-    readonlyOpt = new Option("readonly", "readonly", false, "read only");
-    
-    opts = new Options();
-    
-    opts.addOption(usernameOpt);
-    opts.addOption(passwordOpt);
-    opts.addOption(readonlyOpt);
+    assert (opts.count == count);
   }
   
   public static void main(String[] args) throws Exception {
-    setupOptions();
-    
-    Parser p = new BasicParser();
-    CommandLine cl = null;
-    
-    try {
-      cl = p.parse(opts, args);
-    } catch (ParseException e) {
-      throw new RuntimeException(e);
-    }
-    String[] rargs = cl.getArgs();
-    if (rargs.length != 1) {
-      HelpFormatter hf = new HelpFormatter();
-      hf.printHelp(" <count> ", opts);
-    }
-    count = Integer.parseInt(rargs[0]);
-    readOnly = cl.hasOption(readonlyOpt.getOpt());
-    user = cl.getOptionValue(usernameOpt.getOpt(), "root");
-    password = cl.getOptionValue(passwordOpt.getOpt(), "secret");
+    String program = CreateTestTable.class.getName();
+    Opts opts = new Opts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(program, args, bwOpts, scanOpts);
     
     // create the test table within accumulo
-    String table = "mrtest1";
-    Connector connector;
+    Connector connector = opts.getConnector();
     
-    connector = HdfsZooInstance.getInstance().getConnector(user, password.getBytes());
-    
-    if (!readOnly) {
+    if (!opts.readOnly) {
       TreeSet<Text> keys = new TreeSet<Text>();
-      for (int i = 0; i < count / 100; i++) {
+      for (int i = 0; i < opts.count / 100; i++) {
         keys.add(new Text(String.format("%05d", i * 100)));
       }
       
       // presplit
-      connector.tableOperations().create(table);
-      connector.tableOperations().addSplits(table, keys);
-      BatchWriter b = connector.createBatchWriter(table, 10000000l, 1000000l, 10);
+      connector.tableOperations().create(opts.getTableName());
+      connector.tableOperations().addSplits(opts.getTableName(), keys);
+      BatchWriter b = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
       
       // populate
-      for (int i = 0; i < count; i++) {
+      for (int i = 0; i < opts.count; i++) {
         Mutation m = new Mutation(new Text(String.format("%05d", i)));
         m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes()));
         b.addMutation(m);
       }
-      
       b.close();
-      
     }
     
-    readBack(connector, count);
-    
+    readBack(connector, opts, scanOpts);
+    opts.stopTracing();
   }
 }

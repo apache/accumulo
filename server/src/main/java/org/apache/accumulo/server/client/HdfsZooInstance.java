@@ -28,13 +28,19 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
+import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerConstants;
@@ -43,6 +49,8 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 
 /**
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet location.
@@ -139,20 +147,25 @@ public class HdfsZooInstance implements Instance {
     return (int) ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
   }
   
-  @SuppressWarnings("deprecation")
+  /**
+   * @deprecated since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
-  // Not really deprecated, just not for client use
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, user, pass);
+    return getConnector(new UserPassToken(user, pass));
   }
   
-  @SuppressWarnings("deprecation")
+  /**
+   * @deprecated since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
-  // Not really deprecated, just not for client use
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, user, ByteBufferUtil.toBytes(pass));
+    return getConnector(new UserPassToken(user, pass));
   }
   
+  /**
+   * @deprecated since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
@@ -180,8 +193,40 @@ public class HdfsZooInstance implements Instance {
     System.out.println("Masters: " + StringUtil.join(instance.getMasterLocations(), ", "));
   }
   
+  /**
+   * @deprecated since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(auth.user, auth.password);
+    return getConnector(UserPassToken.convertAuthInfo(auth));
+  }
+  
+  @SuppressWarnings("deprecation")
+  public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+    return new ConnectorImpl(this, token);
+  }
+  
+  @Override
+  public Connector getConnector(InstanceTokenWrapper token) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(token.getToken());
+  }
+  
+  @Override
+  public String getSecurityTokenClass() throws AccumuloException {
+    Client client = null;
+    try {
+      client = MasterClient.getConnectionWithRetry(this);
+      return client.getSecurityTokenClass();
+    } catch (TTransportException e) {
+      throw new AccumuloException(e);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloException(e);
+    } catch (TException e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null) {
+        ThriftUtil.returnClient(client);
+      }
+    }
   }
 }

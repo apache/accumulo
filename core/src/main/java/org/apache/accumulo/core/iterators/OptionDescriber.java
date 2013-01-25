@@ -122,7 +122,9 @@ public interface OptionDescriber {
    * 
    * @param options
    *          a map of option names to option values
-   * @return true if options are valid, false otherwise
+   * @return true if options are valid, false otherwise (IllegalArgumentException preferred)
+   * @exception IllegalArgumentException
+   *              if there are problems with the options
    */
   public boolean validateOptions(Map<String,String> options);
 }

@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -50,24 +49,6 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
     this.ranges = new ArrayList<Range>(ranges);
   }
   
-  static class RangesFilter extends Filter {
-    List<Range> ranges;
-    
-    RangesFilter(SortedKeyValueIterator<Key,Value> iterator, List<Range> ranges) {
-      setSource(iterator);
-      this.ranges = ranges;
-    }
-    
-    @Override
-    public boolean accept(Key k, Value v) {
-      for (Range r : ranges) {
-        if (r.contains(k))
-          return true;
-      }
-      return false;
-    }
-  }
-  
   @SuppressWarnings("unchecked")
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
@@ -79,7 +60,7 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
     for (Range range : ranges) {
       SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
       try {
-        i = new RangesFilter(createFilter(i), ranges);
+        i = createFilter(i);
         i.seek(range, createColumnBSS(fetchedColumns), !fetchedColumns.isEmpty());
         chain.addIterator(new IteratorAdapter(i));
       } catch (IOException e) {
@@ -91,5 +72,4 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
   
   @Override
   public void close() {}
-  
 }

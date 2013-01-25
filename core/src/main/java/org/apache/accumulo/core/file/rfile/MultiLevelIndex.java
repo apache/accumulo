@@ -41,7 +41,6 @@ import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.accumulo.core.iterators.predicates.ColumnVisibilityPredicate;
 import org.apache.accumulo.core.iterators.predicates.TimestampRangePredicate;
-import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.WritableComparable;
 
 public class MultiLevelIndex {

@@ -17,13 +17,13 @@
 package org.apache.accumulo.server.test.randomwalk.security;
 
 import java.net.InetAddress;
-import java.util.HashMap;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.server.test.randomwalk.Fixture;
 import org.apache.accumulo.server.test.randomwalk.State;
 
@@ -32,43 +32,44 @@ public class SecurityFixture extends Fixture {
   @Override
   public void setUp(State state) throws Exception {
     String secTableName, systemUserName, tableUserName;
-    Connector sysConn;
-    
     Connector conn = state.getConnector();
-    Instance instance = state.getInstance();
     
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
     
-    systemUserName = String.format("system_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis());
-    tableUserName = String.format("table_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis());
-    secTableName = String.format("security_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis());
+    systemUserName = String.format("system_%s", hostname);
+    tableUserName = String.format("table_%s", hostname);
+    secTableName = String.format("security_%s", hostname);
+    
+    if (conn.tableOperations().exists(secTableName))
+      conn.tableOperations().delete(secTableName);
+    Set<String> users = conn.securityOperations().listUsers();
+    if (users.contains(tableUserName))
+      conn.securityOperations().dropUser(tableUserName);
+    if (users.contains(systemUserName))
+      conn.securityOperations().dropUser(systemUserName);
     
     byte[] sysUserPass = "sysUser".getBytes();
-    conn.securityOperations().createUser(systemUserName, sysUserPass, new Authorizations());
-    sysConn = instance.getConnector(systemUserName, sysUserPass);
+    conn.securityOperations().createUser(new UserPassToken(systemUserName, sysUserPass));
     
-    SecurityHelper.setSystemConnector(state, sysConn);
-    SecurityHelper.setSysUserName(state, systemUserName);
-    SecurityHelper.setSysUserPass(state, sysUserPass);
+    WalkingSecurity.get(state).setTableName(secTableName);
+    state.set("rootUserPass", ((UserPassToken )state.getAuthInfo().getToken()).getPassword());
     
-    SecurityHelper.setTableExists(state, false);
-    SecurityHelper.setTableExists(state, false);
+    WalkingSecurity.get(state).setSysUserName(systemUserName);
+    WalkingSecurity.get(state).createUser(new UserPassToken(systemUserName, sysUserPass));
     
-    SecurityHelper.setTabUserPass(state, new byte[0]);
+    WalkingSecurity.get(state).changePassword(new UserPassToken(tableUserName, new byte[0]));
     
-    SecurityHelper.setTableName(state, secTableName);
-    SecurityHelper.setTabUserName(state, tableUserName);
+    WalkingSecurity.get(state).setTabUserName(tableUserName);
     
     for (TablePermission tp : TablePermission.values()) {
-      SecurityHelper.setTabPerm(state, systemUserName, tp, false);
-      SecurityHelper.setTabPerm(state, tableUserName, tp, false);
+      WalkingSecurity.get(state).revokeTablePermission(systemUserName, secTableName, tp);
+      WalkingSecurity.get(state).revokeTablePermission(tableUserName, secTableName, tp);
     }
     for (SystemPermission sp : SystemPermission.values()) {
-      SecurityHelper.setSysPerm(state, systemUserName, sp, false);
-      SecurityHelper.setSysPerm(state, tableUserName, sp, false);
+      WalkingSecurity.get(state).revokeSystemPermission(systemUserName, sp);
+      WalkingSecurity.get(state).revokeSystemPermission(tableUserName, sp);
     }
-    SecurityHelper.setUserAuths(state, tableUserName, new Authorizations());
-    SecurityHelper.setAuthsMap(state, new HashMap<String,Integer>());
+    WalkingSecurity.get(state).changeAuthorizations(tableUserName, new Authorizations());
   }
   
   @Override
@@ -77,20 +78,20 @@ public class SecurityFixture extends Fixture {
     Validate.validate(state, log);
     Connector conn = state.getConnector();
     
-    if (SecurityHelper.getTableExists(state)) {
-      String secTableName = SecurityHelper.getTableName(state);
+    if (WalkingSecurity.get(state).getTableExists()) {
+      String secTableName = WalkingSecurity.get(state).getTableName();
       log.debug("Dropping tables: " + secTableName);
       
       conn.tableOperations().delete(secTableName);
     }
     
-    if (SecurityHelper.getTabUserExists(state)) {
-      String tableUserName = SecurityHelper.getTabUserName(state);
+    if (WalkingSecurity.get(state).userExists(WalkingSecurity.get(state).getTabUserName())) {
+      String tableUserName = WalkingSecurity.get(state).getTabUserName();
       log.debug("Dropping user: " + tableUserName);
       
       conn.securityOperations().dropUser(tableUserName);
     }
-    String systemUserName = SecurityHelper.getSysUserName(state);
+    String systemUserName = WalkingSecurity.get(state).getSysUserName();
     log.debug("Dropping user: " + systemUserName);
     conn.securityOperations().dropUser(systemUserName);
     

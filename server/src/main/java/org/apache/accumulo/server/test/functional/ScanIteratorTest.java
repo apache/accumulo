@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -53,7 +54,7 @@ public class ScanIteratorTest extends FunctionalTest {
   @Override
   public void run() throws Exception {
     
-    BatchWriter bw = getConnector().createBatchWriter("foo", 100000, 60000l, 4);
+    BatchWriter bw = getConnector().createBatchWriter("foo", new BatchWriterConfig());
     
     for (int i = 0; i < 1000; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));

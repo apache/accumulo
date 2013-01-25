@@ -24,13 +24,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -94,7 +95,7 @@ public class VisibilityTest extends FunctionalTest {
   
   private void insertData() throws Exception {
     
-    BatchWriter bw = getConnector().createBatchWriter("vt", 1000000l, 60l, 3);
+    BatchWriter bw = getConnector().createBatchWriter("vt", new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
     
     mput(m1, "cf1", "cq1", "", "v1");
@@ -117,7 +118,7 @@ public class VisibilityTest extends FunctionalTest {
   
   private void deleteData() throws Exception {
     
-    BatchWriter bw = getConnector().createBatchWriter("vt", 1000000l, 60l, 3);
+    BatchWriter bw = getConnector().createBatchWriter("vt", new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
     
     mputDelete(m1, "cf1", "cq1", "");
@@ -148,7 +149,7 @@ public class VisibilityTest extends FunctionalTest {
   }
   
   private void insertDefaultData() throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter("vt2", 1000000l, 60l, 3);
+    BatchWriter bw = getConnector().createBatchWriter("vt2", new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
     
     mput(m1, "cf1", "cq1", "BASE", "v1");
@@ -204,7 +205,7 @@ public class VisibilityTest extends FunctionalTest {
   
   private void queryData(Set<String> allAuths, Set<String> userAuths, Map<Set<String>,Set<String>> expected) throws Exception {
     
-    getConnector().securityOperations().changeUserAuthorizations(getUsername(), new Authorizations(nbas(userAuths)));
+    getConnector().securityOperations().changeUserAuthorizations(getToken().getPrincipal(), new Authorizations(nbas(userAuths)));
     
     ArrayList<Set<String>> combos = new ArrayList<Set<String>>();
     uniqueCombos(combos, nss(), allAuths);
@@ -231,7 +232,7 @@ public class VisibilityTest extends FunctionalTest {
     Scanner scanner;
     
     // should return no records
-    getConnector().securityOperations().changeUserAuthorizations(getUsername(), new Authorizations("BASE", "DEFLABEL"));
+    getConnector().securityOperations().changeUserAuthorizations(getToken().getPrincipal(), new Authorizations("BASE", "DEFLABEL"));
     scanner = getConnector().createScanner("vt2", new Authorizations());
     verifyDefault(scanner, 0);
     

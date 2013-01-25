@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocations;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletLocationObtainer;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -47,7 +48,11 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
 public class TabletLocatorImplTest extends TestCase {
@@ -415,11 +420,22 @@ public class TabletLocatorImplTest extends TestCase {
       this.rtl = rtl;
     }
     
+    /**
+     * @deprecated @since 1.5
+     */
     @Override
     public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
     
+    @Override
+    public Connector getConnector(InstanceTokenWrapper itw) throws AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
+    
+    /**
+     * @deprecated @since 1.5
+     */
     @Override
     public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
@@ -437,14 +453,29 @@ public class TabletLocatorImplTest extends TestCase {
       this.conf = conf;
     }
     
+    /**
+     * @deprecated @since 1.5
+     */
     @Override
     public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
     
+    /**
+     * @deprecated @since 1.5
+     */
     @Override
     public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
       return getConnector(auth.user, auth.password);
+    }
+    
+    public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public String getSecurityTokenClass() throws AccumuloException {
+      return UserPassToken.class.getCanonicalName();
     }
   }
   
@@ -461,7 +492,7 @@ public class TabletLocatorImplTest extends TestCase {
     }
     
     @Override
-    public List<TabletLocation> lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent) throws AccumuloSecurityException {
+    public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent) throws AccumuloSecurityException {
       
       // System.out.println("lookupTablet("+src+","+row+","+stopRow+","+ parent+")");
       // System.out.println(tservers);
@@ -472,14 +503,14 @@ public class TabletLocatorImplTest extends TestCase {
       
       if (tablets == null) {
         parent.invalidateCache(src.tablet_location);
-        return list;
+        return null;
       }
       
       SortedMap<Key,Value> tabletData = tablets.get(src.tablet_extent);
       
       if (tabletData == null) {
         parent.invalidateCache(src.tablet_extent);
-        return list;
+        return null;
       }
       
       // the following clip is done on a tablet, do it here to see if it throws exceptions
@@ -490,13 +521,13 @@ public class TabletLocatorImplTest extends TestCase {
       
       SortedMap<Key,Value> results = tabletData.tailMap(startKey).headMap(stopKey);
       
-      SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results);
+      Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> metadata = MetadataTable.getMetadataLocationEntries(results);
       
-      for (Entry<KeyExtent,Text> entry : metadata.entrySet()) {
+      for (Entry<KeyExtent,Text> entry : metadata.getFirst().entrySet()) {
         list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
       }
       
-      return list;
+      return new TabletLocations(list, metadata.getSecond());
     }
     
     @Override
@@ -545,7 +576,7 @@ public class TabletLocatorImplTest extends TestCase {
       if (failures.size() > 0)
         parent.invalidateCache(failures);
       
-      SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results);
+      SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results).getFirst();
       
       for (Entry<KeyExtent,Text> entry : metadata.entrySet()) {
         list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
@@ -555,6 +586,22 @@ public class TabletLocatorImplTest extends TestCase {
       
     }
     
+  }
+  
+  static void createEmptyTablet(TServers tservers, String server, KeyExtent tablet) {
+    Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
+    if (tablets == null) {
+      tablets = new HashMap<KeyExtent,SortedMap<Key,Value>>();
+      tservers.tservers.put(server, tablets);
+    }
+    
+    SortedMap<Key,Value> tabletData = tablets.get(tablet);
+    if (tabletData == null) {
+      tabletData = new TreeMap<Key,Value>();
+      tablets.put(tablet, tabletData);
+    } else if (tabletData.size() > 0) {
+      throw new RuntimeException("Asked for empty tablet, but non empty tablet exists");
+    }
   }
   
   static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke, String location) {
@@ -1183,6 +1230,42 @@ public class TabletLocatorImplTest extends TestCase {
     tservers.tservers.put("tserver3", ts3);
     
     assertNull(tab0TabletCache.locateTablet(new Text("row_0000000000"), false, false));
+    
+  }
+  
+  // this test reproduces a problem where empty metadata tablets, that were created by user tablets being merged away, caused locating tablets to fail
+  public void testBug3() throws Exception {
+    
+    KeyExtent mte1 = new KeyExtent(new Text(Constants.METADATA_TABLE_ID), new Text("1;c"), RTE.getEndRow());
+    KeyExtent mte2 = new KeyExtent(new Text(Constants.METADATA_TABLE_ID), new Text("1;f"), new Text("1;c"));
+    KeyExtent mte3 = new KeyExtent(new Text(Constants.METADATA_TABLE_ID), new Text("1;j"), new Text("1;f"));
+    KeyExtent mte4 = new KeyExtent(new Text(Constants.METADATA_TABLE_ID), new Text("1;r"), new Text("1;j"));
+    KeyExtent mte5 = new KeyExtent(new Text(Constants.METADATA_TABLE_ID), null, new Text("1;r"));
+    
+    KeyExtent ke1 = new KeyExtent(new Text("1"), null, null);
+    
+    TServers tservers = new TServers();
+    TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
+    TestInstance testInstance = new TestInstance("instance1", "tserver1");
+    
+    RootTabletLocator rtl = new RootTabletLocator(testInstance);
+    
+    TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(new Text(Constants.METADATA_TABLE_ID), rtl, ttlo);
+    TabletLocatorImpl tab0TabletCache = new TabletLocatorImpl(new Text("1"), rootTabletCache, ttlo);
+    
+    setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
+    setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
+    setLocation(tservers, "tserver1", RTE, mte3, "tserver4");
+    setLocation(tservers, "tserver1", RTE, mte4, "tserver5");
+    setLocation(tservers, "tserver1", RTE, mte5, "tserver6");
+    
+    createEmptyTablet(tservers, "tserver2", mte1);
+    createEmptyTablet(tservers, "tserver3", mte2);
+    createEmptyTablet(tservers, "tserver4", mte3);
+    createEmptyTablet(tservers, "tserver5", mte4);
+    setLocation(tservers, "tserver6", mte5, ke1, "tserver7");
+    
+    locateTabletTest(tab0TabletCache, "a", ke1, "tserver7");
     
   }
 }

@@ -35,11 +35,10 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
 
-
 // If FileSystem was an interface, we could use a Proxy, but it's not, so we have to override everything manually
 
 public class TraceFileSystem extends FileSystem {
-
+  
   @Override
   public void setConf(Configuration conf) {
     Span span = Trace.start("setConf");
@@ -63,6 +62,7 @@ public class TraceFileSystem extends FileSystem {
     }
   }
   
+  @Override
   public BlockLocation[] getFileBlockLocations(FileStatus file, long start, long len) throws IOException {
     Span span = Trace.start("getFileBlockLocations");
     try {
@@ -229,6 +229,7 @@ public class TraceFileSystem extends FileSystem {
     }
   }
   
+  @Deprecated
   @Override
   public short getReplication(Path src) throws IOException {
     Span span = Trace.start("getReplication");
@@ -671,7 +672,7 @@ public class TraceFileSystem extends FileSystem {
   public FileSystem getImplementation() {
     return impl;
   }
-
+  
   @Override
   public URI getUri() {
     Span span = Trace.start("getUri");

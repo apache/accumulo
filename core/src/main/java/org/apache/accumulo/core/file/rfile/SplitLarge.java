@@ -17,7 +17,9 @@
 package org.apache.accumulo.core.file.rfile;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -28,13 +30,11 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Split an RFile into large and small key/value files.
@@ -42,30 +42,31 @@ import org.apache.hadoop.fs.Path;
  */
 public class SplitLarge {
   
+  static class Opts extends Help {
+    @Parameter(names="-m", description="the maximum size of the key/value pair to shunt to the small file")
+    long maxSize = 10 * 1024 * 1024;
+    @Parameter(description="<file.rf> { <file.rf> ... }")
+    List<String> files = new ArrayList<String>();
+  }
+  
+  
   public static void main(String[] args) throws Exception {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
     long maxSize = 10 * 1024 * 1024;
+    Opts opts = new Opts();
+    opts.parseArgs(SplitLarge.class.getName(), args);
     
-    Options opts = new Options();
-    Option maxSizeOption = new Option("m", "", true, "the maximum size of the key/value pair to shunt to the small file");
-    opts.addOption(maxSizeOption);
-    
-    CommandLine commandLine = new BasicParser().parse(opts, args);
-    if (commandLine.hasOption(maxSizeOption.getOpt())) {
-      maxSize = Long.parseLong(commandLine.getOptionValue(maxSizeOption.getOpt()));
-    }
-    
-    for (String arg : commandLine.getArgs()) {
-      Path path = new Path(arg);
+    for (String file : opts.files) {
+      Path path = new Path(file);
       CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
       Reader iter = new RFile.Reader(rdr);
       
-      if (!arg.endsWith(".rf")) {
+      if (!file.endsWith(".rf")) {
         throw new IllegalArgumentException("File must end with .rf");
       }
-      String smallName = arg.substring(0, arg.length() - 3) + "_small.rf";
-      String largeName = arg.substring(0, arg.length() - 3) + "_large.rf";
+      String smallName = file.substring(0, file.length() - 3) + "_small.rf";
+      String largeName = file.substring(0, file.length() - 3) + "_large.rf";
       
       int blockSize = (int) DefaultConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
       Writer small = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(smallName), "gz", conf), blockSize);

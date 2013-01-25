@@ -57,9 +57,10 @@ cd "$RW_HOME"
 "$HADOOP_HOME/bin/hadoop" fs -get /randomwalk/config.tgz config.tgz
 
 # extract config to a tmp directory
-rm -rf tmp/
-mkdir tmp/
-tar xzf config.tgz -C tmp/
+TEMP="`hostname`-tmp"
+rm -rf "$TEMP"
+mkdir "$TEMP"
+tar xzf config.tgz -C "$TEMP"
 rm config.tgz
 
 # config the logging
@@ -71,4 +72,4 @@ fi
 LOG_ID=`hostname -s`_`date +%Y%m%d_%H%M%S`
 
 # run the local walker
-"$ACCUMULO_HOME/bin/accumulo" org.apache.accumulo.server.test.randomwalk.Framework "$RW_HOME/tmp/conf/" "$RW_LOGS" "$LOG_ID" "$1" >"$RW_LOGS/$LOG_ID.out" 2>"$RW_LOGS/$LOG_ID.err" &
+"$ACCUMULO_HOME/bin/accumulo" org.apache.accumulo.server.test.randomwalk.Framework --configDir "$RW_HOME/$TEMP/conf/" --logDir "$RW_LOGS" --logId "$LOG_ID" --module "$1" >"$RW_LOGS/$LOG_ID.out" 2>"$RW_LOGS/$LOG_ID.err" &

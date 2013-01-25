@@ -21,14 +21,16 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Random;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -62,13 +64,13 @@ public class ZombieTServer {
     }
     
     @Override
-    synchronized public void fastHalt(TInfo tinfo, AuthInfo credentials, String lock) {
+    synchronized public void fastHalt(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock) {
       halted = true;
       notifyAll();
     }
     
     @Override
-    public TabletServerStatus getTabletServerStatus(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
+    public TabletServerStatus getTabletServerStatus(TInfo tinfo, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException, TException {
       synchronized (this) {
         if (statusCount++ < 1) {
           TabletServerStatus result = new TabletServerStatus();
@@ -81,7 +83,7 @@ public class ZombieTServer {
     }
     
     @Override
-    synchronized public void halt(TInfo tinfo, AuthInfo credentials, String lock) throws ThriftSecurityException, TException {
+    synchronized public void halt(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock) throws ThriftSecurityException, TException {
       halted = true;
       notifyAll();
     }
@@ -96,8 +98,8 @@ public class ZombieTServer {
     
     TransactionWatcher watcher = new TransactionWatcher();
     final ThriftClientHandler tch = new ThriftClientHandler(instance, watcher);
-    TabletClientService.Processor processor = new TabletClientService.Processor(tch);
-    ServerPort serverPort = TServerUtils.startTServer(port, processor, "ZombieTServer", "walking dead", 2, 1000);
+    Processor<Iface> processor = new Processor<Iface>(tch);
+    ServerPort serverPort = TServerUtils.startTServer(port, processor, "ZombieTServer", "walking dead", 2, 1000, 10*1024*1024);
     
     InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), serverPort.port);
     String addressString = AddressUtil.toString(addr);
@@ -111,7 +113,7 @@ public class ZombieTServer {
       @Override
       public void lostLock(final LockLossReason reason) {
         try {
-          tch.halt(null, null, null);
+          tch.halt(Tracer.traceInfo(), null, null);
         } catch (Exception ex) {
           log.error(ex, ex);
           System.exit(1);

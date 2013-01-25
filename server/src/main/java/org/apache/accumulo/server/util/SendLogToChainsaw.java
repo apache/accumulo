@@ -18,10 +18,14 @@ package org.apache.accumulo.server.util;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLEncoder;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -31,10 +35,7 @@ import java.util.regex.Pattern;
 
 import javax.net.SocketFactory;
 
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang.math.LongRange;
 import org.apache.log4j.Category;
@@ -46,6 +47,9 @@ import org.apache.log4j.spi.LoggingEvent;
 import org.apache.log4j.spi.ThrowableInformation;
 import org.apache.log4j.varia.LevelRangeFilter;
 import org.apache.log4j.xml.XMLLayout;
+
+import com.beust.jcommander.IStringConverter;
+import com.beust.jcommander.Parameter;
 
 public class SendLogToChainsaw extends XMLLayout {
   
@@ -107,38 +111,55 @@ public class SendLogToChainsaw extends XMLLayout {
     }
   }
   
-  public void processLogFiles() throws Exception {
-    for (File log : logFiles) {
-      // Parse the server type and name from the log file name
-      String threadName = log.getName().substring(0, log.getName().indexOf("."));
-      FileReader fReader = new FileReader(log);
-      BufferedReader reader = new BufferedReader(fReader);
-      
-      String line = reader.readLine();
-      while (null != line) {
-        String out = null;
+  public void processLogFiles() throws IOException {
+    String line = null;
+    String out = null;
+    FileReader fReader = null;
+    BufferedReader reader = null;
+    try {
+      for (File log : logFiles) {
+        // Parse the server type and name from the log file name
+        String threadName = log.getName().substring(0, log.getName().indexOf("."));
         try {
-          out = convertLine(line, threadName);
-          if (null != out) {
-            if (socket != null && socket.isConnected())
-              socket.getOutputStream().write(out.getBytes());
-            else
-              System.err.println("Unable to send data to transport");
-          }
-        } catch (Exception e) {
-          System.out.println("Error processing line: " + line + ". Output was " + out);
+          fReader = new FileReader(log);
+        } catch (FileNotFoundException e) {
+          System.out.println("Unable to find file: " + log.getAbsolutePath());
           throw e;
+	    }
+        reader = new BufferedReader(fReader);
+        
+        try {
+          line = reader.readLine();
+          while (null != line) {
+                out = convertLine(line, threadName);
+                if (null != out) {
+                  if (socket != null && socket.isConnected())
+                    socket.getOutputStream().write(out.getBytes());
+                  else
+                    System.err.println("Unable to send data to transport");
+                }
+              line = reader.readLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error processing line: " + line + ". Output was " + out);
+            throw e;
+        } finally {
+          if (reader != null) {
+            reader.close();
+          }
+          if (fReader != null) {
+            fReader.close();
+          }
         }
-        line = reader.readLine();
       }
-      reader.close();
-      fReader.close();
+    } finally {
+      if (socket != null && socket.isConnected()) {
+        socket.close();
+      }
     }
-    if (socket != null && socket.isConnected())
-      socket.close();
   }
   
-  private String convertLine(String line, String threadName) throws Exception {
+  private String convertLine(String line, String threadName) throws UnsupportedEncodingException {
     String result = null;
     Matcher m = logPattern.matcher(line);
     if (m.matches()) {
@@ -189,96 +210,67 @@ public class SendLogToChainsaw extends XMLLayout {
     return result;
   }
   
-  private static Options getOptions() {
-    Options opts = new Options();
-    
-    Option dirOption = new Option("d", "logDirectory", true, "ACCUMULO log directory path");
-    dirOption.setArgName("dir");
-    dirOption.setRequired(true);
-    opts.addOption(dirOption);
-    
-    Option fileFilterOption = new Option("f", "fileFilter", true, "filter to apply to names of logs");
-    fileFilterOption.setArgName("filter");
-    fileFilterOption.setRequired(false);
-    opts.addOption(fileFilterOption);
-    
-    Option hostOption = new Option("h", "host", true, "host where chainsaw is running");
-    hostOption.setArgName("hostname");
-    hostOption.setRequired(true);
-    opts.addOption(hostOption);
-    
-    Option portOption = new Option("p", "port", true, "port where XMLSocketReceiver is listening");
-    portOption.setArgName("portnum");
-    portOption.setRequired(true);
-    opts.addOption(portOption);
-    
-    Option startOption = new Option("s", "start", true, "start date filter (yyyyMMddHHmmss)");
-    startOption.setArgName("date");
-    startOption.setRequired(true);
-    opts.addOption(startOption);
-    
-    Option endOption = new Option("e", "end", true, "end date filter (yyyyMMddHHmmss)");
-    endOption.setArgName("date");
-    endOption.setRequired(true);
-    opts.addOption(endOption);
-    
-    Option levelOption = new Option("l", "level", true, "filter log level");
-    levelOption.setArgName("level");
-    levelOption.setRequired(false);
-    opts.addOption(levelOption);
-    
-    Option msgFilter = new Option("m", "messageFilter", true, "regex filter for log messages");
-    msgFilter.setArgName("regex");
-    msgFilter.setRequired(false);
-    opts.addOption(msgFilter);
-    
-    return opts;
+  private static class DateConverter implements IStringConverter<Date> {
+    @Override
+    public Date convert(String value) {
+      SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+      try {
+        return formatter.parse(value);
+      } catch (ParseException e) {
+        throw new RuntimeException(e);
+      }
+    }
     
   }
+  
+  private static class Opts extends Help {
+    
+    @Parameter(names={"-d", "--logDirectory"}, description="ACCUMULO log directory path", required=true)
+    String dir;
+    
+    @Parameter(names={"-f", "--fileFilter"}, description="filter to apply to names of logs")
+    String filter;
+    
+    @Parameter(names={"-h", "--host"}, description="host where chainsaw is running", required=true)
+    String hostname;
+    
+    @Parameter(names={"-p", "--port"}, description="port where XMLSocketReceiver is listening", required=true)
+    int portnum;
+    
+    @Parameter(names={"-s", "--start"}, description="start date filter (yyyyMMddHHmmss)", required=true, converter=DateConverter.class)
+    Date startDate;
+    
+    @Parameter(names={"-e", "--end"}, description="end date filter (yyyyMMddHHmmss)", required=true, converter=DateConverter.class)
+    Date endDate;
+    
+    @Parameter(names={"-l", "--level"}, description="filter log level")
+    String level;
+    
+    @Parameter(names={"-m", "--messageFilter"}, description="regex filter for log messages")
+    String regex;
+  }
+  
+  
+  
   
   /**
    * 
    * @param args
-   *          parameter 0: path to log directory parameter 1: filter to apply for logs to include (uses wildcards (i.e. logger* and IS case sensitive) parameter
-   *          2: chainsaw host parameter 3: chainsaw port parameter 4: start date filter parameter 5: end date filter parameter 6: optional regex filter to
-   *          match on each log4j message parameter 7: optional level filter
+   *   0: path to log directory parameter 
+   *   1: filter to apply for logs to include (uses wildcards (i.e. logger* and IS case sensitive) parameter
+   *   2: chainsaw host parameter 
+   *   3: chainsaw port parameter 
+   *   4: start date filter parameter 
+   *   5: end date filter parameter 
+   *   6: optional regex filter to match on each log4j message parameter 
+   *   7: optional level filter
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(SendLogToChainsaw.class.getName(), args);
     
-    Options o = getOptions();
-    CommandLine cl = null;
-    cl = new BasicParser().parse(o, args);
-    
-    String logDir = cl.getOptionValue(o.getOption("d").getOpt());
-    String fileNameFilter = null;
-    if (cl.hasOption(o.getOption("f").getOpt()))
-      fileNameFilter = cl.getOptionValue(o.getOption("f").getOpt());
-    String chainsawHost = cl.getOptionValue(o.getOption("h").getOpt());
-    int chainsawPort = 0;
-    try {
-      chainsawPort = Integer.parseInt(cl.getOptionValue(o.getOption("p").getOpt()));
-    } catch (NumberFormatException nfe) {
-      System.err.println("Unable to parse port number");
-      System.exit(-1);
-    }
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-    Date startDate = null;
-    if (cl.hasOption(o.getOption("s").getOpt())) {
-      startDate = formatter.parse(cl.getOptionValue(o.getOption("s").getOpt()));
-    }
-    Date endDate = null;
-    if (cl.hasOption(o.getOption("e").getOpt())) {
-      endDate = formatter.parse(cl.getOptionValue(o.getOption("e").getOpt()));
-    }
-    String msgFilter = null;
-    if (cl.hasOption(o.getOption("m").getOpt()))
-      msgFilter = cl.getOptionValue(o.getOption("m").getOpt());
-    String levelFilter = null;
-    if (cl.hasOption(o.getOption("l").getOpt()))
-      levelFilter = cl.getOptionValue(o.getOption("l").getOpt());
-    
-    SendLogToChainsaw c = new SendLogToChainsaw(logDir, fileNameFilter, chainsawHost, chainsawPort, startDate, endDate, msgFilter, levelFilter);
+    SendLogToChainsaw c = new SendLogToChainsaw(opts.dir, opts.filter, opts.hostname, opts.portnum, opts.startDate, opts.endDate, opts.regex, opts.level);
     c.processLogFiles();
   }
   

@@ -26,7 +26,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
@@ -50,9 +49,9 @@ public class RenameTable extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     
-    Instance instance = HdfsZooInstance.getInstance();
+    Instance instance = master.getInstance();
     
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
     Utils.tableNameLock.lock();

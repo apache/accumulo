@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -86,7 +87,7 @@ public class ConcurrencyTest extends FunctionalTest {
   
   @Override
   public void run() throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter("cct", 10000000, 60000l, 1);
+    BatchWriter bw = getConnector().createBatchWriter("cct", new BatchWriterConfig());
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
       m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes()));

@@ -33,10 +33,11 @@ public class AboutCommand extends Command {
   }
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     shellState.printInfo();
-    if (cl.hasOption(verboseOption.getOpt()))
+    if (cl.hasOption(verboseOption.getOpt())) {
       shellState.printVerboseInfo();
+    }
     return 0;
   }
   
@@ -47,7 +48,7 @@ public class AboutCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options opts = new Options();
+    final Options opts = new Options();
     verboseOption = new Option("v", "verbose", false, "display detailed session information");
     opts.addOption(verboseOption);
     return opts;

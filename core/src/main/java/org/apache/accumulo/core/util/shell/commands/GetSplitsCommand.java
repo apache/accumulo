@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.format.BinaryFormatter;
 import org.apache.accumulo.core.util.shell.Shell;
@@ -50,9 +49,9 @@ public class GetSplitsCommand extends Command {
   private Option outputFileOpt, maxSplitsOpt, base64Opt, verboseOpt;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, final Shell shellState) throws IOException, AccumuloException, AccumuloSecurityException,
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
     final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
     final String m = cl.getOptionValue(maxSplitsOpt.getOpt());
@@ -60,7 +59,7 @@ public class GetSplitsCommand extends Command {
     final boolean encode = cl.hasOption(base64Opt.getOpt());
     final boolean verbose = cl.hasOption(verboseOpt.getOpt());
     
-    PrintLine p = outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile);
+    final PrintLine p = outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile);
     
     try {
       if (!verbose) {
@@ -70,7 +69,7 @@ public class GetSplitsCommand extends Command {
         }
       } else {
         final Scanner scanner = shellState.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-        ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+        Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
         final Text start = new Text(shellState.getConnector().tableOperations().tableIdMap().get(tableName));
         final Text end = new Text(start);
         end.append(new byte[] {'<'}, 0, 1);
@@ -95,14 +94,15 @@ public class GetSplitsCommand extends Command {
     return 0;
   }
   
-  private static String encode(boolean encode, Text text) {
-    if (text == null)
+  private static String encode(final boolean encode, final Text text) {
+    if (text == null) {
       return null;
+    }
     BinaryFormatter.getlength(text.getLength());
     return encode ? new String(Base64.encodeBase64(TextUtil.getBytes(text))) : BinaryFormatter.appendText(new StringBuilder(), text).toString();
   }
   
-  private static String obscuredTabletName(KeyExtent extent) {
+  private static String obscuredTabletName(final KeyExtent extent) {
     MessageDigest digester;
     try {
       digester = MessageDigest.getInstance("MD5");
@@ -127,7 +127,7 @@ public class GetSplitsCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options opts = new Options();
+    final Options opts = new Options();
     
     outputFileOpt = new Option("o", "output", true, "local file to write the splits to");
     outputFileOpt.setArgName("file");

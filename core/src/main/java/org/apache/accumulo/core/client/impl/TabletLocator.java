@@ -32,7 +32,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
@@ -92,7 +93,11 @@ public abstract class TabletLocator {
   
   private static final Text ROOT_TABLET_MDE = KeyExtent.getMetadataEntry(new Text(Constants.METADATA_TABLE_ID), null);
   
-  public static synchronized TabletLocator getInstance(Instance instance, AuthInfo credentials, Text tableId) {
+  public static synchronized TabletLocator getInstance(Instance instance, AccumuloToken<?,?> credentials, Text tableId) {
+    return getInstance(instance, new InstanceTokenWrapper(credentials, instance.getInstanceID()), tableId);
+  }
+  
+  public static synchronized TabletLocator getInstance(Instance instance, InstanceTokenWrapper credentials, Text tableId) {
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
     
     TabletLocator tl = locators.get(key);
@@ -126,8 +131,27 @@ public abstract class TabletLocator {
     return tl;
   }
   
+  public static class TabletLocations {
+    
+    private final List<TabletLocation> locations;
+    private final List<KeyExtent> locationless;
+    
+    public TabletLocations(List<TabletLocation> locations, List<KeyExtent> locationless) {
+      this.locations = locations;
+      this.locationless = locationless;
+    }
+    
+    public List<TabletLocation> getLocations() {
+      return locations;
+    }
+    
+    public List<KeyExtent> getLocationless() {
+      return locationless;
+    }
+  }
+
   public static class TabletLocation implements Comparable<TabletLocation> {
-    private static WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<String,WeakReference<String>>();
+    private static final WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<String,WeakReference<String>>();
     
     private static String dedupeLocation(String tabletLoc) {
       synchronized (tabletLocs) {

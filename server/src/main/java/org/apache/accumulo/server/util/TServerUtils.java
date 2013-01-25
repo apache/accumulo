@@ -20,11 +20,9 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Random;
-import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -43,10 +41,10 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TNonblockingServerSocket;
-import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -54,7 +52,7 @@ import org.apache.thrift.transport.TTransportException;
 public class TServerUtils {
   private static final Logger log = Logger.getLogger(TServerUtils.class);
   
-  public static ThreadLocal<String> clientAddress = new ThreadLocal<String>();
+  public static final ThreadLocal<String> clientAddress = new ThreadLocal<String>();
   
   public static class ServerPort {
     public final TServer server;
@@ -86,7 +84,9 @@ public class TServerUtils {
    */
   public static ServerPort startServer(AccumuloConfiguration conf, Property portHintProperty, TProcessor processor, String serverName, String threadName,
       Property portSearchProperty,
-      Property minThreadProperty, Property timeBetweenThreadChecksProperty) throws UnknownHostException {
+      Property minThreadProperty, 
+      Property timeBetweenThreadChecksProperty, 
+      Property maxMessageSizeProperty) throws UnknownHostException {
     int portHint = conf.getPort(portHintProperty);
     int minThreads = 2;
     if (minThreadProperty != null)
@@ -94,6 +94,9 @@ public class TServerUtils {
     long timeBetweenThreadChecks = 1000;
     if (timeBetweenThreadChecksProperty != null)
       timeBetweenThreadChecks = conf.getTimeInMillis(timeBetweenThreadChecksProperty);
+    long maxMessageSize = 10 * 1000 * 1000;
+    if (maxMessageSizeProperty != null)
+      maxMessageSize = conf.getMemoryInBytes(maxMessageSizeProperty);
     boolean portSearch = false;
     if (portSearchProperty != null)
       portSearch = conf.getBoolean(portSearchProperty);
@@ -112,7 +115,7 @@ public class TServerUtils {
         if (port > 65535)
           port = 1024 + port % (65535 - 1024);
         try {
-          return TServerUtils.startTServer(port, processor, serverName, threadName, minThreads, timeBetweenThreadChecks);
+          return TServerUtils.startTServer(port, processor, serverName, threadName, minThreads, timeBetweenThreadChecks, maxMessageSize);
         } catch (Exception ex) {
           log.info("Unable to use port " + port + ", retrying. (Thread Name = " + threadName + ")");
           UtilWaitThread.sleep(250);
@@ -148,7 +151,12 @@ public class TServerUtils {
         metrics.add(ThriftMetrics.idle, (now - idleStart));
       }
       try {
-        return other.process(in, out);
+        try {
+          return other.process(in, out);
+        } catch (NullPointerException ex) {
+          // THRIFT-1447 - remove with thrift 0.9
+          return true;
+        }
       } finally {
         if (metrics.isEnabled()) {
           idleStart = System.currentTimeMillis();
@@ -173,36 +181,8 @@ public class TServerUtils {
     }
   }
   
-  public static class THsHaServer extends org.apache.thrift.server.THsHaServer {
-    public THsHaServer(Args args) {
-      super(args);
-    }
-    
-    protected Runnable getRunnable(FrameBuffer frameBuffer) {
-      return new Invocation(frameBuffer);
-    }
-    
-    private class Invocation implements Runnable {
-      
-      private final FrameBuffer frameBuffer;
-      
-      public Invocation(final FrameBuffer frameBuffer) {
-        this.frameBuffer = frameBuffer;
-      }
-      
-      public void run() {
-        if (frameBuffer.trans_ instanceof TNonblockingSocket) {
-          TNonblockingSocket tsock = (TNonblockingSocket) frameBuffer.trans_;
-          Socket sock = tsock.getSocketChannel().socket();
-          clientAddress.set(sock.getInetAddress().getHostAddress() + ":" + sock.getPort());
-        }
-        frameBuffer.invoke();
-      }
-    }
-  }
-  
   public static ServerPort startHsHaServer(int port, TProcessor processor, final String serverName, String threadName, final int numThreads,
-      long timeBetweenThreadChecks) throws TTransportException {
+      long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(port);
     THsHaServer.Args options = new THsHaServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
@@ -212,11 +192,11 @@ public class TServerUtils {
      */
     final ThreadPoolExecutor pool = new SimpleThreadPool(numThreads, "ClientPool");
     // periodically adjust the number of threads we need by checking how busy our threads are
-    SimpleTimer.getInstance().schedule(new TimerTask() {
+    SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
       public void run() {
         if (pool.getCorePoolSize() <= pool.getActiveCount()) {
-          int larger = pool.getCorePoolSize() + 2;
+          int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
           log.info("Increasing server thread pool size on " + serverName + " to " + larger);
           pool.setMaximumPoolSize(larger);
           pool.setCorePoolSize(larger);
@@ -263,9 +243,9 @@ public class TServerUtils {
     return new ServerPort(new TThreadPoolServer(options), port);
   }
   
-  public static ServerPort startTServer(int port, TProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks)
+  public static ServerPort startTServer(int port, TProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
       throws TTransportException {
-    ServerPort result = startHsHaServer(port, processor, serverName, threadName, numThreads, timeBetweenThreadChecks);
+    ServerPort result = startHsHaServer(port, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
     // ServerPort result = startThreadPoolServer(port, processor, serverName, threadName, -1);
     final TServer finalServer = result.server;
     Runnable serveTask = new Runnable() {

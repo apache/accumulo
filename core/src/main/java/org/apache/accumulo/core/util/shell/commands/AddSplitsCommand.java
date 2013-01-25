@@ -32,33 +32,35 @@ import org.apache.hadoop.io.Text;
 public class AddSplitsCommand extends Command {
   private Option optSplitsFile, base64Opt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
-    boolean decode = cl.hasOption(base64Opt.getOpt());
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
+    final boolean decode = cl.hasOption(base64Opt.getOpt());
     
-    TreeSet<Text> splits = new TreeSet<Text>();
+    final TreeSet<Text> splits = new TreeSet<Text>();
     
     if (cl.hasOption(optSplitsFile.getOpt())) {
-      String f = cl.getOptionValue(optSplitsFile.getOpt());
+      final String f = cl.getOptionValue(optSplitsFile.getOpt());
       
       String line;
       java.util.Scanner file = new java.util.Scanner(new File(f));
       while (file.hasNextLine()) {
         line = file.nextLine();
-        if (!line.isEmpty())
+        if (!line.isEmpty()) {
           splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+        }
       }
     } else {
-      if (cl.getArgList().isEmpty())
+      if (cl.getArgList().isEmpty()) {
         throw new MissingArgumentException("No split points specified");
-      
+      }
       for (String s : cl.getArgs()) {
         splits.add(new Text(s.getBytes(Shell.CHARSET)));
       }
     }
     
-    if (!shellState.getConnector().tableOperations().exists(tableName))
+    if (!shellState.getConnector().tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);
+    }
     shellState.getConnector().tableOperations().addSplits(tableName, splits);
     
     return 0;
@@ -71,7 +73,7 @@ public class AddSplitsCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     optSplitsFile = new Option("sf", "splits-file", true, "file with a newline-separated list of rows to split the table with");
     optSplitsFile.setArgName("filename");

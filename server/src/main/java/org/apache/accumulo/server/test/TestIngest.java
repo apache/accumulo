@@ -16,19 +16,17 @@
  */
 package org.apache.accumulo.server.test;
 
-import java.nio.ByteBuffer;
-import java.util.Arrays;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.cloudtrace.instrument.Trace;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.TabletServerBatchWriter;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -42,177 +40,102 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.Authenticator;
-import org.apache.accumulo.server.security.ZKAuthenticator;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.Parser;
+import org.apache.accumulo.server.cli.ClientOnDefaultTable;
+import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import com.beust.jcommander.Parameter;
+
 
 public class TestIngest {
   public static final Authorizations AUTHS = new Authorizations("L1", "L2", "G1", "GROUP2");
   
+  static class Opts extends ClientOnDefaultTable {
+    
+    @Parameter(names="--createTable")
+    boolean createTable = false;
+    
+    @Parameter(names="--splits", description="the number of splits to use when creating the table")
+    int numsplits = 1;
+    
+    @Parameter(names="--start", description="the starting row number")
+    int startRow = 0;
+    
+    @Parameter(names="--rows", description="the number of rows to ingest")
+    int rows = 100000;
+    
+    @Parameter(names="--cols", description="the number of columns to ingest per row")
+    int cols = 1;
+    
+    @Parameter(names="--random", description="insert random rows and use the given number to seed the psuedo-random number generator")
+    Integer random = null;
+    
+    @Parameter(names="--size", description="the size of the value to ingest")
+    int dataSize = 1000;
+    
+    @Parameter(names="--delete", description="delete values instead of inserting them")
+    boolean delete = false;
+    
+    @Parameter(names={"-ts", "--timestamp"}, description="timestamp to use for all values")
+    long timestamp = -1;
+    
+    @Parameter(names="--rfile", description="generate data into a file that can be imported")
+    String outputFile = null;
+    
+    @Parameter(names="--stride", description="the difference between successive row ids")
+    int stride;
+
+    @Parameter(names={"-cf","--columnFamily"}, description="place columns in this column family")
+    String columnFamily = "colf";
+
+    @Parameter(names={"-cv","--columnVisibility"}, description="place columns in this column family", converter=VisibilityConverter.class)
+    ColumnVisibility columnVisibility = new ColumnVisibility();
+
+    Opts() { super("test_ingest"); }
+  }
+  
   @SuppressWarnings("unused")
   private static final Logger log = Logger.getLogger(TestIngest.class);
-  private static AuthInfo rootCredentials;
-  private static String username;
-  private static String passwd;
   
-  public static class CreateTable {
-    public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableExistsException {
-      long start = Long.parseLong(args[0]);
-      long end = Long.parseLong(args[1]);
-      long numsplits = Long.parseLong(args[2]);
-      String username = args[3];
-      byte[] passwd = args[4].getBytes();
+  public static void createTable(Opts args) throws Exception {
+    if (args.createTable) {
+      TreeSet<Text> splits = getSplitPoints(args.startRow, args.startRow + args.rows, args.numsplits);
       
-      TreeSet<Text> splits = getSplitPoints(start, end, numsplits);
-      
-      Connector conn = HdfsZooInstance.getInstance().getConnector(username, passwd);
-      conn.tableOperations().create("test_ingest");
+      Connector conn = args.getConnector();
+      if (!conn.tableOperations().exists(args.getTableName()))
+        conn.tableOperations().create(args.getTableName());
       try {
-        conn.tableOperations().addSplits("test_ingest", splits);
+        conn.tableOperations().addSplits(args.getTableName(), splits);
       } catch (TableNotFoundException ex) {
         // unlikely
         throw new RuntimeException(ex);
       }
     }
-    
-    public static TreeSet<Text> getSplitPoints(long start, long end, long numsplits) {
-      long splitSize = (end - start) / numsplits;
-      
-      long pos = start + splitSize;
-      
-      TreeSet<Text> splits = new TreeSet<Text>();
-      
-      while (pos < end) {
-        splits.add(new Text(String.format("row_%010d", pos)));
-        pos += splitSize;
-      }
-      return splits;
-    }
   }
   
-  public static class IngestArgs {
-    int rows;
-    int startRow;
-    int cols;
+  public static TreeSet<Text> getSplitPoints(long start, long end, long numsplits) {
+    long splitSize = (end - start) / numsplits;
     
-    boolean random = false;
-    int seed = 0;
-    int dataSize = 1000;
+    long pos = start + splitSize;
     
-    boolean delete = false;
-    long timestamp = 0;
-    boolean hasTimestamp = false;
-    boolean useGet = false;
+    TreeSet<Text> splits = new TreeSet<Text>();
     
-    public boolean unique;
-    
-    boolean outputToRFile = false;
-    String outputFile;
-    
-    int stride;
-    public boolean useTsbw = false;
-    
-    String columnFamily = "colf";
-    
-    boolean trace = false;
+    while (pos < end) {
+      splits.add(new Text(String.format("row_%010d", pos)));
+      pos += splitSize;
+    }
+    return splits;
   }
   
-  public static Options getOptions() {
-    Options opts = new Options();
-    opts.addOption(new Option("size", "size", true, "size"));
-    opts.addOption(new Option("colf", "colf", true, "colf"));
-    opts.addOption(new Option("delete", "delete", false, "delete"));
-    opts.addOption(new Option("random", "random", true, "random"));
-    opts.addOption(new Option("timestamp", "timestamp", true, "timestamp"));
-    opts.addOption(new Option("stride", "stride", true, "stride"));
-    opts.addOption(new Option("useGet", "useGet", false, "use get"));
-    opts.addOption(new Option("tsbw", "tsbw", false, "tsbw"));
-    opts.addOption(new Option("username", "username", true, "username"));
-    opts.addOption(new Option("password", "password", true, "password"));
-    opts.addOption(new Option("trace", "trace", false, "turn on distributed tracing"));
-    opts.addOption(new Option("rFile", "rFile", true, "relative-key file"));
-    return opts;
-  }
-  
-  public static IngestArgs parseArgs(String args[]) {
-    
-    Parser p = new BasicParser();
-    Options opts = getOptions();
-    CommandLine cl;
-    
-    try {
-      cl = p.parse(opts, args);
-    } catch (ParseException e) {
-      System.out.println("Parse Error, exiting.");
-      throw new RuntimeException(e);
-    }
-    
-    if (cl.getArgs().length != 3) {
-      HelpFormatter hf = new HelpFormatter();
-      hf.printHelp("test_ingest <rows> <start_row> <num_columns>", getOptions());
-      throw new RuntimeException();
-    }
-    
-    IngestArgs ia = new IngestArgs();
-    
-    if (cl.hasOption("size")) {
-      ia.dataSize = Integer.parseInt(cl.getOptionValue("size"));
-    }
-    if (cl.hasOption("colf")) {
-      ia.columnFamily = cl.getOptionValue("colf");
-    }
-    if (cl.hasOption("timestamp")) {
-      ia.timestamp = Long.parseLong(cl.getOptionValue("timestamp"));
-      ia.hasTimestamp = true;
-    }
-    if (cl.hasOption("rFile")) {
-      ia.outputToRFile = true;
-      ia.outputFile = cl.getOptionValue("rFile");
-    }
-    ia.delete = cl.hasOption("delete");
-    ia.useGet = cl.hasOption("useGet");
-    if (cl.hasOption("random")) {
-      ia.random = true;
-      ia.seed = Integer.parseInt(cl.getOptionValue("random"));
-    }
-    if (cl.hasOption("stride")) {
-      ia.stride = Integer.parseInt(cl.getOptionValue("stride"));
-    }
-    ia.useTsbw = cl.hasOption("tsbw");
-    
-    username = cl.getOptionValue("username", "root");
-    passwd = cl.getOptionValue("password", "secret");
-    
-    String[] requiredArgs = cl.getArgs();
-    
-    ia.rows = Integer.parseInt(requiredArgs[0]);
-    ia.startRow = Integer.parseInt(requiredArgs[1]);
-    ia.cols = Integer.parseInt(requiredArgs[2]);
-    
-    if (cl.hasOption("trace")) {
-      ia.trace = true;
-    }
-    return ia;
-  }
-  
-  public static byte[][] generateValues(IngestArgs ingestArgs) {
+  public static byte[][] generateValues(Opts ingestArgs) {
     
     byte[][] bytevals = new byte[10][];
     
@@ -223,7 +146,6 @@ public class TestIngest {
       for (int j = 0; j < ingestArgs.dataSize; j++)
         bytevals[i][j] = letters[i];
     }
-    
     return bytevals;
   }
   
@@ -249,19 +171,22 @@ public class TestIngest {
     }
   }
   
-  public static void main(String[] args) {
-    // log.error("usage : test_ingest [-delete] [-size <value size>] [-random <seed>] [-timestamp <ts>] [-stride <size>] <rows> <start row> <# cols> ");
+  public static void main(String[] args) throws Exception {
     
-    IngestArgs ingestArgs = parseArgs(args);
-    Instance instance = HdfsZooInstance.getInstance();
+    Opts opts = new Opts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(TestIngest.class.getName(), args, bwOpts);
+    opts.getInstance().setConfiguration(ServerConfiguration.getSiteConfiguration());
+
+    createTable(opts);
+    
+    Instance instance = opts.getInstance();
+    
+    String name = TestIngest.class.getSimpleName();
+    DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), name, null);
     
     try {
-      if (ingestArgs.trace) {
-        String name = TestIngest.class.getSimpleName();
-        DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), name, null);
-        Trace.on(name);
-        Trace.currentTrace().data("cmdLine", Arrays.asList(args).toString());
-      }
+      opts.startTracing(name);
       
       Logger.getLogger(TabletServerBatchWriter.class.getName()).setLevel(Level.TRACE);
       
@@ -269,61 +194,53 @@ public class TestIngest {
       
       long stopTime;
       
-      byte[][] bytevals = generateValues(ingestArgs);
+      byte[][] bytevals = generateValues(opts);
       
-      byte randomValue[] = new byte[ingestArgs.dataSize];
+      byte randomValue[] = new byte[opts.dataSize];
       Random random = new Random();
       
       long bytesWritten = 0;
       
       BatchWriter bw = null;
       FileSKVWriter writer = null;
+      Connector connector = opts.getConnector();
       
-      rootCredentials = new AuthInfo(username, ByteBuffer.wrap(passwd.getBytes()), instance.getInstanceID());
-      if (ingestArgs.outputToRFile) {
+      if (opts.outputFile != null) {
         Configuration conf = CachedConfiguration.getInstance();
         FileSystem fs = FileSystem.get(conf);
-        writer = FileOperations.getInstance().openWriter(ingestArgs.outputFile + "." + RFile.EXTENSION, fs, conf,
+        writer = FileOperations.getInstance().openWriter(opts.outputFile + "." + RFile.EXTENSION, fs, conf,
             AccumuloConfiguration.getDefaultConfiguration());
         writer.startDefaultLocalityGroup();
       } else {
-        Connector connector = instance.getConnector(rootCredentials.user, rootCredentials.password);
-        bw = connector.createBatchWriter("test_ingest", 20000000l, 60000l, 10);
+        bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
       }
-      
-      Authenticator authenticator = ZKAuthenticator.getInstance();
-      authenticator.changeAuthorizations(rootCredentials, rootCredentials.user, AUTHS);
-      ColumnVisibility le = new ColumnVisibility("L1&L2&G1&GROUP2");
-      Text labBA = new Text(le.getExpression());
-      
-      // int step = 100;
+      connector.securityOperations().changeUserAuthorizations(opts.user, AUTHS);
+      Text labBA = new Text(opts.columnVisibility.getExpression());
       
       long startTime = System.currentTimeMillis();
-      for (int i = 0; i < ingestArgs.rows; i++) {
-        
+      for (int i = 0; i < opts.rows; i++) {
         int rowid;
-        
-        if (ingestArgs.stride > 0) {
-          rowid = ((i % ingestArgs.stride) * (ingestArgs.rows / ingestArgs.stride)) + (i / ingestArgs.stride);
+        if (opts.stride > 0) {
+          rowid = ((i % opts.stride) * (opts.rows / opts.stride)) + (i / opts.stride);
         } else {
           rowid = i;
         }
         
-        Text row = generateRow(rowid, ingestArgs.startRow);
+        Text row = generateRow(rowid, opts.startRow);
         Mutation m = new Mutation(row);
-        for (int j = 0; j < ingestArgs.cols; j++) {
-          Text colf = new Text(ingestArgs.columnFamily);
+        for (int j = 0; j < opts.cols; j++) {
+          Text colf = new Text(opts.columnFamily);
           Text colq = new Text(FastFormat.toZeroPaddedString(j, 5, 10, COL_PREFIX));
           
           if (writer != null) {
             Key key = new Key(row, colf, colq, labBA);
-            if (ingestArgs.hasTimestamp) {
-              key.setTimestamp(ingestArgs.timestamp);
+            if (opts.timestamp >= 0) {
+              key.setTimestamp(opts.timestamp);
             } else {
-              key.setTimestamp(System.currentTimeMillis());
+              key.setTimestamp(startTime);
             }
             
-            if (ingestArgs.delete) {
+            if (opts.delete) {
               key.setDeleted(true);
             } else {
               key.setDeleted(false);
@@ -331,12 +248,12 @@ public class TestIngest {
             
             bytesWritten += key.getSize();
             
-            if (ingestArgs.delete) {
+            if (opts.delete) {
               writer.append(key, new Value(new byte[0]));
             } else {
               byte value[];
-              if (ingestArgs.random) {
-                value = genRandomValue(random, randomValue, ingestArgs.seed, rowid + ingestArgs.startRow, j);
+              if (opts.random != null) {
+                value = genRandomValue(random, randomValue, opts.random.intValue(), rowid + opts.startRow, j);
               } else {
                 value = bytevals[j % bytevals.length];
               }
@@ -350,24 +267,24 @@ public class TestIngest {
             Key key = new Key(row, colf, colq, labBA);
             bytesWritten += key.getSize();
             
-            if (ingestArgs.delete) {
-              if (ingestArgs.hasTimestamp)
-                m.putDelete(colf, colq, le, ingestArgs.timestamp);
+            if (opts.delete) {
+              if (opts.timestamp >= 0)
+                m.putDelete(colf, colq, opts.columnVisibility, opts.timestamp);
               else
-                m.putDelete(colf, colq, le);
+                m.putDelete(colf, colq, opts.columnVisibility);
             } else {
               byte value[];
-              if (ingestArgs.random) {
-                value = genRandomValue(random, randomValue, ingestArgs.seed, rowid + ingestArgs.startRow, j);
+              if (opts.random != null) {
+                value = genRandomValue(random, randomValue, opts.random.intValue(), rowid + opts.startRow, j);
               } else {
                 value = bytevals[j % bytevals.length];
               }
               bytesWritten += value.length;
               
-              if (ingestArgs.hasTimestamp) {
-                m.put(colf, colq, le, ingestArgs.timestamp, new Value(value, true));
+              if (opts.timestamp >= 0) {
+                m.put(colf, colq, opts.columnVisibility, opts.timestamp, new Value(value, true));
               } else {
-                m.put(colf, colq, le, new Value(value, true));
+                m.put(colf, colq, opts.columnVisibility, new Value(value, true));
                 
               }
             }
@@ -386,8 +303,8 @@ public class TestIngest {
           bw.close();
         } catch (MutationsRejectedException e) {
           if (e.getAuthorizationFailures().size() > 0) {
-            for (KeyExtent ke : e.getAuthorizationFailures()) {
-              System.err.println("ERROR : Not authorized to write to : " + ke);
+            for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : e.getAuthorizationFailures().entrySet()) {
+              System.err.println("ERROR : Not authorized to write to : " + entry.getKey() + " due to " + entry.getValue());
             }
           }
           
@@ -403,10 +320,10 @@ public class TestIngest {
       
       stopTime = System.currentTimeMillis();
       
-      int totalValues = ingestArgs.rows * ingestArgs.cols;
+      int totalValues = opts.rows * opts.cols;
       double elapsed = (stopTime - startTime) / 1000.0;
       
-      System.out.printf("%,12d records written | %,8d records/sec | %,12d bytes written | %,8d bytes/sec | %6.3f secs   \n", totalValues,
+      System.out.printf("%,12d records written | %,8d records/sec | %,12d bytes written | %,8d bytes/sec | %6.3f secs   %n", totalValues,
           (int) (totalValues / elapsed), bytesWritten, (int) (bytesWritten / elapsed), elapsed);
     } catch (Exception e) {
       throw new RuntimeException(e);

@@ -18,52 +18,38 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-public class CreateUserCommand extends Command {
-  private Option scanOptAuths;
-  
-  static Authorizations parseAuthorizations(String field) {
-    if (field == null || field.isEmpty())
-      return Constants.NO_AUTHS;
-    return new Authorizations(field.split(","));
-  }
-  
+public class CreateUserCommand extends Command {  
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
       TableExistsException, IOException {
-    String user = cl.getArgs()[0];
-    String password = null;
-    String passwordConfirm = null;
-    
-    password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
+    final String user = cl.getArgs()[0];
+   
+    final String password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
     if (password == null) {
       shellState.getReader().printNewline();
       return 0;
     } // user canceled
-    passwordConfirm = shellState.readMaskedLine("Please confirm new password for '" + user + "': ", '*');
+    String passwordConfirm = shellState.readMaskedLine("Please confirm new password for '" + user + "': ", '*');
     if (passwordConfirm == null) {
       shellState.getReader().printNewline();
       return 0;
     } // user canceled
     
-    if (!password.equals(passwordConfirm))
+    if (!password.equals(passwordConfirm)) {
       throw new IllegalArgumentException("Passwords do not match");
-    
-    Authorizations authorizations = parseAuthorizations(cl.hasOption(scanOptAuths.getOpt()) ? cl.getOptionValue(scanOptAuths.getOpt()) : "");
-    shellState.getConnector().securityOperations().createUser(user, password.getBytes(), authorizations);
-    Shell.log.debug("Created user " + user + " with" + (authorizations.isEmpty() ? " no" : "") + " initial scan authorizations"
-        + (!authorizations.isEmpty() ? " " + authorizations : ""));
+    }
+    shellState.getConnector().securityOperations().createUser(new UserPassToken(user, password));
+    Shell.log.debug("Created user " + user);
     return 0;
   }
   
@@ -79,10 +65,7 @@ public class CreateUserCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
-    scanOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations");
-    scanOptAuths.setArgName("comma-separated-authorizations");
-    o.addOption(scanOptAuths);
+    final Options o = new Options();
     return o;
   }
   

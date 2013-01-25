@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecurityPermission;
@@ -30,7 +29,10 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.TabletServerState;
@@ -41,11 +43,11 @@ public class SecurityConstants {
   
   public static final String SYSTEM_USERNAME = "!SYSTEM";
   private static final byte[] SYSTEM_PASSWORD = makeSystemPassword();
-  private static final AuthInfo systemCredentials = new AuthInfo(SYSTEM_USERNAME, ByteBuffer.wrap(SYSTEM_PASSWORD), HdfsZooInstance.getInstance()
-      .getInstanceID());
+  private static final AccumuloToken<?,?> systemToken = new UserPassToken(SYSTEM_USERNAME, SYSTEM_PASSWORD);
+  private static final InstanceTokenWrapper systemCredentials = new InstanceTokenWrapper(systemToken, HdfsZooInstance.getInstance().getInstanceID());
   public static byte[] confChecksum = null;
   
-  public static AuthInfo getSystemCredentials() {
+  public static InstanceTokenWrapper getSystemCredentials() {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
@@ -53,20 +55,23 @@ public class SecurityConstants {
     return systemCredentials;
   }
   
+  public static ThriftInstanceTokenWrapper getThriftSystemCredentials() {
+    return systemCredentials.toThrift();
+  }
+  
   private static byte[] makeSystemPassword() {
-    byte[] version = Constants.VERSION.getBytes();
-    byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes();
+    int wireVersion = Constants.WIRE_VERSION;
+    byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8);
     try {
       confChecksum = getSystemConfigChecksum();
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException("Failed to compute configuration checksum", e);
     }
     
-    ByteArrayOutputStream bytes = new ByteArrayOutputStream(3 * (Integer.SIZE / Byte.SIZE) + version.length + inst.length + confChecksum.length);
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream(3 * (Integer.SIZE / Byte.SIZE) + inst.length + confChecksum.length);
     DataOutputStream out = new DataOutputStream(bytes);
     try {
-      out.write(version.length);
-      out.write(version);
+      out.write(wireVersion * -1);
       out.write(inst.length);
       out.write(inst);
       out.write(confChecksum.length);
@@ -95,12 +100,10 @@ public class SecurityConstants {
     ByteArrayInputStream bytes = new ByteArrayInputStream(decodedPassword);
     DataInputStream in = new DataInputStream(bytes);
     try {
+      versionFails = in.readInt() * -1 != Constants.WIRE_VERSION;
       byte[] buff = new byte[in.readInt()];
       in.readFully(buff);
-      versionFails = !Arrays.equals(buff, Constants.VERSION.getBytes());
-      buff = new byte[in.readInt()];
-      in.readFully(buff);
-      instanceFails = !Arrays.equals(buff, HdfsZooInstance.getInstance().getInstanceID().getBytes());
+      instanceFails = !Arrays.equals(buff, HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8));
       buff = new byte[in.readInt()];
       in.readFully(buff);
       confFails = !Arrays.equals(buff, getSystemConfigChecksum());
@@ -131,14 +134,14 @@ public class SecurityConstants {
       
       // seed the config with the version and instance id, so at least
       // it's not empty
-      md.update(Constants.VERSION.getBytes());
-      md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes());
+      md.update(Constants.WIRE_VERSION.toString().getBytes(Constants.UTF8));
+      md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8));
       
       for (Entry<String,String> entry : ServerConfiguration.getSiteConfiguration()) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
-          md.update(entry.getKey().getBytes());
-          md.update(entry.getValue().getBytes());
+          md.update(entry.getKey().getBytes(Constants.UTF8));
+          md.update(entry.getValue().getBytes(Constants.UTF8));
         }
       }
       

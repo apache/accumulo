@@ -35,12 +35,13 @@ import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.log4j.Logger;
 
 /**
- * A SortedKeyValueIterator that combines the Values for different versions of a Key into a single Value. Combiner will replace one or more versions of a Key
- * and their Values with the most recent Key and a Value which is the result of the reduce method.
+ * A SortedKeyValueIterator that combines the Values for different versions (timestamps) of a Key into a single Value. Combiner will replace one or more
+ * versions of a Key and their Values with the most recent Key and a Value which is the result of the reduce method.
  * 
  * Subclasses must implement a reduce method: {@code public Value reduce(Key key, Iterator<Value> iter)}.
  * 
- * This reduce method will be passed the most recent Key and an iterator over the Values for all non-deleted versions of that Key.
+ * This reduce method will be passed the most recent Key and an iterator over the Values for all non-deleted versions of that Key. A combiner will not combine
+ * keys that differ by more than the timestamp.
  */
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
   static final Logger log = Logger.getLogger(Combiner.class);
@@ -63,7 +64,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
      */
     public ValueIterator(SortedKeyValueIterator<Key,Value> source) {
       this.source = source;
-      topKey = source.getTopKey();
+      topKey = new Key(source.getTopKey());
       hasNext = _hasNext();
     }
     
@@ -253,20 +254,24 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (options.containsKey(ALL_OPTION)) {
-      combineAllColumns = Boolean.parseBoolean(options.get(ALL_OPTION));
+      try {
+        combineAllColumns = Boolean.parseBoolean(options.get(ALL_OPTION));
+      } catch (Exception e) {
+        throw new IllegalArgumentException("bad boolean " + ALL_OPTION + ":" + options.get(ALL_OPTION));
+      }
       if (combineAllColumns)
         return true;
     }
     if (!options.containsKey(COLUMNS_OPTION))
-      return false;
+      throw new IllegalArgumentException("options must include " + ALL_OPTION + " or " + COLUMNS_OPTION);
     
     String encodedColumns = options.get(COLUMNS_OPTION);
     if (encodedColumns.length() == 0)
-      return false;
+      throw new IllegalArgumentException("empty columns specified in option " + COLUMNS_OPTION);
     
     for (String columns : encodedColumns.split(",")) {
       if (!ColumnSet.isValidEncoding(columns))
-        return false;
+        throw new IllegalArgumentException("invalid column encoding " + encodedColumns);
     }
     
     return true;

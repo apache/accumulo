@@ -17,10 +17,14 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.AsyncCallback.VoidCallback;
+import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooReader implements IZooReader {
@@ -28,12 +32,12 @@ public class ZooReader implements IZooReader {
   protected String keepers;
   protected int timeout;
   
-  protected ZooKeeper getSession(String keepers, int timeout, String auth) {
-    return ZooSession.getSession(keepers, timeout, auth);
+  protected ZooKeeper getSession(String keepers, int timeout, String scheme, byte[] auth) {
+    return ZooSession.getSession(keepers, timeout, scheme, auth);
   }
   
   protected ZooKeeper getZooKeeper() {
-    return getSession(keepers, timeout, null);
+    return getSession(keepers, timeout, null, null);
   }
   
   @Override
@@ -70,6 +74,29 @@ public class ZooReader implements IZooReader {
   public boolean exists(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, watcher) != null;
   }
+  
+  @Override
+  public void sync(final String path) throws KeeperException, InterruptedException {
+    final AtomicInteger rc = new AtomicInteger();
+    final AtomicBoolean waiter = new AtomicBoolean(false);
+    getZooKeeper().sync(path, new VoidCallback() {
+      @Override
+      public void processResult(int code, String arg1, Object arg2) {
+        rc.set(code);
+        synchronized (waiter) {
+          waiter.set(true);
+          waiter.notifyAll();
+        }
+      }}, null);
+    synchronized (waiter) {
+      while (!waiter.get())
+        waiter.wait();
+    }
+    Code code = Code.get(rc.get());
+    if (code != KeeperException.Code.OK) {
+      throw KeeperException.create(code);
+    }
+  }  
   
   public ZooReader(String keepers, int timeout) {
     this.keepers = keepers;

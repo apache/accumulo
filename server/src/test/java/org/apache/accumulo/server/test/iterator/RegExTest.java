@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -46,7 +47,7 @@ public class RegExTest {
   public void runTest() throws Exception {
     conn = inst.getConnector("user", "pass");
     conn.tableOperations().create("ret");
-    BatchWriter bw = conn.createBatchWriter("ret", 100000l, 60l, 1);
+    BatchWriter bw = conn.createBatchWriter("ret", new BatchWriterConfig());
     
     ArrayList<Character> chars = new ArrayList<Character>();
     for (char c = 'a'; c <= 'z'; c++)

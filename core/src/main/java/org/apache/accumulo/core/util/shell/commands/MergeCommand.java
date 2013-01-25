@@ -31,25 +31,35 @@ public class MergeCommand extends Command {
   private Option verboseOpt, forceOpt, sizeOpt;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, final Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     boolean verbose = shellState.isVerbose();
     boolean force = false;
     long size = -1;
-    String tableName = OptUtil.getTableOpt(cl, shellState);
-    Text startRow = OptUtil.getStartRow(cl);
-    Text endRow = OptUtil.getEndRow(cl);
-    if (cl.hasOption(verboseOpt.getOpt()))
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
+    final Text startRow = OptUtil.getStartRow(cl);
+    final Text endRow = OptUtil.getEndRow(cl);
+    if (cl.hasOption(verboseOpt.getOpt())) {
       verbose = true;
-    if (cl.hasOption(forceOpt.getOpt()))
+    }
+    if (cl.hasOption(forceOpt.getOpt())) {
       force = true;
+    }
     if (cl.hasOption(sizeOpt.getOpt())) {
       size = AccumuloConfiguration.getMemoryInBytes(cl.getOptionValue(sizeOpt.getOpt()));
     }
-    if (size < 0)
+    if (startRow == null && endRow == null && size < 0) {
+      shellState.getReader().flushConsole();
+      String line = shellState.getReader().readLine("Merge the entire table { " + tableName + " } into one tablet (yes|no)? ");
+      if (line == null)
+        return 0;
+      if (!line.equalsIgnoreCase("y") && !line.equalsIgnoreCase("yes"))
+        return 0;
+    }
+    if (size < 0) {
       shellState.getConnector().tableOperations().merge(tableName, startRow, endRow);
-    else {
+    } else {
       final boolean finalVerbose = verbose;
-      Merge merge = new Merge() {
+      final Merge merge = new Merge() {
         protected void message(String fmt, Object... args) {
           if (finalVerbose) {
             try {
@@ -78,11 +88,13 @@ public class MergeCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     verboseOpt = new Option("v", "verbose", false, "verbose output during merge");
     sizeOpt = new Option("s", "size", true, "merge tablets to the given size over the entire table");
     forceOpt = new Option("f", "force", false, "merge small tablets to large tablets, even if it goes over the given size");
-    o.addOption(OptUtil.startRowOpt());
+    Option startRowOpt = OptUtil.startRowOpt();
+    startRowOpt.setDescription("begin row (NOT inclusive)");
+    o.addOption(startRowOpt);
     o.addOption(OptUtil.endRowOpt());
     o.addOption(OptUtil.tableOpt("table to be merged"));
     o.addOption(verboseOpt);

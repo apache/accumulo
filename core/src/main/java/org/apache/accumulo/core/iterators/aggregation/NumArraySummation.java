@@ -29,6 +29,7 @@ import org.apache.hadoop.io.WritableUtils;
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.SummingArrayCombiner} with
  *             {@link org.apache.accumulo.core.iterators.user.SummingArrayCombiner.Type#VARLEN}
  */
+@Deprecated
 public class NumArraySummation implements Aggregator {
   long[] sum = new long[0];
   

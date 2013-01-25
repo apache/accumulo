@@ -19,7 +19,7 @@ import logging
 import unittest
 import time
 
-from TestUtils import TestUtilsMixin
+from TestUtils import TestUtilsMixin, ROOT, ROOT_PASSWORD, INSTANCE_NAME, ZOOKEEPERS
 
 log = logging.getLogger('test.auto')
 
@@ -47,7 +47,7 @@ class DeleteTest(readwrite.SunnyDayTest):
         self.waitForStop(self.ingester, 200)
 
         log.info("Deleting data")
-        self.waitForStop(self.runClassOn(self.masterHost(), "org.apache.accumulo.server.test.TestRandomDeletes", []),
+        self.waitForStop(self.runClassOn(self.masterHost(), "org.apache.accumulo.server.test.TestRandomDeletes", ['-u', ROOT, '-p', ROOT_PASSWORD, '-i', INSTANCE_NAME, '-z', ZOOKEEPERS]),
                          400)
 
         log.info("Inserting data")

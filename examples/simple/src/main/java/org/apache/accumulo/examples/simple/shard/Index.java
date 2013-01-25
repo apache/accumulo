@@ -18,14 +18,18 @@ package org.apache.accumulo.examples.simple.shard;
 
 import java.io.File;
 import java.io.FileReader;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * This program indexes a set of documents given on the command line into a shard table.
@@ -88,37 +92,25 @@ public class Index {
     
   }
   
-  private static BatchWriter setupBatchWriter(String instance, String zooKeepers, String table, String user, String pass) throws Exception {
-    ZooKeeperInstance zinstance = new ZooKeeperInstance(instance, zooKeepers);
-    Connector conn = zinstance.getConnector(user, pass.getBytes());
-    return conn.createBatchWriter(table, 50000000, 300000l, 4);
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--partitions", required=true, description="the number of shards to create")
+    int partitions;
+    @Parameter(required=true, description="<file> { <file> ... }")
+    List<String> files = new ArrayList<String>();
   }
   
   public static void main(String[] args) throws Exception {
-    
-    if (args.length < 7) {
-      System.err.println("Usage : " + Index.class.getName() + " <instance> <zoo keepers> <table> <user> <pass> <num partitions> <file>{ <file>}");
-      System.exit(-1);
-    }
-    
-    String instance = args[0];
-    String zooKeepers = args[1];
-    String table = args[2];
-    String user = args[3];
-    String pass = args[4];
-    
-    int numPartitions = Integer.parseInt(args[5]);
+    Opts opts = new Opts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(Index.class.getName(), args, bwOpts);
     
     String splitRegex = "\\W+";
     
-    BatchWriter bw = setupBatchWriter(instance, zooKeepers, table, user, pass);
-    
-    for (int i = 6; i < args.length; i++) {
-      index(numPartitions, new File(args[i]), splitRegex, bw);
+    BatchWriter bw = opts.getConnector().createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());    
+    for (String filename : opts.files) {
+      index(opts.partitions, new File(filename), splitRegex, bw);
     }
-    
     bw.close();
-    
   }
   
 }

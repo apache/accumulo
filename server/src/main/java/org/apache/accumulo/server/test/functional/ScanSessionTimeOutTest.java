@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -53,7 +54,7 @@ public class ScanSessionTimeOutTest extends FunctionalTest {
   
   @Override
   public void run() throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter("abc", 1000000, 60000l, 1);
+    BatchWriter bw = getConnector().createBatchWriter("abc", new BatchWriterConfig());
     
     for (int i = 0; i < 100000; i++) {
       Mutation m = new Mutation(new Text(String.format("%08d", i)));

@@ -39,7 +39,7 @@ import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -55,7 +55,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   // scanner state
   private Iterator<KeyValue> iter;
   private ScanState scanState;
-  private AuthInfo credentials;
+  private InstanceTokenWrapper credentials;
   private Instance instance;
   
   private ScannerOptions options;
@@ -121,7 +121,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     
   }
   
-  ScannerIterator(Instance instance, AuthInfo credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
+  ScannerIterator(Instance instance, InstanceTokenWrapper credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
       ScannerOptions options, boolean isolated) {
     this.instance = instance;
     this.tableName = new Text(table);

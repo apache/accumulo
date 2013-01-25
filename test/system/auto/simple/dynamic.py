@@ -41,40 +41,48 @@ class DynamicClassloader(AggregationTest):
         #Make sure paths exists for test
         if not os.path.exists(os.path.join(ACCUMULO_HOME, 'target','dynamictest%s' % rand, 'accumulo','test')):
           os.makedirs(os.path.join(ACCUMULO_HOME, 'target', 'dynamictest%s' % rand, 'accumulo', 'test'))
-        fp = open(os.path.join(ACCUMULO_HOME, 'target', 'dynamictest%s' % rand, 'accumulo', 'test', 'StringSummation%s.java' % rand), 'wb')
+        fp = open(os.path.join(ACCUMULO_HOME, 'target', 'dynamictest%s' % rand, 'accumulo', 'test', 'SummingCombiner%s.java' % rand), 'wb')
         fp.write('''
 package accumulo.test;
 
-import org.apache.accumulo.core.data.Value;
+import java.util.Iterator;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.iterators.LongCombiner;
 
-public class StringSummation%s implements org.apache.accumulo.core.iterators.aggregation.Aggregator {
-
-	long sum = 0;
-	
-	public Value aggregate() {
-		return new Value(Long.toString(sum).getBytes());
-	}
-
-	public void collect(Value value) {
-		sum += Long.parseLong(new String(value.get()));
-	}
-
-	public void reset() {
-		sum = 0;
-		
-	}
+public class SummingCombiner%s extends LongCombiner {
+  @Override
+  public Long typedReduce(Key key, Iterator<Long> iter) {
+    long sum = 0;
+    while (iter.hasNext()) {
+      sum = safeAdd(sum, iter.next());
+    }
+    return sum;
+  }
+  
+  @Override
+  public IteratorOptions describeOptions() {
+    IteratorOptions io = super.describeOptions();
+    io.setName("sum");
+    io.setDescription("SummingCombiner interprets Values as Longs and adds them together.  A variety of encodings (variable length, fixed length, or string) are available");
+    return io;
+  }
 }
 ''' % rand)
         fp.close()
 
         handle = self.runOn(self.masterHost(), [self.accumulo_sh(), 'classpath'])
         out, err = handle.communicate()
-        path = ':'.join(out.split('\n')[1:])
+	parts = []
+        for line in out.split('\n'):
+           line = line.strip()
+	   if line.startswith("file:"):
+              parts.append(line[5:])
+        path = ':'.join(parts)
 
         self.runWait("javac -cp %s:%s %s" % (
             path,
             os.path.join(ACCUMULO_HOME,'src','core','target','classes'),
-            os.path.join(ACCUMULO_HOME,'target','dynamictest%s' % rand,'accumulo','test','StringSummation%s.java' % rand)
+            os.path.join(ACCUMULO_HOME,'target','dynamictest%s' % rand,'accumulo','test','SummingCombiner%s.java' % rand)
             ))
         self.runWait("jar -cf %s -C %s accumulo/" % (
             os.path.join(ACCUMULO_HOME,'lib','ext','Aggregator%s.jar' % rand),
@@ -84,8 +92,8 @@ public class StringSummation%s implements org.apache.accumulo.core.iterators.agg
         self.sleep(1)
 
         # initialize the database
-        aggregator = 'accumulo.test.StringSummation%s' % rand
-        cmd = 'createtable test\nsetiter -agg -minc -majc -scan -p 10 -t test\ncf ' + aggregator + '\n\n'
+        combiner = 'accumulo.test.SummingCombiner%s' % rand
+        cmd = 'createtable --no-default-iterators test\nsetiter -t test -p 10 -scan -minc -majc -n testcombineriter -class '+ combiner+'\n\ncf\n\nSTRING'
         out, err, code = self.rootShell(self.masterHost(),"%s\n" % cmd)
         self.assert_(code == 0)
 

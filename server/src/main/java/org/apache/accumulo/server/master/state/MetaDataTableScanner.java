@@ -40,8 +40,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -51,7 +50,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   BatchScanner mdScanner;
   Iterator<Entry<Key,Value>> iter;
   
-  public MetaDataTableScanner(Instance instance, AuthInfo auths, Range range, CurrentState state) {
+  public MetaDataTableScanner(Instance instance, InstanceTokenWrapper auths, Range range, CurrentState state) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
     try {
       Connector connector = instance.getConnector(auths);
@@ -60,12 +59,13 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       mdScanner.setRanges(Collections.singletonList(range));
       iter = mdScanner.iterator();
     } catch (Exception ex) {
+      mdScanner.close();
       throw new RuntimeException(ex);
     }
   }
 
   static public void configureScanner(ScannerBase scanner, CurrentState state) {
-    ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
@@ -80,7 +80,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     scanner.addScanIterator(tabletChange);
   }
   
-  public MetaDataTableScanner(Instance instance, AuthInfo auths, Range range) {
+  public MetaDataTableScanner(Instance instance, InstanceTokenWrapper auths, Range range) {
     this(instance, auths, range, null);
   }
   

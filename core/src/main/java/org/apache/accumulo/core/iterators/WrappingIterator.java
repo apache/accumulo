@@ -25,6 +25,15 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 
+/**
+ * A convenience class for implementing iterators that select, but do not modify, entries read from a source iterator. Default implementations exist for all
+ * methods, but {@link #deepCopy} will throw an <code>UnsupportedOperationException</code>.
+ * 
+ * This iterator has some checks in place to enforce the iterator contract. Specifically, it verifies that it has a source iterator and that {@link #seek} has
+ * been called before any data is read. If either of these conditions does not hold true, an <code>IllegalStateException</code> will be thrown. In particular,
+ * this means that <code>getSource().seek</code> and <code>super.seek</code> no longer perform identical actions. Implementors should take note of this and if
+ * <code>seek</code> is overridden, ensure that <code>super.seek</code> is called before data is read.
+ */
 public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Value> {
   
   private SortedKeyValueIterator<Key,Value> source = null;

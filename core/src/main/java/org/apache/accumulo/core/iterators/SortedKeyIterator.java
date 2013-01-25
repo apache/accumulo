@@ -47,6 +47,6 @@ public class SortedKeyIterator extends WrappingIterator implements OptionDescrib
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    return options == null || options.isEmpty();
+    return true;
   }
 }

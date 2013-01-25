@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -52,7 +53,7 @@ public class DeleteEverythingTest extends FunctionalTest {
   
   @Override
   public void run() throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter("de", 1000000, 60000l, 1);
+    BatchWriter bw = getConnector().createBatchWriter("de", new BatchWriterConfig());
     Mutation m = new Mutation(new Text("foo"));
     m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes()));
     bw.addMutation(m);

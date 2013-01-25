@@ -30,20 +30,31 @@ class CreateTablesBenchmark(Benchmark):
     tables = 1000
 
     def setUp(self): 
+        for x in range(1, self.tables):
+            currentTable = 'test_ingest%d' % (x)      
+            log.debug("Checking for table existence: %s" % currentTable)
+            code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % currentTable)
+            if out.find('does not exist') == -1:
+                command = 'deletetable -f %s\n' % (currentTable)
+                log.debug("Running Command %r", command)
+                code, out, err = cloudshell.run(self.username, self.password, command)
+                self.assertEqual(code, 0, 'Did not successfully delete table: %s' % currentTable)
         Benchmark.setUp(self)  
-        
+
     def runTest(self):
         for x in range(1, self.tables):
             currentTable = 'test_ingest%d' % (x)      
             command = 'createtable %s\n' % (currentTable)
             log.debug("Running Command %r", command)
             code, out, err = cloudshell.run(self.username, self.password, command)
+            self.assertEqual(code, 0, 'Did not successfully create table: %s' % currentTable)
             # print err
         for x in range(1, self.tables):
             currentTable = 'test_ingest%d' % (x)      
-            command = 'deletetable %s\n' % (currentTable)
+            command = 'deletetable -f %s\n' % (currentTable)
             log.debug("Running Command %r", command)
             code, out, err = cloudshell.run(self.username, self.password, command)
+            self.assertEqual(code, 0, 'Did not successfully delete table: %s' % currentTable)
             # print err
         log.debug("Process finished")
         return code, out, err

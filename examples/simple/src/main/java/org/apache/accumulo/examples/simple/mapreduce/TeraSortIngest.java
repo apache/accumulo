@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -46,6 +48,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import com.beust.jcommander.Parameter;
+
 /**
  * Generate the *almost* official terasort input data set. (See below) The user specifies the number of rows and the output directory and this class runs a
  * map/reduce program to generate the data. The format of the data is:
@@ -59,9 +63,6 @@ import org.apache.hadoop.util.ToolRunner;
  * This TeraSort is slightly modified to allow for variable length key sizes and value sizes. The row length isn't variable. To generate a terabyte of data in
  * the same way TeraSort does use 10000000000 rows and 10/10 byte key length and 78/78 byte value length. Along with the 10 byte row id and \r\n this gives you
  * 100 byte row * 10000000000 rows = 1tb. Min/Max ranges for key and value parameters are inclusive/inclusive respectively.
- * 
- * Params <numrows> <minkeylength> <maxkeylength> <minvaluelength> <maxvaluelength> <tablename> <instance> <zoohosts> <username> <password> [numsplits]
- * numsplits allows you specify how many splits, and therefore mappers, to use
  * 
  * 
  */
@@ -84,19 +85,23 @@ public class TeraSortIngest extends Configured implements Tool {
         rowCount = length;
       }
       
+      @Override
       public long getLength() throws IOException {
         return 0;
       }
       
+      @Override
       public String[] getLocations() throws IOException {
         return new String[] {};
       }
       
+      @Override
       public void readFields(DataInput in) throws IOException {
         firstRow = WritableUtils.readVLong(in);
         rowCount = WritableUtils.readVLong(in);
       }
       
+      @Override
       public void write(DataOutput out) throws IOException {
         WritableUtils.writeVLong(out, firstRow);
         WritableUtils.writeVLong(out, rowCount);
@@ -119,8 +124,10 @@ public class TeraSortIngest extends Configured implements Tool {
         totalRows = split.rowCount;
       }
       
+      @Override
       public void close() throws IOException {}
       
+      @Override
       public float getProgress() throws IOException {
         return finishedRows / (float) totalRows;
       }
@@ -148,6 +155,7 @@ public class TeraSortIngest extends Configured implements Tool {
       }
     }
     
+    @Override
     public RecordReader<LongWritable,NullWritable> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
       // reporter.setStatus("Creating record reader");
       return new RangeRecordReader((RangeInputSplit) split);
@@ -156,6 +164,7 @@ public class TeraSortIngest extends Configured implements Tool {
     /**
      * Create the desired number of splits, dividing the number of rows between the mappers.
      */
+    @Override
     public List<InputSplit> getSplits(JobContext job) {
       long totalRows = job.getConfiguration().getLong(NUMROWS, 0);
       int numSplits = job.getConfiguration().getInt(NUMSPLITS, 1);
@@ -305,6 +314,7 @@ public class TeraSortIngest extends Configured implements Tool {
         value.append(filler[(base + valuelen) % 26], 0, valuelen);
     }
     
+    @Override
     public void map(LongWritable row, NullWritable ignored, Context context) throws IOException, InterruptedException {
       context.setStatus("Entering");
       long rowId = row.get();
@@ -343,10 +353,27 @@ public class TeraSortIngest extends Configured implements Tool {
     System.exit(res);
   }
   
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names = "--count", description = "number of rows to ingest", required = true)
+    long numRows;
+    @Parameter(names = {"-nk", "--minKeySize"}, description = "miniumum key size", required = true)
+    int minKeyLength;
+    @Parameter(names = {"-xk", "--maxKeySize"}, description = "maximum key size", required = true)
+    int maxKeyLength;
+    @Parameter(names = {"-nv", "--minValueSize"}, description = "minimum key size", required = true)
+    int minValueLength;
+    @Parameter(names = {"-xv", "--maxValueSize"}, description = "maximum key size", required = true)
+    int maxValueLength;
+    @Parameter(names = "--splits", description = "number of splits to create in the table")
+    int splits = 0;
+  }
+  
   @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), "TeraSortCloud");
     job.setJarByClass(this.getClass());
+    Opts opts = new Opts();
+    opts.parseArgs(TeraSortIngest.class.getName(), args);
     
     job.setInputFormatClass(RangeInputFormat.class);
     job.setMapperClass(SortGenMapper.class);
@@ -356,20 +383,20 @@ public class TeraSortIngest extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[6], args[7]);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[8], args[9].getBytes(), true, null);
-    AccumuloOutputFormat.setMaxMutationBufferSize(job.getConfiguration(), 10L * 1000 * 1000);
+    opts.setAccumuloConfigs(job);
+    BatchWriterConfig bwConfig = new BatchWriterConfig().setMaxMemory(10L * 1000 * 1000);
+    AccumuloOutputFormat.setBatchWriterOptions(job, bwConfig);
     
     Configuration conf = job.getConfiguration();
-    conf.setLong(NUMROWS, Long.parseLong(args[0]));
-    conf.setInt("cloudgen.minkeylength", Integer.parseInt(args[1]));
-    conf.setInt("cloudgen.maxkeylength", Integer.parseInt(args[2]));
-    conf.setInt("cloudgen.minvaluelength", Integer.parseInt(args[3]));
-    conf.setInt("cloudgen.maxvaluelength", Integer.parseInt(args[4]));
-    conf.set("cloudgen.tablename", args[5]);
+    conf.setLong(NUMROWS, opts.numRows);
+    conf.setInt("cloudgen.minkeylength", opts.minKeyLength);
+    conf.setInt("cloudgen.maxkeylength", opts.maxKeyLength);
+    conf.setInt("cloudgen.minvaluelength", opts.minValueLength);
+    conf.setInt("cloudgen.maxvaluelength", opts.maxValueLength);
+    conf.set("cloudgen.tablename", opts.tableName);
     
     if (args.length > 10)
-      conf.setInt(NUMSPLITS, Integer.parseInt(args[10]));
+      conf.setInt(NUMSPLITS, opts.splits);
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

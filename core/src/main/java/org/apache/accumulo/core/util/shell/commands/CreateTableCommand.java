@@ -19,6 +19,7 @@ package org.apache.accumulo.core.util.shell.commands;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map.Entry;
+import java.util.Scanner;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -52,67 +53,72 @@ public class CreateTableCommand extends Command {
   private Option createTableOptFormatter;
   public static String testTable;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableExistsException,
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException, IOException, ClassNotFoundException {
     
-    String testTableName = cl.getArgs()[0];
+    final String testTableName = cl.getArgs()[0];
     
     if (!testTableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
       shellState.getReader().printString("Only letters, numbers and underscores are allowed for use in table names. \n");
       throw new IllegalArgumentException();
     }
     
-    String tableName = cl.getArgs()[0];
-    if (shellState.getConnector().tableOperations().exists(tableName))
+    final String tableName = cl.getArgs()[0];
+    if (shellState.getConnector().tableOperations().exists(tableName)) {
       throw new TableExistsException(null, tableName, null);
-    
-    SortedSet<Text> partitions = new TreeSet<Text>();
-    boolean decode = cl.hasOption(base64Opt.getOpt());
+    }
+    final SortedSet<Text> partitions = new TreeSet<Text>();
+    final boolean decode = cl.hasOption(base64Opt.getOpt());
     
     if (cl.hasOption(createTableOptSplit.getOpt())) {
-      String f = cl.getOptionValue(createTableOptSplit.getOpt());
+      final String f = cl.getOptionValue(createTableOptSplit.getOpt());
       
       String line;
-      java.util.Scanner file = new java.util.Scanner(new File(f));
+      Scanner file = new Scanner(new File(f));
       while (file.hasNextLine()) {
         line = file.nextLine();
-        if (!line.isEmpty())
+        if (!line.isEmpty()) {
           partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+        }
       }
     } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {
-      String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(oldTable))
+      final String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
+      if (!shellState.getConnector().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
+      }
       partitions.addAll(shellState.getConnector().tableOperations().getSplits(oldTable));
     }
     
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
-      String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(oldTable))
+      final String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
+      if (!shellState.getConnector().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
+      }
     }
     
     TimeType timeType = TimeType.MILLIS;
-    if (cl.hasOption(createTableOptTimeLogical.getOpt()))
+    if (cl.hasOption(createTableOptTimeLogical.getOpt())) {
       timeType = TimeType.LOGICAL;
+    }
     
     // create table
     shellState.getConnector().tableOperations().create(tableName, true, timeType);
-    if (partitions.size() > 0)
+    if (partitions.size() > 0) {
       shellState.getConnector().tableOperations().addSplits(tableName, partitions);
-    
+    }
     shellState.setTableName(tableName); // switch shell to new table
     // context
     
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      for (String key : IteratorUtil.generateInitialTableProperties().keySet())
+      for (String key : IteratorUtil.generateInitialTableProperties(true).keySet()) {
         shellState.getConnector().tableOperations().removeProperty(tableName, key);
+      }
     }
     
     // Copy options if flag was set
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       if (shellState.getConnector().tableOperations().exists(tableName)) {
-        Iterable<Entry<String,String>> configuration = shellState.getConnector().tableOperations()
+        final Iterable<Entry<String,String>> configuration = shellState.getConnector().tableOperations()
             .getProperties(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
         for (Entry<String,String> entry : configuration) {
           if (Property.isValidTablePropertyKey(entry.getKey())) {
@@ -132,7 +138,7 @@ public class CreateTableCommand extends Command {
     
     // Load custom formatter if set
     if (cl.hasOption(createTableOptFormatter.getOpt())) {
-      String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
+      final String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
       
       shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
     }
@@ -152,7 +158,7 @@ public class CreateTableCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     createTableOptCopyConfig = new Option("cc", "copy-config", true, "table to copy configuration from");
     createTableOptCopySplits = new Option("cs", "copy-splits", true, "table to copy current splits from");
@@ -171,11 +177,11 @@ public class CreateTableCommand extends Command {
     
     // Splits and CopySplits are put in an optionsgroup to make them
     // mutually exclusive
-    OptionGroup splitOrCopySplit = new OptionGroup();
+    final OptionGroup splitOrCopySplit = new OptionGroup();
     splitOrCopySplit.addOption(createTableOptSplit);
     splitOrCopySplit.addOption(createTableOptCopySplits);
     
-    OptionGroup timeGroup = new OptionGroup();
+    final OptionGroup timeGroup = new OptionGroup();
     timeGroup.addOption(createTableOptTimeLogical);
     timeGroup.addOption(createTableOptTimeMillis);
     

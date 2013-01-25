@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
-import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
@@ -45,14 +44,15 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
-import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
 import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
+import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
@@ -103,7 +103,7 @@ public class TabletServerResourceManager {
   
   private ExecutorService addEs(final Property maxThreads, String name, final ThreadPoolExecutor tp) {
     ExecutorService result = addEs(name, tp);
-    SimpleTimer.getInstance().schedule(new TimerTask() {
+    SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
       public void run() {
         try {
@@ -199,7 +199,7 @@ public class TabletServerResourceManager {
     fileManager = new FileManager(conf, fs, maxOpenFiles, _dCache, _iCache);
     
     try {
-      Class<? extends MemoryManager> clazz = AccumuloClassLoader.loadClass(acuConf.get(Property.TSERV_MEM_MGMT), MemoryManager.class);
+      Class<? extends MemoryManager> clazz = AccumuloVFSClassLoader.loadClass(acuConf.get(Property.TSERV_MEM_MGMT), MemoryManager.class);
       memoryManager = clazz.newInstance();
       memoryManager.init(conf);
       log.debug("Loaded memory manager : " + memoryManager.getClass().getName());
@@ -250,7 +250,7 @@ public class TabletServerResourceManager {
   }
   
   private class MemoryManagementFramework {
-    private Map<KeyExtent,TabletStateImpl> tabletReports;
+    private final Map<KeyExtent,TabletStateImpl> tabletReports;
     private LinkedBlockingQueue<TabletStateImpl> memUsageReports;
     private long lastMemCheckTime = System.currentTimeMillis();
     private long maxMem;
@@ -349,7 +349,7 @@ public class TabletServerResourceManager {
                 continue;
               }
               
-              if (!tabletReport.getTablet().initiateMinorCompaction()) {
+              if (!tabletReport.getTablet().initiateMinorCompaction(MinorCompactionReason.SYSTEM)) {
                 if (tabletReport.getTablet().isClosed()) {
                   tabletReports.remove(tabletReport.getExtent());
                   log.debug("Ignoring memory manager recommendation: not minor compacting closed tablet " + keyExtent);
@@ -378,7 +378,7 @@ public class TabletServerResourceManager {
     }
   }
   
-  private Object commitHold = new String("");
+  private final Object commitHold = new Object();
   private volatile boolean holdCommits = false;
   private long holdStartTime;
   
@@ -545,7 +545,7 @@ public class TabletServerResourceManager {
     // when too many files are open, we may want tablets to compact down
     // to one map file
     Map<String,Long> findMapFilesToCompact(SortedMap<String,DataFileValue> tabletFiles, MajorCompactionReason reason) {
-      if (reason == MajorCompactionReason.ALL) {
+      if (reason == MajorCompactionReason.USER) {
         Map<String,Long> files = new HashMap<String,Long>();
         for (Entry<String,DataFileValue> entry : tabletFiles.entrySet()) {
           files.put(entry.getKey(), entry.getValue().getSize());
@@ -634,7 +634,7 @@ public class TabletServerResourceManager {
         
       // int threshold;
       
-      if (reason == MajorCompactionReason.ALL)
+      if (reason == MajorCompactionReason.USER)
         return true;
       
       if (reason == MajorCompactionReason.IDLE) {

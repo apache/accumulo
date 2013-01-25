@@ -20,21 +20,27 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.BinaryFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
+import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
+import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.core.util.shell.Shell.PrintFile;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -42,45 +48,52 @@ import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
   
-  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt, formatterOpt;
+  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt, formatterOpt, interpreterOpt, formatterInterpeterOpt,
+      outputFileOpt;
+  
   protected Option timestampOpt;
   private Option optStartRowExclusive;
   private Option optEndRowExclusive;
+  private Option timeoutOption;
+  private Option profileOpt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+
+    final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
+    final PrintFile printFile = outputFile == null ? null : new PrintFile(outputFile);
     
-    Class<? extends Formatter> formatter = null;
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
-    // Use the configured formatter unless one was provided
-    if (!cl.hasOption(formatterOpt.getOpt())) {
-      formatter = FormatterCommand.getCurrentFormatter(tableName, shellState);
-    }
+    final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
+    final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
     
     // handle first argument, if present, the authorizations list to
     // scan with
-    Authorizations auths = getAuths(cl, shellState);
-    Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
+    final Authorizations auths = getAuths(cl, shellState);
+    final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
     
     // handle session-specific scan iterators
-    addScanIterators(shellState, scanner, tableName);
+    addScanIterators(shellState, cl, scanner, tableName);
     
     // handle remaining optional arguments
-    scanner.setRange(getRange(cl));
+    scanner.setRange(getRange(cl, interpeter));
     
     // handle columns
-    fetchColumns(cl, scanner);
+    fetchColumns(cl, scanner, interpeter);
     
+    // set timeout
+    scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
+
     // output the records
     if (cl.hasOption(showFewOpt.getOpt())) {
-      String showLength = cl.getOptionValue(showFewOpt.getOpt());
+      final String showLength = cl.getOptionValue(showFewOpt.getOpt());
       try {
-        int length = Integer.parseInt(showLength);
+        final int length = Integer.parseInt(showLength);
         if (length < 1) {
           throw new IllegalArgumentException();
         }
         BinaryFormatter.getlength(length);
-        printBinaryRecords(cl, shellState, scanner);
+        printBinaryRecords(cl, shellState, scanner, printFile);
       } catch (NumberFormatException nfe) {
         shellState.getReader().printString("Arg must be an integer. \n");
       } catch (IllegalArgumentException iae) {
@@ -88,22 +101,41 @@ public class ScanCommand extends Command {
       }
       
     } else {
-      if (null == formatter) {
-        printRecords(cl, shellState, scanner);
-      } else {
-        printRecords(cl, shellState, scanner, formatter);
-      }
+      printRecords(cl, shellState, scanner, formatter, printFile);
+    }
+    if (printFile != null) {
+      printFile.close();
     }
     
     return 0;
   }
   
-  protected void addScanIterators(Shell shellState, Scanner scanner, String tableName) {
-    List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
-    if (tableScanIterators == null) {
-      Shell.log.debug("Found no scan iterators to set");
-      return;
+  protected long getTimeout(final CommandLine cl) {
+    if (cl.hasOption(timeoutOption.getLongOpt())) {
+      return AccumuloConfiguration.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
     }
+    
+    return Long.MAX_VALUE;
+  }
+
+  protected void addScanIterators(final Shell shellState, CommandLine cl, final Scanner scanner, final String tableName) {
+    
+    List<IteratorSetting> tableScanIterators;
+    if (cl.hasOption(profileOpt.getOpt())) {
+      String profile = cl.getOptionValue(profileOpt.getOpt());
+      tableScanIterators = shellState.iteratorProfiles.get(profile);
+      
+      if (tableScanIterators == null) {
+        throw new IllegalArgumentException("Profile " + profile + " does not exist");
+      }
+    } else {
+      tableScanIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
+      if (tableScanIterators == null) {
+        Shell.log.debug("Found no scan iterators to set");
+        return;
+      }
+    }
+
     Shell.log.debug("Found " + tableScanIterators.size() + " scan iterators to set");
     
     for (IteratorSetting setting : tableScanIterators) {
@@ -116,42 +148,86 @@ public class ScanCommand extends Command {
     }
   }
   
-  protected void printRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner) throws IOException {
-    if (cl.hasOption(formatterOpt.getOpt())) {
-      try {
-        String className = cl.getOptionValue(formatterOpt.getOpt());
-        Class<? extends Formatter> formatterClass = AccumuloClassLoader.loadClass(className, Formatter.class);
-        
-        printRecords(cl, shellState, scanner, formatterClass);
-      } catch (ClassNotFoundException e) {
-        shellState.getReader().printString("Formatter class could not be loaded.\n" + e.getMessage() + "\n");
-      }
+  protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner, final Class<? extends Formatter> formatter)
+      throws IOException {
+    printRecords(cl, shellState, scanner, formatter, null);
+  }
+  
+  protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner,
+      final Class<? extends Formatter> formatter, PrintFile outFile) throws IOException {
+    if (outFile == null) {
+      shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter);
     } else {
-      shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
+      shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter, outFile);
+    }
+  }
+
+  protected void printBinaryRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner) throws IOException {
+    printBinaryRecords(cl, shellState, scanner, null);
+  }
+  
+  protected void printBinaryRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner, PrintFile outFile)
+      throws IOException {
+    if (outFile == null) {
+      shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
+    } else {
+      shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), outFile);
     }
   }
   
-  protected void printRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner, Class<? extends Formatter> formatter) throws IOException {
-    shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter);
+  protected ScanInterpreter getInterpreter(final CommandLine cl, final String tableName, final Shell shellState) throws Exception {
+    
+    Class<? extends ScanInterpreter> clazz = null;
+    try {
+      if (cl.hasOption(interpreterOpt.getOpt())) {
+        clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(interpreterOpt.getOpt()), ScanInterpreter.class);
+      } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
+        clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), ScanInterpreter.class);
+      }
+    } catch (ClassNotFoundException e) {
+      shellState.getReader().printString("Interpreter class could not be loaded.\n" + e.getMessage() + "\n");
+    }
+
+    if (clazz == null)
+      clazz = InterpreterCommand.getCurrentInterpreter(tableName, shellState);
+
+    if (clazz == null)
+      clazz = DefaultScanInterpreter.class;
+    
+    return clazz.newInstance();
+  }
+
+  protected Class<? extends Formatter> getFormatter(final CommandLine cl, final String tableName, final Shell shellState) throws IOException {
+    
+    try {
+      if (cl.hasOption(formatterOpt.getOpt())) {
+        return AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterOpt.getOpt()), Formatter.class);
+        
+      } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
+        return AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), Formatter.class);
+      }
+    } catch (ClassNotFoundException e) {
+      shellState.getReader().printString("Formatter class could not be loaded.\n" + e.getMessage() + "\n");
+    }
+    
+    return shellState.getFormatter(tableName);
   }
   
-  protected void printBinaryRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner) throws IOException {
-    shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
-  }
-  
-  protected void fetchColumns(CommandLine cl, ScannerBase scanner) throws UnsupportedEncodingException {
+  protected void fetchColumns(final CommandLine cl, final ScannerBase scanner, final ScanInterpreter formatter) throws UnsupportedEncodingException {
     if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
-        String sa[] = a.split(":", 2);
-        if (sa.length == 1)
-          scanner.fetchColumnFamily(new Text(a.getBytes(Shell.CHARSET)));
-        else
-          scanner.fetchColumn(new Text(sa[0].getBytes(Shell.CHARSET)), new Text(sa[1].getBytes(Shell.CHARSET)));
+        final String sa[] = a.split(":", 2);
+        if (sa.length == 1) {
+          scanner.fetchColumnFamily(formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET))));
+        } else {
+          scanner.fetchColumn(formatter.interpretColumnFamily(new Text(sa[0].getBytes(Shell.CHARSET))),
+              formatter.interpretColumnQualifier(new Text(sa[1].getBytes(Shell.CHARSET))));
+        }
       }
     }
   }
   
-  protected Range getRange(CommandLine cl) throws UnsupportedEncodingException {
+  protected Range getRange(final CommandLine cl, final ScanInterpreter formatter) throws UnsupportedEncodingException {
     if ((cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT)) && cl.hasOption(scanOptRow.getOpt())) {
       // did not see a way to make commons cli do this check... it has mutually exclusive options but does not support the or
       throw new IllegalArgumentException("Options -" + scanOptRow.getOpt() + " AND (-" + OptUtil.START_ROW_OPT + " OR -" + OptUtil.END_ROW_OPT
@@ -159,23 +235,34 @@ public class ScanCommand extends Command {
     }
     
     if (cl.hasOption(scanOptRow.getOpt())) {
-      return new Range(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET)));
+      return new Range(formatter.interpretRow(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET))));
     } else {
       Text startRow = OptUtil.getStartRow(cl);
+      if (startRow != null)
+        startRow = formatter.interpretBeginRow(startRow);
       Text endRow = OptUtil.getEndRow(cl);
-      boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
-      boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
+      if (endRow != null)
+        endRow = formatter.interpretEndRow(endRow);
+      final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
+      final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
       return new Range(startRow, startInclusive, endRow, endInclusive);
     }
   }
   
-  protected Authorizations getAuths(CommandLine cl, Shell shellState) throws AccumuloSecurityException, AccumuloException {
-    String user = shellState.getConnector().whoami();
+  protected Authorizations getAuths(final CommandLine cl, final Shell shellState) throws AccumuloSecurityException, AccumuloException {
+    final String user = shellState.getConnector().whoami();
     Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
     if (cl.hasOption(scanOptAuths.getOpt())) {
-      auths = CreateUserCommand.parseAuthorizations(cl.getOptionValue(scanOptAuths.getOpt()));
+      auths = ScanCommand.parseAuthorizations(cl.getOptionValue(scanOptAuths.getOpt()));
     }
     return auths;
+  }
+  
+  static Authorizations parseAuthorizations(final String field) {
+    if (field == null || field.isEmpty()) {
+      return Constants.NO_AUTHS;
+    }
+    return new Authorizations(field.split(","));
   }
   
   @Override
@@ -185,7 +272,7 @@ public class ScanCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     scanOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations (all user auths are used if this argument is not specified)");
     optStartRowExclusive = new Option("be", "begin-exclusive", false, "make start row exclusive (by default it's inclusive)");
@@ -198,6 +285,11 @@ public class ScanCommand extends Command {
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     showFewOpt = new Option("f", "show few", true, "show only a specified number of characters");
     formatterOpt = new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
+    interpreterOpt = new Option("i", "interpreter", true, "fully qualified name of the interpreter class to use");
+    formatterInterpeterOpt = new Option("fi", "fmt-interpreter", true, "fully qualified name of a class that is a formatter and interpreter");
+    timeoutOption = new Option(null, "timeout", true,
+        "time before scan should fail if no data is returned. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
+    outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -205,7 +297,12 @@ public class ScanCommand extends Command {
     showFewOpt.setRequired(false);
     showFewOpt.setArgName("int");
     formatterOpt.setArgName("className");
+    timeoutOption.setArgName("timeout");
+    outputFileOpt.setArgName("file");
     
+    profileOpt = new Option("pn", "profile", true, "iterator profile name");
+    profileOpt.setArgName("profile");
+
     o.addOption(scanOptAuths);
     o.addOption(scanOptRow);
     o.addOption(OptUtil.startRowOpt());
@@ -218,6 +315,11 @@ public class ScanCommand extends Command {
     o.addOption(OptUtil.tableOpt("table to be scanned"));
     o.addOption(showFewOpt);
     o.addOption(formatterOpt);
+    o.addOption(interpreterOpt);
+    o.addOption(formatterInterpeterOpt);
+    o.addOption(timeoutOption);
+    o.addOption(outputFileOpt);
+    o.addOption(profileOpt);
     
     return o;
   }

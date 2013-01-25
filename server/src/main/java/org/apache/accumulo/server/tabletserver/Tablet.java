@@ -86,7 +86,7 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
@@ -98,8 +98,6 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.constraints.ConstraintChecker;
-import org.apache.accumulo.server.constraints.ConstraintLoader;
-import org.apache.accumulo.server.constraints.UnsatisfiableConstraint;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -122,6 +120,7 @@ import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
@@ -148,12 +147,16 @@ public class Tablet {
   enum MajorCompactionReason {
     // do not change the order, the order of this enum determines the order
     // in which queued major compactions are executed
-    ALL,
+    USER,
     CHOP,
     NORMAL,
     IDLE
   }
   
+  enum MinorCompactionReason {
+    USER, SYSTEM, CLOSE
+  }
+
   public class CommitSession {
     
     private int seq;
@@ -370,9 +373,9 @@ public class Tablet {
   
   private TabletMemory tabletMemory;
   
-  private TabletTime tabletTime;
+  private final TabletTime tabletTime;
   private long persistedTime;
-  private Object timeLock = new Object();
+  private final Object timeLock = new Object();
   
   private Path location; // absolute path of this tablets dir
   private TServerInstance lastLocation;
@@ -446,7 +449,7 @@ public class Tablet {
   
   private final int logId;
   // ensure we only have one reader/writer of our bulk file notes at at time
-  public Object bulkFileImportLock = new Object();
+  public final Object bulkFileImportLock = new Object();
   
   public int getLogId() {
     return logId;
@@ -678,10 +681,10 @@ public class Tablet {
       }
       
       synchronized (bulkFileImportLock) {
-        AuthInfo auths = SecurityConstants.getSystemCredentials();
+        InstanceTokenWrapper auths = SecurityConstants.getSystemCredentials();
         Connector conn;
         try {
-          conn = HdfsZooInstance.getInstance().getConnector(auths.user, auths.password);
+          conn = HdfsZooInstance.getInstance().getConnector(auths);
         } catch (Exception ex) {
           throw new IOException(ex);
         }
@@ -843,7 +846,7 @@ public class Tablet {
         // need to write to !METADATA before writing to walog, when things are done in the reverse order
         // data could be lost... the minor compaction start even should be written before the following metadata
         // write is made
-        AuthInfo creds = SecurityConstants.getSystemCredentials();
+        InstanceTokenWrapper creds = SecurityConstants.getSystemCredentials();
         
         synchronized (timeLock) {
           if (commitSession.getMaxCommittedTime() > persistedTime)
@@ -1362,19 +1365,7 @@ public class Tablet {
     acuTableConf.addObserver(configObserver = new ConfigurationObserver() {
       
       private void reloadConstraints() {
-        
-        ConstraintChecker cc = null;
-        
-        try {
-          log.debug("Reloading constraints");
-          cc = ConstraintLoader.load(getTableConfiguration());
-        } catch (IOException e) {
-          log.error("Failed to reload constraints for " + extent, e);
-          cc = new ConstraintChecker();
-          cc.addConstraint(new UnsatisfiableConstraint((short) -1, "Failed to reload constraints, not accepting mutations."));
-        }
-        
-        constraintChecker.set(cc);
+        constraintChecker.set(new ConstraintChecker(getTableConfiguration()));
       }
       
       public void propertiesChanged() {
@@ -1469,6 +1460,13 @@ public class Tablet {
           + " entries created)");
     }
     
+    String contextName = acuTableConf.get(Property.TABLE_CLASSPATH);
+    if (contextName != null && !contextName.equals("")) {
+      // initialize context classloader, instead of possibly waiting for it to initialize for a scan
+      // TODO this could hang causing other tablets to fail to load
+      AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
+    }
+
     // do this last after tablet is completely setup because it
     // could cause major compaction to start
     datafileManager = new DatafileManager(datafiles);
@@ -2115,7 +2113,7 @@ public class Tablet {
   }
   
   private DataFileValue minorCompact(Configuration conf, FileSystem fs, InMemoryMap memTable, String tmpDatafile, String newDatafile, String mergeFile,
-      boolean hasQueueTime, long queued, CommitSession commitSession, long flushId) {
+      boolean hasQueueTime, long queued, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
     boolean failed = false;
     long start = System.currentTimeMillis();
     timer.incrementStatusMinor();
@@ -2130,7 +2128,7 @@ public class Tablet {
       if (mergeFile != null)
         dfv = datafileManager.getDatafileSizes().get(mergeFile);
       
-      MinorCompactor compactor = new MinorCompactor(conf, fs, memTable, mergeFile, dfv, tmpDatafile, acuTableConf, extent);
+      MinorCompactor compactor = new MinorCompactor(conf, fs, memTable, mergeFile, dfv, tmpDatafile, acuTableConf, extent, mincReason);
       CompactionStats stats = compactor.call();
       
       span.stop();
@@ -2174,13 +2172,15 @@ public class Tablet {
     private DataFileValue stats;
     private String mergeFile;
     private long flushId;
+    private MinorCompactionReason mincReason;
     
-    MinorCompactionTask(String mergeFile, CommitSession commitSession, long flushId) {
+    MinorCompactionTask(String mergeFile, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
       queued = System.currentTimeMillis();
       minorCompactionWaitingToStart = true;
       this.commitSession = commitSession;
       this.mergeFile = mergeFile;
       this.flushId = flushId;
+      this.mincReason = mincReason;
     }
     
     public void run() {
@@ -2211,7 +2211,7 @@ public class Tablet {
         span.stop();
         span = Trace.start("compact");
         this.stats = minorCompact(conf, fs, tabletMemory.getMinCMemTable(), newMapfileLocation + "_tmp", newMapfileLocation, mergeFile, true, queued,
-            commitSession, flushId);
+            commitSession, flushId, mincReason);
         span.stop();
         
         if (needsSplit()) {
@@ -2232,14 +2232,14 @@ public class Tablet {
     }
   }
   
-  private synchronized MinorCompactionTask prepareForMinC(long flushId) {
+  private synchronized MinorCompactionTask prepareForMinC(long flushId, MinorCompactionReason mincReason) {
     CommitSession oldCommitSession = tabletMemory.prepareForMinC();
     otherLogs = currentLogs;
     currentLogs = new HashSet<DfsLogger>();
     
     String mergeFile = datafileManager.reserveMergingMinorCompactionFile();
     
-    return new MinorCompactionTask(mergeFile, oldCommitSession, flushId);
+    return new MinorCompactionTask(mergeFile, oldCommitSession, flushId, mincReason);
     
   }
   
@@ -2270,12 +2270,12 @@ public class Tablet {
       }
       
       if (updateMetadata) {
-        AuthInfo creds = SecurityConstants.getSystemCredentials();
+        InstanceTokenWrapper creds = SecurityConstants.getSystemCredentials();
         // if multiple threads were allowed to update this outside of a sync block, then it would be
         // a race condition
         MetadataTable.updateTabletFlushID(extent, tableFlushID, creds, tabletServer.getLock());
       } else if (initiateMinor)
-        initiateMinorCompaction(tableFlushID);
+        initiateMinorCompaction(tableFlushID, MinorCompactionReason.USER);
       
     } finally {
       if (updateMetadata) {
@@ -2288,7 +2288,7 @@ public class Tablet {
     
   }
   
-  boolean initiateMinorCompaction() {
+  boolean initiateMinorCompaction(MinorCompactionReason mincReason) {
     if (isClosed()) {
       // don't bother trying to get flush id if closed... could be closed after this check but that is ok... just trying to cut down on uneeded log messages....
       return false;
@@ -2302,10 +2302,10 @@ public class Tablet {
       log.info("Asked to initiate MinC when there was no flush id " + getExtent() + " " + e.getMessage());
       return false;
     }
-    return initiateMinorCompaction(flushId);
+    return initiateMinorCompaction(flushId, mincReason);
   }
   
-  boolean minorCompactNow() {
+  boolean minorCompactNow(MinorCompactionReason mincReason) {
     long flushId;
     try {
       flushId = getFlushID();
@@ -2313,22 +2313,22 @@ public class Tablet {
       log.info("Asked to initiate MinC when there was no flush id " + getExtent() + " " + e.getMessage());
       return false;
     }
-    MinorCompactionTask mct = createMinorCompactionTask(flushId);
+    MinorCompactionTask mct = createMinorCompactionTask(flushId, mincReason);
     if (mct == null)
       return false;
     mct.run();
     return true;
   }
 
-  boolean initiateMinorCompaction(long flushId) {
-    MinorCompactionTask mct = createMinorCompactionTask(flushId);
+  boolean initiateMinorCompaction(long flushId, MinorCompactionReason mincReason) {
+    MinorCompactionTask mct = createMinorCompactionTask(flushId, mincReason);
     if (mct == null)
       return false;
     tabletResources.executeMinorCompaction(mct);
     return true;
   }
   
-  private MinorCompactionTask createMinorCompactionTask(long flushId) {
+  private MinorCompactionTask createMinorCompactionTask(long flushId, MinorCompactionReason mincReason) {
     MinorCompactionTask mct;
     long t1, t2;
     
@@ -2363,7 +2363,7 @@ public class Tablet {
           return null;
         }
         
-        mct = prepareForMinC(flushId);
+        mct = prepareForMinC(flushId, mincReason);
         t2 = System.currentTimeMillis();
       }
     } finally {
@@ -2477,6 +2477,15 @@ public class Tablet {
     return commitSession;
   }
   
+  public void checkConstraints() {
+    ConstraintChecker cc = constraintChecker.get();
+    
+    if (cc.classLoaderChanged()) {
+      ConstraintChecker ncc = new ConstraintChecker(getTableConfiguration());
+      constraintChecker.compareAndSet(cc, ncc);
+    }
+  }
+
   public CommitSession prepareMutationsForCommit(TservConstraintEnv cenv, List<Mutation> mutations) throws TConstraintViolationException {
     
     ConstraintChecker cc = constraintChecker.get();
@@ -2639,7 +2648,7 @@ public class Tablet {
       tabletMemory.waitForMinC();
       
       try {
-        mct = prepareForMinC(getFlushID());
+        mct = prepareForMinC(getFlushID(), MinorCompactionReason.CLOSE);
       } catch (NoNodeException e) {
         throw new RuntimeException(e);
       }
@@ -2692,7 +2701,7 @@ public class Tablet {
     
     if (saveState && tabletMemory.getMemTable().getNumEntries() > 0) {
       try {
-        prepareForMinC(getFlushID()).run();
+        prepareForMinC(getFlushID(), MinorCompactionReason.CLOSE).run();
       } catch (NoNodeException e) {
         throw new RuntimeException(e);
       }
@@ -2856,7 +2865,7 @@ public class Tablet {
       if (cmp != 0)
         return cmp;
       
-      if (reason == MajorCompactionReason.ALL || reason == MajorCompactionReason.CHOP) {
+      if (reason == MajorCompactionReason.USER || reason == MajorCompactionReason.CHOP) {
         // for these types of compactions want to do the oldest first
         cmp = (int) (queued - o.queued);
         if (cmp != 0)
@@ -2887,7 +2896,7 @@ public class Tablet {
   public boolean needsMajorCompaction(MajorCompactionReason reason) {
     if (majorCompactionInProgress)
       return false;
-    if (reason == MajorCompactionReason.CHOP || reason == MajorCompactionReason.ALL)
+    if (reason == MajorCompactionReason.CHOP || reason == MajorCompactionReason.USER)
       return true;
     return tabletResources.needsMajorCompaction(datafileManager.getDatafileSizes(), reason);
   }
@@ -3055,7 +3064,7 @@ public class Tablet {
           if (candidate.compareRow(lastRow) != 0) {
             // we should use this ratio in split size estimations
             if (log.isTraceEnabled())
-              log.trace(String.format("Splitting at %6.2f instead of .5, row at .5 is same as end row\n", keys.firstKey()));
+              log.trace(String.format("Splitting at %6.2f instead of .5, row at .5 is same as end row%n", keys.firstKey()));
             return new SplitRowSpec(keys.firstKey(), candidate.getRow());
           }
           
@@ -3238,8 +3247,8 @@ public class Tablet {
               + datafileManager.abs2rel(new Path(compactTmpName)));
 
           // always propagate deletes, unless last batch
-          Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, filesToCompact.size() == 0 ? propogateDeletes : true,
-              acuTableConf, extent, cenv, compactionIterators);
+          Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, filesToCompact.size() == 0 ? propogateDeletes : true, acuTableConf, extent,
+              cenv, compactionIterators, reason);
           
           CompactionStats mcs = compactor.call();
           
@@ -3702,7 +3711,7 @@ public class Tablet {
   private boolean removingLogs = false;
   
   // this lock is basically used to synchronize writing of log info to !METADATA
-  private ReentrantLock logLock = new ReentrantLock();
+  private final ReentrantLock logLock = new ReentrantLock();
   
   public synchronized int getLogCount() {
     return currentLogs.size();
@@ -3808,7 +3817,7 @@ public class Tablet {
         updateMetadata = true;
         lastCompactID = compactionId;
       } else
-        initiateMajorCompaction(MajorCompactionReason.ALL);
+        initiateMajorCompaction(MajorCompactionReason.USER);
     }
     
     if (updateMetadata) {

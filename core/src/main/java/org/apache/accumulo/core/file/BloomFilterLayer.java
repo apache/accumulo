@@ -51,7 +51,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -113,7 +113,7 @@ public class BloomFilterLayer {
        * load KeyFunctor
        */
       try {
-        Class<? extends KeyFunctor> clazz = AccumuloClassLoader.loadClass(acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), KeyFunctor.class);
+        Class<? extends KeyFunctor> clazz = AccumuloVFSClassLoader.loadClass(acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), KeyFunctor.class);
         transformer = clazz.newInstance();
         
       } catch (Exception e) {
@@ -207,7 +207,7 @@ public class BloomFilterLayer {
              */
             ClassName = in.readUTF();
             
-            Class<? extends KeyFunctor> clazz = AccumuloClassLoader.loadClass(ClassName, KeyFunctor.class);
+            Class<? extends KeyFunctor> clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
             transformer = clazz.newInstance();
             
             /**
@@ -280,11 +280,11 @@ public class BloomFilterLayer {
     }
     
     /**
-     * Checks if this MyMapFile has the indicated key. The membership test is performed using a Bloom filter, so the result has always non-zero probability of
+     * Checks if this {@link RFile} contains keys from this range. The membership test is performed using a Bloom filter, so the result has always non-zero probability of
      * false positives.
      * 
-     * @param key
-     *          key to check
+     * @param range
+     *          range of keys to check
      * @return false iff key doesn't exist, true if key probably exists.
      * @throws IOException
      */
@@ -440,7 +440,7 @@ public class BloomFilterLayer {
     
     long t2 = System.currentTimeMillis();
     
-    out.printf("write rate %6.2f\n", vals.size() / ((t2 - t1) / 1000.0));
+    out.printf("write rate %6.2f%n", vals.size() / ((t2 - t1) / 1000.0));
     
     bmfw.close();
     
@@ -468,7 +468,7 @@ public class BloomFilterLayer {
     
     t2 = System.currentTimeMillis();
     
-    out.printf("random lookup rate : %6.2f\n", 5000 / ((t2 - t1) / 1000.0));
+    out.printf("random lookup rate : %6.2f%n", 5000 / ((t2 - t1) / 1000.0));
     out.println("hits = " + hits);
     
     int count = 0;
@@ -495,7 +495,7 @@ public class BloomFilterLayer {
     
     t2 = System.currentTimeMillis();
     
-    out.printf("existant lookup rate %6.2f\n", 500 / ((t2 - t1) / 1000.0));
+    out.printf("existant lookup rate %6.2f%n", 500 / ((t2 - t1) / 1000.0));
     out.println("expected hits 500.  Receive hits: " + count);
     bmfr.close();
   }

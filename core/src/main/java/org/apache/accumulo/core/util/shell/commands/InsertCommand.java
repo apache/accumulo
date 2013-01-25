@@ -18,17 +18,23 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -39,18 +45,28 @@ import org.apache.hadoop.io.Text;
 
 public class InsertCommand extends Command {
   private Option insertOptAuths, timestampOpt;
+  private Option timeoutOption;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, ConstraintViolationException {
+  protected long getTimeout(final CommandLine cl) {
+    if (cl.hasOption(timeoutOption.getLongOpt())) {
+      return AccumuloConfiguration.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
+    }
+    
+    return Long.MAX_VALUE;
+  }
+  
+  @Override
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, IOException, ConstraintViolationException {
     shellState.checkTableState();
     
-    Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
-    Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
-    Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
-    Value val = new Value(cl.getArgs()[3].getBytes(Shell.CHARSET));
+    final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
+    final Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
+    final Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
+    final Value val = new Value(cl.getArgs()[3].getBytes(Shell.CHARSET));
     
     if (cl.hasOption(insertOptAuths.getOpt())) {
-      ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
+      final ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
       Shell.log.debug("Authorization label will be set to: " + le.toString());
       
       if (cl.hasOption(timestampOpt.getOpt()))
@@ -62,22 +78,33 @@ public class InsertCommand extends Command {
     else
       m.put(colf, colq, val);
     
-    BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
+    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
+        new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024)).setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     bw.addMutation(m);
     try {
       bw.close();
     } catch (MutationsRejectedException e) {
-      ArrayList<String> lines = new ArrayList<String>();
-      if (e.getAuthorizationFailures().isEmpty() == false)
+      final ArrayList<String> lines = new ArrayList<String>();
+      if (e.getAuthorizationFailures().isEmpty() == false) {
         lines.add("	Authorization Failures:");
-      for (KeyExtent extent : e.getAuthorizationFailures()) {
-        lines.add("		" + extent);
       }
-      if (e.getConstraintViolationSummaries().isEmpty() == false)
+      for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : e.getAuthorizationFailures().entrySet()) {
+        lines.add("		" + entry);
+      }
+      if (e.getConstraintViolationSummaries().isEmpty() == false) {
         lines.add("	Constraint Failures:");
+      }
       for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
         lines.add("		" + cvs.toString());
       }
+      
+      if (lines.size() == 0 || e.getUnknownExceptions() > 0) {
+        // must always print something
+        lines.add(" " + e.getClass().getName() + " : " + e.getMessage());
+        if (e.getCause() != null)
+          lines.add("   Caused by : " + e.getCause().getClass().getName() + " : " + e.getCause().getMessage());
+      }
+      
       shellState.printLines(lines.iterator(), false);
     }
     return 0;
@@ -95,7 +122,7 @@ public class InsertCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     insertOptAuths = new Option("l", "visibility-label", true, "formatted visibility");
     insertOptAuths.setArgName("expression");
     o.addOption(insertOptAuths);
@@ -103,6 +130,11 @@ public class InsertCommand extends Command {
     timestampOpt = new Option("ts", "timestamp", true, "timestamp to use for insert");
     timestampOpt.setArgName("timestamp");
     o.addOption(timestampOpt);
+    
+    timeoutOption = new Option(null, "timeout", true,
+        "time before insert should fail if no data is written. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
+    timeoutOption.setArgName("timeout");
+    o.addOption(timeoutOption);
     
     return o;
   }

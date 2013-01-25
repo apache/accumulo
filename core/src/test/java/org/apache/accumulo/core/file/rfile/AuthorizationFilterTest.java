@@ -25,7 +25,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -33,8 +32,6 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFileTest.SeekableByteArrayInputStream;
 import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.predicates.ColumnVisibilityPredicate;
-import org.apache.accumulo.core.iterators.predicates.TimestampRangePredicate;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -46,6 +43,7 @@ import org.junit.Test;
 
 public class AuthorizationFilterTest {
   
+  @SuppressWarnings("unchecked")
   @Test
   public void testRFileAuthorizationFiltering() throws Exception {
     Authorizations auths = new Authorizations("a", "b", "c");

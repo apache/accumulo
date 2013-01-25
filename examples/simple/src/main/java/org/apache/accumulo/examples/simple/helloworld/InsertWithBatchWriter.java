@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.examples.simple.helloworld;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -24,7 +26,6 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
@@ -33,29 +34,19 @@ import org.apache.hadoop.io.Text;
  * Inserts 10K rows (50K entries) into accumulo with each row having 5 entries.
  */
 public class InsertWithBatchWriter {
+  
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, MutationsRejectedException, TableExistsException,
       TableNotFoundException {
-    if (args.length != 5) {
-      System.out
-          .println("Usage: accumulo examples-simplejar accumulo.examples.helloworld.InsertWithBatchWriter <instance name> <zoo keepers> <username> <password> <tableName>");
-      System.exit(1);
-    }
+    ClientOnRequiredTable opts = new ClientOnRequiredTable();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(InsertWithBatchWriter.class.getName(), args, bwOpts);
     
-    String instanceName = args[0];
-    String zooKeepers = args[1];
-    String user = args[2];
-    byte[] pass = args[3].getBytes();
-    String tableName = args[4];
+    Connector connector = opts.getConnector();
+    MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
     
-    ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-    Connector connector = instance.getConnector(user, pass);
-    MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(200000l, 300, 4);
-    
-    BatchWriter bw = null;
-    
-    if (!connector.tableOperations().exists(tableName))
-      connector.tableOperations().create(tableName);
-    bw = mtbw.getBatchWriter(tableName);
+    if (!connector.tableOperations().exists(opts.tableName))
+      connector.tableOperations().create(opts.tableName);
+    BatchWriter bw = mtbw.getBatchWriter(opts.tableName);
     
     Text colf = new Text("colfam");
     System.out.println("writing ...");
@@ -68,7 +59,6 @@ public class InsertWithBatchWriter {
       if (i % 100 == 0)
         System.out.println(i);
     }
-    
     mtbw.close();
   }
   

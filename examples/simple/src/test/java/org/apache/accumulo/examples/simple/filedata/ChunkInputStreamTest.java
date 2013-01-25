@@ -20,12 +20,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -37,6 +39,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -220,9 +223,9 @@ public class ChunkInputStreamTest extends TestCase {
   }
   
   public void testWithAccumulo() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException {
-    Connector conn = new MockInstance().getConnector("root", "".getBytes());
+    Connector conn = new MockInstance().getConnector(new UserPassToken("root", ""));
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", 100000l, 100l, 5);
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(5));
     
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();

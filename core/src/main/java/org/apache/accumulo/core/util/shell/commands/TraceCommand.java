@@ -34,26 +34,26 @@ import org.apache.hadoop.io.Text;
 
 public class TraceCommand extends DebugCommand {
   
-  public int execute(String fullCommand, CommandLine cl, final Shell shellState) throws IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
-        Trace.on("shell:" + shellState.getCredentials().user);
+        Trace.on("shell:" + shellState.getCredentials().getPrincipal());
       } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
         if (Trace.isTracing()) {
-          long trace = Trace.currentTrace().traceId();
+          final long trace = Trace.currentTrace().traceId();
           Trace.off();
           for (int i = 0; i < 10; i++) {
             try {
-              Map<String,String> properties = shellState.getConnector().instanceOperations().getSystemConfiguration();
-              String table = properties.get(Property.TRACE_TABLE.getKey());
-              String user = shellState.getConnector().whoami();
-              Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
-              Scanner scanner = shellState.getConnector().createScanner(table, auths);
+              final Map<String,String> properties = shellState.getConnector().instanceOperations().getSystemConfiguration();
+              final String table = properties.get(Property.TRACE_TABLE.getKey());
+              final String user = shellState.getConnector().whoami();
+              final Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
+              final Scanner scanner = shellState.getConnector().createScanner(table, auths);
               scanner.setRange(new Range(new Text(Long.toHexString(trace))));
               final StringBuffer sb = new StringBuffer();
               if (TraceDump.printTrace(scanner, new Printer() {
                 @Override
-                public void print(String line) {
+                public void print(final String line) {
                   try {
                     sb.append(line + "\n");
                   } catch (Exception ex) {

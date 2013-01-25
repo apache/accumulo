@@ -24,15 +24,21 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
+import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileUtil;
+import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.hadoop.fs.FileStatus;
@@ -41,6 +47,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 
 /**
  * <p>
@@ -56,6 +64,7 @@ import org.apache.log4j.Logger;
  * 
  */
 
+@SuppressWarnings("deprecation")
 public class ZooKeeperInstance implements Instance {
   
   private static final Logger log = Logger.getLogger(ZooKeeperInstance.class);
@@ -201,21 +210,29 @@ public class ZooKeeperInstance implements Instance {
     return zooKeepersSessionTimeOut;
   }
   
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
   
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, ByteBufferUtil.toBytes(pass));
+    return getConnector(new UserPassToken(user, pass));
   }
   
   // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
-  @SuppressWarnings("deprecation")
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, user, pass);
+    return getConnector(user, ByteBuffer.wrap(pass));
   }
   
   private AccumuloConfiguration conf = null;
@@ -230,6 +247,14 @@ public class ZooKeeperInstance implements Instance {
   @Override
   public void setConfiguration(AccumuloConfiguration conf) {
     this.conf = conf;
+  }
+  
+  /**
+   * @deprecated Use {@link #lookupInstanceName(org.apache.accumulo.fate.zookeeper.ZooCache, UUID)} instead
+   */
+  @Deprecated
+  public static String lookupInstanceName(org.apache.accumulo.core.zookeeper.ZooCache zooCache, UUID instanceId) {
+    return lookupInstanceName((ZooCache) zooCache, instanceId);
   }
   
   /**
@@ -273,8 +298,42 @@ public class ZooKeeperInstance implements Instance {
     }
   }
   
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
     return getConnector(auth.user, auth.password);
+  }
+  
+  // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
+  @Override
+  public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+    return new ConnectorImpl(this, token);
+  }
+  
+  // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
+  @Override
+  public Connector getConnector(InstanceTokenWrapper token) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(token.getToken());
+  }
+  
+  @Override
+  public String getSecurityTokenClass() throws AccumuloException {
+    Client client = null;
+    try {
+      client = MasterClient.getConnectionWithRetry(this);
+      return client.getSecurityTokenClass();
+    } catch (TTransportException e) {
+      throw new AccumuloException(e);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloException(e);
+    } catch (TException e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null) {
+        ThriftUtil.returnClient(client);
+      }
+    }
   }
 }

@@ -21,7 +21,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,7 +52,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.security.AuditLevel;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -62,6 +62,7 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterFactory;
 import org.apache.accumulo.core.util.shell.commands.AboutCommand;
+import org.apache.accumulo.core.util.shell.commands.AddAuthsCommand;
 import org.apache.accumulo.core.util.shell.commands.AddSplitsCommand;
 import org.apache.accumulo.core.util.shell.commands.AuthenticateCommand;
 import org.apache.accumulo.core.util.shell.commands.ByeCommand;
@@ -81,6 +82,7 @@ import org.apache.accumulo.core.util.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteManyCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteRowsCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteScanIterCommand;
+import org.apache.accumulo.core.util.shell.commands.DeleteShellterCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteTableCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteUserCommand;
 import org.apache.accumulo.core.util.shell.commands.DropTableCommand;
@@ -88,6 +90,7 @@ import org.apache.accumulo.core.util.shell.commands.DropUserCommand;
 import org.apache.accumulo.core.util.shell.commands.EGrepCommand;
 import org.apache.accumulo.core.util.shell.commands.ExecfileCommand;
 import org.apache.accumulo.core.util.shell.commands.ExitCommand;
+import org.apache.accumulo.core.util.shell.commands.ExportTableCommand;
 import org.apache.accumulo.core.util.shell.commands.FlushCommand;
 import org.apache.accumulo.core.util.shell.commands.FormatterCommand;
 import org.apache.accumulo.core.util.shell.commands.GetAuthsCommand;
@@ -99,16 +102,21 @@ import org.apache.accumulo.core.util.shell.commands.HelpCommand;
 import org.apache.accumulo.core.util.shell.commands.HiddenCommand;
 import org.apache.accumulo.core.util.shell.commands.HistoryCommand;
 import org.apache.accumulo.core.util.shell.commands.ImportDirectoryCommand;
+import org.apache.accumulo.core.util.shell.commands.ImportTableCommand;
 import org.apache.accumulo.core.util.shell.commands.InfoCommand;
 import org.apache.accumulo.core.util.shell.commands.InsertCommand;
+import org.apache.accumulo.core.util.shell.commands.InterpreterCommand;
+import org.apache.accumulo.core.util.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.core.util.shell.commands.ListIterCommand;
 import org.apache.accumulo.core.util.shell.commands.ListScansCommand;
+import org.apache.accumulo.core.util.shell.commands.ListShellIterCommand;
 import org.apache.accumulo.core.util.shell.commands.MaxRowCommand;
 import org.apache.accumulo.core.util.shell.commands.MergeCommand;
 import org.apache.accumulo.core.util.shell.commands.NoTableCommand;
 import org.apache.accumulo.core.util.shell.commands.OfflineCommand;
 import org.apache.accumulo.core.util.shell.commands.OnlineCommand;
 import org.apache.accumulo.core.util.shell.commands.PasswdCommand;
+import org.apache.accumulo.core.util.shell.commands.PingCommand;
 import org.apache.accumulo.core.util.shell.commands.QuestionCommand;
 import org.apache.accumulo.core.util.shell.commands.QuitCommand;
 import org.apache.accumulo.core.util.shell.commands.QuotedStringTokenizer;
@@ -119,6 +127,7 @@ import org.apache.accumulo.core.util.shell.commands.SetAuthsCommand;
 import org.apache.accumulo.core.util.shell.commands.SetGroupsCommand;
 import org.apache.accumulo.core.util.shell.commands.SetIterCommand;
 import org.apache.accumulo.core.util.shell.commands.SetScanIterCommand;
+import org.apache.accumulo.core.util.shell.commands.SetShellIterCommand;
 import org.apache.accumulo.core.util.shell.commands.SleepCommand;
 import org.apache.accumulo.core.util.shell.commands.SystemPermissionsCommand;
 import org.apache.accumulo.core.util.shell.commands.TableCommand;
@@ -159,10 +168,11 @@ public class Shell extends ShellOptions {
   protected Instance instance;
   private Connector connector;
   protected ConsoleReader reader;
-  private AuthInfo credentials;
+  private AccumuloToken<?,?> credentials;
   private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
+  public Map<String,List<IteratorSetting>> iteratorProfiles = new HashMap<String,List<IteratorSetting>>();
   
   private Token rootToken;
   public final Map<String,Command> commandFactory = new TreeMap<String,Command>();
@@ -266,9 +276,7 @@ public class Shell extends ShellOptions {
       
       pass = passw.getBytes();
       this.setTableName("");
-      connector = instance.getConnector(user, pass);
-      this.credentials = new AuthInfo(user, ByteBuffer.wrap(pass), connector.getInstance().getInstanceID());
-      
+      this.credentials = updateUser(user, pass);
     } catch (Exception e) {
       printException(e);
       configError = true;
@@ -289,23 +297,26 @@ public class Shell extends ShellOptions {
     rootToken = new Token();
     
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(), new EGrepCommand(), new FormatterCommand(),
-        new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
-    Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new TraceCommand()};
+        new InterpreterCommand(), new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
+    Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
+        new PingCommand()};
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
-    Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(), new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand()};
+    Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(), new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand(),
+        new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellterCommand()};
     Command[] otherCommands = {new HiddenCommand()};
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(), new SystemPermissionsCommand(), new TablePermissionsCommand(),
         new UserPermissionsCommand()};
     Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(), new SleepCommand(), new TableCommand(),
         new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(), new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(),
-        new DUCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(), new TablesCommand()};
+        new DUCommand(), new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(),
+        new TablesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
-    Command[] userCommands = {new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
-        new SetAuthsCommand(), new UsersCommand()};
+    Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(),
+        new PasswdCommand(), new SetAuthsCommand(), new UsersCommand()};
     commandGrouping.put("-- Writing, Reading, and Removing Data --", dataCommands);
     commandGrouping.put("-- Debugging Commands -------------------", debuggingCommands);
     commandGrouping.put("-- Shell Execution Commands -------------", execCommands);
@@ -347,6 +358,7 @@ public class Shell extends ShellOptions {
   /**
    * @deprecated Not for client use
    */
+  @Deprecated
   private static Instance getDefaultInstance(AccumuloConfiguration conf) {
     String keepers = conf.get(Property.INSTANCE_ZK_HOST);
     Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
@@ -437,7 +449,7 @@ public class Shell extends ShellOptions {
     if (disableAuthTimeout)
       sb.append("- Authorization timeout: disabled\n");
     else
-      sb.append("- Authorization timeout: ").append(String.format("%.2fs\n", authTimeout / 1000.0));
+      sb.append("- Authorization timeout: ").append(String.format("%.2fs%n", authTimeout / 1000.0));
     sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
@@ -504,7 +516,7 @@ public class Shell extends ShellOptions {
             } // user canceled
             
             try {
-              authFailed = !connector.securityOperations().authenticateUser(connector.whoami(), pwd.getBytes());
+              authFailed = !connector.securityOperations().authenticateUser(credentials);
             } catch (Exception e) {
               ++exitCode;
               printException(e);
@@ -762,6 +774,10 @@ public class Shell extends ShellOptions {
   };
   
   public final void printLines(Iterator<String> lines, boolean paginate) throws IOException {
+    printLines(lines, paginate, null);
+  }
+  
+  public final void printLines(Iterator<String> lines, boolean paginate, PrintLine out) throws IOException {
     int linesPrinted = 0;
     String prompt = "-- hit any key to continue or 'q' to quit --";
     int lastPromptLength = prompt.length();
@@ -774,50 +790,57 @@ public class Shell extends ShellOptions {
       if (nextLine == null)
         continue;
       for (String line : nextLine.split("\\n")) {
-        if (peek != null) {
-          reader.printString(peek);
-          reader.printNewline();
-          if (paginate) {
-            linesPrinted += peek.length() == 0 ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
-            
-            // check if displaying the next line would result in
-            // scrolling off the screen
-            if (linesPrinted + Math.ceil(lastPromptLength * 1.0 / termWidth) + Math.ceil(prompt.length() * 1.0 / termWidth)
-                + Math.ceil(line.length() * 1.0 / termWidth) > maxLines) {
-              linesPrinted = 0;
-              int numdashes = (termWidth - prompt.length()) / 2;
-              String nextPrompt = repeat("-", numdashes) + prompt + repeat("-", numdashes);
-              lastPromptLength = nextPrompt.length();
-              reader.printString(nextPrompt);
-              reader.flushConsole();
-              if (Character.toUpperCase((char) reader.readVirtualKey()) == 'Q') {
+        if (out == null) {
+          if (peek != null) {
+            reader.printString(peek);
+            reader.printNewline();
+            if (paginate) {
+              linesPrinted += peek.length() == 0 ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
+              
+              // check if displaying the next line would result in
+              // scrolling off the screen
+              if (linesPrinted + Math.ceil(lastPromptLength * 1.0 / termWidth) + Math.ceil(prompt.length() * 1.0 / termWidth)
+                  + Math.ceil(line.length() * 1.0 / termWidth) > maxLines) {
+                linesPrinted = 0;
+                int numdashes = (termWidth - prompt.length()) / 2;
+                String nextPrompt = repeat("-", numdashes) + prompt + repeat("-", numdashes);
+                lastPromptLength = nextPrompt.length();
+                reader.printString(nextPrompt);
+                reader.flushConsole();
+                if (Character.toUpperCase((char) reader.readVirtualKey()) == 'Q') {
+                  reader.printNewline();
+                  return;
+                }
                 reader.printNewline();
-                return;
+                termWidth = reader.getTermwidth();
+                maxLines = reader.getTermheight();
               }
-              reader.printNewline();
-              termWidth = reader.getTermwidth();
-              maxLines = reader.getTermheight();
             }
           }
+          peek = line;
+        } else {
+          out.print(line);
         }
-        peek = line;
       }
     }
-    if (peek != null) {
+    if (out == null && peek != null) {
       reader.printString(peek);
       reader.printNewline();
     }
   }
   
-  public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate) throws IOException {
-    Class<? extends Formatter> formatterClass = getFormatter();
-    
-    printRecords(scanner, printTimestamps, paginate, formatterClass);
+  public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass,
+      PrintLine outFile) throws IOException {
+    printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate, outFile);
   }
   
   public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass)
       throws IOException {
     printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate);
+  }
+  
+  public final void printBinaryRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, PrintLine outFile) throws IOException {
+    printLines(FormatterFactory.getFormatter(binaryFormatterClass, scanner, printTimestamps), paginate, outFile);
   }
   
   public final void printBinaryRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate) throws IOException {
@@ -841,12 +864,12 @@ public class Shell extends ShellOptions {
     printException(cve, "");
     int COL1 = 50, COL2 = 14;
     int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTermwidth() - COL1 - COL2 - 6));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
-    logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s\n", "Constraint class", "Violation code", "Violation Description"));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+    logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s%n", "Constraint class", "Violation code", "Violation Description"));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
     for (TConstraintViolationSummary cvs : cve.violationSummaries)
-      logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s\n", cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+      logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s%n", cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
   }
   
   public final void printException(Exception e) {
@@ -908,12 +931,31 @@ public class Shell extends ShellOptions {
     return reader;
   }
   
-  public void updateUser(AuthInfo authInfo) throws AccumuloException, AccumuloSecurityException {
-    connector = instance.getConnector(authInfo);
-    credentials = authInfo;
+  public AccumuloToken<?,?> updateUser(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+    AccumuloToken<?,?> token;
+    try {
+      String tokenClass = instance.getSecurityTokenClass();
+      System.out.println(tokenClass);
+      if (tokenClass.equals(UserPassToken.class.getCanonicalName())) {
+        token = new UserPassToken(user, pass);
+//      } else if (tokenClass.equals(KerberosToken.class.getCanonicalName())) {
+//        token = new KerberosToken(user, new String(pass).toCharArray(), "accumulo");
+      } else
+        throw new RuntimeException("CLI can't handle alternative tokens... yet");
+    } catch (AccumuloException e) {
+      throw new RuntimeException(e);
+//    } catch (GeneralSecurityException e) {
+//      throw new RuntimeException(e);
+    }
+    
+    connector = instance.getConnector(token);
+    credentials = token;
+    if (!connector.securityOperations().authenticateUser(token))
+      throw new RuntimeException("Unable to authenticate user " + token.getPrincipal());
+    return token;
   }
   
-  public AuthInfo getCredentials() {
+  public AccumuloToken<?,?> getCredentials() {
     return credentials;
   }
   

@@ -16,12 +16,15 @@
  */
 package org.apache.accumulo.core.client;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 
 /**
  * Communicate the failed mutations of a BatchWriter back to the client.
@@ -31,26 +34,26 @@ public class MutationsRejectedException extends AccumuloException {
   private static final long serialVersionUID = 1L;
   
   private List<ConstraintViolationSummary> cvsl;
-  private ArrayList<KeyExtent> af;
+  private Map<KeyExtent,Set<SecurityErrorCode>> af;
   private Collection<String> es;
   private int unknownErrors;
   
   /**
    * @param cvsList
    *          list of constraint violations
-   * @param af
+   * @param hashMap
    *          authorization failures
    * @param serverSideErrors
    *          server side errors
    * @param unknownErrors
    *          number of unknown errors
    */
-  public MutationsRejectedException(List<ConstraintViolationSummary> cvsList, ArrayList<KeyExtent> af, Collection<String> serverSideErrors, int unknownErrors,
-      Throwable cause) {
-    super("# constraint violations : " + cvsList.size() + "  # authorization failures : " + af.size() + "  # server errors " + serverSideErrors.size()
+  public MutationsRejectedException(List<ConstraintViolationSummary> cvsList, HashMap<KeyExtent,Set<SecurityErrorCode>> hashMap,
+      Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
+    super("# constraint violations : " + cvsList.size() + "  security codes: " + hashMap.values() + "  # server errors " + serverSideErrors.size()
         + " # exceptions " + unknownErrors, cause);
     this.cvsl = cvsList;
-    this.af = af;
+    this.af = hashMap;
     this.es = serverSideErrors;
     this.unknownErrors = unknownErrors;
   }
@@ -65,7 +68,7 @@ public class MutationsRejectedException extends AccumuloException {
   /**
    * @return the internal list of authorization failures
    */
-  public List<KeyExtent> getAuthorizationFailures() {
+  public Map<KeyExtent,Set<SecurityErrorCode>> getAuthorizationFailures() {
     return af;
   }
   

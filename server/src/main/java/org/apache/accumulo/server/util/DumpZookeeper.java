@@ -19,6 +19,7 @@ package org.apache.accumulo.server.util;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.codec.binary.Base64;
@@ -26,6 +27,8 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
+
+import com.beust.jcommander.Parameter;
 
 public class DumpZookeeper {
   
@@ -43,24 +46,31 @@ public class DumpZookeeper {
     }
   }
   
+  static class Opts extends Help {
+    @Parameter(names="--root", description="the root of the znode tree to dump")
+    String root = "/";
+  }
+  
   /**
    * @param args
    */
   public static void main(String[] args) {
+    Opts opts = new Opts();
+    opts.parseArgs(DumpZookeeper.class.getName(), args);
+    
     Logger.getRootLogger().setLevel(Level.WARN);
     PrintStream out = System.out;
     // int timeout = 30 * 1000;
     // String server = args[0];
-    String root = "/";
     if (args.length > 0)
-      root = args[0];
+      opts.root = args[0];
     try {
       zk = ZooReaderWriter.getInstance();
       
-      write(out, 0, "<dump root='%s'>", root);
-      for (String child : zk.getChildren(root, null))
+      write(out, 0, "<dump root='%s'>", opts.root);
+      for (String child : zk.getChildren(opts.root, null))
         if (!child.equals("zookeeper"))
-          dump(out, root, child, 1);
+          dump(out, opts.root, child, 1);
       write(out, 0, "</dump>");
     } catch (Exception ex) {
       log.error(ex, ex);

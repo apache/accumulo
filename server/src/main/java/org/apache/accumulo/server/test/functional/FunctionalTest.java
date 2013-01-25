@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.test.functional;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -40,41 +39,21 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.Parser;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+
 public abstract class FunctionalTest {
-  private static Options opts;
-  private static Option masterOpt;
-  private static Option passwordOpt;
-  private static Option usernameOpt;
-  private static Option instanceNameOpt;
-  
-  static {
-    usernameOpt = new Option("u", "username", true, "username");
-    passwordOpt = new Option("p", "password", true, "password");
-    masterOpt = new Option("m", "master", true, "master");
-    instanceNameOpt = new Option("i", "instanceName", true, "instance name");
-    
-    opts = new Options();
-    
-    opts.addOption(usernameOpt);
-    opts.addOption(passwordOpt);
-    opts.addOption(masterOpt);
-    opts.addOption(instanceNameOpt);
-  }
-  
+
   public static Map<String,String> parseConfig(String... perTableConfigs) {
     
     TreeMap<String,String> config = new TreeMap<String,String>();
@@ -127,37 +106,19 @@ public abstract class FunctionalTest {
     
   }
   
-  private String master = "";
-  private String username = "";
-  private String password = "";
+  private AccumuloToken<?,?> token = new UserPassToken("", "");
   private String instanceName = "";
   
-  protected void setMaster(String master) {
-    this.master = master;
+  protected void setToken(AccumuloToken<?,?> token) {
+    this.token = token;
   }
   
-  protected String getMaster() {
-    return master;
-  }
-  
-  protected void setUsername(String username) {
-    this.username = username;
-  }
-  
-  protected String getUsername() {
-    return username;
-  }
-  
-  protected void setPassword(String password) {
-    this.password = password;
-  }
-  
-  protected String getPassword() {
-    return password;
+  protected AccumuloToken<?,?> getToken() {
+    return token;
   }
   
   protected Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getInstance().getConnector(username, password.getBytes());
+    return getInstance().getConnector(getToken());
   }
   
   protected Instance getInstance() {
@@ -172,8 +133,8 @@ public abstract class FunctionalTest {
     return instanceName;
   }
   
-  protected AuthInfo getCredentials() {
-    return new AuthInfo(getUsername(), ByteBuffer.wrap(getPassword().getBytes()), getInstance().getInstanceID());
+  protected InstanceTokenWrapper getCredentials() {
+    return new InstanceTokenWrapper(getToken(), getInstance().getInstanceID());
   }
   
   public abstract Map<String,String> getInitialConfig();
@@ -227,7 +188,7 @@ public abstract class FunctionalTest {
     String tableId = Tables.getNameToIdMap(getInstance()).get(tableName);
     scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
     scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-    ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     
     HashMap<Text,Integer> tabletFileCounts = new HashMap<Text,Integer>();
     
@@ -271,49 +232,49 @@ public abstract class FunctionalTest {
     
   }
   
+  static class Opts extends ClientOpts {
+    @Parameter(names="--classname", required=true, description="name of the class under test")
+    String classname = null;
+    
+    @Parameter(names="--opt", required=true, description="the options for test")
+    String opt = null;
+  }
+  
+  
   public static void main(String[] args) throws Exception {
-    Parser p = new BasicParser();
+    Opts opts = new Opts();
+    opts.parseArgs(FunctionalTest.class.getName(), args);
     
-    CommandLine cl = null;
-    try {
-      cl = p.parse(opts, args);
-    } catch (ParseException e) {
-      System.out.println("Parse Exception, exiting.");
-      return;
-    }
-    
-    String master = cl.getOptionValue(masterOpt.getOpt(), "localhost");
-    String username = cl.getOptionValue(usernameOpt.getOpt(), "root");
-    String password = cl.getOptionValue(passwordOpt.getOpt(), "secret");
-    String instanceName = cl.getOptionValue(instanceNameOpt.getOpt(), "FuncTest");
-    
-    String remainingArgs[] = cl.getArgs();
-    String clazz = remainingArgs[0];
-    String opt = remainingArgs[1];
-    
-    Class<? extends FunctionalTest> testClass = AccumuloClassLoader.loadClass(clazz, FunctionalTest.class);
+    Class<? extends FunctionalTest> testClass = AccumuloVFSClassLoader.loadClass(opts.classname, FunctionalTest.class);
     FunctionalTest fTest = testClass.newInstance();
     
-    fTest.setMaster(master);
-    fTest.setUsername(username);
-    fTest.setPassword(password);
-    fTest.setInstanceName(instanceName);
+    //fTest.setMaster(master);
+    fTest.setToken(new UserPassToken(opts.user, opts.password.value));
+    fTest.setInstanceName(opts.instance);
     
-    if (opt.equals("getConfig")) {
+    if (opts.opt.equals("getConfig")) {
       Map<String,String> iconfig = fTest.getInitialConfig();
       System.out.println("{");
       for (Entry<String,String> entry : iconfig.entrySet()) {
         System.out.println("'" + entry.getKey() + "':'" + entry.getValue() + "',");
       }
       System.out.println("}");
-    } else if (opt.equals("setup")) {
+    } else if (opts.opt.equals("setup")) {
       fTest.setup();
-    } else if (opt.equals("run")) {
+    } else if (opts.opt.equals("run")) {
       fTest.run();
-    } else if (opt.equals("cleanup")) {
+    } else if (opts.opt.equals("cleanup")) {
       fTest.cleanup();
+    } else {
+    	printHelpAndExit("Unknown option: " + opts.opt);
     }
     
+  }
+
+  static void printHelpAndExit(String message) {
+      System.out.println(message);
+      new JCommander(new Opts()).usage();
+      System.exit(1);
   }
   
   static Mutation nm(String row, String cf, String cq, Value value) {

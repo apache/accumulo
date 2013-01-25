@@ -18,16 +18,11 @@ package org.apache.accumulo.examples.simple.mapreduce;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.Parser;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -38,24 +33,17 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import com.beust.jcommander.Parameter;
+
 /**
  * A simple map reduce job that inserts word counts into accumulo. See the README for instructions on how to run this.
  * 
  */
 public class WordCount extends Configured implements Tool {
-  private static Options opts;
-  private static Option passwordOpt;
-  private static Option usernameOpt;
-  private static String USAGE = "wordCount <instance name> <zoo keepers> <input dir> <output table>";
   
-  static {
-    usernameOpt = new Option("u", "username", true, "username");
-    passwordOpt = new Option("p", "password", true, "password");
-    
-    opts = new Options();
-    
-    opts.addOption(usernameOpt);
-    opts.addOption(passwordOpt);
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--input", description="input directory")
+    String inputDirectory;
   }
   
   public static class MapClass extends Mapper<LongWritable,Text,Text,Mutation> {
@@ -77,25 +65,15 @@ public class WordCount extends Configured implements Tool {
     }
   }
   
-  public int run(String[] unprocessed_args) throws Exception {
-    Parser p = new BasicParser();
-    
-    CommandLine cl = p.parse(opts, unprocessed_args);
-    String[] args = cl.getArgs();
-    
-    String username = cl.getOptionValue(usernameOpt.getOpt(), "root");
-    String password = cl.getOptionValue(passwordOpt.getOpt(), "secret");
-    
-    if (args.length != 4) {
-      System.out.println("ERROR: Wrong number of parameters: " + args.length + " instead of 4.");
-      return printUsage();
-    }
+  public int run(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(WordCount.class.getName(), args);
     
     Job job = new Job(getConf(), WordCount.class.getName());
     job.setJarByClass(this.getClass());
     
     job.setInputFormatClass(TextInputFormat.class);
-    TextInputFormat.setInputPaths(job, new Path(args[2]));
+    TextInputFormat.setInputPaths(job, new Path(opts.inputDirectory));
     
     job.setMapperClass(MapClass.class);
     
@@ -104,15 +82,8 @@ public class WordCount extends Configured implements Tool {
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Mutation.class);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), username, password.getBytes(), true, args[3]);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
+    opts.setAccumuloConfigs(job);
     job.waitForCompletion(true);
-    return 0;
-  }
-  
-  private int printUsage() {
-    HelpFormatter hf = new HelpFormatter();
-    hf.printHelp(USAGE, opts);
     return 0;
   }
   

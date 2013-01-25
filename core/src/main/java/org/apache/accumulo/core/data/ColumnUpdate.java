@@ -31,11 +31,9 @@ public class ColumnUpdate {
   private long timestamp;
   private boolean hasTimestamp;
   private byte[] val;
-  private byte[] data;
-  private int tsOffset;
   private boolean deleted;
   
-  public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val, byte[] data, int tsOffset) {
+  public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
     this.columnFamily = cf;
     this.columnQualifier = cq;
     this.columnVisibility = cv;
@@ -43,25 +41,16 @@ public class ColumnUpdate {
     this.timestamp = ts;
     this.deleted = deleted;
     this.val = val;
-    this.data = data;
-    this.tsOffset = tsOffset;
   }
   
-  public void setSystemTimestamp(long v) {
+  /**
+   * @deprecated use setTimestamp(long);
+   * @param timestamp
+   */
+  @Deprecated
+  public void setSystemTimestamp(long timestamp) {
     if (hasTimestamp)
       throw new IllegalStateException("Cannot set system timestamp when user set a timestamp");
-    
-    int tso = this.tsOffset;
-    data[tso++] = (byte) (v >>> 56);
-    data[tso++] = (byte) (v >>> 48);
-    data[tso++] = (byte) (v >>> 40);
-    data[tso++] = (byte) (v >>> 32);
-    data[tso++] = (byte) (v >>> 24);
-    data[tso++] = (byte) (v >>> 16);
-    data[tso++] = (byte) (v >>> 8);
-    data[tso++] = (byte) (v >>> 0);
-    
-    this.timestamp = v;
   }
   
   public boolean hasTimestamp() {
@@ -96,8 +85,26 @@ public class ColumnUpdate {
     return this.val;
   }
   
+  @Override
   public String toString() {
     return new String(Arrays.toString(columnFamily)) + ":" + new String(Arrays.toString(columnQualifier)) + " ["
         + new String(Arrays.toString(columnVisibility)) + "] " + (hasTimestamp ? timestamp : "NO_TIME_STAMP") + " " + Arrays.toString(val) + " " + deleted;
+  }
+  
+  @Override
+  public boolean equals(Object obj) {
+    if (!(obj instanceof ColumnUpdate))
+      return false;
+    ColumnUpdate upd = (ColumnUpdate) obj;
+    return Arrays.equals(getColumnFamily(), upd.getColumnFamily()) && Arrays.equals(getColumnQualifier(), upd.getColumnQualifier())
+        && Arrays.equals(getColumnVisibility(), upd.getColumnVisibility()) && isDeleted() == upd.isDeleted() && Arrays.equals(getValue(), upd.getValue())
+        && hasTimestamp() == upd.hasTimestamp() && getTimestamp() == upd.getTimestamp();
+  }
+  
+  @Override
+  public int hashCode() {
+    return Arrays.hashCode(columnFamily) + Arrays.hashCode(columnQualifier) + Arrays.hashCode(columnVisibility)
+        + (hasTimestamp ? (Boolean.TRUE.hashCode() + new Long(timestamp).hashCode()) : Boolean.FALSE.hashCode())
+        + (deleted ? Boolean.TRUE.hashCode() : (Boolean.FALSE.hashCode() + Arrays.hashCode(val)));
   }
 }

@@ -19,7 +19,8 @@ package org.apache.accumulo.server.test;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -29,105 +30,71 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.Parser;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 public class TestMultiTableIngest {
   
   private static ArrayList<String> tableNames = new ArrayList<String>();
   
-  private static Option usernameOpt = new Option("username", true, "username");
-  private static Option passwordOpt = new Option("password", true, "password");
-  private static Option readonlyOpt = new Option("readonly", false, "read only");
-  private static Option tablesOpt = new Option("tables", true, "number of tables to create");
-  private static Option countOpt = new Option("count", true, "number of entries to create");
-  
-  private static Options opts = new Options();
-  
-  static {
-    opts.addOption(usernameOpt);
-    opts.addOption(passwordOpt);
-    opts.addOption(readonlyOpt);
-    opts.addOption(tablesOpt);
-    opts.addOption(countOpt);
+  static class Opts extends ClientOpts {
+    @Parameter(names="--readonly", description="read only")
+    boolean readonly = false;
+    @Parameter(names="--tables", description="number of tables to create")
+    int tables = 5;
+    @Parameter(names="--count", description="number of entries to create")
+    int count = 10000;
   }
   
-  // root user is needed for tests
-  private static String user;
-  private static String password;
-  private static boolean readOnly = false;
-  private static int count = 10000;
-  private static int tables = 5;
-  
-  private static void readBack(Connector conn, int last) throws Exception {
+  private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn) throws Exception {
     int i = 0;
     for (String table : tableNames) {
-      Scanner scanner = conn.createScanner(table, Constants.NO_AUTHS);
+      Scanner scanner = conn.createScanner(table, opts.auths);
+      scanner.setBatchSize(scanOpts.scanBatchSize);
       int count = i;
       for (Entry<Key,Value> elt : scanner) {
         String expected = String.format("%05d", count);
-        assert (elt.getKey().getRow().toString().equals(expected));
+        if (!elt.getKey().getRow().toString().equals(expected))
+          throw new RuntimeException("entry " + elt + " does not match expected " + expected + " in table " + table);
         count += tableNames.size();
       }
       i++;
     }
-    assert (last == count);
   }
   
   public static void main(String[] args) throws Exception {
-    
-    Parser p = new BasicParser();
-    CommandLine cl = null;
-    
-    try {
-      cl = p.parse(opts, args);
-    } catch (ParseException e) {
-      throw new RuntimeException(e);
-    }
-    String[] rargs = cl.getArgs();
-    if (rargs.length != 0) {
-      HelpFormatter hf = new HelpFormatter();
-      hf.printHelp("", opts);
-    }
-    count = Integer.parseInt(cl.getOptionValue(countOpt.getOpt(), "10000"));
-    tables = Integer.parseInt(cl.getOptionValue(tablesOpt.getOpt(), "5"));
-    readOnly = cl.hasOption(readonlyOpt.getOpt());
-    user = cl.getOptionValue(usernameOpt.getOpt(), "root");
-    password = cl.getOptionValue(passwordOpt.getOpt(), "secret");
-    
+    Opts opts = new Opts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(TestMultiTableIngest.class.getName(), args, scanOpts, bwOpts);
     // create the test table within accumulo
     Connector connector;
     try {
-      connector = HdfsZooInstance.getInstance().getConnector(user, password.getBytes());
+      connector = opts.getConnector();
     } catch (AccumuloException e) {
       throw new RuntimeException(e);
     } catch (AccumuloSecurityException e) {
       throw new RuntimeException(e);
     }
-    for (int i = 0; i < tables; i++) {
+    for (int i = 0; i < opts.tables; i++) {
       tableNames.add(String.format("test_%04d", i));
     }
     
-    if (!readOnly) {
+    if (!opts.readonly) {
       for (String table : tableNames)
         connector.tableOperations().create(table);
       
       MultiTableBatchWriter b;
       try {
-        b = connector.createMultiTableBatchWriter(10000000, 1000000, 10);
+        b = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
       
       // populate
-      for (int i = 0; i < count; i++) {
+      for (int i = 0; i < opts.count; i++) {
         Mutation m = new Mutation(new Text(String.format("%05d", i)));
         m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes()));
         b.getBatchWriter(tableNames.get(i % tableNames.size())).addMutation(m);
@@ -139,7 +106,7 @@ public class TestMultiTableIngest {
       }
     }
     try {
-      readBack(connector, count);
+      readBack(opts, scanOpts, connector);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

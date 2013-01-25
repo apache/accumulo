@@ -136,11 +136,11 @@ public class Histogram<T> implements Serializable {
       
       psum += getPercentage(hd.bin);
       
-      System.out.printf(" %" + (maxValueLen + 1) + "s %,16d %6.2f%s %6.2f%s\n", hd.bin + "", hd.count, getPercentage(hd.bin), "%", psum, "%");
+      System.out.printf(" %" + (maxValueLen + 1) + "s %,16d %6.2f%s %6.2f%s%n", hd.bin + "", hd.count, getPercentage(hd.bin), "%", psum, "%");
     }
     
     System.out.println();
-    System.out.printf(" %" + (maxValueLen + 1) + "s %,16d \n", "TOTAL", sum);
+    System.out.printf(" %" + (maxValueLen + 1) + "s %,16d %n", "TOTAL", sum);
   }
   
   public void save(String file) throws IOException {

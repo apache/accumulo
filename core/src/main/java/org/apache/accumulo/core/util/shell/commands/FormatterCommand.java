@@ -16,114 +16,54 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
-
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Shell.Command;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-public class FormatterCommand extends Command {
-  private Option removeFormatterOption, formatterClassOption, listClassOption;
+public class FormatterCommand extends ShellPluginConfigurationCommand {
   
+  private Option interpeterOption;
+
+  public FormatterCommand() {
+    super("formatter", Property.TABLE_FORMATTER_CLASS, "f");
+  }
+
   @Override
   public String description() {
     return "specifies a formatter to use for displaying table entries";
   }
-  
-  @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
-    
-    if (cl.hasOption(removeFormatterOption.getOpt())) {
-      // Remove the property
-      shellState.getConnector().tableOperations().removeProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString());
-      
-      shellState.getReader().printString("Removed formatter on " + tableName + "\n");
-    } else if (cl.hasOption(listClassOption.getOpt())) {
-      // Get the options for this table
-      Iterator<Entry<String,String>> iter = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
-      
-      while (iter.hasNext()) {
-        Entry<String,String> ent = iter.next();
-        
-        // List all parameters with the property name
-        if (ent.getKey().startsWith(Property.TABLE_FORMATTER_CLASS.toString())) {
-          shellState.getReader().printString(ent.getKey() + ": " + ent.getValue() + "\n");
-        }
-      }
-    } else {
-      // Set the formatter with the provided options
-      String className = cl.getOptionValue(formatterClassOption.getOpt());
-      
-      // Set the formatter property on the table
-      shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), className);
-    }
-    
-    return 0;
-  }
-  
-  public static Class<? extends Formatter> getCurrentFormatter(String tableName, Shell shellState) {
-    Iterator<Entry<String,String>> props;
-    try {
-      props = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
-    } catch (AccumuloException e) {
-      return null;
-    } catch (TableNotFoundException e) {
-      return null;
-    }
-    
-    while (props.hasNext()) {
-      Entry<String,String> ent = props.next();
-      if (ent.getKey().equals(Property.TABLE_FORMATTER_CLASS.toString())) {
-        Class<? extends Formatter> formatter;
-        try {
-          formatter = AccumuloClassLoader.loadClass(ent.getValue(), Formatter.class);
-        } catch (ClassNotFoundException e) {
-          return null;
-        }
-        
-        return formatter;
-      }
-    }
-    
-    return null;
+
+  public static Class<? extends Formatter> getCurrentFormatter(final String tableName, final Shell shellState) {
+    return ShellPluginConfigurationCommand.getPluginClass(tableName, shellState, Formatter.class, Property.TABLE_FORMATTER_CLASS);
   }
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
-    OptionGroup actionGroup = new OptionGroup();
+    final Options options = super.getOptions();
     
-    formatterClassOption = new Option("f", "formatter", true, "fully qualified name of the formatter class to use");
-    formatterClassOption.setArgName("className");
+    interpeterOption = new Option("i", "interpeter", false, "configure class as interpreter also");
     
-    // Action to take: apply (default), remove, list
-    removeFormatterOption = new Option("r", "remove", false, "remove the current formatter");
-    listClassOption = new Option("l", "list", false, "display the current formatter");
+    options.addOption(interpeterOption);
     
-    actionGroup.addOption(formatterClassOption);
-    actionGroup.addOption(removeFormatterOption);
-    actionGroup.addOption(listClassOption);
-    actionGroup.setRequired(true);
-    
-    o.addOptionGroup(actionGroup);
-    o.addOption(OptUtil.tableOpt("table to set the formatter on"));
-    
-    return o;
+    return options;
   }
   
-  @Override
-  public int numArgs() {
-    return 0;
+  protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName, final String className) throws AccumuloException, AccumuloSecurityException {
+    super.setPlugin(cl, shellState, tableName, className);
+    if (cl.hasOption(interpeterOption.getOpt())) {
+      shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_INTERPRETER_CLASS.toString(), className);
+    }
   }
   
+  protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
+    super.removePlugin(cl, shellState, tableName);
+    if (cl.hasOption(interpeterOption.getOpt())) {
+      shellState.getConnector().tableOperations().removeProperty(tableName, Property.TABLE_INTERPRETER_CLASS.toString());
+    }
+  }
 }

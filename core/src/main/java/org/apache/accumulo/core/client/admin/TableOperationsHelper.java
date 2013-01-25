@@ -129,7 +129,7 @@ public abstract class TableOperationsHelper implements TableOperations {
       for (Entry<String,String> property : this.getProperties(tableName)) {
         if (property.getKey().startsWith(scopeStr)) {
           if (property.getKey().equals(nameStr))
-            throw new IllegalArgumentException("iterator name conflict for " + setting.getName() + ": " + property.getKey() + "=" + property.getValue());
+            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for " + setting.getName() + ": " + property.getKey() + "=" + property.getValue()));
           if (property.getKey().startsWith(optStr))
             optionConflicts.put(property.getKey(), property.getValue());
           if (property.getKey().contains(".opt."))
@@ -139,14 +139,14 @@ public abstract class TableOperationsHelper implements TableOperations {
             throw new AccumuloException("Bad value for existing iterator setting: " + property.getKey() + "=" + property.getValue());
           try {
             if (Integer.parseInt(parts[0]) == setting.getPriority())
-              throw new IllegalArgumentException("iterator priority conflict: " + property.getKey() + "=" + property.getValue());
+              throw new AccumuloException(new IllegalArgumentException("iterator priority conflict: " + property.getKey() + "=" + property.getValue()));
           } catch (NumberFormatException e) {
             throw new AccumuloException("Bad value for existing iterator setting: " + property.getKey() + "=" + property.getValue());
           }
         }
       }
       if (optionConflicts.size() > 0)
-        throw new IllegalArgumentException("iterator options conflict for " + setting.getName() + ": " + optionConflicts);
+        throw new AccumuloException(new IllegalArgumentException("iterator options conflict for " + setting.getName() + ": " + optionConflicts));
     }
   }
   

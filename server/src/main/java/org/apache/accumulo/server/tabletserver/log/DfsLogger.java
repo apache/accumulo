@@ -37,12 +37,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.tabletserver.thrift.TabletMutations;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.tabletserver.TabletMutations;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -73,7 +73,7 @@ public class DfsLogger {
 
   private LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<DfsLogger.LogWork>();
   
-  private String closeLock = new String("foo");
+  private final Object closeLock = new Object();
   
   private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null, null);
   
@@ -310,7 +310,7 @@ public class DfsLogger {
   }
 
   public LoggerOperation log(int seq, int tid, Mutation mutation) throws IOException {
-    return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation.toThrift()))));
+    return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation))));
   }
   
   public LoggerOperation logManyTablets(List<TabletMutations> mutations) throws IOException {
@@ -318,16 +318,13 @@ public class DfsLogger {
     
     synchronized (DfsLogger.this) {
       try {
-        for (TabletMutations mutation : mutations) {
+        for (TabletMutations tabletMutations : mutations) {
           LogFileKey key = new LogFileKey();
           key.event = MANY_MUTATIONS;
-          key.seq = mutation.seq;
-          key.tid = mutation.tabletID;
+          key.seq = tabletMutations.getSeq();
+          key.tid = tabletMutations.getTid();
           LogFileValue value = new LogFileValue();
-          Mutation[] m = new Mutation[mutation.mutations.size()];
-          for (int i = 0; i < m.length; i++)
-            m[i] = new Mutation(mutation.mutations.get(i));
-          value.mutations = m;
+          value.mutations = tabletMutations.getMutations();
           write(key, value);
         }
       } catch (Exception e) {

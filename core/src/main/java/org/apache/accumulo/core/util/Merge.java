@@ -22,10 +22,9 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -33,12 +32,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+
+import com.beust.jcommander.IStringConverter;
+import com.beust.jcommander.Parameter;
 
 public class Merge {
   
@@ -56,74 +55,48 @@ public class Merge {
     log.info(String.format(format, args));
   }
   
-  public void start(String[] args) throws MergeException, ParseException {
-    String keepers = "localhost";
-    String instance = "instance";
-    String table = null;
-    long goalSize = -1;
-    String user = "root";
-    byte[] password = "secret".getBytes();
+  static class MemoryConverter implements IStringConverter<Long> {
+    @Override
+    public Long convert(String value) {
+      return AccumuloConfiguration.getMemoryInBytes(value);
+    }
+  }
+  static class TextConverter implements IStringConverter<Text> {
+    @Override
+    public Text convert(String value) {
+      return new Text(value);
+    }
+  }
+  
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names={"-s", "--size"}, description="merge goal size", converter=MemoryConverter.class)
+    Long goalSize = null;
+    @Parameter(names={"-f", "--force"}, description="merge small tablets even if merging them to larger tablets might cause a split")
     boolean force = false;
+    @Parameter(names={"-b", "--begin"}, description="start tablet", converter=TextConverter.class)
     Text begin = null;
+    @Parameter(names={"-e", "--end"}, description="end tablet", converter=TextConverter.class)
     Text end = null;
+  }
+  
+  public void start(String[] args) throws MergeException, ParseException {
+    Opts opts = new Opts();
+    opts.parseArgs(Merge.class.getCanonicalName(), args);
     
-    Options options = new Options();
-    options.addOption("k", "keepers", true, "ZooKeeper list");
-    options.addOption("i", "instance", true, "instance name");
-    options.addOption("t", "table", true, "table to merge");
-    options.addOption("s", "size", true, "merge goal size");
-    options.addOption("u", "user", true, "user");
-    options.addOption("p", "password", true, "password");
-    options.addOption("f", "force", false, "merge small tablets even if merging them to larger tablets might cause a split");
-    options.addOption("b", "begin", true, "start tablet");
-    options.addOption("e", "end", true, "end tablet");
-    CommandLine commandLine = new BasicParser().parse(options, args);
-    if (commandLine.hasOption("k")) {
-      keepers = commandLine.getOptionValue("k");
-    }
-    if (commandLine.hasOption("i")) {
-      instance = commandLine.getOptionValue("i");
-    }
-    if (commandLine.hasOption("t")) {
-      table = commandLine.getOptionValue("t");
-    }
-    if (commandLine.hasOption("s")) {
-      goalSize = AccumuloConfiguration.getMemoryInBytes(commandLine.getOptionValue("s"));
-    }
-    if (commandLine.hasOption("u")) {
-    	table = commandLine.getOptionValue("u");
-    }
-    if (commandLine.hasOption("p")) {
-        password = commandLine.getOptionValue("p").getBytes();
-    }
-    if (commandLine.hasOption("f")) {
-      force = true;
-    }
-    if (commandLine.hasOption("b")) {
-      begin = new Text(commandLine.getOptionValue("b"));
-    }
-    if (commandLine.hasOption("e")) {
-    	end = new Text(commandLine.getOptionValue("e"));
-    }
-    if (table == null) {
-      System.err.println("Specify the table to merge");
-      return;
-    }
-    Instance zki = new ZooKeeperInstance(instance, keepers);
     try {
-      Connector conn = zki.getConnector(user, password);
+      Connector conn = opts.getConnector();
       
-      if (!conn.tableOperations().exists(table)) {
-        System.err.println("table " + table + " does not exist");
+      if (!conn.tableOperations().exists(opts.tableName)) {
+        System.err.println("table " + opts.tableName + " does not exist");
         return;
       }
-      if (goalSize < 1) {
-        AccumuloConfiguration tableConfig = new ConfigurationCopy(conn.tableOperations().getProperties(table));
-        goalSize = tableConfig.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
+      if (opts.goalSize == null || opts.goalSize < 1) {
+        AccumuloConfiguration tableConfig = new ConfigurationCopy(conn.tableOperations().getProperties(opts.tableName));
+        opts.goalSize = tableConfig.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
       }
       
-      message("Merging tablets in table %s to %d bytes", table, goalSize);
-      mergomatic(conn, table, begin, end, goalSize, force);
+      message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
+      mergomatic(conn, opts.tableName, opts.begin, opts.end, opts.goalSize, opts.force);
     } catch (Exception ex) {
       throw new MergeException(ex);
     }
@@ -243,7 +216,7 @@ public class Merge {
     }
     scanner.setRange(new KeyExtent(new Text(tableId), end, start).toMetadataRange());
     scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-    ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     final Iterator<Entry<Key,Value>> iterator = scanner.iterator();
     
     Iterator<Size> result = new Iterator<Size>() {

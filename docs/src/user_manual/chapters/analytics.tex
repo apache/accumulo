@@ -59,7 +59,7 @@ name does not have to be passed to the Context object within the Reducer.
 \begin{verbatim}
 class MyReducer extends Reducer<WritableComparable, Writable, Text, Mutation> {
 
-    public void reduce(WritableComparable key, Iterator<Text> values, Context c) {
+    public void reduce(WritableComparable key, Iterable<Text> values, Context c) {
         
         Mutation m;
         

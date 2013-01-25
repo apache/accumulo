@@ -21,9 +21,14 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.Map.Entry;
+
+import org.apache.accumulo.core.cli.ClientOpts.TimeConverter;
+import org.apache.accumulo.core.cli.Help;
+
+import com.beust.jcommander.Parameter;
 
 public class TimeBinner {
   
@@ -46,18 +51,25 @@ public class TimeBinner {
     return dw;
   }
   
+  static class Opts extends Help {
+    @Parameter(names="--period", description="period", converter=TimeConverter.class, required=true)
+    long period = 0;
+    @Parameter(names="--timeColumn", description="time column", required=true)
+    int timeColumn = 0;
+    @Parameter(names="--dataColumn", description="data column", required=true)
+    int dataColumn = 0;
+    @Parameter(names="--operation", description="one of: AVG, SUM, MIN, MAX, COUNT", required=true)
+    String operation;
+    @Parameter(names="--dateFormat", description="a SimpleDataFormat string that describes the data format")
+    String dateFormat = "MM/dd/yy-HH:mm:ss";
+  }
+  
   public static void main(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(TimeBinner.class.getName(), args);
     
-    if (args.length != 5) {
-      System.out.println("usage : " + TimeBinner.class.getName() + " <period (seconds)> <time column> <data column> AVG|SUM|MIN|MAX|COUNT <date format>");
-      System.exit(-1);
-    }
-    
-    long period = Long.parseLong(args[0]) * 1000;
-    int timeColumn = Integer.parseInt(args[1]);
-    int dataColumn = Integer.parseInt(args[2]);
-    Operation operation = Operation.valueOf(args[3]);
-    SimpleDateFormat sdf = new SimpleDateFormat(args[4]);
+    Operation operation = Operation.valueOf(opts.operation);
+    SimpleDateFormat sdf = new SimpleDateFormat(opts.dateFormat);
     
     BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
     
@@ -73,18 +85,18 @@ public class TimeBinner {
       try {
         String tokens[] = line.split("\\s+");
         
-        long time = (long) Double.parseDouble(tokens[timeColumn]);
-        double data = Double.parseDouble(tokens[dataColumn]);
+        long time = (long) Double.parseDouble(tokens[opts.timeColumn]);
+        double data = Double.parseDouble(tokens[opts.dataColumn]);
         
-        time = (time / period) * period;
+        time = (time / opts.period) * opts.period;
         
         double data_min = data;
         double data_max = data;
         
         switch (operation) {
           case AMM_HACK1: {
-            data_min = Double.parseDouble(tokens[dataColumn - 2]);
-            data_max = Double.parseDouble(tokens[dataColumn - 1]);
+            data_min = Double.parseDouble(tokens[opts.dataColumn - 2]);
+            data_max = Double.parseDouble(tokens[opts.dataColumn - 1]);
             // fall through to AMM
           }
           case AMM: {

@@ -19,13 +19,15 @@ package org.apache.accumulo.server.trace;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
-import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
-import org.apache.accumulo.cloudtrace.thrift.SpanReceiver;
+import org.apache.accumulo.cloudtrace.thrift.SpanReceiver.Iface;
+import org.apache.accumulo.cloudtrace.thrift.SpanReceiver.Processor;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -34,6 +36,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileUtil;
+import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -43,7 +46,6 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileSystem;
@@ -110,7 +112,7 @@ public class TraceServer implements Watcher {
     }
   }
   
-  class Receiver implements SpanReceiver.Iface {
+  class Receiver implements Iface {
     @Override
     public void span(RemoteSpan s) throws TException {
       String idString = Long.toHexString(s.traceId);
@@ -172,16 +174,16 @@ public class TraceServer implements Watcher {
     sock.bind(new InetSocketAddress(port));
     final TServerTransport transport = new TServerSocket(sock);
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
-    options.processor(new SpanReceiver.Processor(new Receiver()));
+    options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
     final InetSocketAddress address = new InetSocketAddress(hostname, sock.getLocalPort());
     registerInZooKeeper(AddressUtil.toString(address));
     
-    writer = connector.createBatchWriter(table, 100l * 1024 * 1024, 5 * 1000l, 10);
+    writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS));
   }
   
   public void run() throws Exception {
-    SimpleTimer.getInstance().schedule(new TimerTask() {
+    SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
       public void run() {
         flush();
@@ -208,7 +210,7 @@ public class TraceServer implements Watcher {
     } finally {
       writer = null;
       try {
-        writer = connector.createBatchWriter(table, 100l * 1024 * 1024, 5 * 1000l, 10);
+        writer = connector.createBatchWriter(table, new BatchWriterConfig());
       } catch (Exception ex) {
         log.error("Unable to create a batch writer: " + ex);
       }
@@ -239,12 +241,20 @@ public class TraceServer implements Watcher {
   public void process(WatchedEvent event) {
     log.debug("event " + event.getPath() + " " + event.getType() + " " + event.getState());
     if (event.getState() == KeeperState.Expired) {
-      log.warn("Logger lost zookeeper registration at " + event.getPath());
+      log.warn("Trace server lost zookeeper registration at " + event.getPath());
       server.stop();
     } else if (event.getType() == EventType.NodeDeleted) {
-      log.warn("Logger zookeeper entry lost " + event.getPath());
+      log.warn("Trace server zookeeper entry lost " + event.getPath());
       server.stop();
     }
+    try {
+    if (ZooReaderWriter.getInstance().exists(event.getPath(), this))
+      return;
+    } catch (Exception ex) {
+      log.error(ex, ex);
+    }
+    log.warn("Trace server unable to reset watch on zookeeper registration");
+    server.stop();
   }
   
 }

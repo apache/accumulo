@@ -1,0 +1,48 @@
+Title: Apache Accumulo Proxy
+Notice:    Licensed to the Apache Software Foundation (ASF) under one
+           or more contributor license agreements.  See the NOTICE file
+           distributed with this work for additional information
+           regarding copyright ownership.  The ASF licenses this file
+           to you under the Apache License, Version 2.0 (the
+           "License"); you may not use this file except in compliance
+           with the License.  You may obtain a copy of the License at
+           .
+             http://www.apache.org/licenses/LICENSE-2.0
+           .
+           Unless required by applicable law or agreed to in writing,
+           software distributed under the License is distributed on an
+           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+           KIND, either express or implied.  See the License for the
+           specific language governing permissions and limitations
+           under the License.
+
+This is a thrift proxy server to interact with the Accumulo database.
+
+1. Building
+
+To compile, you must first install Thrift 0.9.0. 
+
+After thrift is installed, compile the project with:
+mvn clean install
+This will compile the thrift and java files, and will provide C++, python and ruby bindings.
+
+2. Proxy Server Execution
+
+Please note that the proxy can only function correctly when connected to an Accumulo 1.5 instance, or when run standalone in the Mock configuration.
+To run the server, edit the configuration file with parameters suited for your Accumulo installation. If you wish to instead use an in-memory Mock instance, set:
+org.apache.accumulo.proxy.ProxyServer.useMockInstance=true
+This option will override any "real" Accumulo instance information.
+
+Once the properties file is configured correctly, run this command:
+./bin/accumulo proxy -p proxy/proxy.properties
+
+3. Clients
+
+An example java client is incuded with this distribution in the class TestProxyClient. Also the unit tests included show how to use the proxy. Normal Accumulo APIs are emulated whereever possible.
+
+Additional client examples can be found in the examples directory. These clients are tested and function, however, the setup for each language is beyond the scope of this document currently.
+
+In general, to create a client for a new language one must compile the proxy.thrift API (along with the accumulo core data.thrift API) to the language of choice. 
+Then one includes the resulting generated code along with the thrift core library for that language to use the proxy.
+
+As a note, many of the clients here assume "secret" is your root password. Protip: to make the examples work, change this code to your password, do not change your root password to "secret".

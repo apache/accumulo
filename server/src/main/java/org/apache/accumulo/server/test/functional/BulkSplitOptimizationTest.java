@@ -63,7 +63,7 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     fs.delete(new Path("/tmp/testmf"), true);
     
-    CreateRFiles.main(new String[] {"tmp/testmf", "8", "0", "100000", "99"});
+    CreateRFiles.main(new String[] { "--output", "tmp/testmf", "--numThreads", "8", "--start", "0", "--end", "100000", "--splits", "99"});
     
     bulkImport(fs, TABLE_NAME, "/tmp/testmf");
     
@@ -82,7 +82,7 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
     
     checkSplits(TABLE_NAME, 50, 100);
     
-    VerifyIngest.main(new String[] {"-timestamp", "1", "-size", "50", "-random", "56", "100000", "0", "1"});
+    VerifyIngest.main(new String[] {"--timestamp", "1", "--size", "50", "--random", "56", "--rows", "100000", "--start", "0", "--cols", "1"});
     
     // ensure each tablet does not have all map files
     checkRFiles(TABLE_NAME, 50, 100, 1, 4);

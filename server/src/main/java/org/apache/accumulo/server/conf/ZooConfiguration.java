@@ -42,7 +42,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
   private static ZooConfiguration instance = null;
   private static String instanceId = null;
   private static ZooCache propCache = null;
-  private Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<String,String>());
+  private final Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<String,String>());
   
   private ZooConfiguration(AccumuloConfiguration parent) {
     this.parent = parent;

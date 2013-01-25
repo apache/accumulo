@@ -24,7 +24,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColFamHashKey;
 import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColHashKey;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.io.Text;
 
 public class ColumnToClassMapping<K> {
@@ -50,7 +50,7 @@ public class ColumnToClassMapping<K> {
       
       Pair<Text,Text> pcic = ColumnSet.decodeColumns(column);
       
-      Class<? extends K> clazz = AccumuloClassLoader.loadClass(className, c);
+      Class<? extends K> clazz = AccumuloVFSClassLoader.loadClass(className, c);
       
       if (pcic.getSecond() == null) {
         addObject(pcic.getFirst(), clazz.newInstance());

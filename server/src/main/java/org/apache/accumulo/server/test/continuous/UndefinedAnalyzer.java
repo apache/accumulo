@@ -32,16 +32,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.BatchScannerOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * BUGS This code does not handle the fact that these files could include log events from previous months. It therefore it assumes all dates are in the current
@@ -235,22 +238,19 @@ public class UndefinedAnalyzer {
     }
   }
   
+  static class Opts extends ClientOnDefaultTable {
+    @Parameter(names="--logdir", description="directory containing the log files", required=true)
+    String logDir;
+    Opts() { super("ci"); }
+  }
+  
+  /**
+   * Class to analyze undefined references and accumulo logs to isolate the time/tablet where data was lost.
+   */
   public static void main(String[] args) throws Exception {
-    
-    if (args.length != 7) {
-      System.err.println("Usage : " + UndefinedAnalyzer.class.getName() + " <instance> <zoo> <user> <pass> <table> <ci log dir> <acu log dir>");
-      return;
-    }
-    
-    String instanceName = args[0];
-    String zooKeepers = args[1];
-    
-    String user = args[2];
-    String password = args[3];
-    
-    String table = args[4];
-    String logDir = args[5];
-    String acuLogDir = args[6];
+    Opts opts = new Opts();
+    BatchScannerOpts bsOpts = new BatchScannerOpts();
+    opts.parseArgs(UndefinedAnalyzer.class.getName(), args, opts);
     
     List<UndefinedNode> undefs = new ArrayList<UndefinedNode>();
     
@@ -264,10 +264,9 @@ public class UndefinedAnalyzer {
       undefs.add(new UndefinedNode(undef, ref));
     }
     
-    ZooKeeperInstance zki = new ZooKeeperInstance(instanceName, zooKeepers);
-    Connector conn = zki.getConnector(user, password.getBytes());
-    BatchScanner bscanner = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
-    
+    Connector conn = opts.getConnector();
+    BatchScanner bscanner = conn.createBatchScanner(opts.getTableName(), opts.auths, bsOpts.scanThreads);
+    bscanner.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     List<Range> refs = new ArrayList<Range>();
     
     for (UndefinedNode undefinedNode : undefs)
@@ -290,8 +289,8 @@ public class UndefinedAnalyzer {
     
     bscanner.close();
     
-    IngestInfo ingestInfo = new IngestInfo(logDir);
-    TabletHistory tabletHistory = new TabletHistory(Tables.getTableId(zki, table), acuLogDir);
+    IngestInfo ingestInfo = new IngestInfo(opts.logDir);
+    TabletHistory tabletHistory = new TabletHistory(Tables.getTableId(conn.getInstance(), opts.getTableName()), opts.logDir);
     
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
     

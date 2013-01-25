@@ -112,6 +112,7 @@ public class TableOperationsHelperTest {
     public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
         TableExistsException {}
     
+    @Deprecated
     @Override
     public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {}
     
@@ -182,6 +183,12 @@ public class TableOperationsHelperTest {
       }
       Assert.assertEquals(expected, settings.get(tablename));
     }
+    
+    @Override
+    public void importTable(String tableName, String exportDir) throws TableExistsException, AccumuloException, AccumuloSecurityException {}
+    
+    @Override
+    public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {}
   }
   
   @Test
@@ -236,18 +243,18 @@ public class TableOperationsHelperTest {
     try {
       t.attachIterator("table", setting);
       Assert.fail();
-    } catch (IllegalArgumentException e) {}
+    } catch (AccumuloException e) {}
     setting.setName("thirdName");
     try {
       t.attachIterator("table", setting);
       Assert.fail();
-    } catch (IllegalArgumentException e) {}
+    } catch (AccumuloException e) {}
     setting.setPriority(10);
     t.setProperty("table", "table.iterator.minc.thirdName.opt.key", "value");
     try {
       t.attachIterator("table", setting);
       Assert.fail();
-    } catch (IllegalArgumentException e) {}
+    } catch (AccumuloException e) {}
     t.removeProperty("table", "table.iterator.minc.thirdName.opt.key");
     t.attachIterator("table", setting);
   }

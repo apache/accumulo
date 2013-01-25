@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.accumulo.core.cli.Help;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -35,6 +36,8 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Runs the functional tests via map-reduce.
@@ -56,7 +59,7 @@ import org.apache.log4j.Logger;
  * Run the map-reduce job:
  * 
  * <pre>
- *  $ ./bin/accumulo accumulo.server.test.functional.RunTests /user/hadoop/tests /user/hadoop/results
+ *  $ ./bin/accumulo accumulo.server.test.functional.RunTests --tests /user/hadoop/tests --output /user/hadoop/results
  * </pre>
  * 
  * Note that you will need to have some configuration in conf/accumulo-site.xml (to locate zookeeper). The map-reduce jobs will not use your local accumulo
@@ -69,6 +72,13 @@ public class RunTests extends Configured implements Tool {
   private static final Logger log = Logger.getLogger(RunTests.class);
   
   private Job job = null;
+  
+  static class Opts extends Help {
+    @Parameter(names="--tests", description="newline separated list of tests to run", required=true)
+    String testFile;
+    @Parameter(names="--output", description="destination for the results of tests in HDFS", required=true)
+    String outputPath;
+  }
   
   static public class TestMapper extends Mapper<LongWritable,Text,Text,Text> {
     
@@ -103,6 +113,8 @@ public class RunTests extends Configured implements Tool {
   public int run(String[] args) throws Exception {
     job = new Job(getConf(), JOB_NAME);
     job.setJarByClass(this.getClass());
+    Opts opts = new Opts();
+    opts.parseArgs(RunTests.class.getName(), args);
     
     // this is like 1-2 tests per mapper
     Configuration conf = job.getConfiguration();
@@ -113,14 +125,14 @@ public class RunTests extends Configured implements Tool {
     
     // set input
     job.setInputFormatClass(TextInputFormat.class);
-    TextInputFormat.setInputPaths(job, new Path(args[0]));
+    TextInputFormat.setInputPaths(job, new Path(opts.testFile));
     
     // set output
     job.setOutputFormatClass(TextOutputFormat.class);
     FileSystem fs = FileSystem.get(conf);
-    Path destination = new Path(args[1]);
+    Path destination = new Path(opts.outputPath);
     if (fs.exists(destination)) {
-      log.info("Deleting existing output directory " + args[1]);
+      log.info("Deleting existing output directory " + opts.outputPath);
       fs.delete(destination, true);
     }
     TextOutputFormat.setOutputPath(job, destination);

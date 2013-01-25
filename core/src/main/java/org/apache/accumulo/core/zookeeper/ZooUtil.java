@@ -20,11 +20,11 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 
 public class ZooUtil extends org.apache.accumulo.fate.zookeeper.ZooUtil {
-  public static String getRoot(Instance instance) {
+  public static String getRoot(final Instance instance) {
     return getRoot(instance.getInstanceID());
   }
   
-  public static String getRoot(String instanceId) {
+  public static String getRoot(final String instanceId) {
     return Constants.ZROOT + "/" + instanceId;
   }
 }

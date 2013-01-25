@@ -126,7 +126,7 @@ public class IndexedDocIterator extends IntersectingIterator {
   }
   
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  synchronized public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(indexFamilyOptionName))
       indexColf = new Text(options.get(indexFamilyOptionName));
@@ -134,6 +134,10 @@ public class IndexedDocIterator extends IntersectingIterator {
       docColf = new Text(options.get(docFamilyOptionName));
     docSource = source.deepCopy(env);
     indexColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
+    
+    for (TermSource ts : this.sources) {
+      ts.seekColfams = indexColfSet;
+    }
   }
   
   @Override
@@ -143,7 +147,7 @@ public class IndexedDocIterator extends IntersectingIterator {
   
   @Override
   public void seek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive) throws IOException {
-    super.seek(range, indexColfSet, true);
+    super.seek(range, null, true);
     
   }
   
@@ -157,7 +161,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     Key docKey = buildDocKey();
     docSource.seek(new Range(docKey, true, null, false), docColfSet, true);
     log.debug("got doc key: " + docSource.getTopKey().toString());
-    if (docSource.hasTop() && docKey.compareTo(docSource.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL) == 0) {
+    if (docSource.hasTop() && docKey.equals(docSource.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL)) {
       value = docSource.getTopValue();
     }
     log.debug("got doc value: " + value.toString());

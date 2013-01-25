@@ -31,18 +31,19 @@ public class DeleteScanIterCommand extends Command {
   private Option nameOpt, allOpt;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
     if (cl.hasOption(allOpt.getOpt())) {
-      List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.remove(tableName);
-      if (tableScanIterators == null)
+      final List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.remove(tableName);
+      if (tableScanIterators == null) {
         Shell.log.info("No scan iterators set on table " + tableName);
-      else
+      } else {
         Shell.log.info("Removed the following scan iterators from table " + tableName + ":" + tableScanIterators);
+      }
     } else if (cl.hasOption(nameOpt.getOpt())) {
-      String name = cl.getOptionValue(nameOpt.getOpt());
-      List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
+      final String name = cl.getOptionValue(nameOpt.getOpt());
+      final List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
       if (tableScanIterators != null) {
         boolean found = false;
         for (Iterator<IteratorSetting> iter = tableScanIterators.iterator(); iter.hasNext();) {
@@ -52,12 +53,13 @@ public class DeleteScanIterCommand extends Command {
             break;
           }
         }
-        if (!found)
+        if (!found) {
           Shell.log.info("No iterator named " + name + " found for table " + tableName);
-        else {
+        } else {
           Shell.log.info("Removed scan iterator " + name + " from table " + tableName + " (" + shellState.scanIteratorOptions.get(tableName).size() + " left)");
-          if (shellState.scanIteratorOptions.get(tableName).size() == 0)
+          if (shellState.scanIteratorOptions.get(tableName).size() == 0) {
             shellState.scanIteratorOptions.remove(tableName);
+          }
         }
       } else {
         Shell.log.info("No iterator named " + name + " found for table " + tableName);
@@ -74,7 +76,7 @@ public class DeleteScanIterCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     OptionGroup nameGroup = new OptionGroup();
     

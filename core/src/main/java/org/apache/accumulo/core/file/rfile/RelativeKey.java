@@ -16,94 +16,115 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.zip.GZIPOutputStream;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 
-public class RelativeKey implements WritableComparable<RelativeKey> {
+public class RelativeKey implements Writable {
+  
+  private static final byte BIT = 0x01;
   
   private Key key;
-  
-  private byte fieldsSame;
-  
   private Key prevKey;
   
-  private static final byte ROW_SAME = 0x01;
-  private static final byte CF_SAME = 0x02;
-  private static final byte CQ_SAME = 0x04;
-  private static final byte CV_SAME = 0x08;
-  private static final byte TS_SAME = 0x10;
-  private static final byte DELETED = 0x20;
+  private byte fieldsSame;
+  private byte fieldsPrefixed;
   
-  private static HashMap<Text,Integer> colFams = new HashMap<Text,Integer>();
+  // Exact match compression options (first byte) and flag for further
+  private static final byte ROW_SAME = BIT << 0;
+  private static final byte CF_SAME = BIT << 1;
+  private static final byte CQ_SAME = BIT << 2;
+  private static final byte CV_SAME = BIT << 3;
+  private static final byte TS_SAME = BIT << 4;
+  private static final byte DELETED = BIT << 5;
+  // private static final byte UNUSED_1_6 = BIT << 6;
+  private static final byte PREFIX_COMPRESSION_ENABLED = (byte) (BIT << 7);
   
-  private static long bytesWritten = 0;
+  // Prefix compression (second byte)
+  private static final byte ROW_COMMON_PREFIX = BIT << 0;
+  private static final byte CF_COMMON_PREFIX = BIT << 1;
+  private static final byte CQ_COMMON_PREFIX = BIT << 2;
+  private static final byte CV_COMMON_PREFIX = BIT << 3;
+  private static final byte TS_DIFF = BIT << 4;
   
-  public static void printStats() throws Exception {
-    System.out.println("colFams.size() : " + colFams.size());
-    Set<Entry<Text,Integer>> es = colFams.entrySet();
-    
-    int sum = 0;
-    
-    for (Entry<Text,Integer> entry : es) {
-      sum += entry.getKey().getLength();
-    }
-    
-    System.out.println("Total Column name bytes : " + sum);
-    
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    DataOutputStream dos = new DataOutputStream(new GZIPOutputStream(baos));
-    for (Entry<Text,Integer> entry : es) {
-      entry.getKey().write(dos);
-      dos.writeInt(entry.getValue());
-    }
-    
-    dos.close();
-    
-    System.out.println("Compressed column map size : " + baos.toByteArray().length);
-    System.out.printf("Bytes written : %,d\n", bytesWritten);
-    
-  }
+  // private static final byte UNUSED_2_5 = BIT << 5;
+  // private static final byte UNUSED_2_6 = BIT << 6;
+  // private static final byte UNUSED_2_7 = (byte) (BIT << 7);
   
+  // Values for prefix compression
+  int rowCommonPrefixLen;
+  int cfCommonPrefixLen;
+  int cqCommonPrefixLen;
+  int cvCommonPrefixLen;
+  long tsDiff;
+  
+  /**
+   * This constructor is used when one needs to read from an input stream
+   */
   public RelativeKey() {
     
   }
   
+  /**
+   * This constructor is used when constructing a key for writing to an output stream
+   */
   public RelativeKey(Key prevKey, Key key) {
     
     this.key = key;
     
     fieldsSame = 0;
+    fieldsPrefixed = 0;
+    
+    ByteSequence prevKeyScratch;
+    ByteSequence keyScratch;
     
     if (prevKey != null) {
-      if (prevKey.getRowData().equals(key.getRowData()))
+      
+      prevKeyScratch = prevKey.getRowData();
+      keyScratch = key.getRowData();
+      rowCommonPrefixLen = getCommonPrefix(prevKeyScratch, keyScratch);
+      if (rowCommonPrefixLen == -1)
         fieldsSame |= ROW_SAME;
+      else if (rowCommonPrefixLen > 1)
+        fieldsPrefixed |= ROW_COMMON_PREFIX;
       
-      if (prevKey.getColumnFamilyData().equals(key.getColumnFamilyData()))
+      prevKeyScratch = prevKey.getColumnFamilyData();
+      keyScratch = key.getColumnFamilyData();
+      cfCommonPrefixLen = getCommonPrefix(prevKeyScratch, keyScratch);
+      if (cfCommonPrefixLen == -1)
         fieldsSame |= CF_SAME;
+      else if (cfCommonPrefixLen > 1)
+        fieldsPrefixed |= CF_COMMON_PREFIX;
       
-      if (prevKey.getColumnQualifierData().equals(key.getColumnQualifierData()))
+      prevKeyScratch = prevKey.getColumnQualifierData();
+      keyScratch = key.getColumnQualifierData();
+      cqCommonPrefixLen = getCommonPrefix(prevKeyScratch, keyScratch);
+      if (cqCommonPrefixLen == -1)
         fieldsSame |= CQ_SAME;
+      else if (cqCommonPrefixLen > 1)
+        fieldsPrefixed |= CQ_COMMON_PREFIX;
       
-      if (prevKey.getColumnVisibilityData().equals(key.getColumnVisibilityData()))
+      prevKeyScratch = prevKey.getColumnVisibilityData();
+      keyScratch = key.getColumnVisibilityData();
+      cvCommonPrefixLen = getCommonPrefix(prevKeyScratch, keyScratch);
+      if (cvCommonPrefixLen == -1)
         fieldsSame |= CV_SAME;
+      else if (cvCommonPrefixLen > 1)
+        fieldsPrefixed |= CV_COMMON_PREFIX;
       
-      if (prevKey.getTimestamp() == key.getTimestamp())
+      tsDiff = key.getTimestamp() - prevKey.getTimestamp();
+      if (tsDiff == 0)
         fieldsSame |= TS_SAME;
+      else
+        fieldsPrefixed |= TS_DIFF;
       
+      fieldsSame |= fieldsPrefixed == 0 ? 0 : PREFIX_COMPRESSION_ENABLED;
     }
     
     // stored deleted information in bit vector instead of its own byte
@@ -111,49 +132,94 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
       fieldsSame |= DELETED;
   }
   
+  /**
+   * 
+   * @return -1 (exact match) or the number of bytes in common
+   */
+  static int getCommonPrefix(ByteSequence prev, ByteSequence cur) {
+    if (prev == cur)
+      return -1; // infinite... exact match
+      
+    int prevLen = prev.length();
+    int curLen = cur.length();
+    int maxChecks = Math.min(prevLen, curLen);
+    int common = 0;
+    while (common < maxChecks) {
+      int a = prev.byteAt(common) & 0xff;
+      int b = cur.byteAt(common) & 0xff;
+      if (a != b)
+        return common;
+      common++;
+    }
+    // no differences found
+    // either exact or matches the part checked, so if they are the same length, they are an exact match,
+    // and if not, then they have a common prefix over all the checks we've done
+    return prevLen == curLen ? -1 : maxChecks;
+  }
+  
+  public void setPrevKey(Key pk) {
+    this.prevKey = pk;
+  }
+  
   @Override
   public void readFields(DataInput in) throws IOException {
     fieldsSame = in.readByte();
+    if ((fieldsSame & PREFIX_COMPRESSION_ENABLED) == PREFIX_COMPRESSION_ENABLED) {
+      fieldsPrefixed = in.readByte();
+    } else {
+      fieldsPrefixed = 0;
+    }
     
     byte[] row, cf, cq, cv;
     long ts;
     
-    if ((fieldsSame & ROW_SAME) == 0) {
-      row = read(in);
-    } else {
+    if ((fieldsSame & ROW_SAME) == ROW_SAME) {
       row = prevKey.getRowData().toArray();
+    } else if ((fieldsPrefixed & ROW_COMMON_PREFIX) == ROW_COMMON_PREFIX) {
+      row = readPrefix(in, prevKey.getRowData());
+    } else {
+      row = read(in);
     }
     
-    if ((fieldsSame & CF_SAME) == 0) {
-      cf = read(in);
-    } else {
+    if ((fieldsSame & CF_SAME) == CF_SAME) {
       cf = prevKey.getColumnFamilyData().toArray();
+    } else if ((fieldsPrefixed & CF_COMMON_PREFIX) == CF_COMMON_PREFIX) {
+      cf = readPrefix(in, prevKey.getColumnFamilyData());
+    } else {
+      cf = read(in);
     }
     
-    if ((fieldsSame & CQ_SAME) == 0) {
-      cq = read(in);
-    } else {
+    if ((fieldsSame & CQ_SAME) == CQ_SAME) {
       cq = prevKey.getColumnQualifierData().toArray();
+    } else if ((fieldsPrefixed & CQ_COMMON_PREFIX) == CQ_COMMON_PREFIX) {
+      cq = readPrefix(in, prevKey.getColumnQualifierData());
+    } else {
+      cq = read(in);
     }
     
-    if ((fieldsSame & CV_SAME) == 0) {
-      cv = read(in);
-    } else {
+    if ((fieldsSame & CV_SAME) == CV_SAME) {
       cv = prevKey.getColumnVisibilityData().toArray();
-    }
-    
-    if ((fieldsSame & TS_SAME) == 0) {
-      ts = WritableUtils.readVLong(in);
+    } else if ((fieldsPrefixed & CV_COMMON_PREFIX) == CV_COMMON_PREFIX) {
+      cv = readPrefix(in, prevKey.getColumnVisibilityData());
     } else {
-      ts = prevKey.getTimestamp();
+      cv = read(in);
     }
     
-    this.key = new Key(row, cf, cq, cv, ts, (fieldsSame & DELETED) != 0, false);
+    if ((fieldsSame & TS_SAME) == TS_SAME) {
+      ts = prevKey.getTimestamp();
+    } else if ((fieldsPrefixed & TS_DIFF) == TS_DIFF) {
+      ts = WritableUtils.readVLong(in) + prevKey.getTimestamp();
+    } else {
+      ts = WritableUtils.readVLong(in);
+    }
     
+    this.key = new Key(row, cf, cq, cv, ts, (fieldsSame & DELETED) == DELETED, false);
     this.prevKey = this.key;
   }
   
   static class MByteSequence extends ArrayByteSequence {
+    private static final long serialVersionUID = 1L;
+
     MByteSequence(byte[] data, int offset, int length) {
       super(data, offset, length);
     }
@@ -176,10 +242,22 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
     }
   }
   
-  int fastSkip(DataInput in, Key seekKey, MByteSequence value, Key pkey, Key currKey) throws IOException {
+  public static class SkippR {
+    RelativeKey rk;
+    int skipped;
+    Key prevKey;
+    
+    SkippR(RelativeKey rk, int skipped, Key prevKey) {
+      this.rk = rk;
+      this.skipped = skipped;
+      this.prevKey = prevKey;
+    }
+  }
+  
+  public static SkippR fastSkip(DataInput in, Key seekKey, MByteSequence value, Key prevKey, Key currKey) throws IOException {
     // this method assumes that fast skip is being called on a compressed block where the last key
-    // in the compressed block is >= seekKey... therefore this method should go passed the end of the
-    // compressed block... if it does, there is probably an error in the callers logic
+    // in the compressed block is >= seekKey... therefore this method shouldn't go past the end of the
+    // compressed block... if it does, there is probably an error in the caller's logic
     
     // this method mostly avoids object allocation and only does compares when the row changes
     
@@ -198,11 +276,11 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
     
     if (currKey != null) {
       
-      prow = new MByteSequence(pkey.getRowData());
-      pcf = new MByteSequence(pkey.getColumnFamilyData());
-      pcq = new MByteSequence(pkey.getColumnQualifierData());
-      pcv = new MByteSequence(pkey.getColumnVisibilityData());
-      pts = pkey.getTimestamp();
+      prow = new MByteSequence(currKey.getRowData());
+      pcf = new MByteSequence(currKey.getColumnFamilyData());
+      pcq = new MByteSequence(currKey.getColumnQualifierData());
+      pcv = new MByteSequence(currKey.getColumnVisibilityData());
+      pts = currKey.getTimestamp();
       
       row = new MByteSequence(currKey.getRowData());
       cf = new MByteSequence(currKey.getColumnFamilyData());
@@ -215,15 +293,24 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
       cqCmp = cq.compareTo(stopCQ);
       
       if (rowCmp >= 0) {
-        if (rowCmp > 0)
-          return 0;
+        if (rowCmp > 0) {
+          RelativeKey rk = new RelativeKey();
+          rk.key = rk.prevKey = new Key(currKey);
+          return new SkippR(rk, 0, prevKey);
+        }
         
         if (cfCmp >= 0) {
-          if (cfCmp > 0)
-            return 0;
+          if (cfCmp > 0) {
+            RelativeKey rk = new RelativeKey();
+            rk.key = rk.prevKey = new Key(currKey);
+            return new SkippR(rk, 0, prevKey);
+          }
           
-          if (cqCmp >= 0)
-            return 0;
+          if (cqCmp >= 0) {
+            RelativeKey rk = new RelativeKey();
+            rk.key = rk.prevKey = new Key(currKey);
+            return new SkippR(rk, 0, prevKey);
+          }
         }
       }
       
@@ -240,22 +327,31 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
     }
     
     byte fieldsSame = -1;
+    byte fieldsPrefixed = 0;
     int count = 0;
+    Key newPrevKey = null;
     
     while (true) {
       
-      pdel = (fieldsSame & DELETED) != 0;
+      pdel = (fieldsSame & DELETED) == DELETED;
       
       fieldsSame = in.readByte();
+      if ((fieldsSame & PREFIX_COMPRESSION_ENABLED) == PREFIX_COMPRESSION_ENABLED)
+        fieldsPrefixed = in.readByte();
+      else
+        fieldsPrefixed = 0;
       
       boolean changed = false;
       
-      if ((fieldsSame & ROW_SAME) == 0) {
+      if ((fieldsSame & ROW_SAME) != ROW_SAME) {
         
         MByteSequence tmp = prow;
         prow = row;
         row = tmp;
         
+        if ((fieldsPrefixed & ROW_COMMON_PREFIX) == ROW_COMMON_PREFIX)
+          readPrefix(in, row, prow);
+        else
         read(in, row);
         
         // read a new row, so need to compare...
@@ -263,41 +359,54 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
         changed = true;
       }// else the row is the same as the last, so no need to compare
       
-      if ((fieldsSame & CF_SAME) == 0) {
+      if ((fieldsSame & CF_SAME) != CF_SAME) {
         
         MByteSequence tmp = pcf;
         pcf = cf;
         cf = tmp;
         
+        if ((fieldsPrefixed & CF_COMMON_PREFIX) == CF_COMMON_PREFIX)
+          readPrefix(in, cf, pcf);
+        else
         read(in, cf);
         
         cfCmp = cf.compareTo(stopCF);
         changed = true;
       }
       
-      if ((fieldsSame & CQ_SAME) == 0) {
+      if ((fieldsSame & CQ_SAME) != CQ_SAME) {
         
         MByteSequence tmp = pcq;
         pcq = cq;
         cq = tmp;
         
+        if ((fieldsPrefixed & CQ_COMMON_PREFIX) == CQ_COMMON_PREFIX)
+          readPrefix(in, cq, pcq);
+        else
         read(in, cq);
         
         cqCmp = cq.compareTo(stopCQ);
         changed = true;
       }
       
-      if ((fieldsSame & CV_SAME) == 0) {
+      if ((fieldsSame & CV_SAME) != CV_SAME) {
         
         MByteSequence tmp = pcv;
         pcv = cv;
         cv = tmp;
         
+        if ((fieldsPrefixed & CV_COMMON_PREFIX) == CV_COMMON_PREFIX)
+          readPrefix(in, cv, pcv);
+        else
         read(in, cv);
       }
       
-      if ((fieldsSame & TS_SAME) == 0) {
+      if ((fieldsSame & TS_SAME) != TS_SAME) {
         pts = ts;
+        
+        if ((fieldsPrefixed & TS_DIFF) == TS_DIFF)
+          ts = WritableUtils.readVLong(in) + pts;
+        else
         ts = WritableUtils.readVLong(in);
       }
       
@@ -326,53 +435,114 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
       
       // when the current keys field is same as the last, then
       // set the prev keys field the same as the current key
-      trow = (fieldsSame & ROW_SAME) == 0 ? prow : row;
-      tcf = (fieldsSame & CF_SAME) == 0 ? pcf : cf;
-      tcq = (fieldsSame & CQ_SAME) == 0 ? pcq : cq;
-      tcv = (fieldsSame & CV_SAME) == 0 ? pcv : cv;
-      tts = (fieldsSame & TS_SAME) == 0 ? pts : ts;
+      trow = (fieldsSame & ROW_SAME) == ROW_SAME ? row : prow;
+      tcf = (fieldsSame & CF_SAME) == CF_SAME ? cf : pcf;
+      tcq = (fieldsSame & CQ_SAME) == CQ_SAME ? cq : pcq;
+      tcv = (fieldsSame & CV_SAME) == CV_SAME ? cv : pcv;
+      tts = (fieldsSame & TS_SAME) == TS_SAME ? ts : pts;
       
-      Key tmp = new Key(trow.getBackingArray(), trow.offset(), trow.length(), tcf.getBackingArray(), tcf.offset(), tcf.length(), tcq.getBackingArray(),
+      newPrevKey = new Key(trow.getBackingArray(), trow.offset(), trow.length(), tcf.getBackingArray(), tcf.offset(), tcf.length(), tcq.getBackingArray(),
           tcq.offset(), tcq.length(), tcv.getBackingArray(), tcv.offset(), tcv.length(), tts);
-      tmp.setDeleted(pdel);
-      pkey.set(tmp);
+      newPrevKey.setDeleted(pdel);
+    } else if (count == 1) {
+      if (currKey != null)
+        newPrevKey = currKey;
+      else
+        newPrevKey = prevKey;
+    } else {
+      throw new IllegalStateException();
     }
     
-    this.key = new Key(row.getBackingArray(), row.offset(), row.length(), cf.getBackingArray(), cf.offset(), cf.length(), cq.getBackingArray(), cq.offset(),
+    RelativeKey result = new RelativeKey();
+    result.key = new Key(row.getBackingArray(), row.offset(), row.length(), cf.getBackingArray(), cf.offset(), cf.length(), cq.getBackingArray(), cq.offset(),
         cq.length(), cv.getBackingArray(), cv.offset(), cv.length(), ts);
-    this.key.setDeleted((fieldsSame & DELETED) != 0);
+    result.key.setDeleted((fieldsSame & DELETED) != 0);
+    result.prevKey = result.key;
     
-    this.prevKey = this.key;
-    
-    return count;
+    return new SkippR(result, count, newPrevKey);
   }
   
-  private void read(DataInput in, MByteSequence mbseq) throws IOException {
+  private static void read(DataInput in, MByteSequence mbseq) throws IOException {
     int len = WritableUtils.readVInt(in);
     read(in, mbseq, len);
   }
   
-  private void readValue(DataInput in, MByteSequence mbseq) throws IOException {
+  private static void readValue(DataInput in, MByteSequence mbseq) throws IOException {
     int len = in.readInt();
     read(in, mbseq, len);
   }
   
-  private void read(DataInput in, MByteSequence mbseq, int len) throws IOException {
-    if (mbseq.getBackingArray().length < len) {
-      int newLen = mbseq.getBackingArray().length;
-      
-      while (newLen < len) {
-        newLen = newLen * 2;
-      }
-      
-      mbseq.setArray(new byte[newLen]);
+  /**
+   * Determines what next array size should be by rounding up to next power of two.
+   * 
+   */
+  static int nextArraySize(int i) {
+    if (i < 0)
+      throw new IllegalArgumentException();
+    
+    if (i > (1 << 30))
+      return Integer.MAX_VALUE; // this is the next power of 2 minus one... a special case
+
+    if (i == 0) {
+      return 1;
     }
     
-    in.readFully(mbseq.getBackingArray(), 0, len);
-    mbseq.setLength(len);
+    // round up to next power of two
+    int ret = i;
+    ret--;
+    ret |= ret >> 1;
+    ret |= ret >> 2;
+    ret |= ret >> 4;
+    ret |= ret >> 8;
+    ret |= ret >> 16;
+    ret++;
+    
+    return ret;
+  }
+
+  private static void read(DataInput in, MByteSequence mbseqDestination, int len) throws IOException {
+    if (mbseqDestination.getBackingArray().length < len) {
+      mbseqDestination.setArray(new byte[nextArraySize(len)]);
+    }
+    
+    in.readFully(mbseqDestination.getBackingArray(), 0, len);
+    mbseqDestination.setLength(len);
   }
   
-  private byte[] read(DataInput in) throws IOException {
+  private static byte[] readPrefix(DataInput in, ByteSequence prefixSource) throws IOException {
+    int prefixLen = WritableUtils.readVInt(in);
+    int remainingLen = WritableUtils.readVInt(in);
+    byte[] data = new byte[prefixLen + remainingLen];
+    if (prefixSource.isBackedByArray()) {
+      System.arraycopy(prefixSource.getBackingArray(), prefixSource.offset(), data, 0, prefixLen);
+    } else {
+      byte[] prefixArray = prefixSource.toArray();
+      System.arraycopy(prefixArray, 0, data, 0, prefixLen);
+    }
+    // read remaining
+    in.readFully(data, prefixLen, remainingLen);
+    return data;
+    }
+    
+  private static void readPrefix(DataInput in, MByteSequence dest, ByteSequence prefixSource) throws IOException {
+    int prefixLen = WritableUtils.readVInt(in);
+    int remainingLen = WritableUtils.readVInt(in);
+    int len = prefixLen + remainingLen;
+    if (dest.getBackingArray().length < len) {
+      dest.setArray(new byte[nextArraySize(len)]);
+    }
+    if (prefixSource.isBackedByArray()) {
+      System.arraycopy(prefixSource.getBackingArray(), prefixSource.offset(), dest.getBackingArray(), 0, prefixLen);
+    } else {
+      byte[] prefixArray = prefixSource.toArray();
+      System.arraycopy(prefixArray, 0, dest.getBackingArray(), 0, prefixLen);
+    }
+    // read remaining
+    in.readFully(dest.getBackingArray(), prefixLen, remainingLen);
+    dest.setLength(len);
+  }
+  
+  private static byte[] read(DataInput in) throws IOException {
     int len = WritableUtils.readVInt(in);
     byte[] data = new byte[len];
     in.readFully(data);
@@ -383,9 +553,15 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
     return key;
   }
   
-  private void write(DataOutput out, ByteSequence bs) throws IOException {
+  private static void write(DataOutput out, ByteSequence bs) throws IOException {
     WritableUtils.writeVInt(out, bs.length());
     out.write(bs.getBackingArray(), bs.offset(), bs.length());
+  }
+  
+  private static void writePrefix(DataOutput out, ByteSequence bs, int commonPrefixLength) throws IOException {
+    WritableUtils.writeVInt(out, commonPrefixLength);
+    WritableUtils.writeVInt(out, bs.length() - commonPrefixLength);
+    out.write(bs.getBackingArray(), bs.offset() + commonPrefixLength, bs.length() - commonPrefixLength);
   }
   
   @Override
@@ -393,42 +569,59 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
     
     out.writeByte(fieldsSame);
     
-    // System.out.printf("wrote fs %x\n", fieldsSame);
+    if ((fieldsSame & PREFIX_COMPRESSION_ENABLED) == PREFIX_COMPRESSION_ENABLED) {
+      out.write(fieldsPrefixed);
+    }
     
-    bytesWritten += 1;
-    
-    if ((fieldsSame & ROW_SAME) == 0) {
+    if ((fieldsSame & ROW_SAME) == ROW_SAME) {
+      // same, write nothing
+    } else if ((fieldsPrefixed & ROW_COMMON_PREFIX) == ROW_COMMON_PREFIX) {
+      // similar, write what's common
+      writePrefix(out, key.getRowData(), rowCommonPrefixLen);
+    } else {
+      // write it all
       write(out, key.getRowData());
     }
     
-    if ((fieldsSame & CF_SAME) == 0) {
+    if ((fieldsSame & CF_SAME) == CF_SAME) {
+      // same, write nothing
+    } else if ((fieldsPrefixed & CF_COMMON_PREFIX) == CF_COMMON_PREFIX) {
+      // similar, write what's common
+      writePrefix(out, key.getColumnFamilyData(), cfCommonPrefixLen);
+    } else {
+      // write it all
       write(out, key.getColumnFamilyData());
     }
     
-    if ((fieldsSame & CQ_SAME) == 0) {
-      
+    if ((fieldsSame & CQ_SAME) == CQ_SAME) {
+      // same, write nothing
+    } else if ((fieldsPrefixed & CQ_COMMON_PREFIX) == CQ_COMMON_PREFIX) {
+      // similar, write what's common
+      writePrefix(out, key.getColumnQualifierData(), cqCommonPrefixLen);
+    } else {
+      // write it all
       write(out, key.getColumnQualifierData());
-      
-      /*
-       * Integer id = colFams.get(key.getColumnQualifier()); if(id == null){ id = nextId++; colFams.put(key.getColumnQualifier(), id); }
-       * 
-       * WritableUtils.writeVInt(out, id); bytesWritten += 1;
-       */
-      
     }
     
-    if ((fieldsSame & CV_SAME) == 0) {
+    if ((fieldsSame & CV_SAME) == CV_SAME) {
+      // same, write nothing
+    } else if ((fieldsPrefixed & CV_COMMON_PREFIX) == CV_COMMON_PREFIX) {
+      // similar, write what's common
+      writePrefix(out, key.getColumnVisibilityData(), cvCommonPrefixLen);
+    } else {
+      // write it all
       write(out, key.getColumnVisibilityData());
     }
     
-    if ((fieldsSame & TS_SAME) == 0) {
+    if ((fieldsSame & TS_SAME) == TS_SAME) {
+      // same, write nothing
+    } else if ((fieldsPrefixed & TS_DIFF) == TS_DIFF) {
+      // similar, write what's common
+      WritableUtils.writeVLong(out, tsDiff);
+    } else {
+      // write it all
       WritableUtils.writeVLong(out, key.getTimestamp());
     }
-  }
-  
-  @Override
-  public int compareTo(RelativeKey o) {
-    throw new UnsupportedOperationException();
   }
   
 }

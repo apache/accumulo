@@ -99,8 +99,13 @@ public class ColumnAgeOffFilter extends Filter {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    super.validateOptions(options);
-    this.ttls = new TTLSet(options);
+    if (super.validateOptions(options) == false)
+      return false;
+    try {
+      this.ttls = new TTLSet(options);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("bad TTL options", e);
+    }
     return true;
   }
   

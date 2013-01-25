@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.server.monitor.servlets;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
@@ -27,8 +31,12 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.monitor.util.celltypes.TServerLinkType;
 
+import com.google.gson.Gson;
+
 public class JSONServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;
+  
+  private Gson gson = new Gson();
   
   @Override
   protected String getTitle(HttpServletRequest req) {
@@ -38,15 +46,22 @@ public class JSONServlet extends BasicServlet {
   @Override
   protected void pageStart(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
     resp.setContentType("application/json");
-    sb.append("{ 'servers': [\n");
   }
   
-  private static void addServerLine(StringBuilder sb, String ip, String hostname, double osload, double ingest, double query, double ingestMB, double queryMB,
+  private static Map<String,Object> addServer(String ip, String hostname, double osload, double ingest, double query, double ingestMB, double queryMB,
       int scans, double scansessions, long holdtime) {
-    sb.append("  {'ip': '").append(ip).append("',\n  'hostname': '").append(hostname).append("',\n  'osload': ").append(osload).append(",\n  'ingest': ")
-        .append(ingest).append(",\n  'query': ").append(query).append(",\n  'ingestMB': ").append(ingestMB).append(",\n  'queryMB': ").append(queryMB)
-        .append(",\n  'scans': ").append(scans).append(",\n  'scansessions': ").append(scansessions).append(",\n  'holdtime': ").append(holdtime)
-        .append("},\n");
+	Map<String,Object> map = new HashMap<String,Object>();
+	map.put("ip", ip);
+	map.put("hostname", hostname);
+	map.put("osload", osload);
+	map.put("ingest", ingest);
+	map.put("query", query);
+	map.put("ingestMB", ingestMB);
+	map.put("queryMB", queryMB);
+	map.put("scans", scans);
+	map.put("scans", scansessions);
+	map.put("holdtime", holdtime);
+	return map;
   }
   
   @Override
@@ -55,26 +70,34 @@ public class JSONServlet extends BasicServlet {
       return;
     }
     
+    Map<String,Object> results = new HashMap<String,Object>();
+    List<Map<String,Object>> servers = new ArrayList<Map<String,Object>>();
+    
     for (TabletServerStatus status : Monitor.getMmi().tServerInfo) {
       TableInfo summary = Monitor.summarizeTableStats(status);
-      addServerLine(sb, status.name, TServerLinkType.displayName(status.name), status.osLoad, summary.ingestRate, summary.queryRate,
+      servers.add(addServer(status.name, TServerLinkType.displayName(status.name), status.osLoad, summary.ingestRate, summary.queryRate,
           summary.ingestByteRate / 1000000.0, summary.queryByteRate / 1000000.0, summary.scans.running + summary.scans.queued, Monitor.getLookupRate(),
-          status.holdTime);
+          status.holdTime));
     }
     
     for (Entry<String,Byte> entry : Monitor.getMmi().badTServers.entrySet()) {
-      sb.append("  {'ip': '").append(entry.getKey()).append("',\n  'bad':true},\n");
+      Map<String,Object> badServer = new HashMap<String,Object>();
+      badServer.put("ip", entry.getKey());
+      badServer.put("bad", true);
+      servers.add(badServer);
     }
     
     for (DeadServer dead : Monitor.getMmi().deadTabletServers) {
-      sb.append("  {'ip': '").append(dead.server).append("',\n  'dead': true},\n");
+        Map<String,Object> deadServer = new HashMap<String,Object>();
+        deadServer.put("ip", dead.server);
+        deadServer.put("dead", true);
+        servers.add(deadServer);
     }
-    if (Monitor.getMmi().tServerInfo.size() > 0 || Monitor.getMmi().badTServers.size() > 0 || Monitor.getMmi().deadTabletServers.size() > 0)
-      sb.setLength(sb.length() - 2);
+    
+    results.put("servers", servers);
+    sb.append(gson.toJson(results));
   }
   
   @Override
-  protected void pageEnd(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
-    sb.append("\n  ]\n}\n");
-  }
+  protected void pageEnd(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {}
 }

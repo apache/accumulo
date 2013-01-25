@@ -42,40 +42,49 @@ class RowHashBenchmark(Benchmark):
     output_table = 'RowHashTestOutput'
 
     def setUp(self): 
-        random.jumpahead(int(time.time()))
-        num = random.randint(1, 100000)
-        self.input_table = self.input_table + "_" + str(num) 
-        self.output_table = self.output_table + "_" + str(num)    
-        #if (not os.getenv("HADOOP_CLASSPATH")):
-        #    os.putenv("HADOOP_CLASSPATH", self.getjars(":"))
         dir = os.path.dirname(os.path.realpath(__file__))
         file = os.path.join( dir, 'splits' )  
-        # code, out, err = cloudshell.run(self.username, self.password, 'table RowHashTestInput\n') 
-        # if out.find('no such table') == -1:
-        #    code, out, err = cloudshell.run(self.username, self.password, 'deletetable RowHashTestInput\n') 
-        #    self.sleep(15)
+        code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % self.input_table) 
+        if out.find('does not exist') == -1:
+           code, out, err = cloudshell.run(self.username, self.password, 'deletetable -f %s\n' % self.input_table) 
+           self.sleep(15)
         code, out, err = cloudshell.run(self.username, self.password, "createtable %s -sf %s\n" % (self.input_table, file))
-        #code, out, err = cloudshell.run('table RowHashTest\n') 
-        #if out.find('no such table') == -1:
-        #    code, out, err = cloudshell.run('user root\nsecret\ndeletetable RowHashTest\n') 
-        #    self.sleep(15)
+        code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % self.output_table) 
+        if out.find('does not exist') == -1:
+            code, out, err = cloudshell.run(self.username, self.password, 'deletetable -f %s\n' %
+                    self.output_table) 
+            self.sleep(15)
         code, out, err = cloudshell.run(self.username, self.password, "createtable %s -sf %s\n" % (self.output_table, file))
         command = self.buildcommand('org.apache.accumulo.examples.simple.mapreduce.TeraSortIngest',
-                                    self.numrows(),
-                                    self.keysizemin(),
-                                    self.keysizemax(),
-                                    self.minvaluesize(),
-                                    self.maxvaluesize(),
-                                    self.input_table, 
-                                    self.getInstance(),
-                                    self.getZookeepers(),
-                                    self.getUsername(),
-                                    self.getPassword(),
-                                    self.maxmaps)
+                                    '--count', self.numrows(),
+                                    '-nk', self.keysizemin(),
+                                    '-xk', self.keysizemax(),
+                                    '-nv', self.minvaluesize(),
+                                    '-xv', self.maxvaluesize(),
+                                    '--table', self.input_table, 
+                                    '-i', self.getInstance(),
+                                    '-z', self.getZookeepers(),
+                                    '-u', self.getUsername(),
+                                    '-p', self.getPassword(),
+                                    '--splits', self.maxmaps)
         handle = runner.start(command, stdin=subprocess.PIPE)
         log.debug("Running: %r", command)
         out, err = handle.communicate("")  
         Benchmark.setUp(self)
+
+    def tearDown(self):
+        code, out, err = cloudshell.run(self.username, self.password, "deletetable -f %s\n" % self.input_table)
+        self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.input_table, out))
+        code, out, err = cloudshell.run(self.username, self.password, "deletetable -f %s\n" % self.output_table)
+        self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.output_table, out))
+        Benchmark.tearDown(self)
+
+    def tearDown(self):
+        code, out, err = cloudshell.run(self.username, self.password, "deletetable %s\n" % self.input_table)
+        self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.input_table, out))
+        code, out, err = cloudshell.run(self.username, self.password, "deletetable %s\n" % self.output_table)
+        self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.output_table, out))
+        Benchmark.tearDown(self)
 
     def keysizemin(self):
         return self.keymin
@@ -109,7 +118,7 @@ class RowHashBenchmark(Benchmark):
         return handle.returncode, out, err
     
     def shortDescription(self):
-        return 'Hashes %d rows from one tableand outputs them into another Table. '\
+        return 'Hashes %d rows from one table and outputs them into another table. '\
                'Lower score is better.' % (self.numrows())
                
     def setSpeed(self, speed):

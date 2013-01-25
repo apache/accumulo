@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.trace.TraceDump;
 import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.Monitor;
@@ -69,7 +68,7 @@ abstract class Basic extends BasicServlet {
     String table = conf.get(Property.TRACE_TABLE);
     try {
       Connector conn = HdfsZooInstance.getInstance().getConnector(user, passwd);
-      if (!conn.tableOperations().exists(TraceDump.TRACE_TABLE)) {
+      if (!conn.tableOperations().exists(table)) {
         return new NullScanner();
       }
       Scanner scanner = conn.createScanner(table, conn.securityOperations().getUserAuthorizations(user));

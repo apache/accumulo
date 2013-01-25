@@ -19,22 +19,33 @@ package org.apache.accumulo.server.util;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
+import com.beust.jcommander.Parameter;
+
 public class TabletServerLocks {
   
+  static class Opts extends Help {
+    @Parameter(names="-list")
+    boolean list = false;
+    @Parameter(names="-delete")
+    String delete = null;
+  }
   /**
    * @param args
    */
   public static void main(String[] args) throws Exception {
     
     String tserverPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTSERVERS;
+    Opts opts = new Opts();
+    opts.parseArgs(TabletServerLocks.class.getName(), args);
     
-    if (args.length == 1 && args[0].equals("-list")) {
+    if (opts.list) {
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       
       List<String> tabletServers = zoo.getChildren(tserverPath);
@@ -46,9 +57,9 @@ public class TabletServerLocks {
           holder = new String(lockData);
         }
         
-        System.out.printf("%32s %16s\n", tabletServer, holder);
+        System.out.printf("%32s %16s%n", tabletServer, holder);
       }
-    } else if (args.length == 2 && args[0].equals("-delete")) {
+    } else if (opts.delete != null) {
       ZooLock.deleteLock(tserverPath + "/" + args[1]);
     } else {
       System.out.println("Usage : " + TabletServerLocks.class.getName() + " -list|-delete <tserver lock>");

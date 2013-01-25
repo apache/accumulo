@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
@@ -72,7 +73,7 @@ public class ConstraintTest extends FunctionalTest {
   }
   
   private void test1() throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter("ct", 100000, 60000l, 1);
+    BatchWriter bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
     
     Mutation mut1 = new Mutation(new Text("r1"));
     mut1.put(new Text("cf1"), new Text("cq1"), new Value("123".getBytes()));
@@ -82,7 +83,7 @@ public class ConstraintTest extends FunctionalTest {
     // should not throw any exceptions
     bw.close();
     
-    bw = getConnector().createBatchWriter("ct", 100000, 60000l, 1);
+    bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
     
     // create a mutation with a non numeric value
     Mutation mut2 = new Mutation(new Text("r1"));
@@ -143,7 +144,7 @@ public class ConstraintTest extends FunctionalTest {
     UtilWaitThread.sleep(1000);
     
     // now should be able to add a non numeric value
-    bw = getConnector().createBatchWriter("ct", 100000, 60000l, 1);
+    bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
     bw.addMutation(mut2);
     bw.close();
     
@@ -166,7 +167,7 @@ public class ConstraintTest extends FunctionalTest {
     UtilWaitThread.sleep(1000);
     
     // add a mutation
-    bw = getConnector().createBatchWriter("ct", 100000, 60000l, 1);
+    bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
     
     Mutation mut3 = new Mutation(new Text("r1"));
     mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes()));
@@ -206,7 +207,7 @@ public class ConstraintTest extends FunctionalTest {
     UtilWaitThread.sleep(1000);
     
     // try the mutation again
-    bw = getConnector().createBatchWriter("ct", 100000, 60000l, 1);
+    bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
     bw.addMutation(mut3);
     bw.close();
     
@@ -236,7 +237,7 @@ public class ConstraintTest extends FunctionalTest {
     // should go through
     int numericErrors = 2;
     
-    BatchWriter bw = getConnector().createBatchWriter(table, 100000, 60000l, 1);
+    BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
     bw.addMutation(newMut("r1", "cf1", "cq1", "123"));
     bw.addMutation(newMut("r1", "cf1", "cq2", "I'm a bad value"));
     if (doFlush) {
@@ -250,7 +251,7 @@ public class ConstraintTest extends FunctionalTest {
         } catch (MutationsRejectedException ex) {
           // ignored
         }
-        bw = getConnector().createBatchWriter(table, 100000, 60000l, 1);
+        bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
         numericErrors = 1;
       }
     }

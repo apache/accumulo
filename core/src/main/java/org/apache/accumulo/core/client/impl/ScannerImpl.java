@@ -29,6 +29,7 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -37,7 +38,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
@@ -49,17 +50,16 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   // and just query for the next highest row from the tablet server
   
   private Instance instance;
-  private AuthInfo credentials;
+  private InstanceTokenWrapper credentials;
   private Authorizations authorizations;
   private Text table;
   
   private int size;
-  private int timeOut;
   
   private Range range;
   private boolean isolated = false;
   
-  public ScannerImpl(Instance instance, AuthInfo credentials, String table, Authorizations authorizations) {
+  public ScannerImpl(Instance instance, InstanceTokenWrapper credentials, String table, Authorizations authorizations) {
     ArgumentChecker.notNull(instance, credentials, table, authorizations);
     this.instance = instance;
     this.credentials = credentials;
@@ -68,23 +68,6 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     this.authorizations = authorizations;
     
     this.size = Constants.SCAN_BATCH_SIZE;
-    this.timeOut = Integer.MAX_VALUE;
-  }
-  
-  /**
-   * When failure occurs, the scanner automatically retries. This setting determines how long a scanner will retry. By default a scanner will retry forever.
-   * 
-   * @param timeOut
-   *          in milliseconds
-   */
-  @Override
-  public synchronized void setTimeOut(int timeOut) {
-    this.timeOut = timeOut;
-  }
-  
-  @Override
-  public synchronized int getTimeOut() {
-    return timeOut;
   }
   
   @Override
@@ -115,8 +98,9 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
    * Returns an iterator over an accumulo table. This iterator uses the options that are currently set on the scanner for its lifetime. So setting options on a
    * Scanner object will have no effect on existing iterators.
    */
+  @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
-    return new ScannerIterator(instance, credentials, table, authorizations, range, size, timeOut, this, isolated);
+    return new ScannerIterator(instance, credentials, table, authorizations, range, size, getTimeOut(), this, isolated);
   }
   
   @Override
@@ -127,5 +111,23 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   @Override
   public synchronized void disableIsolation() {
     this.isolated = false;
+  }
+  
+  @Deprecated
+  @Override
+  public void setTimeOut(int timeOut) {
+    if (timeOut == Integer.MAX_VALUE)
+      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+    else
+      setTimeout(timeOut, TimeUnit.SECONDS);
+  }
+  
+  @Deprecated
+  @Override
+  public int getTimeOut() {
+    long timeout = getTimeout(TimeUnit.SECONDS);
+    if (timeout >= Integer.MAX_VALUE)
+      return Integer.MAX_VALUE;
+    return (int) timeout;
   }
 }

@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -30,17 +29,17 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
-import org.apache.accumulo.server.security.Authenticator;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.security.ZKAuthenticator;
+import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.MetadataTable;
@@ -180,13 +179,13 @@ class PopulateZookeeper extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     // reserve the table name in zookeeper or fail
     
     Utils.tableNameLock.lock();
     try {
       // write tableName & tableId to zookeeper
-      Instance instance = HdfsZooInstance.getInstance();
+      Instance instance = master.getInstance();
       
       Utils.checkTableDoesNotExist(instance, tableInfo.tableName, tableInfo.tableId, TableOperation.CREATE);
       
@@ -204,8 +203,8 @@ class PopulateZookeeper extends MasterRepo {
   }
   
   @Override
-  public void undo(long tid, Master env) throws Exception {
-    Instance instance = HdfsZooInstance.getInstance();
+  public void undo(long tid, Master master) throws Exception {
+    Instance instance = master.getInstance();
     TableManager.getInstance().removeTable(tableInfo.tableId);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
     Tables.clearCache(instance);
@@ -231,13 +230,13 @@ class SetupPermissions extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all table permissions to the creator
-    Authenticator authenticator = ZKAuthenticator.getInstance();
+    SecurityOperation security = AuditedSecurityOperation.getInstance();
     for (TablePermission permission : TablePermission.values()) {
       try {
-        authenticator.grantTablePermission(SecurityConstants.getSystemCredentials(), tableInfo.user, tableInfo.tableId, permission);
-      } catch (AccumuloSecurityException e) {
+        security.grantTablePermission(SecurityConstants.getSystemCredentials(), tableInfo.user, tableInfo.tableId, permission);
+      } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCreateTable.class).error(e.getMessage(), e);
-        throw e.asThriftException();
+        throw e;
       }
     }
     
@@ -249,7 +248,7 @@ class SetupPermissions extends MasterRepo {
   
   @Override
   public void undo(long tid, Master env) throws Exception {
-    ZKAuthenticator.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableInfo.tableId);
+    AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableInfo.tableId);
   }
   
 }
@@ -273,7 +272,7 @@ public class CreateTable extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped
@@ -282,8 +281,7 @@ public class CreateTable extends MasterRepo {
     
     Utils.idLock.lock();
     try {
-      Instance instance = HdfsZooInstance.getInstance();
-      tableInfo.tableId = Utils.getNextTableId(tableInfo.tableName, instance);
+      tableInfo.tableId = Utils.getNextTableId(tableInfo.tableName, master.getInstance());
       return new SetupPermissions(tableInfo);
     } finally {
       Utils.idLock.unlock();

@@ -29,6 +29,8 @@ import java.util.SortedSet;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
+import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -50,8 +52,8 @@ import org.apache.accumulo.core.data.thrift.ScanResult;
 import org.apache.accumulo.core.data.thrift.TKeyValue;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -72,7 +74,7 @@ public class ThriftScanner {
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Logger log = Logger.getLogger(ThriftScanner.class);
   
-  public static Map<TabletType,Set<String>> serversWaitedForWrites = new EnumMap<TabletType,Set<String>>(TabletType.class);
+  public static final Map<TabletType,Set<String>> serversWaitedForWrites = new EnumMap<TabletType,Set<String>>(TabletType.class);
   
   static {
     for (TabletType ttype : TabletType.values()) {
@@ -80,7 +82,7 @@ public class ThriftScanner {
     }
   }
   
-  public static boolean getBatchFromServer(AuthInfo credentials, Text startRow, KeyExtent extent, String server, SortedMap<Key,Value> results,
+  public static boolean getBatchFromServer(InstanceTokenWrapper credentials, Text startRow, KeyExtent extent, String server, SortedMap<Key,Value> results,
       SortedSet<Column> fetchedColumns, boolean skipStartKey, int size, Authorizations authorizations, boolean retry, AccumuloConfiguration conf)
       throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
     Key startKey;
@@ -103,20 +105,21 @@ public class ThriftScanner {
     return getBatchFromServer(credentials, startKey, (Key) null, extent, server, results, fetchedColumns, size, authorizations, retry, conf);
   }
   
-  static boolean getBatchFromServer(AuthInfo credentials, Key key, Key endKey, KeyExtent extent, String server, SortedMap<Key,Value> results,
+  static boolean getBatchFromServer(InstanceTokenWrapper credentials, Key key, Key endKey, KeyExtent extent, String server, SortedMap<Key,Value> results,
       SortedSet<Column> fetchedColumns, int size, Authorizations authorizations, boolean retry, AccumuloConfiguration conf) throws AccumuloException,
       AccumuloSecurityException, NotServingTabletException {
     return getBatchFromServer(credentials, new Range(key, true, endKey, true), extent, server, results, fetchedColumns, size, authorizations, retry, conf);
   }
   
-  static boolean getBatchFromServer(AuthInfo credentials, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
+  static boolean getBatchFromServer(InstanceTokenWrapper credentials, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
       SortedSet<Column> fetchedColumns, int size, Authorizations authorizations, boolean retry, AccumuloConfiguration conf) throws AccumuloException,
       AccumuloSecurityException, NotServingTabletException {
     if (server == null)
       throw new AccumuloException(new IOException());
     
     try {
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(server, conf);
+      TInfo tinfo = Tracer.traceInfo();
+      TabletClientService.Client client = ThriftUtil.getTServerClient(server, conf);
       try {
         List<IterInfo> emptyList = Collections.emptyList();
         Map<String,Map<String,String>> emptyMap = Collections.emptyMap();
@@ -125,7 +128,7 @@ public class ThriftScanner {
         
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
-        InitialScan isr = client.startScan(null, scanState.credentials, extent.toThrift(), scanState.range.toThrift(),
+        InitialScan isr = client.startScan(tinfo, scanState.credentials.toThrift(), extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated);
         if (waitForWrites)
@@ -136,7 +139,7 @@ public class ThriftScanner {
         for (TKeyValue kv : isr.result.results)
           results.put(new Key(kv.key), new Value(kv.value));
         
-        client.closeScan(null, isr.scanID);
+        client.closeScan(tinfo, isr.scanID);
         
         return isr.result.more;
       } finally {
@@ -146,12 +149,12 @@ public class ThriftScanner {
       throw new AccumuloServerException(server, tae);
     } catch (TooManyFilesException e) {
       log.debug("Tablet (" + extent + ") has too many files " + server + " : " + e);
-    } catch (TException e) {
-      log.debug("Error getting transport to " + server + " : " + e);
     } catch (ThriftSecurityException e) {
       log.warn("Security Violation in scan request to " + server + ": " + e);
       throw new AccumuloSecurityException(e.user, e.code, e);
-    }
+    } catch (TException e) {
+      log.debug("Error getting transport to " + server + " : " + e);
+    } 
     
     throw new AccumuloException("getBatchFromServer: failed");
   }
@@ -167,7 +170,7 @@ public class ThriftScanner {
     
     int size;
     
-    AuthInfo credentials;
+    InstanceTokenWrapper credentials;
     Authorizations authorizations;
     List<Column> columns;
     
@@ -180,7 +183,7 @@ public class ThriftScanner {
     
     Map<String,Map<String,String>> serverSideIteratorOptions;
     
-    public ScanState(AuthInfo credentials, Text tableName, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
+    public ScanState(InstanceTokenWrapper credentials, Text tableName, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated) {
       this.credentials = credentials;
       this.authorizations = authorizations;
@@ -217,7 +220,7 @@ public class ThriftScanner {
     
   }
   
-  public static List<KeyValue> scan(Instance instance, AuthInfo credentials, ScanState scanState, int timeOut, AccumuloConfiguration conf)
+  public static List<KeyValue> scan(Instance instance, InstanceTokenWrapper credentials, ScanState scanState, int timeOut, AccumuloConfiguration conf)
       throws ScanTimedOutException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TabletLocation loc = null;
     
@@ -318,24 +321,6 @@ public class ThriftScanner {
             throw new IsolationException();
           
           UtilWaitThread.sleep(100);
-        } catch (TException e) {
-          TabletLocator.getInstance(instance, credentials, scanState.tableName).invalidateCache(loc.tablet_location);
-          error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage() + " " + loc;
-          if (!error.equals(lastError))
-            log.debug(error);
-          else if (log.isTraceEnabled())
-            log.trace(error);
-          lastError = error;
-          loc = null;
-          
-          // do not want to continue using the same scan id, if a timeout occurred could cause a batch to be skipped
-          // because a thread on the server side may still be processing the timed out continue scan
-          scanState.scanID = null;
-          
-          if (scanState.isolated)
-            throw new IsolationException();
-          
-          UtilWaitThread.sleep(100);
         } catch (NoSuchScanIDException e) {
           error = "Scan failed, no such scan id " + scanState.scanID + " " + loc;
           if (!error.equals(lastError))
@@ -371,6 +356,24 @@ public class ThriftScanner {
             throw new IsolationException();
           
           UtilWaitThread.sleep(100);
+        } catch (TException e) {
+          TabletLocator.getInstance(instance, credentials, scanState.tableName).invalidateCache(loc.tablet_location);
+          error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage() + " " + loc;
+          if (!error.equals(lastError))
+            log.debug(error);
+          else if (log.isTraceEnabled())
+            log.trace(error);
+          lastError = error;
+          loc = null;
+          
+          // do not want to continue using the same scan id, if a timeout occurred could cause a batch to be skipped
+          // because a thread on the server side may still be processing the timed out continue scan
+          scanState.scanID = null;
+          
+          if (scanState.isolated)
+            throw new IsolationException();
+          
+          UtilWaitThread.sleep(100);
         } finally {
           scanLocation.stop();
         }
@@ -393,7 +396,8 @@ public class ThriftScanner {
     
     OpTimer opTimer = new OpTimer(log, Level.TRACE);
     
-    TabletClientService.Iface client = ThriftUtil.getTServerClient(loc.tablet_location, conf);
+    TInfo tinfo = Tracer.traceInfo();
+    TabletClientService.Client client = ThriftUtil.getTServerClient(loc.tablet_location, conf);
     
     String old = Thread.currentThread().getName();
     try {
@@ -412,7 +416,7 @@ public class ThriftScanner {
         
         TabletType ttype = TabletType.type(loc.tablet_extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
-        InitialScan is = client.startScan(null, scanState.credentials, loc.tablet_extent.toThrift(), scanState.range.toThrift(),
+        InitialScan is = client.startScan(tinfo, scanState.credentials.toThrift(), loc.tablet_extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated);
         if (waitForWrites)
@@ -423,7 +427,7 @@ public class ThriftScanner {
         if (sr.more)
           scanState.scanID = is.scanID;
         else
-          client.closeScan(null, is.scanID);
+          client.closeScan(tinfo, is.scanID);
         
       } else {
         // log.debug("Calling continue scan : "+scanState.range+"  loc = "+loc);
@@ -431,9 +435,9 @@ public class ThriftScanner {
         Thread.currentThread().setName(msg);
         opTimer.start(msg);
         
-        sr = client.continueScan(null, scanState.scanID);
+        sr = client.continueScan(tinfo, scanState.scanID);
         if (!sr.more) {
-          client.closeScan(null, scanState.scanID);
+          client.closeScan(tinfo, scanState.scanID);
           scanState.scanID = null;
         }
       }

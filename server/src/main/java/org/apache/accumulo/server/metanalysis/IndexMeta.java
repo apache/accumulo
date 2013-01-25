@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.metanalysis;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -25,13 +26,13 @@ import java.util.Map;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.logger.LogEvents;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
@@ -44,6 +45,8 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * A map reduce job that takes write ahead logs containing mutations for the metadata table and indexes them into Accumulo tables for analysis.
@@ -112,26 +115,22 @@ public class IndexMeta extends Configured implements Tool {
       context.write(TABLET_EVENTS_TABLE, tabletEvent);
     }
   }
-
   
+  static class Opts extends ClientOpts {
+    @Parameter(description = "<logfile> { <logfile> ...}")
+    List<String> logFiles = new ArrayList<String>();
+  }
   
   @Override
   public int run(String[] args) throws Exception {
-    if (args.length < 5) {
-      System.err.println("Usage : " + IndexMeta.class + " <instance> <zookeepers> <user> <pass> <logfile> {<logfile>}");
-      return -1;
-    }
+    Opts opts = new Opts();
+    opts.parseArgs(IndexMeta.class.getName(), args);
     
-    String instance = args[0];
-    String zookeepers = args[1];
-    String user = args[2];
-    String pass = args[3];
-
     String jobName = this.getClass().getSimpleName() + "_" + System.currentTimeMillis();
     
     Job job = new Job(getConf(), jobName);
     job.setJarByClass(this.getClass());
-
+    
     List<String> logFiles = Arrays.asList(args).subList(4, args.length);
     Path paths[] = new Path[logFiles.size()];
     int count = 0;
@@ -145,13 +144,13 @@ public class IndexMeta extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), user, pass.getBytes(), false, null);
+    AccumuloOutputFormat.setZooKeeperInstance(job, opts.instance, opts.zookeepers);
+    AccumuloOutputFormat.setConnectorInfo(job, opts.getAccumuloToken());
+    AccumuloOutputFormat.setCreateTables(job, false);
     
     job.setMapperClass(IndexMapper.class);
-
-    ZooKeeperInstance zki = new ZooKeeperInstance(instance, zookeepers);
-    Connector conn = zki.getConnector(user, pass);
+    
+    Connector conn = opts.getConnector();
     
     try {
       conn.tableOperations().create("createEvents");

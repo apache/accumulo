@@ -16,30 +16,65 @@
  */
 package org.apache.accumulo.server.test.continuous;
 
+import java.util.List;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
+
 /**
  * 
  */
 public class GenSplits {
+  
+  static class Opts {
+    @Parameter(names = "--min", description = "minimum row")
+    long minRow = 0;
+    
+    @Parameter(names = "--max", description = "maximum row")
+    long maxRow = Long.MAX_VALUE;
+    
+    @Parameter(description = "<num tablets>")
+    List<String> args = null;
+  }
+
   public static void main(String[] args) {
     
-    if (args.length != 1) {
-      System.err.println("Usage: " + GenSplits.class.getName() + " <num tablets>");
+    Opts opts = new Opts();
+    JCommander jcommander = new JCommander(opts);
+    jcommander.setProgramName(GenSplits.class.getSimpleName());
+    
+    try {
+      jcommander.parse(args);
+    } catch (ParameterException pe) {
+      System.err.println(pe.getMessage());
+      jcommander.usage();
+      System.exit(-1);
+    }
+
+    if (opts.args == null || opts.args.size() != 1) {
+      jcommander.usage();
       System.exit(-1);
     }
     
-    int numTablets = Integer.parseInt(args[0]);
+    int numTablets = Integer.parseInt(opts.args.get(0));
     
     if (numTablets < 1) {
       System.err.println("ERROR: numTablets < 1");
       System.exit(-1);
     }
     
+    if (opts.minRow >= opts.maxRow) {
+      System.err.println("ERROR: min >= max");
+      System.exit(-1);
+    }
+
     int numSplits = numTablets - 1;
-    long distance = (Long.MAX_VALUE / numTablets) + 1;
+    long distance = ((opts.maxRow - opts.minRow) / numTablets) + 1;
     long split = distance;
     for (int i = 0; i < numSplits; i++) {
       
-      String s = String.format("%016x", split);
+      String s = String.format("%016x", split + opts.minRow);
       
       while (s.charAt(s.length() - 1) == '0') {
         s = s.substring(0, s.length() - 1);

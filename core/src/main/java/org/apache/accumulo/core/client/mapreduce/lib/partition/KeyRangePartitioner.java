@@ -20,7 +20,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Partitioner;
 
 /**
@@ -47,14 +47,14 @@ public class KeyRangePartitioner extends Partitioner<Key,Writable> implements Co
   /**
    * Sets the hdfs file name to use, containing a newline separated list of Base64 encoded split points that represent ranges for partitioning
    */
-  public static void setSplitFile(JobContext job, String file) {
+  public static void setSplitFile(Job job, String file) {
     RangePartitioner.setSplitFile(job, file);
   }
   
   /**
    * Sets the number of random sub-bins per range
    */
-  public static void setNumSubBins(JobContext job, int num) {
+  public static void setNumSubBins(Job job, int num) {
     RangePartitioner.setNumSubBins(job, num);
   }
 }

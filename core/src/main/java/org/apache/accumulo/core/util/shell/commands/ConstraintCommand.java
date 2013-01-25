@@ -28,16 +28,17 @@ import org.apache.commons.cli.Options;
 
 public class ConstraintCommand extends Command {
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     int i;
     
     switch (OptUtil.getAldOpt(cl)) {
       case ADD:
         for (String constraint : cl.getArgs()) {
-          if (!shellState.getConnector().instanceOperations().testClassLoad(constraint, Constraint.class.getName()))
+          if (!shellState.getConnector().instanceOperations().testClassLoad(constraint, Constraint.class.getName())) {
             throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + constraint + " as type "
                 + Constraint.class.getName());
+          }
           i = shellState.getConnector().tableOperations().addConstraint(tableName, constraint);
           shellState.getReader().printString("Added constraint " + constraint + " to table " + tableName + " with number " + i + "\n");
         }
@@ -50,8 +51,9 @@ public class ConstraintCommand extends Command {
         }
         break;
       case LIST:
-        for (Entry<String,Integer> property : shellState.getConnector().tableOperations().listConstraints(tableName).entrySet())
+        for (Entry<String,Integer> property : shellState.getConnector().tableOperations().listConstraints(tableName).entrySet()) {
           shellState.getReader().printString(property.toString() + "\n");
+        }
     }
     
     return 0;
@@ -74,7 +76,7 @@ public class ConstraintCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     o.addOptionGroup(OptUtil.addListDeleteGroup("constraint"));
     o.addOption(OptUtil.tableOpt("table to add, delete, or list constraints for"));
     return o;

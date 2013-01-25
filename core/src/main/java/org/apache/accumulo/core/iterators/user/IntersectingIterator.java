@@ -18,9 +18,11 @@ package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -47,6 +49,9 @@ import org.apache.log4j.Logger;
  * row: shardID, colfam: (empty), colqual: docID
  * 
  * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the search over all shardIDs.
+ * 
+ * This iterator will *ignore* any columnFamilies passed to {@link #seek(Range, Collection, boolean)} as it performs intersections over terms. Extending classes
+ * should override the {@link TermSource#seekColfams} in their implementation's {@link #init(SortedKeyValueIterator, Map, IteratorEnvironment)} method.
  * 
  * README.shard in docs/examples shows an example of using the IntersectingIterator.
  */
@@ -80,27 +85,29 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   
   protected static final Logger log = Logger.getLogger(IntersectingIterator.class);
   
-  protected static class TermSource {
+  public static class TermSource {
     public SortedKeyValueIterator<Key,Value> iter;
     public Text term;
+    public Collection<ByteSequence> seekColfams;
     public boolean notFlag;
     
     public TermSource(TermSource other) {
       this.iter = other.iter;
       this.term = other.term;
       this.notFlag = other.notFlag;
+      this.seekColfams = other.seekColfams;
     }
     
     public TermSource(SortedKeyValueIterator<Key,Value> iter, Text term) {
-      this.iter = iter;
-      this.term = term;
-      this.notFlag = false;
+      this(iter, term, false);
     }
     
     public TermSource(SortedKeyValueIterator<Key,Value> iter, Text term, boolean notFlag) {
       this.iter = iter;
       this.term = term;
       this.notFlag = notFlag;
+      // The desired column families for this source is the term itself
+      this.seekColfams = Collections.<ByteSequence> singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
     }
     
     public String getTermString() {
@@ -120,10 +127,6 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   
   protected Key topKey = null;
   protected Value value = new Value(emptyByteArray);
-  
-  protected Collection<ByteSequence> seekColumnFamilies;
-  
-  protected boolean inclusive;
   
   public IntersectingIterator() {}
   
@@ -196,7 +199,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         if (partitionCompare > 0) {
           // seek to at least the currentRow
           Key seekKey = buildKey(currentPartition, sources[sourceID].term);
-          sources[sourceID].iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+          sources[sourceID].iter.seek(new Range(seekKey, true, null, false), sources[sourceID].seekColfams, true);
           continue;
         }
         // check if this source has gone beyond currentRow
@@ -213,7 +216,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
           // if not, then seek forwards to the right columnFamily
           if (termCompare > 0) {
             Key seekKey = buildKey(currentPartition, sources[sourceID].term, currentDocID);
-            sources[sourceID].iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+            sources[sourceID].iter.seek(new Range(seekKey, true, null, false), sources[sourceID].seekColfams, true);
             continue;
           }
           // check if this source is beyond the right columnFamily
@@ -235,7 +238,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         if (docIDCompare > 0) {
           // seek forwards
           Key seekKey = buildKey(currentPartition, sources[sourceID].term, currentDocID);
-          sources[sourceID].iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+          sources[sourceID].iter.seek(new Range(seekKey, true, null, false), sources[sourceID].seekColfams, true);
           continue;
         }
         // if we are equal to the target, this is an invalid result.
@@ -273,7 +276,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         if (partitionCompare > 0) {
           // seek to at least the currentRow
           Key seekKey = buildKey(currentPartition, sources[sourceID].term);
-          sources[sourceID].iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+          sources[sourceID].iter.seek(new Range(seekKey, true, null, false), sources[sourceID].seekColfams, true);
           continue;
         }
         // check if this source has gone beyond currentRow
@@ -294,7 +297,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
           // if not, then seek forwards to the right columnFamily
           if (termCompare > 0) {
             Key seekKey = buildKey(currentPartition, sources[sourceID].term, currentDocID);
-            sources[sourceID].iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+            sources[sourceID].iter.seek(new Range(seekKey, true, null, false), sources[sourceID].seekColfams, true);
             continue;
           }
           // check if this source is beyond the right columnFamily
@@ -314,7 +317,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
               return true;
             }
             Key seekKey = buildFollowingPartitionKey(sources[sourceID].iter.getTopKey());
-            sources[sourceID].iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+            sources[sourceID].iter.seek(new Range(seekKey, true, null, false), sources[sourceID].seekColfams, true);
             continue;
           }
         }
@@ -332,7 +335,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         if (docIDCompare > 0) {
           // seek forwards
           Key seekKey = buildKey(currentPartition, sources[sourceID].term, currentDocID);
-          sources[sourceID].iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+          sources[sourceID].iter.seek(new Range(seekKey, true, null, false), sources[sourceID].seekColfams, true);
           continue;
         }
         // this source is at the current row, in its column family, and at currentCQ
@@ -485,9 +488,6 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     currentPartition = new Text();
     currentDocID.set(emptyByteArray);
     
-    this.seekColumnFamilies = seekColumnFamilies;
-    this.inclusive = inclusive;
-    
     // seek each of the sources to the right column family within the row given by key
     for (int i = 0; i < sourcesCount; i++) {
       Key sourceKey;
@@ -497,9 +497,11 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         } else {
           sourceKey = buildKey(getPartition(range.getStartKey()), sources[i].term);
         }
-        sources[i].iter.seek(new Range(sourceKey, true, null, false), seekColumnFamilies, inclusive);
+        // Seek only to the term for this source as a column family
+        sources[i].iter.seek(new Range(sourceKey, true, null, false), sources[i].seekColfams, true);
       } else {
-        sources[i].iter.seek(range, seekColumnFamilies, inclusive);
+        // Seek only to the term for this source as a column family
+        sources[i].iter.seek(range, sources[i].seekColfams, true);
       }
     }
     advanceToIntersection();

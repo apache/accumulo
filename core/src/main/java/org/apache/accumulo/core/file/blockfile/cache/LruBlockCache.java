@@ -247,7 +247,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * @param inMemory
    *          if block is in-memory
    */
-  public void cacheBlock(String blockName, byte buf[], boolean inMemory) {
+  public CacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory) {
     CachedBlock cb = map.get(blockName);
     if (cb != null) {
       stats.duplicateReads();
@@ -262,6 +262,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
         runEviction();
       }
     }
+    
+    return cb;
   }
   
   /**
@@ -275,8 +277,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * @param buf
    *          block buffer
    */
-  public void cacheBlock(String blockName, byte buf[]) {
-    cacheBlock(blockName, buf, false);
+  public CacheEntry cacheBlock(String blockName, byte buf[]) {
+    return cacheBlock(blockName, buf, false);
   }
   
   /**
@@ -286,7 +288,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
    *          block name
    * @return buffer of specified block name, or null if not in cache
    */
-  public byte[] getBlock(String blockName) {
+  
+  public CachedBlock getBlock(String blockName) {
     CachedBlock cb = map.get(blockName);
     if (cb == null) {
       stats.miss();
@@ -294,7 +297,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
     }
     stats.hit();
     cb.access(count.incrementAndGet());
-    return cb.getBuffer();
+    return cb;
   }
   
   protected long evictBlock(CachedBlock block) {

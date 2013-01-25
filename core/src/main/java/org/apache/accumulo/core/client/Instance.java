@@ -21,11 +21,14 @@ import java.util.List;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 
 /**
  * This class represents the information a client needs to know to connect to an instance of accumulo.
  * 
  */
+@SuppressWarnings("deprecation")
 public interface Instance {
   /**
    * Returns the location of the tablet server that is serving the root tablet.
@@ -94,8 +97,35 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
    */
   public abstract Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException;
+  
+  /**
+   * Returns a connection to accumulo.
+   * 
+   * @param token
+   *          An AccumuloToken implementing object.
+   * @return the accumulo Connector
+   * @throws AccumuloException
+   *           when a generic exception occurs
+   * @throws AccumuloSecurityException
+   *           when a user's credentials are invalid
+   */
+  public abstract Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException;
+  
+  /**
+   * Returns a connection to accumulo.
+   * 
+   * @param token
+   *          An InstanceTokenWrapper.
+   * @return the accumulo Connector
+   * @throws AccumuloException
+   *           when a generic exception occurs
+   * @throws AccumuloSecurityException
+   *           when a user's credentials are invalid
+   */
+  public abstract Connector getConnector(InstanceTokenWrapper token) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Returns a connection to accumulo.
@@ -109,6 +139,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
+   *           @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
    */
   public abstract Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException;
   
@@ -124,6 +155,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
+   *           @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
    */
   public abstract Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException;
   
@@ -141,4 +173,10 @@ public interface Instance {
    *          accumulo configuration
    */
   public abstract void setConfiguration(AccumuloConfiguration conf);
+  
+  /**
+   * Returns the class name for the tokens Accumulo is expecting.
+   * @throws AccumuloException 
+   */
+  public abstract String getSecurityTokenClass() throws AccumuloException;
 }

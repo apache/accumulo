@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -44,6 +45,12 @@ import org.apache.log4j.Logger;
  */
 public class SortedLogRecovery {
   private static final Logger log = Logger.getLogger(SortedLogRecovery.class);
+  
+  static class EmptyMapFileException extends Exception {
+    private static final long serialVersionUID = 1L;
+
+    public EmptyMapFileException() { super(); }
+  }
   
   public SortedLogRecovery() {}
   
@@ -86,7 +93,12 @@ public class SortedLogRecovery {
       log.info("Looking at mutations from " + logfile + " for " + extent);
       MultiReader reader = new MultiReader(fs, conf, logfile);
       try {
-        tids[i] = findLastStartToFinish(reader, i, extent, tabletFiles, lastStartToFinish);
+        try {
+          tids[i] = findLastStartToFinish(reader, i, extent, tabletFiles, lastStartToFinish);
+        } catch (EmptyMapFileException ex) {
+          log.info("Ignoring empty map file " + logfile);
+          tids[i] = -1;
+        }
       } finally {
         try {
           reader.close();
@@ -116,13 +128,13 @@ public class SortedLogRecovery {
     }
   }
   
-  int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent, Set<String> tabletFiles, LastStartToFinish lastStartToFinish) throws IOException {
+  int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent, Set<String> tabletFiles, LastStartToFinish lastStartToFinish) throws IOException, EmptyMapFileException {
     // Scan for tableId for this extent (should always be in the log)
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
     int tid = -1;
     if (!reader.next(key, value))
-      throw new RuntimeException("Unable to read log entries");
+      throw new EmptyMapFileException();
     if (key.event != OPEN)
       throw new RuntimeException("First log entry value is not OPEN");
     
@@ -208,10 +220,10 @@ public class SortedLogRecovery {
       // log.info("Replaying " + key);
       // log.info(value);
       if (key.event == MUTATION) {
-        mr.receive(value.mutations[0]);
+        mr.receive(value.mutations.get(0));
       } else if (key.event == MANY_MUTATIONS) {
-        for (int i = 0; i < value.mutations.length; i++) {
-          mr.receive(value.mutations[i]);
+        for (Mutation m : value.mutations) {
+          mr.receive(m);
         }
       } else {
         throw new RuntimeException("unexpected log key type: " + key.event);

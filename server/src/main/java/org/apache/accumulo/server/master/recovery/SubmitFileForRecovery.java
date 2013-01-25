@@ -70,6 +70,13 @@ public class SubmitFileForRecovery extends MasterRepo implements Repo<Master> {
               log.error("Unable to check on the recovery status of " + file, ex);
             }
             break;
+          case NodeChildrenChanged:
+          case NodeCreated:
+          case NodeDataChanged:
+          case None:
+          default:
+            /* do nothing. */
+            break;
         }
       }
       

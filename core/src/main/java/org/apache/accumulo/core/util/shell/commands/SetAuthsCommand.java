@@ -35,10 +35,10 @@ public class SetAuthsCommand extends Command {
   private Option clearOptAuths;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException {
-    String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
-    String scanOpts = cl.hasOption(clearOptAuths.getOpt()) ? null : cl.getOptionValue(scanOptAuths.getOpt());
-    shellState.getConnector().securityOperations().changeUserAuthorizations(user, CreateUserCommand.parseAuthorizations(scanOpts));
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException {
+    final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
+    final String scanOpts = cl.hasOption(clearOptAuths.getOpt()) ? null : cl.getOptionValue(scanOptAuths.getOpt());
+    shellState.getConnector().securityOperations().changeUserAuthorizations(user, ScanCommand.parseAuthorizations(scanOpts));
     Shell.log.debug("Changed record-level authorizations for user " + user);
     return 0;
   }
@@ -49,14 +49,14 @@ public class SetAuthsCommand extends Command {
   }
   
   @Override
-  public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
-    OptionGroup setOrClear = new OptionGroup();
+    final Options o = new Options();
+    final OptionGroup setOrClear = new OptionGroup();
     scanOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations to set");
     scanOptAuths.setArgName("comma-separated-authorizations");
     setOrClear.addOption(scanOptAuths);

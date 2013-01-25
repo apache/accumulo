@@ -23,6 +23,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -65,7 +66,7 @@ public class MutationLog {
     
     final FSDataInputStream login = fs.open(logfile);
     
-    final Mutation mutation = new Mutation();
+    final Mutation mutation = new ServerMutation();
     
     return new Iterator<Mutation>() {
       

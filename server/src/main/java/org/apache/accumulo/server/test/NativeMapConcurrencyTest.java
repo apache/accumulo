@@ -25,6 +25,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.server.tabletserver.NativeMap;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+
 public class NativeMapConcurrencyTest {
   
   private static final byte ROW_PREFIX[] = new byte[] {'r'};
@@ -63,21 +66,37 @@ public class NativeMapConcurrencyTest {
     }
     long t2 = System.currentTimeMillis();
     
-    System.out.printf("inserted %,d in %,d %,d %,6.2f\n", (numRows * numCols), (t2 - t1), nm.size(), rate((numRows * numCols), (t2 - t1)));
+    System.out.printf("inserted %,d in %,d %,d %,6.2f%n", (numRows * numCols), (t2 - t1), nm.size(), rate((numRows * numCols), (t2 - t1)));
   }
   
   private static double rate(int num, long ms) {
     return num / (ms / 1000.0);
   }
   
+  static class Opts {
+    @Parameter(names="--rows", description="rows", required = true)
+    int rows = 0;
+    @Parameter(names="--cols", description="cols")
+    int cols = 1;
+    @Parameter(names="--threads", description="threads")
+    int threads = 1;
+    @Parameter(names="--writeThreads", description="write threads")
+    int writeThreads = 1;
+    @Parameter(names="-help", help=true)
+    boolean help = false;
+  }
+  
   public static void main(String[] args) {
-    int rows = Integer.parseInt(args[0]);
-    int cols = Integer.parseInt(args[1]);
-    int threads = Integer.parseInt(args[2]);
-    int writeThreads = Integer.parseInt(args[3]);
-    
-    NativeMap nm = create(rows, cols);
-    runTest(nm, rows, cols, threads, writeThreads);
+    Opts opts = new Opts();
+    JCommander jc = new JCommander(opts);
+    jc.setProgramName(NativeMapConcurrencyTest.class.getName());
+    jc.parse(args);
+    if (opts.help) {
+      jc.usage();
+      return;
+    }
+    NativeMap nm = create(opts.rows, opts.cols);
+    runTest(nm, opts.rows, opts.cols, opts.threads, opts.writeThreads);
     nm.delete();
   }
   
@@ -107,7 +126,7 @@ public class NativeMapConcurrencyTest {
         
         long t2 = System.currentTimeMillis();
         
-        System.out.printf("%d %,d %,d %,d %,d %,6.2f\n", Thread.currentThread().getId(), (t2 - t1), t1, t2, count, rate(count, (t2 - t1)));
+        System.out.printf("%d %,d %,d %,d %,d %,6.2f%n", Thread.currentThread().getId(), (t2 - t1), t1, t2, count, rate(count, (t2 - t1)));
       }
     }
     

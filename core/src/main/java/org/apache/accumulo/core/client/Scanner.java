@@ -32,14 +32,18 @@ public interface Scanner extends ScannerBase {
    * 
    * @param timeOut
    *          in seconds
+   * @deprecated Since 1.5. See {@link ScannerBase#setTimeout(long, java.util.concurrent.TimeUnit)}
    */
+  @Deprecated
   public void setTimeOut(int timeOut);
   
   /**
    * Returns the setting for how long a scanner will automatically retry when a failure occurs.
    * 
    * @return the timeout configured for this scanner
+   * @deprecated Since 1.5. See {@link ScannerBase#getTimeout(java.util.concurrent.TimeUnit)}
    */
+  @Deprecated
   public int getTimeOut();
   
   /**

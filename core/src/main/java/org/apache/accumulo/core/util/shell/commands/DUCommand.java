@@ -37,16 +37,18 @@ public class DUCommand extends Command {
   
   private Option optTablePattern;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws IOException, TableNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, Shell shellState) throws IOException, TableNotFoundException {
     
-    SortedSet<String> tablesToFlush = new TreeSet<String>(Arrays.asList(cl.getArgs()));
+    final SortedSet<String> tablesToFlush = new TreeSet<String>(Arrays.asList(cl.getArgs()));
     if (cl.hasOption(optTablePattern.getOpt())) {
-      for (String table : shellState.getConnector().tableOperations().list())
-        if (table.matches(cl.getOptionValue(optTablePattern.getOpt())))
+      for (String table : shellState.getConnector().tableOperations().list()) {
+        if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
           tablesToFlush.add(table);
+        }
+      }
     }
     try {
-      AccumuloConfiguration acuConf = new ConfigurationCopy(shellState.getConnector().instanceOperations().getSystemConfiguration());
+      final AccumuloConfiguration acuConf = new ConfigurationCopy(shellState.getConnector().instanceOperations().getSystemConfiguration());
       TableDiskUsage.printDiskUsage(acuConf, tablesToFlush, FileSystem.get(new Configuration()), shellState.getConnector());
     } catch (Exception ex) {
       throw new RuntimeException(ex);
@@ -61,7 +63,7 @@ public class DUCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     optTablePattern = new Option("p", "pattern", true, "regex pattern of table names");
     optTablePattern.setArgName("pattern");

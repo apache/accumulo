@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.util.ArrayList;
 import java.util.Formattable;
 import java.util.Formatter;
 import java.util.List;
@@ -26,12 +25,15 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
+
+import com.beust.jcommander.Parameter;
 
 public class ListInstances {
   
@@ -40,26 +42,26 @@ public class ListInstances {
   private static final int NAME_WIDTH = 20;
   private static final int UUID_WIDTH = 37;
   private static final int MASTER_WIDTH = 30;
-  private static String zooKeepers;
-  private static boolean printErrors;
-  private static boolean printAll;
-  private static int errors = 0;
+  
+  static class Opts extends Help {
+    @Parameter(names="--print-errors", description="display errors while listing instances")
+    boolean printErrors = false;
+    @Parameter(names="--print-all", description="print information for all instances, not just those with names")
+    boolean printAll = false;
+    @Parameter(names={"-z", "--zookeepers"}, description="the zookeepers to contact")
+    String keepers = null;
+  }
+  static Opts opts = new Opts();
+  static int errors = 0;
   
   public static void main(String[] args) {
+    opts.parseArgs(ListInstances.class.getName(), args);
     
-    args = processOptions(args);
-    
-    if (args.length > 1) {
-      System.err.println("Usage : " + ListInstances.class.getName() + " [<zoo keepers>]");
+    if (opts.keepers == null) {
+      opts.keepers = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST);
     }
     
-    if (args.length == 1) {
-      zooKeepers = args[0];
-    } else {
-      zooKeepers = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST);
-    }
-    
-    System.out.println("INFO : Using ZooKeepers " + zooKeepers);
+    System.out.println("INFO : Using ZooKeepers " + opts.keepers);
     
     TreeMap<String,UUID> instanceNames = getInstanceNames();
     
@@ -73,7 +75,7 @@ public class ListInstances {
     TreeSet<UUID> instancedIds = getInstanceIDs();
     instancedIds.removeAll(instanceNames.values());
     
-    if (printAll) {
+    if (opts.printAll) {
       for (UUID uuid : instancedIds) {
         printInstanceInfo(null, uuid);
       }
@@ -84,26 +86,10 @@ public class ListInstances {
       System.out.println();
     }
     
-    if (!printErrors && errors > 0) {
+    if (!opts.printErrors && errors > 0) {
       System.err.println("WARN : There were " + errors + " errors, run with --print-errors to see more info");
     }
     
-  }
-  
-  private static String[] processOptions(String[] args) {
-    ArrayList<String> al = new ArrayList<String>();
-    
-    for (String s : args) {
-      if (s.equals("--print-errors")) {
-        printErrors = true;
-      } else if (s.equals("--print-all")) {
-        printAll = true;
-      } else {
-        al.add(s);
-      }
-    }
-    
-    return al.toArray(new String[al.size()]);
   }
   
   private static class CharFiller implements Formattable {
@@ -126,8 +112,8 @@ public class ListInstances {
   }
   
   private static void printHeader() {
-    System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MASTER_WIDTH + "s\n", "Instance Name", "Instance ID", "Master");
-    System.out.printf("%" + (NAME_WIDTH + 1) + "s+%" + (UUID_WIDTH + 1) + "s+%" + (MASTER_WIDTH + 1) + "s\n", new CharFiller('-'), new CharFiller('-'),
+    System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MASTER_WIDTH + "s%n", "Instance Name", "Instance ID", "Master");
+    System.out.printf("%" + (NAME_WIDTH + 1) + "s+%" + (UUID_WIDTH + 1) + "s+%" + (MASTER_WIDTH + 1) + "s%n", new CharFiller('-'), new CharFiller('-'),
         new CharFiller('-'));
     
   }
@@ -142,7 +128,7 @@ public class ListInstances {
       master = "";
     }
     
-    System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MASTER_WIDTH + "s\n", "\"" + instanceName + "\"", iid, master);
+    System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MASTER_WIDTH + "s%n", "\"" + instanceName + "\"", iid, master);
   }
   
   private static String getMaster(UUID iid) {
@@ -220,7 +206,7 @@ public class ListInstances {
   }
   
   private static void handleException(Exception e) {
-    if (printErrors) {
+    if (opts.printErrors) {
       e.printStackTrace();
     }
     

@@ -17,10 +17,11 @@
 package org.apache.accumulo.core.client.impl;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.ArgumentChecker;
 
 public class BatchWriterImpl implements BatchWriter {
@@ -28,10 +29,10 @@ public class BatchWriterImpl implements BatchWriter {
   private String table;
   private TabletServerBatchWriter bw;
   
-  public BatchWriterImpl(Instance instance, AuthInfo credentials, String table, long maxMemory, long maxLatency, int maxWriteThreads) {
-    ArgumentChecker.notNull(instance, credentials, table);
+  public BatchWriterImpl(Instance instance, InstanceTokenWrapper credentials, String table, BatchWriterConfig config) {
+    ArgumentChecker.notNull(instance, credentials, table, config);
     this.table = table;
-    this.bw = new TabletServerBatchWriter(instance, credentials, maxMemory, maxLatency, maxWriteThreads);
+    this.bw = new TabletServerBatchWriter(instance, credentials, config);
   }
   
   @Override

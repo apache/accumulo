@@ -19,12 +19,12 @@ package org.apache.accumulo.examples.simple.mapreduce;
 import java.io.IOException;
 import java.util.Collections;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.codec.binary.Base64;
@@ -36,11 +36,14 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import com.beust.jcommander.Parameter;
+
 public class RowHash extends Configured implements Tool {
   /**
    * The Mapper class that given a row number, will generate the appropriate output line.
    */
   public static class HashDataMapper extends Mapper<Key,Value,Text,Mutation> {
+    @Override
     public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
       Mutation m = new Mutation(row.getRow());
       m.put(new Text("cf-HASHTYPE"), new Text("cq-MD5BASE64"), new Value(Base64.encodeBase64(MD5Hash.digest(data.toString()).getDigest())));
@@ -52,23 +55,26 @@ public class RowHash extends Configured implements Tool {
     public void setup(Context job) {}
   }
   
+  private static class Opts extends ClientOnRequiredTable {
+    @Parameter(names = "--column", required = true)
+    String column = null;
+  }
+  
   @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), this.getClass().getName());
     job.setJarByClass(this.getClass());
-    
+    Opts opts = new Opts();
+    opts.parseArgs(RowHash.class.getName(), args);
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), args[2], args[3].getBytes(), args[4], new Authorizations());
+    opts.setAccumuloConfigs(job);
     
-    String col = args[5];
+    String col = opts.column;
     int idx = col.indexOf(":");
     Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
     Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
     if (cf.getLength() > 0)
-      AccumuloInputFormat.fetchColumns(job.getConfiguration(), Collections.singleton(new Pair<Text,Text>(cf, cq)));
-    
-    // AccumuloInputFormat.setLogLevel(job, Level.TRACE);
+      AccumuloInputFormat.fetchColumns(job, Collections.singleton(new Pair<Text,Text>(cf, cq)));
     
     job.setMapperClass(HashDataMapper.class);
     job.setMapOutputKeyClass(Text.class);
@@ -77,9 +83,6 @@ public class RowHash extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[2], args[3].getBytes(), true, args[6]);
-    // AccumuloOutputFormat.setLogLevel(job, Level.TRACE);
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

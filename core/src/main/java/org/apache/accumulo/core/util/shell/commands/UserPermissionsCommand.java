@@ -33,13 +33,13 @@ public class UserPermissionsCommand extends Command {
   private static int runOnce = 0;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
-    String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
+    final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
     
     String delim = "";
     shellState.getReader().printString("System permissions: ");
     for (SystemPermission p : SystemPermission.values()) {
-      if (shellState.getConnector().securityOperations().hasSystemPermission(user, p) & p != null) {
+      if (p != null && shellState.getConnector().securityOperations().hasSystemPermission(user, p)) {
         shellState.getReader().printString(delim + "System." + p.name());
         delim = ", ";
       }

@@ -147,7 +147,12 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    int i = Integer.parseInt(options.get(MAXVERSIONS_OPT));
+    int i;
+    try {
+      i = Integer.parseInt(options.get(MAXVERSIONS_OPT));
+    } catch (Exception e) {
+      throw new IllegalArgumentException("bad integer " + MAXVERSIONS_OPT + ":" + options.get(MAXVERSIONS_OPT));
+    }
     if (i < 1)
       throw new IllegalArgumentException(MAXVERSIONS_OPT + " for versioning iterator must be >= 1");
     return true;
@@ -160,6 +165,8 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
    * @param maxVersions
    */
   public static void setMaxVersions(IteratorSetting cfg, int maxVersions) {
+    if (maxVersions < 1)
+      throw new IllegalArgumentException(MAXVERSIONS_OPT + " for versioning iterator must be >= 1");
     cfg.addOption(MAXVERSIONS_OPT, Integer.toString(maxVersions));
   }
 }

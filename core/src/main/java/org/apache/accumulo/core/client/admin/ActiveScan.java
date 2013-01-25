@@ -27,6 +27,7 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.TColumn;
+import org.apache.accumulo.core.security.Authorizations;
 
 /**
  * A class that contains information about an ActiveScan
@@ -47,6 +48,7 @@ public class ActiveScan {
   private List<String> ssiList;
   private Map<String,Map<String,String>> ssio;
   private String user;
+  private Authorizations authorizations;
   
   ActiveScan(Instance instance, org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan) throws TableNotFoundException {
     this.client = activeScan.client;
@@ -57,6 +59,7 @@ public class ActiveScan {
     this.type = ScanType.valueOf(activeScan.getType().name());
     this.state = ScanState.valueOf(activeScan.state.name());
     this.extent = new KeyExtent(activeScan.extent);
+    this.authorizations = new Authorizations(activeScan.authorizations);
     
     this.columns = new ArrayList<Column>(activeScan.columns.size());
     
@@ -157,4 +160,18 @@ public class ActiveScan {
     return ssio;
   }
   
+  /**
+   * @return the authorizations being used for this scan
+   */
+  
+  public Authorizations getAuthorizations() {
+    return authorizations;
+  }
+  
+  /**
+   * @return the time this scan has been idle in the tablet server
+   */
+  public long getIdleTime() {
+    return idle;
+  }
 }

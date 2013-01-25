@@ -28,7 +28,7 @@
 
   <modules>
     <module>simple</module>
-    <module>wikisearch</module>
+    <module>instamo</module>
   </modules>
 
   <repositories>

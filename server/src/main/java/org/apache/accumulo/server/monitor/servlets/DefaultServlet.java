@@ -21,7 +21,6 @@ import java.io.FileInputStream;
 import java.io.FilePermission;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PermissionCollection;
@@ -53,13 +52,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
-import org.apache.hadoop.hdfs.protocol.FSConstants;
-import org.apache.hadoop.ipc.RemoteException;
-import org.apache.hadoop.mapred.ClusterStatus;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobTracker;
 
 public class DefaultServlet extends BasicServlet {
   
@@ -84,16 +76,16 @@ public class DefaultServlet extends BasicServlet {
       InputStream data = BasicServlet.class.getClassLoader().getResourceAsStream(path);
       ServletOutputStream out = resp.getOutputStream();
       try {
-    	  if (data != null) {
-    		  byte[] buffer = new byte[1024];
-    		  int n;
-    		  while ((n = data.read(buffer)) > 0)
-    			  out.write(buffer, 0, n);
-    	  } else {
-    		  out.write(("could not get resource " + path + "").getBytes());
-    	  }
+        if (data != null) {
+          byte[] buffer = new byte[1024];
+          int n;
+          while ((n = data.read(buffer)) > 0)
+            out.write(buffer, 0, n);
+        } else {
+          out.write(("could not get resource " + path + "").getBytes());
+        }
       } finally {
-    	  data.close();
+        data.close();
       }
     } catch (Throwable t) {
       log.error(t, t);
@@ -117,7 +109,7 @@ public class DefaultServlet extends BasicServlet {
       
       @Override
       public IOException run() {
-    	InputStream data = null;
+        InputStream data = null;
         try {
           File file = new File(aHome + path);
           data = new FileInputStream(file.getAbsolutePath());
@@ -136,7 +128,7 @@ public class DefaultServlet extends BasicServlet {
             } catch (IOException ex) {
               log.error(ex, ex);
             }
-          } 
+          }
         }
       }
     }, acc);
@@ -244,14 +236,6 @@ public class DefaultServlet extends BasicServlet {
     sb.append("</td>\n");
     
     sb.append("<td class='noborder'>\n");
-    doHdfsTable(sb);
-    sb.append("</td>\n");
-    
-    sb.append("<td class='noborder'>\n");
-    doJobTrackerTable(sb);
-    sb.append("</td>\n");
-    
-    sb.append("<td class='noborder'>\n");
     doZooKeeperTable(sb);
     sb.append("</td>\n");
     
@@ -327,67 +311,6 @@ public class DefaultServlet extends BasicServlet {
       } catch (Exception e) {
         log.debug(e, e);
       }
-    }
-    sb.append("</table>\n");
-  }
-  
-  private void doHdfsTable(StringBuilder sb) throws IOException {
-    // HDFS
-    Configuration conf = CachedConfiguration.getInstance();
-    DistributedFileSystem fs = (DistributedFileSystem) FileSystem.get(conf);
-    String httpAddress = conf.get("dfs.http.address");
-    String port = httpAddress.split(":")[1];
-    String href = "http://" + fs.getUri().getHost() + ":" + port;
-    String liveUrl = href + "/dfsnodelist.jsp?whatNodes=LIVE";
-    String deadUrl = href + "/dfsnodelist.jsp?whatNodes=DEAD";
-    sb.append("<table>\n");
-    sb.append("<tr><th colspan='2'><a href='" + href + "'>NameNode</a></th></tr>\n");
-    try {
-      boolean highlight = false;
-      tableRow(sb, (highlight = !highlight), "Unreplicated&nbsp;Capacity", bytes(fs.getRawCapacity()));
-      tableRow(sb, (highlight = !highlight), "%&nbsp;Used", NumberType.commas(fs.getRawUsed() * 100. / fs.getRawCapacity(), 0, 90, 0, 100) + "%");
-      tableRow(sb, (highlight = !highlight), "Corrupt&nbsp;Blocks", NumberType.commas(fs.getCorruptBlocksCount(), 0, 0));
-      DatanodeInfo[] liveNodes = fs.getClient().datanodeReport(FSConstants.DatanodeReportType.LIVE);
-      DatanodeInfo[] deadNodes = fs.getClient().datanodeReport(FSConstants.DatanodeReportType.DEAD);
-      tableRow(sb, (highlight = !highlight), "<a href='" + liveUrl + "'>Live&nbsp;Data&nbsp;Nodes</a>", NumberType.commas(liveNodes.length));
-      tableRow(sb, (highlight = !highlight), "<a href='" + deadUrl + "'>Dead&nbsp;Data&nbsp;Nodes</a>", NumberType.commas(deadNodes.length));
-      long count = 0;
-      for (DatanodeInfo stat : liveNodes)
-        count += stat.getXceiverCount();
-      tableRow(sb, (highlight = !highlight), "Xceivers", NumberType.commas(count));
-    } catch (RemoteException ex) {
-      sb.append("<tr><td colspan='2'>Permission&nbsp;Denied</td></tr>\n");
-    } catch (Exception ex) {
-      sb.append("<tr><td colspan='2'><span class='error'>Down</span></td></tr>\n");
-    }
-    sb.append("</table>\n");
-  }
-  
-  private void doJobTrackerTable(StringBuilder sb) {
-    // Job Tracker
-    Configuration conf = CachedConfiguration.getInstance();
-    sb.append("<table>\n");
-    try {
-      InetSocketAddress address = JobTracker.getAddress(conf);
-      
-      @SuppressWarnings("deprecation")
-      // No alternative api in hadoop 20
-      JobClient jc = new JobClient(new org.apache.hadoop.mapred.JobConf(conf));
-      String httpAddress = conf.get("mapred.job.tracker.http.address");
-      String port = httpAddress.split(":")[1];
-      String href = "http://" + address.getHostName() + ":" + port;
-      String activeUrl = href + "/machines.jsp?type=active";
-      String blacklistUrl = href + "/machines.jsp?type=blacklisted";
-      sb.append("<tr><th colspan='2'><a href='" + href + "'>JobTracker</a></th></tr>\n");
-      boolean highlight = false;
-      tableRow(sb, (highlight = !highlight), "Running&nbsp;Jobs", jc.jobsToComplete().length);
-      ClusterStatus status = jc.getClusterStatus();
-      tableRow(sb, (highlight = !highlight), "Map&nbsp;Tasks", status.getMapTasks() + "/" + status.getMaxMapTasks());
-      tableRow(sb, (highlight = !highlight), "Reduce&nbsp;Tasks", status.getReduceTasks() + "/" + status.getMaxReduceTasks());
-      tableRow(sb, (highlight = !highlight), "<a href='" + activeUrl + "'>Trackers</a>", status.getTaskTrackers());
-      tableRow(sb, (highlight = !highlight), "<a href='" + blacklistUrl + "'>Blacklisted</a>", status.getBlacklistedTrackers());
-    } catch (Exception ex) {
-      sb.append("<tr><td colspan='2'><span class='error'>Job Tracker is Down</span></td></tr>\n");
     }
     sb.append("</table>\n");
   }

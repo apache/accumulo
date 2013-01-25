@@ -19,19 +19,21 @@ package org.apache.accumulo.examples.simple.isolation;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * This example shows how a concurrent reader and writer can interfere with each other. It creates two threads that run forever reading and writing to the same
@@ -47,15 +49,16 @@ public class InterferenceTest {
   
   private static final int NUM_ROWS = 500;
   private static final int NUM_COLUMNS = 113; // scanner batches 1000 by default, so make num columns not a multiple of 10
-  private static long iterations;
   private static final Logger log = Logger.getLogger(InterferenceTest.class);
   
   static class Writer implements Runnable {
     
-    private BatchWriter bw;
+    private final BatchWriter bw;
+    private final long iterations;
     
-    Writer(BatchWriter bw) {
+    Writer(BatchWriter bw, long iterations) {
       this.bw = bw;
+      this.iterations = iterations; 
     }
     
     @Override
@@ -140,31 +143,33 @@ public class InterferenceTest {
     }
   }
   
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--iterations", description="number of times to run", required=true)
+    long iterations = 0;
+    @Parameter(names="--isolated", description="use isolated scans")
+    boolean isolated = false;
+  }
+  
+  
   public static void main(String[] args) throws Exception {
+    Opts opts = new Opts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(InterferenceTest.class.getName(), args, bwOpts);
     
-    if (args.length != 7) {
-      System.out.println("Usage : " + InterferenceTest.class.getName() + " <instance name> <zookeepers> <user> <password> <table> <iterations> true|false");
-      System.out.println("          The last argument determines if scans should be isolated.  When false, expect to see errors");
-      return;
-    }
+    if (opts.iterations < 1)
+      opts.iterations = Long.MAX_VALUE;
     
-    ZooKeeperInstance zki = new ZooKeeperInstance(args[0], args[1]);
-    Connector conn = zki.getConnector(args[2], args[3].getBytes());
+    Connector conn = opts.getConnector();
+    if (!conn.tableOperations().exists(opts.tableName))
+      conn.tableOperations().create(opts.tableName);
     
-    String table = args[4];
-    iterations = Long.parseLong(args[5]);
-    if (iterations < 1)
-      iterations = Long.MAX_VALUE;
-    if (!conn.tableOperations().exists(table))
-      conn.tableOperations().create(table);
-    
-    Thread writer = new Thread(new Writer(conn.createBatchWriter(table, 10000000, 60000l, 3)));
+    Thread writer = new Thread(new Writer(conn.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig()), opts.iterations));
     writer.start();
     Reader r;
-    if (Boolean.parseBoolean(args[6]))
-      r = new Reader(new IsolatedScanner(conn.createScanner(table, Constants.NO_AUTHS)));
+    if (opts.isolated)
+      r = new Reader(new IsolatedScanner(conn.createScanner(opts.tableName, opts.auths)));
     else
-      r = new Reader(conn.createScanner(table, Constants.NO_AUTHS));
+      r = new Reader(conn.createScanner(opts.tableName, opts.auths));
     Thread reader;
     reader = new Thread(r);
     reader.start();

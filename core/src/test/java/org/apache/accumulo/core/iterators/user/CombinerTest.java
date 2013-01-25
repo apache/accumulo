@@ -569,6 +569,42 @@ public class CombinerTest {
   }
   
   @Test
+  public void sumAllColumns() throws IOException {
+    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    tm.put(new Key("r", "count", "a", 1), new Value("1".getBytes()));
+    tm.put(new Key("r", "count", "a", 2), new Value("1".getBytes()));
+    tm.put(new Key("r", "count", "b", 3), new Value("1".getBytes()));
+    tm.put(new Key("r", "count", "b", 4), new Value("1".getBytes()));
+    tm.put(new Key("r", "count", "b", 5), new Value("1".getBytes()));
+    tm.put(new Key("r", "count", "c", 6), new Value("1".getBytes()));
+    SortedMapIterator smi = new SortedMapIterator(tm);
+    Combiner iter = new SummingCombiner();
+    IteratorSetting s = new IteratorSetting(10, "s", SummingCombiner.class);
+    SummingCombiner.setColumns(s, Collections.singletonList(new IteratorSetting.Column("count")));
+    SummingCombiner.setEncodingType(s, LongCombiner.StringEncoder.class);
+    iter.init(smi, s.getOptions(), new DefaultIteratorEnvironment());
+    Combiner iter2 = new SummingCombiner();
+    IteratorSetting s2 = new IteratorSetting(10, "s2", SummingCombiner.class);
+    SummingCombiner.setColumns(s2, Collections.singletonList(new IteratorSetting.Column("count","a")));
+    SummingCombiner.setEncodingType(s2, LongCombiner.StringEncoder.class);
+    iter2.init(iter, s.getOptions(), new DefaultIteratorEnvironment());
+    iter2.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(iter2.hasTop());
+    assertEquals("2", iter2.getTopValue().toString());
+    iter2.next();
+    assertTrue(iter2.hasTop());
+    assertEquals("3", iter2.getTopValue().toString());
+    iter2.next();
+    assertTrue(iter2.hasTop());
+    assertEquals("1", iter2.getTopValue().toString());
+    iter2.next();
+    assertFalse(iter2.hasTop());
+  }
+  
+
+  
+  @Test
   public void maxMinTest() throws IOException {
     Encoder<Long> encoder = LongCombiner.VAR_LEN_ENCODER;
     

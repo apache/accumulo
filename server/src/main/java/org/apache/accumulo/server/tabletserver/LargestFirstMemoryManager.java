@@ -193,7 +193,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
   
   public static void main(String[] args) {
     for (int i = 0; i < 62; i++) {
-      System.out.printf("%d\t%d\n", i, timeMemoryLoad(1, i * 60000l));
+      System.out.printf("%d\t%d%n", i, timeMemoryLoad(1, i * 60000l));
     }
   }
 }

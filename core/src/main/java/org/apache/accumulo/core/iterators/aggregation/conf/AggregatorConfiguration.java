@@ -22,6 +22,7 @@ import org.apache.hadoop.io.Text;
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 public class AggregatorConfiguration extends PerColumnIteratorConfig {
   
   public AggregatorConfiguration(Text columnFamily, String aggClassName) {

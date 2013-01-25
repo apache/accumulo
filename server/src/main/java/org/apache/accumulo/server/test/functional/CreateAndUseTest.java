@@ -20,13 +20,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -66,7 +67,7 @@ public class CreateAndUseTest extends FunctionalTest {
     
     getConnector().tableOperations().create("t1");
     getConnector().tableOperations().addSplits("t1", splits);
-    BatchWriter bw = getConnector().createBatchWriter("t1", 100000, Long.MAX_VALUE, 3);
+    BatchWriter bw = getConnector().createBatchWriter("t1", new BatchWriterConfig());
     
     for (int i = 1; i < 257; i++) {
       Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));

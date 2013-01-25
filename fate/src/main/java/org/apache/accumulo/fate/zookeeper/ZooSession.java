@@ -46,8 +46,8 @@ class ZooSession {
   
   private static Map<String,ZooSessionInfo> sessions = new HashMap<String,ZooSessionInfo>();
   
-  private static String sessionKey(String keepers, int timeout, String auth) {
-    return keepers + ":" + timeout + ":" + (auth == null ? "" : auth);
+  private static String sessionKey(String keepers, int timeout, String scheme, byte[] auth) {
+    return keepers + ":" + timeout + ":" + (scheme == null ? "" : scheme) + ":" + (auth == null ? "" : new String(auth));
   }
   
   private static class ZooWatcher implements Watcher {
@@ -70,13 +70,15 @@ class ZooSession {
     
   }
   
-  public static ZooKeeper connect(String host, int timeout, String auth, Watcher watcher) {
+  public static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
     final int TOTAL_CONNECT_TIME_WAIT_MS = 10 * 1000;
     boolean tryAgain = true;
     int sleepTime = 100;
     ZooKeeper zooKeeper = null;
     
+    long startTime = System.currentTimeMillis();
+
     while (tryAgain) {
       try {
         zooKeeper = new ZooKeeper(host, timeout, watcher);
@@ -84,11 +86,15 @@ class ZooSession {
         for (int i = 0; i < TOTAL_CONNECT_TIME_WAIT_MS / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
           if (zooKeeper.getState().equals(States.CONNECTED)) {
             if (auth != null)
-              zooKeeper.addAuthInfo("digest", auth.getBytes());
+              zooKeeper.addAuthInfo(scheme, auth);
             tryAgain = false;
           } else
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
         }
+        
+        if (System.currentTimeMillis() - startTime > 2 * timeout)
+          throw new RuntimeException("Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period " + timeout);
+
       } catch (UnknownHostException uhe) {
         // do not expect to recover from this
         log.warn(uhe.getClass().getName() + " : " + uhe.getMessage());
@@ -116,15 +122,15 @@ class ZooSession {
   }
   
   public static synchronized ZooKeeper getSession(String zooKeepers, int timeout) {
-    return getSession(zooKeepers, timeout, null);
+    return getSession(zooKeepers, timeout, null, null);
   }
   
-  public static synchronized ZooKeeper getSession(String zooKeepers, int timeout, String auth) {
+  public static synchronized ZooKeeper getSession(String zooKeepers, int timeout, String scheme, byte[] auth) {
     
-    String sessionKey = sessionKey(zooKeepers, timeout, auth);
+    String sessionKey = sessionKey(zooKeepers, timeout, scheme, auth);
     
     // a read-only session can use a session with authorizations, so cache a copy for it w/out auths
-    String readOnlySessionKey = sessionKey(zooKeepers, timeout, null);
+    String readOnlySessionKey = sessionKey(zooKeepers, timeout, null, null);
     
     ZooSessionInfo zsi = sessions.get(sessionKey);
     if (zsi != null && zsi.zooKeeper.getState() == States.CLOSED) {
@@ -137,7 +143,7 @@ class ZooSession {
     if (zsi == null) {
       ZooWatcher watcher = new ZooWatcher();
       log.debug("Connecting to " + zooKeepers + " with timeout " + timeout + " with auth");
-      zsi = new ZooSessionInfo(connect(zooKeepers, timeout, auth, watcher), watcher);
+      zsi = new ZooSessionInfo(connect(zooKeepers, timeout, scheme, auth, watcher), watcher);
       sessions.put(sessionKey, zsi);
       if (auth != null && !sessions.containsKey(readOnlySessionKey))
         sessions.put(readOnlySessionKey, zsi);

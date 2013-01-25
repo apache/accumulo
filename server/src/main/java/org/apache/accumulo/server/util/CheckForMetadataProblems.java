@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -26,34 +24,25 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+
+import com.beust.jcommander.Parameter;
 
 public class CheckForMetadataProblems {
-  private static String user;
-  private static byte[] pass;
-  private static boolean fix = false;
-  private static boolean offline = false;
-  
   private static boolean sawProblems = false;
   
-  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, boolean patch) {
+  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, Opts opts) {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
     
@@ -91,10 +80,10 @@ public class CheckForMetadataProblems {
       if (broke) {
         everythingLooksGood = false;
       }
-      if (broke && patch) {
+      if (broke && opts.fix) {
         KeyExtent ke = new KeyExtent(tabke);
         ke.setPrevEndRow(lastEndRow);
-        MetadataTable.updateTabletPrevEndRow(ke, new AuthInfo(user, ByteBuffer.wrap(pass), HdfsZooInstance.getInstance().getInstanceID()));
+        MetadataTable.updateTabletPrevEndRow(ke, opts.getWrappedToken());
         System.out.println("KE " + tabke + " has been repaired to " + ke);
       }
       
@@ -106,20 +95,19 @@ public class CheckForMetadataProblems {
       sawProblems = true;
   }
   
-  public static void checkMetadataTableEntries(ServerConfiguration conf, FileSystem fs, boolean offline, boolean patch) throws Exception {
+  public static void checkMetadataTableEntries(Opts opts, FileSystem fs) throws Exception {
     Map<String,TreeSet<KeyExtent>> tables = new HashMap<String,TreeSet<KeyExtent>>();
     
     Scanner scanner;
     
-    if (offline) {
-      scanner = new OfflineMetadataScanner(conf.getConfiguration(), fs);
+    if (opts.offline) {
+      scanner = new OfflineMetadataScanner(ServerConfiguration.getSystemConfiguration(opts.getInstance()), fs);
     } else {
-      scanner = new ScannerImpl(conf.getInstance(), new AuthInfo(user, ByteBuffer.wrap(pass), conf.getInstance().getInstanceID()),
-          Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);
+      scanner =  opts.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     }
     
     scanner.setRange(Constants.METADATA_KEYSPACE);
-    ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     
     Text colf = new Text();
@@ -141,7 +129,7 @@ public class CheckForMetadataProblems {
         Set<Entry<String,TreeSet<KeyExtent>>> es = tables.entrySet();
         
         for (Entry<String,TreeSet<KeyExtent>> entry2 : es) {
-          checkTable(entry2.getKey(), entry2.getValue(), patch);
+          checkTable(entry2.getKey(), entry2.getValue(), opts);
         }
         
         tables.clear();
@@ -158,8 +146,8 @@ public class CheckForMetadataProblems {
         if (justLoc) {
           System.out.println("Problem at key " + entry.getKey());
           sawProblems = true;
-          if (patch) {
-            Writer t = MetadataTable.getMetadataTable(new AuthInfo(user, ByteBuffer.wrap(pass), HdfsZooInstance.getInstance().getInstanceID()));
+          if (opts.fix) {
+            Writer t = MetadataTable.getMetadataTable(opts.getWrappedToken());
             Key k = entry.getKey();
             Mutation m = new Mutation(k.getRow());
             m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
@@ -183,57 +171,28 @@ public class CheckForMetadataProblems {
     Set<Entry<String,TreeSet<KeyExtent>>> es = tables.entrySet();
     
     for (Entry<String,TreeSet<KeyExtent>> entry : es) {
-      checkTable(entry.getKey(), entry.getValue(), patch);
+      checkTable(entry.getKey(), entry.getValue(), opts);
     }
     
     // end METADATA table sanity check
   }
   
-  private static String[] processOptions(String[] args) {
-    ArrayList<String> al = new ArrayList<String>();
+  static class Opts extends ClientOpts {
+    @Parameter(names="--fix", description="best-effort attempt to fix problems found")
+    boolean fix = false;
     
-    for (String s : args) {
-      if (s.equals("--debug")) {
-        enableDebug();
-      } else if (s.equals("--fix")) {
-        fix = true;
-      } else if (s.equals("--offline")) {
-        offline = true;
-      } else {
-        al.add(s);
-      }
-    }
-    
-    if (offline && fix) {
-      throw new IllegalArgumentException("Cannot fix in offline mode");
-    }
-    
-    return al.toArray(new String[al.size()]);
+    @Parameter(names="--offline", description="perform the check on the files directly")
+    boolean offline = false;
   }
   
-  private static void enableDebug() {
-    Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
-    logger.setLevel(Level.TRACE);
-  }
   
   public static void main(String[] args) throws Exception {
-    args = processOptions(args);
+    Opts opts = new Opts();
+    opts.parseArgs(CheckForMetadataProblems.class.getName(), args);
     
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    Instance instance = HdfsZooInstance.getInstance();
-    ServerConfiguration conf = new ServerConfiguration(instance);
-
-    if (args.length == 2) {
-      user = args[0];
-      pass = args[1].getBytes();
-      checkMetadataTableEntries(conf, fs, offline, fix);
-    } else if (args.length == 0 && offline) {
-      checkMetadataTableEntries(conf, fs, offline, fix);
-    } else {
-      System.out.println("Usage: " + CheckForMetadataProblems.class.getName() + " (--offline)|([--debug] [--fix] <username> <password>)");
-      System.exit(-1);
-    }
-    
+    checkMetadataTableEntries(opts, fs);
+    opts.stopTracing();
     if (sawProblems)
       System.exit(-1);
   }

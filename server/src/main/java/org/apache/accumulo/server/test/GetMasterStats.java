@@ -19,6 +19,7 @@ package org.apache.accumulo.server.test;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.MasterNotRunningException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -43,7 +44,7 @@ public class GetMasterStats {
     MasterMonitorInfo stats = null;
     try {
       client = MasterClient.getConnectionWithRetry(HdfsZooInstance.getInstance());
-      stats = client.getMasterStats(null, SecurityConstants.getSystemCredentials());
+      stats = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials());
     } finally {
       if (client != null)
         MasterClient.close(client);
@@ -102,10 +103,10 @@ public class GetMasterStats {
             out(4, "Records in Memory %d", info.recsInMemory);
             out(4, "Ingest %.2f", info.ingestRate);
             out(4, "Queries %.2f", info.queryRate);
-            out(4, "Major Compacting %d", info.major == null ? 0 : info.major.running);
-            out(4, "Queued for Major Compaction %d", info.major == null ? 0 : info.major.queued);
-            out(4, "Minor Compacting %d", info.minor == null ? 0 : info.minor.running);
-            out(4, "Queued for Minor Compaction %d", info.minor == null ? 0 : info.minor.queued);
+            out(4, "Major Compacting %d", info.majors == null ? 0 : info.majors.running);
+            out(4, "Queued for Major Compaction %d", info.majors == null ? 0 : info.majors.queued);
+            out(4, "Minor Compacting %d", info.minors == null ? 0 : info.minors.running);
+            out(4, "Queued for Minor Compaction %d", info.minors == null ? 0 : info.minors.queued);
           }
         }
         out(2, "Recoveries %d", server.logSorts.size());

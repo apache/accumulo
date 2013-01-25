@@ -25,8 +25,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.spi.SelectorProvider;
 
-import org.apache.hadoop.net.SocketInputStream;
-import org.apache.hadoop.net.SocketOutputStream;
+import org.apache.hadoop.net.NetUtils;
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TTransport;
 
@@ -37,8 +36,8 @@ public class TTimeoutTransport {
     socket.setSoLinger(false, 0);
     socket.setTcpNoDelay(true);
     socket.connect(addr);
-    InputStream input = new BufferedInputStream(new SocketInputStream(socket, timeoutMillis), 1024 * 10);
-    OutputStream output = new BufferedOutputStream(new SocketOutputStream(socket, timeoutMillis), 1024 * 10);
+    InputStream input = new BufferedInputStream(NetUtils.getInputStream(socket, timeoutMillis), 1024 * 10);
+    OutputStream output = new BufferedOutputStream(NetUtils.getOutputStream(socket, timeoutMillis), 1024 * 10);
     return new TIOStreamTransport(input, output);
   }
 }

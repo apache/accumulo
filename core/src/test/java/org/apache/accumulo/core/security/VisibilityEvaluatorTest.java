@@ -16,10 +16,16 @@
  */
 package org.apache.accumulo.core.security;
 
+import static org.apache.accumulo.core.security.ColumnVisibility.quote;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+
+import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.Test;
 
@@ -54,7 +60,7 @@ public class VisibilityEvaluatorTest {
       try {
         new ColumnVisibility(marking).evaluate(auths);
         fail(marking + " failed to throw");
-      } catch (Throwable e) {
+      } catch (BadArgumentException e) {
         // all is good
       }
     }
@@ -64,7 +70,7 @@ public class VisibilityEvaluatorTest {
       try {
         new ColumnVisibility(marking).evaluate(auths);
         fail(marking + " failed to throw");
-      } catch (Throwable e) {
+      } catch (BadArgumentException e) {
         // all is good
       }
     }
@@ -74,9 +80,45 @@ public class VisibilityEvaluatorTest {
       try {
         new ColumnVisibility(marking).evaluate(auths);
         fail(marking + " failed to throw");
-      } catch (Throwable e) {
+      } catch (BadArgumentException e) {
         // all is good
       }
     }
+  }
+  
+  @Test
+  public void testQuotedExpressions() {
+    Authorizations auths = new Authorizations("A#C", "A\"C", "A\\C", "AC");
+    
+    assertTrue((new ColumnVisibility(quote("A#C") + "|" + quote("A?C"))).evaluate(auths));
+    assertTrue((new ColumnVisibility(new ColumnVisibility(quote("A#C") + "|" + quote("A?C")).getExpression())).evaluate(auths));
+    assertTrue((new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C"))).evaluate(auths));
+    assertTrue((new ColumnVisibility(new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C")).getExpression())).evaluate(auths));
+    assertTrue((new ColumnVisibility("(" + quote("A\"C") + "|B)&(" + quote("A#C") + "|D)")).evaluate(auths));
+    assertFalse((new ColumnVisibility(quote("A#C") + "&B")).evaluate(auths));
+    assertTrue((new ColumnVisibility(quote("A#C"))).evaluate(auths));
+    assertTrue((new ColumnVisibility("(" + quote("A#C") + ")")).evaluate(auths));
+  }
+  
+  @Test
+  public void testQuote() {
+    assertEquals("\"A#C\"", quote("A#C"));
+    assertEquals("\"A\\\"C\"", quote("A\"C"));
+    assertEquals("\"A\\\"\\\\C\"", quote("A\"\\C"));
+    assertEquals("ACS", quote("ACS"));
+    assertEquals("\"九\"", quote("九"));
+    assertEquals("\"五十\"", quote("五十"));
+  }
+  
+  @Test
+  public void testNonAscii() throws UnsupportedEncodingException {
+    Authorizations auths = new Authorizations(Charset.forName("UTF-8"), "五", "六", "八", "九", "五十");
+    
+    assertTrue((new ColumnVisibility(quote("五") + "|" + quote("四"), "UTF-8")).evaluate(auths));
+    assertFalse((new ColumnVisibility(quote("五") + "&" + quote("四"), "UTF-8")).evaluate(auths));
+    assertTrue((new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("九") + ")", "UTF-8")).evaluate(auths));
+    assertTrue((new ColumnVisibility("\"五\"&(\"四\"|\"五十\")", "UTF-8")).evaluate(auths));
+    assertFalse((new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("三") + ")", "UTF-8")).evaluate(auths));
+    assertFalse((new ColumnVisibility("\"五\"&(\"四\"|\"三\")", "UTF-8")).evaluate(auths));
   }
 }

@@ -32,7 +32,7 @@ import org.apache.hadoop.io.Text;
 public class FirstEntryInRowIterator extends SkippingIterator implements OptionDescriber {
   
   // options
-  private static final String NUM_SCANS_STRING_NAME = "scansBeforeSeek";
+  static final String NUM_SCANS_STRING_NAME = "scansBeforeSeek";
   
   // iterator predecessor seek options to pass through
   private Range latestRange;
@@ -75,7 +75,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   // this is only ever called immediately after getting "next" entry
   @Override
   protected void consume() throws IOException {
-    if (lastRowFound == null)
+    if (finished == true || lastRowFound == null)
       return;
     int count = 0;
     while (getSource().hasTop() && lastRowFound.equals(getSource().getTopKey().getRow())) {
@@ -92,9 +92,20 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
         Key nextKey = getSource().getTopKey().followingKey(PartialKey.ROW);
         if (!latestRange.afterEndKey(nextKey))
           getSource().seek(new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()), latestColumnFamilies, latestInclusive);
+        else {
+          finished = true;
+          break;
+        }
       }
     }
     lastRowFound = getSource().hasTop() ? getSource().getTopKey().getRow(lastRowFound) : null;
+  }
+  
+  private boolean finished = true;
+  
+  @Override
+  public boolean hasTop() {
+    return !finished && getSource().hasTop();
   }
   
   @Override
@@ -108,6 +119,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
     Key startKey = range.getStartKey();
     Range seekRange = new Range(startKey == null ? null : new Key(startKey.getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
     super.seek(seekRange, columnFamilies, inclusive);
+    finished = false;
     
     if (getSource().hasTop()) {
       lastRowFound = getSource().getTopKey().getRow();
@@ -129,11 +141,12 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   public boolean validateOptions(Map<String,String> options) {
     try {
       String o = options.get(NUM_SCANS_STRING_NAME);
-      Integer i = o == null ? 10 : Integer.parseInt(o);
-      return i != null;
+      if (o != null)
+        Integer.parseInt(o);
     } catch (Exception e) {
-      return false;
+      throw new IllegalArgumentException("bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME), e);
     }
+    return true;
   }
   
 }

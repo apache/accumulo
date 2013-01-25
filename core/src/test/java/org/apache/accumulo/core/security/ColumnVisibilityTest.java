@@ -84,6 +84,19 @@ public class ColumnVisibilityTest {
     normalized("a|a", "a", "a|(a&a)", "a", "(a&b)|(b&a)", "a&b");
     normalized("a|(a|(a|b))","a|b");
     normalized("a|(a|(a|a))","a");
+    final String normForm = "a&b&c";
+    normalized("b&c&a", normForm);
+    normalized("c&b&a", normForm);
+    normalized("a&(b&c)", normForm);
+    normalized("(a&c)&b", normForm);
+    final String normForm2 = "a|b|c";
+    normalized("b|c|a", normForm2);
+    normalized("c|b|a", normForm2);
+    normalized("a|(b|c)", normForm2);
+    normalized("(a|c)|b", normForm2);
+
+    // this an expression that's basically `expr | expr`
+    normalized("(d&c&b&a)|(b&c&a&d)", "a&b&c&d");
   }
   
   public void aOrBEqualC(String a, String b, String c)
@@ -149,5 +162,25 @@ public class ColumnVisibilityTest {
   public void testMixedOperators() {
     shouldThrow("(A&B)|(C&D)&(E)");
     shouldThrow("a|b&c", "A&B&C|D", "(A&B)|(C&D)&(E)");
+  }
+  
+  @Test
+  public void testQuotes() {
+    shouldThrow("\"\"");
+    shouldThrow("\"A\"A");
+    shouldThrow("\"A\"\"B\"");
+    shouldThrow("(A)\"B\"");
+    shouldThrow("\"A\"(B)");
+    shouldThrow("\"A");
+    shouldThrow("\"");
+    shouldThrow("\"B");
+    shouldThrow("A&\"B");
+    shouldThrow("A&\"B\\'");
+    
+    shouldNotThrow("\"A\"");
+    shouldNotThrow("(\"A\")");
+    shouldNotThrow("A&\"B.D\"");
+    shouldNotThrow("A&\"B\\\\D\"");
+    shouldNotThrow("A&\"B\\\"D\"");
   }
 }

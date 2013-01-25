@@ -16,19 +16,24 @@
  */
 package org.apache.accumulo.examples.simple.shard;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.BatchScannerOpts;
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * This program queries a set of terms in the shard table (populated by {@link Index}) using the {@link IntersectingIterator}.
@@ -38,30 +43,27 @@ import org.apache.hadoop.io.Text;
 
 public class Query {
   
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(description=" term { <term> ... }")
+    List<String> terms = new ArrayList<String>();
+  }
+  
   /**
    * @param args
    */
   public static void main(String[] args) throws Exception {
+    Opts opts = new Opts();
+    BatchScannerOpts bsOpts = new BatchScannerOpts();
+    opts.parseArgs(Query.class.getName(), args, bsOpts);
     
-    if (args.length < 6) {
-      System.err.println("Usage : " + Query.class.getName() + " <instance> <zoo keepers> <table> <user> <pass> <term>{ <term>}");
-      System.exit(-1);
-    }
+    Connector conn = opts.getConnector();
+    BatchScanner bs = conn.createBatchScanner(opts.tableName, opts.auths, bsOpts.scanThreads);
+    bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     
-    String instance = args[0];
-    String zooKeepers = args[1];
-    String table = args[2];
-    String user = args[3];
-    String pass = args[4];
-    
-    ZooKeeperInstance zki = new ZooKeeperInstance(instance, zooKeepers);
-    Connector conn = zki.getConnector(user, pass.getBytes());
-    
-    BatchScanner bs = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
-    
-    Text columns[] = new Text[args.length - 5];
-    for (int i = 5; i < args.length; i++) {
-      columns[i - 5] = new Text(args[i]);
+    Text columns[] = new Text[opts.terms.size()];
+    int i = 0;
+    for (String term : opts.terms) {
+      columns[i++] = new Text(term);
     }
     IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(ii, columns);

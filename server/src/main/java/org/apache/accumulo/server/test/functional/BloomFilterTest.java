@@ -27,6 +27,7 @@ import java.util.Random;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -34,6 +35,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.server.master.Master;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 
 public class BloomFilterTest extends FunctionalTest {
@@ -52,19 +57,11 @@ public class BloomFilterTest extends FunctionalTest {
   public List<TableSetup> getTablesToCreate() {
     ArrayList<TableSetup> tl = new ArrayList<TableSetup>();
     
-    // tl.add(new TableSetup("bt1",parseConfig(Property.TABLE_BLOOM_ENABLED+"=true", Property.TABLE_BLOOM_KEYDEPTH+"="+PartialKey.ROW.name())));
-    // tl.add(new TableSetup("bt2",parseConfig(Property.TABLE_BLOOM_ENABLED+"=true", Property.TABLE_BLOOM_KEYDEPTH+"="+PartialKey.ROW_COLFAM.name())));
-    // tl.add(new TableSetup("bt3",parseConfig(Property.TABLE_BLOOM_ENABLED+"=true",
-    // Property.TABLE_BLOOM_KEYDEPTH+"="+PartialKey.ROW_COLFAM_COLQUAL.name())));
-    // tl.add(new TableSetup("bt4",parseConfig(Property.TABLE_BLOOM_ENABLED+"=true", Property.TABLE_BLOOM_KEYDEPTH+"="+PartialKey.ROW.name())));
-    tl.add(new TableSetup("bt1", parseConfig(Property.TABLE_BLOOM_ENABLED + "=true", Property.TABLE_BLOOM_KEY_FUNCTOR
-        + "=org.apache.accumulo.core.file.keyfunctor.RowFunctor")));
-    tl.add(new TableSetup("bt2", parseConfig(Property.TABLE_BLOOM_ENABLED + "=true", Property.TABLE_BLOOM_KEY_FUNCTOR
-        + "=org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor")));
-    tl.add(new TableSetup("bt3", parseConfig(Property.TABLE_BLOOM_ENABLED + "=true", Property.TABLE_BLOOM_KEY_FUNCTOR
-        + "=org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor")));
-    tl.add(new TableSetup("bt4", parseConfig(Property.TABLE_BLOOM_ENABLED + "=true", Property.TABLE_BLOOM_KEY_FUNCTOR
-        + "=org.apache.accumulo.core.file.keyfunctor.RowFunctor")));
+    tl.add(new TableSetup("bt1"));
+    tl.add(new TableSetup("bt2"));
+    tl.add(new TableSetup("bt3"));
+    tl.add(new TableSetup("bt4"));
+    
     return tl;
   }
   
@@ -75,7 +72,7 @@ public class BloomFilterTest extends FunctionalTest {
     write("bt3", 3, 0, 1000000000, 10000);
     
     // test inserting an empty key
-    BatchWriter bw = getConnector().createBatchWriter("bt4", 1000000l, 60l, 3);
+    BatchWriter bw = getConnector().createBatchWriter("bt4", new BatchWriterConfig());
     Mutation m = new Mutation(new Text(""));
     m.put(new Text(""), new Text(""), new Value("foo1".getBytes()));
     bw.addMutation(m);
@@ -88,11 +85,43 @@ public class BloomFilterTest extends FunctionalTest {
     super.checkRFiles("bt3", 1, 1, 1, 1);
     super.checkRFiles("bt4", 1, 1, 1, 1);
     
+    // these queries should only run quickly if bloom filters are working, so lets get a base
+    long t1 = query("bt1", 1, 0, 1000000000, 100000, 10000);
+    long t2 = query("bt2", 2, 0, 1000000000, 100000, 10000);
+    long t3 = query("bt3", 3, 0, 1000000000, 100000, 10000);
+    
+    getConnector().tableOperations().setProperty("bt1", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+    getConnector().tableOperations().setProperty("bt1", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), "org.apache.accumulo.core.file.keyfunctor.RowFunctor");
+    getConnector().tableOperations().compact("bt1", null, null, false, false);
+    
+    getConnector().tableOperations().setProperty("bt2", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+    getConnector().tableOperations().setProperty("bt2", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(),
+        "org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor");
+    getConnector().tableOperations().compact("bt2", null, null, false, false);
+    
+    getConnector().tableOperations().setProperty("bt3", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+    getConnector().tableOperations().setProperty("bt3", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(),
+        "org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor");
+    getConnector().tableOperations().compact("bt3", null, null, false, false);
+    
+    getConnector().tableOperations().setProperty("bt4", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+    getConnector().tableOperations().setProperty("bt4", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), "org.apache.accumulo.core.file.keyfunctor.RowFunctor");
+    getConnector().tableOperations().compact("bt4", null, null, false, false);
+    
+    Thread.sleep(200);
+    
+    ZooStore<Master> zs = new ZooStore<Master>(ZooUtil.getRoot(getConnector().getInstance()) + Constants.ZFATE, ZooReaderWriter.getRetryingInstance());
+    while (!zs.list().isEmpty())
+      Thread.sleep(1000);
     // these queries should only run quickly if bloom
     // filters are working
-    query("bt1", 1, 0, 1000000000, 100000, 10000, 6);
-    query("bt2", 2, 0, 1000000000, 100000, 10000, 6);
-    query("bt3", 3, 0, 1000000000, 100000, 10000, 6);
+    long tb1 = query("bt1", 1, 0, 1000000000, 100000, 10000);
+    long tb2 = query("bt2", 2, 0, 1000000000, 100000, 10000);
+    long tb3 = query("bt3", 3, 0, 1000000000, 100000, 10000);
+    
+    timeCheck(t1, tb1);
+    timeCheck(t2, tb2);
+    timeCheck(t3, tb3);
     
     // test querying for empty key
     Scanner scanner = getConnector().createScanner("bt4", Constants.NO_AUTHS);
@@ -104,7 +133,13 @@ public class BloomFilterTest extends FunctionalTest {
     
   }
   
-  private void query(String table, int depth, long start, long end, int num, int step, int secs) throws Exception {
+  private void timeCheck(long t1, long t2) throws Exception {
+    if (((t1 - t2) * 1.0 / t1) < .1) {
+      throw new Exception("Queries had less than 10% improvement (old: " + t1 + " new: " + t2 + " improvement: " + ((t1 - t2) * 1.0 / t1) + "%)");
+    }
+  }
+  
+  private long query(String table, int depth, long start, long end, int num, int step) throws Exception {
     Random r = new Random(42);
     
     HashSet<Long> expected = new HashSet<Long>();
@@ -157,17 +192,14 @@ public class BloomFilterTest extends FunctionalTest {
       throw new Exception("Did not get all expected values " + expected.size());
     }
     
-    if ((t2 - t1) / 1000.0 >= secs) {
-      throw new Exception("Queries exceeded expected run time " + (t2 - t1) / 1000.0 + " " + secs);
-    }
-    
     bs.close();
-
+    
+    return t2 - t1;
   }
   
   private void write(String table, int depth, long start, long end, int step) throws Exception {
     
-    BatchWriter bw = getConnector().createBatchWriter(table, 1000000l, 60l, 3);
+    BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
     
     for (long i = start; i < end; i += step) {
       String key = String.format("k_%010d", i);

@@ -55,7 +55,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   
   private static final Logger log = Logger.getLogger(ProblemReports.class);
   
-  private LRUMap problemReports = new LRUMap(1000);
+  private final LRUMap problemReports = new LRUMap(1000);
   
   /*
    * use a thread pool so that reporting a problem never blocks
@@ -210,7 +210,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
                 Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemCredentials());
                 Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
                 
-                scanner.setTimeOut(3);
+                scanner.setTimeout(3, TimeUnit.SECONDS);
                 
                 if (table == null) {
                   scanner.setRange(new Range(new Text("~err_"), false, new Text("~err`"), false));

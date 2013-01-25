@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
 import org.apache.accumulo.core.util.PeekingIterator;
 
 /**
@@ -43,10 +44,10 @@ public class FileDataQuery {
   private ChunkInputStream cis;
   Scanner scanner;
   
-  public FileDataQuery(String instanceName, String zooKeepers, String user, String password, String tableName, Authorizations auths) throws AccumuloException,
+  public FileDataQuery(String instanceName, String zooKeepers, AccumuloToken<?,?> token, String tableName, Authorizations auths) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-    conn = instance.getConnector(user, password.getBytes());
+    conn = instance.getConnector(token);
     lastRefs = new ArrayList<Entry<Key,Value>>();
     cis = new ChunkInputStream();
     scanner = conn.createScanner(tableName, auths);

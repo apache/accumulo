@@ -63,7 +63,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
 	self.comment("Testing MaxMutation constraint")
 	self.ashell('createtable test_ingest\n'
                     'constraint -a org.apache.accumulo.examples.simple.constraints.MaxMutationSize\n')
-        handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.server.test.TestIngest', '1', '0', '10000'])
+        handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.server.test.TestIngest', '-u', ROOT, '--rows', '1', '--start', '0', '--cols', '10000'])
         out, err = handle.communicate()
         self.failIf(handle.returncode==0)
         self.failUnless(err.find("MutationsRejectedException: # constraint violations : 1") >= 0, "Was able to insert a mutation larger than max size")
@@ -72,17 +72,17 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.comment("Testing dirlist example (a little)")
         self.comment("  ingesting accumulo source")
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.dirlist.Ingest',
-                     INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD,
-                     'dirTable',
-                     'indexTable',
-                     'dataTable',
-                     visibility,
-                     100000,
+                     '-i', INSTANCE_NAME, '-z', ZOOKEEPERS, '-u', ROOT, '-p', ROOT_PASSWORD,
+                     '--dirTable', 'dirTable',
+                     '--indexTable', 'indexTable',
+                     '--dataTable', 'dataTable',
+                     '--vis', visibility,
+                     '--chunkSize', 100000,
                      ACCUMULO_HOME+"/fate")
         self.comment("  searching for a file")
         handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.examples.simple.dirlist.QueryUtil',
-                                          INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD,
-                                          'indexTable', auths, 'Fate.java', '-search'])
+                                          '-i', INSTANCE_NAME, '-z', ZOOKEEPERS, '-u', ROOT, '-p', ROOT_PASSWORD,
+                                          '-t', 'indexTable', '--auths', auths, '--search', '--path', 'Fate.java'])
         out, err = handle.communicate()
         self.assert_(handle.returncode == 0)
         self.assert_(out.find('accumulo/fate/Fate.java') >= 0)
@@ -103,36 +103,37 @@ class Examples(TestUtilsMixin, unittest.TestCase):
 
         self.comment("Testing bloom filters are fast for missing data")
         self.ashell('createtable bloom_test\nconfig -t bloom_test -s table.bloom.enabled=true\n')
-        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchWriter', '-s', '7',
-                     INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bloom_test',
-                     '1000000', '0', '1000000000', '50', '2000000', '60000', '3', 'A')
+        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchWriter', '--seed', '7',
+                     '-i', INSTANCE_NAME, '-z', ZOOKEEPERS, '-u', ROOT, '-p', ROOT_PASSWORD, '-t', 'bloom_test',
+                     '--num', '1000000', '--min', '0', '--max', '1000000000', '--size', '50', '--batchMemory', '2M', '--batchLatency', '60s', 
+                     '--batchThreads', '3')
         self.ashell('flush -t bloom_test -w\n')
         now = time.time()
-        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchScanner', '-s', '7',
-                     INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bloom_test',
-                     500, 0, 1000000000, 50, 20, 'A')
+        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchScanner', '--seed', '7',
+                     '-i', INSTANCE_NAME, '-z', ZOOKEEPERS, '-u', ROOT, '-p', ROOT_PASSWORD, '-t', 'bloom_test',
+                     '--num', '500', '--min', '0', '--max', '1000000000', '--size', '50', '--scanThreads', 4)
         diff = time.time() - now
         now = time.time()
-        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchScanner', '-s', '8',
-                     INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bloom_test',
-                     500, 0, 1000000000, 50, 20, 'A')
+        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchScanner', '--seed', '8',
+                     '-i', INSTANCE_NAME, '-z', ZOOKEEPERS, '-u', ROOT, '-p', ROOT_PASSWORD, '-t', 'bloom_test',
+                     '--num', '500', '--min', '0', '--max', '1000000000', '--size', '50', '--scanThreads', 4)
         diff2 = time.time() - now
         self.assert_(diff2 < diff)
 
         self.comment("Creating a sharded index of the accumulo java files")
         self.ashell('createtable shard\ncreatetable doc2term\nquit\n')
         self.execute('/bin/sh', '-c',
-                     'find src -name "*.java" | xargs ./bin/accumulo org.apache.accumulo.simple.examples.shard.Index %s %s shard %s %s 30' %
+                     'find src -name "*.java" | xargs ./bin/accumulo org.apache.accumulo.simple.examples.shard.Index -i %s -z %s -t shard -u %s -p %s --partitions 30' %
                      (INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD))
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.simple.examples.shard.Query',
-                     INSTANCE_NAME, ZOOKEEPERS, 'shard', ROOT, ROOT_PASSWORD,
+                     '-i', INSTANCE_NAME, '-z', ZOOKEEPERS, '-t', 'shard', '-u', ROOT, '-p', ROOT_PASSWORD,
                      'foo', 'bar')
         self.comment("Creating a word index of the sharded files")
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.simple.examples.shard.Reverse',
-                     INSTANCE_NAME, ZOOKEEPERS, 'shard', 'doc2term', ROOT, ROOT_PASSWORD)
+                     '-i', INSTANCE_NAME, '-z', ZOOKEEPERS, '-t', 'shard', '--doc2Term', 'doc2term', '-u', ROOT, '-p', ROOT_PASSWORD)
         self.comment("Making 1000 conjunctive queries of 5 random words")
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.simple.examples.shard.ContinuousQuery',
-                     INSTANCE_NAME, ZOOKEEPERS, 'shard', 'doc2term', ROOT, ROOT_PASSWORD, 5, 1000)
+                     '-i', INSTANCE_NAME, '-z', ZOOKEEPERS, '-t', 'shard', '--doc2Term', 'doc2term', '-u', ROOT, '-p', ROOT_PASSWORD, '--term', 5, '--count', 1000)
 
         self.execute('hadoop', 'fs', '-rmr', "/tmp/input", "/tmp/files", "/tmp/splits.txt", "/tmp/failures")
         self.execute('hadoop', 'fs', '-mkdir', "/tmp/input")
@@ -155,41 +156,38 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
             'org.apache.accumulo.simple.examples.mapreduce.TeraSortIngest',
-            ROWS,  
-            10, 10,
-            78, 78,
-            'sorted',
-            INSTANCE_NAME,
-            ZOOKEEPERS,
-            ROOT,
-            ROOT_PASSWORD,
-            4]))
+            '--count', ROWS,  
+            '-nk', 10, '-xk', 10,
+            '-nk', 78, '-xk', 78,
+            '-t', 'sorted',
+            '-i', INSTANCE_NAME,
+            '-z', ZOOKEEPERS,
+            '-u', ROOT,
+            '-p', ROOT_PASSWORD,
+            '--splits', 4]))
         self.comment("Looking for '999' in all rows")
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
             'org.apache.accumulo.simple.examples.mapreduce.RegexExample',
-            INSTANCE_NAME,
-            ZOOKEEPERS,
-            ROOT,
-            ROOT_PASSWORD,
-            'sorted',
-            '.*999.*',
-            '.*',
-            '.*',
-            '.*',
+            '-i', INSTANCE_NAME,
+            '-z', ZOOKEEPERS,
+            '-u', ROOT,
+            '-p', ROOT_PASSWORD,
+            '-t', 'sorted',
+            '--rowRegex', '.*999.*',
             '/tmp/nines']))
         self.comment("Generating hashes of each row into a new table")
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
             'org.apache.accumulo.simple.examples.mapreduce.RowHash',
-            INSTANCE_NAME,
-            ZOOKEEPERS,
-            ROOT,
-            ROOT_PASSWORD,
-            'sorted',
-            ':',
+            '-i', INSTANCE_NAME,
+            '-z', ZOOKEEPERS,
+            '-u', ROOT,
+            '-p', ROOT_PASSWORD,
+            '-t', 'sorted',
+            '--column', ':',
             'sortedHashed',
             ]))
         self.comment("Exporting the table to HDFS")
@@ -197,13 +195,12 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
             'org.apache.accumulo.simple.examples.mapreduce.TableToFile',
-            INSTANCE_NAME,
-            ZOOKEEPERS,
-            ROOT,
-            ROOT_PASSWORD,
-            'sortedHashed',
-            ',',
-            '/tmp/tableFile'
+            '-i', INSTANCE_NAME,
+            '-z', ZOOKEEPERS,
+            '-u', ROOT,
+            '-p', ROOT_PASSWORD,
+            '-t', 'sorted',
+            '--output', '/tmp/tableFile'
             ]))
         self.comment("Running WordCount using Accumulo aggregators")
         self.wait(self.runOn(self.masterHost(), [
@@ -220,50 +217,42 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
             'org.apache.accumulo.simple.examples.mapreduce.WordCount',
-            INSTANCE_NAME,
-            ZOOKEEPERS,
-            '/tmp/wc',
-            'wctable'
+            '-i', INSTANCE_NAME,
+            '-z', ZOOKEEPERS,
+            '--input', '/tmp/wc',
+            '-t', 'wctable'
             ]))
         self.comment("Inserting data with a batch writer")
         self.runExample(['org.apache.accumulo.simple.examples.helloworld.InsertWithBatchWriter',
-                        INSTANCE_NAME,
-                        ZOOKEEPERS,
-                        'helloBatch',
-                        ROOT,
-                        ROOT_PASSWORD])
+                        '-i', INSTANCE_NAME,
+                        '-z', ZOOKEEPERS,
+                        '-t', 'helloBatch',
+                        '-u', ROOT,
+                        '-p', ROOT_PASSWORD])
         self.comment("Reading data")
         self.runExample(['org.apache.accumulo.simple.examples.helloworld.ReadData',
-                         INSTANCE_NAME,
-                         ZOOKEEPERS,
-                        'helloBatch',
-                         ROOT,
-                         ROOT_PASSWORD])
+                        '-i', INSTANCE_NAME,
+                        '-z', ZOOKEEPERS,
+                        '-t', 'helloBatch',
+                        '-u', ROOT,
+                        '-p', ROOT_PASSWORD])
         self.comment("Running isolated scans")
         self.runExample(['org.apache.accumulo.simple.examples.isolation.InterferenceTest',
-                         INSTANCE_NAME,
-                         ZOOKEEPERS,
-                         ROOT,
-                         ROOT_PASSWORD,
-                         'itest1',
-                         100000,
-                         'true'])
+                        '-i', INSTANCE_NAME,
+                        '-z', ZOOKEEPERS,
+                        '-u', ROOT,
+                        '-p', ROOT_PASSWORD,
+                         '-t', 'itest1',
+                         '--iterations', 100000,
+                         '--isolated'])
         self.comment("Running scans without isolation")
         self.runExample(['org.apache.accumulo.simple.examples.isolation.InterferenceTest',
-                         INSTANCE_NAME,
-                         ZOOKEEPERS,
-                         ROOT,
-                         ROOT_PASSWORD,
-                         'itest2',
-                         100000,
-                         'false'])
-        self.comment("Inserting data using a map/reduce job")
-        self.runExample(['org.apache.accumulo.simple.examples.helloworld.InsertWithOutputFormat',
-                         INSTANCE_NAME,
-                         ZOOKEEPERS,
-                        'helloOutputFormat',
-                         ROOT,
-                         ROOT_PASSWORD])
+                        '-i', INSTANCE_NAME,
+                        '-z', ZOOKEEPERS,
+                        '-u', ROOT,
+                        '-p', ROOT_PASSWORD,
+                         '-t', 'itest2',
+                         '--iterations', 100000])
         self.comment("Using some example constraints")
         self.ashell('\n'.join([
             'createtable testConstraints',
@@ -276,35 +265,35 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             ]))
         self.comment("Performing some row operations")
         self.runExample(['org.apache.accumulo.simple.examples.client.RowOperations', 
-                           INSTANCE_NAME,
-                           ZOOKEEPERS,
-                           ROOT,
-                           ROOT_PASSWORD])
+                        '-i', INSTANCE_NAME,
+                        '-z', ZOOKEEPERS,
+                        '-u', ROOT,
+                        '-p', ROOT_PASSWORD ])
         self.comment("Using the batch writer")
         self.runExample(['org.apache.accumulo.simple.examples.client.SequentialBatchWriter',
-                           INSTANCE_NAME, 
-                           ZOOKEEPERS, 
-                           ROOT, 
-                           ROOT_PASSWORD, 
-                           table,
-                           min,
-                           count,
-                           valueSize,
-                           memory,
-                           latency,
-                           numThreads,
-                           visibility])
+                        '-i', INSTANCE_NAME,
+                        '-z', ZOOKEEPERS,
+                        '-u', ROOT,
+                        '-p', ROOT_PASSWORD,
+                         '-t', table,
+                         '--start', min,
+                         '--num', count,
+                         '--size', valueSize,
+                         '--batchMemory', memory,
+                         '--batchLatency', latency,
+                         '--batchThreads', numThreads,
+                         '--vis', visibility])
         self.comment("Reading and writing some data")
         self.runExample(['org.apache.accumulo.simple.examples.client.ReadWriteExample',
                            '-i', INSTANCE_NAME, 
                            '-z', ZOOKEEPERS, 
                            '-u', ROOT, 
                            '-p', ROOT_PASSWORD, 
-                           '-s', auths,
+                           '--auths', auths,
                            '-t', table,
-                           '-e', 
-                           '-r', 
-                           '-dbg'])
+                           '--createtable', 
+                           '-c', 
+                           '--debug'])
         self.comment("Deleting some data")
         self.runExample(['org.apache.accumulo.simple.examples.client.ReadWriteExample',
                            '-i', INSTANCE_NAME, 
@@ -314,42 +303,42 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                            '-s', auths,
                            '-t', table,
                            '-d', 
-                           '-dbg'])
+                           '--debug'])
         self.comment("Writing some random data with the batch writer")
         self.runExample(['org.apache.accumulo.simple.examples.client.RandomBatchWriter',
-                           INSTANCE_NAME, 
-                           ZOOKEEPERS, 
-                           ROOT, 
-                           ROOT_PASSWORD, 
-                           table,
-                           count, 
-                           min, 
-                           max, 
-                           valueSize, 
-                           memory, 
-                           latency, 
-                           numThreads, 
-                           visibility])
+                           '-i', INSTANCE_NAME, 
+                           '-z', ZOOKEEPERS, 
+                           '-u', ROOT, 
+                           '-p', ROOT_PASSWORD, 
+                           '-t', table,
+                           '--num', count, 
+                           '--min', min, 
+                           '--max', max, 
+                           '--size', valueSize, 
+                           '--batchMemory', memory, 
+                           '--batchLatency', latency, 
+                           '--batchThreads', numThreads, 
+                           '--vis', visibility])
         self.comment("Writing some random data with the batch writer")
         self.runExample(['org.apache.accumulo.simple.examples.client.RandomBatchScanner',
-                           INSTANCE_NAME, 
-                           ZOOKEEPERS, 
-                           ROOT, 
-                           ROOT_PASSWORD, 
-                           table,
-                           count, 
-                           min, 
-                           max, 
-                           valueSize, 
-                           numThreads, 
-                           auths]);
+                           '-i', INSTANCE_NAME, 
+                           '-z', ZOOKEEPERS, 
+                           '-u', ROOT, 
+                           '-p', ROOT_PASSWORD, 
+                           '-t', table,
+                           '--num', count, 
+                           '--min', min, 
+                           '--max', max, 
+                           '--size', valueSize, 
+                           '--scanThreads', numThreads, 
+                           '--auths', auths]);
         self.comment("Running an example table operation (Flush)")
         self.runExample(['org.apache.accumulo.simple.examples.client.Flush',
-                           INSTANCE_NAME,
-                           ZOOKEEPERS,
-                           ROOT,
-                           ROOT_PASSWORD,
-                           table])
+                           '-i', INSTANCE_NAME, 
+                           '-z', ZOOKEEPERS, 
+                           '-u', ROOT, 
+                           '-p', ROOT_PASSWORD, 
+                           '-t', table])
         self.shutdown_accumulo();
 
 

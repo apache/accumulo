@@ -33,11 +33,14 @@ public class RecoverLease extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
 
-  private String server;
-  private String file;
-  private long start;
+  protected String server;
+  protected String file;
+  protected long start;
 
-  public RecoverLease(String server, String file) {
+  public RecoverLease() {
+  }
+  
+  public void init(String server, String file) {
     this.server = server;
     this.file = file;
     this.start = System.currentTimeMillis();
@@ -88,12 +91,13 @@ public class RecoverLease extends MasterRepo {
     try {
       fs.append(source).close();
       log.info("Recovered lease on " + source.toString() + " using append");
-
+      return new SubmitFileForRecovery(server, file);
     } catch (IOException ex) {
       log.error("error recovering lease using append", ex);
+      RecoverLease result = new RecoverLease();
+      result.init(server, file);
+      return result;
     }
-    // lets do this again
-    return new RecoverLease(server, file);
   }
   
 }

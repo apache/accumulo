@@ -99,14 +99,14 @@ public class BloomFilter extends Filter {
    * @param hashType
    *          type of the hashing function (see {@link org.apache.hadoop.util.hash.Hash}).
    */
-  public BloomFilter(int vectorSize, int nbHash, int hashType) {
+  public BloomFilter(final int vectorSize, final int nbHash, final int hashType) {
     super(vectorSize, nbHash, hashType);
     
     bits = new BitSet(this.vectorSize);
   }
   
   @Override
-  public boolean add(Key key) {
+  public boolean add(final Key key) {
     if (key == null) {
       throw new NullPointerException("key cannot be null");
     }
@@ -125,7 +125,7 @@ public class BloomFilter extends Filter {
   }
   
   @Override
-  public void and(Filter filter) {
+  public void and(final Filter filter) {
     if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be and-ed");
     }
@@ -134,7 +134,7 @@ public class BloomFilter extends Filter {
   }
   
   @Override
-  public boolean membershipTest(Key key) {
+  public boolean membershipTest(final Key key) {
     if (key == null) {
       throw new NullPointerException("key cannot be null");
     }
@@ -155,7 +155,7 @@ public class BloomFilter extends Filter {
   }
   
   @Override
-  public void or(Filter filter) {
+  public void or(final Filter filter) {
     if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be or-ed");
     }
@@ -163,7 +163,7 @@ public class BloomFilter extends Filter {
   }
   
   @Override
-  public void xor(Filter filter) {
+  public void xor(final Filter filter) {
     if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be xor-ed");
     }
@@ -185,7 +185,7 @@ public class BloomFilter extends Filter {
   // Writable
   
   @Override
-  public void write(DataOutput out) throws IOException {
+  public void write(final DataOutput out) throws IOException {
     super.write(out);
     
     ByteArrayOutputStream boas = new ByteArrayOutputStream();
@@ -198,7 +198,7 @@ public class BloomFilter extends Filter {
   }
   
   @Override
-  public void readFields(DataInput in) throws IOException {
+  public void readFields(final DataInput in) throws IOException {
     
     super.readFields(in);
     
@@ -217,7 +217,6 @@ public class BloomFilter extends Filter {
       try {
         bits = (BitSet) ois.readObject();
       } catch (ClassNotFoundException e) {
-        // TODO Auto-generated catch block
         e.printStackTrace();
         throw new IOException("BloomFilter tried to deserialize as bitset: " + e);
       }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.gc;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -38,9 +39,11 @@ import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -56,14 +59,15 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileUtil;
-import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
+import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.SecurityUtil;
+import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -77,39 +81,37 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.OfflineMetadataScanner;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
+import com.beust.jcommander.Parameter;
+
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
   
-  static final Options OPTS = new Options();
-  static final Option OPT_VERBOSE_MODE = new Option("v", "verbose", false, "extra information will get printed to stdout also");
-  static final Option OPT_SAFE_MODE = new Option("s", "safemode", false, "safe mode will not delete files");
-  static final Option OPT_OFFLINE = new Option("o", "offline", false,
-      "offline mode will run once and check data files directly; this is dangerous if accumulo is running or not shut down properly");
-  static final Option OPT_ADDRESS = new Option("a", "address", true, "specify our local address");
-  static {
-    OPTS.addOption(OPT_VERBOSE_MODE);
-    OPTS.addOption(OPT_SAFE_MODE);
-    OPTS.addOption(OPT_OFFLINE);
-    OPTS.addOption(OPT_ADDRESS);
+  static class Opts extends Help {
+    @Parameter(names={"-v", "--verbose"}, description="extra information will get printed to stdout also")
+    boolean verbose = false;
+    @Parameter(names={"-s", "--safemode"}, description="safe mode will not delete files")
+    boolean safeMode = false;
+    @Parameter(names={"-o", "--offline"}, description=
+      "offline mode will run once and check data files directly; this is dangerous if accumulo is running or not shut down properly")
+    boolean offline = false;
+    @Parameter(names={"-a", "--address"}, description="specify our local address")
+    String address = null;
+    @Parameter(names={"--no-trash"}, description="do not use the Trash, even if it is configured")
+    boolean noTrash = false;
   }
 
   // how much of the JVM's available memory should it use gathering candidates
@@ -117,11 +119,12 @@ public class SimpleGarbageCollector implements Iface {
   private boolean candidateMemExceeded;
   
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
-  
-  private AuthInfo credentials;
+    
+  private InstanceTokenWrapper credentials;
   private long gcStartDelay;
   private boolean checkForBulkProcessingFiles;
   private FileSystem fs;
+  private Trash trash = null;
   private boolean safemode = false, offline = false, verbose = false;
   private String address = "localhost";
   private ZooLock lock;
@@ -142,27 +145,19 @@ public class SimpleGarbageCollector implements Iface {
     Accumulo.init(fs, serverConf, "gc");
     String address = "localhost";
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
-    try {
-      final CommandLine commandLine = new BasicParser().parse(OPTS, args);
-      if (commandLine.getArgs().length != 0)
-        throw new ParseException("Extraneous arguments");
-      
-      if (commandLine.hasOption(OPT_SAFE_MODE.getOpt()))
-        gc.setSafeMode();
-      if (commandLine.hasOption(OPT_OFFLINE.getOpt()))
-        gc.setOffline();
-      if (commandLine.hasOption(OPT_VERBOSE_MODE.getOpt()))
-        gc.setVerbose();
-      address = commandLine.getOptionValue(OPT_ADDRESS.getOpt());
-      if (address != null)
-        gc.useAddress(address);
-    } catch (ParseException e) {
-      String str = "Can't parse the command line options";
-      log.fatal(str, e);
-      throw new IllegalArgumentException(str, e);
-    }
+    Opts opts = new Opts();
+    opts.parseArgs(SimpleGarbageCollector.class.getName(), args);
     
-    gc.init(fs, instance, SecurityConstants.getSystemCredentials());
+    if (opts.safeMode)
+      gc.setSafeMode();
+    if (opts.offline)
+      gc.setOffline();
+    if (opts.verbose)
+      gc.setVerbose();
+    if (opts.address != null)
+      gc.useAddress(address);
+    
+    gc.init(fs, instance, SecurityConstants.getSystemCredentials(), opts.noTrash);
     Accumulo.enableTracing(address, "gc");
     gc.run();
   }
@@ -185,7 +180,7 @@ public class SimpleGarbageCollector implements Iface {
     this.address = address;
   }
 
-  public void init(FileSystem fs, Instance instance, AuthInfo credentials) {
+  public void init(FileSystem fs, Instance instance, InstanceTokenWrapper credentials, boolean noTrash) throws IOException {
     this.fs = TraceFileSystem.wrap(fs);
     this.credentials = credentials;
     this.instance = instance;
@@ -200,6 +195,9 @@ public class SimpleGarbageCollector implements Iface {
     log.info("verbose: " + verbose);
     log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
     log.info("delete threads: " + numDeleteThreads);
+    if (!noTrash) {
+      this.trash = new Trash(fs, fs.getConf());
+    }
   }
   
   private void run() {
@@ -255,10 +253,10 @@ public class SimpleGarbageCollector implements Iface {
         // STEP 3: delete files
         if (safemode) {
           if (verbose)
-            System.out.println("SAFEMODE: There are " + candidates.size() + " data file candidates marked for deletion.\n"
-                + "          Examine the log files to identify them.\n" + "          They can be removed by executing: bin/accumulo gc --offline\n"
-                + "WARNING:  Do not run the garbage collector in offline mode unless you are positive\n"
-                + "          that the accumulo METADATA table is in a clean state, or that accumulo\n"
+            System.out.println("SAFEMODE: There are " + candidates.size() + " data file candidates marked for deletion.%n"
+                + "          Examine the log files to identify them.%n" + "          They can be removed by executing: bin/accumulo gc --offline%n"
+                + "WARNING:  Do not run the garbage collector in offline mode unless you are positive%n"
+                + "          that the accumulo METADATA table is in a clean state, or that accumulo%n"
                 + "          has not yet been run, in the case of an upgrade.");
           log.info("SAFEMODE: Listing all data file candidates for deletion");
           for (String s : candidates)
@@ -320,6 +318,16 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
   
+  private boolean moveToTrash(Path path) throws IOException {
+    if (trash == null)
+      return false;
+    try {
+      return trash.moveToTrash(path);
+    } catch (FileNotFoundException ex) {
+      return false;
+    }
+  }
+  
   /*
    * this method removes deleted table dirs that are empty
    */
@@ -350,8 +358,11 @@ public class SimpleGarbageCollector implements Iface {
       if (tabletDirs == null)
         continue;
       
-      if (tabletDirs.length == 0)
-        fs.delete(new Path(ServerConstants.getTablesDir() + "/" + delTableId), false);
+      if (tabletDirs.length == 0) {
+        Path p = new Path(ServerConstants.getTablesDir() + "/" + delTableId);
+        if (!moveToTrash(p)) 
+          fs.delete(p, false);
+      }
     }
   }
   
@@ -375,10 +386,11 @@ public class SimpleGarbageCollector implements Iface {
   }
   
   private InetSocketAddress startStatsService() throws UnknownHostException {
-    GCMonitorService.Processor processor = new GCMonitorService.Processor(TraceWrap.service(this));
+    Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(this));
     int port = instance.getConfiguration().getPort(Property.GC_PORT);
+    long maxMessageSize = instance.getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
-      TServerUtils.startTServer(port, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000);
+      TServerUtils.startTServer(port, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize);
     } catch (Exception ex) {
       log.fatal(ex, ex);
       throw new RuntimeException(ex);
@@ -502,7 +514,7 @@ public class SimpleGarbageCollector implements Iface {
     scanner.clearColumns();
     scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_SCANFILE_COLUMN_FAMILY);
-    ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+    Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
     
     TabletIterator tabletIterator = new TabletIterator(scanner, Constants.METADATA_KEYSPACE, false, true);
     
@@ -551,7 +563,7 @@ public class SimpleGarbageCollector implements Iface {
       Connector c;
       try {
         c = instance.getConnector(SecurityConstants.getSystemCredentials());
-        writer = c.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 3);
+        writer = c.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
       } catch (Exception e) {
         log.error("Unable to create writer to remove file from the !METADATA table", e);
       }
@@ -600,7 +612,7 @@ public class SimpleGarbageCollector implements Iface {
             
             Path p = new Path(ServerConstants.getTablesDir() + delete);
             
-            if (fs.delete(p, true)) {
+            if (moveToTrash(p) || fs.delete(p, true)) {
               // delete succeeded, still want to delete
               removeFlag = true;
               synchronized (SimpleGarbageCollector.this) {
@@ -676,7 +688,7 @@ public class SimpleGarbageCollector implements Iface {
   }
   
   @Override
-  public GCStatus getStatus(TInfo info, AuthInfo credentials) {
+  public GCStatus getStatus(TInfo info, ThriftInstanceTokenWrapper credentials) {
     return status;
   }
 }

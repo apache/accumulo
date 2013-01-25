@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.security;
 
 import java.io.ByteArrayOutputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.TreeSet;
@@ -75,7 +76,8 @@ public class ColumnVisibility {
 
     protected void generate(ByteArrayOutputStream baos, boolean parens)
     {
-      baos.write(bs.getBackingArray(), bs.offset(), bs.length());
+      byte [] quoted = quote(bs.toArray());
+      baos.write(quoted, 0, quoted.length);
     }
     
     @Override
@@ -146,7 +148,7 @@ public class ColumnVisibility {
     }
 
   }
-  
+
   private static class OrNode extends AggregateNode {
 
     public OrNode() {
@@ -167,7 +169,13 @@ public class ColumnVisibility {
     }
     
   }
-  
+
+  /**
+   * Generates a byte[] that represents a normalized, but logically equivalent,
+   * form of the supplied expression.
+   *
+   * @return normalized expression in byte[] form
+   */
   private static class AndNode extends AggregateNode {
 
     public AndNode()
@@ -198,7 +206,7 @@ public class ColumnVisibility {
    */
   public byte[] flatten() {
     return getExpression();
-  }
+  } 
   
   /**
    * Generate the byte[] that represents this ColumnVisibility.
@@ -239,10 +247,12 @@ public class ColumnVisibility {
       return null;
     }
     
-    Node processTerm(int start, int end, Node expr, byte[] expression) {
+    Node processTerm(int start, int end, Node expr, byte[] expression, boolean quoted) {
       if (start != end) {
         if (expr != null)
           throw new BadArgumentException("expression needs | or &", new String(expression), start);
+        if(quoted)
+          return new TermNode(unquote(expression, start, end - start));
         return new TermNode(new ArrayByteSequence(expression, start, end - start));
       }
       if (expr == null)
@@ -254,32 +264,45 @@ public class ColumnVisibility {
       Node result = null;
       Node expr = null;
       int termStart = index;
+      boolean quoted = false;
+      boolean termComplete = false;
+
       while (index < expression.length) {
         switch (expression[index++]) {
           case '&': {
-            expr = processTerm(termStart, index - 1, expr, expression);
+            expr = processTerm(termStart, index - 1, expr, expression, quoted);
             if (result != null) {
               if (!result.type.equals(NodeType.AND))
                 throw new BadArgumentException("cannot mix & and |", new String(expression), index - 1);
             } else {
               result = new AndNode();
             }
-            ((AggregateNode)result).children.add(expr);
+            if(expr.type == NodeType.AND)
+              ((AggregateNode)result).children.addAll(((AggregateNode)expr).children);
+            else
+              ((AggregateNode)result).children.add(expr);
             expr = null;
             termStart = index;
+            termComplete = false;
+            quoted = false;
             break;
           }
           case '|': {
-            expr = processTerm(termStart, index - 1, expr, expression);
+            expr = processTerm(termStart, index - 1, expr, expression, quoted);
             if (result != null) {
               if (!result.type.equals(NodeType.OR))
                 throw new BadArgumentException("cannot mix | and &", new String(expression), index - 1);
             } else {
               result = new OrNode();
             }
-            ((AggregateNode)result).children.add(expr);
+            if(expr.type == NodeType.OR)
+              ((AggregateNode)result).children.addAll(((AggregateNode)expr).children);
+            else
+              ((AggregateNode)result).children.add(expr);
             expr = null;
             termStart = index;
+            termComplete = false;
+            quoted = false;
             break;
           }
           case '(': {
@@ -288,11 +311,13 @@ public class ColumnVisibility {
               throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
             expr = parse_(expression);
             termStart = index;
+            termComplete = false;
+            quoted = false;
             break;
           }
           case ')': {
             parens--;
-            Node child = processTerm(termStart, index - 1, expr, expression);
+            Node child = processTerm(termStart, index - 1, expr, expression, quoted);
             if (child == null && result == null)
               throw new BadArgumentException("empty expression not allowed", new String(expression), index);
             if (result == null)
@@ -315,14 +340,43 @@ public class ColumnVisibility {
             }
             return result;
           }
+          case '"': {
+            if (termStart != index - 1)
+              throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
+
+            while (index < expression.length && expression[index] != '"') {
+              if (expression[index] == '\\') {
+                index++;
+                if (expression[index] != '\\' && expression[index] != '"')
+                  throw new BadArgumentException("invalid escaping within quotes", new String(expression), index - 1);
+              }
+              index++;
+            }
+            
+            if (index == expression.length)
+              throw new BadArgumentException("unclosed quote", new String(expression), termStart);
+            
+            if (termStart + 1 == index)
+              throw new BadArgumentException("empty term", new String(expression), termStart);
+
+            index++;
+            
+            quoted = true;
+            termComplete = true;
+
+            break;
+          }
           default: {
+            if (termComplete)
+              throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
+
             byte c = expression[index - 1];
             if (!Authorizations.isValidAuthChar(c))
               throw new BadArgumentException("bad character (" + c + ")", new String(expression), index - 1);
           }
         }
       }
-      Node child = processTerm(termStart, index, expr, expression);
+      Node child = processTerm(termStart, index, expr, expression, quoted);
       if (result != null)
       {
         if(result.type == child.type)
@@ -368,6 +422,18 @@ public class ColumnVisibility {
     this(expression.getBytes());
   }
   
+  /**
+   * See {@link #ColumnVisibility(byte[])}
+   * 
+   * @param expression
+   * @param encoding
+   *          uses this encoding to convert the expression to a byte array
+   * @throws UnsupportedEncodingException
+   */
+  public ColumnVisibility(String expression, String encoding) throws UnsupportedEncodingException {
+    this(expression.getBytes(encoding));
+  }
+
   public ColumnVisibility(Text expression) {
     this(TextUtil.getBytes(expression));
   }
@@ -392,6 +458,7 @@ public class ColumnVisibility {
    * 
    * </pre>
    * 
+   *          <P>
    *          The following are not valid expressions for visibility:
    * 
    *          <pre>
@@ -403,6 +470,15 @@ public class ColumnVisibility {
    * )
    * dog|!cat
    * </pre>
+   * 
+   *          <P>
+   *          You can use any character you like in your column visibility expression with quoting. If your quoted term contains '&quot;' or '\' then escape
+   *          them with '\'. The {@link #quote(String)} method will properly quote and escape terms for you.
+   * 
+   *          <pre>
+   * &quot;A#C&quot;&B
+   * </pre>
+   * 
    */
   public ColumnVisibility(byte[] expression) {
     validate(expression);
@@ -475,6 +551,94 @@ public class ColumnVisibility {
     else
       andNode.children.add(node);
     return new ColumnVisibility(andNode);
+  }
+
+  /**
+   * see {@link #quote(byte[])}
+   * 
+   */
+  public static String quote(String term) {
+    return quote(term, "UTF-8");
+  }
+  
+  /**
+   * see {@link #quote(byte[])}
+   * 
+   */
+  public static String quote(String term, String encoding) {
+    try {
+      return new String(quote(term.getBytes(encoding)), encoding);
+    } catch (UnsupportedEncodingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+  
+  /**
+   * Use to properly quote terms in a column visibility expression. If no quoting is needed, then nothing is done.
+   * 
+   * <p>
+   * Examples of using quote :
+   * 
+   * <pre>
+   * import static org.apache.accumulo.core.security.ColumnVisibility.quote;
+   *   .
+   *   .
+   *   .
+   * ColumnVisibility cv = new ColumnVisibility(quote(&quot;A#C&quot;) + &quot;&amp;&quot; + quote(&quot;FOO&quot;));
+   * </pre>
+   * 
+   */
+
+  public static byte[] quote(byte[] term) {
+    boolean needsQuote = false;
+    
+    for (int i = 0; i < term.length; i++) {
+      if (!Authorizations.isValidAuthChar(term[i])) {
+        needsQuote = true;
+        break;
+      }
+    }
+    
+    if (!needsQuote)
+      return term;
+    
+    return escape(term, true);
+  }
+  
+  private static byte[] escape(byte[] auth, boolean quote) {
+    int escapeCount = 0;
+    
+    for (int i = 0; i < auth.length; i++)
+      if (auth[i] == '"' || auth[i] == '\\')
+        escapeCount++;
+    
+    if (escapeCount > 0 || quote) {
+      byte[] escapedAuth = new byte[auth.length + escapeCount + (quote ? 2 : 0)];
+      int index = quote ? 1 : 0;
+      for (int i = 0; i < auth.length; i++) {
+        if (auth[i] == '"' || auth[i] == '\\')
+          escapedAuth[index++] = '\\';
+        escapedAuth[index++] = auth[i];
+      }
+      
+      if (quote) {
+        escapedAuth[0] = '"';
+        escapedAuth[escapedAuth.length - 1] = '"';
+      }
+
+      auth = escapedAuth;
+    }
+    return auth;
+  }
+  
+  private static ByteSequence unquote(byte[] expression, int start, int length) {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    for(int i = start+1; i < start+length-1; i++) {
+      if(expression[i] == '\\')
+        i++;
+      baos.write(expression[i]);
+    }
+    return new ArrayByteSequence(baos.toByteArray());
   }
 
 }

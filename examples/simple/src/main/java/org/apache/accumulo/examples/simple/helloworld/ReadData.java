@@ -19,45 +19,47 @@ package org.apache.accumulo.examples.simple.helloworld;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.Parameter;
+
 /**
  * Reads all data between two rows; all data after a given row; or all data in a table, depending on the number of arguments given.
  */
 public class ReadData {
+  
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--startKey")
+    String startKey;
+    @Parameter(names="--endKey")
+    String endKey;
+  }
+  
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (args.length < 5 || args.length > 7) {
-      System.out
-          .println("bin/accumulo accumulo.examples.helloworld.ReadData <instance name> <zoo keepers> <username> <password> <tablename> [startkey [endkey]]");
-      System.exit(1);
-    }
+    Opts opts = new Opts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(ReadData.class.getName(), args, scanOpts);
     
-    String instanceName = args[0];
-    String zooKeepers = args[1];
-    String user = args[2];
-    byte[] pass = args[3].getBytes();
-    String tableName = args[4];
+    Connector connector = opts.getConnector();
     
-    ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-    Connector connector = instance.getConnector(user, pass);
-    
-    Scanner scan = connector.createScanner(tableName, Constants.NO_AUTHS);
+    Scanner scan = connector.createScanner(opts.tableName, opts.auths);
+    scan.setBatchSize(scanOpts.scanBatchSize);
     Key start = null;
-    if (args.length > 5)
-      start = new Key(new Text(args[5]));
+    if (opts.startKey != null)
+      start = new Key(new Text(opts.startKey));
     Key end = null;
-    if (args.length > 6)
-      end = new Key(new Text(args[6]));
+    if (opts.endKey != null)
+      end = new Key(new Text(opts.endKey));
     scan.setRange(new Range(start, end));
     Iterator<Entry<Key,Value>> iter = scan.iterator();
     

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.test;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -26,6 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -35,19 +35,15 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.Parser;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.Parameter;
+
 public class QueryMetadataTable {
-  private static AuthInfo credentials;
+  private static UserPassToken credentials;
   
   static String location;
   
@@ -62,7 +58,7 @@ public class QueryMetadataTable {
       try {
         KeyExtent extent = new KeyExtent(row, (Text) null);
         
-        Connector connector = HdfsZooInstance.getInstance().getConnector(credentials.user, credentials.password);
+        Connector connector = HdfsZooInstance.getInstance().getConnector(credentials);
         Scanner mdScanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         Text row = extent.getMetadataEntry();
         
@@ -86,39 +82,21 @@ public class QueryMetadataTable {
     }
   }
   
+  static class Opts extends ClientOpts {
+    @Parameter(names="--numQueries", description="number of queries to run")
+    int numQueries = 1;
+    @Parameter(names="--numThreads", description="number of threads used to run the queries")
+    int numThreads = 1;
+  }
+  
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    Option usernameOpt = new Option("username", "username", true, "username");
-    Option passwordOpt = new Option("password", "password", true, "password");
+    Opts opts = new Opts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(QueryMetadataTable.class.getName(), args, scanOpts);
     
-    Options opts = new Options();
-    
-    opts.addOption(usernameOpt);
-    opts.addOption(passwordOpt);
-    
-    Parser p = new BasicParser();
-    CommandLine cl = null;
-    try {
-      cl = p.parse(opts, args);
-    } catch (ParseException e1) {
-      System.out.println("Parse Exception, exiting.");
-      return;
-    }
-    
-    if (cl.getArgs().length != 2) {
-      HelpFormatter hf = new HelpFormatter();
-      hf.printHelp("queryMetadataTable <numQueries> <numThreads> ", opts);
-      return;
-    }
-    String[] rargs = cl.getArgs();
-    
-    int numQueries = Integer.parseInt(rargs[0]);
-    int numThreads = Integer.parseInt(rargs[1]);
-    credentials = new AuthInfo(cl.getOptionValue("username", "root"), ByteBuffer.wrap(cl.getOptionValue("password", "secret").getBytes()), HdfsZooInstance
-        .getInstance().getInstanceID());
-    
-    Connector connector = HdfsZooInstance.getInstance().getConnector(credentials.user, credentials.password);
-    Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-    scanner.setBatchSize(20000);
+    Connector connector = opts.getConnector();
+    Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, opts.auths);
+    scanner.setBatchSize(scanOpts.scanBatchSize);
     Text mdrow = new Text(KeyExtent.getMetadataEntry(new Text(Constants.METADATA_TABLE_ID), null));
     
     HashSet<Text> rowSet = new HashSet<Text>();
@@ -128,7 +106,7 @@ public class QueryMetadataTable {
     for (Entry<Key,Value> entry : scanner) {
       System.out.print(".");
       if (count % 72 == 0) {
-        System.out.printf(" %,d\n", count);
+        System.out.printf(" %,d%n", count);
       }
       if (entry.getKey().compareRow(mdrow) == 0 && entry.getKey().getColumnFamily().compareTo(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
         System.out.println(entry.getKey() + " " + entry.getValue());
@@ -138,20 +116,19 @@ public class QueryMetadataTable {
       if (!entry.getKey().getRow().toString().startsWith(Constants.METADATA_TABLE_ID))
         rowSet.add(entry.getKey().getRow());
       count++;
-      
     }
     
-    System.out.printf(" %,d\n", count);
+    System.out.printf(" %,d%n", count);
     
     ArrayList<Text> rows = new ArrayList<Text>(rowSet);
     
     Random r = new Random();
     
-    ExecutorService tp = Executors.newFixedThreadPool(numThreads);
+    ExecutorService tp = Executors.newFixedThreadPool(opts.numThreads);
     
     long t1 = System.currentTimeMillis();
     
-    for (int i = 0; i < numQueries; i++) {
+    for (int i = 0; i < opts.numQueries; i++) {
       int index = r.nextInt(rows.size());
       MDTQuery mdtq = new MDTQuery(rows.get(index));
       tp.submit(mdtq);
@@ -168,6 +145,6 @@ public class QueryMetadataTable {
     
     long t2 = System.currentTimeMillis();
     double delta = (t2 - t1) / 1000.0;
-    System.out.println("time : " + delta + "  queries per sec : " + (numQueries / delta));
+    System.out.println("time : " + delta + "  queries per sec : " + (opts.numQueries / delta));
   }
 }

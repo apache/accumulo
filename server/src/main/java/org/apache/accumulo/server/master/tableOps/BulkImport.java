@@ -36,6 +36,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.accumulo.cloudtrace.instrument.TraceExecutorService;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -44,7 +45,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
-import org.apache.accumulo.core.client.impl.thrift.ClientService.Iface;
+import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
@@ -55,7 +56,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -290,8 +290,7 @@ class CleanUpBulkImport extends MasterRepo {
     MetadataTable.removeBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     MetadataTable.addDeleteEntry(tableId, "/" + bulkDir.getName());
     log.debug("removing the metadata table markers for loaded files");
-    AuthInfo creds = SecurityConstants.getSystemCredentials();
-    Connector conn = HdfsZooInstance.getInstance().getConnector(creds.user, creds.password);
+    Connector conn = master.getConnector();
     MetadataTable.removeBulkLoadEntries(conn, tableId, tid);
     log.debug("releasing HDFS reservations for " + source + " and " + error);
     Utils.unreserveHdfsDirectory(source, tid);
@@ -359,10 +358,10 @@ class CopyFailed extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
 	//This needs to execute after the arbiter is stopped  
 	  
-    FileSystem fs = environment.getFileSystem();
+    FileSystem fs = master.getFileSystem();
 	  
     if (!fs.exists(new Path(error, "failures.txt")))
       return new CleanUpBulkImport(tableId, source, bulk, error);
@@ -389,8 +388,7 @@ class CopyFailed extends MasterRepo {
      */
 
     // determine which failed files were loaded
-    AuthInfo creds = SecurityConstants.getSystemCredentials();
-    Connector conn = HdfsZooInstance.getInstance().getConnector(creds.user, creds.password);
+    Connector conn = master.getConnector();
     Scanner mscanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
     mscanner.fetchColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY);
@@ -522,18 +520,19 @@ class LoadFiles extends MasterRepo {
           @Override
           public List<String> call() {
             List<String> failures = new ArrayList<String>();
-            ClientService.Iface client = null;
+            ClientService.Client client = null;
             String server = null;
             try {
               // get a connection to a random tablet server, do not prefer cached connections because
               // this is running on the master and there are lots of connections to tablet servers
               // serving the !METADATA tablets
-              Pair<String,Iface> pair = ServerClient.getConnection(master.getInstance(), false);
+              long timeInMillis = master.getConfiguration().getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+              Pair<String,Client> pair = ServerClient.getConnection(master.getInstance(), false, timeInMillis);
               client = pair.getSecond();
               server = pair.getFirst();
               List<String> attempt = Collections.singletonList(file);
               log.debug("Asking " + pair.getFirst() + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(null, SecurityConstants.getSystemCredentials(), tid, tableId, attempt, errorDir, setTime);
+              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials(), tid, tableId, attempt, errorDir, setTime);
               if (fail.isEmpty()) {
                 filesToLoad.remove(file);
               } else {

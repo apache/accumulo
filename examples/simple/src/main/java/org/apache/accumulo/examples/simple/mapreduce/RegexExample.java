@@ -18,12 +18,12 @@ package org.apache.accumulo.examples.simple.mapreduce;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -33,24 +33,43 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import com.beust.jcommander.Parameter;
+
 public class RegexExample extends Configured implements Tool {
   public static class RegexMapper extends Mapper<Key,Value,Key,Value> {
+    @Override
     public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
       context.write(row, data);
     }
   }
   
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names = "--rowRegex")
+    String rowRegex;
+    @Parameter(names = "--columnFamilyRegex")
+    String columnFamilyRegex;
+    @Parameter(names = "--columnQualifierRegex")
+    String columnQualifierRegex;
+    @Parameter(names = "--valueRegex")
+    String valueRegex;
+    @Parameter(names = "--output", required = true)
+    String destination;
+  }
+  
+  @Override
   public int run(String[] args) throws Exception {
-    Job job = new Job(getConf(), this.getClass().getSimpleName());
-    job.setJarByClass(this.getClass());
+    Opts opts = new Opts();
+    opts.parseArgs(getClass().getName(), args);
+    
+    Job job = new Job(getConf(), getClass().getSimpleName());
+    job.setJarByClass(getClass());
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), args[2], args[3].getBytes(), args[4], new Authorizations());
+    opts.setAccumuloConfigs(job);
     
     IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
-    RegExFilter.setRegexs(regex, args[5], args[6], args[7], args[8], false);
-    AccumuloInputFormat.addIterator(job.getConfiguration(), regex);
+    RegExFilter.setRegexs(regex, opts.rowRegex, opts.columnFamilyRegex, opts.columnQualifierRegex, opts.valueRegex, false);
+    AccumuloInputFormat.addIterator(job, regex);
     
     job.setMapperClass(RegexMapper.class);
     job.setMapOutputKeyClass(Key.class);
@@ -59,12 +78,12 @@ public class RegexExample extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(TextOutputFormat.class);
-    TextOutputFormat.setOutputPath(job, new Path(args[9]));
+    TextOutputFormat.setOutputPath(job, new Path(opts.destination));
     
-    System.out.println("setRowRegex: " + args[5]);
-    System.out.println("setColumnFamilyRegex: " + args[6]);
-    System.out.println("setColumnQualifierRegex: " + args[7]);
-    System.out.println("setValueRegex: " + args[8]);
+    System.out.println("setRowRegex: " + opts.rowRegex);
+    System.out.println("setColumnFamilyRegex: " + opts.columnFamilyRegex);
+    System.out.println("setColumnQualifierRegex: " + opts.columnQualifierRegex);
+    System.out.println("setValueRegex: " + opts.valueRegex);
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

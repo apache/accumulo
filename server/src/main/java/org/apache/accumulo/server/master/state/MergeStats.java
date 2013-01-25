@@ -21,8 +21,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -30,8 +30,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
@@ -223,11 +221,14 @@ public class MergeStats {
   }
   
   public static void main(String[] args) throws Exception {
-    Instance instance = HdfsZooInstance.getInstance();
-    Map<String,String> tableIdMap = instance.getConnector(SecurityConstants.getSystemCredentials()).tableOperations().tableIdMap();
+    ClientOpts opts = new ClientOpts();
+    opts.parseArgs(MergeStats.class.getName(), args);
+    
+    Connector conn = opts.getConnector();
+    Map<String,String> tableIdMap = conn.tableOperations().tableIdMap();
     for (String table : tableIdMap.keySet()) {
       String tableId = tableIdMap.get(table);
-      String path = ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
+      String path = ZooUtil.getRoot(conn.getInstance().getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
       MergeInfo info = new MergeInfo();
       if (ZooReaderWriter.getInstance().exists(path)) {
         byte[] data = ZooReaderWriter.getInstance().getData(path, new Stat());

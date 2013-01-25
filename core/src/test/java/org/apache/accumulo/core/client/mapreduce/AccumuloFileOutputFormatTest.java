@@ -17,90 +17,220 @@
 package org.apache.accumulo.core.client.mapreduce;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.ContextFactory;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.junit.After;
-import org.junit.Before;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class AccumuloFileOutputFormatTest {
-  static JobContext job;
-  static TaskAttemptContext tac;
-  static Path f = null;
+  public static TemporaryFolder folder = new TemporaryFolder();
+  private static AssertionError e1 = null;
+  private static AssertionError e2 = null;
   
-  @Before
-  public void setup() {
-    job = ContextFactory.createJobContext();
+  @BeforeClass
+  public static void setup() throws Exception {
+    folder.create();
     
-    Path file = new Path("target/");
-    f = new Path(file, "_temporary");
-    job.getConfiguration().set("mapred.output.dir", file.toString());
-    
-    tac = ContextFactory.createTaskAttemptContext(job);
+    MockInstance mockInstance = new MockInstance("testinstance");
+    Connector c = mockInstance.getConnector(new UserPassToken("root", new byte[0]));
+    c.tableOperations().create("emptytable");
+    c.tableOperations().create("testtable");
+    c.tableOperations().create("badtable");
+    BatchWriter bw = c.createBatchWriter("testtable", new BatchWriterConfig());
+    Mutation m = new Mutation("Key");
+    m.put("", "", "");
+    bw.addMutation(m);
+    bw.close();
+    bw = c.createBatchWriter("badtable", new BatchWriterConfig());
+    m = new Mutation("r1");
+    m.put("cf1", "cq1", "A&B");
+    m.put("cf1", "cq1", "A&B");
+    m.put("cf1", "cq2", "A&");
+    bw.addMutation(m);
+    bw.close();
   }
   
-  @After
-  public void teardown() throws IOException {
-    if (f != null && f.getFileSystem(job.getConfiguration()).exists(f)) {
-      f.getFileSystem(job.getConfiguration()).delete(f, true);
-    }
+  @AfterClass
+  public static void teardown() throws IOException {
+    folder.delete();
   }
   
   @Test
-  public void testSet() throws IOException, InterruptedException {
-    AccumuloFileOutputFormat.setBlockSize(job.getConfiguration(), 300);
-    validate(300);
-  }
-  
-  @Test
-  public void testUnset() throws IOException, InterruptedException {
-    validate((int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-  }
-  
-  @Test
-  public void testEmptyWrite() throws IOException, InterruptedException {
+  public void testEmptyWrite() throws Exception {
     handleWriteTests(false);
   }
   
   @Test
-  public void testRealWrite() throws IOException, InterruptedException {
+  public void testRealWrite() throws Exception {
     handleWriteTests(true);
   }
   
-  public void handleWriteTests(boolean content) throws IOException, InterruptedException {
-    AccumuloFileOutputFormat afof = new AccumuloFileOutputFormat();
-    RecordWriter<Key,Value> rw = afof.getRecordWriter(tac);
+  private static class MRTester extends Configured implements Tool {
+    private static class BadKeyMapper extends Mapper<Key,Value,Key,Value> {
+      int index = 0;
+      
+      @Override
+      protected void map(Key key, Value value, Context context) throws IOException, InterruptedException {
+        try {
+          try {
+            context.write(key, value);
+            if (index == 2)
+              assertTrue(false);
+          } catch (Exception e) {
+            assertEquals(2, index);
+          }
+        } catch (AssertionError e) {
+          e1 = e;
+        }
+        index++;
+      }
+      
+      @Override
+      protected void cleanup(Context context) throws IOException, InterruptedException {
+        try {
+          assertEquals(2, index);
+        } catch (AssertionError e) {
+          e2 = e;
+        }
+      }
+    }
     
-    if (content)
-      rw.write(new Key("Key"), new Value("".getBytes()));
+    @Override
+    public int run(String[] args) throws Exception {
+      
+      if (args.length != 4) {
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table> <outputfile>");
+      }
+      
+      String user = args[0];
+      String pass = args[1];
+      String table = args[2];
+      
+      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      job.setJarByClass(this.getClass());
+      
+      job.setInputFormatClass(AccumuloInputFormat.class);
+      
+      AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(user, pass.getBytes(Charset.forName("UTF-8"))));
+      AccumuloInputFormat.setInputTableName(job, table);
+      AccumuloInputFormat.setMockInstance(job, "testinstance");
+      AccumuloFileOutputFormat.setOutputPath(job, new Path(args[3]));
+      
+      job.setMapperClass("badtable".equals(table) ? BadKeyMapper.class : Mapper.class);
+      job.setMapOutputKeyClass(Key.class);
+      job.setMapOutputValueClass(Value.class);
+      job.setOutputFormatClass(AccumuloFileOutputFormat.class);
+      
+      job.setNumReduceTasks(0);
+      
+      job.waitForCompletion(true);
+      
+      return job.isSuccessful() ? 0 : 1;
+    }
     
-    Path file = afof.getDefaultWorkFile(tac, ".rf");
-    System.out.println(file);
-    rw.close(tac);
-    
-    if (content)
-      assertTrue(file.getFileSystem(job.getConfiguration()).exists(file));
-    else
-      assertFalse(file.getFileSystem(job.getConfiguration()).exists(file));
-    file.getFileSystem(tac.getConfiguration()).delete(file.getParent(), true);
+    public static void main(String[] args) throws Exception {
+      assertEquals(0, ToolRunner.run(CachedConfiguration.getInstance(), new MRTester(), args));
+    }
   }
   
-  public void validate(int size) throws IOException, InterruptedException {
-    AccumuloFileOutputFormat.handleBlockSize(job.getConfiguration());
-    int detSize = job.getConfiguration().getInt("io.seqfile.compress.blocksize", -1);
-    assertEquals(size, detSize);
+  public void handleWriteTests(boolean content) throws Exception {
+    File f = folder.newFile();
+    f.delete();
+    MRTester.main(new String[] {"root", "", content ? "testtable" : "emptytable", f.getAbsolutePath()});
+    
+    assertTrue(f.exists());
+    File[] files = f.listFiles(new FileFilter() {
+      @Override
+      public boolean accept(File file) {
+        return file.getName().startsWith("part-m-");
+      }
+    });
+    if (content) {
+      assertEquals(1, files.length);
+      assertTrue(files[0].exists());
+    } else {
+      assertEquals(0, files.length);
+    }
   }
   
+  @Test
+  public void writeBadVisibility() throws Exception {
+    File f = folder.newFile();
+    f.delete();
+    MRTester.main(new String[] {"root", "", "badtable", f.getAbsolutePath()});
+    assertNull(e1);
+    assertNull(e2);
+  }
+  
+  @Test
+  public void validateConfiguration() throws IOException, InterruptedException {
+    
+    int a = 7;
+    long b = 300l;
+    long c = 50l;
+    long d = 10l;
+    String e = "snappy";
+    
+    Job job = new Job();
+    AccumuloFileOutputFormat.setReplication(job, a);
+    AccumuloFileOutputFormat.setFileBlockSize(job, b);
+    AccumuloFileOutputFormat.setDataBlockSize(job, c);
+    AccumuloFileOutputFormat.setIndexBlockSize(job, d);
+    AccumuloFileOutputFormat.setCompressionType(job, e);
+    
+    AccumuloConfiguration acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job);
+    
+    assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
+    assertEquals(300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
+    assertEquals(50l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+    assertEquals(10l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
+    assertEquals("snappy", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
+    
+    a = 17;
+    b = 1300l;
+    c = 150l;
+    d = 110l;
+    e = "lzo";
+    
+    job = new Job();
+    AccumuloFileOutputFormat.setReplication(job, a);
+    AccumuloFileOutputFormat.setFileBlockSize(job, b);
+    AccumuloFileOutputFormat.setDataBlockSize(job, c);
+    AccumuloFileOutputFormat.setIndexBlockSize(job, d);
+    AccumuloFileOutputFormat.setCompressionType(job, e);
+    
+    acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job);
+    
+    assertEquals(17, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
+    assertEquals(1300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
+    assertEquals(150l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+    assertEquals(110l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
+    assertEquals("lzo", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
+    
+  }
 }

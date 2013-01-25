@@ -28,19 +28,23 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.predicates.ColumnVisibilityPredicate;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+
+
 public class VisibilityFilter extends Filter {
+  private static final Logger log = Logger.getLogger(VisibilityFilter.class);
+
   private Authorizations auths;
   private Text defaultVisibility;
   private LRUMap cache;
   private Text tmpVis;
   
-  private static final Logger log = Logger.getLogger(VisibilityFilter.class);
-  
+  @SuppressWarnings("unchecked")
   public VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator, Authorizations authorizations, byte[] defaultVisibility) {
     this.auths = authorizations;
     this.defaultVisibility = new Text(defaultVisibility);
@@ -48,8 +52,6 @@ public class VisibilityFilter extends Filter {
     this.tmpVis = new Text();
     if(iterator instanceof Filterer)
       ((Filterer<Key,Value>)iterator).applyFilter(new ColumnVisibilityPredicate(auths), false);
-    else
-      throw new IllegalArgumentException("expected to get a "+Filterer.class.getSimpleName());
     setSource(iterator);
   }
 
@@ -76,7 +78,13 @@ public class VisibilityFilter extends Filter {
     if (b != null)
       return b;
     
-    Boolean bb = new ColumnVisibility(testVis).evaluate(auths);
+    Boolean bb;
+    try {
+      bb = new ColumnVisibility(testVis).evaluate(auths);
+    } catch (BadArgumentException e) {
+      log.warn(e);
+      bb = false;
+    }
     cache.put(new Text(testVis), bb);
     return bb;
   }

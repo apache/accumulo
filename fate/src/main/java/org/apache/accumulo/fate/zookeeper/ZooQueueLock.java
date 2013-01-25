@@ -38,8 +38,9 @@ public class ZooQueueLock implements QueueLock {
   private String path;
   private boolean ephemeral;
   
-  public ZooQueueLock(String zookeepers, int timeInMillis, String auth, String path, boolean ephemeral) throws KeeperException, InterruptedException {
-    this(ZooReaderWriter.getRetryingInstance(zookeepers, timeInMillis, auth), path, ephemeral);
+  public ZooQueueLock(String zookeepers, int timeInMillis, String scheme, byte[] auth, String path, boolean ephemeral) throws KeeperException,
+      InterruptedException {
+    this(ZooReaderWriter.getRetryingInstance(zookeepers, timeInMillis, scheme, auth), path, ephemeral);
   }
   
   protected ZooQueueLock(IZooReaderWriter zrw, String path, boolean ephemeral) {

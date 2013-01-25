@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cloudtrace.instrument.TraceRunnable;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -52,8 +53,8 @@ import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileUtil;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LoggingRunnable;
@@ -73,7 +74,7 @@ public class BulkImporter {
   
   private static final Logger log = Logger.getLogger(BulkImporter.class);
   
-  public static List<String> bulkLoad(AccumuloConfiguration conf, Instance instance, AuthInfo creds, long tid, String tableId, List<String> files,
+  public static List<String> bulkLoad(AccumuloConfiguration conf, Instance instance, InstanceTokenWrapper creds, long tid, String tableId, List<String> files,
       String errorDir, boolean setTime) throws IOException, AccumuloException, AccumuloSecurityException, ThriftTableOperationException {
     AssignmentStats stats = new BulkImporter(conf, instance, creds, tid, tableId, setTime).importFiles(files, new Path(errorDir));
     List<String> result = new ArrayList<String>();
@@ -90,13 +91,13 @@ public class BulkImporter {
   }
   
   private Instance instance;
-  private AuthInfo credentials;
+  private InstanceTokenWrapper credentials;
   private String tableId;
   private long tid;
   private AccumuloConfiguration acuConf;
   private boolean setTime;
   
-  public BulkImporter(AccumuloConfiguration conf, Instance instance, AuthInfo credentials, long tid, String tableId, boolean setTime) {
+  public BulkImporter(AccumuloConfiguration conf, Instance instance, InstanceTokenWrapper credentials, long tid, String tableId, boolean setTime) {
     this.instance = instance;
     this.credentials = credentials;
     this.tid = tid;
@@ -130,7 +131,7 @@ public class BulkImporter {
       throw new RuntimeException("Directory does not exist " + failureDir);
     }
     
-    ClientService.Iface client = null;
+    ClientService.Client client = null;
     final TabletLocator locator = TabletLocator.getInstance(instance, credentials, new Text(tableId));
     
     try {
@@ -414,7 +415,7 @@ public class BulkImporter {
     return result;
   }
   
-  private Map<Path,List<KeyExtent>> assignMapFiles(AccumuloConfiguration acuConf, Instance instance, Configuration conf, AuthInfo credentials, FileSystem fs,
+  private Map<Path,List<KeyExtent>> assignMapFiles(AccumuloConfiguration acuConf, Instance instance, Configuration conf, InstanceTokenWrapper credentials, FileSystem fs,
       String tableId, Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads, int numMapThreads) {
     timer.start(Timers.EXAMINE_MAP_FILES);
     Map<Path,List<AssignmentInfo>> assignInfo = estimateSizes(acuConf, conf, fs, assignments, paths, numMapThreads);
@@ -430,12 +431,12 @@ public class BulkImporter {
   }
   
   private class AssignmentTask implements Runnable {
-    Map<Path,List<KeyExtent>> assignmentFailures;
+    final Map<Path,List<KeyExtent>> assignmentFailures;
     String location;
-    AuthInfo credentials;
+    InstanceTokenWrapper credentials;
     private Map<KeyExtent,List<PathSize>> assignmentsPerTablet;
     
-    public AssignmentTask(AuthInfo credentials, Map<Path,List<KeyExtent>> assignmentFailures, String tableName, String location,
+    public AssignmentTask(InstanceTokenWrapper credentials, Map<Path,List<KeyExtent>> assignmentFailures, String tableName, String location,
         Map<KeyExtent,List<PathSize>> assignmentsPerTablet) {
       this.assignmentFailures = assignmentFailures;
       this.location = location;
@@ -496,7 +497,7 @@ public class BulkImporter {
     }
   }
   
-  private Map<Path,List<KeyExtent>> assignMapFiles(AuthInfo credentials, String tableName, Map<Path,List<AssignmentInfo>> assignments,
+  private Map<Path,List<KeyExtent>> assignMapFiles(InstanceTokenWrapper credentials, String tableName, Map<Path,List<AssignmentInfo>> assignments,
       Map<KeyExtent,String> locations, int numThreads) {
     
     // group assignments by tablet
@@ -574,10 +575,11 @@ public class BulkImporter {
     return assignmentFailures;
   }
   
-  private List<KeyExtent> assignMapFiles(AuthInfo credentials, String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet) throws AccumuloException,
+  private List<KeyExtent> assignMapFiles(InstanceTokenWrapper credentials, String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet) throws AccumuloException,
       AccumuloSecurityException {
     try {
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, instance.getConfiguration());
+      long timeInMillis = instance.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
+      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, instance.getConfiguration(), timeInMillis);
       try {
         HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files = new HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>();
         for (Entry<KeyExtent,List<PathSize>> entry : assignmentsPerTablet.entrySet()) {
@@ -591,7 +593,7 @@ public class BulkImporter {
         }
         
         log.debug("Asking " + location + " to bulk load " + files);
-        List<TKeyExtent> failures = client.bulkImport(null, credentials, tid, Translator.translate(files, Translator.KET), setTime);
+        List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), credentials.toThrift(), tid, Translator.translate(files, Translator.KET), setTime);
         
         return Translator.translate(failures, Translator.TKET);
       } finally {
@@ -747,15 +749,15 @@ public class BulkImporter {
         failedTablets.addAll(ft);
       
       sb.append("BULK IMPORT ASSIGNMENT STATISTICS\n");
-      sb.append(String.format("# of map files            : %,10d\n", numUniqueMapFiles));
-      sb.append(String.format("# map files with failures : %,10d %6.2f%s\n", completeFailures.size(), completeFailures.size() * 100.0 / numUniqueMapFiles, "%"));
-      sb.append(String.format("# failed failed map files : %,10d %s\n", failedFailures.size(), failedFailures.size() > 0 ? " <-- THIS IS BAD" : ""));
-      sb.append(String.format("# of tablets              : %,10d\n", counts.size()));
-      sb.append(String.format("# tablets imported to     : %,10d %6.2f%s\n", tabletsImportedTo, tabletsImportedTo * 100.0 / counts.size(), "%"));
-      sb.append(String.format("# tablets with failures   : %,10d %6.2f%s\n", failedTablets.size(), failedTablets.size() * 100.0 / counts.size(), "%"));
-      sb.append(String.format("min map files per tablet  : %,10d\n", min));
-      sb.append(String.format("max map files per tablet  : %,10d\n", max));
-      sb.append(String.format("avg map files per tablet  : %,10.2f (std dev = %.2f)\n", totalAssignments / (double) counts.size(), stddev));
+      sb.append(String.format("# of map files            : %,10d%n", numUniqueMapFiles));
+      sb.append(String.format("# map files with failures : %,10d %6.2f%s%n", completeFailures.size(), completeFailures.size() * 100.0 / numUniqueMapFiles, "%"));
+      sb.append(String.format("# failed failed map files : %,10d %s%n", failedFailures.size(), failedFailures.size() > 0 ? " <-- THIS IS BAD" : ""));
+      sb.append(String.format("# of tablets              : %,10d%n", counts.size()));
+      sb.append(String.format("# tablets imported to     : %,10d %6.2f%s%n", tabletsImportedTo, tabletsImportedTo * 100.0 / counts.size(), "%"));
+      sb.append(String.format("# tablets with failures   : %,10d %6.2f%s%n", failedTablets.size(), failedTablets.size() * 100.0 / counts.size(), "%"));
+      sb.append(String.format("min map files per tablet  : %,10d%n", min));
+      sb.append(String.format("max map files per tablet  : %,10d%n", max));
+      sb.append(String.format("avg map files per tablet  : %,10.2f (std dev = %.2f)%n", totalAssignments / (double) counts.size(), stddev));
       return sb.toString();
     }
   }

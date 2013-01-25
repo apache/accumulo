@@ -54,7 +54,7 @@ public abstract class ScaleTest {
   
   protected void stopTimer(long numEntries, long numBytes) {
     long endTime = System.currentTimeMillis();
-    System.out.printf("ELAPSEDMS %d %d %d\n", (endTime - startTime), numEntries, numBytes);
+    System.out.printf("ELAPSEDMS %d %d %d%n", (endTime - startTime), numEntries, numBytes);
   }
   
   public abstract void setup();

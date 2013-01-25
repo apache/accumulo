@@ -35,7 +35,7 @@ public class HiddenCommand extends Command {
   }
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     if (rand.nextInt(10) == 0) {
       shellState.getReader().beep();
       shellState.getReader().printNewline();
@@ -44,9 +44,9 @@ public class HiddenCommand extends Command {
               + "ICAvICB8Xy58Xy4gIFwKICAvIC98ICAgICAgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAgIC8gIF9fICBcCiAgICAvICAv"
               + "ICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK").getBytes())));
       shellState.getReader().printNewline();
-    } else
+    } else {
       throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
-    
+    }
     return 0;
   }
   
@@ -57,6 +57,6 @@ public class HiddenCommand extends Command {
   
   @Override
   public String getName() {
-    return new String("accvmvlo");
+    return "accvmvlo";
   }
 }

@@ -32,11 +32,11 @@ public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLoc
     ZooQueueLock lock = new ZooQueueLock("/lock", true);
     DistributedReadWriteLock rlocker = new DistributedReadWriteLock(lock, "reader".getBytes());
     DistributedReadWriteLock wlocker = new DistributedReadWriteLock(lock, "wlocker".getBytes());
-    Lock readLock = rlocker.readLock();
+    final Lock readLock = rlocker.readLock();
     readLock.lock();
-    Lock readLock2 = rlocker.readLock();
+    final Lock readLock2 = rlocker.readLock();
     readLock2.lock();
-    Lock writeLock = wlocker.writeLock();
+    final Lock writeLock = wlocker.writeLock();
     if (writeLock.tryLock(100, TimeUnit.MILLISECONDS))
       throw new RuntimeException("Write lock achieved during read lock!");
     readLock.unlock();
@@ -44,7 +44,7 @@ public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLoc
     writeLock.lock();
     if (readLock.tryLock(100, TimeUnit.MILLISECONDS))
       throw new RuntimeException("Read lock achieved during write lock!");
-    Lock writeLock2 = DistributedReadWriteLock.recoverLock(lock, "wlocker".getBytes());
+    final Lock writeLock2 = DistributedReadWriteLock.recoverLock(lock, "wlocker".getBytes());
     writeLock2.unlock();
     readLock.lock();
     System.out.println("success");

@@ -19,49 +19,44 @@ package org.apache.accumulo.examples.simple.mapreduce.bulk;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.beust.jcommander.Parameter;
+
 public class VerifyIngest {
   private static final Logger log = Logger.getLogger(VerifyIngest.class);
   
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--start-row")
+    int startRow = 0;
+    @Parameter(names="--count", required=true, description="number of rows to verify")
+    int numRows = 0;
+  }
+  
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (args.length != 7) {
-      System.err.println("VerifyIngest <instance name> <zoo keepers> <username> <password> <table> <startRow> <numRows> ");
-      return;
-    }
+    Opts opts = new Opts();
+    opts.parseArgs(VerifyIngest.class.getName(), args);
     
-    String instanceName = args[0];
-    String zooKeepers = args[1];
-    String user = args[2];
-    byte[] pass = args[3].getBytes();
-    String table = args[4];
+    Connector connector = opts.getConnector();
+    Scanner scanner = connector.createScanner(opts.tableName, opts.auths);
     
-    int startRow = Integer.parseInt(args[5]);
-    int numRows = Integer.parseInt(args[6]);
-    
-    Instance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-    Connector connector = instance.getConnector(user, pass);
-    Scanner scanner = connector.createScanner(table, Constants.NO_AUTHS);
-    
-    scanner.setRange(new Range(new Text(String.format("row_%08d", startRow)), null));
+    scanner.setRange(new Range(new Text(String.format("row_%08d", opts.startRow)), null));
     
     Iterator<Entry<Key,Value>> si = scanner.iterator();
     
     boolean ok = true;
     
-    for (int i = startRow; i < numRows; i++) {
+    for (int i = opts.startRow; i < opts.numRows; i++) {
       
       if (si.hasNext()) {
         Entry<Key,Value> entry = si.next();

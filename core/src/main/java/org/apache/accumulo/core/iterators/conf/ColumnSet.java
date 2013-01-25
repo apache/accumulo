@@ -92,7 +92,7 @@ public class ColumnSet {
     
     return sb.toString();
   }
-
+  
   static void encode(StringBuilder sb, Text t) {
     for (int i = 0; i < t.getLength(); i++) {
       int b = (0xff & t.getBytes()[i]);

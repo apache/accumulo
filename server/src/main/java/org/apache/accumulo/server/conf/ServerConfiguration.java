@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 
 public class ServerConfiguration {
   
-  private static Map<String,TableConfiguration> tableInstances = new HashMap<String,TableConfiguration>(1);
+  private static final Map<String,TableConfiguration> tableInstances = new HashMap<String,TableConfiguration>(1);
   private static SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
   
   public static synchronized SiteConfiguration getSiteConfiguration() {

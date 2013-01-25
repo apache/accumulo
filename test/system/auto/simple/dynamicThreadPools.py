@@ -49,7 +49,7 @@ class DynamicThreadPools(SunnyDayTest):
     def runTest(self):
         self.waitForStop(self.ingester, self.waitTime())
         # make a bunch of work for compaction
-        self.shell(self.masterHost(), 
+        out, err, returncode =  self.shell(self.masterHost(), 
 		   'clonetable test_ingest test_ingest1\n'
 		   'clonetable test_ingest test_ingest2\n'
  		   'clonetable test_ingest test_ingest3\n'
@@ -60,12 +60,14 @@ class DynamicThreadPools(SunnyDayTest):
 		   'sleep 10\n'
 		   'compact -p .*\n'
 		   'sleep 2\n')
-	handle = self.runOn(self.masterHost(), [self.accumulo_sh(), 'org.apache.accumulo.server.test.GetMasterStats'])
-        out, err = self.waitForStop(handle, 120)
+	log.info('shell says: ' + out)
         count = 0
-        for line in out.split('\n'):
-	   if line.find('Major Compacting') >= 0:
-		count += int(line.split()[2])
+	while count == 0:
+	   handle = self.runOn(self.masterHost(), [self.accumulo_sh(), 'org.apache.accumulo.server.test.GetMasterStats', '-u', 'root'])
+           out, err = self.waitForStop(handle, 120)
+           for line in out.split('\n'):
+	      if line.find('Major Compacting') >= 0:
+		 count += int(line.split()[2])
         self.assert_(count == 1)
 
 def suite():
