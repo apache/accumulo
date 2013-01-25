@@ -322,7 +322,7 @@ public class ZooKeeperInstance implements Instance {
   public String getSecurityTokenClass() throws AccumuloException {
     Client client = null;
     try {
-      client = MasterClient.getConnection(this);
+      client = MasterClient.getConnectionWithRetry(this);
       return client.getSecurityTokenClass();
     } catch (TTransportException e) {
       throw new AccumuloException(e);
