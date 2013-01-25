@@ -64,11 +64,11 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   protected String checkTableId(String tableName, TableOperation operation) throws ThriftTableOperationException {
-    String tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
+    String tableId = Tables.getNameToIdMap(instance).get(tableName);
     if (tableId == null) {
       // maybe the table exist, but the cache was not updated yet... so try to clear the cache and check again
-      Tables.clearCache(HdfsZooInstance.getInstance());
-      tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
+      Tables.clearCache(instance);
+      tableId = Tables.getNameToIdMap(instance).get(tableName);
       if (tableId == null)
         throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
     }
@@ -77,12 +77,12 @@ public class ClientServiceHandler implements ClientService.Iface {
   
   @Override
   public String getInstanceId() {
-    return HdfsZooInstance.getInstance().getInstanceID();
+    return instance.getInstanceID();
   }
   
   @Override
   public String getRootTabletLocation() {
-    return HdfsZooInstance.getInstance().getRootTabletLocation();
+    return instance.getRootTabletLocation();
   }
   
   @Override
@@ -210,6 +210,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       if (!security.hasSystemPermission(credentials, credentials.getPrincipal(), SystemPermission.SYSTEM))
         throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
+        @Override
         public List<String> call() throws Exception {
           return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, credentials, tid, tableId, files, errorDir, setTime);
         }

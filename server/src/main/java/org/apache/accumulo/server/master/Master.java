@@ -175,7 +175,6 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
-
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
  * 
@@ -220,7 +219,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       .unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
   
   private final Set<String> recoveriesInProgress = Collections.synchronizedSet(new HashSet<String>());
-
+  
   synchronized private MasterState getMasterState() {
     return state;
   }
@@ -232,15 +231,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   static final boolean X = true;
   static final boolean _ = false;
   static final boolean transitionOK[][] = {
-      //                            INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-      /* INITIAL                 */{X,      X,        _,        _,     _,          _,          X},
-      /* HAVE_LOCK               */{_,      X,        X,        X,     _,          _,          X},
-      /* SAFE_MODE               */{_,      _,        X,        X,     X,          _,          X},
-      /* NORMAL                  */{_,      _,        X,        X,     X,          _,          X},
-      /* UNLOAD_METADATA_TABLETS */{_,      _,        X,        X,     X,          X,          X},
-      /* UNLOAD_ROOT_TABLET      */{_,      _,        _,        _,     _,          X,          X},
-      /* STOP                    */{_,      _,        _,        _,     _,          _,          X},
-      };
+      // INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
+      /* INITIAL */{X, X, _, _, _, _, X},
+      /* HAVE_LOCK */{_, X, X, X, _, _, X},
+      /* SAFE_MODE */{_, _, X, X, X, _, X},
+      /* NORMAL */{_, _, X, X, X, _, X},
+      /* UNLOAD_METADATA_TABLETS */{_, _, X, X, X, X, X},
+      /* UNLOAD_ROOT_TABLET */{_, _, _, _, _, X, X},
+      /* STOP */{_, _, _, _, _, _, X},};
   
   synchronized private void setMasterState(MasterState newState) {
     if (state.equals(newState))
@@ -274,12 +272,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
   }
   
-
   private void upgradeZookeeper() {
     if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
       try {
         log.info("Upgrading zookeeper");
-
+        
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
         
         TablePropUtil.setTableProperty(Constants.METADATA_TABLE_ID, Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter", "20,"
@@ -288,9 +285,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, new byte[0], NodeExistsPolicy.SKIP);
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS, new byte[0], NodeExistsPolicy.SKIP);
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZNEXT_FILE, new byte[] {'0'}, NodeExistsPolicy.SKIP);
-
+        
         String[] tablePropsToDelete = new String[] {"table.scan.cache.size", "table.scan.cache.enable"};
-
+        
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_FLUSH_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
@@ -303,7 +300,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
         
         setACLs(zoo, ZooUtil.getRoot(instance), ZooUtil.getRoot(instance) + Constants.ZUSERS);
-
+        
       } catch (Exception ex) {
         log.fatal("Error performing upgrade", ex);
         System.exit(1);
@@ -325,11 +322,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
   }
-
-  private AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
-
-  private ServerConfiguration serverConfig;
-
+  
+  private final AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
+  
+  private final ServerConfiguration serverConfig;
+  
   private void upgradeMetadata() {
     if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
       if (upgradeMetadataRunning.compareAndSet(false, true)) {
@@ -342,7 +339,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
               log.info("Adding bulk dir delete entries to !METADATA table for upgrade");
               
               BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
-
+              
               FileStatus[] tables = fs.globStatus(new Path(Constants.getTablesDir(getSystemConfiguration()) + "/*"));
               for (FileStatus tableDir : tables) {
                 FileStatus[] bulkDirs = fs.globStatus(new Path(tableDir.getPath() + "/bulk_*"));
@@ -356,7 +353,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
               Accumulo.updateAccumuloVersion(fs);
               
               log.info("Upgrade complete");
-
+              
             } catch (Exception ex) {
               log.fatal("Error performing upgrade", ex);
               System.exit(1);
@@ -371,7 +368,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
   }
-
+  
   private int assignedOrHosted(Text tableId) {
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
@@ -505,7 +502,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     this.hostname = hostname;
     
     AccumuloConfiguration aconf = serverConfig.getConfiguration();
-
+    
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
     ThriftTransportPool.getInstance().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
@@ -526,7 +523,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private class MasterClientServiceHandler implements MasterClientService.Iface {
     
     protected String checkTableId(String tableName, TableOperation operation) throws ThriftTableOperationException {
-      final String tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
+      final String tableId = Tables.getNameToIdMap(getConfiguration().getInstance()).get(tableName);
       if (tableId == null)
         throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
       return tableId;
@@ -536,7 +533,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     public long initiateFlush(TInfo tinfo, ThriftInstanceTokenWrapper c, String tableId) throws ThriftSecurityException, ThriftTableOperationException, TException {
       security.canFlush(new InstanceTokenWrapper(c), tableId);
       
-      String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
+      String zTablePath = Constants.ZROOT + "/" + getConfiguration().getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
+          + Constants.ZTABLE_FLUSH_ID;
       
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       byte fid[];
@@ -819,7 +817,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.info("tablet balancer changed to " + tabletBalancer.getClass().getName());
       }
     }
-
+    
     @Override
     public void removeSystemProperty(TInfo info, ThriftInstanceTokenWrapper c, String property) throws ThriftSecurityException, TException {
       security.canPerformSystemActions(new InstanceTokenWrapper(c));
@@ -1045,7 +1043,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           fate.seedTransaction(opid, new TraceRepo<Master>(new ExportTable(tableName, tableId, exportDir)), autoCleanup);
           break;
         }
-
+        
         default:
           throw new UnsupportedOperationException();
       }
@@ -1301,6 +1299,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       return stats.getLast(tableId);
     }
     
+    @Override
     public void run() {
       
       Thread.currentThread().setName("Watching " + store.name());
@@ -1477,7 +1476,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
       return result;
     }
-
+    
     private void sendSplitRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
       // Already split?
       if (!info.getState().equals(MergeState.SPLITTING))
@@ -1557,7 +1556,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           if (update != stats.getMergeInfo().getState()) {
             setMergeState(stats.getMergeInfo(), update);
           }
-
+          
           if (update == MergeState.MERGING) {
             try {
               if (stats.getMergeInfo().isDelete()) {
@@ -1575,7 +1574,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
       }
     }
-
+    
     private void deleteTablets(MergeInfo info) throws AccumuloException {
       KeyExtent range = info.getRange();
       log.debug("Deleting tablets for " + range);
@@ -1629,7 +1628,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         } finally {
           bw.close();
         }
-
+        
         if (followingTablet != null) {
           log.debug("Updating prevRow of " + followingTablet + " to " + range.getPrevEndRow());
           bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
@@ -1667,7 +1666,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       Range scanRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, stopRow, false);
       if (range.isMeta())
         scanRange = scanRange.clip(Constants.METADATA_ROOT_TABLET_KEYSPACE);
-
+      
       BatchWriter bw = null;
       try {
         long fileCount = 0;
@@ -1721,7 +1720,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
         
         bw.flush();
-
+        
         log.debug("Moved " + fileCount + " files to " + stop);
         
         if (firstPrevRowValue == null) {
@@ -1734,7 +1733,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.debug("Setting the prevRow for last tablet: " + stop);
         bw.addMutation(updatePrevRow);
         bw.flush();
-
+        
         deleteTablets(scanRange, bw, conn);
         
         // Clean-up the last chopped marker
@@ -1754,7 +1753,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           }
       }
     }
-
+    
     private void deleteTablets(Range scanRange, BatchWriter bw, Connector conn) throws TableNotFoundException, MutationsRejectedException {
       Scanner scanner;
       Mutation m;
@@ -1772,7 +1771,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         while (row.hasNext()) {
           Entry<Key,Value> entry = row.next();
           Key key = entry.getKey();
-
+          
           if (m == null)
             m = new Mutation(key.getRow());
           
@@ -1781,7 +1780,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
         bw.addMutation(m);
       }
-
+      
       bw.flush();
     }
     
@@ -1850,9 +1849,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
   }
   
-
   private class MigrationCleanupThread extends Daemon {
     
+    @Override
     public void run() {
       setName("Migration Cleanup Thread");
       while (stillMaster()) {
@@ -1888,6 +1887,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   
   private class StatusThread extends Daemon {
     
+    @Override
     public void run() {
       setName("Status Thread");
       EventCoordinator.Listener eventListener = nextEvent.getListener();
@@ -2100,7 +2100,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     return recoveryNeeded;
   }
-
+  
   public void run() throws IOException, InterruptedException, KeeperException {
     final String zroot = ZooUtil.getRoot(instance);
     
@@ -2115,7 +2115,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     migrationCleanupThread.start();
     
     tserverSet.startListeningForTabletServerChanges();
-
+    
     // TODO: add shutdown for fate object
     try {
       final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
@@ -2152,11 +2152,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     });
     
     InstanceTokenWrapper systemAuths = SecurityConstants.getSystemCredentials();
-    final TabletStateStore stores[] = {
-        new ZooTabletStateStore(new ZooStore(zroot)), 
-        new RootTabletStateStore(instance, systemAuths, this),
-        new MetaDataStateStore(instance, systemAuths, this)
-        };
+    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
+        new MetaDataStateStore(instance, systemAuths, this)};
     watchers.add(new TabletGroupWatcher(stores[2], null));
     watchers.add(new TabletGroupWatcher(stores[1], watchers.get(0)));
     watchers.add(new TabletGroupWatcher(stores[0], watchers.get(1)));
@@ -2197,6 +2194,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
     log.info("trying to get master lock");
     LockWatcher masterLockWatcher = new ZooLock.LockWatcher() {
+      @Override
       public void lostLock(LockLossReason reason) {
         Halt.halt("Master lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
       }
@@ -2361,7 +2359,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   public FileSystem getFileSystem() {
     return this.fs;
   }
-
+  
   public void updateRecoveryInProgress(String file) {
     recoveriesInProgress.add(file);
   }
