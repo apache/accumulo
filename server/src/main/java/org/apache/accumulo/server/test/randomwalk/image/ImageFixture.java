@@ -113,6 +113,6 @@ public class ImageFixture extends Fixture {
     conn.tableOperations().delete(imageTableName);
     conn.tableOperations().delete(indexTableName);
     
-    log.debug("Final total of writes: " + state.getInteger("totalWrites"));
+    log.debug("Final total of writes: " + state.getLong("totalWrites"));
   }
 }

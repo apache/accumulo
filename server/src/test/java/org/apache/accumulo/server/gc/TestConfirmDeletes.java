@@ -22,8 +22,6 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.junit.Assert;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -34,10 +32,13 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
 
@@ -46,7 +47,7 @@ import org.junit.Test;
  */
 public class TestConfirmDeletes {
   
-  AuthInfo auth = new AuthInfo("root", ByteBuffer.wrap("".getBytes()), "instance");
+  AccumuloToken<?,?> auth = new UserPassToken("root", ByteBuffer.wrap("".getBytes()));
 
   SortedSet<String> newSet(String... s) {
     SortedSet<String> result = new TreeSet<String>(Arrays.asList(s));
@@ -99,7 +100,7 @@ public class TestConfirmDeletes {
     load(instance, metadata, deletes);
 
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
-    gc.init(fs, instance, auth, false);
+    gc.init(fs, instance, new InstanceTokenWrapper(auth, instance.getInstanceID()), false);
     SortedSet<String> candidates = gc.getCandidates();
     Assert.assertEquals(expectedInitial, candidates.size());
     gc.confirmDeletes(candidates);

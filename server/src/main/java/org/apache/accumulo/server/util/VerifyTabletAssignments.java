@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -48,11 +46,13 @@ import org.apache.accumulo.core.data.thrift.MultiScanResult;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TRange;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ThriftUtil;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.io.Text;
@@ -92,8 +92,7 @@ public class VerifyTabletAssignments {
     
     Connector conn = opts.getConnector();
     Instance inst = conn.getInstance();
-    MetadataTable.getEntries(conn.getInstance(),
-        new AuthInfo(opts.user, ByteBuffer.wrap(opts.getPassword()), inst.getInstanceID()), tableName, false, locations, tablets);
+    MetadataTable.getEntries(conn.getInstance(), new InstanceTokenWrapper(opts.getWrappedToken().toThrift()), tableName, false, locations, tablets);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
     
@@ -124,7 +123,7 @@ public class VerifyTabletAssignments {
         @Override
         public void run() {
           try {
-            checkTabletServer(conf.getConfiguration(), opts.user, ByteBuffer.wrap(opts.getPassword()), entry, failures);
+            checkTabletServer(conf.getConfiguration(), opts.getAccumuloToken(), entry, failures);
           } catch (Exception e) {
             System.err.println("Failure on ts " + entry.getKey() + " " + e.getMessage());
             e.printStackTrace();
@@ -153,12 +152,12 @@ public class VerifyTabletAssignments {
     }
   }
   
-  private static void checkTabletServer(AccumuloConfiguration conf, final String user, final ByteBuffer pass, Entry<String,List<KeyExtent>> entry,
+  private static void checkTabletServer(AccumuloConfiguration conf, final AccumuloToken<?,?> token, Entry<String,List<KeyExtent>> entry,
       HashSet<KeyExtent> failures)
       throws ThriftSecurityException, TException, NoSuchScanIDException {
     TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), conf);
     
-    AuthInfo st = new AuthInfo(user, pass, HdfsZooInstance.getInstance().getInstanceID());
+    InstanceTokenWrapper st = new InstanceTokenWrapper(token, HdfsZooInstance.getInstance().getInstanceID());
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<TKeyExtent,List<TRange>>();
     
     for (KeyExtent keyExtent : entry.getValue()) {
@@ -191,7 +190,7 @@ public class VerifyTabletAssignments {
     Map<String,Map<String,String>> emptyMapSMapSS = Collections.emptyMap();
     List<IterInfo> emptyListIterInfo = Collections.emptyList();
     List<TColumn> emptyListColumn = Collections.emptyList();
-    InitialMultiScan is = client.startMultiScan(tinfo, st, batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS, Constants.NO_AUTHS.getAuthorizationsBB(),
+    InitialMultiScan is = client.startMultiScan(tinfo, st.toThrift(), batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS, Constants.NO_AUTHS.getAuthorizationsBB(),
         false);
     if (is.result.more) {
       MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);

@@ -70,31 +70,31 @@ service ClientService {
     string getInstanceId()
     string getZooKeepers()
     
-    list<string> bulkImportFiles(1:cloudtrace.TInfo tinfo, 2:security.AuthInfo credentials, 3:i64 tid, 4:string tableId, 5:list<string> files, 6:string errorDir, 7:bool setTime) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope);
+    list<string> bulkImportFiles(1:cloudtrace.TInfo tinfo, 2:security.ThriftInstanceTokenWrapper credentials, 3:i64 tid, 4:string tableId, 5:list<string> files, 6:string errorDir, 7:bool setTime) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope);
     // ensures that nobody is working on the transaction id above
     bool isActive(1:cloudtrace.TInfo tinfo, 2:i64 tid),
 
-    void ping(1:security.AuthInfo credentials) throws (1:security.ThriftSecurityException sec)
+    void ping(1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
 
     // user management methods
-    bool authenticateUser(4:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user, 3:binary password) throws (1:security.ThriftSecurityException sec)
-    set<string> listUsers(2:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials) throws (1:security.ThriftSecurityException sec)
-    void createUser(5:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user, 3:binary password, 4:list<binary> authorizations) throws (1:security.ThriftSecurityException sec)
-    void dropUser(3:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user) throws (1:security.ThriftSecurityException sec)
-    void changePassword(4:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user, 3:binary password) throws (1:security.ThriftSecurityException sec)
-    void changeAuthorizations(4:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user, 3:list<binary> authorizations) throws (1:security.ThriftSecurityException sec)
-    list<binary> getUserAuthorizations(3:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user) throws (1:security.ThriftSecurityException sec)
-    bool hasSystemPermission(4:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user, 3:byte sysPerm) throws (1:security.ThriftSecurityException sec)
-    bool hasTablePermission(5:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user, 3:string tableName, 4:byte tblPerm) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
-    void grantSystemPermission(4:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user, 3:byte permission) throws (1:security.ThriftSecurityException sec)
-    void revokeSystemPermission(4:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user, 3:byte permission) throws (1:security.ThriftSecurityException sec)
-    void grantTablePermission(5:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user, 3:string tableName, 4:byte permission) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
-    void revokeTablePermission(5:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string user, 3:string tableName, 4:byte permission) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
+    bool authenticateUser(4:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 3:binary Token) throws (1:security.ThriftSecurityException sec)
+    set<string> listUsers(2:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
+    void createUser(5:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:binary token, 3:list<binary> authorizations) throws (1:security.ThriftSecurityException sec)
+    void dropUser(3:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string user) throws (1:security.ThriftSecurityException sec)
+    void changePassword(4:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:binary token) throws (1:security.ThriftSecurityException sec)
+    void changeAuthorizations(4:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string user, 3:list<binary> authorizations) throws (1:security.ThriftSecurityException sec)
+    list<binary> getUserAuthorizations(3:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string user) throws (1:security.ThriftSecurityException sec)
+    bool hasSystemPermission(4:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string user, 3:byte sysPerm) throws (1:security.ThriftSecurityException sec)
+    bool hasTablePermission(5:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string user, 3:string tableName, 4:byte tblPerm) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
+    void grantSystemPermission(4:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string user, 3:byte permission) throws (1:security.ThriftSecurityException sec)
+    void revokeSystemPermission(4:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string user, 3:byte permission) throws (1:security.ThriftSecurityException sec)
+    void grantTablePermission(5:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string user, 3:string tableName, 4:byte permission) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
+    void revokeTablePermission(5:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string user, 3:string tableName, 4:byte permission) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
     
     map<string, string> getConfiguration(1:ConfigurationType type);
     map<string, string> getTableConfiguration(2:string tableName) throws (1:ThriftTableOperationException tope);
     bool checkClass(1:cloudtrace.TInfo tinfo, 2:string className, 3:string interfaceMatch);
-}
+    }
 
 // Only used for a unit test
 service ThriftTest {

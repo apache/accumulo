@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.test.functional;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +27,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -41,7 +39,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.fs.FileSystem;
@@ -105,28 +106,19 @@ public abstract class FunctionalTest {
     
   }
   
-  private String username = "";
-  private String password = "";
+  private AccumuloToken<?,?> token = new UserPassToken("", "");
   private String instanceName = "";
   
-  protected void setUsername(String username) {
-    this.username = username;
+  protected void setToken(AccumuloToken<?,?> token) {
+    this.token = token;
   }
   
-  protected String getUsername() {
-    return username;
-  }
-  
-  protected void setPassword(String password) {
-    this.password = password;
-  }
-  
-  protected String getPassword() {
-    return password;
+  protected AccumuloToken<?,?> getToken() {
+    return token;
   }
   
   protected Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getInstance().getConnector(username, password.getBytes());
+    return getInstance().getConnector(getToken());
   }
   
   protected Instance getInstance() {
@@ -141,8 +133,8 @@ public abstract class FunctionalTest {
     return instanceName;
   }
   
-  protected AuthInfo getCredentials() {
-    return new AuthInfo(getUsername(), ByteBuffer.wrap(getPassword().getBytes()), getInstance().getInstanceID());
+  protected InstanceTokenWrapper getCredentials() {
+    return new InstanceTokenWrapper(getToken(), getInstance().getInstanceID());
   }
   
   public abstract Map<String,String> getInitialConfig();
@@ -257,8 +249,7 @@ public abstract class FunctionalTest {
     FunctionalTest fTest = testClass.newInstance();
     
     //fTest.setMaster(master);
-    fTest.setUsername(opts.user);
-    fTest.setPassword(new String(opts.getPassword()));
+    fTest.setToken(opts.getAccumuloToken());
     fTest.setInstanceName(opts.instance);
     
     if (opts.opt.equals("getConfig")) {

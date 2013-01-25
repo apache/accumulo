@@ -98,7 +98,7 @@ public abstract class TabletBalancer {
     log.debug("Scanning tablet server " + tserver + " for table " + tableId);
     Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), tserver.getLocation(), configuration.getConfiguration());
     try {
-      List<TabletStats> onlineTabletsForTable = client.getTabletStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), tableId);
+      List<TabletStats> onlineTabletsForTable = client.getTabletStats(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials(), tableId);
       return onlineTabletsForTable;
     } catch (TTransportException e) {
       log.error("Unable to connect to " + tserver + ": " + e);

@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.master;
 
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -35,7 +34,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
@@ -88,7 +88,7 @@ public class TestMergeState {
   @Test
   public void test() throws Exception {
     Instance instance = new MockInstance();
-    Connector connector = instance.getConnector("root", "");
+    Connector connector = instance.getConnector(new UserPassToken("root",""));
     BatchWriter bw = connector.createBatchWriter("!METADATA", new BatchWriterConfig());
     
     // Create a fake METADATA table with these splits
@@ -112,7 +112,7 @@ public class TestMergeState {
     
     // Read out the TabletLocationStates
     MockCurrentState state = new MockCurrentState(new MergeInfo(new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
-    AuthInfo auths = new AuthInfo("root", ByteBuffer.wrap("".getBytes()), "instance");
+    InstanceTokenWrapper auths = new InstanceTokenWrapper(new UserPassToken("root", ""), "instance");
     
     // Verify the tablet state: hosted, and count
     MetaDataStateStore metaDataStateStore = new MetaDataStateStore(instance, auths, state);

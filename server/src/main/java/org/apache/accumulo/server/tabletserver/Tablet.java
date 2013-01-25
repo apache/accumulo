@@ -86,7 +86,7 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
@@ -681,10 +681,10 @@ public class Tablet {
       }
       
       synchronized (bulkFileImportLock) {
-        AuthInfo auths = SecurityConstants.getSystemCredentials();
+        InstanceTokenWrapper auths = SecurityConstants.getSystemCredentials();
         Connector conn;
         try {
-          conn = HdfsZooInstance.getInstance().getConnector(auths.user, auths.password);
+          conn = HdfsZooInstance.getInstance().getConnector(auths);
         } catch (Exception ex) {
           throw new IOException(ex);
         }
@@ -846,7 +846,7 @@ public class Tablet {
         // need to write to !METADATA before writing to walog, when things are done in the reverse order
         // data could be lost... the minor compaction start even should be written before the following metadata
         // write is made
-        AuthInfo creds = SecurityConstants.getSystemCredentials();
+        InstanceTokenWrapper creds = SecurityConstants.getSystemCredentials();
         
         synchronized (timeLock) {
           if (commitSession.getMaxCommittedTime() > persistedTime)
@@ -2270,7 +2270,7 @@ public class Tablet {
       }
       
       if (updateMetadata) {
-        AuthInfo creds = SecurityConstants.getSystemCredentials();
+        InstanceTokenWrapper creds = SecurityConstants.getSystemCredentials();
         // if multiple threads were allowed to update this outside of a sync block, then it would be
         // a race condition
         MetadataTable.updateTabletFlushID(extent, tableFlushID, creds, tabletServer.getLock());

@@ -69,8 +69,8 @@ public class Write extends Test {
     m.put(META_COLUMN_FAMILY, SHA1_COLUMN_QUALIFIER, new Value(hash));
     
     // update write counts
-    state.set("numWrites", state.getInteger("numWrites") + 1);
-    Integer totalWrites = state.getInteger("totalWrites") + 1;
+    state.set("numWrites", state.getLong("numWrites") + 1);
+    Long totalWrites = state.getLong("totalWrites") + 1;
     state.set("totalWrites", totalWrites);
     
     // set count

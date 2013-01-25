@@ -17,12 +17,11 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -47,7 +46,7 @@ public class PasswdCommand extends Command {
       return 0;
     } // user canceled
     
-    if (!shellState.getConnector().securityOperations().authenticateUser(currentUser, oldPassword.getBytes()))
+    if (!shellState.getConnector().securityOperations().authenticateUser(new UserPassToken(currentUser, oldPassword)))
       throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
     
     password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
@@ -65,11 +64,11 @@ public class PasswdCommand extends Command {
       throw new IllegalArgumentException("Passwords do not match");
     }
     byte[] pass = password.getBytes();
-    shellState.getConnector().securityOperations().changeUserPassword(user, pass);
+    shellState.getConnector().securityOperations().changeUserPassword(new UserPassToken(user, pass));
     // update the current credentials if the password changed was for
     // the current user
     if (shellState.getConnector().whoami().equals(user)) {
-      shellState.updateUser(new AuthInfo(user, ByteBuffer.wrap(pass), shellState.getConnector().getInstance().getInstanceID()));
+      shellState.updateUser(user, pass);
     }
     Shell.log.debug("Changed password for user " + user);
     return 0;

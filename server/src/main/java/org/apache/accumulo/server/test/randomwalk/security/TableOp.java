@@ -53,19 +53,8 @@ public class TableOp extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    boolean userExists = SecurityHelper.getTabUserExists(state);
-    Connector conn;
-    try {
-      conn = state.getInstance().getConnector(SecurityHelper.getTabUserName(state), SecurityHelper.getTabUserPass(state));
-    } catch (AccumuloSecurityException ae) {
-      if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
-        if (userExists)
-          throw new AccumuloException("User didn't exist when they should (or worse- password mismatch)", ae);
-        else
-          return;
-      }
-      throw new AccumuloException("Unexpected exception!", ae);
-    }
+    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getTabAuthInfo());
+    
     String action = props.getProperty("action", "_random");
     TablePermission tp;
     if ("_random".equalsIgnoreCase(action)) {
@@ -75,17 +64,17 @@ public class TableOp extends Test {
       tp = TablePermission.valueOf(action);
     }
     
-    boolean tableExists = SecurityHelper.getTableExists(state);
-    boolean hasPerm = SecurityHelper.getTabPerm(state, SecurityHelper.getTabUserName(state), tp);
-    
-    String tableName = state.getString("secTableName");
+    boolean tableExists = WalkingSecurity.get(state).getTableExists();
+    String tableName = WalkingSecurity.get(state).getTableName();
     
     switch (tp) {
-      case READ:
-        Authorizations auths = SecurityHelper.getUserAuths(state, SecurityHelper.getTabUserName(state));
-        boolean canRead = SecurityHelper.getTabPerm(state, SecurityHelper.getTabUserName(state), TablePermission.READ);
+      case READ: {
+        boolean canRead = WalkingSecurity.get(state).canScan(WalkingSecurity.get(state).getTabAuthInfo(), tableName);
+        Authorizations auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabAuthInfo());
+        boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
+        
         try {
-          Scanner scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(SecurityHelper.getTabUserName(state)));
+          Scanner scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(conn.whoami()));
           int seen = 0;
           Iterator<Entry<Key,Value>> iter = scan.iterator();
           while (iter.hasNext()) {
@@ -95,9 +84,9 @@ public class TableOp extends Test {
             if (!auths.contains(k.getColumnVisibilityData()))
               throw new AccumuloException("Got data I should not be capable of seeing: " + k + " table " + tableName);
           }
-          if (!canRead)
+          if (!canRead && !ambiguousZone)
             throw new AccumuloException("Was able to read when I shouldn't have had the perm with connection user " + conn.whoami() + " table " + tableName);
-          for (Entry<String,Integer> entry : SecurityHelper.getAuthsMap(state).entrySet()) {
+          for (Entry<String,Integer> entry : WalkingSecurity.get(state).getAuthsMap().entrySet()) {
             if (auths.contains(entry.getKey().getBytes()))
               seen = seen - entry.getValue();
           }
@@ -109,7 +98,7 @@ public class TableOp extends Test {
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (canRead)
+            if (canRead && !ambiguousZone)
               throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, ae);
             else
               return;
@@ -118,7 +107,7 @@ public class TableOp extends Test {
         } catch (RuntimeException re) {
           if (re.getCause() instanceof AccumuloSecurityException
               && ((AccumuloSecurityException) re.getCause()).getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (canRead)
+            if (canRead && !ambiguousZone)
               throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, re.getCause());
             else
               return;
@@ -127,10 +116,14 @@ public class TableOp extends Test {
         }
         
         break;
+      }
       case WRITE:
-        String key = SecurityHelper.getLastKey(state) + "1";
+        boolean canWrite = WalkingSecurity.get(state).canWrite(WalkingSecurity.get(state).getTabAuthInfo(), tableName);
+        boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
+        
+        String key = WalkingSecurity.get(state).getLastKey() + "1";
         Mutation m = new Mutation(new Text(key));
-        for (String s : SecurityHelper.getAuthsArray()) {
+        for (String s : WalkingSecurity.get(state).getAuthsArray()) {
           m.put(new Text(), new Text(), new ColumnVisibility(s), new Value("value".getBytes()));
         }
         BatchWriter writer;
@@ -144,23 +137,38 @@ public class TableOp extends Test {
         boolean works = true;
         try {
           writer.addMutation(m);
+          writer.close();
         } catch (MutationsRejectedException mre) {
-          throw new AccumuloException("Mutation exception!", mre);
+          // Currently no method for detecting reason for mre. Waiting on ACCUMULO-670
+          // For now, just wait a second and go again if they can write!
+          if (!canWrite)
+            return;
+          
+          if (ambiguousZone) {
+            Thread.sleep(1000);
+            try {
+              writer = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxWriteThreads(1));
+              writer.addMutation(m);
+              writer.close();
+            } catch (MutationsRejectedException mre2) {
+              throw new AccumuloException("Mutation exception!", mre2);
+            }
+          }
         }
         if (works)
-          for (String s : SecurityHelper.getAuthsArray())
-            SecurityHelper.increaseAuthMap(state, s, 1);
+          for (String s : WalkingSecurity.get(state).getAuthsArray())
+            WalkingSecurity.get(state).increaseAuthMap(s, 1);
         break;
       case BULK_IMPORT:
-        key = SecurityHelper.getLastKey(state) + "1";
+        key = WalkingSecurity.get(state).getLastKey() + "1";
         SortedSet<Key> keys = new TreeSet<Key>();
-        for (String s : SecurityHelper.getAuthsArray()) {
+        for (String s : WalkingSecurity.get(state).getAuthsArray()) {
           Key k = new Key(key, "", "", s);
           keys.add(k);
         }
         Path dir = new Path("/tmp", "bulk_" + UUID.randomUUID().toString());
         Path fail = new Path(dir.toString() + "_fail");
-        FileSystem fs = SecurityHelper.getFs(state);
+        FileSystem fs = WalkingSecurity.get(state).getFs();
         FileSKVWriter f = FileOperations.getInstance().openWriter(dir + "/securityBulk." + RFile.EXTENSION, fs, fs.getConf(),
             AccumuloConfiguration.getDefaultConfiguration());
         f.startDefaultLocalityGroup();
@@ -176,22 +184,26 @@ public class TableOp extends Test {
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (hasPerm)
+            if (WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabAuthInfo(), tableName))
               throw new AccumuloException("Bulk Import failed when it should have worked: " + tableName);
             return;
+          } else if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
+            if (WalkingSecurity.get(state).userPassTransient(conn.whoami()))
+              return;
           }
           throw new AccumuloException("Unexpected exception!", ae);
         }
-        for (String s : SecurityHelper.getAuthsArray())
-          SecurityHelper.increaseAuthMap(state, s, 1);
+        for (String s : WalkingSecurity.get(state).getAuthsArray())
+          WalkingSecurity.get(state).increaseAuthMap(s, 1);
         fs.delete(dir, true);
         fs.delete(fail, true);
-
-        if (!hasPerm)
+        
+        if (!WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabAuthInfo(), tableName))
           throw new AccumuloException("Bulk Import succeeded when it should have failed: " + dir + " table " + tableName);
         break;
       case ALTER_TABLE:
-        AlterTable.renameTable(conn, state, tableName, tableName + "plus", hasPerm, tableExists);
+        AlterTable.renameTable(conn, state, tableName, tableName + "plus",
+            WalkingSecurity.get(state).canAlterTable(WalkingSecurity.get(state).getTabAuthInfo(), tableName), tableExists);
         break;
       
       case GRANT:

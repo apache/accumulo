@@ -162,7 +162,7 @@ public class Module extends Node {
     this.xmlFile = xmlFile;
     loadFromXml();
   }
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     int maxHops, maxSec;
@@ -200,7 +200,7 @@ public class Module extends Node {
     initNode.visit(state, getProps(initNodeId));
     if (test)
       stopTimer(initNode);
-
+    
     state.visitedNode();
     // update aliases
     Set<String> aliases;
@@ -256,6 +256,11 @@ public class Module extends Node {
         for (Entry<Object,Object> entry : nodeProps.entrySet()) {
           log.debug("  " + entry.getKey() + ": " + entry.getValue());
         }
+        log.debug("State information: ");
+        for (String key : new TreeSet<String>(state.getMap().keySet()))  {
+          Object value = state.getMap().get(key);
+          log.debug("  " + key + ": " + value + ' ' + (value != null && ! (value instanceof String)? ((value.getClass().equals(byte[].class))? new String((byte[]) value):value.getClass() + " - " + value):""));
+        }
         throw new Exception("Error running node " + nextNodeId, e);
       }
       state.visitedNode();
@@ -279,7 +284,7 @@ public class Module extends Node {
   final int time = 5 * 1000 * 60;
   AtomicBoolean runningLong = new AtomicBoolean(false);
   long systemTime;
-
+  
   /**
    * 
    */
@@ -321,7 +326,7 @@ public class Module extends Node {
     if (runningLong.get())
       log.warn("Node " + nextNode + ", which was running long, has now completed after " + (System.currentTimeMillis() - systemTime) / 1000.0 + " seconds");
   }
-
+  
   @Override
   public String toString() {
     return xmlFile.toString();

@@ -41,6 +41,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -76,14 +78,12 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * 
    * @param job
    *          the Hadoop job instance to be configured
-   * @param user
-   *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(Job, boolean)} is set to true)
-   * @param passwd
-   *          the user's password
+   * @param token
+   *          a valid AccumuloToken (principal must have Table.CREATE permission if {@link #setCreateTables(Job, boolean)} is set to true)
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Job job, String user, byte[] passwd) {
-    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), user, passwd);
+  public static void setConnectorInfo(Job job, AccumuloToken<?,?> token) {
+    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), token);
   }
   
   /**
@@ -104,28 +104,14 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * 
    * @param context
    *          the Hadoop context for the configured job
-   * @return the user name
+   * @return the AccumuloToken
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
+   * @see #setConnectorInfo(Job, AccumuloToken)
    */
-  protected static String getUsername(JobContext context) {
-    return OutputConfigurator.getUsername(CLASS, context.getConfiguration());
+  protected static AccumuloToken<?,?> getToken(JobContext context) {
+    return OutputConfigurator.getToken(CLASS, context.getConfiguration());
   }
-  
-  /**
-   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
-   * provide a charset safe conversion to a string, and is not intended to be secure.
-   * 
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return the decoded user password
-   * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
-   */
-  protected static byte[] getPassword(JobContext context) {
-    return OutputConfigurator.getPassword(CLASS, context.getConfiguration());
-  }
-  
+
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
    * 
@@ -338,7 +324,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
       
       if (!simulate) {
-        this.conn = getInstance(context).getConnector(getUsername(context), getPassword(context));
+        this.conn = getInstance(context).getConnector(getToken(context));
         mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(context));
       }
     }
@@ -472,8 +458,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       throw new IOException("Connector info has not been set.");
     try {
       // if the instance isn't configured, it will complain here
-      Connector c = getInstance(job).getConnector(getUsername(job), getPassword(job));
-      if (!c.securityOperations().authenticateUser(getUsername(job), getPassword(job)))
+      Connector c = getInstance(job).getConnector(getToken(job));
+      if (!c.securityOperations().authenticateUser(getToken(job)))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException e) {
       throw new IOException(e);
@@ -506,7 +492,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setOutputInfo(Configuration conf, String user, byte[] passwd, boolean createTables, String defaultTable) {
-    OutputConfigurator.setConnectorInfo(CLASS, conf, user, passwd);
+    OutputConfigurator.setConnectorInfo(CLASS, conf, new UserPassToken(user, passwd));
     OutputConfigurator.setCreateTables(CLASS, conf, createTables);
     OutputConfigurator.setDefaultTableName(CLASS, conf, defaultTable);
   }
@@ -578,7 +564,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static String getUsername(Configuration conf) {
-    return OutputConfigurator.getUsername(CLASS, conf);
+    return OutputConfigurator.getToken(CLASS, conf).getPrincipal();
   }
   
   /**
@@ -586,7 +572,12 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static byte[] getPassword(Configuration conf) {
-    return OutputConfigurator.getPassword(CLASS, conf);
+    AccumuloToken<?,?> token = OutputConfigurator.getToken(CLASS, conf);
+    if (token instanceof UserPassToken) {
+      UserPassToken upt = (UserPassToken) token;
+      return upt.getPassword();
+    }
+    throw new RuntimeException("Not applicable for non-UserPassTokens");
   }
   
   /**

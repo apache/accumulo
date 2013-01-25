@@ -39,6 +39,9 @@ import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.security.SecurityUtil;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -50,9 +53,8 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.master.state.tables.TableManager;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
@@ -72,7 +74,7 @@ import com.beust.jcommander.Parameter;
  */
 public class Initialize {
   private static final Logger log = Logger.getLogger(Initialize.class);
-  private static final String ROOT_USER = "root";
+  private static final String DEFAULT_ROOT_USER = "root";
   
   private static ConsoleReader reader = null;
   
@@ -157,6 +159,7 @@ public class Initialize {
       log.fatal("Failed to talk to zookeeper", e);
       return false;
     }
+    opts.rootuser = getRootUser(opts);
     opts.rootpass = getRootPassword(opts);
     return initialize(opts, instanceNamePath, fs);
   }
@@ -200,7 +203,7 @@ public class Initialize {
       return false;
     }
   }
-
+  
   private static void initFileSystem(Opts opts, FileSystem fs, Configuration conf, UUID uuid) throws IOException {
     FileStatus fstat;
     
@@ -400,6 +403,19 @@ public class Initialize {
     return instanceNamePath;
   }
   
+  private static String getRootUser(Opts opts) throws IOException {
+    if (opts.cliUser != null) {
+      return opts.cliUser;
+    }
+    String rootuser;
+    rootuser = getConsoleReader().readLine("Enter name for initial root user ( " + DEFAULT_ROOT_USER + "): ", '*');
+    if (rootuser == null)
+      System.exit(0);
+    if (rootuser.equals(""))
+      return DEFAULT_ROOT_USER;
+    return rootuser;
+  }
+  
   private static byte[] getRootPassword(Opts opts) throws IOException {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes();
@@ -407,10 +423,10 @@ public class Initialize {
     String rootpass;
     String confirmpass;
     do {
-      rootpass = getConsoleReader().readLine("Enter initial password for " + ROOT_USER + ": ", '*');
+      rootpass = getConsoleReader().readLine("Enter initial password for " + opts.rootuser + " (this may not be applicable for your security setup): ", '*');
       if (rootpass == null)
         System.exit(0);
-      confirmpass = getConsoleReader().readLine("Confirm initial password for " + ROOT_USER + ": ", '*');
+      confirmpass = getConsoleReader().readLine("Confirm initial password for " + opts.rootuser + ": ", '*');
       if (confirmpass == null)
         System.exit(0);
       if (!rootpass.equals(confirmpass))
@@ -419,8 +435,8 @@ public class Initialize {
     return rootpass.getBytes();
   }
   
-  private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException {
-    new ZKAuthenticator(iid).initializeSecurity(SecurityConstants.getSystemCredentials(), ROOT_USER, opts.rootpass);
+  private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {
+    AuditedSecurityOperation.getInstance(iid, true).initializeSecurity(SecurityConstants.getSystemCredentials(), new UserPassToken(opts.rootuser, opts.rootpass));
   }
   
   protected static void initMetadataConfig() throws IOException {
@@ -445,7 +461,7 @@ public class Initialize {
   private static void setMetadataReplication(int replication, String reason) throws IOException {
     String rep = getConsoleReader().readLine(
         "Your HDFS replication " + reason
-            + " is not compatible with our default !METADATA replication of 5. What do you want to set your !METADATA replication to? (" + replication + ") ");
+        + " is not compatible with our default !METADATA replication of 5. What do you want to set your !METADATA replication to? (" + replication + ") ");
     if (rep == null || rep.length() == 0)
       rep = Integer.toString(replication);
     else
@@ -453,25 +469,26 @@ public class Initialize {
       Integer.parseInt(rep);
     initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
   }
-
+  
   public static boolean isInitialized(FileSystem fs) throws IOException {
     return (fs.exists(ServerConstants.getInstanceIdLocation()) || fs.exists(ServerConstants.getDataVersionLocation()));
   }
   
   static class Opts extends Help {
-    @Parameter(names="--reset-security", description="just update the security information")
+    @Parameter(names = "--reset-security", description = "just update the security information")
     boolean resetSecurity = false;
-    @Parameter(names="--clear-instance-name", description="delete any existing instance name without prompting")
+    @Parameter(names = "--clear-instance-name", description = "delete any existing instance name without prompting")
     boolean clearInstanceName = false;
-    @Parameter(names="--instance-name", description="the instance name, if not provided, will prompt")
+    @Parameter(names = "--instance-name", description = "the instance name, if not provided, will prompt")
     String cliInstanceName;
-    @Parameter(names="--password", description="set the password on the command line")
+    @Parameter(names = "--password", description = "set the password on the command line")
     String cliPassword;
+    @Parameter(names = "--username", description = "set the root username on the command line")
+    String cliUser;
     
     byte[] rootpass = null;
+    String rootuser = null;
   }
-  
-  
   
   public static void main(String[] args) {
     Opts opts = new Opts();
@@ -484,9 +501,10 @@ public class Initialize {
       Configuration conf = CachedConfiguration.getInstance();
       
       FileSystem fs = FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration());
-
+      
       if (justSecurity) {
         if (isInitialized(fs)) {
+          opts.rootuser = getRootUser(opts);
           opts.rootpass = getRootPassword(opts);
           initSecurity(opts, HdfsZooInstance.getInstance().getInstanceID());
         } else {

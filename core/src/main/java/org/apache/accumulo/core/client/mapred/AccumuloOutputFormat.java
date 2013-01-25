@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -57,7 +58,7 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, byte[])}
+ * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, AccumuloToken)}
  * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
  * </ul>
  * 
@@ -73,14 +74,12 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * 
    * @param job
    *          the Hadoop job instance to be configured
-   * @param user
-   *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
-   * @param passwd
-   *          the user's password
+   * @param token
+   *          a valid AccumuloToken (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
    * @since 1.5.0
    */
-  public static void setConnectorInfo(JobConf job, String user, byte[] passwd) {
-    OutputConfigurator.setConnectorInfo(CLASS, job, user, passwd);
+  public static void setConnectorInfo(JobConf job, AccumuloToken<?,?> token) {
+    OutputConfigurator.setConnectorInfo(CLASS, job, token);
   }
   
   /**
@@ -90,37 +89,24 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, byte[])
+   * @see #setConnectorInfo(JobConf, AccumuloToken)
    */
   protected static Boolean isConnectorInfoSet(JobConf job) {
     return OutputConfigurator.isConnectorInfoSet(CLASS, job);
   }
   
   /**
-   * Gets the user name from the configuration.
+   * Gets the AccumuloToken from the configuration. WARNING: The serlaized token is stored in the Configuration and shared with all MapReduce tasks; It is
+   * BASE64 encoded to provide a charset safe conversion to a string, and is not intended to be secure.
    * 
    * @param job
    *          the Hadoop context for the configured job
-   * @return the user name
+   * @return the decoded user token
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, byte[])
+   * @see #setConnectorInfo(JobConf, AccumuloToken)
    */
-  protected static String getUsername(JobConf job) {
-    return OutputConfigurator.getUsername(CLASS, job);
-  }
-  
-  /**
-   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
-   * provide a charset safe conversion to a string, and is not intended to be secure.
-   * 
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return the decoded user password
-   * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, byte[])
-   */
-  protected static byte[] getPassword(JobConf job) {
-    return OutputConfigurator.getPassword(CLASS, job);
+  protected static AccumuloToken<?,?> getToken(JobConf job) {
+    return OutputConfigurator.getToken(CLASS, job);
   }
   
   /**
@@ -335,7 +321,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
       
       if (!simulate) {
-        this.conn = getInstance(job).getConnector(getUsername(job), getPassword(job));
+        this.conn = getInstance(job).getConnector(getToken(job));
         mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(job));
       }
     }
@@ -469,8 +455,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       throw new IOException("Connector info has not been set.");
     try {
       // if the instance isn't configured, it will complain here
-      Connector c = getInstance(job).getConnector(getUsername(job), getPassword(job));
-      if (!c.securityOperations().authenticateUser(getUsername(job), getPassword(job)))
+      Connector c = getInstance(job).getConnector(getToken(job));
+      if (!c.securityOperations().authenticateUser(getToken(job)))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException e) {
       throw new IOException(e);

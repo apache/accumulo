@@ -37,7 +37,13 @@ import org.apache.thrift.TEnum;
   GRANT_INVALID(6),
   BAD_AUTHORIZATIONS(7),
   INVALID_INSTANCEID(8),
-  TABLE_DOESNT_EXIST(9);
+  TABLE_DOESNT_EXIST(9),
+  UNSUPPORTED_OPERATION(10),
+  INVALID_TOKEN(11),
+  AUTHENTICATOR_FAILED(12),
+  AUTHORIZOR_FAILED(13),
+  PERMISSIONHANDLER_FAILED(14),
+  TOKEN_EXPIRED(15);
 
   private final int value;
 
@@ -78,6 +84,18 @@ import org.apache.thrift.TEnum;
         return INVALID_INSTANCEID;
       case 9:
         return TABLE_DOESNT_EXIST;
+      case 10:
+        return UNSUPPORTED_OPERATION;
+      case 11:
+        return INVALID_TOKEN;
+      case 12:
+        return AUTHENTICATOR_FAILED;
+      case 13:
+        return AUTHORIZOR_FAILED;
+      case 14:
+        return PERMISSIONHANDLER_FAILED;
+      case 15:
+        return TOKEN_EXPIRED;
       default:
         return null;
     }

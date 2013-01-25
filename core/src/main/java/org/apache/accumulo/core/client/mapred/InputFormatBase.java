@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.mapred;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -54,7 +53,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
@@ -86,14 +85,12 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * 
    * @param job
    *          the Hadoop job instance to be configured
-   * @param user
-   *          a valid Accumulo user name (user must have Table.CREATE permission)
-   * @param passwd
-   *          the user's password
+   * @param token
+   *          a valid AccumuloToken (user must have Table.CREATE permission)
    * @since 1.5.0
    */
-  public static void setConnectorInfo(JobConf job, String user, byte[] passwd) {
-    InputConfigurator.setConnectorInfo(CLASS, job, user, passwd);
+  public static void setConnectorInfo(JobConf job, AccumuloToken<?,?> token) {
+    InputConfigurator.setConnectorInfo(CLASS, job, token);
   }
   
   /**
@@ -103,37 +100,24 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, byte[])
+   * @see #setConnectorInfo(JobConf, AccumuloToken)
    */
   protected static Boolean isConnectorInfoSet(JobConf job) {
     return InputConfigurator.isConnectorInfoSet(CLASS, job);
   }
   
   /**
-   * Gets the user name from the configuration.
+   * Gets the AccumuloToken from the configuration. WARNING: The serialized token is stored in the Configuration and shared with all MapReduce tasks; It is
+   * BASE64 encoded to provide a charset safe conversion to a string, and is not intended to be secure.
    * 
    * @param job
    *          the Hadoop context for the configured job
-   * @return the user name
+   * @return the decoded user Token
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, byte[])
+   * @see #setConnectorInfo(JobConf, AccumuloToken)
    */
-  protected static String getUsername(JobConf job) {
-    return InputConfigurator.getUsername(CLASS, job);
-  }
-  
-  /**
-   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
-   * provide a charset safe conversion to a string, and is not intended to be secure.
-   * 
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return the decoded user password
-   * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, byte[])
-   */
-  protected static byte[] getPassword(JobConf job) {
-    return InputConfigurator.getPassword(CLASS, job);
+  protected static AccumuloToken<?,?> getToken(JobConf job) {
+    return InputConfigurator.getToken(CLASS, job);
   }
   
   /**
@@ -541,18 +525,16 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
       Instance instance = getInstance(job);
-      String user = getUsername(job);
-      byte[] password = getPassword(job);
+      AccumuloToken<?,?> token = getToken(job);
       Authorizations authorizations = getScanAuthorizations(job);
       
       try {
-        log.debug("Creating connector with user: " + user);
-        Connector conn = instance.getConnector(user, password);
+        log.debug("Creating connector with user: " + token.getPrincipal());
+        Connector conn = instance.getConnector(token);
         log.debug("Creating scanner for table: " + getInputTableName(job));
         log.debug("Authorizations are: " + authorizations);
         if (isOfflineScan(job)) {
-          scanner = new OfflineScanner(instance, new AuthInfo(user, ByteBuffer.wrap(password), instance.getInstanceID()), Tables.getTableId(instance,
-              getInputTableName(job)), authorizations);
+          scanner = new OfflineScanner(instance, token, Tables.getTableId(instance, getInputTableName(job)), authorizations);
         } else {
           scanner = conn.createScanner(getInputTableName(job), authorizations);
         }
@@ -613,7 +595,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     
     Instance instance = getInstance(job);
-    Connector conn = instance.getConnector(getUsername(job), getPassword(job));
+    Connector conn = instance.getConnector(getToken(job));
     String tableId = Tables.getTableId(instance, tableName);
     
     if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {

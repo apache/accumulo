@@ -42,6 +42,18 @@ public class AccumuloSecurityException extends Exception {
         return "The GRANT permission cannot be granted or revoked";
       case BAD_AUTHORIZATIONS:
         return "The user does not have the specified authorizations assigned";
+      case UNSUPPORTED_OPERATION:
+        return "The configured security handler does not support this operation";
+      case INVALID_TOKEN:
+        return "The configured authenticator does not accept this type of token";
+      case AUTHENTICATOR_FAILED:
+        return "The configured authenticator failed for some reason";
+      case AUTHORIZOR_FAILED:
+        return "The configured authorizor failed for some reason";
+      case PERMISSIONHANDLER_FAILED:
+        return "The configured permission handler failed for some reason";
+      case TOKEN_EXPIRED:
+        return "The supplied token expired, please update and try again";
       case DEFAULT_SECURITY_ERROR:
       default:
         return "Unknown security exception";
@@ -91,6 +103,10 @@ public class AccumuloSecurityException extends Exception {
     return user;
   }
   
+  public void setUser(String s) {
+    this.user = s;
+  }
+  
   /**
    * @return the specific reason for this exception
    */
@@ -99,6 +115,6 @@ public class AccumuloSecurityException extends Exception {
   }
   
   public String getMessage() {
-    return "Error " + errorCode + " - " + super.getMessage();
+    return "Error " + errorCode + " for user " + user + " - " + super.getMessage();
   }
 }

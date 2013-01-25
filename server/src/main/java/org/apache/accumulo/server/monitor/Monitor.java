@@ -41,6 +41,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
@@ -71,7 +72,6 @@ import org.apache.accumulo.server.monitor.servlets.trace.Summary;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.EmbeddedWebServer;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
@@ -293,7 +293,7 @@ public class Monitor {
         try {
           client = MasterClient.getConnection(HdfsZooInstance.getInstance());
           if (client != null) {
-            mmi = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
+            mmi = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials());
             retry = false;
           } else {
             mmi = null;
@@ -432,7 +432,7 @@ public class Monitor {
           InetSocketAddress address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null, null))).getAddress(Service.GC_CLIENT);
           GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
           try {
-            result = client.getStatus(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
+            result = client.getStatus(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials());
           } finally {
             ThriftUtil.returnClient(client);
           }

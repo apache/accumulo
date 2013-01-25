@@ -32,9 +32,9 @@ public class Write extends Test {
     
     BatchWriter bw = state.getMultiTableBatchWriter().getBatchWriter(state.getString("seqTableName"));
     
-    state.set("numWrites", state.getInteger("numWrites") + 1);
+    state.set("numWrites", state.getLong("numWrites") + 1);
     
-    Integer totalWrites = state.getInteger("totalWrites") + 1;
+    Long totalWrites = state.getLong("totalWrites") + 1;
     if ((totalWrites % 10000) == 0) {
       log.debug("Total writes: " + totalWrites);
     }

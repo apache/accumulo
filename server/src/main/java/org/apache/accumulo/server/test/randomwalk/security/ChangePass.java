@@ -16,15 +16,14 @@
  */
 package org.apache.accumulo.server.test.randomwalk.security;
 
-import java.math.BigInteger;
 import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
@@ -32,50 +31,33 @@ public class ChangePass extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn;
-    
     String target = props.getProperty("target");
     String source = props.getProperty("source");
     
-    String sourceUser;
+    InstanceTokenWrapper auth;
     if (source.equals("system")) {
-      conn = SecurityHelper.getSystemConnector(state);
-      sourceUser = SecurityHelper.getSysUserName(state);
+      auth = WalkingSecurity.get(state).getSysAuthInfo();
     } else {
-      sourceUser = SecurityHelper.getTabUserName(state);
-      try {
-        conn = state.getInstance().getConnector(sourceUser, (SecurityHelper.getTabUserPass(state)));
-      } catch (AccumuloSecurityException ae) {
-        if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
-          if (SecurityHelper.getTabUserExists(state))
-            throw new AccumuloException("Got a security exception when the user should have existed", ae);
-          else
-            return;
-        }
-        throw new AccumuloException("Unexpected exception!", ae);
-      }
+      auth = WalkingSecurity.get(state).getTabAuthInfo();
     }
-    
-    boolean hasPerm = true;
-    if (!source.equals(target))
-      hasPerm = SecurityHelper.getSysPerm(state, sourceUser, SystemPermission.ALTER_USER);
-    
-    boolean targetExists = true;
-    boolean targetSystem = true;
+    Connector conn = state.getInstance().getConnector(auth);
+        
+    boolean hasPerm;
+    boolean targetExists;
     if (target.equals("table")) {
-      targetSystem = false;
-      if (!SecurityHelper.getTabUserExists(state))
-        targetExists = false;
-      target = SecurityHelper.getTabUserName(state);
+      target = WalkingSecurity.get(state).getTabUserName();
     } else
-      target = SecurityHelper.getSysUserName(state);
+      target = WalkingSecurity.get(state).getSysUserName();
+    
+    targetExists = WalkingSecurity.get(state).userExists(target);
+      
+    hasPerm = WalkingSecurity.get(state).canChangePassword(auth, target);
     
     Random r = new Random();
     
     byte[] newPass = new byte[r.nextInt(50) + 1];
-    r.nextBytes(newPass);
-    BigInteger bi = new BigInteger(newPass);
-    newPass = bi.toString(36).getBytes();
+    for (int i =0; i < newPass.length; i++)
+      newPass[i] = (byte) ((r.nextInt(26)+65) & 0xFF);
     
     try {
       conn.securityOperations().changeUserPassword(target, newPass);
@@ -89,15 +71,16 @@ public class ChangePass extends Test {
           if (targetExists)
             throw new AccumuloException("User " + target + " doesn't exist and they SHOULD.", ae);
           return;
+        case BAD_CREDENTIALS:
+          if (!WalkingSecurity.get(state).userPassTransient(conn.whoami()))
+            throw new AccumuloException("Bad credentials for user " + conn.whoami());
+          return;
         default:
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
-    if (targetSystem) {
-      SecurityHelper.setSysUserPass(state, newPass);
-    } else
-      SecurityHelper.setTabUserPass(state, newPass);
+    WalkingSecurity.get(state).changePassword(new UserPassToken(target, newPass));
     if (!hasPerm)
-      throw new AccumuloException("Password change succeeded when it should have failed.");
+      throw new AccumuloException("Password change succeeded when it should have failed for " + source + " changing the password for " + target + ".");
   }
 }

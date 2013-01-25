@@ -56,37 +56,37 @@ import org.slf4j.LoggerFactory;
 
     public String getZooKeepers() throws org.apache.thrift.TException;
 
-    public List<String> bulkImportFiles(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public List<String> bulkImportFiles(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public boolean isActive(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, long tid) throws org.apache.thrift.TException;
 
-    public void ping(org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void ping(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public boolean authenticateUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public boolean authenticateUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer Token) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public Set<String> listUsers(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public Set<String> listUsers(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void createUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void createUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void dropUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void dropUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void changePassword(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void changePassword(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void changeAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void changeAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public List<ByteBuffer> getUserAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public List<ByteBuffer> getUserAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public boolean hasSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte sysPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public boolean hasSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte sysPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public boolean hasTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte tblPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public boolean hasTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte tblPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public void grantSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void grantSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void revokeSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void revokeSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void grantTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public void grantTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public void revokeTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public void revokeTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public Map<String,String> getConfiguration(ConfigurationType type) throws org.apache.thrift.TException;
 
@@ -104,37 +104,37 @@ import org.slf4j.LoggerFactory;
 
     public void getZooKeepers(org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getZooKeepers_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void bulkImportFiles(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.bulkImportFiles_call> resultHandler) throws org.apache.thrift.TException;
+    public void bulkImportFiles(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.bulkImportFiles_call> resultHandler) throws org.apache.thrift.TException;
 
     public void isActive(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, long tid, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.isActive_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void ping(org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.ping_call> resultHandler) throws org.apache.thrift.TException;
+    public void ping(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.ping_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void authenticateUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.authenticateUser_call> resultHandler) throws org.apache.thrift.TException;
+    public void authenticateUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer Token, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.authenticateUser_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void listUsers(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listUsers_call> resultHandler) throws org.apache.thrift.TException;
+    public void listUsers(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listUsers_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void createUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createUser_call> resultHandler) throws org.apache.thrift.TException;
+    public void createUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createUser_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void dropUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.dropUser_call> resultHandler) throws org.apache.thrift.TException;
+    public void dropUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.dropUser_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void changePassword(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changePassword_call> resultHandler) throws org.apache.thrift.TException;
+    public void changePassword(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changePassword_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void changeAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changeAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
+    public void changeAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changeAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getUserAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
+    public void getUserAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void hasSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void hasSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void hasTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasTablePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void hasTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void grantSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void grantSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void revokeSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void revokeSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void grantTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantTablePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void grantTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void revokeTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void revokeTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
     public void getConfiguration(ConfigurationType type, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getConfiguration_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -230,13 +230,13 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getZooKeepers failed: unknown result");
     }
 
-    public List<String> bulkImportFiles(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public List<String> bulkImportFiles(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       send_bulkImportFiles(tinfo, credentials, tid, tableId, files, errorDir, setTime);
       return recv_bulkImportFiles();
     }
 
-    public void send_bulkImportFiles(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.thrift.TException
+    public void send_bulkImportFiles(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.thrift.TException
     {
       bulkImportFiles_args args = new bulkImportFiles_args();
       args.setTinfo(tinfo);
@@ -289,13 +289,13 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "isActive failed: unknown result");
     }
 
-    public void ping(org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void ping(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_ping(credentials);
       recv_ping();
     }
 
-    public void send_ping(org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.thrift.TException
+    public void send_ping(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) throws org.apache.thrift.TException
     {
       ping_args args = new ping_args();
       args.setCredentials(credentials);
@@ -312,19 +312,18 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public boolean authenticateUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public boolean authenticateUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer Token) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_authenticateUser(tinfo, credentials, user, password);
+      send_authenticateUser(tinfo, credentials, Token);
       return recv_authenticateUser();
     }
 
-    public void send_authenticateUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password) throws org.apache.thrift.TException
+    public void send_authenticateUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer Token) throws org.apache.thrift.TException
     {
       authenticateUser_args args = new authenticateUser_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
-      args.setUser(user);
-      args.setPassword(password);
+      args.setToken(Token);
       sendBase("authenticateUser", args);
     }
 
@@ -341,13 +340,13 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "authenticateUser failed: unknown result");
     }
 
-    public Set<String> listUsers(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public Set<String> listUsers(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_listUsers(tinfo, credentials);
       return recv_listUsers();
     }
 
-    public void send_listUsers(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.thrift.TException
+    public void send_listUsers(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) throws org.apache.thrift.TException
     {
       listUsers_args args = new listUsers_args();
       args.setTinfo(tinfo);
@@ -368,19 +367,18 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "listUsers failed: unknown result");
     }
 
-    public void createUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void createUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_createUser(tinfo, credentials, user, password, authorizations);
+      send_createUser(tinfo, credentials, token, authorizations);
       recv_createUser();
     }
 
-    public void send_createUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, List<ByteBuffer> authorizations) throws org.apache.thrift.TException
+    public void send_createUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token, List<ByteBuffer> authorizations) throws org.apache.thrift.TException
     {
       createUser_args args = new createUser_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
-      args.setUser(user);
-      args.setPassword(password);
+      args.setToken(token);
       args.setAuthorizations(authorizations);
       sendBase("createUser", args);
     }
@@ -395,13 +393,13 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void dropUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void dropUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_dropUser(tinfo, credentials, user);
       recv_dropUser();
     }
 
-    public void send_dropUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user) throws org.apache.thrift.TException
+    public void send_dropUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user) throws org.apache.thrift.TException
     {
       dropUser_args args = new dropUser_args();
       args.setTinfo(tinfo);
@@ -420,19 +418,18 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void changePassword(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void changePassword(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_changePassword(tinfo, credentials, user, password);
+      send_changePassword(tinfo, credentials, token);
       recv_changePassword();
     }
 
-    public void send_changePassword(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password) throws org.apache.thrift.TException
+    public void send_changePassword(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token) throws org.apache.thrift.TException
     {
       changePassword_args args = new changePassword_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
-      args.setUser(user);
-      args.setPassword(password);
+      args.setToken(token);
       sendBase("changePassword", args);
     }
 
@@ -446,13 +443,13 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void changeAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void changeAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_changeAuthorizations(tinfo, credentials, user, authorizations);
       recv_changeAuthorizations();
     }
 
-    public void send_changeAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, List<ByteBuffer> authorizations) throws org.apache.thrift.TException
+    public void send_changeAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, List<ByteBuffer> authorizations) throws org.apache.thrift.TException
     {
       changeAuthorizations_args args = new changeAuthorizations_args();
       args.setTinfo(tinfo);
@@ -472,13 +469,13 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public List<ByteBuffer> getUserAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public List<ByteBuffer> getUserAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getUserAuthorizations(tinfo, credentials, user);
       return recv_getUserAuthorizations();
     }
 
-    public void send_getUserAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user) throws org.apache.thrift.TException
+    public void send_getUserAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user) throws org.apache.thrift.TException
     {
       getUserAuthorizations_args args = new getUserAuthorizations_args();
       args.setTinfo(tinfo);
@@ -500,13 +497,13 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getUserAuthorizations failed: unknown result");
     }
 
-    public boolean hasSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte sysPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public boolean hasSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte sysPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_hasSystemPermission(tinfo, credentials, user, sysPerm);
       return recv_hasSystemPermission();
     }
 
-    public void send_hasSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte sysPerm) throws org.apache.thrift.TException
+    public void send_hasSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte sysPerm) throws org.apache.thrift.TException
     {
       hasSystemPermission_args args = new hasSystemPermission_args();
       args.setTinfo(tinfo);
@@ -529,13 +526,13 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasSystemPermission failed: unknown result");
     }
 
-    public boolean hasTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte tblPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public boolean hasTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte tblPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       send_hasTablePermission(tinfo, credentials, user, tableName, tblPerm);
       return recv_hasTablePermission();
     }
 
-    public void send_hasTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte tblPerm) throws org.apache.thrift.TException
+    public void send_hasTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte tblPerm) throws org.apache.thrift.TException
     {
       hasTablePermission_args args = new hasTablePermission_args();
       args.setTinfo(tinfo);
@@ -562,13 +559,13 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasTablePermission failed: unknown result");
     }
 
-    public void grantSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void grantSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_grantSystemPermission(tinfo, credentials, user, permission);
       recv_grantSystemPermission();
     }
 
-    public void send_grantSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission) throws org.apache.thrift.TException
+    public void send_grantSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission) throws org.apache.thrift.TException
     {
       grantSystemPermission_args args = new grantSystemPermission_args();
       args.setTinfo(tinfo);
@@ -588,13 +585,13 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void revokeSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void revokeSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_revokeSystemPermission(tinfo, credentials, user, permission);
       recv_revokeSystemPermission();
     }
 
-    public void send_revokeSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission) throws org.apache.thrift.TException
+    public void send_revokeSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission) throws org.apache.thrift.TException
     {
       revokeSystemPermission_args args = new revokeSystemPermission_args();
       args.setTinfo(tinfo);
@@ -614,13 +611,13 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void grantTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public void grantTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       send_grantTablePermission(tinfo, credentials, user, tableName, permission);
       recv_grantTablePermission();
     }
 
-    public void send_grantTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission) throws org.apache.thrift.TException
+    public void send_grantTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission) throws org.apache.thrift.TException
     {
       grantTablePermission_args args = new grantTablePermission_args();
       args.setTinfo(tinfo);
@@ -644,13 +641,13 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void revokeTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public void revokeTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
       send_revokeTablePermission(tinfo, credentials, user, tableName, permission);
       recv_revokeTablePermission();
     }
 
-    public void send_revokeTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission) throws org.apache.thrift.TException
+    public void send_revokeTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission) throws org.apache.thrift.TException
     {
       revokeTablePermission_args args = new revokeTablePermission_args();
       args.setTinfo(tinfo);
@@ -853,7 +850,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void bulkImportFiles(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<bulkImportFiles_call> resultHandler) throws org.apache.thrift.TException {
+    public void bulkImportFiles(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<bulkImportFiles_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       bulkImportFiles_call method_call = new bulkImportFiles_call(tinfo, credentials, tid, tableId, files, errorDir, setTime, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -862,13 +859,13 @@ import org.slf4j.LoggerFactory;
 
     public static class bulkImportFiles_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
       private long tid;
       private String tableId;
       private List<String> files;
       private String errorDir;
       private boolean setTime;
-      public bulkImportFiles_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<bulkImportFiles_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public bulkImportFiles_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<bulkImportFiles_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -938,7 +935,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void ping(org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler) throws org.apache.thrift.TException {
+    public void ping(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       ping_call method_call = new ping_call(credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -946,8 +943,8 @@ import org.slf4j.LoggerFactory;
     }
 
     public static class ping_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
-      public ping_call(org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
+      public ping_call(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.credentials = credentials;
       }
@@ -970,24 +967,22 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void authenticateUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler) throws org.apache.thrift.TException {
+    public void authenticateUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer Token, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      authenticateUser_call method_call = new authenticateUser_call(tinfo, credentials, user, password, resultHandler, this, ___protocolFactory, ___transport);
+      authenticateUser_call method_call = new authenticateUser_call(tinfo, credentials, Token, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class authenticateUser_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
-      private String user;
-      private ByteBuffer password;
-      public authenticateUser_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
+      private ByteBuffer Token;
+      public authenticateUser_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer Token, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
-        this.user = user;
-        this.password = password;
+        this.Token = Token;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -995,8 +990,7 @@ import org.slf4j.LoggerFactory;
         authenticateUser_args args = new authenticateUser_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
-        args.setUser(user);
-        args.setPassword(password);
+        args.setToken(Token);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -1011,7 +1005,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void listUsers(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<listUsers_call> resultHandler) throws org.apache.thrift.TException {
+    public void listUsers(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, org.apache.thrift.async.AsyncMethodCallback<listUsers_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       listUsers_call method_call = new listUsers_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -1020,8 +1014,8 @@ import org.slf4j.LoggerFactory;
 
     public static class listUsers_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
-      public listUsers_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<listUsers_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
+      public listUsers_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, org.apache.thrift.async.AsyncMethodCallback<listUsers_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1046,25 +1040,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void createUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<createUser_call> resultHandler) throws org.apache.thrift.TException {
+    public void createUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<createUser_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      createUser_call method_call = new createUser_call(tinfo, credentials, user, password, authorizations, resultHandler, this, ___protocolFactory, ___transport);
+      createUser_call method_call = new createUser_call(tinfo, credentials, token, authorizations, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class createUser_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
-      private String user;
-      private ByteBuffer password;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
+      private ByteBuffer token;
       private List<ByteBuffer> authorizations;
-      public createUser_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<createUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public createUser_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<createUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
-        this.user = user;
-        this.password = password;
+        this.token = token;
         this.authorizations = authorizations;
       }
 
@@ -1073,8 +1065,7 @@ import org.slf4j.LoggerFactory;
         createUser_args args = new createUser_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
-        args.setUser(user);
-        args.setPassword(password);
+        args.setToken(token);
         args.setAuthorizations(authorizations);
         args.write(prot);
         prot.writeMessageEnd();
@@ -1090,7 +1081,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void dropUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, org.apache.thrift.async.AsyncMethodCallback<dropUser_call> resultHandler) throws org.apache.thrift.TException {
+    public void dropUser(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, org.apache.thrift.async.AsyncMethodCallback<dropUser_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       dropUser_call method_call = new dropUser_call(tinfo, credentials, user, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -1099,9 +1090,9 @@ import org.slf4j.LoggerFactory;
 
     public static class dropUser_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
       private String user;
-      public dropUser_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, org.apache.thrift.async.AsyncMethodCallback<dropUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public dropUser_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, org.apache.thrift.async.AsyncMethodCallback<dropUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1128,24 +1119,22 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void changePassword(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<changePassword_call> resultHandler) throws org.apache.thrift.TException {
+    public void changePassword(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<changePassword_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      changePassword_call method_call = new changePassword_call(tinfo, credentials, user, password, resultHandler, this, ___protocolFactory, ___transport);
+      changePassword_call method_call = new changePassword_call(tinfo, credentials, token, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class changePassword_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
-      private String user;
-      private ByteBuffer password;
-      public changePassword_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<changePassword_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
+      private ByteBuffer token;
+      public changePassword_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<changePassword_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
-        this.user = user;
-        this.password = password;
+        this.token = token;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -1153,8 +1142,7 @@ import org.slf4j.LoggerFactory;
         changePassword_args args = new changePassword_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
-        args.setUser(user);
-        args.setPassword(password);
+        args.setToken(token);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -1169,7 +1157,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void changeAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
+    public void changeAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       changeAuthorizations_call method_call = new changeAuthorizations_call(tinfo, credentials, user, authorizations, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -1178,10 +1166,10 @@ import org.slf4j.LoggerFactory;
 
     public static class changeAuthorizations_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
       private String user;
       private List<ByteBuffer> authorizations;
-      public changeAuthorizations_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public changeAuthorizations_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1210,7 +1198,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getUserAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
+    public void getUserAuthorizations(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getUserAuthorizations_call method_call = new getUserAuthorizations_call(tinfo, credentials, user, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -1219,9 +1207,9 @@ import org.slf4j.LoggerFactory;
 
     public static class getUserAuthorizations_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
       private String user;
-      public getUserAuthorizations_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getUserAuthorizations_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1248,7 +1236,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void hasSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void hasSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       hasSystemPermission_call method_call = new hasSystemPermission_call(tinfo, credentials, user, sysPerm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -1257,10 +1245,10 @@ import org.slf4j.LoggerFactory;
 
     public static class hasSystemPermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
       private String user;
       private byte sysPerm;
-      public hasSystemPermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public hasSystemPermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1289,7 +1277,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void hasTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void hasTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       hasTablePermission_call method_call = new hasTablePermission_call(tinfo, credentials, user, tableName, tblPerm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -1298,11 +1286,11 @@ import org.slf4j.LoggerFactory;
 
     public static class hasTablePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
       private String user;
       private String tableName;
       private byte tblPerm;
-      public hasTablePermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public hasTablePermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1333,7 +1321,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void grantSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void grantSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       grantSystemPermission_call method_call = new grantSystemPermission_call(tinfo, credentials, user, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -1342,10 +1330,10 @@ import org.slf4j.LoggerFactory;
 
     public static class grantSystemPermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
       private String user;
       private byte permission;
-      public grantSystemPermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public grantSystemPermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1374,7 +1362,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void revokeSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void revokeSystemPermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       revokeSystemPermission_call method_call = new revokeSystemPermission_call(tinfo, credentials, user, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -1383,10 +1371,10 @@ import org.slf4j.LoggerFactory;
 
     public static class revokeSystemPermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
       private String user;
       private byte permission;
-      public revokeSystemPermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public revokeSystemPermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1415,7 +1403,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void grantTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void grantTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       grantTablePermission_call method_call = new grantTablePermission_call(tinfo, credentials, user, tableName, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -1424,11 +1412,11 @@ import org.slf4j.LoggerFactory;
 
     public static class grantTablePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
       private String user;
       private String tableName;
       private byte permission;
-      public grantTablePermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public grantTablePermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1459,7 +1447,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void revokeTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void revokeTablePermission(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       revokeTablePermission_call method_call = new revokeTablePermission_call(tinfo, credentials, user, tableName, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -1468,11 +1456,11 @@ import org.slf4j.LoggerFactory;
 
     public static class revokeTablePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
+      private org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials;
       private String user;
       private String tableName;
       private byte permission;
-      public revokeTablePermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public revokeTablePermission_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1790,7 +1778,7 @@ import org.slf4j.LoggerFactory;
       public authenticateUser_result getResult(I iface, authenticateUser_args args) throws org.apache.thrift.TException {
         authenticateUser_result result = new authenticateUser_result();
         try {
-          result.success = iface.authenticateUser(args.tinfo, args.credentials, args.user, args.password);
+          result.success = iface.authenticateUser(args.tinfo, args.credentials, args.Token);
           result.setSuccessIsSet(true);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
@@ -1839,7 +1827,7 @@ import org.slf4j.LoggerFactory;
       public createUser_result getResult(I iface, createUser_args args) throws org.apache.thrift.TException {
         createUser_result result = new createUser_result();
         try {
-          iface.createUser(args.tinfo, args.credentials, args.user, args.password, args.authorizations);
+          iface.createUser(args.tinfo, args.credentials, args.token, args.authorizations);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -1887,7 +1875,7 @@ import org.slf4j.LoggerFactory;
       public changePassword_result getResult(I iface, changePassword_args args) throws org.apache.thrift.TException {
         changePassword_result result = new changePassword_result();
         try {
-          iface.changePassword(args.tinfo, args.credentials, args.user, args.password);
+          iface.changePassword(args.tinfo, args.credentials, args.token);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -3980,7 +3968,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
     public long tid; // required
     public String tableId; // required
     public List<String> files; // required
@@ -4073,7 +4061,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       tmpMap.put(_Fields.TID, new org.apache.thrift.meta_data.FieldMetaData("tid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       tmpMap.put(_Fields.TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("tableId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -4094,7 +4082,7 @@ import org.slf4j.LoggerFactory;
 
     public bulkImportFiles_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
       long tid,
       String tableId,
       List<String> files,
@@ -4122,7 +4110,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
       this.tid = other.tid;
       if (other.isSetTableId()) {
@@ -4182,11 +4170,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public bulkImportFiles_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public bulkImportFiles_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -4353,7 +4341,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -4743,7 +4731,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -4932,7 +4920,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -6402,7 +6390,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new ping_argsTupleSchemeFactory());
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -6467,7 +6455,7 @@ import org.slf4j.LoggerFactory;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ping_args.class, metaDataMap);
     }
@@ -6476,7 +6464,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public ping_args(
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials)
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials)
     {
       this();
       this.credentials = credentials;
@@ -6487,7 +6475,7 @@ import org.slf4j.LoggerFactory;
      */
     public ping_args(ping_args other) {
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
     }
 
@@ -6500,11 +6488,11 @@ import org.slf4j.LoggerFactory;
       this.credentials = null;
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public ping_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public ping_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -6530,7 +6518,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -6682,7 +6670,7 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -6741,7 +6729,7 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -7111,8 +7099,7 @@ import org.slf4j.LoggerFactory;
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField USER_FIELD_DESC = new org.apache.thrift.protocol.TField("user", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField PASSWORD_FIELD_DESC = new org.apache.thrift.protocol.TField("password", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("Token", org.apache.thrift.protocol.TType.STRING, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -7121,16 +7108,14 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
-    public String user; // required
-    public ByteBuffer password; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
+    public ByteBuffer Token; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)4, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
-      USER((short)2, "user"),
-      PASSWORD((short)3, "password");
+      TOKEN((short)3, "Token");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -7149,10 +7134,8 @@ import org.slf4j.LoggerFactory;
             return TINFO;
           case 1: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // USER
-            return USER;
-          case 3: // PASSWORD
-            return PASSWORD;
+          case 3: // TOKEN
+            return TOKEN;
           default:
             return null;
         }
@@ -7199,10 +7182,8 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.PASSWORD, new org.apache.thrift.meta_data.FieldMetaData("password", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
+      tmpMap.put(_Fields.TOKEN, new org.apache.thrift.meta_data.FieldMetaData("Token", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(authenticateUser_args.class, metaDataMap);
@@ -7213,15 +7194,13 @@ import org.slf4j.LoggerFactory;
 
     public authenticateUser_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      String user,
-      ByteBuffer password)
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
+      ByteBuffer Token)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
-      this.user = user;
-      this.password = password;
+      this.Token = Token;
     }
 
     /**
@@ -7232,13 +7211,10 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
-      if (other.isSetUser()) {
-        this.user = other.user;
-      }
-      if (other.isSetPassword()) {
-        this.password = org.apache.thrift.TBaseHelper.copyBinary(other.password);
+      if (other.isSetToken()) {
+        this.Token = org.apache.thrift.TBaseHelper.copyBinary(other.Token);
 ;
       }
     }
@@ -7251,8 +7227,7 @@ import org.slf4j.LoggerFactory;
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
-      this.user = null;
-      this.password = null;
+      this.Token = null;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo getTinfo() {
@@ -7279,11 +7254,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public authenticateUser_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public authenticateUser_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -7303,61 +7278,37 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public String getUser() {
-      return this.user;
+    public byte[] getToken() {
+      setToken(org.apache.thrift.TBaseHelper.rightSize(Token));
+      return Token == null ? null : Token.array();
     }
 
-    public authenticateUser_args setUser(String user) {
-      this.user = user;
+    public ByteBuffer bufferForToken() {
+      return Token;
+    }
+
+    public authenticateUser_args setToken(byte[] Token) {
+      setToken(Token == null ? (ByteBuffer)null : ByteBuffer.wrap(Token));
       return this;
     }
 
-    public void unsetUser() {
-      this.user = null;
+    public authenticateUser_args setToken(ByteBuffer Token) {
+      this.Token = Token;
+      return this;
     }
 
-    /** Returns true if field user is set (has been assigned a value) and false otherwise */
-    public boolean isSetUser() {
-      return this.user != null;
+    public void unsetToken() {
+      this.Token = null;
     }
 
-    public void setUserIsSet(boolean value) {
+    /** Returns true if field Token is set (has been assigned a value) and false otherwise */
+    public boolean isSetToken() {
+      return this.Token != null;
+    }
+
+    public void setTokenIsSet(boolean value) {
       if (!value) {
-        this.user = null;
-      }
-    }
-
-    public byte[] getPassword() {
-      setPassword(org.apache.thrift.TBaseHelper.rightSize(password));
-      return password == null ? null : password.array();
-    }
-
-    public ByteBuffer bufferForPassword() {
-      return password;
-    }
-
-    public authenticateUser_args setPassword(byte[] password) {
-      setPassword(password == null ? (ByteBuffer)null : ByteBuffer.wrap(password));
-      return this;
-    }
-
-    public authenticateUser_args setPassword(ByteBuffer password) {
-      this.password = password;
-      return this;
-    }
-
-    public void unsetPassword() {
-      this.password = null;
-    }
-
-    /** Returns true if field password is set (has been assigned a value) and false otherwise */
-    public boolean isSetPassword() {
-      return this.password != null;
-    }
-
-    public void setPasswordIsSet(boolean value) {
-      if (!value) {
-        this.password = null;
+        this.Token = null;
       }
     }
 
@@ -7375,23 +7326,15 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
-      case USER:
+      case TOKEN:
         if (value == null) {
-          unsetUser();
+          unsetToken();
         } else {
-          setUser((String)value);
-        }
-        break;
-
-      case PASSWORD:
-        if (value == null) {
-          unsetPassword();
-        } else {
-          setPassword((ByteBuffer)value);
+          setToken((ByteBuffer)value);
         }
         break;
 
@@ -7406,11 +7349,8 @@ import org.slf4j.LoggerFactory;
       case CREDENTIALS:
         return getCredentials();
 
-      case USER:
-        return getUser();
-
-      case PASSWORD:
-        return getPassword();
+      case TOKEN:
+        return getToken();
 
       }
       throw new IllegalStateException();
@@ -7427,10 +7367,8 @@ import org.slf4j.LoggerFactory;
         return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
-      case USER:
-        return isSetUser();
-      case PASSWORD:
-        return isSetPassword();
+      case TOKEN:
+        return isSetToken();
       }
       throw new IllegalStateException();
     }
@@ -7466,21 +7404,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_user = true && this.isSetUser();
-      boolean that_present_user = true && that.isSetUser();
-      if (this_present_user || that_present_user) {
-        if (!(this_present_user && that_present_user))
+      boolean this_present_Token = true && this.isSetToken();
+      boolean that_present_Token = true && that.isSetToken();
+      if (this_present_Token || that_present_Token) {
+        if (!(this_present_Token && that_present_Token))
           return false;
-        if (!this.user.equals(that.user))
-          return false;
-      }
-
-      boolean this_present_password = true && this.isSetPassword();
-      boolean that_present_password = true && that.isSetPassword();
-      if (this_present_password || that_present_password) {
-        if (!(this_present_password && that_present_password))
-          return false;
-        if (!this.password.equals(that.password))
+        if (!this.Token.equals(that.Token))
           return false;
       }
 
@@ -7520,22 +7449,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetUser()).compareTo(typedOther.isSetUser());
+      lastComparison = Boolean.valueOf(isSetToken()).compareTo(typedOther.isSetToken());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetUser()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.user, typedOther.user);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetPassword()).compareTo(typedOther.isSetPassword());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetPassword()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.password, typedOther.password);
+      if (isSetToken()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.Token, typedOther.Token);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -7576,19 +7495,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("user:");
-      if (this.user == null) {
+      sb.append("Token:");
+      if (this.Token == null) {
         sb.append("null");
       } else {
-        sb.append(this.user);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("password:");
-      if (this.password == null) {
-        sb.append("null");
-      } else {
-        org.apache.thrift.TBaseHelper.toString(this.password, sb);
+        org.apache.thrift.TBaseHelper.toString(this.Token, sb);
       }
       first = false;
       sb.append(")");
@@ -7651,25 +7562,17 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // USER
+            case 3: // TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.user = iprot.readString();
-                struct.setUserIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 3: // PASSWORD
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.password = iprot.readBinary();
-                struct.setPasswordIsSet(true);
+                struct.Token = iprot.readBinary();
+                struct.setTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -7694,14 +7597,9 @@ import org.slf4j.LoggerFactory;
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.user != null) {
-          oprot.writeFieldBegin(USER_FIELD_DESC);
-          oprot.writeString(struct.user);
-          oprot.writeFieldEnd();
-        }
-        if (struct.password != null) {
-          oprot.writeFieldBegin(PASSWORD_FIELD_DESC);
-          oprot.writeBinary(struct.password);
+        if (struct.Token != null) {
+          oprot.writeFieldBegin(TOKEN_FIELD_DESC);
+          oprot.writeBinary(struct.Token);
           oprot.writeFieldEnd();
         }
         if (struct.tinfo != null) {
@@ -7733,48 +7631,38 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetCredentials()) {
           optionals.set(1);
         }
-        if (struct.isSetUser()) {
+        if (struct.isSetToken()) {
           optionals.set(2);
         }
-        if (struct.isSetPassword()) {
-          optionals.set(3);
-        }
-        oprot.writeBitSet(optionals, 4);
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
-        if (struct.isSetUser()) {
-          oprot.writeString(struct.user);
-        }
-        if (struct.isSetPassword()) {
-          oprot.writeBinary(struct.password);
+        if (struct.isSetToken()) {
+          oprot.writeBinary(struct.Token);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, authenticateUser_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(4);
+        BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.user = iprot.readString();
-          struct.setUserIsSet(true);
-        }
-        if (incoming.get(3)) {
-          struct.password = iprot.readBinary();
-          struct.setPasswordIsSet(true);
+          struct.Token = iprot.readBinary();
+          struct.setTokenIsSet(true);
         }
       }
     }
@@ -8250,7 +8138,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -8320,7 +8208,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(listUsers_args.class, metaDataMap);
     }
@@ -8330,7 +8218,7 @@ import org.slf4j.LoggerFactory;
 
     public listUsers_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials)
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials)
     {
       this();
       this.tinfo = tinfo;
@@ -8345,7 +8233,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
     }
 
@@ -8383,11 +8271,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public listUsers_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public listUsers_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -8421,7 +8309,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -8617,7 +8505,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -8692,7 +8580,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -9214,9 +9102,8 @@ import org.slf4j.LoggerFactory;
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField USER_FIELD_DESC = new org.apache.thrift.protocol.TField("user", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField PASSWORD_FIELD_DESC = new org.apache.thrift.protocol.TField("password", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)4);
+    private static final org.apache.thrift.protocol.TField TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("token", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -9225,18 +9112,16 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
-    public String user; // required
-    public ByteBuffer password; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
+    public ByteBuffer token; // required
     public List<ByteBuffer> authorizations; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)5, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
-      USER((short)2, "user"),
-      PASSWORD((short)3, "password"),
-      AUTHORIZATIONS((short)4, "authorizations");
+      TOKEN((short)2, "token"),
+      AUTHORIZATIONS((short)3, "authorizations");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -9255,11 +9140,9 @@ import org.slf4j.LoggerFactory;
             return TINFO;
           case 1: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // USER
-            return USER;
-          case 3: // PASSWORD
-            return PASSWORD;
-          case 4: // AUTHORIZATIONS
+          case 2: // TOKEN
+            return TOKEN;
+          case 3: // AUTHORIZATIONS
             return AUTHORIZATIONS;
           default:
             return null;
@@ -9307,10 +9190,8 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.PASSWORD, new org.apache.thrift.meta_data.FieldMetaData("password", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
+      tmpMap.put(_Fields.TOKEN, new org.apache.thrift.meta_data.FieldMetaData("token", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
       tmpMap.put(_Fields.AUTHORIZATIONS, new org.apache.thrift.meta_data.FieldMetaData("authorizations", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
@@ -9324,16 +9205,14 @@ import org.slf4j.LoggerFactory;
 
     public createUser_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      String user,
-      ByteBuffer password,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
+      ByteBuffer token,
       List<ByteBuffer> authorizations)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
-      this.user = user;
-      this.password = password;
+      this.token = token;
       this.authorizations = authorizations;
     }
 
@@ -9345,13 +9224,10 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
-      if (other.isSetUser()) {
-        this.user = other.user;
-      }
-      if (other.isSetPassword()) {
-        this.password = org.apache.thrift.TBaseHelper.copyBinary(other.password);
+      if (other.isSetToken()) {
+        this.token = org.apache.thrift.TBaseHelper.copyBinary(other.token);
 ;
       }
       if (other.isSetAuthorizations()) {
@@ -9373,8 +9249,7 @@ import org.slf4j.LoggerFactory;
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
-      this.user = null;
-      this.password = null;
+      this.token = null;
       this.authorizations = null;
     }
 
@@ -9402,11 +9277,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public createUser_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public createUser_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -9426,61 +9301,37 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public String getUser() {
-      return this.user;
+    public byte[] getToken() {
+      setToken(org.apache.thrift.TBaseHelper.rightSize(token));
+      return token == null ? null : token.array();
     }
 
-    public createUser_args setUser(String user) {
-      this.user = user;
+    public ByteBuffer bufferForToken() {
+      return token;
+    }
+
+    public createUser_args setToken(byte[] token) {
+      setToken(token == null ? (ByteBuffer)null : ByteBuffer.wrap(token));
       return this;
     }
 
-    public void unsetUser() {
-      this.user = null;
+    public createUser_args setToken(ByteBuffer token) {
+      this.token = token;
+      return this;
     }
 
-    /** Returns true if field user is set (has been assigned a value) and false otherwise */
-    public boolean isSetUser() {
-      return this.user != null;
+    public void unsetToken() {
+      this.token = null;
     }
 
-    public void setUserIsSet(boolean value) {
+    /** Returns true if field token is set (has been assigned a value) and false otherwise */
+    public boolean isSetToken() {
+      return this.token != null;
+    }
+
+    public void setTokenIsSet(boolean value) {
       if (!value) {
-        this.user = null;
-      }
-    }
-
-    public byte[] getPassword() {
-      setPassword(org.apache.thrift.TBaseHelper.rightSize(password));
-      return password == null ? null : password.array();
-    }
-
-    public ByteBuffer bufferForPassword() {
-      return password;
-    }
-
-    public createUser_args setPassword(byte[] password) {
-      setPassword(password == null ? (ByteBuffer)null : ByteBuffer.wrap(password));
-      return this;
-    }
-
-    public createUser_args setPassword(ByteBuffer password) {
-      this.password = password;
-      return this;
-    }
-
-    public void unsetPassword() {
-      this.password = null;
-    }
-
-    /** Returns true if field password is set (has been assigned a value) and false otherwise */
-    public boolean isSetPassword() {
-      return this.password != null;
-    }
-
-    public void setPasswordIsSet(boolean value) {
-      if (!value) {
-        this.password = null;
+        this.token = null;
       }
     }
 
@@ -9537,23 +9388,15 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
-      case USER:
+      case TOKEN:
         if (value == null) {
-          unsetUser();
+          unsetToken();
         } else {
-          setUser((String)value);
-        }
-        break;
-
-      case PASSWORD:
-        if (value == null) {
-          unsetPassword();
-        } else {
-          setPassword((ByteBuffer)value);
+          setToken((ByteBuffer)value);
         }
         break;
 
@@ -9576,11 +9419,8 @@ import org.slf4j.LoggerFactory;
       case CREDENTIALS:
         return getCredentials();
 
-      case USER:
-        return getUser();
-
-      case PASSWORD:
-        return getPassword();
+      case TOKEN:
+        return getToken();
 
       case AUTHORIZATIONS:
         return getAuthorizations();
@@ -9600,10 +9440,8 @@ import org.slf4j.LoggerFactory;
         return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
-      case USER:
-        return isSetUser();
-      case PASSWORD:
-        return isSetPassword();
+      case TOKEN:
+        return isSetToken();
       case AUTHORIZATIONS:
         return isSetAuthorizations();
       }
@@ -9641,21 +9479,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_user = true && this.isSetUser();
-      boolean that_present_user = true && that.isSetUser();
-      if (this_present_user || that_present_user) {
-        if (!(this_present_user && that_present_user))
+      boolean this_present_token = true && this.isSetToken();
+      boolean that_present_token = true && that.isSetToken();
+      if (this_present_token || that_present_token) {
+        if (!(this_present_token && that_present_token))
           return false;
-        if (!this.user.equals(that.user))
-          return false;
-      }
-
-      boolean this_present_password = true && this.isSetPassword();
-      boolean that_present_password = true && that.isSetPassword();
-      if (this_present_password || that_present_password) {
-        if (!(this_present_password && that_present_password))
-          return false;
-        if (!this.password.equals(that.password))
+        if (!this.token.equals(that.token))
           return false;
       }
 
@@ -9704,22 +9533,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetUser()).compareTo(typedOther.isSetUser());
+      lastComparison = Boolean.valueOf(isSetToken()).compareTo(typedOther.isSetToken());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetUser()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.user, typedOther.user);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetPassword()).compareTo(typedOther.isSetPassword());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetPassword()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.password, typedOther.password);
+      if (isSetToken()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.token, typedOther.token);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -9770,19 +9589,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("user:");
-      if (this.user == null) {
+      sb.append("token:");
+      if (this.token == null) {
         sb.append("null");
       } else {
-        sb.append(this.user);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("password:");
-      if (this.password == null) {
-        sb.append("null");
-      } else {
-        org.apache.thrift.TBaseHelper.toString(this.password, sb);
+        org.apache.thrift.TBaseHelper.toString(this.token, sb);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -9853,30 +9664,22 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // USER
+            case 2: // TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.user = iprot.readString();
-                struct.setUserIsSet(true);
+                struct.token = iprot.readBinary();
+                struct.setTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // PASSWORD
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.password = iprot.readBinary();
-                struct.setPasswordIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 4: // AUTHORIZATIONS
+            case 3: // AUTHORIZATIONS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
                   org.apache.thrift.protocol.TList _list24 = iprot.readListBegin();
@@ -9914,14 +9717,9 @@ import org.slf4j.LoggerFactory;
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.user != null) {
-          oprot.writeFieldBegin(USER_FIELD_DESC);
-          oprot.writeString(struct.user);
-          oprot.writeFieldEnd();
-        }
-        if (struct.password != null) {
-          oprot.writeFieldBegin(PASSWORD_FIELD_DESC);
-          oprot.writeBinary(struct.password);
+        if (struct.token != null) {
+          oprot.writeFieldBegin(TOKEN_FIELD_DESC);
+          oprot.writeBinary(struct.token);
           oprot.writeFieldEnd();
         }
         if (struct.authorizations != null) {
@@ -9965,27 +9763,21 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetCredentials()) {
           optionals.set(1);
         }
-        if (struct.isSetUser()) {
+        if (struct.isSetToken()) {
           optionals.set(2);
         }
-        if (struct.isSetPassword()) {
+        if (struct.isSetAuthorizations()) {
           optionals.set(3);
         }
-        if (struct.isSetAuthorizations()) {
-          optionals.set(4);
-        }
-        oprot.writeBitSet(optionals, 5);
+        oprot.writeBitSet(optionals, 4);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
-        if (struct.isSetUser()) {
-          oprot.writeString(struct.user);
-        }
-        if (struct.isSetPassword()) {
-          oprot.writeBinary(struct.password);
+        if (struct.isSetToken()) {
+          oprot.writeBinary(struct.token);
         }
         if (struct.isSetAuthorizations()) {
           {
@@ -10001,26 +9793,22 @@ import org.slf4j.LoggerFactory;
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, createUser_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(5);
+        BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.user = iprot.readString();
-          struct.setUserIsSet(true);
+          struct.token = iprot.readBinary();
+          struct.setTokenIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.password = iprot.readBinary();
-          struct.setPasswordIsSet(true);
-        }
-        if (incoming.get(4)) {
           {
             org.apache.thrift.protocol.TList _list29 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
             struct.authorizations = new ArrayList<ByteBuffer>(_list29.size);
@@ -10408,7 +10196,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
     public String user; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -10482,7 +10270,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -10494,7 +10282,7 @@ import org.slf4j.LoggerFactory;
 
     public dropUser_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
       String user)
     {
       this();
@@ -10511,7 +10299,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
       if (other.isSetUser()) {
         this.user = other.user;
@@ -10553,11 +10341,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public dropUser_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public dropUser_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -10615,7 +10403,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -10851,7 +10639,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -10945,7 +10733,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -11319,8 +11107,7 @@ import org.slf4j.LoggerFactory;
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField USER_FIELD_DESC = new org.apache.thrift.protocol.TField("user", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField PASSWORD_FIELD_DESC = new org.apache.thrift.protocol.TField("password", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("token", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -11329,16 +11116,14 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
-    public String user; // required
-    public ByteBuffer password; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
+    public ByteBuffer token; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)4, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
-      USER((short)2, "user"),
-      PASSWORD((short)3, "password");
+      TOKEN((short)2, "token");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -11357,10 +11142,8 @@ import org.slf4j.LoggerFactory;
             return TINFO;
           case 1: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // USER
-            return USER;
-          case 3: // PASSWORD
-            return PASSWORD;
+          case 2: // TOKEN
+            return TOKEN;
           default:
             return null;
         }
@@ -11407,10 +11190,8 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.PASSWORD, new org.apache.thrift.meta_data.FieldMetaData("password", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
+      tmpMap.put(_Fields.TOKEN, new org.apache.thrift.meta_data.FieldMetaData("token", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(changePassword_args.class, metaDataMap);
@@ -11421,15 +11202,13 @@ import org.slf4j.LoggerFactory;
 
     public changePassword_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      String user,
-      ByteBuffer password)
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
+      ByteBuffer token)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
-      this.user = user;
-      this.password = password;
+      this.token = token;
     }
 
     /**
@@ -11440,13 +11219,10 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
-      if (other.isSetUser()) {
-        this.user = other.user;
-      }
-      if (other.isSetPassword()) {
-        this.password = org.apache.thrift.TBaseHelper.copyBinary(other.password);
+      if (other.isSetToken()) {
+        this.token = org.apache.thrift.TBaseHelper.copyBinary(other.token);
 ;
       }
     }
@@ -11459,8 +11235,7 @@ import org.slf4j.LoggerFactory;
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
-      this.user = null;
-      this.password = null;
+      this.token = null;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo getTinfo() {
@@ -11487,11 +11262,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public changePassword_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public changePassword_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -11511,61 +11286,37 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public String getUser() {
-      return this.user;
+    public byte[] getToken() {
+      setToken(org.apache.thrift.TBaseHelper.rightSize(token));
+      return token == null ? null : token.array();
     }
 
-    public changePassword_args setUser(String user) {
-      this.user = user;
+    public ByteBuffer bufferForToken() {
+      return token;
+    }
+
+    public changePassword_args setToken(byte[] token) {
+      setToken(token == null ? (ByteBuffer)null : ByteBuffer.wrap(token));
       return this;
     }
 
-    public void unsetUser() {
-      this.user = null;
+    public changePassword_args setToken(ByteBuffer token) {
+      this.token = token;
+      return this;
     }
 
-    /** Returns true if field user is set (has been assigned a value) and false otherwise */
-    public boolean isSetUser() {
-      return this.user != null;
+    public void unsetToken() {
+      this.token = null;
     }
 
-    public void setUserIsSet(boolean value) {
+    /** Returns true if field token is set (has been assigned a value) and false otherwise */
+    public boolean isSetToken() {
+      return this.token != null;
+    }
+
+    public void setTokenIsSet(boolean value) {
       if (!value) {
-        this.user = null;
-      }
-    }
-
-    public byte[] getPassword() {
-      setPassword(org.apache.thrift.TBaseHelper.rightSize(password));
-      return password == null ? null : password.array();
-    }
-
-    public ByteBuffer bufferForPassword() {
-      return password;
-    }
-
-    public changePassword_args setPassword(byte[] password) {
-      setPassword(password == null ? (ByteBuffer)null : ByteBuffer.wrap(password));
-      return this;
-    }
-
-    public changePassword_args setPassword(ByteBuffer password) {
-      this.password = password;
-      return this;
-    }
-
-    public void unsetPassword() {
-      this.password = null;
-    }
-
-    /** Returns true if field password is set (has been assigned a value) and false otherwise */
-    public boolean isSetPassword() {
-      return this.password != null;
-    }
-
-    public void setPasswordIsSet(boolean value) {
-      if (!value) {
-        this.password = null;
+        this.token = null;
       }
     }
 
@@ -11583,23 +11334,15 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
-      case USER:
+      case TOKEN:
         if (value == null) {
-          unsetUser();
+          unsetToken();
         } else {
-          setUser((String)value);
-        }
-        break;
-
-      case PASSWORD:
-        if (value == null) {
-          unsetPassword();
-        } else {
-          setPassword((ByteBuffer)value);
+          setToken((ByteBuffer)value);
         }
         break;
 
@@ -11614,11 +11357,8 @@ import org.slf4j.LoggerFactory;
       case CREDENTIALS:
         return getCredentials();
 
-      case USER:
-        return getUser();
-
-      case PASSWORD:
-        return getPassword();
+      case TOKEN:
+        return getToken();
 
       }
       throw new IllegalStateException();
@@ -11635,10 +11375,8 @@ import org.slf4j.LoggerFactory;
         return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
-      case USER:
-        return isSetUser();
-      case PASSWORD:
-        return isSetPassword();
+      case TOKEN:
+        return isSetToken();
       }
       throw new IllegalStateException();
     }
@@ -11674,21 +11412,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_user = true && this.isSetUser();
-      boolean that_present_user = true && that.isSetUser();
-      if (this_present_user || that_present_user) {
-        if (!(this_present_user && that_present_user))
+      boolean this_present_token = true && this.isSetToken();
+      boolean that_present_token = true && that.isSetToken();
+      if (this_present_token || that_present_token) {
+        if (!(this_present_token && that_present_token))
           return false;
-        if (!this.user.equals(that.user))
-          return false;
-      }
-
-      boolean this_present_password = true && this.isSetPassword();
-      boolean that_present_password = true && that.isSetPassword();
-      if (this_present_password || that_present_password) {
-        if (!(this_present_password && that_present_password))
-          return false;
-        if (!this.password.equals(that.password))
+        if (!this.token.equals(that.token))
           return false;
       }
 
@@ -11728,22 +11457,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetUser()).compareTo(typedOther.isSetUser());
+      lastComparison = Boolean.valueOf(isSetToken()).compareTo(typedOther.isSetToken());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetUser()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.user, typedOther.user);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetPassword()).compareTo(typedOther.isSetPassword());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetPassword()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.password, typedOther.password);
+      if (isSetToken()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.token, typedOther.token);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -11784,19 +11503,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("user:");
-      if (this.user == null) {
+      sb.append("token:");
+      if (this.token == null) {
         sb.append("null");
       } else {
-        sb.append(this.user);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("password:");
-      if (this.password == null) {
-        sb.append("null");
-      } else {
-        org.apache.thrift.TBaseHelper.toString(this.password, sb);
+        org.apache.thrift.TBaseHelper.toString(this.token, sb);
       }
       first = false;
       sb.append(")");
@@ -11859,25 +11570,17 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // USER
+            case 2: // TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.user = iprot.readString();
-                struct.setUserIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 3: // PASSWORD
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.password = iprot.readBinary();
-                struct.setPasswordIsSet(true);
+                struct.token = iprot.readBinary();
+                struct.setTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -11902,14 +11605,9 @@ import org.slf4j.LoggerFactory;
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.user != null) {
-          oprot.writeFieldBegin(USER_FIELD_DESC);
-          oprot.writeString(struct.user);
-          oprot.writeFieldEnd();
-        }
-        if (struct.password != null) {
-          oprot.writeFieldBegin(PASSWORD_FIELD_DESC);
-          oprot.writeBinary(struct.password);
+        if (struct.token != null) {
+          oprot.writeFieldBegin(TOKEN_FIELD_DESC);
+          oprot.writeBinary(struct.token);
           oprot.writeFieldEnd();
         }
         if (struct.tinfo != null) {
@@ -11941,48 +11639,38 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetCredentials()) {
           optionals.set(1);
         }
-        if (struct.isSetUser()) {
+        if (struct.isSetToken()) {
           optionals.set(2);
         }
-        if (struct.isSetPassword()) {
-          optionals.set(3);
-        }
-        oprot.writeBitSet(optionals, 4);
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
-        if (struct.isSetUser()) {
-          oprot.writeString(struct.user);
-        }
-        if (struct.isSetPassword()) {
-          oprot.writeBinary(struct.password);
+        if (struct.isSetToken()) {
+          oprot.writeBinary(struct.token);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, changePassword_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(4);
+        BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.user = iprot.readString();
-          struct.setUserIsSet(true);
-        }
-        if (incoming.get(3)) {
-          struct.password = iprot.readBinary();
-          struct.setPasswordIsSet(true);
+          struct.token = iprot.readBinary();
+          struct.setTokenIsSet(true);
         }
       }
     }
@@ -12360,7 +12048,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
     public String user; // required
     public List<ByteBuffer> authorizations; // required
 
@@ -12438,7 +12126,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.AUTHORIZATIONS, new org.apache.thrift.meta_data.FieldMetaData("authorizations", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -12453,7 +12141,7 @@ import org.slf4j.LoggerFactory;
 
     public changeAuthorizations_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
       String user,
       List<ByteBuffer> authorizations)
     {
@@ -12472,7 +12160,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
       if (other.isSetUser()) {
         this.user = other.user;
@@ -12524,11 +12212,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public changeAuthorizations_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public changeAuthorizations_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -12625,7 +12313,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -12901,7 +12589,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -13037,7 +12725,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -13433,7 +13121,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
     public String user; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -13507,7 +13195,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -13519,7 +13207,7 @@ import org.slf4j.LoggerFactory;
 
     public getUserAuthorizations_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
       String user)
     {
       this();
@@ -13536,7 +13224,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
       if (other.isSetUser()) {
         this.user = other.user;
@@ -13578,11 +13266,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public getUserAuthorizations_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public getUserAuthorizations_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -13640,7 +13328,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -13876,7 +13564,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -13970,7 +13658,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -14508,7 +14196,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
     public String user; // required
     public byte sysPerm; // required
 
@@ -14588,7 +14276,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.SYS_PERM, new org.apache.thrift.meta_data.FieldMetaData("sysPerm", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -14602,7 +14290,7 @@ import org.slf4j.LoggerFactory;
 
     public hasSystemPermission_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
       String user,
       byte sysPerm)
     {
@@ -14623,7 +14311,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
       if (other.isSetUser()) {
         this.user = other.user;
@@ -14668,11 +14356,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public hasSystemPermission_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public hasSystemPermission_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -14753,7 +14441,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -15027,7 +14715,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -15138,7 +14826,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -15627,7 +15315,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
     public String user; // required
     public String tableName; // required
     public byte tblPerm; // required
@@ -15711,7 +15399,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -15727,7 +15415,7 @@ import org.slf4j.LoggerFactory;
 
     public hasTablePermission_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
       String user,
       String tableName,
       byte tblPerm)
@@ -15750,7 +15438,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
       if (other.isSetUser()) {
         this.user = other.user;
@@ -15799,11 +15487,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public hasTablePermission_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public hasTablePermission_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -15908,7 +15596,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -16222,7 +15910,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -16352,7 +16040,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -16946,7 +16634,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
     public String user; // required
     public byte permission; // required
 
@@ -17026,7 +16714,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.PERMISSION, new org.apache.thrift.meta_data.FieldMetaData("permission", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -17040,7 +16728,7 @@ import org.slf4j.LoggerFactory;
 
     public grantSystemPermission_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
       String user,
       byte permission)
     {
@@ -17061,7 +16749,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
       if (other.isSetUser()) {
         this.user = other.user;
@@ -17106,11 +16794,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public grantSystemPermission_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public grantSystemPermission_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -17191,7 +16879,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -17465,7 +17153,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -17576,7 +17264,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -17964,7 +17652,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
     public String user; // required
     public byte permission; // required
 
@@ -18044,7 +17732,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.PERMISSION, new org.apache.thrift.meta_data.FieldMetaData("permission", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -18058,7 +17746,7 @@ import org.slf4j.LoggerFactory;
 
     public revokeSystemPermission_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
       String user,
       byte permission)
     {
@@ -18079,7 +17767,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
       if (other.isSetUser()) {
         this.user = other.user;
@@ -18124,11 +17812,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public revokeSystemPermission_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public revokeSystemPermission_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -18209,7 +17897,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -18483,7 +18171,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -18594,7 +18282,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -18983,7 +18671,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
     public String user; // required
     public String tableName; // required
     public byte permission; // required
@@ -19067,7 +18755,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -19083,7 +18771,7 @@ import org.slf4j.LoggerFactory;
 
     public grantTablePermission_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
       String user,
       String tableName,
       byte permission)
@@ -19106,7 +18794,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
       if (other.isSetUser()) {
         this.user = other.user;
@@ -19155,11 +18843,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public grantTablePermission_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public grantTablePermission_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -19264,7 +18952,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -19578,7 +19266,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -19708,7 +19396,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -20203,7 +19891,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.AuthInfo credentials; // required
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials; // required
     public String user; // required
     public String tableName; // required
     public byte permission; // required
@@ -20287,7 +19975,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper.class)));
       tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -20303,7 +19991,7 @@ import org.slf4j.LoggerFactory;
 
     public revokeTablePermission_args(
       org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+      org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials,
       String user,
       String tableName,
       byte permission)
@@ -20326,7 +20014,7 @@ import org.slf4j.LoggerFactory;
         this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
+        this.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper(other.credentials);
       }
       if (other.isSetUser()) {
         this.user = other.user;
@@ -20375,11 +20063,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
+    public org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper getCredentials() {
       return this.credentials;
     }
 
-    public revokeTablePermission_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
+    public revokeTablePermission_args setCredentials(org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -20484,7 +20172,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper)value);
         }
         break;
 
@@ -20798,7 +20486,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+                struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -20928,7 +20616,7 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
+          struct.credentials = new org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }

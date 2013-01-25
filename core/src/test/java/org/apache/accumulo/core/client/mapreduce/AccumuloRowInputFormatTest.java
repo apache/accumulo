@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -37,6 +36,7 @@ import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.conf.Configured;
@@ -153,7 +153,7 @@ public class AccumuloRowInputFormatTest {
       
       job.setInputFormatClass(AccumuloRowInputFormat.class);
       
-      AccumuloInputFormat.setConnectorInfo(job, user, pass.getBytes(Charset.forName("UTF-8")));
+      AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(user, pass));
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloRowInputFormat.setMockInstance(job, "instance1");
       
@@ -177,7 +177,7 @@ public class AccumuloRowInputFormatTest {
   @Test
   public void test() throws Exception {
     final MockInstance instance = new MockInstance("instance1");
-    final Connector conn = instance.getConnector("root", "".getBytes());
+    final Connector conn = instance.getConnector(new UserPassToken("root", ""));
     conn.tableOperations().create("test");
     BatchWriter writer = null;
     try {

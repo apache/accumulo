@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,7 +46,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -481,11 +480,9 @@ public class InputConfigurator extends ConfiguratorBase {
     if ("MockInstance".equals(instanceType))
       return new MockTabletLocator();
     Instance instance = getInstance(implementingClass, conf);
-    String username = getUsername(implementingClass, conf);
-    byte[] password = getPassword(implementingClass, conf);
+    AccumuloToken<?,?> token = getToken(implementingClass, conf);
     String tableName = getInputTableName(implementingClass, conf);
-    return TabletLocator.getInstance(instance, new AuthInfo(username, ByteBuffer.wrap(password), instance.getInstanceID()),
-        new Text(Tables.getTableId(instance, tableName)));
+    return TabletLocator.getInstance(instance, token, new Text(Tables.getTableId(instance, tableName)));
   }
   
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
@@ -508,10 +505,10 @@ public class InputConfigurator extends ConfiguratorBase {
       throw new IOException("Instance info has not been set.");
     // validate that we can connect as configured
     try {
-      Connector c = getInstance(implementingClass, conf).getConnector(getUsername(implementingClass, conf), getPassword(implementingClass, conf));
-      if (!c.securityOperations().authenticateUser(getUsername(implementingClass, conf), getPassword(implementingClass, conf)))
+      Connector c = getInstance(implementingClass, conf).getConnector(getToken(implementingClass, conf));
+      if (!c.securityOperations().authenticateUser(getToken(implementingClass, conf)))
         throw new IOException("Unable to authenticate user");
-      if (!c.securityOperations().hasTablePermission(getUsername(implementingClass, conf), getInputTableName(implementingClass, conf), TablePermission.READ))
+      if (!c.securityOperations().hasTablePermission(getToken(implementingClass, conf).getPrincipal(), getInputTableName(implementingClass, conf), TablePermission.READ))
         throw new IOException("Unable to access table");
       
       if (!conf.getBoolean(enumToConfKey(implementingClass, Features.USE_LOCAL_ITERATORS), false)) {

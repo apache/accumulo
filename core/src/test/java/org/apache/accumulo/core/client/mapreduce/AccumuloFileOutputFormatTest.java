@@ -34,6 +34,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -56,7 +57,7 @@ public class AccumuloFileOutputFormatTest {
     folder.create();
     
     MockInstance mockInstance = new MockInstance("testinstance");
-    Connector c = mockInstance.getConnector("root", new byte[] {});
+    Connector c = mockInstance.getConnector(new UserPassToken("root", new byte[0]));
     c.tableOperations().create("emptytable");
     c.tableOperations().create("testtable");
     c.tableOperations().create("badtable");
@@ -135,7 +136,7 @@ public class AccumuloFileOutputFormatTest {
       
       job.setInputFormatClass(AccumuloInputFormat.class);
       
-      AccumuloInputFormat.setConnectorInfo(job, user, pass.getBytes(Charset.forName("UTF-8")));
+      AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(user, pass.getBytes(Charset.forName("UTF-8"))));
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setMockInstance(job, "testinstance");
       AccumuloFileOutputFormat.setOutputPath(job, new Path(args[3]));

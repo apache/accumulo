@@ -532,7 +532,7 @@ class LoadFiles extends MasterRepo {
               server = pair.getFirst();
               List<String> attempt = Collections.singletonList(file);
               log.debug("Asking " + pair.getFirst() + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), tid, tableId, attempt, errorDir, setTime);
+              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials(), tid, tableId, attempt, errorDir, setTime);
               if (fail.isEmpty()) {
                 filesToLoad.remove(file);
               } else {

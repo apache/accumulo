@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.security;
+package org.apache.accumulo.server.security.handler;
 
 import java.util.Set;
 import java.util.TreeSet;
@@ -24,7 +24,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteArraySet;
-import org.apache.accumulo.server.security.ZKAuthenticator;
+import org.apache.accumulo.server.security.handler.ZKSecurityTool;
 
 import junit.framework.TestCase;
 
@@ -43,8 +43,8 @@ public class ZKAuthenticatorTest extends TestCase {
       auths.add(Integer.toString(i).getBytes());
     
     Authorizations converted = new Authorizations(auths);
-    byte[] test = ZKAuthenticator.Tool.convertAuthorizations(converted);
-    Authorizations test2 = ZKAuthenticator.Tool.convertAuthorizations(test);
+    byte[] test = ZKSecurityTool.convertAuthorizations(converted);
+    Authorizations test2 = ZKSecurityTool.convertAuthorizations(test);
     assertTrue(auths.size() == test2.size());
     for (byte[] s : auths) {
       assertTrue(test2.contains(s));
@@ -56,7 +56,7 @@ public class ZKAuthenticatorTest extends TestCase {
     for (SystemPermission s : SystemPermission.values())
       perms.add(s);
     
-    Set<SystemPermission> converted = ZKAuthenticator.Tool.convertSystemPermissions(ZKAuthenticator.Tool.convertSystemPermissions(perms));
+    Set<SystemPermission> converted = ZKSecurityTool.convertSystemPermissions(ZKSecurityTool.convertSystemPermissions(perms));
     assertTrue(perms.size() == converted.size());
     for (SystemPermission s : perms)
       assertTrue(converted.contains(s));
@@ -67,7 +67,7 @@ public class ZKAuthenticatorTest extends TestCase {
     for (TablePermission s : TablePermission.values())
       perms.add(s);
     
-    Set<TablePermission> converted = ZKAuthenticator.Tool.convertTablePermissions(ZKAuthenticator.Tool.convertTablePermissions(perms));
+    Set<TablePermission> converted = ZKSecurityTool.convertTablePermissions(ZKSecurityTool.convertTablePermissions(perms));
     assertTrue(perms.size() == converted.size());
     for (TablePermission s : perms)
       assertTrue(converted.contains(s));
@@ -77,8 +77,8 @@ public class ZKAuthenticatorTest extends TestCase {
     byte[] rawPass = "myPassword".getBytes();
     byte[] storedBytes;
     try {
-      storedBytes = ZKAuthenticator.Tool.createPass(rawPass);
-      assertTrue(ZKAuthenticator.Tool.checkPass(rawPass, storedBytes));
+      storedBytes = ZKSecurityTool.createPass(rawPass);
+      assertTrue(ZKSecurityTool.checkPass(rawPass, storedBytes));
     } catch (AccumuloException e) {
       e.printStackTrace();
       assertTrue(false);

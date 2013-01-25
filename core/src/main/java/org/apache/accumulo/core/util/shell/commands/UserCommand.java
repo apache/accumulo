@@ -17,13 +17,11 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.Token;
@@ -44,7 +42,7 @@ public class UserCommand extends Command {
       return 0;
     } // user canceled
     pass = p.getBytes();
-    shellState.updateUser(new AuthInfo(user, ByteBuffer.wrap(pass), shellState.getConnector().getInstance().getInstanceID()));
+    shellState.updateUser(user, pass);
     return 0;
   }
   

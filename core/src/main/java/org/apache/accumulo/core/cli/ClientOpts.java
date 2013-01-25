@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.cli;
 
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -37,7 +36,9 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -77,7 +78,6 @@ public class ClientOpts extends Help {
       value = dfault.getBytes();
     }
     
-    @Override
     public String toString() {
       return new String(value);
     }
@@ -106,11 +106,26 @@ public class ClientOpts extends Help {
   @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
   public Password securePassword = null;
   
-  public byte[] getPassword() {
-    if (securePassword == null) {
-      return password.value;
+  public AccumuloToken<?,?> getAccumuloToken() {
+    try {
+      String tokenClass = getInstance().getSecurityTokenClass();
+      if (tokenClass.equals(UserPassToken.class.getCanonicalName())) {
+        if (securePassword == null) {
+          return new UserPassToken(user, password.value);
+        }
+        return new UserPassToken(user, securePassword.value);
+//      } else if (tokenClass.equals(KerberosToken.class.getCanonicalName())) {
+//        if (securePassword == null) {
+//          return new KerberosToken(user, password.toString().toCharArray(), "accumulo");
+//        }
+//        return new KerberosToken(user, securePassword.toString().toCharArray(), "accumulo");
+      } else
+        throw new RuntimeException("CLI can't handle alternative tokens... yet");
+    } catch (AccumuloException e) {
+      throw new RuntimeException(e);
+//    } catch (GeneralSecurityException e) {
+//      throw new RuntimeException(e);
     }
-    return securePassword.value;
   }
   
   @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
@@ -197,11 +212,11 @@ public class ClientOpts extends Help {
   }
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getInstance().getConnector(this.user, this.getPassword());
+    return getInstance().getConnector(this.getAccumuloToken());
   }
   
-  public AuthInfo getAuthInfo() {
-    return new AuthInfo(user, ByteBuffer.wrap(getPassword()), getInstance().getInstanceID());
+  public InstanceTokenWrapper getWrappedToken() {
+    return new InstanceTokenWrapper(getAccumuloToken(), getInstance().getInstanceID());
   }
   
   public void setAccumuloConfigs(Job job) {

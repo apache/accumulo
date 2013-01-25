@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -82,7 +83,7 @@ public class RowFilterTest extends TestCase {
 
   public void test1() throws Exception {
     MockInstance instance = new MockInstance("rft1");
-    Connector conn = instance.getConnector("", "".getBytes());
+    Connector conn = instance.getConnector(new UserPassToken("", ""));
     
     conn.tableOperations().create("table1");
     BatchWriter bw = conn.createBatchWriter("table1", new BatchWriterConfig());

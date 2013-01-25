@@ -16,13 +16,12 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
-import java.nio.charset.Charset;
-
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.TokenHelper;
 import org.apache.accumulo.core.util.ArgumentChecker;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Level;
@@ -39,7 +38,7 @@ public class ConfiguratorBase {
    * @since 1.5.0
    */
   public static enum ConnectorInfo {
-    IS_CONFIGURED, USER_NAME, PASSWORD
+    IS_CONFIGURED, TOKEN
   }
   
   /**
@@ -81,20 +80,17 @@ public class ConfiguratorBase {
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @param user
-   *          a valid Accumulo user name
-   * @param passwd
-   *          the user's password
+   * @param token
+   *          a valid AccumuloToken
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String user, byte[] passwd) {
+  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, AccumuloToken<?,?> token) {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
     
-    ArgumentChecker.notNull(user, passwd);
+    ArgumentChecker.notNull(token);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.USER_NAME), user);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PASSWORD), new String(Base64.encodeBase64(passwd), Charset.forName("UTF-8")));
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), TokenHelper.asBase64String(token));
   }
   
   /**
@@ -112,34 +108,19 @@ public class ConfiguratorBase {
   }
   
   /**
-   * Gets the user name from the configuration.
+   * Gets the AccumuloToken from the configuration. WARNING: The serialized Token is stored in the Configuration and shared with all MapReduce tasks; It is
+   * BASE64 encoded to provide a charset safe conversion to a string, and is not intended to be secure.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @return the user name
+   * @return the AccumuloToken
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, byte[])
+   * @see #setConnectorInfo(Class, Configuration, AccumuloToken)
    */
-  public static String getUsername(Class<?> implementingClass, Configuration conf) {
-    return conf.get(enumToConfKey(implementingClass, ConnectorInfo.USER_NAME));
-  }
-  
-  /**
-   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
-   * provide a charset safe conversion to a string, and is not intended to be secure.
-   * 
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @return the decoded user password
-   * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, byte[])
-   */
-  public static byte[] getPassword(Class<?> implementingClass, Configuration conf) {
-    return Base64.decodeBase64(conf.get(enumToConfKey(implementingClass, ConnectorInfo.PASSWORD), "").getBytes(Charset.forName("UTF-8")));
+  public static AccumuloToken<?,?> getToken(Class<?> implementingClass, Configuration conf) {
+    return TokenHelper.fromBase64String(conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN)));
   }
   
   /**

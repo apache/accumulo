@@ -25,7 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -36,14 +35,15 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
 
 public class QueryMetadataTable {
-  private static AuthInfo credentials;
+  private static UserPassToken credentials;
   
   static String location;
   
@@ -58,7 +58,7 @@ public class QueryMetadataTable {
       try {
         KeyExtent extent = new KeyExtent(row, (Text) null);
         
-        Connector connector = HdfsZooInstance.getInstance().getConnector(credentials.user, credentials.password);
+        Connector connector = HdfsZooInstance.getInstance().getConnector(credentials);
         Scanner mdScanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         Text row = extent.getMetadataEntry();
         

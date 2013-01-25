@@ -31,7 +31,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
@@ -47,15 +46,16 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
-import org.apache.accumulo.server.security.Authenticator;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.security.ZKAuthenticator;
+import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tabletserver.UniqueNameAllocator;
 import org.apache.accumulo.server.test.FastFormat;
 import org.apache.accumulo.server.util.MetadataTable;
@@ -475,13 +475,13 @@ class ImportSetupPermissions extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all table permissions to the creator
-    Authenticator authenticator = ZKAuthenticator.getInstance();
+    SecurityOperation security = AuditedSecurityOperation.getInstance();
     for (TablePermission permission : TablePermission.values()) {
       try {
-        authenticator.grantTablePermission(SecurityConstants.getSystemCredentials(), tableInfo.user, tableInfo.tableId, permission);
-      } catch (AccumuloSecurityException e) {
+        security.grantTablePermission(SecurityConstants.getSystemCredentials(), tableInfo.user, tableInfo.tableId, permission);
+      } catch (ThriftSecurityException e) {
         Logger.getLogger(ImportSetupPermissions.class).error(e.getMessage(), e);
-        throw e.asThriftException();
+        throw e;
       }
     }
     
@@ -493,7 +493,7 @@ class ImportSetupPermissions extends MasterRepo {
   
   @Override
   public void undo(long tid, Master env) throws Exception {
-    ZKAuthenticator.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableInfo.tableId);
+    AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableInfo.tableId);
   }
 }
 
