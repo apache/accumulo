@@ -143,7 +143,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   protected Connector getConnector(UserPass userpass) throws Exception {
-    Connector connector = instance.getConnector(userpass.getUsername(), userpass.bufferForPassword());
+    Connector connector = instance.getConnector(new UserPassToken(userpass.getUsername(), userpass.bufferForPassword()));
     return connector;
   }
   
@@ -589,7 +589,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public boolean authenticateUser(UserPass userpass, String user, ByteBuffer password) throws TException {
     try {
-      return getConnector(userpass).securityOperations().authenticateUser(user, password.array());
+      return getConnector(userpass).securityOperations().authenticateUser(new UserPassToken(user, password.array()));
     } catch (Exception e) {
       throw translateException(e);
     }
@@ -611,7 +611,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void changeUserPassword(UserPass userpass, String user, ByteBuffer password) throws TException {
     try {
-      getConnector(userpass).securityOperations().changeUserPassword(user, password.array());
+      getConnector(userpass).securityOperations().changeUserPassword(new UserPassToken(user, password.array()));
     } catch (Exception e) {
       throw translateException(e);
     }

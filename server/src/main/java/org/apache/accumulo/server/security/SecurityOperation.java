@@ -841,7 +841,7 @@ public class SecurityOperation {
     return hasTablePermission(credentials.getPrincipal(), tableId, TablePermission.READ, false);
   }
   
-  public boolean canImport(InstanceTokenWrapper credentials, String tableId) throws ThriftSecurityException {
+  public boolean canImport(InstanceTokenWrapper credentials) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermission(credentials.getPrincipal(), SystemPermission.CREATE_TABLE, false);
   }

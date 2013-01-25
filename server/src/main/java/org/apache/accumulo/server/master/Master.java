@@ -1022,7 +1022,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           String exportDir = ByteBufferUtil.toString(arguments.get(1));
           
-          if (!security.canImport(itw, checkTableId(tableName, TableOperation.IMPORT)))
+          if (!security.canImport(itw))
             throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
           checkNotMetadataTable(tableName, TableOperation.CREATE);
