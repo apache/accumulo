@@ -897,12 +897,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         String oldThreadName = Thread.currentThread().getName();
 
         try {
-          runState.set(ScanRunState.RUNNING);
+          if (isCancelled() || scanSession == null)
+            return;
+          
           Thread.currentThread().setName(
               "User: " + scanSession.user + " Start: " + scanSession.startTime + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
 
-          if (isCancelled() || scanSession == null)
-            return;
+          runState.set(ScanRunState.RUNNING);
           
           Tablet tablet = onlineTablets.get(scanSession.extent);
           
@@ -932,7 +933,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         } catch (TooManyFilesException tmfe) {
           addResult(tmfe);
         } catch (Throwable e) {
-          log.warn("exception while scanning tablet " + scanSession.extent, e);
+          log.warn("exception while scanning tablet " + (scanSession == null ? "(unknown)" : scanSession.extent), e);
           addResult(e);
         } finally {
           runState.set(ScanRunState.FINISHED);
