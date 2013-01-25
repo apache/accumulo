@@ -620,7 +620,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i9 = 0; _i9 < _map8.size; ++_i9)
                 {
                   String _key10; // required
-                  String _val11; // optional
+                  String _val11; // required
                   _key10 = iprot.readString();
                   _val11 = iprot.readString();
                   struct.properties.put(_key10, _val11);
