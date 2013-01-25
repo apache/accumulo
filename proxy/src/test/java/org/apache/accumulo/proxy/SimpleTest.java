@@ -125,7 +125,7 @@ public class SimpleTest {
     
     // get something we know is in the site config
     Map<String,String> cfg = client.getSiteConfiguration(creds);
-    assertTrue(cfg.get("instance.dfs.dir").startsWith("/tmp/junit"));
+    assertTrue(cfg.get("instance.dfs.dir").startsWith(folder.getRoot().toString()));
     
     // set a property in zookeeper
     client.setProperty(creds, "table.split.threshold", "500M");
