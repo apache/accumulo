@@ -235,6 +235,7 @@ public class ZooKeeperInstance implements Instance {
   /**
    * @deprecated Use {@link #lookupInstanceName(org.apache.accumulo.fate.zookeeper.ZooCache, UUID)} instead
    */
+  @Deprecated
   public static String lookupInstanceName(org.apache.accumulo.core.zookeeper.ZooCache zooCache, UUID instanceId) {
     return lookupInstanceName((ZooCache) zooCache, instanceId);
   }

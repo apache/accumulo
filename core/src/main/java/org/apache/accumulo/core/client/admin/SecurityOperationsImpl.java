@@ -107,6 +107,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if the user does not have permission to create a user
    * @deprecated Use {@link #createUser(String,byte[])} instead
    */
+  @Deprecated
   public void createUser(final String user, final byte[] password, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, password, authorizations);
     execute(new ClientExec<ClientService.Client>() {

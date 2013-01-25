@@ -22,6 +22,7 @@ import org.apache.accumulo.core.data.Value;
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.MinCombiner} with
  *             {@link org.apache.accumulo.core.iterators.LongCombiner.Type#STRING}
  */
+@Deprecated
 public class StringMin implements Aggregator {
   
   long min = Long.MAX_VALUE;

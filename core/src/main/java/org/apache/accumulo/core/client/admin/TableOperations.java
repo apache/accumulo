@@ -311,6 +311,7 @@ public interface TableOperations {
    * 
    * @deprecated As of release 1.4, replaced by {@link #flush(String, Text, Text, boolean)}
    */
+  @Deprecated
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
   
   /**

@@ -24,6 +24,7 @@ import org.apache.hadoop.io.Text;
  * @see org.apache.accumulo.core.client.IteratorSetting.Column
  * @see org.apache.accumulo.core.iterators.Combiner#setColumns(org.apache.accumulo.core.client.IteratorSetting, java.util.List)
  */
+@Deprecated
 public class PerColumnIteratorConfig {
   
   private String parameter;
