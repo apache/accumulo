@@ -2394,6 +2394,19 @@ public class Tablet {
     }
   }
   
+  long getCompactionCancelID() {
+    String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
+        + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    
+    try {
+      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)));
+    } catch (KeeperException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   Pair<Long,List<IteratorSetting>> getCompactionID() throws NoNodeException {
     try {
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
@@ -3204,6 +3217,13 @@ public class Tablet {
       
       List<IteratorSetting> compactionIterators = new ArrayList<IteratorSetting>();
       if (compactionId != null) {
+        if (reason == MajorCompactionReason.USER) {
+          if (getCompactionCancelID() >= compactionId.getFirst()) {
+            // compaction was canceled
+            return majCStats;
+          }
+        }
+
         compactionIterators = compactionId.getSecond();
       }
 

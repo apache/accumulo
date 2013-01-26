@@ -720,6 +720,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
   
+  @Override
+  public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String tableId = Tables.getTableId(instance, tableName);
+    
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes()));
+    
+    Map<String,String> opts = new HashMap<String,String>();
+    try {
+      doTableOperation(TableOperation.COMPACT_CANCEL, args, opts, true);
+    } catch (TableExistsException e) {
+      // should not happen
+      throw new RuntimeException(e);
+    }
+    
+  }
+
   private void _flush(String tableId, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
     try {

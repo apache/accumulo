@@ -245,6 +245,22 @@ public interface TableOperations {
       TableNotFoundException, AccumuloException;
   
   /**
+   * Cancels a user initiated major compaction of a table initiated with {@link #compact(String, Text, Text, boolean, boolean)} or
+   * {@link #compact(String, Text, Text, List, boolean, boolean)}. Compactions of tablets that are currently running may finish, but new compactions of tablets
+   * will not start.
+   * 
+   * @param tableName
+   *          the name of the table
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws TableNotFoundException
+   *           if the table does not exist
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   */
+  public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException;
+  
+  /**
    * Delete a table
    * 
    * @param tableName

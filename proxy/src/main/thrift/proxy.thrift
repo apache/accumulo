@@ -245,8 +245,9 @@ service AccumuloProxy
                    5:map<string,string> propertiesToSet, 6:set<string> propertiesToExclude) 
                                                                                                             throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3, 4:TableExistsException ouch4);
   void compactTable (1:UserPass userpass, 2:string tableName, 3:binary startRow, 4:binary endRow, 
-		     5:list<IteratorSetting> iterators, 6:bool flush, 7:bool wait) 
-                                                                                                            throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
+		     5:list<IteratorSetting> iterators, 6:bool flush, 7:bool wait)                                  throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
+  void cancelCompaction(1:UserPass userpass, 2:string tableName)                                            throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
+                                                                                                            
   void createTable (1:UserPass userpass, 2:string tableName, 3:bool versioningIter, 4:TimeType type)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableExistsException ouch3);
   void deleteTable (1:UserPass userpass, 2:string tableName)                                                throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void deleteRows (1:UserPass userpass, 2:string tableName, 3:binary startRow, 4:binary endRow)             throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);

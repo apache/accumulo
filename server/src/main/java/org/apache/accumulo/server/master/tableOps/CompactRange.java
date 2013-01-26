@@ -75,6 +75,16 @@ class CompactionDriver extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
     
+    String zCancelID = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
+        + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    
+    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+    
+    if (Long.parseLong(new String(zoo.getData(zCancelID, null))) >= compactId) {
+      // compaction was canceled
+      throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
+    }
+
     MapCounter<TServerInstance> serversToFlush = new MapCounter<TServerInstance>();
     Connector conn = master.getConnector();
     Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));

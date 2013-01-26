@@ -319,6 +319,12 @@ public class MockTableOperations extends TableOperationsHelper {
   }
   
   @Override
+  public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    if (!exists(tableName))
+      throw new TableNotFoundException(tableName, tableName, "");
+  }
+  
+  @Override
   public void clone(String srcTableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException {
     throw new NotImplementedException();

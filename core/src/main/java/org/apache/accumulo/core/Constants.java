@@ -49,6 +49,7 @@ public class Constants {
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
   public static final String ZTABLE_COMPACT_ID = "/compact-id";
+  public static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
   
   public static final String ZROOT_TABLET = "/root_tablet";
   public static final String ZROOT_TABLET_LOCATION = ZROOT_TABLET + "/location";

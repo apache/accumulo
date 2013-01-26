@@ -126,6 +126,7 @@ enum TableOperation {
   COMPACT
   IMPORT
   EXPORT
+  COMPACT_CANCEL
 }
 
 service MasterClientService {

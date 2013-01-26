@@ -43,7 +43,8 @@ import org.apache.thrift.TEnum;
   BULK_IMPORT(12),
   COMPACT(13),
   IMPORT(14),
-  EXPORT(15);
+  EXPORT(15),
+  COMPACT_CANCEL(16);
 
   private final int value;
 
@@ -96,6 +97,8 @@ import org.apache.thrift.TEnum;
         return IMPORT;
       case 15:
         return EXPORT;
+      case 16:
+        return COMPACT_CANCEL;
       default:
         return null;
     }

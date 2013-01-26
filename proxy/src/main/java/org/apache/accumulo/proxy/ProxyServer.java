@@ -68,11 +68,11 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.BatchScanOptions;
-import org.apache.accumulo.proxy.thrift.KeyValueAndPeek;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.CompactionReason;
 import org.apache.accumulo.proxy.thrift.CompactionType;
 import org.apache.accumulo.proxy.thrift.KeyValue;
+import org.apache.accumulo.proxy.thrift.KeyValueAndPeek;
 import org.apache.accumulo.proxy.thrift.NoMoreEntriesException;
 import org.apache.accumulo.proxy.thrift.ScanColumn;
 import org.apache.accumulo.proxy.thrift.ScanOptions;
@@ -216,6 +216,16 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
   }
   
+  @Override
+  public void cancelCompaction(UserPass userpass, String tableName) throws org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
+      org.apache.accumulo.proxy.thrift.TableNotFoundException, org.apache.accumulo.proxy.thrift.AccumuloException, TException {
+    try {
+      getConnector(userpass).tableOperations().cancelCompaction(tableName);
+    } catch (Exception e) {
+      throw translateException(e);
+    }
+  }
+
   private List<IteratorSetting> getIteratorSettings(List<org.apache.accumulo.proxy.thrift.IteratorSetting> iterators) {
     List<IteratorSetting> result = new ArrayList<IteratorSetting>();
     if (iterators != null) {
@@ -1157,5 +1167,4 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
 }

@@ -128,6 +128,7 @@ import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.master.state.tables.TableObserver;
 import org.apache.accumulo.server.master.tableOps.BulkImport;
+import org.apache.accumulo.server.master.tableOps.CancelCompactions;
 import org.apache.accumulo.server.master.tableOps.ChangeTableState;
 import org.apache.accumulo.server.master.tableOps.CloneTable;
 import org.apache.accumulo.server.master.tableOps.CompactRange;
@@ -291,6 +292,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_FLUSH_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, "0".getBytes(),
+              NodeExistsPolicy.SKIP);
           
           for (String prop : tablePropsToDelete) {
             String propPath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + prop;
@@ -1014,6 +1017,15 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
           fate.seedTransaction(opid, new TraceRepo<Master>(new CompactRange(tableId, startRow, endRow, iterators)), autoCleanup);
+          break;
+        }
+        case COMPACT_CANCEL: {
+          String tableId = ByteBufferUtil.toString(arguments.get(0));
+          
+          if (!security.canCompact(itw, tableId))
+            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          
+          fate.seedTransaction(opid, new TraceRepo<Master>(new CancelCompactions(tableId)), autoCleanup);
           break;
         }
         case IMPORT: {

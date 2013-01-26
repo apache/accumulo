@@ -189,6 +189,9 @@ public class TableOperationsHelperTest {
     
     @Override
     public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {}
+    
+    @Override
+    public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {}
   }
   
   @Test
