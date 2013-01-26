@@ -22,11 +22,14 @@ import static org.apache.accumulo.server.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.server.logger.LogEvents.MANY_MUTATIONS;
 import static org.apache.accumulo.server.logger.LogEvents.OPEN;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -37,6 +40,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.security.crypto.CryptoModule;
+import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.logger.LogFileKey;
@@ -53,16 +58,19 @@ import org.apache.log4j.Logger;
  * 
  */
 public class DfsLogger {
+  // Package private so that LogSorter can find this
+  static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
+  
   private static Logger log = Logger.getLogger(DfsLogger.class);
   
   public static class LogClosedException extends IOException {
     private static final long serialVersionUID = 1L;
-
+    
     public LogClosedException() {
       super("LogClosed");
     }
   }
-
+  
   public interface ServerResources {
     AccumuloConfiguration getConfiguration();
     
@@ -70,7 +78,7 @@ public class DfsLogger {
     
     Set<TServerInstance> getCurrentTServers();
   }
-
+  
   private LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<DfsLogger.LogWork>();
   
   private final Object closeLock = new Object();
@@ -80,9 +88,9 @@ public class DfsLogger {
   private static final LogFileValue EMPTY = new LogFileValue();
   
   private boolean closed = false;
-
+  
   private class LogSyncingTask implements Runnable {
-
+    
     @Override
     public void run() {
       ArrayList<DfsLogger.LogWork> work = new ArrayList<DfsLogger.LogWork>();
@@ -129,7 +137,7 @@ public class DfsLogger {
       }
     }
   }
-
+  
   static class LogWork {
     List<TabletMutations> mutations;
     CountDownLatch latch;
@@ -140,7 +148,7 @@ public class DfsLogger {
       this.latch = latch;
     }
   }
-
+  
   public static class LoggerOperation {
     private LogWork work;
     
@@ -165,8 +173,10 @@ public class DfsLogger {
       }
     }
   }
-
-  /* (non-Javadoc)
+  
+  /*
+   * (non-Javadoc)
+   * 
    * @see org.apache.accumulo.server.tabletserver.log.IRemoteLogger#equals(java.lang.Object)
    */
   @Override
@@ -179,7 +189,9 @@ public class DfsLogger {
     return false;
   }
   
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   * 
    * @see org.apache.accumulo.server.tabletserver.log.IRemoteLogger#hashCode()
    */
   @Override
@@ -190,6 +202,7 @@ public class DfsLogger {
   
   private ServerResources conf;
   private FSDataOutputStream logFile;
+  private DataOutputStream encryptingLogFile = null;
   private Path logPath;
   private String logger;
   
@@ -202,11 +215,13 @@ public class DfsLogger {
     this.logger = logger;
     this.logPath = new Path(Constants.getWalDirectory(conf.getConfiguration()), filename);
   }
-
+  
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
     logger = StringUtil.join(Arrays.asList(address.split(":")), "+");
-
+    
+    log.debug("DfsLogger.open() begin");
+    
     logPath = new Path(Constants.getWalDirectory(conf.getConfiguration()) + "/" + logger + "/" + filename);
     try {
       FileSystem fs = conf.getFileSystem();
@@ -220,6 +235,32 @@ public class DfsLogger {
       blockSize -= blockSize % checkSum;
       blockSize = Math.max(blockSize, checkSum);
       logFile = fs.create(logPath, true, fs.getConf().getInt("io.file.buffer.size", 4096), replication, blockSize);
+      
+      // Initialize the crypto operations.
+      @SuppressWarnings("deprecation")
+      CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
+      
+      // Initialize the log file with a header and the crypto params used to set up this log file.
+      logFile.writeUTF(LOG_FILE_HEADER_V2);
+      Map<String,String> cryptoOpts = conf.getConfiguration().getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
+      
+      logFile.writeInt(cryptoOpts.size());
+      for (String key : cryptoOpts.keySet()) {
+        logFile.writeUTF(key);
+        logFile.writeUTF(cryptoOpts.get(key));
+      }
+      
+      @SuppressWarnings("deprecation")
+      OutputStream encipheringOutputStream = cryptoModule.getEncryptingOutputStream(logFile, cryptoOpts);
+      
+      // If the module just kicks back our original stream, then just use it, don't wrap it in
+      // another data OutputStream.
+      if (encipheringOutputStream == logFile) {
+        encryptingLogFile = logFile;
+      } else {
+        encryptingLogFile = new DataOutputStream(encipheringOutputStream);
+      }
+      
       LogFileKey key = new LogFileKey();
       key.event = OPEN;
       key.tserverSession = filename;
@@ -238,7 +279,9 @@ public class DfsLogger {
     t.start();
   }
   
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   * 
    * @see org.apache.accumulo.server.tabletserver.log.IRemoteLogger#toString()
    */
   @Override
@@ -273,7 +316,7 @@ public class DfsLogger {
           log.info("Interrupted");
         }
     }
-
+    
     if (logFile != null)
       try {
         logFile.close();
@@ -305,10 +348,10 @@ public class DfsLogger {
    * @throws IOException
    */
   private synchronized void write(LogFileKey key, LogFileValue value) throws IOException {
-    key.write(logFile);
-    value.write(logFile);
+    key.write(encryptingLogFile);
+    value.write(encryptingLogFile);
   }
-
+  
   public LoggerOperation log(int seq, int tid, Mutation mutation) throws IOException {
     return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation))));
   }
@@ -332,16 +375,16 @@ public class DfsLogger {
         work.exception = e;
       }
     }
-
+    
     synchronized (closeLock) {
       // use a different lock for close check so that adding to work queue does not need
       // to wait on walog I/O operations
-
+      
       if (closed)
         throw new LogClosedException();
       workQueue.add(work);
     }
-
+    
     return new LoggerOperation(work);
   }
   

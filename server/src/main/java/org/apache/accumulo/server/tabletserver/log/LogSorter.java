@@ -16,8 +16,10 @@
  */
 package org.apache.accumulo.server.tabletserver.log;
 
+import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -32,6 +34,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
+import org.apache.accumulo.core.security.crypto.CryptoModule;
+import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -51,16 +55,16 @@ import org.apache.zookeeper.KeeperException;
  */
 public class LogSorter {
   
-
   private static final Logger log = Logger.getLogger(LogSorter.class);
   FileSystem fs;
   AccumuloConfiguration conf;
   
   private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<String,LogProcessor>());
-
+  
   class LogProcessor implements Processor {
     
     private FSDataInputStream input;
+    private DataInputStream decryptingInput;
     private long bytesCopied = -1;
     private long sortStart = 0;
     private long sortStop = -1;
@@ -92,23 +96,67 @@ public class LogSorter {
     }
     
     public void sort(String name, Path srcPath, String destPath) {
-
+      
       synchronized (this) {
         sortStart = System.currentTimeMillis();
       }
-
+      
       String formerThreadName = Thread.currentThread().getName();
       int part = 0;
       try {
         
         // the following call does not throw an exception if the file/dir does not exist
         fs.delete(new Path(destPath), true);
-
+        
         FSDataInputStream tmpInput = fs.open(srcPath);
-        synchronized (this) {
-          this.input = tmpInput;
+        DataInputStream tmpDecryptingInput = tmpInput;
+        
+        String logHeader = tmpInput.readUTF();
+        Map<String,String> cryptoOpts = new HashMap<String,String>();
+        
+        if (!logHeader.equals(DfsLogger.LOG_FILE_HEADER_V2)) {
+          
+          log.debug("Not a V2 log file, so re-opening it and passing it on");
+          
+          // Hmmm, this isn't the log file I was expecting, so close it and reopen to unread those bytes.
+          tmpInput.close();
+          tmpInput = fs.open(srcPath);
+          
+          synchronized (this) {
+            this.input = tmpInput;
+            this.decryptingInput = tmpInput;
+          }
+          
+        } else {
+          
+          int numEntries = tmpInput.readInt();
+          for (int i = 0; i < numEntries; i++) {
+            cryptoOpts.put(tmpInput.readUTF(), tmpInput.readUTF());
+          }
+          
+          String cryptoModuleName = cryptoOpts.get(Property.CRYPTO_MODULE_CLASS.getKey());
+          if (cryptoModuleName == null) {
+            // If for whatever reason we didn't get a configured crypto module (old log file version, for instance)
+            // default to using the default configuration entry (usually NullCipher).
+            cryptoModuleName = AccumuloConfiguration.getDefaultConfiguration().get(Property.CRYPTO_MODULE_CLASS);
+          }
+          
+          synchronized (this) {
+            this.input = tmpInput;
+          }
+          
+          @SuppressWarnings("deprecation")
+          CryptoModule cryptoOps = CryptoModuleFactory.getCryptoModule(cryptoModuleName);
+          @SuppressWarnings("deprecation")
+          InputStream decryptingInputStream = cryptoOps.getDecryptingInputStream(input, cryptoOpts);
+          
+          tmpDecryptingInput = new DataInputStream(decryptingInputStream);
+          
+          synchronized (this) {
+            this.decryptingInput = tmpDecryptingInput;
+          }
         }
-
+        
         final long bufferSize = conf.getMemoryInBytes(Property.TSERV_SORT_BUFFER_SIZE);
         Thread.currentThread().setName("Sorting " + name + " for recovery");
         while (true) {
@@ -118,8 +166,8 @@ public class LogSorter {
             while (input.getPos() - start < bufferSize) {
               LogFileKey key = new LogFileKey();
               LogFileValue value = new LogFileValue();
-              key.readFields(input);
-              value.readFields(input);
+              key.readFields(decryptingInput);
+              value.readFields(decryptingInput);
               buffer.add(new Pair<LogFileKey,LogFileValue>(key, value));
             }
             writeBuffer(destPath, buffer, part++);
@@ -170,10 +218,11 @@ public class LogSorter {
         output.close();
       }
     }
-
+    
     synchronized void close() throws IOException {
       bytesCopied = input.getPos();
       input.close();
+      decryptingInput.close();
       input = null;
     }
     
@@ -201,7 +250,7 @@ public class LogSorter {
     int threadPoolSize = conf.getCount(Property.TSERV_RECOVERY_MAX_CONCURRENT);
     this.threadPool = new SimpleThreadPool(threadPoolSize, this.getClass().getName());
   }
-
+  
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool) throws KeeperException, InterruptedException {
     this.threadPool = distWorkQThreadPool;
     new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZRECOVERY).startProcessing(new LogProcessor(), this.threadPool);

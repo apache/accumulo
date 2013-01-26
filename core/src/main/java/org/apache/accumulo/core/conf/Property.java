@@ -27,6 +27,30 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public enum Property {
+  
+  // Crypto-related properties
+  CRYPTO_PREFIX("crypto.", null, PropertyType.PREFIX, "Properties in this category related to the configuration of both default and custom crypto modules."),
+  CRYPTO_MODULE_CLASS(
+      "crypto.module.class",
+      "NullCryptoModule",
+      PropertyType.STRING,
+      "Fully qualified class name of the class that implements the CryptoModule interface, to be used in setting up encryption at rest for the WAL and (future) other parts of the code."),
+  CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING, "Describes the cipher suite to use for the write-ahead log"),
+  CRYPTO_CIPHER_ALGORITHM_NAME("crypto.cipher.algorithm.name", "NullCipher", PropertyType.STRING,
+      "States the name of the algorithm used in the corresponding cipher suite.  Do not make these different, unless you enjoy mysterious exceptions and bugs."),
+  CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
+      "Specifies the key length *in bits* to use for the symmetric key, should probably be 128 or 256 unless you really know what you're doing"),
+  CRYPTO_SECURE_RNG("crypto.secure.rng", "SHA1PRNG", PropertyType.STRING,
+      "States the secure random number generator to use, and defaults to the built-in Sun SHA1PRNG"),
+  CRYPTO_SECURE_RNG_PROVIDER("crypto.secure.rng.provider", "SUN", PropertyType.STRING,
+      "States the secure random number generator provider to use, and defaults to the built-in SUN provider"),
+  CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS("crypto.secret.key.encryption.strategy.class", "NullSecretKeyEncryptionStrategy", PropertyType.STRING,
+      "The class Accumulo should use for its key encryption strategy."),
+  CRYPTO_DEFAULT_KEY_STRATEGY_HDFS_URI("crypto.default.key.strategy.hdfs.uri", "", PropertyType.STRING,
+      "The URL Accumulo should use to connect to DFS. If this is blank, Accumulo will obtain this information from the Hadoop configuration"),
+  CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION("crypto.default.key.strategy.key.location", "/accumulo/crypto/secret/keyEncryptionKey", PropertyType.ABSOLUTEPATH,
+      "The absolute path of where to store the key encryption key within HDFS."),
+  
   // instance properties (must be the same for every node in an instance)
   INSTANCE_PREFIX("instance.", null, PropertyType.PREFIX,
       "Properties in this category must be consistent throughout a cloud. This is enforced and servers won't be able to communicate if these differ."),
@@ -56,8 +80,7 @@ public enum Property {
           + "starting in the first location to the last. Please note, hadoop conf and hadoop lib directories NEED to be here, "
           + "along with accumulo lib and zookeeper directory. Supports full regex on filename alone."), // needs special treatment in accumulo start jar
   GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME, AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE,
-      PropertyType.STRING,
-      "A list of all of the places where changes in jars or classes will force a reload of the classloader."),
+      PropertyType.STRING, "A list of all of the places where changes in jars or classes will force a reload of the classloader."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION, "Time to wait on I/O for simple, short RPC calls"),
   GENERAL_KERBEROS_KEYTAB("general.kerberos.keytab", "", PropertyType.PATH, "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs"),
   GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING, "Name of the kerberos principal to use. _HOST will automatically be "
@@ -78,8 +101,10 @@ public enum Property {
   MASTER_THREADCHECK("master.server.threadcheck.time", "1s", PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool."),
   MASTER_RECOVERY_DELAY("master.recovery.delay", "10s", PropertyType.TIMEDURATION,
       "When a tablet server's lock is deleted, it takes time for it to completely quit. This delay gives it time before log recoveries begin."),
-  MASTER_LEASE_RECOVERY_IMPLEMETATION("master.lease.recovery.implementation", "org.apache.accumulo.server.master.recovery.RecoverLease", PropertyType.CLASSNAME, "A class that implements a mechansim to steal write access to a file"),
-  MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT, "The number of threads used to run FAult-Tolerant Executions.  These are primarily table operations like merge."),
+  MASTER_LEASE_RECOVERY_IMPLEMETATION("master.lease.recovery.implementation", "org.apache.accumulo.server.master.recovery.RecoverLease",
+      PropertyType.CLASSNAME, "A class that implements a mechansim to steal write access to a file"),
+  MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
+      "The number of threads used to run FAult-Tolerant Executions.  These are primarily table operations like merge."),
   
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the tablet servers"),
@@ -129,10 +154,7 @@ public enum Property {
   TSERV_BLOOM_LOAD_MAXCONCURRENT("tserver.bloom.load.concurrent.max", "4", PropertyType.COUNT,
       "The number of concurrent threads that will load bloom filters in the background. "
           + "Setting this to zero will make bloom filters load in the foreground."),
-  TSERV_MONITOR_FS(
-      "tserver.monitor.fs",
-      "true",
-      PropertyType.BOOLEAN,
+  TSERV_MONITOR_FS("tserver.monitor.fs", "true", PropertyType.BOOLEAN,
       "When enabled the tserver will monitor file systems and kill itself when one switches from rw to ro.  This is usually and indication that Linux has"
           + " detected a bad disk."),
   TSERV_MEMDUMP_DIR("tserver.dir.memdump", "/tmp", PropertyType.PATH,
@@ -168,7 +190,7 @@ public enum Property {
   TSERV_ARCHIVE_WALOGS("tserver.archive.walogs", "false", PropertyType.BOOLEAN, "Keep copies of the WALOGs for debugging purposes"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed workq.  These threads are used for copying failed bulk files."),
-
+  
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
   LOGGER_DIR("logger.dir.walog", "walogs", PropertyType.PATH,
@@ -257,25 +279,29 @@ public enum Property {
       PropertyType.CLASSNAME,
       "A function that can transform the key prior to insertion and check of bloom filter.  org.apache.accumulo.core.file.keyfunctor.RowFunctor,"
           + ",org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor are allowable values."
-          + " One can extend any of the above mentioned classes to perform specialized parsing of the key. "), TABLE_BLOOM_HASHTYPE("table.bloom.hash.type",
-      "murmur", PropertyType.STRING, "The bloom filter hash type"), TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
+          + " One can extend any of the above mentioned classes to perform specialized parsing of the key. "),
+  TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING, "The bloom filter hash type"),
+  TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
       "If you want queries for your table to hang or fail when data is missing from the system, "
           + "then set this to false. When this set to true missing data will be reported but queries "
-          + "will still run possibly returning a subset of the data."), TABLE_DEFAULT_SCANTIME_VISIBILITY("table.security.scan.visibility.default", "",
-      PropertyType.STRING, "The security label that will be assumed at scan time if an entry does not have a visibility set.<br />"
+          + "will still run possibly returning a subset of the data."),
+  TABLE_DEFAULT_SCANTIME_VISIBILITY("table.security.scan.visibility.default", "", PropertyType.STRING,
+      "The security label that will be assumed at scan time if an entry does not have a visibility set.<br />"
           + "Note: An empty security label is displayed as []. The scan results will show an empty visibility even if "
           + "the visibility from this setting is applied to the entry.<br />"
           + "CAUTION: If a particular key has an empty security label AND its table's default visibility is also empty, "
           + "access will ALWAYS be granted for users with permission to that table. Additionally, if this field is changed, "
-          + "all existing data with an empty visibility label will be interpreted with the new label on the next scan."), TABLE_LOCALITY_GROUPS(
-      "table.groups.enabled", "", PropertyType.STRING, "A comma separated list of locality group names to enable for this table."), TABLE_CONSTRAINT_PREFIX(
-      "table.constraint.", null, PropertyType.PREFIX, "Properties in this category are per-table properties that add constraints to a table. "
+          + "all existing data with an empty visibility label will be interpreted with the new label on the next scan."),
+  TABLE_LOCALITY_GROUPS("table.groups.enabled", "", PropertyType.STRING, "A comma separated list of locality group names to enable for this table."),
+  TABLE_CONSTRAINT_PREFIX("table.constraint.", null, PropertyType.PREFIX,
+      "Properties in this category are per-table properties that add constraints to a table. "
           + "These properties start with the category prefix, followed by a number, and their values "
           + "correspond to a fully qualified Java class that implements the Constraint interface.<br />"
           + "For example, table.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint "
-          + "and table.constraint.2 = my.package.constraints.MySecondConstraint"), TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true",
-      PropertyType.BOOLEAN, "Determines whether index cache is enabled."), TABLE_BLOCKCACHE_ENABLED("table.cache.block.enable", "false", PropertyType.BOOLEAN,
-      "Determines whether file block cache is enabled."), TABLE_ITERATOR_PREFIX("table.iterator.", null, PropertyType.PREFIX,
+          + "and table.constraint.2 = my.package.constraints.MySecondConstraint"),
+  TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN, "Determines whether index cache is enabled."),
+  TABLE_BLOCKCACHE_ENABLED("table.cache.block.enable", "false", PropertyType.BOOLEAN, "Determines whether file block cache is enabled."),
+  TABLE_ITERATOR_PREFIX("table.iterator.", null, PropertyType.PREFIX,
       "Properties in this category specify iterators that are applied at various stages (scopes) of interaction "
           + "with a table. These properties start with the category prefix, followed by a scope (minc, majc, scan, etc.), "
           + "followed by a period, followed by a name, as in table.iterator.scan.vers, or table.iterator.scan.custom. "
@@ -283,31 +309,31 @@ public enum Property {
           + "such as table.iterator.scan.vers = 10,org.apache.accumulo.core.iterators.VersioningIterator<br /> "
           + "These iterators can take options if additional properties are set that look like this property, "
           + "but are suffixed with a period, followed by 'opt' followed by another period, and a property name.<br />"
-          + "For example, table.iterator.minc.vers.opt.maxVersions = 3"), TABLE_LOCALITY_GROUP_PREFIX("table.group.", null, PropertyType.PREFIX,
+          + "For example, table.iterator.minc.vers.opt.maxVersions = 3"),
+  TABLE_LOCALITY_GROUP_PREFIX("table.group.", null, PropertyType.PREFIX,
       "Properties in this category are per-table properties that define locality groups in a table. These properties start "
           + "with the category prefix, followed by a name, followed by a period, and followed by a property for that group.<br />"
           + "For example table.group.group1=x,y,z sets the column families for a group called group1. Once configured, "
           + "group1 can be enabled by adding it to the list of groups in the " + TABLE_LOCALITY_GROUPS.getKey() + " property.<br />"
           + "Additional group options may be specified for a named group by setting table.group.&lt;name&gt;.opt.&lt;key&gt;=&lt;value&gt;."),
-  TABLE_FORMATTER_CLASS("table.formatter", DefaultFormatter.class.getName(), PropertyType.STRING,
-      "The Formatter class to apply on results in the shell"),
+  TABLE_FORMATTER_CLASS("table.formatter", DefaultFormatter.class.getName(), PropertyType.STRING, "The Formatter class to apply on results in the shell"),
   TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(), PropertyType.STRING,
       "The ScanInterpreter class to apply on scan arguments in the shell"),
   TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING, "Per table classpath"),
-      
-      
-  //VFS ClassLoader properties
+  
+  // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
       "Configuration for a system level vfs classloader.  Accumulo jar can be configured here and loaded out of HDFS."),
-  VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null, PropertyType.PREFIX,
+  VFS_CONTEXT_CLASSPATH_PROPERTY(
+      AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY,
+      null,
+      PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties start  with the category prefix, followed by a context name.  "
           + "The value is a comma seperated list of URIs. Supports full regex on filename alone. For example general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar.  "
           + "You can enable post delegation for a context, which will load classes from the context first instead of the parent first.  "
           + "Do this by setting general.vfs.context.classpath.<name>.delegation=post, where <name> is your context name.  "
           + "If delegation is not specified, it defaults to loading from parent classloader first.");
-      
   
-
   private String key, defaultValue, description;
   private PropertyType type;
   
@@ -339,15 +365,44 @@ public enum Property {
   }
   
   private static HashSet<String> validTableProperties = null;
+  private static HashSet<String> validProperties = null;
+  private static HashSet<String> validPrefixes = null;
   
-  public synchronized static boolean isValidTablePropertyKey(String key) {
-      if (validTableProperties == null) {
-  	    validTableProperties = new HashSet<String>();
-        for (Property p : Property.values()) {
-          if (!p.getType().equals(PropertyType.PREFIX) && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
-        	  validTableProperties.add(p.getKey());
-          }
+  private static boolean isKeyValidlyPrefixed(String key) {
+    for (String prefix : validPrefixes) {
+      if (key.startsWith(prefix))
+        return true;
+    }
+    
+    return false;
+  }
+  
+  public synchronized static boolean isValidPropertyKey(String key) {
+    if (validProperties == null) {
+      validProperties = new HashSet<String>();
+      validPrefixes = new HashSet<String>();
+      
+      for (Property p : Property.values()) {
+        if (p.getType().equals(PropertyType.PREFIX)) {
+          validPrefixes.add(p.getKey());
+        } else {
+          validProperties.add(p.getKey());
         }
+      }
+    }
+    
+    return validProperties.contains(key) || isKeyValidlyPrefixed(key);
+  }
+  
+  // Is this method still needed?
+  public synchronized static boolean isValidTablePropertyKey(String key) {
+    if (validTableProperties == null) {
+      validTableProperties = new HashSet<String>();
+      for (Property p : Property.values()) {
+        if (!p.getType().equals(PropertyType.PREFIX) && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+          validTableProperties.add(p.getKey());
+        }
+      }
     }
     
     return validTableProperties.contains(key) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())

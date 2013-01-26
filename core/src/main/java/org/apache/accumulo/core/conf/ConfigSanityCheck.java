@@ -30,8 +30,8 @@ public class ConfigSanityCheck {
       String key = entry.getKey();
       String value = entry.getValue();
       Property prop = Property.getPropertyByKey(entry.getKey());
-      if (prop == null && Property.isValidTablePropertyKey(key))
-        continue; // unknown valid per-table property
+      if (prop == null && Property.isValidPropertyKey(key))
+        continue; // unknown valid property (i.e. has proper prefix)
       else if (prop == null)
         log.warn(PREFIX + "unrecognized property key (" + key + ")");
       else if (prop.getType() == PropertyType.PREFIX)
