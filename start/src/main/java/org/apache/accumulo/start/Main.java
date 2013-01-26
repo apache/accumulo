@@ -113,6 +113,6 @@ public class Main {
   }
   
   private static void printUsage() {
-    System.out.println("accumulo init | master | tserver | logger | monitor | shell | admin | gc | classpath | rfile-info | <accumulo class> args");
+    System.out.println("accumulo init | master | tserver | logger | monitor | shell | admin | gc | classpath | rfile-info | tracer | proxy | <accumulo class> args");
   }
 }
