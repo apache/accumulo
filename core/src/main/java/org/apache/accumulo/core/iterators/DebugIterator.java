@@ -26,7 +26,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.log4j.Logger;
 
-public class DebugIterator extends WrappingIterator {
+public class DebugIterator extends WrappingIterator implements OptionDescriber {
   
   private String prefix;
   
@@ -74,9 +74,31 @@ public class DebugIterator extends WrappingIterator {
     log.debug(prefix + " seek(" + range + ", " + columnFamilies + ", " + inclusive + ")");
     super.seek(range, columnFamilies, inclusive);
   }
+
+  @Override
+  public void next() throws IOException {
+    log.debug(prefix + " next()");
+    super.next();
+  }
   
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    log.debug("init(" + source + ", " + options + ", " + env + ")");
+
+    if (null == prefix) {
+      prefix = String.format("0x%08X", this.hashCode());
+    }
+
     super.init(source, options, env);
+  }
+
+  @Override
+  public IteratorOptions describeOptions() {
+    return new IteratorOptions("debug", DebugIterator.class.getSimpleName() + " prints debug information on each SortedKeyValueIterator method invocation", null, null);
+  }
+
+  @Override
+  public boolean validateOptions(Map<String,String> options) {
+    return true;
   }
 }
