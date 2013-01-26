@@ -57,7 +57,7 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tabletserver.UniqueNameAllocator;
-import org.apache.accumulo.server.test.FastFormat;
+import org.apache.accumulo.server.util.FastFormat;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -72,7 +72,7 @@ import org.apache.log4j.Logger;
 class ImportedTableInfo implements Serializable {
   
   private static final long serialVersionUID = 1L;
-
+  
   public String exportDir;
   public String user;
   public String tableName;
@@ -99,13 +99,13 @@ class FinishImportTable extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
     
     env.getFileSystem().delete(new Path(tableInfo.importDir, "mappings.txt"), true);
-
+    
     TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
     
     Utils.unreserveTable(tableInfo.tableId, tid, true);
     
     Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
-
+    
     env.getEventCoordinator().event("Imported table %s ", tableInfo.tableName);
     
     Logger.getLogger(FinishImportTable.class).debug("Imported table " + tableInfo.tableId + " " + tableInfo.tableName);
@@ -180,7 +180,7 @@ class PopulateMetadataTable extends MasterRepo {
     
     try {
       Map<String,String> map = new HashMap<String,String>();
-
+      
       String line = null;
       while ((line = in.readLine()) != null) {
         String sa[] = line.split(":", 2);
@@ -191,9 +191,9 @@ class PopulateMetadataTable extends MasterRepo {
     } finally {
       in.close();
     }
-
+    
   }
-
+  
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     
@@ -201,12 +201,12 @@ class PopulateMetadataTable extends MasterRepo {
     
     BatchWriter mbw = null;
     ZipInputStream zis = null;
-
+    
     try {
       FileSystem fs = master.getFileSystem();
       
       mbw = master.getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
-
+      
       zis = new ZipInputStream(fs.open(path));
       
       Map<String,String> fileNameMappings = readMappingFile(fs, tableInfo);
@@ -307,9 +307,9 @@ class MapImportFileNames extends MasterRepo {
   public Repo<Master> call(long tid, Master environment) throws Exception {
     
     Path path = new Path(tableInfo.importDir, "mappings.txt");
-
+    
     BufferedWriter mappingsWriter = null;
-
+    
     try {
       FileSystem fs = environment.getFileSystem();
       
@@ -355,10 +355,10 @@ class MapImportFileNames extends MasterRepo {
           "Error writing mapping file " + path + " " + ioe.getMessage());
     } finally {
       if (mappingsWriter != null)
-        try{
+        try {
           mappingsWriter.close();
-        }catch(IOException ioe){
-          log.warn("Failed to close "+path, ioe);
+        } catch (IOException ioe) {
+          log.warn("Failed to close " + path, ioe);
         }
     }
   }
@@ -381,13 +381,13 @@ class CreateImportDir extends MasterRepo {
   
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-
+    
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
     
     Path directory = new Path(ServerConstants.getTablesDir() + "/" + tableInfo.tableId);
     
     Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
-
+    
     tableInfo.importDir = newBulkDir.toString();
     
     return new MapImportFileNames(tableInfo);
@@ -420,7 +420,7 @@ class ImportPopulateZookeeper extends MasterRepo {
           "Error reading table props from " + path + " " + ioe.getMessage());
     }
   }
-
+  
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // reserve the table name in zookeeper or fail
@@ -517,7 +517,7 @@ public class ImportTable extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     checkVersions(env);
-
+    
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped
@@ -533,18 +533,18 @@ public class ImportTable extends MasterRepo {
       Utils.idLock.unlock();
     }
   }
-
+  
   public void checkVersions(Master env) throws ThriftTableOperationException {
     Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
     
     ZipInputStream zis = null;
-
+    
     try {
       zis = new ZipInputStream(env.getFileSystem().open(path));
       
       Integer exportVersion = null;
       Integer dataVersion = null;
-
+      
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {
@@ -573,7 +573,7 @@ public class ImportTable extends MasterRepo {
       if (dataVersion == null || dataVersion > Constants.DATA_VERSION)
         throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
             "Incompatible data version " + exportVersion);
-
+      
     } catch (IOException ioe) {
       log.warn(ioe.getMessage(), ioe);
       throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,

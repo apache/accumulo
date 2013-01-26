@@ -81,7 +81,7 @@ class SimpleBalancerFairness(SunnyDayTest):
         # fetch the list of tablets from each server 
         h = self.runOn(self.masterHost(),
                        [self.accumulo_sh(),
-                        'org.apache.accumulo.server.test.GetMasterStats'])
+                        'org.apache.accumulo.test.GetMasterStats'])
         out, err = h.communicate()
         servers = {}
         server = None

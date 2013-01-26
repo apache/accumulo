@@ -21,7 +21,7 @@ class DeleteEverythingTest(JavaTest):
     "A test that deletes everything in a table"
 
     order = 30
-    testClass="org.apache.accumulo.server.test.functional.DeleteEverythingTest"
+    testClass="org.apache.accumulo.test.functional.DeleteEverythingTest"
 
 
 def suite():

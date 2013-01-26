@@ -216,7 +216,7 @@ class TestUtilsMixin:
                           **kwargs)
 
     def ingest(self, host, count, start=0, timestamp=None, size=50, colf=None, **kwargs):
-        klass = 'org.apache.accumulo.server.test.TestIngest'
+        klass = 'org.apache.accumulo.test.TestIngest'
         args = ''
         if timestamp:
             args += "-ts %ld " % int(timestamp)
@@ -226,7 +226,7 @@ class TestUtilsMixin:
         return self.runClassOn(host, klass, args.split(), **kwargs)
 
     def verify(self, host, count, start=0, size=50, timestamp=None, colf='colf'):
-        klass = 'org.apache.accumulo.server.test.VerifyIngest'
+        klass = 'org.apache.accumulo.test.VerifyIngest'
         args = ''
         if timestamp:
             args += "-ts %ld " % int(timestamp)
@@ -450,7 +450,7 @@ class TestUtilsMixin:
     def getTableId(self, table):
         if table == '!METADATA' :
             return '!0'
-        handle = self.runClassOn(self.masterHost(), 'org.apache.accumulo.server.test.ListTables',['-u', ROOT]);
+        handle = self.runClassOn(self.masterHost(), 'org.apache.accumulo.test.ListTables',['-u', ROOT]);
         out,err = handle.communicate()
         self.assert_(handle.returncode==0)
         for line in out.split('\n') :

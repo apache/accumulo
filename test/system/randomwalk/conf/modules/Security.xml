@@ -12,7 +12,7 @@
 <module>
 
   <package prefix="security"
-    value="org.apache.accumulo.server.test.randomwalk.security" />
+    value="org.apache.accumulo.test.randomwalk.security" />
 
   <fixture id="security.SecurityFixture" />
 

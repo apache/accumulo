@@ -32,7 +32,7 @@ class WriteLots(unittest.TestCase, TestUtilsMixin):
     settings['instance.zookeeper.timeout'] = '40s'
 
     def ingest(self, host, start, count, **kwargs):
-        klass = 'org.apache.accumulo.server.test.TestIngest'
+        klass = 'org.apache.accumulo.test.TestIngest'
         args = '--user root --size 50 --random 56 --rows %d --start %d --cols 1' % (count, start)
         return self.runClassOn(host, klass, args.split(), **kwargs)
 

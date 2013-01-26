@@ -21,7 +21,7 @@ class RowDeleteTest(JavaTest):
     "Row Deletion Test"
 
     order = 22
-    testClass="org.apache.accumulo.server.test.functional.RowDeleteTest"
+    testClass="org.apache.accumulo.test.functional.RowDeleteTest"
 
 
 def suite():

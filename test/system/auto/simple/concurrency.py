@@ -21,7 +21,7 @@ class ConcurrencyTest(JavaTest):
     "Test concurrency"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.ConcurrencyTest"
+    testClass="org.apache.accumulo.test.functional.ConcurrencyTest"
 
 
 def suite():

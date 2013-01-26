@@ -38,9 +38,9 @@ hadoop fs -rmr /testmfFail
 
 echo "uptest\nsecret\nsecret" | $ONE_THREE_DIR/bin/accumulo init --clear-instance-name
 $ONE_THREE_DIR/bin/start-all.sh
-$ONE_THREE_DIR/bin/accumulo org.apache.accumulo.server.test.TestIngest -u root -p secret --timestamp 1 --size 50 --random 56 --rows 100000 --start 0 --cols 1
-$ONE_THREE_DIR/bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf01 --timestamp 1 --size 50 --random 56 --rows 100000 --start 100000 --cols 1
-$ONE_THREE_DIR/bin/accumulo org.apache.accumulo.server.test.BulkImportDirectory -u root -p secret -t test_ingest --source /testmf --failures /testmfFail
+$ONE_THREE_DIR/bin/accumulo org.apache.accumulo.test.TestIngest -u root -p secret --timestamp 1 --size 50 --random 56 --rows 100000 --start 0 --cols 1
+$ONE_THREE_DIR/bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf01 --timestamp 1 --size 50 --random 56 --rows 100000 --start 100000 --cols 1
+$ONE_THREE_DIR/bin/accumulo org.apache.accumulo.test.BulkImportDirectory -u root -p secret -t test_ingest --source /testmf --failures /testmfFail
 if [ $1 == "dirty" ]; then
 	pkill -9 -f accumulo.start
 else 
@@ -54,27 +54,27 @@ echo "==== Starting 1.4 ==="
 #TODO test delete range
 
 $ONE_FOUR_DIR/bin/start-all.sh
-$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1 
+$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1 
 echo "compact -t test_ingest -w" | $ONE_FOUR_DIR/bin/accumulo shell -u root -p secret
-$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1
+$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1
 echo "merge -t test_ingest -s 1G" | $ONE_FOUR_DIR/bin/accumulo shell -u root -p secret
-$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1
+$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1
 echo "clonetable test_ingest tmp\ndeletetable test_ingest\nrenametable tmp test_ingest" | $ONE_FOUR_DIR/bin/accumulo shell -u root -p secret
-$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1
+$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1
 
 #test overwriting data writting in 1.3
-$ONE_FOUR_DIR/bin/accumulo org.apache.accumulo.server.test.TestIngest --timestamp 2 --size 50 --random 57 --rows 300000 --start 0 --cols 1
-$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
+$ONE_FOUR_DIR/bin/accumulo org.apache.accumulo.test.TestIngest --timestamp 2 --size 50 --random 57 --rows 300000 --start 0 --cols 1
+$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
 echo "compact -t test_ingest -w" | $ONE_FOUR_DIR/bin/accumulo shell -u root -p secret
-$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
+$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
 
 $ONE_FOUR_DIR/bin/stop-all.sh
 $ONE_FOUR_DIR/bin/start-all.sh
 
-$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
+$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
 
 pkill -f accumulo.start
 $ONE_FOUR_DIR/bin/start-all.sh
 
-$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
+$ONE_FOUR_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
 

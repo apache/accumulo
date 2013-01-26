@@ -21,7 +21,7 @@ class FateStarvationTest(JavaTest):
     "Try to trigger a bug that was found in FATE"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.FateStarvationTest"
+    testClass="org.apache.accumulo.test.functional.FateStarvationTest"
 
 
 def suite():

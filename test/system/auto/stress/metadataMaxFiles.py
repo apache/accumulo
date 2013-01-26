@@ -52,7 +52,7 @@ class MetadataMaxFiles(TestUtilsMixin, unittest.TestCase):
         self.start_accumulo()
         self.sleep(60)
         h = self.runOn(self.masterHost(),
-                       [self.accumulo_sh(), 'org.apache.accumulo.server.test.GetMasterStats'])
+                       [self.accumulo_sh(), 'org.apache.accumulo.test.GetMasterStats'])
         out, err = h.communicate()
         self.assert_(len([x for x in out.split('\n') if x.find('  Tablets 1001') == 0]) == 5)
 

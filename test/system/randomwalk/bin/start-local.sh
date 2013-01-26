@@ -72,4 +72,4 @@ fi
 LOG_ID=`hostname -s`_`date +%Y%m%d_%H%M%S`
 
 # run the local walker
-"$ACCUMULO_HOME/bin/accumulo" org.apache.accumulo.server.test.randomwalk.Framework --configDir "$RW_HOME/$TEMP/conf/" --logDir "$RW_LOGS" --logId "$LOG_ID" --module "$1" >"$RW_LOGS/$LOG_ID.out" 2>"$RW_LOGS/$LOG_ID.err" &
+"$ACCUMULO_HOME/bin/accumulo" org.apache.accumulo.test.randomwalk.Framework --configDir "$RW_HOME/$TEMP/conf/" --logDir "$RW_LOGS" --logId "$LOG_ID" --module "$1" >"$RW_LOGS/$LOG_ID.out" 2>"$RW_LOGS/$LOG_ID.err" &

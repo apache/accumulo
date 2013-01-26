@@ -17,7 +17,7 @@
 -->
 <module>
 
-<package prefix="image" value="org.apache.accumulo.server.test.randomwalk.image"/>
+<package prefix="image" value="org.apache.accumulo.test.randomwalk.image"/>
 
 <fixture id="image.ImageFixture"/>
 

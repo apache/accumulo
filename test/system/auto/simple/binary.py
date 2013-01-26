@@ -20,7 +20,7 @@ import time
 
 from TestUtils import TestUtilsMixin
 
-testClass = "org.apache.accumulo.server.test.TestBinaryRows"
+testClass = "org.apache.accumulo.test.TestBinaryRows"
 
 class BinaryTest(unittest.TestCase, TestUtilsMixin):
     "Test inserting binary data into accumulo"

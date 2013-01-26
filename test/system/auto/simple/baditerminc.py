@@ -21,7 +21,7 @@ class BadIterMincTest(JavaTest):
     "Test bad iterator and minc"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.BadIteratorMincTest"
+    testClass="org.apache.accumulo.test.functional.BadIteratorMincTest"
 
 
 def suite():

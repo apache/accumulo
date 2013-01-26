@@ -21,7 +21,7 @@ class CreateManyScannersTest(JavaTest):
     "Test creating a lot of scanners"
 
     order = 9999
-    testClass="org.apache.accumulo.server.test.functional.CreateManyScannersTest"
+    testClass="org.apache.accumulo.test.functional.CreateManyScannersTest"
     maxRuntime = 60
 
 

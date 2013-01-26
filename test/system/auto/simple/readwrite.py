@@ -81,12 +81,12 @@ class MultiTableTest(SunnyDayTest):
     order = 21
     
     def ingest(self, host, count, *args, **kwargs):
-        klass = 'org.apache.accumulo.server.test.TestMultiTableIngest'
+        klass = 'org.apache.accumulo.test.TestMultiTableIngest'
         args = '--count %d -u root -i %s ' % (count, INSTANCE_NAME)
         return self.runClassOn(host, klass, args.split())
 
     def verify(self, host, count, *args, **kwargs):
-        klass = 'org.apache.accumulo.server.test.TestMultiTableIngest'
+        klass = 'org.apache.accumulo.test.TestMultiTableIngest'
         args = '--count %d --readonly -u root -i %s ' % (count, INSTANCE_NAME)
         return self.runClassOn(host, klass, args.split())
 

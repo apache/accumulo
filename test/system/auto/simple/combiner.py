@@ -101,7 +101,7 @@ class ClassLoaderTest(TestUtilsMixin, unittest.TestCase):
         
         shutil.copy(sys.path[0]+"/TestCombinerX.jar", jarPath)
 	time.sleep(1)
-        out, err, code = self.rootShell(self.masterHost(), "setiter -t test -scan -p 10 -n TestCombiner -class org.apache.accumulo.server.test.functional.TestCombiner\n"
+        out, err, code = self.rootShell(self.masterHost(), "setiter -t test -scan -p 10 -n TestCombiner -class org.apache.accumulo.test.functional.TestCombiner\n"
                      "\n"
                      "cf\n")
         self.assert_(code == 0)

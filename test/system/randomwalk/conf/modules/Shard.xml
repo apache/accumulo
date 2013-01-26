@@ -17,7 +17,7 @@
 -->
 <module>
 
-<package prefix="shard" value="org.apache.accumulo.server.test.randomwalk.shard"/>
+<package prefix="shard" value="org.apache.accumulo.test.randomwalk.shard"/>
 
 <fixture id="shard.ShardFixture"/>
 

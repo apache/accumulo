@@ -10,7 +10,7 @@
 
 4. Each test has a unique ID which correlates with its test code in:
 
-    org.apache.accumulo.server.test.scalability.tests.<ID>
+    org.apache.accumulo.test.scalability.tests.<ID>
 
     This ID correlates with a the following config file:
 

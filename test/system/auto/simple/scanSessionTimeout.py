@@ -21,7 +21,7 @@ class ScanSessionTimeOutTest(JavaTest):
     "Test a scan session that times out midway through"
 
     order = 20
-    testClass="org.apache.accumulo.server.test.functional.ScanSessionTimeOutTest"
+    testClass="org.apache.accumulo.test.functional.ScanSessionTimeOutTest"
 
 
 def suite():

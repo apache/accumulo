@@ -18,5 +18,5 @@
 
 . continuous-env.sh
 
-pkill -f org.apache.accumulo.server.test.continuous.ContinuousStatsCollector
+pkill -f org.apache.accumulo.test.continuous.ContinuousStatsCollector
 

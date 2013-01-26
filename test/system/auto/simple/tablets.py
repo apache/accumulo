@@ -41,11 +41,11 @@ class LotsOfTablets(TestUtilsMixin, unittest.TestCase):
 
         # initialize the database
         handle = self.runClassOn(self.masterHost(), 
-		               'org.apache.accumulo.server.test.CreateTestTable', 
+		               'org.apache.accumulo.test.CreateTestTable', 
 		               [str(N)])
 	self.waitForStop(handle, WAIT)
         handle = self.runClassOn(self.masterHost(), 
-		               'org.apache.accumulo.server.test.CreateTestTable', 
+		               'org.apache.accumulo.test.CreateTestTable', 
 		               ['-readonly', str(N)])
         self.waitForStop(handle, WAIT)
 

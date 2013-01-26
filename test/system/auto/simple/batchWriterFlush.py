@@ -21,7 +21,7 @@ class BatchWriterFlushTest(JavaTest):
     "Test batch writer flush"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.BatchWriterFlushTest"
+    testClass="org.apache.accumulo.test.functional.BatchWriterFlushTest"
 
 
 def suite():

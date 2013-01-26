@@ -30,7 +30,7 @@ class NativeMapTest(TestUtilsMixin, unittest.TestCase):
         pass
         
     def runTest(self):
-        handle = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.NativeMapTest', [])
+        handle = self.runClassOn('localhost', 'org.apache.accumulo.test.functional.NativeMapTest', [])
         self.waitForStop(handle, 20)
 
     def tearDown(self):

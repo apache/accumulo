@@ -41,9 +41,9 @@ The following command queries the index to find all files containing 'foo' and '
     /local/username/workspace/accumulo/src/core/src/test/java/accumulo/core/security/ColumnVisibilityTest.java
     /local/username/workspace/accumulo/src/core/src/test/java/accumulo/core/client/mock/MockConnectorTest.java
     /local/username/workspace/accumulo/src/core/src/test/java/accumulo/core/security/VisibilityEvaluatorTest.java
-    /local/username/workspace/accumulo/src/server/src/main/java/accumulo/server/test/functional/RowDeleteTest.java
+    /local/username/workspace/accumulo/src/server/src/main/java/accumulo/test/functional/RowDeleteTest.java
     /local/username/workspace/accumulo/src/server/src/test/java/accumulo/server/logger/TestLogWriter.java
-    /local/username/workspace/accumulo/src/server/src/main/java/accumulo/server/test/functional/DeleteEverythingTest.java
+    /local/username/workspace/accumulo/src/server/src/main/java/accumulo/test/functional/DeleteEverythingTest.java
     /local/username/workspace/accumulo/src/core/src/test/java/accumulo/core/data/KeyExtentTest.java
     /local/username/workspace/accumulo/src/server/src/test/java/accumulo/server/constraints/MetadataConstraintsTest.java
     /local/username/workspace/accumulo/src/core/src/test/java/accumulo/core/iterators/WholeRowIteratorTest.java

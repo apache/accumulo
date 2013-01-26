@@ -19,8 +19,8 @@ package org.apache.accumulo.instamo;
 import java.io.File;
 import java.util.UUID;
 
-import org.apache.accumulo.server.test.continuous.ContinuousIngest;
-import org.apache.accumulo.server.test.continuous.ContinuousVerify;
+import org.apache.accumulo.test.continuous.ContinuousIngest;
+import org.apache.accumulo.test.continuous.ContinuousVerify;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.apache.commons.io.FileUtils;
 

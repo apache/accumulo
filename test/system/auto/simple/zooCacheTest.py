@@ -30,12 +30,12 @@ class ZooCacheTest(TestUtilsMixin, unittest.TestCase):
         self.create_config_file(self.settings.copy())
         
     def runTest(self):
-        handleCC = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.CacheTestClean', ['/zcTest-42','/tmp/zcTest-42'])
+        handleCC = self.runClassOn('localhost', 'org.apache.accumulo.test.functional.CacheTestClean', ['/zcTest-42','/tmp/zcTest-42'])
         self.waitForStop(handleCC, 10)
-        handleR1 = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.CacheTestReader', ['/zcTest-42','/tmp/zcTest-42', ZOOKEEPERS])
-        handleR2 = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.CacheTestReader', ['/zcTest-42','/tmp/zcTest-42', ZOOKEEPERS])
-        handleR3 = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.CacheTestReader', ['/zcTest-42','/tmp/zcTest-42', ZOOKEEPERS])
-        handleW = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.CacheTestWriter', ['/zcTest-42','/tmp/zcTest-42','3','500'])
+        handleR1 = self.runClassOn('localhost', 'org.apache.accumulo.test.functional.CacheTestReader', ['/zcTest-42','/tmp/zcTest-42', ZOOKEEPERS])
+        handleR2 = self.runClassOn('localhost', 'org.apache.accumulo.test.functional.CacheTestReader', ['/zcTest-42','/tmp/zcTest-42', ZOOKEEPERS])
+        handleR3 = self.runClassOn('localhost', 'org.apache.accumulo.test.functional.CacheTestReader', ['/zcTest-42','/tmp/zcTest-42', ZOOKEEPERS])
+        handleW = self.runClassOn('localhost', 'org.apache.accumulo.test.functional.CacheTestWriter', ['/zcTest-42','/tmp/zcTest-42','3','500'])
         self.waitForStop(handleW, 200)
         self.waitForStop(handleR1, 1)
         self.waitForStop(handleR2, 1)

@@ -78,7 +78,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.test.FastFormat;
+import org.apache.accumulo.server.util.FastFormat;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -247,7 +247,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     }
   }
   
-  public static void updateTabletDataFile(long tid, KeyExtent extent, Map<String,DataFileValue> estSizes, String time, InstanceTokenWrapper credentials, ZooLock zooLock) {
+  public static void updateTabletDataFile(long tid, KeyExtent extent, Map<String,DataFileValue> estSizes, String time, InstanceTokenWrapper credentials,
+      ZooLock zooLock) {
     Mutation m = new Mutation(extent.getMetadataEntry());
     byte[] tidBytes = Long.toString(tid).getBytes();
     
@@ -401,7 +402,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       byte[] tidBytes = Long.toString(entry.getValue()).getBytes();
       m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text(entry.getKey()), new Value(tidBytes));
     }
-
+    
     update(credentials, zooLock, m);
   }
   
@@ -415,8 +416,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     update(credentials, zooLock, m);
   }
   
-  public static void finishSplit(Text metadataEntry, Map<String,DataFileValue> datafileSizes, List<String> highDatafilesToRemove, InstanceTokenWrapper credentials,
-      ZooLock zooLock) {
+  public static void finishSplit(Text metadataEntry, Map<String,DataFileValue> datafileSizes, List<String> highDatafilesToRemove,
+      InstanceTokenWrapper credentials, ZooLock zooLock) {
     Mutation m = new Mutation(metadataEntry);
     Constants.METADATA_SPLIT_RATIO_COLUMN.putDelete(m);
     Constants.METADATA_OLD_PREV_ROW_COLUMN.putDelete(m);
@@ -433,8 +434,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     update(credentials, zooLock, m);
   }
   
-  public static void finishSplit(KeyExtent extent, Map<String,DataFileValue> datafileSizes, List<String> highDatafilesToRemove, InstanceTokenWrapper credentials,
-      ZooLock zooLock) {
+  public static void finishSplit(KeyExtent extent, Map<String,DataFileValue> datafileSizes, List<String> highDatafilesToRemove,
+      InstanceTokenWrapper credentials, ZooLock zooLock) {
     finishSplit(extent.getMetadataEntry(), datafileSizes, highDatafilesToRemove, credentials, zooLock);
   }
   
@@ -468,7 +469,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     
     TServerInstance self = getTServerInstance(address, zooLock);
     self.putLastLocation(m);
-
+    
     // remove the old location
     if (lastLocation != null && !lastLocation.equals(self))
       lastLocation.clearLastLocation(m);
@@ -614,8 +615,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     }
   }
   
-  public static KeyExtent fixSplit(Text metadataEntry, SortedMap<ColumnFQ,Value> columns, TServerInstance tserver, InstanceTokenWrapper credentials, ZooLock lock)
-      throws AccumuloException {
+  public static KeyExtent fixSplit(Text metadataEntry, SortedMap<ColumnFQ,Value> columns, TServerInstance tserver, InstanceTokenWrapper credentials,
+      ZooLock lock) throws AccumuloException {
     log.warn("Incomplete split " + metadataEntry + " attempting to fix");
     
     Value oper = columns.get(Constants.METADATA_OLD_PREV_ROW_COLUMN);
@@ -726,6 +727,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     public int tabletId;
     public Collection<String> logSet;
     
+    @Override
     public String toString() {
       return extent.toString() + " " + filename + " (" + tabletId + ")";
     }
@@ -809,8 +811,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     return e;
   }
   
-  public static Pair<List<LogEntry>,SortedMap<String,DataFileValue>> getFileAndLogEntries(InstanceTokenWrapper credentials, KeyExtent extent) throws KeeperException,
-      InterruptedException, IOException {
+  public static Pair<List<LogEntry>,SortedMap<String,DataFileValue>> getFileAndLogEntries(InstanceTokenWrapper credentials, KeyExtent extent)
+      throws KeeperException, InterruptedException, IOException {
     ArrayList<LogEntry> result = new ArrayList<LogEntry>();
     TreeMap<String,DataFileValue> sizes = new TreeMap<String,DataFileValue>();
     
@@ -1227,7 +1229,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     }
     return ret;
   }
-
+  
   public static void addBulkLoadInProgressFlag(String path) {
     
     Mutation m = new Mutation(Constants.METADATA_BLIP_FLAG_PREFIX + path);

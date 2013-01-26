@@ -21,7 +21,7 @@ class AddSplitTest(JavaTest):
     "Test adding splits to a table"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.AddSplitTest"
+    testClass="org.apache.accumulo.test.functional.AddSplitTest"
 
 
 def suite():

@@ -21,7 +21,7 @@ class BloomFilterTest(JavaTest):
     "Test accumulo bloom filters"
 
     order = 22
-    testClass="org.apache.accumulo.server.test.functional.BloomFilterTest"
+    testClass="org.apache.accumulo.test.functional.BloomFilterTest"
 
 
 def suite():

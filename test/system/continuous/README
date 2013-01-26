@@ -5,7 +5,7 @@ statistics in order to understand how accumulo behaves .  To run these script
 copy all of the .example files and modify them.  These scripts rely on pssh.
 Before running any script you may need to use pssh to create the log directory on
 each machine if you want it local.  Also, create the table "ci" before running.
-You can run org.apache.accumulo.server.test.continuous.GenSplits to generate
+You can run org.apache.accumulo.test.continuous.GenSplits to generate
 splits points for a continuous ingest table.
 
 The following ingest scripts inserts data into accumulo that will form a random

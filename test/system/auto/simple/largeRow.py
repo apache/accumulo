@@ -21,7 +21,7 @@ class LargeRowTest(JavaTest):
     "Test large rows"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.LargeRowTest"
+    testClass="org.apache.accumulo.test.functional.LargeRowTest"
 
 
 def suite():

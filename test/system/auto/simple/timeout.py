@@ -21,7 +21,7 @@ class TimeoutTest(JavaTest):
     "Test time out"
 
     order = 91
-    testClass="org.apache.accumulo.server.test.functional.TimeoutTest"
+    testClass="org.apache.accumulo.test.functional.TimeoutTest"
 
 def suite():
     result = unittest.TestSuite()

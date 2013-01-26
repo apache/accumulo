@@ -39,6 +39,6 @@ run the tests as a map-reduce job:
 
  $ python test/system/auto/run.py -l > tests
  $ hadoop fs -put tests /user/hadoop/tests
- $ ./bin/accumulo org.apache.accumulo.server.test.functional.RunTests /user/hadoop/tests /user/hadoop/results
+ $ ./bin/accumulo org.apache.accumulo.test.functional.RunTests /user/hadoop/tests /user/hadoop/results
 
  

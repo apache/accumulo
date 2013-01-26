@@ -21,7 +21,7 @@ class RangeTest(JavaTest):
     "Test scanning different ranges in accumulo"
 
     order = 21
-    testClass = "org.apache.accumulo.server.test.functional.ScanRangeTest"
+    testClass = "org.apache.accumulo.test.functional.ScanRangeTest"
 
 def suite():
     result = unittest.TestSuite()

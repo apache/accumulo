@@ -21,7 +21,7 @@ class SparseColumnFamilyTest(JavaTest):
     "Test sparse column familes"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.SparseColumnFamilyTest"
+    testClass="org.apache.accumulo.test.functional.SparseColumnFamilyTest"
 
 
 def suite():

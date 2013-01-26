@@ -17,7 +17,7 @@
 -->
 <module>
 
-<package prefix="bulk" value="org.apache.accumulo.server.test.randomwalk.bulk"/>
+<package prefix="bulk" value="org.apache.accumulo.test.randomwalk.bulk"/>
 
 <init id="bulk.Setup"/>
 

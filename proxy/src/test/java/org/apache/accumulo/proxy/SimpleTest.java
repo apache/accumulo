@@ -51,7 +51,7 @@ import org.apache.accumulo.proxy.thrift.SystemPermission;
 import org.apache.accumulo.proxy.thrift.TablePermission;
 import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
-import org.apache.accumulo.server.test.functional.SlowIterator;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;

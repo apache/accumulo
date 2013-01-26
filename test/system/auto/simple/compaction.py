@@ -43,7 +43,7 @@ class CompactionTest(SimpleBulkTest):
     def createRFiles(self, host):
         handle = self.runClassOn(
             self.masterHost(),
-            'org.apache.accumulo.server.test.CreateRFiles',
+            'org.apache.accumulo.test.CreateRFiles',
             "--output testrf --numThreads 4 --start 0 --end 500000 --splits 59".split())
         out, err = handle.communicate()
         self.assert_(handle.returncode == 0)

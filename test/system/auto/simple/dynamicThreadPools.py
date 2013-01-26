@@ -63,7 +63,7 @@ class DynamicThreadPools(SunnyDayTest):
 	log.info('shell says: ' + out)
         count = 0
 	while count == 0:
-	   handle = self.runOn(self.masterHost(), [self.accumulo_sh(), 'org.apache.accumulo.server.test.GetMasterStats', '-u', 'root'])
+	   handle = self.runOn(self.masterHost(), [self.accumulo_sh(), 'org.apache.accumulo.test.GetMasterStats', '-u', 'root'])
            out, err = self.waitForStop(handle, 120)
            for line in out.split('\n'):
 	      if line.find('Major Compacting') >= 0:

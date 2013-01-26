@@ -22,7 +22,7 @@ class BulkSplitOptimizationTest(JavaTest):
 
     maxRuntime = 200
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.BulkSplitOptimizationTest"
+    testClass="org.apache.accumulo.test.functional.BulkSplitOptimizationTest"
 
 
 def suite():

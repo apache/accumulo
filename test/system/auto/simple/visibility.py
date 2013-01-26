@@ -21,7 +21,7 @@ class VisibilityTest(JavaTest):
     "Test Column Visibility"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.VisibilityTest"
+    testClass="org.apache.accumulo.test.functional.VisibilityTest"
 
 
 def suite():

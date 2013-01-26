@@ -21,14 +21,14 @@ class DeleteRowsTest(JavaTest):
     "Test Delete Rows"
 
     order = 91
-    testClass="org.apache.accumulo.server.test.functional.DeleteRowsTest"
+    testClass="org.apache.accumulo.test.functional.DeleteRowsTest"
 
 class DeleteRowsSplitTest(JavaTest):
     "Test Delete Rows Split"
 
     maxRuntime = 300
     order = 92
-    testClass="org.apache.accumulo.server.test.functional.DeleteRowsSplitTest"
+    testClass="org.apache.accumulo.test.functional.DeleteRowsSplitTest"
 
 def suite():
     result = unittest.TestSuite()

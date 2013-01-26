@@ -47,7 +47,7 @@ class DeleteTest(readwrite.SunnyDayTest):
         self.waitForStop(self.ingester, 200)
 
         log.info("Deleting data")
-        self.waitForStop(self.runClassOn(self.masterHost(), "org.apache.accumulo.server.test.TestRandomDeletes", ['-u', ROOT, '-p', ROOT_PASSWORD, '-i', INSTANCE_NAME, '-z', ZOOKEEPERS]),
+        self.waitForStop(self.runClassOn(self.masterHost(), "org.apache.accumulo.test.TestRandomDeletes", ['-u', ROOT, '-p', ROOT_PASSWORD, '-i', INSTANCE_NAME, '-z', ZOOKEEPERS]),
                          400)
 
         log.info("Inserting data")

@@ -17,7 +17,7 @@
 -->
 <module>
 
-<package prefix="ct" value="org.apache.accumulo.server.test.randomwalk.concurrent"/>
+<package prefix="ct" value="org.apache.accumulo.test.randomwalk.concurrent"/>
 
 <fixture id="ct.ConcurrentFixture"/>
 

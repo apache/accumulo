@@ -59,7 +59,7 @@ class IngestBenchmark(Benchmark):
         for i, s in enumerate(slaveNames()):
             commands[s] = '%s %s -u %s -p %s --size %d --random %d --rows %d --start %d --cols %d' % (
                 accumulo('bin', 'accumulo'),
-                'org.apache.accumulo.server.test.TestIngest',
+                'org.apache.accumulo.test.TestIngest',
                 self.username, self.password,
                 self.size(),
                 self.random(),

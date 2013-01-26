@@ -33,14 +33,14 @@ class SimpleBulkTest(TestUtilsMixin, unittest.TestCase):
 
     def testIngest(self, host, args, **kwargs):
         return self.runClassOn(host,
-                             'org.apache.accumulo.server.test.TestIngest',
+                             'org.apache.accumulo.test.TestIngest',
                              args,
                              **kwargs)
 
     def bulkLoad(self, host, dir):
         handle = self.runClassOn(
             self.masterHost(),
-            'org.apache.accumulo.server.test.BulkImportDirectory',
+            'org.apache.accumulo.test.BulkImportDirectory',
             ['-u', ROOT, '-p', ROOT_PASSWORD,
              '-t', 'test_ingest', '--source', dir, '--failures', '/testBulkFail', '-i', INSTANCE_NAME])
         self.wait(handle)

@@ -17,7 +17,7 @@
 -->
 <module>
 
-<package prefix="mt" value="org.apache.accumulo.server.test.randomwalk.multitable"/>
+<package prefix="mt" value="org.apache.accumulo.test.randomwalk.multitable"/>
 
 <fixture id="mt.MultiTableFixture"/>
 

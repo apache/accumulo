@@ -19,26 +19,26 @@ hadoop dfs -rmr /testmf
 
 echo "creating first set of map files"
 
-../../../bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf01 --timestamp 1 --size 50 --random 56 --rows 1000000 --start 0 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf02 --timestamp 1 --size 50 --random 56 --rows 1000000 --start 1000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf03 --timestamp 1 --size 50 --random 56 --rows 1000000 --start 2000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf04 --timestamp 1 --size 50 --random 56 --rows 1000000 --start 3000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf05 --timestamp 1 --size 50 --random 56 --rows 1000000 --start 4000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf01 --timestamp 1 --size 50 --random 56 --rows 1000000 --start 0 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf02 --timestamp 1 --size 50 --random 56 --rows 1000000 --start 1000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf03 --timestamp 1 --size 50 --random 56 --rows 1000000 --start 2000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf04 --timestamp 1 --size 50 --random 56 --rows 1000000 --start 3000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf05 --timestamp 1 --size 50 --random 56 --rows 1000000 --start 4000000 --cols 1 &
 
 wait
 
 echo "bulk importing"
 
 hadoop dfs -rmr /testmfFail
-../../../bin/accumulo org.apache.accumulo.server.test.BulkImportDirectory -u root -p secret -t test_ingest -s /testmf -f /testmfFail
+../../../bin/accumulo org.apache.accumulo.test.BulkImportDirectory -u root -p secret -t test_ingest -s /testmf -f /testmfFail
 
 echo "verifying"
 
-../../../bin/accumulo org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 0 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 1000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 2000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 3000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 4000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 0 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 1000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 2000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 3000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 4000000 --cols 1 &
 
 wait
 
@@ -46,24 +46,24 @@ hadoop dfs -rmr /testmf
 
 echo "creating second set of map files"
 
-../../../bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf01 --timestamp 2 --size 50 --random 57 --rows 1000000 --start 0 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf02 --timestamp 2 --size 50 --random 57 --rows 1000000 --start 1000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf03 --timestamp 2 --size 50 --random 57 --rows 1000000 --start 2000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf04 --timestamp 2 --size 50 --random 57 --rows 1000000 --start 3000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.TestIngest --rfile /testmf/mf05 --timestamp 2 --size 50 --random 57 --rows 1000000 --start 4000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf01 --timestamp 2 --size 50 --random 57 --rows 1000000 --start 0 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf02 --timestamp 2 --size 50 --random 57 --rows 1000000 --start 1000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf03 --timestamp 2 --size 50 --random 57 --rows 1000000 --start 2000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf04 --timestamp 2 --size 50 --random 57 --rows 1000000 --start 3000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --rfile /testmf/mf05 --timestamp 2 --size 50 --random 57 --rows 1000000 --start 4000000 --cols 1 &
 
 wait
 
 echo "bulk importing"
 
 hadoop dfs -rmr /testmfFail
-../../../bin/accumulo org.apache.accumulo.server.test.BulkImportDirectory -u root -p secret -t test_ingest -s /testmf -f /testmfFail
+../../../bin/accumulo org.apache.accumulo.test.BulkImportDirectory -u root -p secret -t test_ingest -s /testmf -f /testmfFail
 
 echo "creating second set of map files"
 
-../../../bin/accumulo org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 0 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 1000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 2000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 3000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 4000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 0 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 1000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 2000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 3000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 4000000 --cols 1 &
 

@@ -17,7 +17,7 @@
 -->
 <module>
 
-<package prefix="seq" value="org.apache.accumulo.server.test.randomwalk.sequential"/>
+<package prefix="seq" value="org.apache.accumulo.test.randomwalk.sequential"/>
 
 <fixture id="seq.SequentialFixture"/>
 

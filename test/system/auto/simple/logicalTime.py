@@ -21,7 +21,7 @@ class LogicalTimeTest(JavaTest):
     "Logical Time Test"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.LogicalTimeTest"
+    testClass="org.apache.accumulo.test.functional.LogicalTimeTest"
 
 
 def suite():

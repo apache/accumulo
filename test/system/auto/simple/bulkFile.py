@@ -21,7 +21,7 @@ class BulkFileTest(JavaTest):
     "Test bulk import of different file types"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.BulkFileTest"
+    testClass="org.apache.accumulo.test.functional.BulkFileTest"
 
 
 def suite():

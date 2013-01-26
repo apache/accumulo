@@ -77,7 +77,7 @@ def runTest(testName, siteConfig, testDir, numNodes, fdata):
     time.sleep(sleepTime)
 
     log('Setting up %s test' % testName)
-    syscall('$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.test.scalability.Run %s setup %s' % (testName, numNodes))
+    syscall('$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.test.scalability.Run %s setup %s' % (testName, numNodes))
 
     log('Sleeping for 5 seconds')
     time.sleep(5)
@@ -86,7 +86,7 @@ def runTest(testName, siteConfig, testDir, numNodes, fdata):
     numThreads = numNodes
     if int(numNodes) > 128:
         numThreads='128'
-    syscall('pssh -P -h %s -p %s "$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.test.scalability.Run %s client %s >/tmp/scale.out 2>/tmp/scale.err &" < /dev/null' % (nodesPath, numThreads, testName, numNodes))
+    syscall('pssh -P -h %s -p %s "$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.test.scalability.Run %s client %s >/tmp/scale.out 2>/tmp/scale.err &" < /dev/null' % (nodesPath, numThreads, testName, numNodes))
    
     log('Sleeping for 30 sec before checking how many clients started...')
     time.sleep(30)
@@ -149,7 +149,7 @@ def runTest(testName, siteConfig, testDir, numNodes, fdata):
     time.sleep(5)
 
     log('Tearing down %s test' % testName)
-    syscall('$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.test.scalability.Run %s teardown %s' % (testName, numNodes))
+    syscall('$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.test.scalability.Run %s teardown %s' % (testName, numNodes))
 
     time.sleep(10)
    

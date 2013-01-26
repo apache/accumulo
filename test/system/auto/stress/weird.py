@@ -39,7 +39,7 @@ class LateLastContact(TestUtilsMixin, unittest.TestCase):
         TestUtilsMixin.tearDown(self);
 
     def runTest(self):
-        handle = self.runClassOn(self.masterHost(), 'org.apache.accumulo.server.test.functional.ZombieTServer', [])
+        handle = self.runClassOn(self.masterHost(), 'org.apache.accumulo.test.functional.ZombieTServer', [])
         out, err = handle.communicate()
         assert handle.returncode == 0
 

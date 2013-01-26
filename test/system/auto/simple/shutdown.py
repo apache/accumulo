@@ -55,7 +55,7 @@ class ShutdownDuringDelete(SunnyDayTest):
 
     def runTest(self):
         self.waitForStop(self.ingester, self.waitTime())
-        h = self.runClassOn(self.masterHost(), "org.apache.accumulo.server.test.TestRandomDeletes", [])
+        h = self.runClassOn(self.masterHost(), "org.apache.accumulo.test.TestRandomDeletes", [])
         self.shutdown_accumulo()
 
 

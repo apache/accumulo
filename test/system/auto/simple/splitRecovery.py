@@ -21,7 +21,7 @@ class SplitRecoveryTest(JavaTest):
     "Test recovery of partial splits"
 
     order = 20
-    testClass="org.apache.accumulo.server.test.functional.SplitRecoveryTest"
+    testClass="org.apache.accumulo.test.functional.SplitRecoveryTest"
 
 
 def suite():

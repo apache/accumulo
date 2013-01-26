@@ -21,7 +21,7 @@ class ConstraintTest(JavaTest):
     "Test accumulo constraints"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.ConstraintTest"
+    testClass="org.apache.accumulo.test.functional.ConstraintTest"
 
 
 def suite():

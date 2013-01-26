@@ -95,7 +95,7 @@ class GCLotsOfCandidatesTest(TestUtilsMixin, unittest.TestCase):
         log.info("Filling !METADATA table with bogus delete flags")
         prep = self.runOn(self.masterHost(),
                         [self.accumulo_sh(), 
-                         'org.apache.accumulo.server.test.GCLotsOfCandidatesTest',
+                         'org.apache.accumulo.test.GCLotsOfCandidatesTest',
                          '-i',INSTANCE_NAME,'-z', ZOOKEEPERS,'-u', ROOT, '-p', ROOT_PASSWORD])
         out, err = prep.communicate()
         self.assert_(prep.returncode == 0)

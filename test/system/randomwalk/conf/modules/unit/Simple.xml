@@ -17,7 +17,7 @@
 -->
 <module>
 
-<package prefix="test" value="org.apache.accumulo.server.test.randomwalk.unit"/>
+<package prefix="test" value="org.apache.accumulo.test.randomwalk.unit"/>
 
 <init id="dummy.all"/>
 

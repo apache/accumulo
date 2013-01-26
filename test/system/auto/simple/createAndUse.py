@@ -21,7 +21,7 @@ class CreateAndUseTest(JavaTest):
     "Test creating and immediately using a table"
 
     order = 21
-    testClass="org.apache.accumulo.server.test.functional.CreateAndUseTest"
+    testClass="org.apache.accumulo.test.functional.CreateAndUseTest"
 
 
 def suite():
