@@ -21,7 +21,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
+import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.DefaultFormatter;

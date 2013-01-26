@@ -15,10 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script will regenerate the thrift code for cloudtrace.
+# This script will regenerate the thrift code for accumulo-trace.
 INCLUDED_MODULES=(-)
 BASE_OUTPUT_PACKAGE='org.apache.accumulo'
-PACKAGES_TO_GENERATE=(cloudtrace)
+PACKAGES_TO_GENERATE=(trace)
 
 . ../core/src/main/scripts/generate-thrift.sh
 

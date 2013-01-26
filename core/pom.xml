@@ -25,7 +25,7 @@
 
   <modelVersion>4.0.0</modelVersion>
   <artifactId>accumulo-core</artifactId>
-  <name>accumulo-core</name>
+  <name>Core</name>
 
   <build>
     <pluginManagement>
@@ -129,7 +129,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>cloudtrace</artifactId>
+      <artifactId>accumulo-trace</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-logging</groupId>

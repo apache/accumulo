@@ -21,7 +21,7 @@ include "data.thrift"
 include "security.thrift"
 include "client.thrift"
 include "master.thrift"
-include "cloudtrace.thrift"
+include "trace.thrift"
 
 exception NotServingTabletException {
   1:data.TKeyExtent extent
@@ -129,7 +129,7 @@ struct IteratorConfig {
 
 service TabletClientService extends client.ClientService {
   // scan a range of keys
-  data.InitialScan startScan(11:cloudtrace.TInfo tinfo,
+  data.InitialScan startScan(11:trace.TInfo tinfo,
                              1:security.ThriftInstanceTokenWrapper credentials,
                              2:data.TKeyExtent extent,
                              3:data.TRange range,
@@ -141,11 +141,11 @@ service TabletClientService extends client.ClientService {
                              9:bool waitForWrites,
                              10:bool isolated)  throws (1:security.ThriftSecurityException sec, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
                              
-  data.ScanResult continueScan(2:cloudtrace.TInfo tinfo, 1:data.ScanID scanID)  throws (1:NoSuchScanIDException nssi, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
-  oneway void closeScan(2:cloudtrace.TInfo tinfo, 1:data.ScanID scanID),
+  data.ScanResult continueScan(2:trace.TInfo tinfo, 1:data.ScanID scanID)  throws (1:NoSuchScanIDException nssi, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
+  oneway void closeScan(2:trace.TInfo tinfo, 1:data.ScanID scanID),
 
   // scan over a series of ranges
-  data.InitialMultiScan startMultiScan(8:cloudtrace.TInfo tinfo,
+  data.InitialMultiScan startMultiScan(8:trace.TInfo tinfo,
                                   1:security.ThriftInstanceTokenWrapper credentials,
                                   2:data.ScanBatch batch,
                                   3:list<data.TColumn> columns,
@@ -153,41 +153,41 @@ service TabletClientService extends client.ClientService {
                                   5:map<string, map<string, string>> ssio,
                                   6:list<binary> authorizations
                                   7:bool waitForWrites)  throws (1:security.ThriftSecurityException sec),
-  data.MultiScanResult continueMultiScan(2:cloudtrace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi),
-  void closeMultiScan(2:cloudtrace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi),
+  data.MultiScanResult continueMultiScan(2:trace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi),
+  void closeMultiScan(2:trace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi),
   
   //the following calls support a batch update to multiple tablets on a tablet server
-  data.UpdateID startUpdate(2:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec),
-  oneway void applyUpdates(1:cloudtrace.TInfo tinfo, 2:data.UpdateID updateID, 3:data.TKeyExtent keyExtent, 4:list<data.TMutation> mutations),
-  data.UpdateErrors closeUpdate(2:cloudtrace.TInfo tinfo, 1:data.UpdateID updateID) throws (1:NoSuchScanIDException nssi),
+  data.UpdateID startUpdate(2:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec),
+  oneway void applyUpdates(1:trace.TInfo tinfo, 2:data.UpdateID updateID, 3:data.TKeyExtent keyExtent, 4:list<data.TMutation> mutations),
+  data.UpdateErrors closeUpdate(2:trace.TInfo tinfo, 1:data.UpdateID updateID) throws (1:NoSuchScanIDException nssi),
   
   //the following call supports making a single update to a tablet
-  void update(4:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:data.TKeyExtent keyExtent, 3:data.TMutation mutation)
+  void update(4:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:data.TKeyExtent keyExtent, 3:data.TMutation mutation)
     throws (1:security.ThriftSecurityException sec, 
             2:NotServingTabletException nste, 
             3:ConstraintViolationException cve),
   
   // on success, returns an empty list
-  list<data.TKeyExtent> bulkImport(3:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 4:i64 tid, 2:data.TabletFiles files, 5:bool setTime) throws (1:security.ThriftSecurityException sec),
+  list<data.TKeyExtent> bulkImport(3:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 4:i64 tid, 2:data.TabletFiles files, 5:bool setTime) throws (1:security.ThriftSecurityException sec),
 
-  void splitTablet(4:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:data.TKeyExtent extent, 3:binary splitPoint) throws (1:security.ThriftSecurityException sec, 2:NotServingTabletException nste)
+  void splitTablet(4:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:data.TKeyExtent extent, 3:binary splitPoint) throws (1:security.ThriftSecurityException sec, 2:NotServingTabletException nste)
  
-  oneway void loadTablet(5:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 4:string lock, 2:data.TKeyExtent extent),
-  oneway void unloadTablet(5:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 4:string lock, 2:data.TKeyExtent extent, 3:bool save),
-  oneway void flush(4:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 3:string lock, 2:string tableId, 5:binary startRow, 6:binary endRow),
-  oneway void flushTablet(1:cloudtrace.TInfo tinfo, 2:security.ThriftInstanceTokenWrapper credentials, 3:string lock, 4:data.TKeyExtent extent),
-  oneway void chop(1:cloudtrace.TInfo tinfo, 2:security.ThriftInstanceTokenWrapper credentials, 3:string lock, 4:data.TKeyExtent extent),
-  oneway void compact(1:cloudtrace.TInfo tinfo, 2:security.ThriftInstanceTokenWrapper credentials, 3:string lock, 4:string tableId, 5:binary startRow, 6:binary endRow),
+  oneway void loadTablet(5:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 4:string lock, 2:data.TKeyExtent extent),
+  oneway void unloadTablet(5:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 4:string lock, 2:data.TKeyExtent extent, 3:bool save),
+  oneway void flush(4:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 3:string lock, 2:string tableId, 5:binary startRow, 6:binary endRow),
+  oneway void flushTablet(1:trace.TInfo tinfo, 2:security.ThriftInstanceTokenWrapper credentials, 3:string lock, 4:data.TKeyExtent extent),
+  oneway void chop(1:trace.TInfo tinfo, 2:security.ThriftInstanceTokenWrapper credentials, 3:string lock, 4:data.TKeyExtent extent),
+  oneway void compact(1:trace.TInfo tinfo, 2:security.ThriftInstanceTokenWrapper credentials, 3:string lock, 4:string tableId, 5:binary startRow, 6:binary endRow),
   
-  master.TabletServerStatus getTabletServerStatus(3:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
-  list<TabletStats> getTabletStats(3:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string tableId) throws (1:security.ThriftSecurityException sec)
-  TabletStats getHistoricalStats(2:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
-  void halt(3:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string lock) throws (1:security.ThriftSecurityException sec)
-  oneway void fastHalt(3:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string lock);
+  master.TabletServerStatus getTabletServerStatus(3:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
+  list<TabletStats> getTabletStats(3:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string tableId) throws (1:security.ThriftSecurityException sec)
+  TabletStats getHistoricalStats(2:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
+  void halt(3:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string lock) throws (1:security.ThriftSecurityException sec)
+  oneway void fastHalt(3:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string lock);
   
-  list<ActiveScan> getActiveScans(2:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
-  list<ActiveCompaction> getActiveCompactions(2:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
-  oneway void removeLogs(1:cloudtrace.TInfo tinfo, 2:security.ThriftInstanceTokenWrapper credentials, 3:list<string> filenames)
+  list<ActiveScan> getActiveScans(2:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
+  list<ActiveCompaction> getActiveCompactions(2:trace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
+  oneway void removeLogs(1:trace.TInfo tinfo, 2:security.ThriftInstanceTokenWrapper credentials, 3:list<string> filenames)
 }
 
 typedef i32 TabletID

@@ -25,7 +25,7 @@
 
   <modelVersion>4.0.0</modelVersion>
   <artifactId>accumulo-fate</artifactId>
-  <name>accumulo-fate</name>
+  <name>Fate</name>
   <build>
     <pluginManagement>
       <plugins>

@@ -19,7 +19,7 @@ package org.apache.accumulo.core.util.shell.commands;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;

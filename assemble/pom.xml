@@ -20,7 +20,7 @@
 
   <modelVersion>4.0.0</modelVersion>
   <artifactId>accumulo-assemble</artifactId>
-  <name>accumulo-assemble</name>
+  <name>Assemble</name>
 
   <packaging>pom</packaging>
 
@@ -41,11 +41,11 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>examples-simple</artifactId>
+      <artifactId>accumulo-examples-simple</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>cloudtrace</artifactId>
+      <artifactId>accumulo-trace</artifactId>
     </dependency>
   </dependencies>
 

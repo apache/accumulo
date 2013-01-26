@@ -18,7 +18,7 @@ package org.apache.accumulo.core.trace;
 
 import java.util.Collection;
 
-import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
+import org.apache.accumulo.trace.thrift.RemoteSpan;
 
 
 public interface SpanTreeVisitor {

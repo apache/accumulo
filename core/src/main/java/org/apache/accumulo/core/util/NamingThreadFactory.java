@@ -19,7 +19,7 @@ package org.apache.accumulo.core.util;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.cloudtrace.instrument.TraceRunnable;
+import org.apache.accumulo.trace.instrument.TraceRunnable;
 import org.apache.log4j.Logger;
 
 public class NamingThreadFactory implements ThreadFactory {

@@ -27,7 +27,7 @@
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
   <version>1.5.0-SNAPSHOT</version>
-  <name>accumulo</name>
+  <name>Apache Accumulo</name>
   <prerequisites>
     <maven>2.2.0</maven>
   </prerequisites>
@@ -593,7 +593,7 @@
       <!-- accumulo dependency jars that we will provide -->
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>cloudtrace</artifactId>
+        <artifactId>accumulo-trace</artifactId>
         <version>1.5.0-SNAPSHOT</version>
       </dependency>
       <dependency>
@@ -623,7 +623,7 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>examples-simple</artifactId>
+        <artifactId>accumulo-examples-simple</artifactId>
         <version>1.5.0-SNAPSHOT</version>
       </dependency>
       <dependency>

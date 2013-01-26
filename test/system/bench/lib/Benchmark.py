@@ -103,11 +103,11 @@ class Benchmark(unittest.TestCase):
         accumulo_core_jar = self.findjar(accumulo('lib', 'accumulo-core*.jar'))
         accumulo_start_jar = self.findjar(accumulo('lib', 'accumulo-start*.jar'))
         accumulo_fate_jar = self.findjar(accumulo('lib', 'accumulo-fate*.jar'))
-        cloudtrace_jar = self.findjar(accumulo('lib', 'cloudtrace*.jar'))
+        accumulo_trace_jar = self.findjar(accumulo('lib', 'accumulo-trace*.jar'))
         accumulo_thrift_jar = self.findjar(accumulo('lib', 'libthrift*.jar'))
         accumulo_zookeeper_jar = self.findjar(os.path.join(os.getenv('ZOOKEEPER_HOME'), 'zookeeper*.jar'))
         return delim.join([accumulo_core_jar, accumulo_thrift_jar, accumulo_zookeeper_jar, accumulo_start_jar,
-            accumulo_fate_jar, cloudtrace_jar])
+            accumulo_fate_jar, accumulo_trace_jar])
        
     # Builds the running command for the map/reduce class specified sans the arguments
     def buildcommand(self, classname, *args):

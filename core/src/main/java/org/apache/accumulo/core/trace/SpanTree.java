@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.cloudtrace.instrument.Span;
-import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.thrift.RemoteSpan;
 
 
 public class SpanTree {

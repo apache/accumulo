@@ -20,7 +20,7 @@
 
   <modelVersion>4.0.0</modelVersion>
   <artifactId>accumulo-server</artifactId>
-  <name>accumulo-server</name>
+  <name>Server</name>
 
   <build>
     <pluginManagement>
@@ -59,7 +59,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>cloudtrace</artifactId>
+      <artifactId>accumulo-trace</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.thrift</groupId>

@@ -21,10 +21,10 @@ import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.cloudtrace.instrument.Span;
-import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
-import org.apache.accumulo.cloudtrace.thrift.SpanReceiver.Iface;
-import org.apache.accumulo.cloudtrace.thrift.SpanReceiver.Processor;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.thrift.RemoteSpan;
+import org.apache.accumulo.trace.thrift.SpanReceiver.Iface;
+import org.apache.accumulo.trace.thrift.SpanReceiver.Processor;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;

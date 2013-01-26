@@ -24,8 +24,8 @@
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>examples-simple</artifactId>
-  <name>examples-simple</name>
+  <artifactId>accumulo-examples-simple</artifactId>
+  <name>Simple Examples</name>
   
   <profiles>
     <!-- profile for building against Hadoop 1.0.x

@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
+import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
