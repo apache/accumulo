@@ -41,7 +41,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.TokenHelper;
+import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
@@ -58,7 +61,7 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, AccumuloToken)}
+ * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, AccumuloToken)} OR {@link AccumuloOutputFormat#setConnectorInfo(JobConf, Path)}
  * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
  * </ul>
  * 
@@ -72,14 +75,34 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    * 
+   * <p>
+   * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to provide a charset safe
+   * conversion to a string, and is not intended to be secure.
+   * 
    * @param job
    *          the Hadoop job instance to be configured
    * @param token
-   *          a valid AccumuloToken (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
+   *          a valid AccumuloToken (principal must have Table.CREATE permission)
    * @since 1.5.0
    */
   public static void setConnectorInfo(JobConf job, AccumuloToken<?,?> token) {
     OutputConfigurator.setConnectorInfo(CLASS, job, token);
+  }
+  
+  /**
+   * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
+   * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
+   * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
+   * {@link TokenHelper#asBase64String(AccumuloToken)}.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param path
+   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AccumuloToken} with the user's authentication
+   * @since 1.5.0
+   */
+  public static void setConnectorInfo(JobConf job, Path path) {
+    OutputConfigurator.setConnectorInfo(CLASS, job, path);
   }
   
   /**
@@ -90,6 +113,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
    * @see #setConnectorInfo(JobConf, AccumuloToken)
+   * @see #setConnectorInfo(JobConf, Path)
    */
   protected static Boolean isConnectorInfoSet(JobConf job) {
     return OutputConfigurator.isConnectorInfoSet(CLASS, job);
@@ -104,6 +128,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @return the decoded user token
    * @since 1.5.0
    * @see #setConnectorInfo(JobConf, AccumuloToken)
+   * @see #setConnectorInfo(JobConf, Path)
    */
   protected static AccumuloToken<?,?> getToken(JobConf job) {
     return OutputConfigurator.getToken(CLASS, job);
