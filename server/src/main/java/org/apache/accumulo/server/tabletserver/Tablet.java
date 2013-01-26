@@ -23,6 +23,8 @@ package org.apache.accumulo.server.tabletserver;
  * 
  */
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -99,6 +101,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.constraints.ConstraintChecker;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.master.tableOps.CompactRange.CompactionIterators;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -2415,14 +2418,29 @@ public class Tablet {
       String[] tokens = new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)).split(",");
       long compactID = Long.parseLong(tokens[0]);
       
-      List<IteratorSetting> allIters = new ArrayList<IteratorSetting>();
-      for (int i = 1; i < tokens.length; i++) {
+      CompactionIterators iters = new CompactionIterators();
+
+      if (tokens.length > 1) {
         Hex hex = new Hex();
-        List<IteratorSetting> iters = IteratorUtil.decodeIteratorSettings(hex.decode(tokens[i].split("=")[1].getBytes()));
-        allIters.addAll(iters);
+        ByteArrayInputStream bais = new ByteArrayInputStream(hex.decode(tokens[1].split("=")[1].getBytes()));
+        DataInputStream dis = new DataInputStream(bais);
+        
+        try {
+          iters.readFields(dis);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+        
+        KeyExtent ke = new KeyExtent(extent.getTableId(), iters.getEndRow(), iters.getStartRow());
+        
+        if (!ke.overlaps(extent)) {
+          // only use iterators if compaction range overlaps
+          iters = new CompactionIterators();
+        }
       }
+
       
-      return new Pair<Long,List<IteratorSetting>>(compactID, allIters);
+      return new Pair<Long,List<IteratorSetting>>(compactID, iters.getIterators());
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } catch (NumberFormatException nfe) {
@@ -3264,7 +3282,7 @@ public class Tablet {
           copy.keySet().retainAll(smallestFiles);
           
           log.debug("Starting MajC " + extent + " (" + reason + ") " + datafileManager.abs2rel(datafileManager.string2path(copy.keySet())) + " --> "
-              + datafileManager.abs2rel(new Path(compactTmpName)));
+              + datafileManager.abs2rel(new Path(compactTmpName)) + "  " + compactionIterators);
 
           // always propagate deletes, unless last batch
           Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, filesToCompact.size() == 0 ? propogateDeletes : true, acuTableConf, extent,
