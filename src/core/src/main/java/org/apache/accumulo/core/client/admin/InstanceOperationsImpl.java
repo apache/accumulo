@@ -34,12 +34,14 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 
 /**
  * Provides a class for administering the accumulo instance
@@ -143,22 +145,30 @@ public class InstanceOperationsImpl implements InstanceOperations {
   
   @Override
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
-    List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan> tas = ThriftUtil.execute(tserver, instance.getConfiguration(),
-        new ClientExecReturn<List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan>,TabletClientService.Iface>() {
-          @Override
-          public List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan> execute(Iface client) throws Exception {
-            return client.getActiveScans(null, credentials);
-          }
-        });
-    List<ActiveScan> as = new ArrayList<ActiveScan>();
-    for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : tas) {
-      try {
-        as.add(new ActiveScan(instance, activeScan));
-      } catch (TableNotFoundException e) {
-        throw new AccumuloException(e);
+
+    Iface client = null;
+    try {
+      client = ThriftUtil.getTServerClient(tserver, instance.getConfiguration());
+      
+      List<ActiveScan> as = new ArrayList<ActiveScan>();
+      for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client.getActiveScans(null, credentials)) {
+        try {
+          as.add(new ActiveScan(instance, activeScan));
+        } catch (TableNotFoundException e) {
+          throw new AccumuloException(e);
+        }
       }
+      return as;
+    } catch (TTransportException e) {
+      throw new AccumuloException(e);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code, e);
+    } catch (TException e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null)
+        ThriftUtil.returnClient(client);
     }
-    return as;
   }
   
   /* (non-Javadoc)
