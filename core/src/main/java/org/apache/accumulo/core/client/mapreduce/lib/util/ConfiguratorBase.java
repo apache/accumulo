@@ -23,10 +23,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Scanner;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.TokenHelper;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.conf.Configuration;
@@ -95,9 +96,10 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param token
    *          a valid AccumuloToken
+   * @throws AccumuloSecurityException 
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, AccumuloToken<?,?> token) {
+  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, SecurityToken token) throws AccumuloSecurityException {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
     
@@ -111,14 +113,14 @@ public class ConfiguratorBase {
    * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
    * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
    * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link TokenHelper#asBase64String(AccumuloToken)}.
+   * {@link TokenHelper#asBase64String(SecurityToken)}.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
    * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AccumuloToken} with the user's authentication
+   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link SecurityToken} with the user's authentication
    * @since 1.5.0
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, Path path) {
@@ -142,7 +144,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return true if the connector info has already been set, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, AccumuloToken)
+   * @see #setConnectorInfo(Class, Configuration, SecurityToken)
    * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static Boolean isConnectorInfoSet(Class<?> implementingClass, Configuration conf) {
@@ -157,11 +159,12 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the AccumuloToken
+   * @throws AccumuloSecurityException 
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, AccumuloToken)
+   * @see #setConnectorInfo(Class, Configuration, SecurityToken)
    * @see #setConnectorInfo(Class, Configuration, Path)
    */
-  public static AccumuloToken<?,?> getToken(Class<?> implementingClass, Configuration conf) {
+  public static SecurityToken getToken(Class<?> implementingClass, Configuration conf) throws AccumuloSecurityException {
     if (!isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " has not been set");
     

@@ -54,6 +54,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,7 +68,7 @@ public class TransformingIteratorTest {
   @Before
   public void setUpMockAccumulo() throws Exception {
     MockInstance instance = new MockInstance("test");
-    connector = instance.getConnector("user", "password");
+    connector = instance.getConnector(new UserPassToken("user", "password"));
     connector.securityOperations().changeUserAuthorizations("user", authorizations);
     
     if (connector.tableOperations().exists(TABLE_NAME))
@@ -276,7 +277,7 @@ public class TransformingIteratorTest {
   @Test
   public void testDeepCopy() throws Exception {
     MockInstance instance = new MockInstance("test");
-    Connector connector = instance.getConnector("user", "password");
+    Connector connector = instance.getConnector(new UserPassToken("user", "password"));
     
     connector.tableOperations().create("shard_table");
     

@@ -30,6 +30,7 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -146,6 +147,8 @@ public class GarbageCollectWriteAheadLogs {
           status.currentLog.deleted += entry.getValue().size();
         } catch (TException e) {
           log.warn("Error talking to " + address + ": " + e);
+        } catch (AccumuloSecurityException e) {
+          log.warn("Error generating system credentials");
         } finally {
           if (tserver != null)
             ThriftUtil.returnClient(tserver);

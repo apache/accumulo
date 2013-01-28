@@ -21,7 +21,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 
 /**
@@ -97,7 +97,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    */
   public abstract Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException;
   
@@ -112,7 +112,7 @@ public interface Instance {
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
    */
-  public abstract Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException;
+  public abstract Connector getConnector(SecurityToken token) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Returns a connection to accumulo.
@@ -139,7 +139,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   *           @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   *           @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    */
   public abstract Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException;
   
@@ -155,7 +155,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   *           @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   *           @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    */
   public abstract Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException;
   

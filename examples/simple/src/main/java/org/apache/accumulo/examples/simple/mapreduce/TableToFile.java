@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -82,7 +83,7 @@ public class TableToFile extends Configured implements Tool {
   }
   
   @Override
-  public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
+  public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException, AccumuloSecurityException {
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();

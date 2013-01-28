@@ -20,7 +20,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 
 /**
@@ -34,17 +34,17 @@ public interface Authenticator {
 
   public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
 
-  public void initializeSecurity(InstanceTokenWrapper credentials, AccumuloToken<?,?> at) throws AccumuloSecurityException, ThriftSecurityException;
+  public void initializeSecurity(InstanceTokenWrapper credentials, SecurityToken at) throws AccumuloSecurityException, ThriftSecurityException;
 
-  public boolean authenticateUser(AccumuloToken<?,?> token) throws AccumuloSecurityException;
+  public boolean authenticateUser(SecurityToken token) throws AccumuloSecurityException;
   
   public Set<String> listUsers() throws AccumuloSecurityException;
   
-  public void createUser(AccumuloToken<?,?> user) throws AccumuloSecurityException;
+  public void createUser(SecurityToken user) throws AccumuloSecurityException;
   
   public void dropUser(String user) throws AccumuloSecurityException;
   
-  public void changePassword(AccumuloToken<?,?> user) throws AccumuloSecurityException;
+  public void changePassword(SecurityToken user) throws AccumuloSecurityException;
   
   public boolean userExists(String user) throws AccumuloSecurityException;
 

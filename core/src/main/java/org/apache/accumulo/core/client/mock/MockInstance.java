@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -51,6 +51,7 @@ import org.apache.hadoop.io.Text;
  * 
  */
 
+@SuppressWarnings("deprecation")
 public class MockInstance implements Instance {
   
   static final String genericAddress = "localhost:1234";
@@ -116,14 +117,14 @@ public class MockInstance implements Instance {
   }
   
   /**
-   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    * @Override
    */
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(new UserPassToken(user, ByteBuffer.wrap(pass)));
   }
   
-  public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(SecurityToken token) throws AccumuloException, AccumuloSecurityException {
     if (!(token instanceof UserPassToken))
       throw new AccumuloException("Mock only accepts UserPassTokens");
     UserPassToken upt = (UserPassToken) token;
@@ -140,7 +141,7 @@ public class MockInstance implements Instance {
     return getConnector(token.getToken());
   }
   /**
-   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    * @Override
    */
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
@@ -148,7 +149,7 @@ public class MockInstance implements Instance {
   }
   
   /**
-   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    * @Override
    */
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
@@ -170,7 +171,7 @@ public class MockInstance implements Instance {
   }
   
   /**
-   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    * @Override
    */
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {

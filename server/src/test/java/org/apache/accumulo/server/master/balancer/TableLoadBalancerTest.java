@@ -25,8 +25,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.junit.Assert;
-
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -34,12 +32,14 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class TableLoadBalancerTest {
@@ -106,7 +106,7 @@ public class TableLoadBalancerTest {
     @Override
     protected TableOperations getTableOperations() {
       try {
-        return instance.getConnector("user", "pass").tableOperations();
+        return instance.getConnector(new UserPassToken("user", "pass")).tableOperations();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -127,7 +127,7 @@ public class TableLoadBalancerTest {
   
   @Test
   public void test() throws Exception {
-    Connector c = instance.getConnector("user", "pass".getBytes());
+    Connector c = instance.getConnector(new UserPassToken("user", "pass".getBytes()));
     c.tableOperations().create("t1");
     c.tableOperations().create("t2");
     c.tableOperations().create("t3");

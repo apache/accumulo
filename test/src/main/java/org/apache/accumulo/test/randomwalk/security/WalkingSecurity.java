@@ -31,7 +31,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -138,14 +138,14 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   @Override
-  public boolean authenticateUser(AccumuloToken<?,?> user) {
+  public boolean authenticateUser(SecurityToken user) {
     byte[] pass = (byte[]) state.get(user.getPrincipal() + userPass);
     boolean ret = Arrays.equals(pass, ((UserPassToken) user).getPassword());
     return ret;
   }
   
   @Override
-  public void createUser(AccumuloToken<?,?> token) throws AccumuloSecurityException {
+  public void createUser(SecurityToken token) throws AccumuloSecurityException {
     UserPassToken upt = (UserPassToken) token;
     state.set(upt.getPrincipal() + userExists, Boolean.toString(true));
     changePassword(upt);
@@ -161,7 +161,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   @Override
-  public void changePassword(AccumuloToken<?,?> user) throws AccumuloSecurityException {
+  public void changePassword(SecurityToken user) throws AccumuloSecurityException {
     UserPassToken upt = (UserPassToken) user;
     state.set(upt.getPrincipal() + userPass, upt.getPassword());
     state.set(upt.getPrincipal() + userPass + "time", System.currentTimeMillis());

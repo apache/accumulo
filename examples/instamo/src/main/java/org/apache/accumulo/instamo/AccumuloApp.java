@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 
 public class AccumuloApp {
   
@@ -36,7 +37,7 @@ public class AccumuloApp {
 
     Instance instance = new ZooKeeperInstance(instanceName, zookeepers);
     
-    Connector conn = instance.getConnector("root", rootPassword);
+    Connector conn = instance.getConnector(new UserPassToken("root", rootPassword));
     
     conn.tableOperations().create("foo");
     

@@ -31,13 +31,14 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.io.Text;
 
 public class CloneTest extends TestCase {
   
   public void testNoFiles() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector(new UserPassToken("", ""));
     
     KeyExtent ke = new KeyExtent(new Text("0"), null, null);
     Mutation mut = ke.getPrevRowUpdateMutation();
@@ -65,7 +66,7 @@ public class CloneTest extends TestCase {
   
   public void testFilesChange() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector(new UserPassToken("", ""));
     
     KeyExtent ke = new KeyExtent(new Text("0"), null, null);
     Mutation mut = ke.getPrevRowUpdateMutation();
@@ -117,7 +118,7 @@ public class CloneTest extends TestCase {
   // test split where files of children are the same
   public void testSplit1() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector(new UserPassToken("", ""));
     
     BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
@@ -159,7 +160,7 @@ public class CloneTest extends TestCase {
   // test split where files of children differ... like majc and split occurred
   public void testSplit2() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector(new UserPassToken("", ""));
     
     BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
@@ -230,7 +231,7 @@ public class CloneTest extends TestCase {
   // test two tablets splitting into four
   public void testSplit3() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector(new UserPassToken("", ""));
     
     BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
@@ -277,7 +278,7 @@ public class CloneTest extends TestCase {
   public void testClonedMarker() throws Exception {
     
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector(new UserPassToken("", ""));
     
     BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
@@ -341,7 +342,7 @@ public class CloneTest extends TestCase {
   // test two tablets splitting into four
   public void testMerge() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector(new UserPassToken("", ""));
     
     BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     

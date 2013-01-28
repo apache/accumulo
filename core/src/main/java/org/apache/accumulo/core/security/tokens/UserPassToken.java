@@ -5,34 +5,28 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.security.thrift.ThriftUserPassToken;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 
 @SuppressWarnings("deprecation")
-public class UserPassToken extends ThriftUserPassToken implements AccumuloToken<ThriftUserPassToken,ThriftUserPassToken._Fields>, PasswordUpdatable {
-  private static final long serialVersionUID = 7331872580391311737L;
-  
-  public UserPassToken() {
-    super();
-  }
-  
+public class UserPassToken implements SecurityToken, PasswordUpdatable {
+  private String username;
+  private byte[] password;
+
   public UserPassToken(String user, ByteBuffer password) {
-    super(user, password);
+    this(user, ByteBufferUtil.toBytes(password));
   }
   
   public UserPassToken(String user, byte[] password) {
-    super(user, ByteBuffer.wrap(password));
+    this.username = user;
+    this.password = password;
   }
   
   public UserPassToken(String user, CharSequence password) {
     this(user, password.toString().getBytes(Charset.forName("UTF-8")));
   }
   
-  public UserPassToken(ThriftUserPassToken upt) {
-    super(upt);
-  }
-  
   public void destroy() {
-    Arrays.fill(password.array(), (byte) 0);
+    Arrays.fill(password, (byte) 0);
     password = null;
   }
   
@@ -41,18 +35,27 @@ public class UserPassToken extends ThriftUserPassToken implements AccumuloToken<
     return password == null;
   }
   
+  /**
+   * @deprecated since 1.5
+   * @param credentials
+   * @return
+   */
   public static UserPassToken convertAuthInfo(AuthInfo credentials) {
     return new UserPassToken(credentials.user, credentials.password);
   }
   
   @Override
   public String getPrincipal() {
-    return user;
+    return username;
+  }
+  
+  public byte[] getPassword() {
+    return password;
   }
   
   @Override
   public void updatePassword(byte[] newPassword) {
-    this.password = ByteBuffer.wrap(Arrays.copyOf(newPassword, newPassword.length));
+    this.password = Arrays.copyOf(newPassword, newPassword.length);
   }
   
   @Override
@@ -60,16 +63,41 @@ public class UserPassToken extends ThriftUserPassToken implements AccumuloToken<
     updatePassword(pu.getPassword());
   }
   
-  public boolean equals(AccumuloToken<?,?> token) {
-    if (token instanceof UserPassToken) {
-      UserPassToken upt = (UserPassToken) token;
-      return this.user.equals(upt.user) && Arrays.equals(this.getPassword(), upt.getPassword());
-    } else {
-      System.out.println("Compared UserPassToken to " + token.getClass());
-      return false;
-    }  }
-  
   public String toString() {
-    return "UserPassToken("+this.user+":"+new String(this.getPrincipal())+")";
+    return "UserPassToken("+this.username+":"+new String(this.getPrincipal())+")";
   }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Arrays.hashCode(password);
+    result = prime * result + ((username == null) ? 0 : username.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof UserPassToken))
+      return false;
+    UserPassToken other = (UserPassToken) obj;
+    if (!Arrays.equals(password, other.password))
+      return false;
+    if (username == null) {
+      if (other.username != null)
+        return false;
+    } else if (!username.equals(other.username))
+      return false;
+    return true;
+  }
+
+  @Override
+  public SecuritySerDe<? extends SecurityToken> getSerDe() {
+    return new UserPassSerDe();
+  }
+  
 }

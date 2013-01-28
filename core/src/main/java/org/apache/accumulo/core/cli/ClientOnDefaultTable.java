@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.cli;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -39,7 +40,7 @@ public class ClientOnDefaultTable extends ClientOpts {
   }
   
   @Override
-  public void setAccumuloConfigs(Job job) {
+  public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
     super.setAccumuloConfigs(job);
     AccumuloInputFormat.setConnectorInfo(job, getAccumuloToken());
     AccumuloInputFormat.setInputTableName(job, getTableName());

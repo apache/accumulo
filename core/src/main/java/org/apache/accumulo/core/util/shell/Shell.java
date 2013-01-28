@@ -52,7 +52,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.security.AuditLevel;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
@@ -168,7 +168,7 @@ public class Shell extends ShellOptions {
   protected Instance instance;
   private Connector connector;
   protected ConsoleReader reader;
-  private AccumuloToken<?,?> credentials;
+  private SecurityToken credentials;
   private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
@@ -931,8 +931,8 @@ public class Shell extends ShellOptions {
     return reader;
   }
   
-  public AccumuloToken<?,?> updateUser(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    AccumuloToken<?,?> token;
+  public SecurityToken updateUser(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+    SecurityToken token;
     try {
       String tokenClass = instance.getSecurityTokenClass();
       System.out.println(tokenClass);
@@ -955,7 +955,7 @@ public class Shell extends ShellOptions {
     return token;
   }
   
-  public AccumuloToken<?,?> getCredentials() {
+  public SecurityToken getCredentials() {
     return credentials;
   }
   

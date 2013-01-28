@@ -39,7 +39,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.server.cli.ClientOpts;
@@ -106,14 +106,14 @@ public abstract class FunctionalTest {
     
   }
   
-  private AccumuloToken<?,?> token = new UserPassToken("", "");
+  private SecurityToken token = new UserPassToken("", "");
   private String instanceName = "";
   
-  protected void setToken(AccumuloToken<?,?> token) {
+  protected void setToken(SecurityToken token) {
     this.token = token;
   }
   
-  protected AccumuloToken<?,?> getToken() {
+  protected SecurityToken getToken() {
     return token;
   }
   

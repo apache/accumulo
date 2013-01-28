@@ -22,19 +22,22 @@
  */
 package org.apache.accumulo.core.security.tokens;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
+import org.apache.log4j.Logger;
 
 public class InstanceTokenWrapper {
-  private AccumuloToken<?,?> token; // required
+  private SecurityToken token; // required
   private String instance; // required
   private ThriftInstanceTokenWrapper tikw = null;
+  Logger log = Logger.getLogger(InstanceTokenWrapper.class);
   
-  public InstanceTokenWrapper(AccumuloToken<?,?> token, String instance) {
+  public InstanceTokenWrapper(SecurityToken token, String instance) {
     this.token = token;
     this.instance = instance;
   }
   
-  public InstanceTokenWrapper(ThriftInstanceTokenWrapper credentials) {
+  public InstanceTokenWrapper(ThriftInstanceTokenWrapper credentials) throws AccumuloSecurityException {
     this.token = TokenHelper.unwrap(credentials.token);
     this.instance = credentials.instance;
   }
@@ -49,17 +52,17 @@ public class InstanceTokenWrapper {
     return this;
   }
   
-  public AccumuloToken<?,?> getToken() {
+  public SecurityToken getToken() {
     return this.token;
   }
   
-  public InstanceTokenWrapper setToken(AccumuloToken<?,?> token) {
+  public InstanceTokenWrapper setToken(SecurityToken token) {
     this.token = token;
     tikw = null;
     return this;
   }
   
-  public ThriftInstanceTokenWrapper toThrift() {
+  public ThriftInstanceTokenWrapper toThrift() throws AccumuloSecurityException {
     if (tikw == null)
       tikw = new ThriftInstanceTokenWrapper(TokenHelper.wrapper(token), token.getClass().getName(), instance);
     return tikw;

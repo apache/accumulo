@@ -879,7 +879,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     @Override
     public List<TKeyExtent> bulkImport(TInfo tinfo, ThriftInstanceTokenWrapper titw, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime)
         throws ThriftSecurityException {
-      InstanceTokenWrapper credentials = new InstanceTokenWrapper(titw);
+      InstanceTokenWrapper credentials;
+      try {
+        credentials = new InstanceTokenWrapper(titw);
+      } catch (AccumuloSecurityException e) {
+        throw e.asThriftException();
+      }
       if (!security.canPerformSystemActions(credentials))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       
@@ -926,7 +931,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         try {
           if (isCancelled() || scanSession == null)
             return;
-          
           
           runState.set(ScanRunState.RUNNING);
           
@@ -1101,7 +1105,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
       
       Authorizations userauths = null;
-      InstanceTokenWrapper itw = new InstanceTokenWrapper(credentials);
+      InstanceTokenWrapper itw;
+      try {
+        itw = new InstanceTokenWrapper(credentials);
+      } catch (AccumuloSecurityException e1) {
+        throw e1.asThriftException();
+      }
       if (!security.canScan(itw, new String(textent.getTable())))
         throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       
@@ -1255,7 +1264,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       for (TKeyExtent keyExtent : tbatch.keySet()) {
         tables.add(new String(keyExtent.getTable()));
       }
-      InstanceTokenWrapper itw = new InstanceTokenWrapper(credentials);
+      InstanceTokenWrapper itw;
+      try {
+        itw = new InstanceTokenWrapper(credentials);
+      } catch (AccumuloSecurityException e1) {
+        throw e1.asThriftException();
+      }
       
       // check if user has permission to the tables
       Authorizations userauths = null;
@@ -1375,7 +1389,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     @Override
     public long startUpdate(TInfo tinfo, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException {
       // Make sure user is real
-      InstanceTokenWrapper itw = new InstanceTokenWrapper(credentials);
+      InstanceTokenWrapper itw;
+      try {
+        itw = new InstanceTokenWrapper(credentials);
+      } catch (AccumuloSecurityException e) {
+        throw e.asThriftException();
+      }
       
       security.authenticateUser(itw, itw.getToken());
       if (updateMetrics.isEnabled())
@@ -1649,7 +1668,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     @Override
     public void update(TInfo tinfo, ThriftInstanceTokenWrapper credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
         ConstraintViolationException, ThriftSecurityException {
-      InstanceTokenWrapper itw = new InstanceTokenWrapper(credentials);
+      InstanceTokenWrapper itw;
+      try {
+        itw = new InstanceTokenWrapper(credentials);
+      } catch (AccumuloSecurityException e1) {
+        throw e1.asThriftException();
+      }
       if (!security.canWrite(itw, new String(tkeyExtent.getTable())))
         throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       KeyExtent keyExtent = new KeyExtent(tkeyExtent);
@@ -1698,7 +1722,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     @Override
     public void splitTablet(TInfo tinfo, ThriftInstanceTokenWrapper credentials, TKeyExtent tkeyExtent, ByteBuffer splitPoint)
         throws NotServingTabletException, ThriftSecurityException {
-      InstanceTokenWrapper itw = new InstanceTokenWrapper(credentials);
+      InstanceTokenWrapper itw;
+      try {
+        itw = new InstanceTokenWrapper(credentials);
+      } catch (AccumuloSecurityException e1) {
+        throw e1.asThriftException();
+      }
       
       String tableId = new String(ByteBufferUtil.toBytes(tkeyExtent.table));
       if (!security.canSplitTablet(itw, tableId))
@@ -1820,7 +1849,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     @Override
     public void loadTablet(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock, final TKeyExtent textent) {
-      InstanceTokenWrapper itw = new InstanceTokenWrapper(credentials);
+      InstanceTokenWrapper itw;
+      try {
+        itw = new InstanceTokenWrapper(credentials);
+      } catch (AccumuloSecurityException e1) {
+        log.error(e1, e1);
+        throw new RuntimeException(e1);
+      }
       
       try {
         checkPermission(itw, lock, true, "loadTablet");
@@ -1893,6 +1928,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       } catch (ThriftSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
+        log.error(e, e);
+        throw new RuntimeException(e);
       }
       
       KeyExtent extent = new KeyExtent(textent);
@@ -1905,6 +1943,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       try {
         checkPermission(new InstanceTokenWrapper(credentials), lock, true, "flush");
       } catch (ThriftSecurityException e) {
+        log.error(e, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       }
@@ -1944,7 +1985,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       } catch (ThriftSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
+        log.error(e, e);
+        throw new RuntimeException(e);
       }
+      
       Tablet tablet = onlineTablets.get(new KeyExtent(textent));
       if (tablet != null) {
         log.info("Flushing " + tablet.getExtent());
@@ -1959,7 +2004,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     @Override
     public void halt(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock) throws ThriftSecurityException {
       
-      checkPermission(new InstanceTokenWrapper(credentials), lock, true, "halt");
+      try {
+        checkPermission(new InstanceTokenWrapper(credentials), lock, true, "halt");
+      } catch (AccumuloSecurityException e1) {
+        throw e1.asThriftException();
+      }
       
       Halt.halt(0, new Runnable() {
         @Override
@@ -1997,6 +2046,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       } catch (ThriftSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
+        log.error(e, e);
+        throw new RuntimeException(e);
       }
       
       return sessionManager.getActiveScans();
@@ -2007,6 +2059,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       try {
         checkPermission(new InstanceTokenWrapper(credentials), lock, true, "chop");
       } catch (ThriftSecurityException e) {
+        log.error(e, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       }
@@ -2025,6 +2080,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       try {
         checkPermission(new InstanceTokenWrapper(credentials), lock, true, "compact");
       } catch (ThriftSecurityException e) {
+        log.error(e, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       }
@@ -2113,6 +2171,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       try {
         checkPermission(new InstanceTokenWrapper(credentials), null, true, "getActiveCompactions");
       } catch (ThriftSecurityException e) {
+        log.error(e, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       }
@@ -3158,7 +3219,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     };
     
     SimpleTimer.getInstance().schedule(constraintTask, 0, 1000);
-
+    
     this.resourceManager = new TabletServerResourceManager(instance, fs);
     
     lastPingTime = System.currentTimeMillis();

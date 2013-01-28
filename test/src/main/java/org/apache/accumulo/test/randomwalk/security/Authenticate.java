@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -58,7 +59,7 @@ public class Authenticate extends Test {
     boolean result;
     
     try {
-      result = conn.securityOperations().authenticateUser(target, password);
+      result = conn.securityOperations().authenticateUser(new UserPassToken(target, password));
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:

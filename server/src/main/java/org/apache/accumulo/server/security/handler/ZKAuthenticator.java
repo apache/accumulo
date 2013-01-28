@@ -23,7 +23,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -57,7 +57,7 @@ public final class ZKAuthenticator implements Authenticator {
   }
   
   @Override
-  public void initializeSecurity(InstanceTokenWrapper credentials, AccumuloToken<?,?> token) throws AccumuloSecurityException {
+  public void initializeSecurity(InstanceTokenWrapper credentials, SecurityToken token) throws AccumuloSecurityException {
     if (!(token instanceof UserPassToken))
       throw new AccumuloSecurityException("ZKAuthenticator doesn't take this token type", SecurityErrorCode.INVALID_TOKEN);
     UserPassToken upt = (UserPassToken) token;
@@ -108,7 +108,7 @@ public final class ZKAuthenticator implements Authenticator {
    * Creates a user with no permissions whatsoever
    */
   @Override
-  public void createUser(AccumuloToken<?,?> token) throws AccumuloSecurityException {
+  public void createUser(SecurityToken token) throws AccumuloSecurityException {
     if (!(token instanceof UserPassToken))
       throw new AccumuloSecurityException("ZKAuthenticator doesn't take this token type", SecurityErrorCode.INVALID_TOKEN);
     UserPassToken upt = (UserPassToken) token;
@@ -146,7 +146,7 @@ public final class ZKAuthenticator implements Authenticator {
   }
   
   @Override
-  public void changePassword(AccumuloToken<?,?> token) throws AccumuloSecurityException {
+  public void changePassword(SecurityToken token) throws AccumuloSecurityException {
     if (!(token instanceof UserPassToken))
       throw new AccumuloSecurityException("ZKAuthenticator doesn't take this token type", SecurityErrorCode.INVALID_TOKEN);
     UserPassToken upt = (UserPassToken) token;
@@ -184,7 +184,7 @@ public final class ZKAuthenticator implements Authenticator {
   }
   
   @Override
-  public boolean authenticateUser(AccumuloToken<?,?> token) throws AccumuloSecurityException {
+  public boolean authenticateUser(SecurityToken token) throws AccumuloSecurityException {
     if (!(token instanceof UserPassToken))
       throw new AccumuloSecurityException("ZKAuthenticator doesn't take this token type", SecurityErrorCode.INVALID_TOKEN);
     UserPassToken upt = (UserPassToken) token;

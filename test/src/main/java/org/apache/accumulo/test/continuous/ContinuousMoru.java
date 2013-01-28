@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Key;
@@ -124,7 +125,7 @@ public class ContinuousMoru extends Configured implements Tool {
   }
   
   @Override
-  public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
+  public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException, AccumuloSecurityException {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(ContinuousMoru.class.getName(), args, bwOpts);

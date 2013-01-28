@@ -24,7 +24,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
@@ -70,7 +70,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
    * @return
    * @throws ThriftSecurityException
    */
-  public boolean authenticateUser(InstanceTokenWrapper credentials, AccumuloToken<?,?> token) throws ThriftSecurityException {
+  public boolean authenticateUser(InstanceTokenWrapper credentials, SecurityToken token) throws ThriftSecurityException {
     try {
       boolean result = super.authenticateUser(credentials, token);
       audit(credentials, result ? "authenticated" : "failed authentication");
@@ -138,7 +138,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
    * @param bytes
    * @throws ThriftSecurityException
    */
-  public void changePassword(InstanceTokenWrapper credentials, AccumuloToken<?,?> token) throws ThriftSecurityException {
+  public void changePassword(InstanceTokenWrapper credentials, SecurityToken token) throws ThriftSecurityException {
     try {
       super.changePassword(credentials, token);
       audit(credentials, "changed password for %s", token.getPrincipal());
@@ -156,7 +156,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
    * @param authorizations
    * @throws ThriftSecurityException
    */
-  public void createUser(InstanceTokenWrapper credentials, AccumuloToken<?,?> token, Authorizations authorizations) throws ThriftSecurityException {
+  public void createUser(InstanceTokenWrapper credentials, SecurityToken token, Authorizations authorizations) throws ThriftSecurityException {
     try {
       super.createUser(credentials, token, authorizations);
       audit(credentials, "createUser");
@@ -326,7 +326,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void initializeSecurity(InstanceTokenWrapper credentials, AccumuloToken<?,?> token) throws AccumuloSecurityException, ThriftSecurityException {
+  public void initializeSecurity(InstanceTokenWrapper credentials, SecurityToken token) throws AccumuloSecurityException, ThriftSecurityException {
     super.initializeSecurity(credentials, token);
     log.info("Initialized root user with username: " + token.getPrincipal() + " at the request of user " + credentials.getPrincipal());
   }

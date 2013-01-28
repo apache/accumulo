@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.io.Text;
 
 public abstract class ScaleTest {
@@ -45,7 +46,7 @@ public abstract class ScaleTest {
     String user = this.scaleProps.getProperty("USER");
     String password = this.scaleProps.getProperty("PASSWORD");
     
-    conn = new ZooKeeperInstance(instanceName, zookeepers).getConnector(user, password.getBytes());
+    conn = new ZooKeeperInstance(instanceName, zookeepers).getConnector(new UserPassToken(user, password.getBytes()));
   }
   
   protected void startTimer() {

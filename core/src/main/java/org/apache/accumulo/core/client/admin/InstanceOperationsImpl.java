@@ -196,6 +196,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throw new AccumuloException(e);
     } catch (TException e) {
       throw new AccumuloException(e);
+    } catch (AccumuloSecurityException e) {
+      throw new AccumuloException(e);
     } finally {
       if (client != null) {
         ThriftUtil.returnClient(client);

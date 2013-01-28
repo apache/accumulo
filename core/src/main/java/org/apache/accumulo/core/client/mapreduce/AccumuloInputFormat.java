@@ -22,7 +22,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -38,7 +38,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloInputFormat#setConnectorInfo(Job, AccumuloToken)} OR {@link AccumuloInputFormat#setConnectorInfo(Job, Path)}
+ * <li>{@link AccumuloInputFormat#setConnectorInfo(Job, SecurityToken)} OR {@link AccumuloInputFormat#setConnectorInfo(Job, Path)}
  * <li>{@link AccumuloInputFormat#setInputTableName(Job, String)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(Job, Authorizations)}
  * <li>{@link AccumuloInputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloInputFormat#setMockInstance(Job, String)}

@@ -62,7 +62,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.TokenHelper;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.Pair;
@@ -107,9 +107,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the Hadoop job instance to be configured
    * @param token
    *          a valid AccumuloToken (principal must have Table.CREATE permission)
+   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Job job, AccumuloToken<?,?> token) {
+  public static void setConnectorInfo(Job job, SecurityToken token) throws AccumuloSecurityException {
     InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), token);
   }
   
@@ -117,12 +118,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
    * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
    * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link TokenHelper#asBase64String(AccumuloToken)}.
+   * {@link TokenHelper#asBase64String(SecurityToken)}.
    * 
    * @param job
    *          the Hadoop job instance to be configured
    * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AccumuloToken} with the user's authentication
+   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link SecurityToken} with the user's authentication
    * @since 1.5.0
    */
   public static void setConnectorInfo(Job job, Path path) {
@@ -136,7 +137,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, AccumuloToken)
+   * @see #setConnectorInfo(Job, SecurityToken)
    * @see #setConnectorInfo(Job, Path)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
@@ -149,11 +150,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @param context
    *          the Hadoop context for the configured job
    * @return the user name
+   * @throws AccumuloSecurityException
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, AccumuloToken)
+   * @see #setConnectorInfo(Job, SecurityToken)
    * @see #setConnectorInfo(Job, Path)
    */
-  protected static AccumuloToken<?,?> getToken(JobContext context) {
+  protected static SecurityToken getToken(JobContext context) throws AccumuloSecurityException {
     return InputConfigurator.getToken(CLASS, context.getConfiguration());
   }
   
@@ -504,9 +506,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @return an Accumulo tablet locator
    * @throws TableNotFoundException
    *           if the table name set on the configuration doesn't exist
+   * @throws AccumuloSecurityException 
    * @since 1.5.0
    */
-  protected static TabletLocator getTabletLocator(JobContext context) throws TableNotFoundException {
+  protected static TabletLocator getTabletLocator(JobContext context) throws TableNotFoundException, AccumuloSecurityException {
     return InputConfigurator.getTabletLocator(CLASS, context.getConfiguration());
   }
   
@@ -565,10 +568,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.range);
       Instance instance = getInstance(attempt);
-      AccumuloToken<?,?> token = getToken(attempt);
       Authorizations authorizations = getScanAuthorizations(attempt);
       
       try {
+        SecurityToken token = getToken(attempt);
         log.debug("Creating connector with user: " + token.getPrincipal());
         Connector conn = instance.getConnector(token);
         log.debug("Creating scanner for table: " + getInputTableName(attempt));
@@ -970,12 +973,16 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, AccumuloToken)}, {@link #setInputTableName(Job, String)}, and
+   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, SecurityToken)}, {@link #setInputTableName(Job, String)}, and
    *             {@link #setScanAuthorizations(Job, Authorizations)} instead.
    */
   @Deprecated
   public static void setInputInfo(Configuration conf, String user, byte[] passwd, String table, Authorizations auths) {
-    InputConfigurator.setConnectorInfo(CLASS, conf, new UserPassToken(user, passwd));
+    try {
+      InputConfigurator.setConnectorInfo(CLASS, conf, new UserPassToken(user, passwd));
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
     InputConfigurator.setInputTableName(CLASS, conf, table);
     InputConfigurator.setScanAuthorizations(CLASS, conf, auths);
   }
@@ -1075,7 +1082,11 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static String getUsername(Configuration conf) {
-    return InputConfigurator.getToken(CLASS, conf).getPrincipal();
+    try {
+      return InputConfigurator.getToken(CLASS, conf).getPrincipal();
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
   }
   
   /**
@@ -1083,7 +1094,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static byte[] getPassword(Configuration conf) {
-    AccumuloToken<?,?> token = InputConfigurator.getToken(CLASS, conf);
+    SecurityToken token;
+    try {
+      token = InputConfigurator.getToken(CLASS, conf);
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
     if (token instanceof UserPassToken) {
       UserPassToken upt = (UserPassToken) token;
       return upt.getPassword();
@@ -1120,7 +1136,11 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static TabletLocator getTabletLocator(Configuration conf) throws TableNotFoundException {
-    return InputConfigurator.getTabletLocator(CLASS, conf);
+    try {
+      return InputConfigurator.getTabletLocator(CLASS, conf);
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
   }
   
   /**

@@ -33,7 +33,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.security.tokens.PasswordUpdatable;
 import org.apache.accumulo.core.security.tokens.TokenHelper;
@@ -107,7 +107,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
-   * @deprecated Use {@link #createUser(AccumuloToken)} instead
+   * @deprecated Use {@link #createUser(SecurityToken)} instead
    */
   @Deprecated
   public void createUser(final String user, final byte[] password, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
@@ -128,9 +128,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
-   * @deprecated Use {@link #createUser(AccumuloToken)} instead
+   * @deprecated Use {@link #createUser(SecurityToken)} instead
    */
-  public void createUser(final AccumuloToken<?,?> newToken, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
+  public void createUser(final SecurityToken newToken, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(newToken, authorizations);
     execute(new ClientExec<ClientService.Client>() {
       @Override
@@ -153,7 +153,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
    */
-  public void createUser(final AccumuloToken<?,?> newToken) throws AccumuloException, AccumuloSecurityException {
+  public void createUser(final SecurityToken newToken) throws AccumuloException, AccumuloSecurityException {
     createUser(newToken, new Authorizations());
   }
   
@@ -189,7 +189,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to ask
-   * @deprecated since 1.5, use {@link #authenticateUser(AccumuloToken)}
+   * @deprecated since 1.5, use {@link #authenticateUser(SecurityToken)}
    */
   public boolean authenticateUser(final String user, final byte[] password) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, password);
@@ -207,7 +207,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to ask
    */
-  public boolean authenticateUser(final AccumuloToken<?,?> token2) throws AccumuloException, AccumuloSecurityException {
+  public boolean authenticateUser(final SecurityToken token2) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(token2);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
@@ -229,7 +229,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to modify a user
    */
-  public void changeUserPassword(final AccumuloToken<?,?> newToken) throws AccumuloException, AccumuloSecurityException {
+  public void changeUserPassword(final SecurityToken newToken) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(newToken);
     execute(new ClientExec<ClientService.Client>() {
       @Override

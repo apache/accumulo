@@ -30,7 +30,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
@@ -116,7 +116,7 @@ public class SecurityOperation {
           + " do not play nice with eachother. Please choose authentication and authorization mechanisms that are compatible with one another.");
   }
   
-  public void initializeSecurity(InstanceTokenWrapper credentials, AccumuloToken<?,?> rootToken) throws AccumuloSecurityException, ThriftSecurityException {
+  public void initializeSecurity(InstanceTokenWrapper credentials, SecurityToken rootToken) throws AccumuloSecurityException, ThriftSecurityException {
     authenticate(credentials);
     
     if (!credentials.getPrincipal().equals(SecurityConstants.SYSTEM_USERNAME))
@@ -173,7 +173,7 @@ public class SecurityOperation {
    * @return
    * @throws ThriftSecurityException
    */
-  public boolean authenticateUser(InstanceTokenWrapper credentials, AccumuloToken<?,?> token) throws ThriftSecurityException {
+  public boolean authenticateUser(InstanceTokenWrapper credentials, SecurityToken token) throws ThriftSecurityException {
     canAskAboutUser(credentials, token.getPrincipal());
     // User is already authenticated from canAskAboutUser, this gets around issues with !SYSTEM user
     if (credentials.getToken().equals(token))
@@ -637,7 +637,7 @@ public class SecurityOperation {
    * @param bytes
    * @throws ThriftSecurityException
    */
-  public void changePassword(InstanceTokenWrapper credentials, AccumuloToken<?,?> token) throws ThriftSecurityException {
+  public void changePassword(InstanceTokenWrapper credentials, SecurityToken token) throws ThriftSecurityException {
     if (!canChangePassword(credentials, token.getPrincipal()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     try {
@@ -655,7 +655,7 @@ public class SecurityOperation {
    * @param authorizations
    * @throws ThriftSecurityException
    */
-  public void createUser(InstanceTokenWrapper credentials, AccumuloToken<?,?> token, Authorizations authorizations) throws ThriftSecurityException {
+  public void createUser(InstanceTokenWrapper credentials, SecurityToken token, Authorizations authorizations) throws ThriftSecurityException {
     if (!canCreateUser(credentials, token.getPrincipal()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     try {

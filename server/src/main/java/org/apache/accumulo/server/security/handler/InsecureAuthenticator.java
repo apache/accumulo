@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 
@@ -49,7 +49,7 @@ public class InsecureAuthenticator implements Authenticator {
    * @see org.apache.accumulo.server.security.handler.Authenticator#initializeSecurity(org.apache.accumulo.core.security.thrift.InstanceTokenWrapper, java.lang.String, byte[])
    */
   @Override
-  public void initializeSecurity(InstanceTokenWrapper credentials, AccumuloToken<?,?> token) throws AccumuloSecurityException {
+  public void initializeSecurity(InstanceTokenWrapper credentials, SecurityToken token) throws AccumuloSecurityException {
     return;
   }
   
@@ -57,7 +57,7 @@ public class InsecureAuthenticator implements Authenticator {
    * @see org.apache.accumulo.server.security.handler.Authenticator#authenticateUser(java.lang.String, java.nio.ByteBuffer, java.lang.String)
    */
   @Override
-  public boolean authenticateUser(AccumuloToken<?,?> token) {
+  public boolean authenticateUser(SecurityToken token) {
     return true;
   }
   
@@ -73,7 +73,7 @@ public class InsecureAuthenticator implements Authenticator {
    * @see org.apache.accumulo.server.security.handler.Authenticator#createUser(java.lang.String, byte[])
    */
   @Override
-  public void createUser(AccumuloToken<?,?> token) throws AccumuloSecurityException {
+  public void createUser(SecurityToken token) throws AccumuloSecurityException {
     return;
   }
   
@@ -89,7 +89,7 @@ public class InsecureAuthenticator implements Authenticator {
    * @see org.apache.accumulo.server.security.handler.Authenticator#changePassword(java.lang.String, byte[])
    */
   @Override
-  public void changePassword(AccumuloToken<?,?> token) throws AccumuloSecurityException {
+  public void changePassword(SecurityToken token) throws AccumuloSecurityException {
     return;
   }
 

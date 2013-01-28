@@ -210,6 +210,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } catch (TTransportException tte) {
         log.debug("Failed to call beginTableOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
+      } catch (AccumuloSecurityException e) {
+        throw e.asThriftException();
       } finally {
         MasterClient.close(client);
       }
@@ -227,6 +229,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } catch (TTransportException tte) {
         log.debug("Failed to call executeTableOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
+      } catch (AccumuloSecurityException e) {
+        throw e.asThriftException();
       } finally {
         MasterClient.close(client);
       }
@@ -242,6 +246,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForTableOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
+      } catch (AccumuloSecurityException e) {
+        throw e.asThriftException();
       } finally {
         MasterClient.close(client);
       }
@@ -258,6 +264,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } catch (TTransportException tte) {
         log.debug("Failed to call finishTableOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
+      } catch (AccumuloSecurityException e) {
+        throw e.asThriftException();
       } finally {
         MasterClient.close(client);
       }

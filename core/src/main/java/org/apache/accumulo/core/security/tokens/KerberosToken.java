@@ -3,7 +3,6 @@ package org.apache.accumulo.core.security.tokens;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
@@ -12,8 +11,6 @@ import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
 
 import org.apache.accumulo.core.security.SecurityUtil;
-import org.apache.accumulo.core.security.thrift.ThriftKerberosToken;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSException;
@@ -21,13 +18,12 @@ import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 
-public class KerberosToken extends ThriftKerberosToken implements AccumuloToken<ThriftKerberosToken,ThriftKerberosToken._Fields> {
-  private static final long serialVersionUID = -3592193087970250922L;
+public class KerberosToken implements SecurityToken {
+  private String principal;
+  private byte[] sessionKey;
   
   public KerberosToken() {
-    super();
     System.setProperty("java.security.auth.login.config", "./conf/jaas.conf");
-
   }
   
   /**
@@ -38,7 +34,7 @@ public class KerberosToken extends ThriftKerberosToken implements AccumuloToken<
    *          replaced by the systems host name.
    * @param keyTabPath
    *          Fully qualified path to the principal's keytab file
-   * @throws IOException 
+   * @throws IOException
    */
   public KerberosToken(String principalConfig, String keyTabPath, String destinationId) throws IOException {
     this();
@@ -86,8 +82,8 @@ public class KerberosToken extends ThriftKerberosToken implements AccumuloToken<
     // The GSS context initiation has to be performed as a privileged action.
     byte[] serviceTicket = Subject.doAs(subject, new GetToken(destination));
     
-    user = username;
-    ticket = ByteBuffer.wrap(serviceTicket);
+    principal = username;
+    sessionKey = serviceTicket;
   }
   
   class GetToken implements PrivilegedAction<byte[]> {
@@ -121,13 +117,21 @@ public class KerberosToken extends ThriftKerberosToken implements AccumuloToken<
   }
   
   public String getPrincipal() {
-    return user;
+    return principal;
   }
   
-  public byte[] getTicket() {
-    return ByteBufferUtil.toBytes(ticket);
+  public byte[] getSessionKey() {
+    return sessionKey;
   }
   
+  public void setPrincipal(String principal) {
+    this.principal = principal;
+  }
+
+  public void setSessionKey(byte[] sessionKey) {
+    this.sessionKey = sessionKey;
+  }
+
   private void readObject(ObjectInputStream aInputStream) throws IOException, ClassNotFoundException {
     aInputStream.defaultReadObject();
   }
@@ -137,24 +141,49 @@ public class KerberosToken extends ThriftKerberosToken implements AccumuloToken<
   }
   
   public void destroy() {
-    Arrays.fill(ticket.array(), (byte) 0);
-    ticket = null;
+    Arrays.fill(sessionKey, (byte) 0);
+    sessionKey = null;
   }
   
   @Override
   public boolean isDestroyed() {
-    return ticket == null;
-  }
-  
-  public boolean equals(AccumuloToken<?,?> token) {
-    if (token instanceof KerberosToken) {
-      KerberosToken kt = (KerberosToken) token;
-      return this.user.equals(kt.user) && Arrays.equals(this.getTicket(), kt.getTicket());
-    } else
-      return false;
+    return sessionKey == null;
   }
   
   public String toString() {
-    return "KerberosToken("+this.user+":"+new String(this.getTicket())+")";
+    return "KerberosToken(" + this.principal + ":" + new String(this.getSessionKey()) + ")";
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((principal == null) ? 0 : principal.hashCode());
+    result = prime * result + Arrays.hashCode(sessionKey);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof KerberosToken))
+      return false;
+    KerberosToken other = (KerberosToken) obj;
+    if (principal == null) {
+      if (other.principal != null)
+        return false;
+    } else if (!principal.equals(other.principal))
+      return false;
+    if (!Arrays.equals(sessionKey, other.sessionKey))
+      return false;
+    return true;
+  }
+
+  @Override
+  public SecuritySerDe<? extends SecurityToken> getSerDe() {
+    return new KerberosSerDe();
   }
 }

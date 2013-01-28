@@ -173,7 +173,7 @@ public class PermissionsTest {
             test_user_conn.securityOperations().createUser(TEST_TOKEN);
             throw new IllegalStateException("Should NOT be able to create a user");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.securityOperations().authenticateUser(user, password.getBytes()))
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.securityOperations().authenticateUser(new UserPassToken(user, password.getBytes())))
               throw e;
           }
           break;
@@ -184,7 +184,7 @@ public class PermissionsTest {
             test_user_conn.securityOperations().dropUser(user);
             throw new IllegalStateException("Should NOT be able to delete a user");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().authenticateUser(user, password.getBytes()))
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().authenticateUser(new UserPassToken(user, password.getBytes())))
               throw e;
           }
           break;
@@ -253,14 +253,14 @@ public class PermissionsTest {
         case CREATE_USER:
           user = "__CREATE_USER_WITH_PERM_TEST__";
           test_user_conn.securityOperations().createUser(TEST_TOKEN);
-          if (!root_conn.securityOperations().authenticateUser(user, password.getBytes()))
+          if (!root_conn.securityOperations().authenticateUser(new UserPassToken(user, password.getBytes())))
             throw new IllegalStateException("Should be able to create a user");
           break;
         case DROP_USER:
           user = "__DROP_USER_WITH_PERM_TEST__";
           root_conn.securityOperations().createUser(TEST_TOKEN);
           test_user_conn.securityOperations().dropUser(user);
-          if (root_conn.securityOperations().authenticateUser(user, password.getBytes()))
+          if (root_conn.securityOperations().authenticateUser(new UserPassToken(user, password.getBytes())))
             throw new IllegalStateException("Should be able to delete a user");
           break;
         case ALTER_USER:

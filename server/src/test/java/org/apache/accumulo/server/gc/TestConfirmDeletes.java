@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -47,7 +47,7 @@ import org.junit.Test;
  */
 public class TestConfirmDeletes {
   
-  AccumuloToken<?,?> auth = new UserPassToken("root", ByteBuffer.wrap("".getBytes()));
+  SecurityToken auth = new UserPassToken("root", ByteBuffer.wrap("".getBytes()));
 
   SortedSet<String> newSet(String... s) {
     SortedSet<String> result = new TreeSet<String>(Arrays.asList(s));

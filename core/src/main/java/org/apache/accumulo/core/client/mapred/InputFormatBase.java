@@ -53,7 +53,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.TokenHelper;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -94,9 +94,10 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    *          the Hadoop job instance to be configured
    * @param token
    *          a valid AccumuloToken (principal must have Table.CREATE permission)
+   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
-  public static void setConnectorInfo(JobConf job, AccumuloToken<?,?> token) {
+  public static void setConnectorInfo(JobConf job, SecurityToken token) throws AccumuloSecurityException {
     InputConfigurator.setConnectorInfo(CLASS, job, token);
   }
   
@@ -104,12 +105,12 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
    * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
    * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link TokenHelper#asBase64String(AccumuloToken)}.
+   * {@link TokenHelper#asBase64String(SecurityToken)}.
    * 
    * @param job
    *          the Hadoop job instance to be configured
    * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AccumuloToken} with the user's authentication
+   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link SecurityToken} with the user's authentication
    * @since 1.5.0
    */
   public static void setConnectorInfo(JobConf job, Path path) {
@@ -123,7 +124,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, AccumuloToken)
+   * @see #setConnectorInfo(JobConf, SecurityToken)
    * @see #setConnectorInfo(JobConf, Path)
    */
   protected static Boolean isConnectorInfoSet(JobConf job) {
@@ -137,11 +138,12 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @param job
    *          the Hadoop context for the configured job
    * @return the decoded user Token
+   * @throws AccumuloSecurityException
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, AccumuloToken)
+   * @see #setConnectorInfo(JobConf, SecurityToken)
    * @see #setConnectorInfo(JobConf, Path)
    */
-  protected static AccumuloToken<?,?> getToken(JobConf job) {
+  protected static SecurityToken getToken(JobConf job) throws AccumuloSecurityException {
     return InputConfigurator.getToken(CLASS, job);
   }
   
@@ -492,9 +494,10 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @return an Accumulo tablet locator
    * @throws TableNotFoundException
    *           if the table name set on the configuration doesn't exist
+   * @throws AccumuloSecurityException 
    * @since 1.5.0
    */
-  protected static TabletLocator getTabletLocator(JobConf job) throws TableNotFoundException {
+  protected static TabletLocator getTabletLocator(JobConf job) throws TableNotFoundException, AccumuloSecurityException {
     return InputConfigurator.getTabletLocator(CLASS, job);
   }
   
@@ -550,10 +553,10 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
       Instance instance = getInstance(job);
-      AccumuloToken<?,?> token = getToken(job);
       Authorizations authorizations = getScanAuthorizations(job);
       
       try {
+        SecurityToken token = getToken(job);
         log.debug("Creating connector with user: " + token.getPrincipal());
         Connector conn = instance.getConnector(token);
         log.debug("Creating scanner for table: " + getInputTableName(job));

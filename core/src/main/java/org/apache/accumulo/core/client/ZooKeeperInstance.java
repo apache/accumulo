@@ -31,7 +31,7 @@ import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -211,7 +211,7 @@ public class ZooKeeperInstance implements Instance {
   }
   
   /**
-   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    */
   @Override
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
@@ -219,7 +219,7 @@ public class ZooKeeperInstance implements Instance {
   }
   
   /**
-   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    */
   @Override
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
@@ -228,7 +228,7 @@ public class ZooKeeperInstance implements Instance {
   
   // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
   /**
-   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    */
   @Override
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
@@ -299,7 +299,7 @@ public class ZooKeeperInstance implements Instance {
   }
   
   /**
-   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @deprecated @since 1.5, use {@link #getConnector(SecurityToken)}
    */
   @Override
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
@@ -308,7 +308,7 @@ public class ZooKeeperInstance implements Instance {
   
   // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
   @Override
-  public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(SecurityToken token) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, token);
   }
   

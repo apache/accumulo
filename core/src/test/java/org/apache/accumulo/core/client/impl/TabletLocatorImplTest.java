@@ -48,13 +48,14 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
+@SuppressWarnings("deprecation")
 public class TabletLocatorImplTest extends TestCase {
   
   private static final KeyExtent RTE = Constants.ROOT_TABLET_EXTENT;
@@ -469,7 +470,7 @@ public class TabletLocatorImplTest extends TestCase {
       return getConnector(auth.user, auth.password);
     }
     
-    public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(SecurityToken token) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
     

@@ -40,7 +40,7 @@ import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.ArgumentChecker;
 
@@ -66,7 +66,7 @@ public class ConnectorImpl extends Connector {
    * @deprecated Not for client use
    */
   @Deprecated
-  public ConnectorImpl(Instance instance, final AccumuloToken<?,?> token2) throws AccumuloException, AccumuloSecurityException {
+  public ConnectorImpl(Instance instance, final SecurityToken token2) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(instance, token2);
     this.instance = instance;
     

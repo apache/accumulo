@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -45,7 +46,7 @@ public class RegExTest {
   
   @Test
   public void runTest() throws Exception {
-    conn = inst.getConnector("user", "pass");
+    conn = inst.getConnector(new UserPassToken("user", "pass"));
     conn.tableOperations().create("ret");
     BatchWriter bw = conn.createBatchWriter("ret", new BatchWriterConfig());
     

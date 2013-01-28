@@ -60,7 +60,7 @@ public class ChangePass extends Test {
       newPass[i] = (byte) ((r.nextInt(26)+65) & 0xFF);
     
     try {
-      conn.securityOperations().changeUserPassword(target, newPass);
+      conn.securityOperations().changeUserPassword(new UserPassToken(target, newPass));
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:
