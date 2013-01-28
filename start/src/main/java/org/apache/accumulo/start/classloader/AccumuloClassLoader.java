@@ -184,10 +184,10 @@ public class AccumuloClassLoader {
             for (File jar : extJars)
               urls.add(jar.toURI().toURL());
           } else {
-            log.warn("ignoring classpath entry " + classpath);
+            log.debug("ignoring classpath entry " + classpath);
           }
         } else {
-          log.warn("ignoring classpath entry " + classpath);
+          log.debug("ignoring classpath entry " + classpath);
         }
       }
     } else {
