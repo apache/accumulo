@@ -125,8 +125,8 @@ public class TestProxyReadWrite {
     Key stop = new Key();
     stop.setRow("5".getBytes());
     BatchScanOptions options = new BatchScanOptions();
-    List<Range> ranges = Collections.singletonList(new Range(null, false, stop, false));
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, ranges, options);
+    options.ranges = Collections.singletonList(new Range(null, false, stop, false));
+    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, options);
     
     int i = 0;
     boolean hasNext = true;

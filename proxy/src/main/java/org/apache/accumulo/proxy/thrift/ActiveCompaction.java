@@ -1112,13 +1112,13 @@ import org.slf4j.LoggerFactory;
           case 3: // INPUT_FILES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list90 = iprot.readListBegin();
-                struct.inputFiles = new ArrayList<String>(_list90.size);
-                for (int _i91 = 0; _i91 < _list90.size; ++_i91)
+                org.apache.thrift.protocol.TList _list98 = iprot.readListBegin();
+                struct.inputFiles = new ArrayList<String>(_list98.size);
+                for (int _i99 = 0; _i99 < _list98.size; ++_i99)
                 {
-                  String _elem92; // required
-                  _elem92 = iprot.readString();
-                  struct.inputFiles.add(_elem92);
+                  String _elem100; // required
+                  _elem100 = iprot.readString();
+                  struct.inputFiles.add(_elem100);
                 }
                 iprot.readListEnd();
               }
@@ -1178,14 +1178,14 @@ import org.slf4j.LoggerFactory;
           case 10: // ITERATORS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list93 = iprot.readListBegin();
-                struct.iterators = new ArrayList<IteratorSetting>(_list93.size);
-                for (int _i94 = 0; _i94 < _list93.size; ++_i94)
+                org.apache.thrift.protocol.TList _list101 = iprot.readListBegin();
+                struct.iterators = new ArrayList<IteratorSetting>(_list101.size);
+                for (int _i102 = 0; _i102 < _list101.size; ++_i102)
                 {
-                  IteratorSetting _elem95; // required
-                  _elem95 = new IteratorSetting();
-                  _elem95.read(iprot);
-                  struct.iterators.add(_elem95);
+                  IteratorSetting _elem103; // required
+                  _elem103 = new IteratorSetting();
+                  _elem103.read(iprot);
+                  struct.iterators.add(_elem103);
                 }
                 iprot.readListEnd();
               }
@@ -1221,9 +1221,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(INPUT_FILES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.inputFiles.size()));
-          for (String _iter96 : struct.inputFiles)
+          for (String _iter104 : struct.inputFiles)
           {
-            oprot.writeString(_iter96);
+            oprot.writeString(_iter104);
           }
           oprot.writeListEnd();
         }
@@ -1259,9 +1259,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(ITERATORS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.iterators.size()));
-          for (IteratorSetting _iter97 : struct.iterators)
+          for (IteratorSetting _iter105 : struct.iterators)
           {
-            _iter97.write(oprot);
+            _iter105.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1325,9 +1325,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetInputFiles()) {
         {
           oprot.writeI32(struct.inputFiles.size());
-          for (String _iter98 : struct.inputFiles)
+          for (String _iter106 : struct.inputFiles)
           {
-            oprot.writeString(_iter98);
+            oprot.writeString(_iter106);
           }
         }
       }
@@ -1352,9 +1352,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetIterators()) {
         {
           oprot.writeI32(struct.iterators.size());
-          for (IteratorSetting _iter99 : struct.iterators)
+          for (IteratorSetting _iter107 : struct.iterators)
           {
-            _iter99.write(oprot);
+            _iter107.write(oprot);
           }
         }
       }
@@ -1375,13 +1375,13 @@ import org.slf4j.LoggerFactory;
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TList _list100 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.inputFiles = new ArrayList<String>(_list100.size);
-          for (int _i101 = 0; _i101 < _list100.size; ++_i101)
+          org.apache.thrift.protocol.TList _list108 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.inputFiles = new ArrayList<String>(_list108.size);
+          for (int _i109 = 0; _i109 < _list108.size; ++_i109)
           {
-            String _elem102; // required
-            _elem102 = iprot.readString();
-            struct.inputFiles.add(_elem102);
+            String _elem110; // required
+            _elem110 = iprot.readString();
+            struct.inputFiles.add(_elem110);
           }
         }
         struct.setInputFilesIsSet(true);
@@ -1412,14 +1412,14 @@ import org.slf4j.LoggerFactory;
       }
       if (incoming.get(9)) {
         {
-          org.apache.thrift.protocol.TList _list103 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.iterators = new ArrayList<IteratorSetting>(_list103.size);
-          for (int _i104 = 0; _i104 < _list103.size; ++_i104)
+          org.apache.thrift.protocol.TList _list111 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.iterators = new ArrayList<IteratorSetting>(_list111.size);
+          for (int _i112 = 0; _i112 < _list111.size; ++_i112)
           {
-            IteratorSetting _elem105; // required
-            _elem105 = new IteratorSetting();
-            _elem105.read(iprot);
-            struct.iterators.add(_elem105);
+            IteratorSetting _elem113; // required
+            _elem113 = new IteratorSetting();
+            _elem113.read(iprot);
+            struct.iterators.add(_elem113);
           }
         }
         struct.setIteratorsIsSet(true);

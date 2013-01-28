@@ -777,11 +777,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public String createBatchScanner(UserPass userpass, String tableName, List<org.apache.accumulo.proxy.thrift.Range> pranges, BatchScanOptions opts)
+  public String createBatchScanner(UserPass userpass, String tableName, BatchScanOptions opts)
       throws TException {
     try {
       Connector connector = getConnector(userpass);
       
+            
       int threads = 10;
       Authorizations auth;
       if (opts != null && opts.isSetAuthorizations()) {
@@ -804,10 +805,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
         
         ArrayList<Range> ranges = new ArrayList<Range>();
         
-        if (pranges == null) {
+        if (opts.ranges == null) {
           ranges.add(new Range());
         } else {
-          for (org.apache.accumulo.proxy.thrift.Range range : pranges) {
+          for (org.apache.accumulo.proxy.thrift.Range range : opts.ranges) {
             Range aRange = new Range(range.getStart() == null ? null : Util.fromThrift(range.getStart()), true, range.getStop() == null ? null
                 : Util.fromThrift(range.getStop()), false);
             ranges.add(aRange);

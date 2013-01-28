@@ -86,9 +86,10 @@ struct ScanOptions {
 
 struct BatchScanOptions {
   1:optional set<binary> authorizations;
-  2:optional list<ScanColumn> columns;
-  3:optional list<IteratorSetting> iterators;
-  4:optional i32 threads;
+  2:optional list<Range> ranges;
+  3:optional list<ScanColumn> columns;
+  4:optional list<IteratorSetting> iterators;
+  5:optional i32 threads;
 } 
 
 struct KeyValueAndPeek {
@@ -314,7 +315,7 @@ service AccumuloProxy
 
 
   // scanning
-  string createBatchScanner(1:UserPass userpass, 2:string tableName, 3:list<Range> ranges, 4:BatchScanOptions options)          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  string createBatchScanner(1:UserPass userpass, 2:string tableName, 3:BatchScanOptions options)          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   string createScanner(1:UserPass userpass, 2:string tableName, 3:ScanOptions options)                                          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
 
   // use the scanner

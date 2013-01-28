@@ -50,9 +50,10 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("BatchScanOptions");
 
   private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.SET, (short)1);
-  private static final org.apache.thrift.protocol.TField COLUMNS_FIELD_DESC = new org.apache.thrift.protocol.TField("columns", org.apache.thrift.protocol.TType.LIST, (short)2);
-  private static final org.apache.thrift.protocol.TField ITERATORS_FIELD_DESC = new org.apache.thrift.protocol.TField("iterators", org.apache.thrift.protocol.TType.LIST, (short)3);
-  private static final org.apache.thrift.protocol.TField THREADS_FIELD_DESC = new org.apache.thrift.protocol.TField("threads", org.apache.thrift.protocol.TType.I32, (short)4);
+  private static final org.apache.thrift.protocol.TField RANGES_FIELD_DESC = new org.apache.thrift.protocol.TField("ranges", org.apache.thrift.protocol.TType.LIST, (short)2);
+  private static final org.apache.thrift.protocol.TField COLUMNS_FIELD_DESC = new org.apache.thrift.protocol.TField("columns", org.apache.thrift.protocol.TType.LIST, (short)3);
+  private static final org.apache.thrift.protocol.TField ITERATORS_FIELD_DESC = new org.apache.thrift.protocol.TField("iterators", org.apache.thrift.protocol.TType.LIST, (short)4);
+  private static final org.apache.thrift.protocol.TField THREADS_FIELD_DESC = new org.apache.thrift.protocol.TField("threads", org.apache.thrift.protocol.TType.I32, (short)5);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -61,6 +62,7 @@ import org.slf4j.LoggerFactory;
   }
 
   public Set<ByteBuffer> authorizations; // optional
+  public List<Range> ranges; // optional
   public List<ScanColumn> columns; // optional
   public List<IteratorSetting> iterators; // optional
   public int threads; // optional
@@ -68,9 +70,10 @@ import org.slf4j.LoggerFactory;
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     AUTHORIZATIONS((short)1, "authorizations"),
-    COLUMNS((short)2, "columns"),
-    ITERATORS((short)3, "iterators"),
-    THREADS((short)4, "threads");
+    RANGES((short)2, "ranges"),
+    COLUMNS((short)3, "columns"),
+    ITERATORS((short)4, "iterators"),
+    THREADS((short)5, "threads");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -87,11 +90,13 @@ import org.slf4j.LoggerFactory;
       switch(fieldId) {
         case 1: // AUTHORIZATIONS
           return AUTHORIZATIONS;
-        case 2: // COLUMNS
+        case 2: // RANGES
+          return RANGES;
+        case 3: // COLUMNS
           return COLUMNS;
-        case 3: // ITERATORS
+        case 4: // ITERATORS
           return ITERATORS;
-        case 4: // THREADS
+        case 5: // THREADS
           return THREADS;
         default:
           return null;
@@ -135,13 +140,16 @@ import org.slf4j.LoggerFactory;
   // isset id assignments
   private static final int __THREADS_ISSET_ID = 0;
   private byte __isset_bitfield = 0;
-  private _Fields optionals[] = {_Fields.AUTHORIZATIONS,_Fields.COLUMNS,_Fields.ITERATORS,_Fields.THREADS};
+  private _Fields optionals[] = {_Fields.AUTHORIZATIONS,_Fields.RANGES,_Fields.COLUMNS,_Fields.ITERATORS,_Fields.THREADS};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.AUTHORIZATIONS, new org.apache.thrift.meta_data.FieldMetaData("authorizations", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING            , true))));
+    tmpMap.put(_Fields.RANGES, new org.apache.thrift.meta_data.FieldMetaData("ranges", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Range.class))));
     tmpMap.put(_Fields.COLUMNS, new org.apache.thrift.meta_data.FieldMetaData("columns", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ScanColumn.class))));
@@ -171,6 +179,13 @@ import org.slf4j.LoggerFactory;
       }
       this.authorizations = __this__authorizations;
     }
+    if (other.isSetRanges()) {
+      List<Range> __this__ranges = new ArrayList<Range>();
+      for (Range other_element : other.ranges) {
+        __this__ranges.add(new Range(other_element));
+      }
+      this.ranges = __this__ranges;
+    }
     if (other.isSetColumns()) {
       List<ScanColumn> __this__columns = new ArrayList<ScanColumn>();
       for (ScanColumn other_element : other.columns) {
@@ -195,6 +210,7 @@ import org.slf4j.LoggerFactory;
   @Override
   public void clear() {
     this.authorizations = null;
+    this.ranges = null;
     this.columns = null;
     this.iterators = null;
     setThreadsIsSet(false);
@@ -237,6 +253,45 @@ import org.slf4j.LoggerFactory;
   public void setAuthorizationsIsSet(boolean value) {
     if (!value) {
       this.authorizations = null;
+    }
+  }
+
+  public int getRangesSize() {
+    return (this.ranges == null) ? 0 : this.ranges.size();
+  }
+
+  public java.util.Iterator<Range> getRangesIterator() {
+    return (this.ranges == null) ? null : this.ranges.iterator();
+  }
+
+  public void addToRanges(Range elem) {
+    if (this.ranges == null) {
+      this.ranges = new ArrayList<Range>();
+    }
+    this.ranges.add(elem);
+  }
+
+  public List<Range> getRanges() {
+    return this.ranges;
+  }
+
+  public BatchScanOptions setRanges(List<Range> ranges) {
+    this.ranges = ranges;
+    return this;
+  }
+
+  public void unsetRanges() {
+    this.ranges = null;
+  }
+
+  /** Returns true if field ranges is set (has been assigned a value) and false otherwise */
+  public boolean isSetRanges() {
+    return this.ranges != null;
+  }
+
+  public void setRangesIsSet(boolean value) {
+    if (!value) {
+      this.ranges = null;
     }
   }
 
@@ -351,6 +406,14 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case RANGES:
+      if (value == null) {
+        unsetRanges();
+      } else {
+        setRanges((List<Range>)value);
+      }
+      break;
+
     case COLUMNS:
       if (value == null) {
         unsetColumns();
@@ -383,6 +446,9 @@ import org.slf4j.LoggerFactory;
     case AUTHORIZATIONS:
       return getAuthorizations();
 
+    case RANGES:
+      return getRanges();
+
     case COLUMNS:
       return getColumns();
 
@@ -405,6 +471,8 @@ import org.slf4j.LoggerFactory;
     switch (field) {
     case AUTHORIZATIONS:
       return isSetAuthorizations();
+    case RANGES:
+      return isSetRanges();
     case COLUMNS:
       return isSetColumns();
     case ITERATORS:
@@ -434,6 +502,15 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_authorizations && that_present_authorizations))
         return false;
       if (!this.authorizations.equals(that.authorizations))
+        return false;
+    }
+
+    boolean this_present_ranges = true && this.isSetRanges();
+    boolean that_present_ranges = true && that.isSetRanges();
+    if (this_present_ranges || that_present_ranges) {
+      if (!(this_present_ranges && that_present_ranges))
+        return false;
+      if (!this.ranges.equals(that.ranges))
         return false;
     }
 
@@ -486,6 +563,16 @@ import org.slf4j.LoggerFactory;
     }
     if (isSetAuthorizations()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.authorizations, typedOther.authorizations);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetRanges()).compareTo(typedOther.isSetRanges());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetRanges()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ranges, typedOther.ranges);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -546,6 +633,16 @@ import org.slf4j.LoggerFactory;
         sb.append("null");
       } else {
         sb.append(this.authorizations);
+      }
+      first = false;
+    }
+    if (isSetRanges()) {
+      if (!first) sb.append(", ");
+      sb.append("ranges:");
+      if (this.ranges == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.ranges);
       }
       first = false;
     }
@@ -638,17 +735,36 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // COLUMNS
+          case 2: // RANGES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
                 org.apache.thrift.protocol.TList _list45 = iprot.readListBegin();
-                struct.columns = new ArrayList<ScanColumn>(_list45.size);
+                struct.ranges = new ArrayList<Range>(_list45.size);
                 for (int _i46 = 0; _i46 < _list45.size; ++_i46)
                 {
-                  ScanColumn _elem47; // required
-                  _elem47 = new ScanColumn();
+                  Range _elem47; // required
+                  _elem47 = new Range();
                   _elem47.read(iprot);
-                  struct.columns.add(_elem47);
+                  struct.ranges.add(_elem47);
+                }
+                iprot.readListEnd();
+              }
+              struct.setRangesIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 3: // COLUMNS
+            if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
+              {
+                org.apache.thrift.protocol.TList _list48 = iprot.readListBegin();
+                struct.columns = new ArrayList<ScanColumn>(_list48.size);
+                for (int _i49 = 0; _i49 < _list48.size; ++_i49)
+                {
+                  ScanColumn _elem50; // required
+                  _elem50 = new ScanColumn();
+                  _elem50.read(iprot);
+                  struct.columns.add(_elem50);
                 }
                 iprot.readListEnd();
               }
@@ -657,17 +773,17 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 3: // ITERATORS
+          case 4: // ITERATORS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list48 = iprot.readListBegin();
-                struct.iterators = new ArrayList<IteratorSetting>(_list48.size);
-                for (int _i49 = 0; _i49 < _list48.size; ++_i49)
+                org.apache.thrift.protocol.TList _list51 = iprot.readListBegin();
+                struct.iterators = new ArrayList<IteratorSetting>(_list51.size);
+                for (int _i52 = 0; _i52 < _list51.size; ++_i52)
                 {
-                  IteratorSetting _elem50; // required
-                  _elem50 = new IteratorSetting();
-                  _elem50.read(iprot);
-                  struct.iterators.add(_elem50);
+                  IteratorSetting _elem53; // required
+                  _elem53 = new IteratorSetting();
+                  _elem53.read(iprot);
+                  struct.iterators.add(_elem53);
                 }
                 iprot.readListEnd();
               }
@@ -676,7 +792,7 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 4: // THREADS
+          case 5: // THREADS
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
               struct.threads = iprot.readI32();
               struct.setThreadsIsSet(true);
@@ -704,11 +820,25 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
           {
             oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.authorizations.size()));
-            for (ByteBuffer _iter51 : struct.authorizations)
+            for (ByteBuffer _iter54 : struct.authorizations)
             {
-              oprot.writeBinary(_iter51);
+              oprot.writeBinary(_iter54);
             }
             oprot.writeSetEnd();
+          }
+          oprot.writeFieldEnd();
+        }
+      }
+      if (struct.ranges != null) {
+        if (struct.isSetRanges()) {
+          oprot.writeFieldBegin(RANGES_FIELD_DESC);
+          {
+            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.ranges.size()));
+            for (Range _iter55 : struct.ranges)
+            {
+              _iter55.write(oprot);
+            }
+            oprot.writeListEnd();
           }
           oprot.writeFieldEnd();
         }
@@ -718,9 +848,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(COLUMNS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.columns.size()));
-            for (ScanColumn _iter52 : struct.columns)
+            for (ScanColumn _iter56 : struct.columns)
             {
-              _iter52.write(oprot);
+              _iter56.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -732,9 +862,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(ITERATORS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.iterators.size()));
-            for (IteratorSetting _iter53 : struct.iterators)
+            for (IteratorSetting _iter57 : struct.iterators)
             {
-              _iter53.write(oprot);
+              _iter57.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -767,40 +897,52 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetAuthorizations()) {
         optionals.set(0);
       }
-      if (struct.isSetColumns()) {
+      if (struct.isSetRanges()) {
         optionals.set(1);
       }
-      if (struct.isSetIterators()) {
+      if (struct.isSetColumns()) {
         optionals.set(2);
       }
-      if (struct.isSetThreads()) {
+      if (struct.isSetIterators()) {
         optionals.set(3);
       }
-      oprot.writeBitSet(optionals, 4);
+      if (struct.isSetThreads()) {
+        optionals.set(4);
+      }
+      oprot.writeBitSet(optionals, 5);
       if (struct.isSetAuthorizations()) {
         {
           oprot.writeI32(struct.authorizations.size());
-          for (ByteBuffer _iter54 : struct.authorizations)
+          for (ByteBuffer _iter58 : struct.authorizations)
           {
-            oprot.writeBinary(_iter54);
+            oprot.writeBinary(_iter58);
+          }
+        }
+      }
+      if (struct.isSetRanges()) {
+        {
+          oprot.writeI32(struct.ranges.size());
+          for (Range _iter59 : struct.ranges)
+          {
+            _iter59.write(oprot);
           }
         }
       }
       if (struct.isSetColumns()) {
         {
           oprot.writeI32(struct.columns.size());
-          for (ScanColumn _iter55 : struct.columns)
+          for (ScanColumn _iter60 : struct.columns)
           {
-            _iter55.write(oprot);
+            _iter60.write(oprot);
           }
         }
       }
       if (struct.isSetIterators()) {
         {
           oprot.writeI32(struct.iterators.size());
-          for (IteratorSetting _iter56 : struct.iterators)
+          for (IteratorSetting _iter61 : struct.iterators)
           {
-            _iter56.write(oprot);
+            _iter61.write(oprot);
           }
         }
       }
@@ -812,49 +954,63 @@ import org.slf4j.LoggerFactory;
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, BatchScanOptions struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(4);
+      BitSet incoming = iprot.readBitSet(5);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TSet _set57 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.authorizations = new HashSet<ByteBuffer>(2*_set57.size);
-          for (int _i58 = 0; _i58 < _set57.size; ++_i58)
+          org.apache.thrift.protocol.TSet _set62 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.authorizations = new HashSet<ByteBuffer>(2*_set62.size);
+          for (int _i63 = 0; _i63 < _set62.size; ++_i63)
           {
-            ByteBuffer _elem59; // required
-            _elem59 = iprot.readBinary();
-            struct.authorizations.add(_elem59);
+            ByteBuffer _elem64; // required
+            _elem64 = iprot.readBinary();
+            struct.authorizations.add(_elem64);
           }
         }
         struct.setAuthorizationsIsSet(true);
       }
       if (incoming.get(1)) {
         {
-          org.apache.thrift.protocol.TList _list60 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.columns = new ArrayList<ScanColumn>(_list60.size);
-          for (int _i61 = 0; _i61 < _list60.size; ++_i61)
+          org.apache.thrift.protocol.TList _list65 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.ranges = new ArrayList<Range>(_list65.size);
+          for (int _i66 = 0; _i66 < _list65.size; ++_i66)
           {
-            ScanColumn _elem62; // required
-            _elem62 = new ScanColumn();
-            _elem62.read(iprot);
-            struct.columns.add(_elem62);
+            Range _elem67; // required
+            _elem67 = new Range();
+            _elem67.read(iprot);
+            struct.ranges.add(_elem67);
+          }
+        }
+        struct.setRangesIsSet(true);
+      }
+      if (incoming.get(2)) {
+        {
+          org.apache.thrift.protocol.TList _list68 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.columns = new ArrayList<ScanColumn>(_list68.size);
+          for (int _i69 = 0; _i69 < _list68.size; ++_i69)
+          {
+            ScanColumn _elem70; // required
+            _elem70 = new ScanColumn();
+            _elem70.read(iprot);
+            struct.columns.add(_elem70);
           }
         }
         struct.setColumnsIsSet(true);
       }
-      if (incoming.get(2)) {
+      if (incoming.get(3)) {
         {
-          org.apache.thrift.protocol.TList _list63 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.iterators = new ArrayList<IteratorSetting>(_list63.size);
-          for (int _i64 = 0; _i64 < _list63.size; ++_i64)
+          org.apache.thrift.protocol.TList _list71 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.iterators = new ArrayList<IteratorSetting>(_list71.size);
+          for (int _i72 = 0; _i72 < _list71.size; ++_i72)
           {
-            IteratorSetting _elem65; // required
-            _elem65 = new IteratorSetting();
-            _elem65.read(iprot);
-            struct.iterators.add(_elem65);
+            IteratorSetting _elem73; // required
+            _elem73 = new IteratorSetting();
+            _elem73.read(iprot);
+            struct.iterators.add(_elem73);
           }
         }
         struct.setIteratorsIsSet(true);
       }
-      if (incoming.get(3)) {
+      if (incoming.get(4)) {
         struct.threads = iprot.readI32();
         struct.setThreadsIsSet(true);
       }
