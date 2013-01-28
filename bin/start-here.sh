@@ -24,7 +24,18 @@ bin=`cd "$bin"; pwd`
 
 . "$bin"/config.sh
 
-HOSTS="`hostname -a` `hostname` localhost"
+IFCONFIG=/sbin/ifconfig
+if [ ! -x $IFCONFIG ]
+then
+   IFCONFIG='/bin/netstat -ie'
+fi
+ip=`$IFCONFIG 2>/dev/null| grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1`
+if [ $? != 0 ]
+then
+  ip=`python -c 'import socket as s; print s.gethostbyname(s.getfqdn())'`
+fi
+
+HOSTS="`hostname -a` `hostname` localhost 127.0.0.1 $ip"
 for host in $HOSTS
 do
     if grep -q "^${host}\$" $ACCUMULO_HOME/conf/slaves

@@ -26,7 +26,7 @@ bin=`cd "$bin"; pwd`
 
 ACCUMULO="$ACCUMULO_HOME/.*/accumulo-start.*.jar"
 
-if grep -q localhost $ACCUMULO_HOME/conf/slaves
+if egrep -q localhost\|127.0.0.1 $ACCUMULO_HOME/conf/slaves
 then
     $bin/accumulo admin stop localhost
 else
