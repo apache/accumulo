@@ -2235,13 +2235,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           int numMajorCompactionsInProgress = 0;
           
           Iterator<Entry<KeyExtent,Tablet>> iter = copyOnlineTablets.entrySet().iterator();
-          while (iter.hasNext() && !majorCompactorDisabled) { // bail
-            // early
-            // now
-            // if
-            // we're
-            // shutting
-            // down
+          
+          // bail early now if we're shutting down
+          while (iter.hasNext() && !majorCompactorDisabled) { 
             
             Entry<KeyExtent,Tablet> entry = iter.next();
             
