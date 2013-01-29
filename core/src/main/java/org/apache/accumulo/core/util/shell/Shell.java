@@ -935,7 +935,6 @@ public class Shell extends ShellOptions {
     SecurityToken token;
     try {
       String tokenClass = instance.getSecurityTokenClass();
-      System.out.println(tokenClass);
       if (tokenClass.equals(UserPassToken.class.getCanonicalName())) {
         token = new UserPassToken(user, pass);
 //      } else if (tokenClass.equals(KerberosToken.class.getCanonicalName())) {
