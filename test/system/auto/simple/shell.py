@@ -459,7 +459,7 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
                         "whoami command did not return the correct values")
     def getauthsTest(self):
         passwd = 'secret'
-        input = "createuser test_user -s 12,3,4\n%s\n%s\n" % (passwd, passwd)
+        input = "createuser test_user\n%s\n%s\nsetauths -u test_user -s 12,3,4\n" % (passwd, passwd)
         out, err, code = self.rootShell(self.masterHost(), input)
         self.processResult(out, err, code)
         input = "getauths -u test_user\n"

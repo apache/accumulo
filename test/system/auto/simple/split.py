@@ -55,7 +55,7 @@ class TabletShouldSplit(SunnyDayTest):
                          120)
 
         # get the metadata
-        out, err, code = self.shell(self.masterHost(), 'table !METADATA\nscan\n')
+        out, err, code = self.shell(self.masterHost(), 'table !METADATA\nscan -np\n')
         self.assert_(code == 0)
         lines = []
         tableID = self.getTableId('test_ingest')

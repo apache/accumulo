@@ -68,9 +68,18 @@ class CombinerTest(TestUtilsMixin, unittest.TestCase):
         self.start_accumulo()
         self.checkSum()
 
+jarPath = ACCUMULO_HOME+"/lib/ext/TestCombiner.jar"
+
 class ClassLoaderTest(TestUtilsMixin, unittest.TestCase):
     "Start a clean accumulo, ingest one data, read it, set a combiner, read it again, change the combiner jar, read it again" 
     order = 26
+
+ 
+    def setUp(self):
+        # make sure the combiner is not there
+        if os.path.exists(jarPath):
+            os.remove(jarPath)
+	TestUtilsMixin.setUp(self)
 
     def checkSum(self, val):
         # check the scan
@@ -84,10 +93,6 @@ class ClassLoaderTest(TestUtilsMixin, unittest.TestCase):
             self.fail("Unable to find needed output in %r" % out)
 
     def runTest(self):
-        jarPath = ACCUMULO_HOME+"/lib/ext/TestCombiner.jar"
-        # make sure the combiner is not there
-        if os.path.exists(jarPath):
-            os.remove(jarPath)
         # initialize the database
         out, err, code = self.rootShell(self.masterHost(), "createtable test\n")
         self.assert_(code == 0)
@@ -99,6 +104,7 @@ class ClassLoaderTest(TestUtilsMixin, unittest.TestCase):
         self.assert_(code == 0)
         self.checkSum("Test")
         
+	log.info("creating jar file")
         shutil.copy(sys.path[0]+"/TestCombinerX.jar", jarPath)
 	time.sleep(1)
         out, err, code = self.rootShell(self.masterHost(), "setiter -t test -scan -p 10 -n TestCombiner -class org.apache.accumulo.test.functional.TestCombiner\n"

@@ -40,8 +40,10 @@ public class AddAuthsCommand extends Command {
     final String scanOpts = cl.getOptionValue(scanOptAuths.getOpt());
     Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
     StringBuilder userAuths = new StringBuilder();
-    userAuths.append(auths.toString());
-    userAuths.append(",");
+    if (!auths.isEmpty()) {
+      userAuths.append(auths.toString());
+      userAuths.append(",");
+    }
     userAuths.append(scanOpts);
     shellState.getConnector().securityOperations().changeUserAuthorizations(user, ScanCommand.parseAuthorizations(userAuths.toString()));
     Shell.log.debug("Changed record-level authorizations for user " + user);

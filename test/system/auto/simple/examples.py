@@ -58,7 +58,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.wait(self.runOn('localhost', cmd))
 
     def runTest(self):
-        examplesJar = glob.glob(ACCUMULO_HOME+'/lib/examples-simple*.jar')[0]
+        examplesJar = glob.glob(ACCUMULO_HOME+'/lib/accumulo-examples-simple*.jar')[0]
 
 	self.comment("Testing MaxMutation constraint")
 	self.ashell('createtable test_ingest\n'

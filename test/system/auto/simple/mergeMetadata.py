@@ -41,6 +41,7 @@ createtable a3
 createtable a4
 createtable a5
 merge -t !METADATA
+yes
 sleep 2
 scan -np -t !METADATA
 ''')
