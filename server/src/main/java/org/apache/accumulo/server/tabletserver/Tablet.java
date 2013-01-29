@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -47,8 +48,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -124,6 +123,8 @@ import org.apache.accumulo.server.util.MetadataTable.LogEntry;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
@@ -406,7 +407,7 @@ public class Tablet {
   private DatafileManager datafileManager;
   private volatile boolean majorCompactionInProgress = false;
   private volatile boolean majorCompactionWaitingToStart = false;
-  private volatile boolean majorCompactionQueued = false;
+  private Set<MajorCompactionReason> majorCompactionQueued = Collections.synchronizedSet(EnumSet.noneOf(MajorCompactionReason.class));
   private volatile boolean minorCompactionInProgress = false;
   private volatile boolean minorCompactionWaitingToStart = false;
   
@@ -2857,7 +2858,7 @@ public class Tablet {
       if (tabletServer.isMajorCompactionDisabled()) {
         // this will make compaction task that were queued when shutdown was
         // initiated exit
-        majorCompactionQueued = false;
+        majorCompactionQueued.remove(reason);
         return;
       }
       
@@ -2909,12 +2910,12 @@ public class Tablet {
   
   synchronized boolean initiateMajorCompaction(MajorCompactionReason reason) {
     
-    if (closing || closed || !needsMajorCompaction(reason) || majorCompactionInProgress || majorCompactionQueued) {
+    if (closing || closed || !needsMajorCompaction(reason) || majorCompactionInProgress || majorCompactionQueued.contains(reason)) {
       return false;
     }
     
-    majorCompactionQueued = true;
-    
+    majorCompactionQueued.add(reason);
+
     tabletResources.executeMajorCompaction(getExtent(), new CompactionRunner(reason));
     
     return false;
@@ -3240,6 +3241,12 @@ public class Tablet {
             // compaction was canceled
             return majCStats;
           }
+          
+          synchronized (this) {
+            if (lastCompactID >= compactionId.getFirst())
+              // already compacted
+              return majCStats;
+          }
         }
 
         compactionIterators = compactionId.getSecond();
@@ -3359,18 +3366,19 @@ public class Tablet {
     
     // Always trace majC
     Span span = Trace.on("majorCompaction");
-    try {
-      synchronized (this) {
-        // check that compaction is still needed - defer to splitting
-        majorCompactionQueued = false;
-        
-        if (closing || closed || !needsMajorCompaction(reason) || majorCompactionInProgress || needsSplit()) {
-          return null;
-        }
-        
-        majorCompactionInProgress = true;
+    
+    synchronized (this) {
+      // check that compaction is still needed - defer to splitting
+      majorCompactionQueued.remove(reason);
+      
+      if (closing || closed || !needsMajorCompaction(reason) || majorCompactionInProgress || needsSplit()) {
+        return null;
       }
       
+      majorCompactionInProgress = true;
+    }
+
+    try {
       majCStats = _majorCompact(reason);
       if (reason == MajorCompactionReason.CHOP) {
         MetadataTable.chopped(getExtent(), this.tabletServer.getLock());
@@ -3458,7 +3466,7 @@ public class Tablet {
   }
   
   public boolean majorCompactionQueued() {
-    return majorCompactionQueued;
+    return majorCompactionQueued.size() > 0;
   }
   
   /**
@@ -3846,7 +3854,7 @@ public class Tablet {
       if (lastCompactID >= compactionId)
         return;
       
-      if (closing || closed || majorCompactionQueued || majorCompactionInProgress)
+      if (closing || closed || majorCompactionQueued.contains(MajorCompactionReason.USER) || majorCompactionInProgress)
         return;
       
       if (datafileManager.getDatafileSizes().size() == 0) {
@@ -3859,16 +3867,17 @@ public class Tablet {
     }
     
     if (updateMetadata) {
+      try {
       // if multiple threads were allowed to update this outside of a sync block, then it would be
       // a race condition
-      MetadataTable.updateTabletCompactID(extent, compactionId, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
-    }
-    
-    if (updateMetadata)
-      synchronized (this) {
-        majorCompactionInProgress = false;
-        this.notifyAll();
+        MetadataTable.updateTabletCompactID(extent, compactionId, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+      } finally {
+        synchronized (this) {
+          majorCompactionInProgress = false;
+          this.notifyAll();
+        }
       }
+    }
   }
   
   public TableConfiguration getTableConfiguration() {
