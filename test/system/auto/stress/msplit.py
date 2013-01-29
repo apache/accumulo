@@ -31,10 +31,10 @@ class MetaSplitTest(TabletShouldSplit):
     
     tableSettings = TabletShouldSplit.tableSettings.copy()
     tableSettings['!METADATA'] = { 
-    	'table.split.threshold': 500,
+    	'table.split.threshold': 100,
         }
     tableSettings['test_ingest'] = { 
-    	'table.split.threshold': '10K',
+    	'table.split.threshold': '100K',
         }
 
     def runTest(self):

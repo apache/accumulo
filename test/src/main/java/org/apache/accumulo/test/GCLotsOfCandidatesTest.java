@@ -40,7 +40,7 @@ public class GCLotsOfCandidatesTest {
     conn.securityOperations().grantTablePermission(conn.whoami(), Constants.METADATA_TABLE_NAME, TablePermission.WRITE);
     BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, bwOpts.getBatchWriterConfig());
     
-    for (int i = 0; i < 10000; ++i) {
+    for (int i = 0; i < 100000; ++i) {
       final Text emptyText = new Text("");
       Text row = new Text(String.format("%s%s%020d%s", Constants.METADATA_DELETE_FLAG_PREFIX, "/", i,
           "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));

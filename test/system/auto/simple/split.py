@@ -46,14 +46,14 @@ class TabletShouldSplit(SunnyDayTest):
         self.waitForStop(self.ingester, 60)
         self.waitForStop(self.verify(self.masterHost(), self.options.rows), 60)
 
-        # let the server split tablets and move them around
-        self.sleep(30)
-        
         # verify that we can read all the data: give it a minute to load
         # tablets
         self.waitForStop(self.verify(self.masterHost(), self.options.rows),
                          120)
 
+        # let the server split tablets and move them around
+        self.sleep(10)
+        
         # get the metadata
         out, err, code = self.shell(self.masterHost(), 'table !METADATA\nscan -np\n')
         self.assert_(code == 0)

@@ -102,7 +102,7 @@ class GCLotsOfCandidatesTest(TestUtilsMixin, unittest.TestCase):
 
         log.info("Running GC with low memory allotment")
         gc = self.runOn('localhost',
-                        ['bash', '-c', 'ACCUMULO_GC_OPTS="-Xmx15m " ' + self.accumulo_sh() + ' gc'])
+                        ['bash', '-c', 'ACCUMULO_GC_OPTS="-Xmx10m " ' + self.accumulo_sh() + ' gc'])
         self.sleep(10)
         self.pkill('localhost', 'app=gc', signal.SIGHUP)
         self.wait(gc)
