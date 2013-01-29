@@ -46,6 +46,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.io.Text;
@@ -179,7 +180,7 @@ public class PermissionsTest {
           break;
         case DROP_USER:
           user = "__DROP_USER_WITHOUT_PERM_TEST__";
-          root_conn.securityOperations().createUser(TEST_TOKEN);
+          root_conn.securityOperations().createUser(new UserPassToken(user, password.getBytes()));
           try {
             test_user_conn.securityOperations().dropUser(user);
             throw new IllegalStateException("Should NOT be able to delete a user");
@@ -190,7 +191,7 @@ public class PermissionsTest {
           break;
         case ALTER_USER:
           user = "__ALTER_USER_WITHOUT_PERM_TEST__";
-          root_conn.securityOperations().createUser(TEST_TOKEN);
+          root_conn.securityOperations().createUser(new UserPassToken(user, password.getBytes()));
           try {
             test_user_conn.securityOperations().changeUserAuthorizations(user, new Authorizations("A", "B"));
             throw new IllegalStateException("Should NOT be able to alter a user");
@@ -252,20 +253,20 @@ public class PermissionsTest {
           break;
         case CREATE_USER:
           user = "__CREATE_USER_WITH_PERM_TEST__";
-          test_user_conn.securityOperations().createUser(TEST_TOKEN);
+          test_user_conn.securityOperations().createUser(new UserPassToken(user, password.getBytes()));
           if (!root_conn.securityOperations().authenticateUser(new UserPassToken(user, password.getBytes())))
             throw new IllegalStateException("Should be able to create a user");
           break;
         case DROP_USER:
           user = "__DROP_USER_WITH_PERM_TEST__";
-          root_conn.securityOperations().createUser(TEST_TOKEN);
+          root_conn.securityOperations().createUser(new UserPassToken(user, password.getBytes()));
           test_user_conn.securityOperations().dropUser(user);
           if (root_conn.securityOperations().authenticateUser(new UserPassToken(user, password.getBytes())))
             throw new IllegalStateException("Should be able to delete a user");
           break;
         case ALTER_USER:
           user = "__ALTER_USER_WITH_PERM_TEST__";
-          root_conn.securityOperations().createUser(TEST_TOKEN);
+          root_conn.securityOperations().createUser(new UserPassToken(user, password.getBytes()));
           test_user_conn.securityOperations().changeUserAuthorizations(user, new Authorizations("A", "B"));
           if (root_conn.securityOperations().getUserAuthorizations(user).isEmpty())
             throw new IllegalStateException("Should be able to alter a user");
