@@ -32,10 +32,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class VisibilityFilter extends Filter {
-  private VisibilityEvaluator ve;
-  private Text defaultVisibility;
-  private LRUMap cache;
-  private Text tmpVis;
+  protected VisibilityEvaluator ve;
+  protected Text defaultVisibility;
+  protected LRUMap cache;
+  protected Text tmpVis;
   
   private static final Logger log = Logger.getLogger(VisibilityFilter.class);
   
