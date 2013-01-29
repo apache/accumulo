@@ -1404,6 +1404,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             if (tls == null) {
               continue;
             }
+            // ignore entries for tables that do not exist in zookeeper
+            if (TableManager.getInstance().getTableState(tls.extent.getTableId().toString()) == null)
+              continue;
             
             // Don't overwhelm the tablet servers with work
             if (unassigned.size() + unloaded > MAX_TSERVER_WORK_CHUNK * currentTServers.size()) {
