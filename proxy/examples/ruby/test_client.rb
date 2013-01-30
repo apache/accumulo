@@ -33,16 +33,16 @@ transport.open()
 login = proxy.login(us)
 
 # print out a table list
-puts "List of tables: #{proxy.listTables(us).inspect}"
+puts "List of tables: #{proxy.listTables(login).inspect}"
 
 testtable = "rubytest"
-proxy.createTable(us, testtable, true, TimeType::MILLIS) unless proxy.tableExists(us,testtable) 
+proxy.createTable(login, testtable, true, TimeType::MILLIS) unless proxy.tableExists(login,testtable) 
 
 update1 = ColumnUpdate.new({'colFamily' => "cf1", 'colQualifier' => "cq1", 'value'=> "a"})
 update2 = ColumnUpdate.new({'colFamily' => "cf2", 'colQualifier' => "cq2", 'value'=> "b"})
-proxy.updateAndFlush(us,testtable,{'row1' => [update1,update2]})
+proxy.updateAndFlush(login,testtable,{'row1' => [update1,update2]})
 
-cookie = proxy.createScanner(us,testtable,nil)
+cookie = proxy.createScanner(login,testtable,nil)
 result = proxy.nextK(cookie,10)
 result.results.each{ |keyvalue| puts "Key: #{keyvalue.key.inspect} Value: #{keyvalue.value}" }
 
