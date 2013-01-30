@@ -48,7 +48,7 @@ public class TestProxyTableOperations {
   protected static TServer proxy;
   protected static Thread thread;
   protected static TestProxyClient tpc;
-  protected static UserPass userpass;
+  protected static ByteBuffer userpass;
   protected static final int port = 10195;
   protected static final String testtable = "testtable";
   
@@ -67,7 +67,7 @@ public class TestProxyTableOperations {
     };
     thread.start();
     tpc = new TestProxyClient("localhost", port);
-    userpass = new UserPass("root", ByteBuffer.wrap("".getBytes()));
+    userpass = tpc.proxy().login(new UserPass("root", ByteBuffer.wrap("".getBytes())));
   }
   
   @AfterClass
@@ -84,11 +84,6 @@ public class TestProxyTableOperations {
   @After
   public void deleteTestTable() throws Exception {
     tpc.proxy().deleteTable(userpass, testtable);
-  }
-  
-  @Test
-  public void ping() throws Exception {
-    tpc.proxy().ping(userpass);
   }
   
   @Test

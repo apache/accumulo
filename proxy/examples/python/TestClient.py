@@ -30,17 +30,17 @@ protocol = TCompactProtocol.TCompactProtocol(transport)
 client = AccumuloProxy.Client(protocol)
 transport.open()
 
-userpass = UserPass("root","secret")
+login = client.login(UserPass("root","secret"))
 
-print client.listTables(userpass)
+print client.listTables(login)
 
 testtable = "pythontest"
-if not client.tableExists(userpass, testtable):
-    client.createTable(userpass, testtable, True, TimeType.MILLIS)
+if not client.tableExists(login, testtable):
+    client.createTable(login, testtable, True, TimeType.MILLIS)
 
 row1 = {'a':[ColumnUpdate('a','a',value='value1'), ColumnUpdate('b','b',value='value2')]}
-client.updateAndFlush(userpass, testtable, row1)
+client.updateAndFlush(login, testtable, row1)
 
-cookie = client.createScanner(userpass, testtable, None)
+cookie = client.createScanner(login, testtable, None)
 for entry in client.nextK(cookie, 10).results:
    print entry

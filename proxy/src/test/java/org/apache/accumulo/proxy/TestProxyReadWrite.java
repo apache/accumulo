@@ -51,7 +51,7 @@ public class TestProxyReadWrite {
   protected static TServer proxy;
   protected static Thread thread;
   protected static TestProxyClient tpc;
-  protected static UserPass userpass;
+  protected static ByteBuffer userpass;
   protected static final int port = 10194;
   protected static final String testtable = "testtable";
   
@@ -70,7 +70,7 @@ public class TestProxyReadWrite {
     };
     thread.start();
     tpc = new TestProxyClient("localhost", port);
-    userpass = new UserPass("root", ByteBuffer.wrap("".getBytes()));
+    userpass = tpc.proxy().login(new UserPass("root", ByteBuffer.wrap("".getBytes())));
   }
   
   @AfterClass

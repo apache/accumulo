@@ -36,7 +36,7 @@ public class TestProxyInstanceOperations {
   protected static TServer proxy;
   protected static Thread thread;
   protected static TestProxyClient tpc;
-  protected static UserPass userpass;
+  protected static ByteBuffer userpass;
   protected static final int port = 10197;
   
   @BeforeClass
@@ -54,7 +54,7 @@ public class TestProxyInstanceOperations {
     };
     thread.start();
     tpc = new TestProxyClient("localhost", port);
-    userpass = new UserPass("root", ByteBuffer.wrap("".getBytes()));
+    userpass = tpc.proxy.login(new UserPass("root", ByteBuffer.wrap("".getBytes())));
   }
   
   @AfterClass

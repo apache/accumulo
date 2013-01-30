@@ -30,7 +30,7 @@ us = UserPass.new({'username'=> 'root', 'password' => 'secret'})
 transport.open()
 
 # Test if the server is up
-puts "Server is up? #{proxy.ping(us)}"
+login = proxy.login(us)
 
 # print out a table list
 puts "List of tables: #{proxy.listTables(us).inspect}"

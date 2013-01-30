@@ -82,7 +82,8 @@ public class SimpleTest {
   private static Thread thread;
   private static int proxyPort;
   private static org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
-  private static UserPass creds = new UserPass("root", ByteBuffer.wrap(secret.getBytes()));
+  private static UserPass userpass = new UserPass("root", ByteBuffer.wrap(secret.getBytes()));
+  private static ByteBuffer creds = null;
 
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
@@ -107,13 +108,9 @@ public class SimpleTest {
     while (!proxyServer.isServing())
       UtilWaitThread.sleep(100);
     client = new TestProxyClient("localhost", proxyPort).proxy();
+    creds = client.login(userpass);
   }
 
-  @Test(timeout = 10000)
-  public void testPing() throws Exception {
-    client.ping(creds);
-  }
-  
   @Test(timeout = 10000)
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
@@ -249,7 +246,8 @@ public class SimpleTest {
     assertTrue(client.authenticateUser(creds, "stooge", s2bb("")));
     
     // check permission failure
-    UserPass stooge = new UserPass("stooge", s2bb(""));
+    ByteBuffer stooge = client.login(new UserPass("stooge", s2bb("")));
+    
     try {
       client.createTable(stooge, "fail", true, TimeType.MILLIS);
       fail("should not create the table");
