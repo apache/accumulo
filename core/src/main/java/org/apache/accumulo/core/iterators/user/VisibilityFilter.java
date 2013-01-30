@@ -38,8 +38,8 @@ import org.apache.hadoop.io.Text;
  */
 public class VisibilityFilter extends org.apache.accumulo.core.iterators.system.VisibilityFilter implements OptionDescriber {
   
-  public static final String AUTHS = "auths";
-  public static final String FILTER_INVALID_ONLY = "filterInvalid";
+  private static final String AUTHS = "auths";
+  private static final String FILTER_INVALID_ONLY = "filterInvalid";
   
   private boolean filterInvalid;
   
@@ -57,17 +57,22 @@ public class VisibilityFilter extends org.apache.accumulo.core.iterators.system.
     this.filterInvalid = Boolean.parseBoolean(options.get(FILTER_INVALID_ONLY));
     
     if (!filterInvalid) {
-      this.ve = new VisibilityEvaluator(new Authorizations(options.get(AUTHS).getBytes(Constants.UTF8)));
+      String auths = options.get(AUTHS);
+      Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations() : new Authorizations(auths.getBytes(Constants.UTF8));
+      this.ve = new VisibilityEvaluator(authObj);
       this.defaultVisibility = new Text();
-      this.cache = new LRUMap(1000);
-      this.tmpVis = new Text();
     }
+    this.cache = new LRUMap(1000);
+    this.tmpVis = new Text();
   }
   
   @Override
   public boolean accept(Key k, Value v) {
     if (filterInvalid) {
       Text testVis = k.getColumnVisibility(tmpVis);
+      Boolean b = (Boolean) cache.get(testVis);
+      if (b != null)
+        return b;
       try {
         new ColumnVisibility(testVis);
         cache.put(new Text(testVis), true);
