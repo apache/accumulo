@@ -36,11 +36,11 @@ puts "Server is up? #{proxy.ping(us)}"
 puts "List of tables: #{proxy.listTables(us).inspect}"
 
 testtable = "rubytest"
-proxy.createTable(us,testtable) unless proxy.tableExists(us,testtable) 
+proxy.createTable(us, testtable, true, TimeType::MILLIS) unless proxy.tableExists(us,testtable) 
 
-update1 = PColumnUpdate.new({'colFamily' => "cf1", 'colQualifier' => "cq1", 'value'=> "a"})
-update2 = PColumnUpdate.new({'colFamily' => "cf2", 'colQualifier' => "cq2", 'value'=> "b"})
-proxy.updateAndFlush(us,testtable,{'row1' => [update1,update2]},nil)
+update1 = ColumnUpdate.new({'colFamily' => "cf1", 'colQualifier' => "cq1", 'value'=> "a"})
+update2 = ColumnUpdate.new({'colFamily' => "cf2", 'colQualifier' => "cq2", 'value'=> "b"})
+proxy.updateAndFlush(us,testtable,{'row1' => [update1,update2]})
 
 cookie = proxy.createScanner(us,testtable,nil)
 result = proxy.nextK(cookie,10)
