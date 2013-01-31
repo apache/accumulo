@@ -33,6 +33,7 @@ import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
@@ -44,10 +45,14 @@ public class TestProxyClient {
   protected TTransport transport;
   
   public TestProxyClient(String host, int port) throws TTransportException {
+    this(host, port, new TCompactProtocol.Factory());
+  }
+  
+  public TestProxyClient(String host, int port, TProtocolFactory protoFactory) throws TTransportException {
     final TSocket socket = new TSocket(host, port);
     socket.setTimeout(600000);
     transport = new TFramedTransport(socket);
-    final TProtocol protocol = new TCompactProtocol(transport);
+    final TProtocol protocol = protoFactory.getProtocol(transport);
     proxy = new AccumuloProxy.Client(protocol);
     transport.open();
   }

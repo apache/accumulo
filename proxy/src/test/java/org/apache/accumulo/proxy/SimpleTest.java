@@ -26,6 +26,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -67,8 +68,8 @@ import org.apache.accumulo.proxy.thrift.SystemPermission;
 import org.apache.accumulo.proxy.thrift.TablePermission;
 import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
-import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.MiniAccumuloCluster;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -76,9 +77,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServer;
-import org.apache.thrift.transport.TFramedTransport;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -101,6 +101,19 @@ public class SimpleTest {
   private static UserPass userpass = new UserPass("root", ByteBuffer.wrap(secret.getBytes()));
   private static ByteBuffer creds = null;
 
+  private static Class<? extends TProtocolFactory> protocolClass;
+
+  static Class<? extends TProtocolFactory> getRandomProtocol() {
+    List<Class<? extends TProtocolFactory>> protocolFactories = new ArrayList<Class<? extends TProtocolFactory>>();
+    protocolFactories.add(org.apache.thrift.protocol.TJSONProtocol.Factory.class);
+    protocolFactories.add(org.apache.thrift.protocol.TBinaryProtocol.Factory.class);
+    protocolFactories.add(org.apache.thrift.protocol.TTupleProtocol.Factory.class);
+    protocolFactories.add(org.apache.thrift.protocol.TCompactProtocol.Factory.class);
+    
+    Random rand = new Random();
+    return protocolFactories.get(rand.nextInt(protocolFactories.size()));
+  }
+
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
     folder.create();
@@ -111,9 +124,12 @@ public class SimpleTest {
     props.put("org.apache.accumulo.proxy.ProxyServer.instancename", accumulo.getInstanceName());
     props.put("org.apache.accumulo.proxy.ProxyServer.zookeepers", accumulo.getZookeepers());
     
+    protocolClass = getRandomProtocol();
+    System.out.println(protocolClass.getName());
+
     proxyPort = 40000 + random.nextInt(20000);
     proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
-        TCompactProtocol.Factory.class, TFramedTransport.Factory.class, props);
+        protocolClass, props);
     thread = new Thread() {
       @Override
       public void run() {
@@ -123,7 +139,7 @@ public class SimpleTest {
     thread.start();
     while (!proxyServer.isServing())
       UtilWaitThread.sleep(100);
-    client = new TestProxyClient("localhost", proxyPort).proxy();
+    client = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
     creds = client.login(userpass);
   }
 
@@ -171,11 +187,11 @@ public class SimpleTest {
       public void run() {
         String scanner;
         try {
-          Client client2 = new TestProxyClient("localhost", proxyPort).proxy();
+          Client client2 = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
           scanner = client2.createScanner(creds, "slow", null);
           client2.nextK(scanner, 10);
           client2.closeScanner(scanner);
-        } catch (TException e) {
+        } catch (Exception e) {
           throw new RuntimeException(e);
         }
       }
@@ -209,9 +225,9 @@ public class SimpleTest {
       @Override
       public void run() {
         try {
-          Client client2 = new TestProxyClient("localhost", proxyPort).proxy();
+          Client client2 = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
           client2.compactTable(creds, "slow", null, null, null, true, true);
-        } catch (TException e) {
+        } catch (Exception e) {
           throw new RuntimeException(e);
         }
       }
@@ -495,7 +511,7 @@ public class SimpleTest {
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
-    folder.delete();
+    // folder.delete();
   }
   
 }

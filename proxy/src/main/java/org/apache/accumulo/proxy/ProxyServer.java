@@ -603,7 +603,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public boolean authenticateUser(ByteBuffer login, String user, ByteBuffer password) throws TException {
     try {
-      return getConnector(login).securityOperations().authenticateUser(new UserPassToken(user, password.array()));
+      return getConnector(login).securityOperations().authenticateUser(new UserPassToken(user, ByteBufferUtil.toBytes(password)));
     } catch (Exception e) {
       throw translateException(e);
     }
@@ -625,7 +625,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void changeUserPassword(ByteBuffer login, String user, ByteBuffer password) throws TException {
     try {
-      getConnector(login).securityOperations().changeUserPassword(new UserPassToken(user, password.array()));
+      getConnector(login).securityOperations().changeUserPassword(new UserPassToken(user, ByteBufferUtil.toBytes(password)));
     } catch (Exception e) {
       throw translateException(e);
     }

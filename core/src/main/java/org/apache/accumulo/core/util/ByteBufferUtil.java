@@ -28,7 +28,7 @@ public class ByteBufferUtil {
   public static byte[] toBytes(ByteBuffer buffer) {
     if (buffer == null)
       return null;
-    return Arrays.copyOfRange(buffer.array(), buffer.position(), buffer.remaining());
+    return Arrays.copyOfRange(buffer.array(), buffer.position(), buffer.limit());
   }
   
   public static List<ByteBuffer> toByteBuffers(Collection<byte[]> bytesList) {
