@@ -82,13 +82,13 @@ public class SecurityHelper {
     log.debug("Setting system user pass to " + new String(sysUserPass));
     state.set(masterPass, sysUserPass);
     state.set(masterPass + "time", System.currentTimeMillis());
-
+    
   }
   
   public static boolean sysUserPassTransient(State state) {
     return System.currentTimeMillis() - state.getLong(masterPass + "time") < 1000;
   }
-
+  
   public static byte[] getTabUserPass(State state) {
     return (byte[]) state.get(tUserPass);
   }
@@ -102,7 +102,7 @@ public class SecurityHelper {
   public static boolean tabUserPassTransient(State state) {
     return System.currentTimeMillis() - state.getLong(tUserPass + "time") < 1000;
   }
-
+  
   public static boolean getTabUserExists(State state) {
     return Boolean.parseBoolean(state.getString(tUserExists));
   }
@@ -136,7 +136,7 @@ public class SecurityHelper {
     state.set("Tab" + userName + tp.name(), Boolean.toString(value));
     if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE))
       state.set("Tab" + userName + tp.name() + "time", System.currentTimeMillis());
-
+    
   }
   
   public static boolean getSysPerm(State state, String userName, SystemPermission tp) {
@@ -204,12 +204,6 @@ public class SecurityHelper {
     return fs;
   }
   
-  /**
-   * @param state
-   * @param tabUserName
-   * @param tp
-   * @return
-   */
   public static boolean inAmbiguousZone(State state, String userName, TablePermission tp) {
     if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE)) {
       Long setTime = (Long) state.get("Tab" + userName + tp.name() + "time");

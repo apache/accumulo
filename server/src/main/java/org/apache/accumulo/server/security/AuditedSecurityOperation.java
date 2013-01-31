@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -24,8 +24,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
@@ -35,12 +35,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public class AuditedSecurityOperation extends SecurityOperation {
-  /**
-   * @param author
-   * @param authent
-   * @param pm
-   * @param instanceId
-   */
+  
   public AuditedSecurityOperation(Authorizor author, Authenticator authent, PermissionHandler pm, String instanceId) {
     super(author, authent, pm, instanceId);
   }
@@ -63,13 +58,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     log.log(AuditLevel.AUDIT, "Using credentials " + credentials.getPrincipal() + ": " + String.format(template, args));
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @param password
-   * @return
-   * @throws ThriftSecurityException
-   */
+  @Override
   public boolean authenticateUser(InstanceTokenWrapper credentials, SecurityToken token) throws ThriftSecurityException {
     try {
       boolean result = super.authenticateUser(credentials, token);
@@ -78,16 +67,11 @@ public class AuditedSecurityOperation extends SecurityOperation {
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "authenticateUser");
       log.debug(ex);
-   throw ex;
+      throw ex;
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @return The given user's authorizations
-   * @throws ThriftSecurityException
-   */
+  @Override
   public Authorizations getUserAuthorizations(InstanceTokenWrapper credentials, String user) throws ThriftSecurityException {
     try {
       Authorizations result = super.getUserAuthorizations(credentials, user);
@@ -101,11 +85,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     
   }
   
-  /**
-   * @param credentials
-   * @return
-   * @throws ThriftSecurityException
-   */
+  @Override
   public Authorizations getUserAuthorizations(InstanceTokenWrapper credentials) throws ThriftSecurityException {
     try {
       return getUserAuthorizations(credentials, credentials.getPrincipal());
@@ -115,12 +95,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @param authorizations
-   * @throws ThriftSecurityException
-   */
+  @Override
   public void changeAuthorizations(InstanceTokenWrapper credentials, String user, Authorizations authorizations) throws ThriftSecurityException {
     try {
       super.changeAuthorizations(credentials, user, authorizations);
@@ -128,16 +103,11 @@ public class AuditedSecurityOperation extends SecurityOperation {
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "changing authorizations for %s", user);
       log.debug(ex);
-    throw ex;
+      throw ex;
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @param bytes
-   * @throws ThriftSecurityException
-   */
+  @Override
   public void changePassword(InstanceTokenWrapper credentials, SecurityToken token) throws ThriftSecurityException {
     try {
       super.changePassword(credentials, token);
@@ -145,17 +115,11 @@ public class AuditedSecurityOperation extends SecurityOperation {
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "changing password for %s", token.getPrincipal());
       log.debug(ex);
-  throw ex;
+      throw ex;
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @param bytes
-   * @param authorizations
-   * @throws ThriftSecurityException
-   */
+  @Override
   public void createUser(InstanceTokenWrapper credentials, SecurityToken token, Authorizations authorizations) throws ThriftSecurityException {
     try {
       super.createUser(credentials, token, authorizations);
@@ -163,15 +127,11 @@ public class AuditedSecurityOperation extends SecurityOperation {
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "createUser %s", token.getPrincipal());
       log.debug(ex);
-  throw ex;
+      throw ex;
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @throws ThriftSecurityException
-   */
+  @Override
   public void dropUser(InstanceTokenWrapper credentials, String user) throws ThriftSecurityException {
     try {
       super.dropUser(credentials, user);
@@ -179,16 +139,11 @@ public class AuditedSecurityOperation extends SecurityOperation {
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "dropUser %s", user);
       log.debug(ex);
-  throw ex;
+      throw ex;
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @param permission
-   * @throws ThriftSecurityException
-   */
+  @Override
   public void grantSystemPermission(InstanceTokenWrapper credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     try {
       super.grantSystemPermission(credentials, user, permission);
@@ -200,13 +155,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @param table
-   * @param permission
-   * @throws ThriftSecurityException
-   */
+  @Override
   public void grantTablePermission(InstanceTokenWrapper credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
     try {
       super.grantTablePermission(credentials, user, table, permission);
@@ -218,12 +167,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @param permission
-   * @throws ThriftSecurityException
-   */
+  @Override
   public void revokeSystemPermission(InstanceTokenWrapper credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     try {
       super.revokeSystemPermission(credentials, user, permission);
@@ -235,13 +179,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @param table
-   * @param permission
-   * @throws ThriftSecurityException
-   */
+  @Override
   public void revokeTablePermission(InstanceTokenWrapper credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
     try {
       super.revokeTablePermission(credentials, user, table, permission);
@@ -253,13 +191,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @param permission
-   * @return
-   * @throws ThriftSecurityException
-   */
+  @Override
   public boolean hasSystemPermission(InstanceTokenWrapper credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     try {
       boolean result = super.hasSystemPermission(credentials, user, permission);
@@ -272,14 +204,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
   
-  /**
-   * @param credentials
-   * @param user
-   * @param table
-   * @param permission
-   * @return
-   * @throws ThriftSecurityException
-   */
+  @Override
   public boolean hasTablePermission(InstanceTokenWrapper credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
     try {
       boolean result = super.hasTablePermission(credentials, user, table, permission);
@@ -292,11 +217,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
   
-  /**
-   * @param credentials
-   * @return
-   * @throws ThriftSecurityException
-   */
+  @Override
   public Set<String> listUsers(InstanceTokenWrapper credentials) throws ThriftSecurityException {
     try {
       Set<String> result = super.listUsers(credentials);
@@ -309,11 +230,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
   
-  /**
-   * @param systemCredentials
-   * @param table
-   * @throws ThriftSecurityException
-   */
+  @Override
   public void deleteTable(InstanceTokenWrapper credentials, String table) throws ThriftSecurityException {
     try {
       super.deleteTable(credentials, table);
@@ -321,7 +238,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "deleting table %s", table);
       log.debug(ex);
-  throw ex;
+      throw ex;
     }
   }
   

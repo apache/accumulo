@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -26,60 +26,39 @@ import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
  * Accumulo, it should throw an AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
  */
 public interface Authorizor {
+  
   /**
    * Sets up the authorizor for a new instance of Accumulo
-   * 
-   * @param instanceId
    */
   public void initialize(String instanceId, boolean initialize);
-
+  
   /**
    * Used to validate that the Authorizor, Authenticator, and permission handler can coexist
-   * 
-   * @param auth
-   * @return
    */
   public boolean validSecurityHandlers(Authenticator auth, PermissionHandler pm);
   
   /**
    * Used to initialize security for the root user
-   * 
-   * @param rootuser
-   * @throws AccumuloSecurityException
    */
   public void initializeSecurity(InstanceTokenWrapper credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException;
   
   /**
    * Used to change the authorizations for the user
-   * 
-   * @param user
-   * @param authorizations
-   * @throws AccumuloSecurityException
    */
   public void changeAuthorizations(String user, Authorizations authorizations) throws AccumuloSecurityException;
   
   /**
    * Used to get the authorizations for the user
-   * 
-   * @param user
-   * @return
-   * @throws AccumuloSecurityException
    */
   public Authorizations getCachedUserAuthorizations(String user) throws AccumuloSecurityException;
   
   /**
    * Initializes a new user
-   * 
-   * @param user
-   * @throws AccumuloSecurityException
    */
   public void initUser(String user) throws AccumuloSecurityException;
   
   /**
    * Deletes a user
-   * 
-   * @param user
-   * @throws AccumuloSecurityException
    */
   public void dropUser(String user) throws AccumuloSecurityException;
 }

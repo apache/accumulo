@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -36,8 +36,8 @@ import org.apache.log4j.Logger;
 
 /**
  * All the static too methods used for this class, so that we can separate out stuff that isn't using ZooKeeper. That way, we can check the synchronization
- * model more easily, as we only need to check to make sure zooCache is cleared when things are written to ZooKeeper in methods that might use it. These
- * won't, and so don't need to be checked.
+ * model more easily, as we only need to check to make sure zooCache is cleared when things are written to ZooKeeper in methods that might use it. These won't,
+ * and so don't need to be checked.
  */
 class ZKSecurityTool {
   private static final Logger log = Logger.getLogger(ZKSecurityTool.class);
@@ -101,7 +101,7 @@ class ZKSecurityTool {
   public static byte[] convertAuthorizations(Authorizations authorizations) {
     return authorizations.getAuthorizationsArray();
   }
-
+  
   public static byte[] convertSystemPermissions(Set<SystemPermission> systempermissions) {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream(systempermissions.size());
     DataOutputStream out = new DataOutputStream(bytes);
@@ -149,10 +149,6 @@ class ZKSecurityTool {
     return toReturn;
   }
   
-  /**
-   * @param instanceId
-   * @return
-   */
   public static String getInstancePath(String instanceId) {
     return Constants.ZROOT + "/" + instanceId;
   }

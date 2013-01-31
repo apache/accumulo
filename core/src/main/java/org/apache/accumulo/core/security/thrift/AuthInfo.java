@@ -30,6 +30,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.thrift.protocol.TTupleProtocol;
 import org.apache.thrift.scheme.IScheme;
 import org.apache.thrift.scheme.SchemeFactory;
@@ -37,7 +38,7 @@ import org.apache.thrift.scheme.StandardScheme;
 import org.apache.thrift.scheme.TupleScheme;
 
 /**
- * @deprecated since 1.5, use {@link#UserPassToken} instead
+ * @deprecated since 1.5, use {@link UserPassToken} instead
  */
 @SuppressWarnings("serial")
 public class AuthInfo implements org.apache.thrift.TBase<AuthInfo, AuthInfo._Fields>, java.io.Serializable, Cloneable {

@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.admin;
 
 import java.util.Set;
 
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -33,13 +32,14 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.security.tokens.PasswordUpdatable;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.TokenHelper;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.trace.instrument.Tracer;
 
 public class SecurityOperationsImpl implements SecurityOperations {
   
@@ -109,6 +109,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if the user does not have permission to create a user
    * @deprecated Use {@link #createUser(SecurityToken)} instead
    */
+  @Override
   @Deprecated
   public void createUser(final String user, final byte[] password, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, password, authorizations);
@@ -118,10 +119,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
   /**
    * Create a user
    * 
-   * @param user
-   *          the name of the user to create
-   * @param password
-   *          the plaintext password for the user
+   * @param newToken
+   *          the security token with the information about the user to modify
    * @param authorizations
    *          the authorizations that the user has for scanning
    * @throws AccumuloException
@@ -130,13 +129,15 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if the user does not have permission to create a user
    * @deprecated Use {@link #createUser(SecurityToken)} instead
    */
+  @Deprecated
+  @Override
   public void createUser(final SecurityToken newToken, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(newToken, authorizations);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.createUser(Tracer.traceInfo(), token.toThrift(), TokenHelper.wrapper(newToken),
-            ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
+        client
+            .createUser(Tracer.traceInfo(), token.toThrift(), TokenHelper.wrapper(newToken), ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
       }
     });
   }
@@ -144,15 +145,14 @@ public class SecurityOperationsImpl implements SecurityOperations {
   /**
    * Create a user
    * 
-   * @param user
-   *          the name of the user to create
-   * @param password
-   *          the plaintext password for the user
+   * @param newToken
+   *          the security token with the information about the user to create
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
    */
+  @Override
   public void createUser(final SecurityToken newToken) throws AccumuloException, AccumuloSecurityException {
     createUser(newToken, new Authorizations());
   }
@@ -167,6 +167,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to delete a user
    */
+  @Override
   public void dropUser(final String user) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user);
     execute(new ClientExec<ClientService.Client>() {
@@ -191,6 +192,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if the user does not have permission to ask
    * @deprecated since 1.5, use {@link #authenticateUser(SecurityToken)}
    */
+  @Deprecated
+  @Override
   public boolean authenticateUser(final String user, final byte[] password) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, password);
     return authenticateUser(new UserPassToken(user, password));
@@ -199,7 +202,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
   /**
    * Verify a username/password combination is valid
    * 
-   * @param token
+   * @param token2
    *          the AccumuloToken of the principal to authenticate
    * @return true if the user asking is allowed to know and the specified AccumuloToken is valid, false otherwise
    * @throws AccumuloException
@@ -207,6 +210,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to ask
    */
+  @Override
   public boolean authenticateUser(final SecurityToken token2) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(token2);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
@@ -220,15 +224,14 @@ public class SecurityOperationsImpl implements SecurityOperations {
   /**
    * Set the user's password
    * 
-   * @param user
-   *          the name of the user to modify
-   * @param password
-   *          the plaintext password for the user
+   * @param newToken
+   *          the security token with the information about the user to modify
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to modify a user
    */
+  @Override
   public void changeUserPassword(final SecurityToken newToken) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(newToken);
     execute(new ClientExec<ClientService.Client>() {
@@ -257,7 +260,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to modify a user
+   * @deprecated since 1.5.0; use {@link #changeUserPassword(SecurityToken)} instead.
    */
+  @Deprecated
+  @Override
   public void changeUserPassword(final String user, final byte[] password) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, password);
     changeUserPassword(new UserPassToken(user, password));
@@ -275,6 +281,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to modify a user
    */
+  @Override
   public void changeUserAuthorizations(final String user, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, authorizations);
     execute(new ClientExec<ClientService.Client>() {
@@ -296,6 +303,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to query a user
    */
+  @Override
   public Authorizations getUserAuthorizations(final String user) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user);
     return execute(new ClientExecReturn<Authorizations,ClientService.Client>() {
@@ -319,6 +327,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to query a user
    */
+  @Override
   public boolean hasSystemPermission(final String user, final SystemPermission perm) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, perm);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
@@ -344,6 +353,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to query a user
    */
+  @Override
   public boolean hasTablePermission(final String user, final String table, final TablePermission perm) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, table, perm);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
@@ -366,6 +376,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to grant a user permissions
    */
+  @Override
   public void grantSystemPermission(final String user, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, permission);
     execute(new ClientExec<ClientService.Client>() {
@@ -390,6 +401,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to grant a user permissions
    */
+  @Override
   public void grantTablePermission(final String user, final String table, final TablePermission permission) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, table, permission);
     execute(new ClientExec<ClientService.Client>() {
@@ -412,6 +424,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to revoke a user's permissions
    */
+  @Override
   public void revokeSystemPermission(final String user, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, permission);
     execute(new ClientExec<ClientService.Client>() {
@@ -436,6 +449,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to revoke a user's permissions
    */
+  @Override
   public void revokeTablePermission(final String user, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
     ArgumentChecker.notNull(user, table, permission);
@@ -456,6 +470,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to query users
    */
+  @Override
   public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException {
     return execute(new ClientExecReturn<Set<String>,ClientService.Client>() {
       @Override

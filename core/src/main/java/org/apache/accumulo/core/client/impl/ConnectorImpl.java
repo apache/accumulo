@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -40,9 +39,10 @@ import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.trace.instrument.Tracer;
 
 public class ConnectorImpl extends Connector {
   private Instance instance;
@@ -58,10 +58,6 @@ public class ConnectorImpl extends Connector {
    * 
    * Use {@link Instance#getConnector(String, byte[])}
    * 
-   * @param instance
-   * @param token
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    * @see Instance#getConnector(String user, byte[] password)
    * @deprecated Not for client use
    */
@@ -137,8 +133,8 @@ public class ConnectorImpl extends Connector {
   @Deprecated
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
-    return new MultiTableBatchWriterImpl(instance, token, new BatchWriterConfig().setMaxMemory(maxMemory)
-        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+    return new MultiTableBatchWriterImpl(instance, token, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
+        .setMaxWriteThreads(maxWriteThreads));
   }
   
   @Override
@@ -152,21 +148,11 @@ public class ConnectorImpl extends Connector {
     return new ScannerImpl(instance, token, getTableId(tableName), authorizations);
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see accumulo.core.client.Connector#whoami()
-   */
   @Override
   public String whoami() {
     return token.getPrincipal();
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see accumulo.core.client.Connector#tableOperations()
-   */
   @Override
   public synchronized TableOperations tableOperations() {
     if (tableops == null)
@@ -174,11 +160,6 @@ public class ConnectorImpl extends Connector {
     return tableops;
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see accumulo.core.client.Connector#securityOperations()
-   */
   @Override
   public synchronized SecurityOperations securityOperations() {
     if (secops == null)
@@ -187,11 +168,6 @@ public class ConnectorImpl extends Connector {
     return secops;
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see accumulo.core.client.Connector#instanceOperations()
-   */
   @Override
   public synchronized InstanceOperations instanceOperations() {
     if (instanceops == null)

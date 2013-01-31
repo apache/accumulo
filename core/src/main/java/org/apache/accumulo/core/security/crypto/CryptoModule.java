@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -33,10 +33,8 @@ import java.util.Map;
 public interface CryptoModule {
   
   public enum CryptoInitProperty {
-    ALGORITHM_NAME("algorithm.name"), 
-    CIPHER_SUITE("cipher.suite"), 
-    INITIALIZATION_VECTOR("initialization.vector"), 
-    PLAINTEXT_SESSION_KEY("plaintext.session.key");
+    ALGORITHM_NAME("algorithm.name"), CIPHER_SUITE("cipher.suite"), INITIALIZATION_VECTOR("initialization.vector"), PLAINTEXT_SESSION_KEY(
+        "plaintext.session.key");
     
     private CryptoInitProperty(String name) {
       key = name;
@@ -57,7 +55,7 @@ public interface CryptoModule {
    * 
    * @param out
    *          the OutputStream to wrap
-   * @param conf
+   * @param cryptoOpts
    *          the cryptographic parameters to use; specific string names to look for will depend on the various implementations
    * @return an OutputStream that wraps the given parameter
    * @throws IOException
@@ -75,7 +73,7 @@ public interface CryptoModule {
    * 
    * @param in
    *          the InputStream to wrap
-   * @param conf
+   * @param cryptoOpts
    *          the cryptographic parameters to use; specific string names to look for will depend on the various implementations
    * @return an InputStream that wraps the given parameter
    * @throws IOException
@@ -106,12 +104,6 @@ public interface CryptoModule {
    * 
    * The cryptoInitParams contains all necessary information to properly initialize the given cipher, usually including things like initialization vector and
    * secret key.
-   * 
-   * @param in
-   * @param cryptoOpts
-   * @param cryptoInitParams
-   * @return
-   * @throws IOException
    */
   public InputStream getDecryptingInputStream(InputStream in, Map<String,String> cryptoOpts, Map<CryptoModule.CryptoInitProperty,Object> cryptoInitParams)
       throws IOException;

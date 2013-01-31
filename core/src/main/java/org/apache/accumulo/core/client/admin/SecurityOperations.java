@@ -27,9 +27,7 @@ import org.apache.accumulo.core.security.tokens.SecurityToken;
 
 /**
  * Provides a class for managing users and permissions
- * 
  */
-
 public interface SecurityOperations {
   
   /**
@@ -45,18 +43,16 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
-   * @deprecated Use {@link #createUser(String,byte[])} instead
+   * @deprecated Use {@link #createUser(SecurityToken)} instead
    */
   @Deprecated
   public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
-
+  
   /**
    * Create a user
    * 
-   * @param user
-   *          the name of the user to create
-   * @param password
-   *          the plaintext password for the user
+   * @param token
+   *          the security token with the information about the user to create
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
@@ -90,8 +86,9 @@ public interface SecurityOperations {
    *           if the user does not have permission to ask
    * @deprecated @since 1.5, use {@link #authenticateUser(SecurityToken)}
    */
+  @Deprecated
   public boolean authenticateUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
-
+  
   /**
    * Verify an AccumuloToken is valid
    * 
@@ -102,7 +99,7 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to ask
-   *  @since 1.5
+   * @since 1.5
    */
   public boolean authenticateUser(SecurityToken token) throws AccumuloException, AccumuloSecurityException;
   
@@ -117,17 +114,16 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to modify a user
-   *           @deprecated @since 1.5, use {@link #changeUserPassword(SecurityToken)}
+   * @deprecated @since 1.5, use {@link #changeUserPassword(SecurityToken)}
    */
+  @Deprecated
   public void changeUserPassword(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Set the user's password
    * 
-   * @param user
-   *          the name of the user to modify
-   * @param password
-   *          the plaintext password for the user
+   * @param newToken
+   *          the security token with the information about the user to modify
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
@@ -264,14 +260,11 @@ public interface SecurityOperations {
    *           if the user does not have permission to query users
    */
   public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException;
-
+  
   /**
    * @deprecated @since 1.5, use {@link #createUser(SecurityToken)}
-   * @param token
-   * @param authorization
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
+  @Deprecated
   void createUser(SecurityToken token, Authorizations authorization) throws AccumuloException, AccumuloSecurityException;
   
 }

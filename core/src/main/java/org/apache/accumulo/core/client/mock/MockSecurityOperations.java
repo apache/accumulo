@@ -49,22 +49,19 @@ public class MockSecurityOperations implements SecurityOperations {
   
   /**
    * @deprecated @since 1.5, use {@link #createUser(SecurityToken)}
-   * @param user
-   * @param password
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
+  @Deprecated
   public void createUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
     createUser(user, password, new Authorizations());
   }
   
+  @Deprecated
   @Override
   public void createUser(SecurityToken token, Authorizations authorization) throws AccumuloException, AccumuloSecurityException {
     if (token instanceof UserPassToken) {
       UserPassToken upt = (UserPassToken) token;
       this.acu.users.put(upt.getPrincipal(), new MockUser(upt.getPrincipal(), upt.getPassword(), authorization));
-    }
-    else
+    } else
       throw new AccumuloSecurityException(token.getPrincipal(), SecurityErrorCode.INVALID_TOKEN);
   }
   
@@ -78,6 +75,7 @@ public class MockSecurityOperations implements SecurityOperations {
     this.acu.users.remove(user);
   }
   
+  @Deprecated
   @Override
   public boolean authenticateUser(String name, byte[] password) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(name);
@@ -85,7 +83,7 @@ public class MockSecurityOperations implements SecurityOperations {
       return false;
     return Arrays.equals(user.password, password);
   }
-
+  
   @Override
   public boolean authenticateUser(SecurityToken token) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(token.getPrincipal());
@@ -93,10 +91,11 @@ public class MockSecurityOperations implements SecurityOperations {
       return false;
     return Arrays.equals(user.password, ((UserPassToken) token).getPassword());
   }
-
+  
   /**
    * @deprecated @since 1.5, use {@link #changeUserPassword(SecurityToken)}
    */
+  @Deprecated
   @Override
   public void changeUserPassword(String name, byte[] password) throws AccumuloException, AccumuloSecurityException {
     changeUserPassword(new UserPassToken(name, password));
@@ -105,15 +104,14 @@ public class MockSecurityOperations implements SecurityOperations {
   @Override
   public void changeUserPassword(SecurityToken token) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(token.getPrincipal());
-    if (user != null){
+    if (user != null) {
       if (token instanceof UserPassToken) {
         UserPassToken upt = (UserPassToken) token;
         // want to copy the password
         user.password = upt.getPassword();
-      }
-      else throw new AccumuloSecurityException(token.getPrincipal(), SecurityErrorCode.INVALID_TOKEN);
-    }
-    else
+      } else
+        throw new AccumuloSecurityException(token.getPrincipal(), SecurityErrorCode.INVALID_TOKEN);
+    } else
       throw new AccumuloSecurityException(token.getPrincipal(), SecurityErrorCode.USER_DOESNT_EXIST);
   }
   

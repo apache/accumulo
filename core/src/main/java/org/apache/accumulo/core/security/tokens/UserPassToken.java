@@ -27,7 +27,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 public class UserPassToken implements SecurityToken, PasswordUpdatable {
   private String username;
   private byte[] password;
-
+  
   public UserPassToken(String user, ByteBuffer password) {
     this(user, ByteBufferUtil.toBytes(password));
   }
@@ -41,6 +41,7 @@ public class UserPassToken implements SecurityToken, PasswordUpdatable {
     this(user, password.toString().getBytes(Charset.forName("UTF-8")));
   }
   
+  @Override
   public void destroy() {
     Arrays.fill(password, (byte) 0);
     password = null;
@@ -53,9 +54,8 @@ public class UserPassToken implements SecurityToken, PasswordUpdatable {
   
   /**
    * @deprecated since 1.5
-   * @param credentials
-   * @return
    */
+  @Deprecated
   public static UserPassToken convertAuthInfo(AuthInfo credentials) {
     return new UserPassToken(credentials.user, credentials.password);
   }
@@ -65,6 +65,7 @@ public class UserPassToken implements SecurityToken, PasswordUpdatable {
     return username;
   }
   
+  @Override
   public byte[] getPassword() {
     return password;
   }
@@ -79,10 +80,11 @@ public class UserPassToken implements SecurityToken, PasswordUpdatable {
     updatePassword(pu.getPassword());
   }
   
+  @Override
   public String toString() {
-    return "UserPassToken("+this.username+":"+new String(this.getPrincipal())+")";
+    return "UserPassToken(" + this.username + ":" + new String(this.getPrincipal()) + ")";
   }
-
+  
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -91,7 +93,7 @@ public class UserPassToken implements SecurityToken, PasswordUpdatable {
     result = prime * result + ((username == null) ? 0 : username.hashCode());
     return result;
   }
-
+  
   @Override
   public boolean equals(Object obj) {
     if (this == obj)
@@ -110,7 +112,7 @@ public class UserPassToken implements SecurityToken, PasswordUpdatable {
       return false;
     return true;
   }
-
+  
   @Override
   public SecuritySerDe<? extends SecurityToken> getSerDe() {
     return new UserPassSerDe();
