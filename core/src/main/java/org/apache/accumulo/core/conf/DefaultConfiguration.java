@@ -47,7 +47,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
     for (Property prop : Property.values())
-      if (!prop.isExprimental() && !prop.getType().equals(PropertyType.PREFIX))
+      if (!prop.isExperimental() && !prop.getType().equals(PropertyType.PREFIX))
         entries.put(prop.getKey(), prop.getDefaultValue());
     
     return entries.entrySet().iterator();
@@ -78,7 +78,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     ArrayList<Property> prefixes = new ArrayList<Property>();
     TreeMap<String,Property> sortedProps = new TreeMap<String,Property>();
     for (Property prop : Property.values()) {
-      if (prop.isExprimental())
+      if (prop.isExperimental())
         continue;
 
       if (prop.getType().equals(PropertyType.PREFIX))
@@ -90,7 +90,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     doc.println("  <p>Jump to: ");
     String delimiter = "";
     for (Property prefix : prefixes) {
-      if (prefix.isExprimental())
+      if (prefix.isExperimental())
         continue;
 
       doc.print(delimiter + "<a href='#" + prefix.name() + "'>" + prefix.getKey() + "*</a>");
@@ -101,7 +101,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     doc.println("  <table>");
     for (Property prefix : prefixes) {
       
-      if (prefix.isExprimental())
+      if (prefix.isExperimental())
         continue;
 
       doc.println("   <tr><td colspan='5'><a name='" + prefix.name() + "' class='large'>" + prefix.getKey() + "*</a></td></tr>");
@@ -112,7 +112,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       
       boolean highlight = true;
       for (Property prop : sortedProps.values()) {
-        if (prop.isExprimental())
+        if (prop.isExperimental())
           continue;
 
         if (prop.getKey().startsWith(prefix.getKey())) {

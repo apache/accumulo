@@ -373,7 +373,7 @@ public enum Property {
     return this.description;
   }
   
-  public boolean isExprimental() {
+  public boolean isExperimental() {
     return experimental;
   }
 
