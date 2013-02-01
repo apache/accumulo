@@ -29,27 +29,30 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 public enum Property {
   
   // Crypto-related properties
-  CRYPTO_PREFIX("crypto.", null, PropertyType.PREFIX, "Properties in this category related to the configuration of both default and custom crypto modules."),
+  CRYPTO_PREFIX("crypto.", null, PropertyType.PREFIX, "Properties in this category related to the configuration of both default and custom crypto modules.",
+      true),
   CRYPTO_MODULE_CLASS(
       "crypto.module.class",
       "NullCryptoModule",
       PropertyType.STRING,
-      "Fully qualified class name of the class that implements the CryptoModule interface, to be used in setting up encryption at rest for the WAL and (future) other parts of the code."),
-  CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING, "Describes the cipher suite to use for the write-ahead log"),
+      "Fully qualified class name of the class that implements the CryptoModule interface, to be used in setting up encryption at rest for the WAL and (future) other parts of the code.",
+      true),
+  CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING, "Describes the cipher suite to use for the write-ahead log", true),
   CRYPTO_CIPHER_ALGORITHM_NAME("crypto.cipher.algorithm.name", "NullCipher", PropertyType.STRING,
-      "States the name of the algorithm used in the corresponding cipher suite.  Do not make these different, unless you enjoy mysterious exceptions and bugs."),
+      "States the name of the algorithm used in the corresponding cipher suite.  Do not make these different, unless you enjoy mysterious exceptions and bugs.",
+      true),
   CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
-      "Specifies the key length *in bits* to use for the symmetric key, should probably be 128 or 256 unless you really know what you're doing"),
+      "Specifies the key length *in bits* to use for the symmetric key, should probably be 128 or 256 unless you really know what you're doing", true),
   CRYPTO_SECURE_RNG("crypto.secure.rng", "SHA1PRNG", PropertyType.STRING,
-      "States the secure random number generator to use, and defaults to the built-in Sun SHA1PRNG"),
+      "States the secure random number generator to use, and defaults to the built-in Sun SHA1PRNG", true),
   CRYPTO_SECURE_RNG_PROVIDER("crypto.secure.rng.provider", "SUN", PropertyType.STRING,
-      "States the secure random number generator provider to use, and defaults to the built-in SUN provider"),
+      "States the secure random number generator provider to use, and defaults to the built-in SUN provider", true),
   CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS("crypto.secret.key.encryption.strategy.class", "NullSecretKeyEncryptionStrategy", PropertyType.STRING,
-      "The class Accumulo should use for its key encryption strategy."),
+      "The class Accumulo should use for its key encryption strategy.", true),
   CRYPTO_DEFAULT_KEY_STRATEGY_HDFS_URI("crypto.default.key.strategy.hdfs.uri", "", PropertyType.STRING,
-      "The URL Accumulo should use to connect to DFS. If this is blank, Accumulo will obtain this information from the Hadoop configuration"),
+      "The URL Accumulo should use to connect to DFS. If this is blank, Accumulo will obtain this information from the Hadoop configuration", true),
   CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION("crypto.default.key.strategy.key.location", "/accumulo/crypto/secret/keyEncryptionKey", PropertyType.ABSOLUTEPATH,
-      "The absolute path of where to store the key encryption key within HDFS."),
+      "The absolute path of where to store the key encryption key within HDFS.", true),
   
   // instance properties (must be the same for every node in an instance)
   INSTANCE_PREFIX("instance.", null, PropertyType.PREFIX,
@@ -319,7 +322,7 @@ public enum Property {
   TABLE_FORMATTER_CLASS("table.formatter", DefaultFormatter.class.getName(), PropertyType.STRING, "The Formatter class to apply on results in the shell"),
   TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(), PropertyType.STRING,
       "The ScanInterpreter class to apply on scan arguments in the shell"),
-  TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING, "Per table classpath"),
+  TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING, "Per table classpath context"),
   
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
@@ -336,12 +339,18 @@ public enum Property {
   
   private String key, defaultValue, description;
   private PropertyType type;
+  private boolean experimental;
   
-  private Property(String name, String defaultValue, PropertyType type, String description) {
+  private Property(String name, String defaultValue, PropertyType type, String description, boolean experimental) {
     this.key = name;
     this.defaultValue = defaultValue;
     this.description = description;
     this.type = type;
+    this.experimental = experimental;
+  }
+
+  private Property(String name, String defaultValue, PropertyType type, String description) {
+    this(name, defaultValue, type, description, false);
   }
   
   public String toString() {
@@ -364,6 +373,10 @@ public enum Property {
     return this.description;
   }
   
+  public boolean isExprimental() {
+    return experimental;
+  }
+
   private static HashSet<String> validTableProperties = null;
   private static HashSet<String> validProperties = null;
   private static HashSet<String> validPrefixes = null;

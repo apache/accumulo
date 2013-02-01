@@ -47,7 +47,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
     for (Property prop : Property.values())
-      if (!prop.getType().equals(PropertyType.PREFIX))
+      if (!prop.isExprimental() && !prop.getType().equals(PropertyType.PREFIX))
         entries.put(prop.getKey(), prop.getDefaultValue());
     
     return entries.entrySet().iterator();
@@ -78,6 +78,9 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     ArrayList<Property> prefixes = new ArrayList<Property>();
     TreeMap<String,Property> sortedProps = new TreeMap<String,Property>();
     for (Property prop : Property.values()) {
+      if (prop.isExprimental())
+        continue;
+
       if (prop.getType().equals(PropertyType.PREFIX))
         prefixes.add(prop);
       else
@@ -87,6 +90,9 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     doc.println("  <p>Jump to: ");
     String delimiter = "";
     for (Property prefix : prefixes) {
+      if (prefix.isExprimental())
+        continue;
+
       doc.print(delimiter + "<a href='#" + prefix.name() + "'>" + prefix.getKey() + "*</a>");
       delimiter = "&nbsp;|&nbsp;";
     }
@@ -94,6 +100,10 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     
     doc.println("  <table>");
     for (Property prefix : prefixes) {
+      
+      if (prefix.isExprimental())
+        continue;
+
       doc.println("   <tr><td colspan='5'><a name='" + prefix.name() + "' class='large'>" + prefix.getKey() + "*</a></td></tr>");
       doc.println("   <tr><td colspan='5'><i>" + prefix.getDescription() + "</i></td></tr>");
       if (!prefix.equals(Property.TABLE_CONSTRAINT_PREFIX) && !prefix.equals(Property.TABLE_ITERATOR_PREFIX)
@@ -102,6 +112,9 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       
       boolean highlight = true;
       for (Property prop : sortedProps.values()) {
+        if (prop.isExprimental())
+          continue;
+
         if (prop.getKey().startsWith(prefix.getKey())) {
           doc.println("   <tr " + (highlight ? "class='highlight'" : "") + ">");
           highlight = !highlight;
