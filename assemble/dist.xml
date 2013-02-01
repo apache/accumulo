@@ -62,6 +62,22 @@
         <exclude>**.*</exclude>
       </excludes>
     </fileSet>
+    <!-- Lift generated thrift proxy code into its own directory -->
+    <fileSet>
+      <directory>../proxy/target</directory>
+      <fileMode>0644</fileMode>
+      <directoryMode>0755</directoryMode>
+      <outputDirectory>proxy/thrift</outputDirectory>
+      <includes>
+        <include>gen-cpp/**</include>
+        <include>gen-java/**</include>
+        <include>gen-py/**</include>
+        <include>gen-rb/**</include>
+      </includes>
+      <excludes>
+        <exclude>*</exclude>
+      </excludes>
+    </fileSet>
     <fileSet>
       <directory>../</directory>
       <excludes>
