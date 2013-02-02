@@ -506,7 +506,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @return an Accumulo tablet locator
    * @throws TableNotFoundException
    *           if the table name set on the configuration doesn't exist
-   * @throws AccumuloSecurityException 
+   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
   protected static TabletLocator getTabletLocator(JobContext context) throws TableNotFoundException, AccumuloSecurityException {
@@ -1024,8 +1024,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setMaxVersions(Configuration conf, int maxVersions) throws IOException {
-    IteratorSetting vers = new IteratorSetting(0, "vers", VersioningIterator.class);
-    VersioningIterator.setMaxVersions(vers, maxVersions);
+    IteratorSetting vers = new IteratorSetting(1, "vers", VersioningIterator.class);
+    try {
+      VersioningIterator.setMaxVersions(vers, maxVersions);
+    } catch (IllegalArgumentException e) {
+      throw new IOException(e);
+    }
     InputConfigurator.addIterator(CLASS, conf, vers);
   }
   
@@ -1192,7 +1196,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     // deconstruct to get at this option in the first place, but to preserve correct behavior, this appears necessary.
     List<IteratorSetting> iteratorSettings = InputConfigurator.getIterators(CLASS, conf);
     for (IteratorSetting setting : iteratorSettings) {
-      if ("vers".equals(setting.getName()) && 0 == setting.getPriority() && VersioningIterator.class.getName().equals(setting.getIteratorClass())) {
+      if ("vers".equals(setting.getName()) && 1 == setting.getPriority() && VersioningIterator.class.getName().equals(setting.getIteratorClass())) {
         if (setting.getOptions().containsKey("maxVersions"))
           return Integer.parseInt(setting.getOptions().get("maxVersions"));
         else

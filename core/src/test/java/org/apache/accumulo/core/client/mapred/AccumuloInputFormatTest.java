@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce;
+package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -38,12 +38,14 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
@@ -51,48 +53,8 @@ import org.junit.Test;
 public class AccumuloInputFormatTest {
   
   private static final String PREFIX = AccumuloInputFormatTest.class.getSimpleName();
-  private static final String INSTANCE_NAME = PREFIX + "_mapreduce_instance";
-  private static final String TEST_TABLE_1 = PREFIX + "_mapreduce_table_1";
-  
-  /**
-   * Test basic setting & getting of max versions.
-   * 
-   * @throws IOException
-   *           Signals that an I/O exception has occurred.
-   */
-  @Deprecated
-  @Test
-  public void testMaxVersions() throws IOException {
-    Job job = new Job();
-    AccumuloInputFormat.setMaxVersions(job.getConfiguration(), 1);
-    int version = AccumuloInputFormat.getMaxVersions(job.getConfiguration());
-    assertEquals(1, version);
-  }
-  
-  /**
-   * Test max versions with an invalid value.
-   * 
-   * @throws IOException
-   *           Signals that an I/O exception has occurred.
-   */
-  @Deprecated
-  @Test(expected = IOException.class)
-  public void testMaxVersionsLessThan1() throws IOException {
-    Job job = new Job();
-    AccumuloInputFormat.setMaxVersions(job.getConfiguration(), 0);
-  }
-  
-  /**
-   * Test no max version configured.
-   * 
-   * @throws IOException
-   */
-  @Deprecated
-  @Test
-  public void testNoMaxVersion() throws IOException {
-    Job job = new Job();
-    assertEquals(-1, AccumuloInputFormat.getMaxVersions(job.getConfiguration()));
-  }
+  private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
+  private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
   
   /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
@@ -101,20 +63,19 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testSetIterator() throws IOException {
-    Job job = new Job();
+    JobConf job = new JobConf();
     
     IteratorSetting is = new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator");
     AccumuloInputFormat.addIterator(job, is);
-    Configuration conf = job.getConfiguration();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     is.write(new DataOutputStream(baos));
-    String iterators = conf.get("AccumuloInputFormat.ScanOpts.Iterators");
+    String iterators = job.get("AccumuloInputFormat.ScanOpts.Iterators");
     assertEquals(new String(Base64.encodeBase64(baos.toByteArray())), iterators);
   }
   
   @Test
   public void testAddIterator() throws IOException {
-    Job job = new Job();
+    JobConf job = new JobConf();
     
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
@@ -162,7 +123,7 @@ public class AccumuloInputFormatTest {
     String value = "comma,delimited,value";
     IteratorSetting someSetting = new IteratorSetting(1, "iterator", "Iterator.class");
     someSetting.addOption(key, value);
-    Job job = new Job();
+    JobConf job = new JobConf();
     AccumuloInputFormat.addIterator(job, someSetting);
     
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
@@ -190,7 +151,7 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testGetIteratorSettings() throws IOException {
-    Job job = new Job();
+    JobConf job = new JobConf();
     
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
@@ -221,7 +182,7 @@ public class AccumuloInputFormatTest {
   
   @Test
   public void testSetRegex() throws IOException {
-    Job job = new Job();
+    JobConf job = new JobConf();
     
     String regex = ">\"*%<>\'\\";
     
@@ -236,12 +197,12 @@ public class AccumuloInputFormatTest {
   private static AssertionError e2 = null;
   
   private static class MRTester extends Configured implements Tool {
-    private static class TestMapper extends Mapper<Key,Value,Key,Value> {
+    private static class TestMapper implements Mapper<Key,Value,Key,Value> {
       Key key = null;
       int count = 0;
       
       @Override
-      protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
+      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
         try {
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
@@ -255,13 +216,17 @@ public class AccumuloInputFormatTest {
       }
       
       @Override
-      protected void cleanup(Context context) throws IOException, InterruptedException {
+      public void configure(JobConf job) {}
+      
+      @Override
+      public void close() throws IOException {
         try {
           assertEquals(100, count);
         } catch (AssertionError e) {
           e2 = e;
         }
       }
+      
     }
     
     @Override
@@ -275,10 +240,10 @@ public class AccumuloInputFormatTest {
       String pass = args[1];
       String table = args[2];
       
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
       
-      job.setInputFormatClass(AccumuloInputFormat.class);
+      job.setInputFormat(AccumuloInputFormat.class);
       
       AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(user, pass));
       AccumuloInputFormat.setInputTableName(job, table);
@@ -287,13 +252,11 @@ public class AccumuloInputFormatTest {
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormatClass(NullOutputFormat.class);
+      job.setOutputFormat(NullOutputFormat.class);
       
       job.setNumReduceTasks(0);
       
-      job.waitForCompletion(true);
-      
-      return job.isSuccessful() ? 0 : 1;
+      return JobClient.runJob(job).isSuccessful() ? 0 : 1;
     }
     
     public static void main(String[] args) throws Exception {

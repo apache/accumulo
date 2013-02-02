@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce;
+package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -39,10 +39,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
@@ -53,17 +56,19 @@ import org.junit.Test;
 public class AccumuloOutputFormatTest {
   private static AssertionError e1 = null;
   private static final String PREFIX = AccumuloOutputFormatTest.class.getSimpleName();
-  private static final String INSTANCE_NAME = PREFIX + "_mapreduce_instance";
-  private static final String TEST_TABLE_1 = PREFIX + "_mapreduce_table_1";
-  private static final String TEST_TABLE_2 = PREFIX + "_mapreduce_table_2";
+  private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
+  private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
+  private static final String TEST_TABLE_2 = PREFIX + "_mapred_table_2";
   
   private static class MRTester extends Configured implements Tool {
-    private static class TestMapper extends Mapper<Key,Value,Text,Mutation> {
+    private static class TestMapper implements Mapper<Key,Value,Text,Mutation> {
       Key key = null;
       int count = 0;
+      OutputCollector<Text,Mutation> finalOutput;
       
       @Override
-      protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
+      public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter) throws IOException {
+        finalOutput = output;
         try {
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
@@ -77,11 +82,15 @@ public class AccumuloOutputFormatTest {
       }
       
       @Override
-      protected void cleanup(Context context) throws IOException, InterruptedException {
+      public void configure(JobConf job) {}
+      
+      @Override
+      public void close() throws IOException {
         Mutation m = new Mutation("total");
         m.put("", "", Integer.toString(count));
-        context.write(new Text(), m);
+        finalOutput.collect(new Text(), m);
       }
+      
     }
     
     @Override
@@ -96,10 +105,10 @@ public class AccumuloOutputFormatTest {
       String table1 = args[2];
       String table2 = args[3];
       
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
       
-      job.setInputFormatClass(AccumuloInputFormat.class);
+      job.setInputFormat(AccumuloInputFormat.class);
       
       AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(user, pass));
       AccumuloInputFormat.setInputTableName(job, table1);
@@ -108,7 +117,7 @@ public class AccumuloOutputFormatTest {
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormatClass(AccumuloOutputFormat.class);
+      job.setOutputFormat(AccumuloOutputFormat.class);
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
       
@@ -119,9 +128,7 @@ public class AccumuloOutputFormatTest {
       
       job.setNumReduceTasks(0);
       
-      job.waitForCompletion(true);
-      
-      return job.isSuccessful() ? 0 : 1;
+      return JobClient.runJob(job).isSuccessful() ? 0 : 1;
     }
     
     public static void main(String[] args) throws Exception {
@@ -131,7 +138,7 @@ public class AccumuloOutputFormatTest {
   
   @Test
   public void testBWSettings() throws IOException {
-    Job job = new Job();
+    JobConf job = new JobConf();
     
     // make sure we aren't testing defaults
     final BatchWriterConfig bwDefaults = new BatchWriterConfig();
@@ -149,7 +156,7 @@ public class AccumuloOutputFormatTest {
     
     AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
       @Override
-      public void checkOutputSpecs(JobContext job) throws IOException {
+      public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
         BatchWriterConfig bwOpts = getBatchWriterOptions(job);
         
         // passive check
@@ -166,7 +173,7 @@ public class AccumuloOutputFormatTest {
         
       }
     };
-    myAOF.checkOutputSpecs(job);
+    myAOF.checkOutputSpecs(null, job);
   }
   
   @Test

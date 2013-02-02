@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce;
+package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
-import java.nio.charset.Charset;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -38,8 +39,12 @@ import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.lib.IdentityMapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.AfterClass;
@@ -49,10 +54,10 @@ import org.junit.rules.TemporaryFolder;
 
 public class AccumuloFileOutputFormatTest {
   private static final String PREFIX = AccumuloFileOutputFormatTest.class.getSimpleName();
-  private static final String INSTANCE_NAME = PREFIX + "_mapreduce_instance";
-  private static final String BAD_TABLE = PREFIX + "_mapreduce_bad_table";
-  private static final String TEST_TABLE = PREFIX + "_mapreduce_test_table";
-  private static final String EMPTY_TABLE = PREFIX + "_mapreduce_empty_table";
+  private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
+  private static final String BAD_TABLE = PREFIX + "_mapred_bad_table";
+  private static final String TEST_TABLE = PREFIX + "_mapred_test_table";
+  private static final String EMPTY_TABLE = PREFIX + "_mapred_empty_table";
   
   public static TemporaryFolder folder = new TemporaryFolder();
   private static AssertionError e1 = null;
@@ -97,16 +102,17 @@ public class AccumuloFileOutputFormatTest {
   }
   
   private static class MRTester extends Configured implements Tool {
-    private static class BadKeyMapper extends Mapper<Key,Value,Key,Value> {
+    private static class BadKeyMapper implements Mapper<Key,Value,Key,Value> {
+      
       int index = 0;
       
       @Override
-      protected void map(Key key, Value value, Context context) throws IOException, InterruptedException {
+      public void map(Key key, Value value, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
         try {
           try {
-            context.write(key, value);
+            output.collect(key, value);
             if (index == 2)
-              assertTrue(false);
+              fail();
           } catch (Exception e) {
             assertEquals(2, index);
           }
@@ -117,13 +123,17 @@ public class AccumuloFileOutputFormatTest {
       }
       
       @Override
-      protected void cleanup(Context context) throws IOException, InterruptedException {
+      public void configure(JobConf job) {}
+      
+      @Override
+      public void close() throws IOException {
         try {
           assertEquals(2, index);
         } catch (AssertionError e) {
           e2 = e;
         }
       }
+      
     }
     
     @Override
@@ -137,26 +147,24 @@ public class AccumuloFileOutputFormatTest {
       String pass = args[1];
       String table = args[2];
       
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
       
-      job.setInputFormatClass(AccumuloInputFormat.class);
+      job.setInputFormat(AccumuloInputFormat.class);
       
-      AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(user, pass.getBytes(Charset.forName("UTF-8"))));
+      AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(user, pass.getBytes(Constants.UTF8)));
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
       AccumuloFileOutputFormat.setOutputPath(job, new Path(args[3]));
       
-      job.setMapperClass(BAD_TABLE.equals(table) ? BadKeyMapper.class : Mapper.class);
+      job.setMapperClass(BAD_TABLE.equals(table) ? BadKeyMapper.class : IdentityMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormatClass(AccumuloFileOutputFormat.class);
+      job.setOutputFormat(AccumuloFileOutputFormat.class);
       
       job.setNumReduceTasks(0);
       
-      job.waitForCompletion(true);
-      
-      return job.isSuccessful() ? 0 : 1;
+      return JobClient.runJob(job).isSuccessful() ? 0 : 1;
     }
     
     public static void main(String[] args) throws Exception {
@@ -202,7 +210,7 @@ public class AccumuloFileOutputFormatTest {
     long d = 10l;
     String e = "snappy";
     
-    Job job = new Job();
+    JobConf job = new JobConf();
     AccumuloFileOutputFormat.setReplication(job, a);
     AccumuloFileOutputFormat.setFileBlockSize(job, b);
     AccumuloFileOutputFormat.setDataBlockSize(job, c);
@@ -223,7 +231,7 @@ public class AccumuloFileOutputFormatTest {
     d = 110l;
     e = "lzo";
     
-    job = new Job();
+    job = new JobConf();
     AccumuloFileOutputFormat.setReplication(job, a);
     AccumuloFileOutputFormat.setFileBlockSize(job, b);
     AccumuloFileOutputFormat.setDataBlockSize(job, c);

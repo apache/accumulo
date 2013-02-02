@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce;
+package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -41,17 +41,20 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
 
 public class AccumuloRowInputFormatTest {
   private static final String PREFIX = AccumuloRowInputFormatTest.class.getSimpleName();
-  private static final String INSTANCE_NAME = PREFIX + "_mapreduce_instance";
-  private static final String TEST_TABLE_1 = PREFIX + "_mapreduce_table_1";
+  private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
+  private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
   
   private static final String ROW1 = "row1";
   private static final String ROW2 = "row2";
@@ -103,11 +106,11 @@ public class AccumuloRowInputFormatTest {
   }
   
   private static class MRTester extends Configured implements Tool {
-    private static class TestMapper extends Mapper<Text,PeekingIterator<Entry<Key,Value>>,Key,Value> {
+    public static class TestMapper implements Mapper<Text,PeekingIterator<Entry<Key,Value>>,Key,Value> {
       int count = 0;
       
       @Override
-      protected void map(Text k, PeekingIterator<Entry<Key,Value>> v, Context context) throws IOException, InterruptedException {
+      public void map(Text k, PeekingIterator<Entry<Key,Value>> v, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
         try {
           switch (count) {
             case 0:
@@ -132,13 +135,17 @@ public class AccumuloRowInputFormatTest {
       }
       
       @Override
-      protected void cleanup(Context context) throws IOException, InterruptedException {
+      public void configure(JobConf job) {}
+      
+      @Override
+      public void close() throws IOException {
         try {
           assertEquals(3, count);
         } catch (AssertionError e) {
           e2 = e;
         }
       }
+      
     }
     
     @Override
@@ -152,10 +159,10 @@ public class AccumuloRowInputFormatTest {
       String pass = args[1];
       String table = args[2];
       
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
       
-      job.setInputFormatClass(AccumuloRowInputFormat.class);
+      job.setInputFormat(AccumuloRowInputFormat.class);
       
       AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(user, pass));
       AccumuloInputFormat.setInputTableName(job, table);
@@ -164,13 +171,11 @@ public class AccumuloRowInputFormatTest {
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormatClass(NullOutputFormat.class);
+      job.setOutputFormat(NullOutputFormat.class);
       
       job.setNumReduceTasks(0);
       
-      job.waitForCompletion(true);
-      
-      return job.isSuccessful() ? 0 : 1;
+      return JobClient.runJob(job).isSuccessful() ? 0 : 1;
     }
     
     public static void main(String[] args) throws Exception {
