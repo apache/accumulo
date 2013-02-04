@@ -19,8 +19,10 @@ package org.apache.accumulo.server.logger;
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,6 +33,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.tabletserver.log.DfsLogger;
 import org.apache.accumulo.server.tabletserver.log.MultiReader;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.hadoop.conf.Configuration;
@@ -93,33 +96,42 @@ public class LogReader {
     
     for (String file : opts.files) {
       
+      Map<String, String> meta = new HashMap<String, String>();
       Path path = new Path(file);
       LogFileKey key = new LogFileKey();
       LogFileValue value = new LogFileValue();
       
       if (fs.isFile(path)) {
         // read log entries from a simple hdfs file
-        FSDataInputStream f = fs.open(path);
-        while (true) {
-          try {
-            key.readFields(f);
-            value.readFields(f);
-          } catch (EOFException ex) {
-            break;
+        FSDataInputStream f = DfsLogger.readHeader(fs, path, meta);
+        try {
+          while (true) {
+            try {
+              key.readFields(f);
+              value.readFields(f);
+            } catch (EOFException ex) {
+              break;
+            }
+            printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
           }
-          printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
+        } finally {
+          f.close();
         }
       } else if (local.isFile(path)) {
         // read log entries from a simple file
-        FSDataInputStream f = fs.open(path);
-        while (true) {
-          try {
-            key.readFields(f);
-            value.readFields(f);
-          } catch (EOFException ex) {
-            break;
+        FSDataInputStream f = DfsLogger.readHeader(fs, path, meta);
+        try {
+          while (true) {
+            try {
+              key.readFields(f);
+              value.readFields(f);
+            } catch (EOFException ex) {
+              break;
+            }
+            printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
           }
-          printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
+        } finally {
+          f.close();
         }
       } else {
         // read the log entries sorted in a map file

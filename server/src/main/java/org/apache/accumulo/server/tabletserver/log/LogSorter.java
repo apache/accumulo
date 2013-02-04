@@ -111,16 +111,12 @@ public class LogSorter {
         FSDataInputStream tmpInput = fs.open(srcPath);
         DataInputStream tmpDecryptingInput = tmpInput;
         
-        String logHeader = tmpInput.readUTF();
         Map<String,String> cryptoOpts = new HashMap<String,String>();
+        tmpInput = DfsLogger.readHeader(fs, srcPath, cryptoOpts);
         
-        if (!logHeader.equals(DfsLogger.LOG_FILE_HEADER_V2)) {
+        if (!cryptoOpts.containsKey(Property.CRYPTO_MODULE_CLASS.getKey())) {
           
           log.debug("Not a V2 log file, so re-opening it and passing it on");
-          
-          // Hmmm, this isn't the log file I was expecting, so close it and reopen to unread those bytes.
-          tmpInput.close();
-          tmpInput = fs.open(srcPath);
           
           synchronized (this) {
             this.input = tmpInput;
@@ -128,11 +124,6 @@ public class LogSorter {
           }
           
         } else {
-          
-          int numEntries = tmpInput.readInt();
-          for (int i = 0; i < numEntries; i++) {
-            cryptoOpts.put(tmpInput.readUTF(), tmpInput.readUTF());
-          }
           
           String cryptoModuleName = cryptoOpts.get(Property.CRYPTO_MODULE_CLASS.getKey());
           if (cryptoModuleName == null) {

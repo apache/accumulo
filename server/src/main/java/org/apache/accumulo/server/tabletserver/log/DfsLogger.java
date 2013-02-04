@@ -48,6 +48,7 @@ import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.tabletserver.TabletMutations;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -216,6 +217,30 @@ public class DfsLogger {
     this.logPath = new Path(Constants.getWalDirectory(conf.getConfiguration()), filename);
   }
   
+  public static FSDataInputStream readHeader(FileSystem fs, Path path, Map<String, String> opts) throws IOException {
+    FSDataInputStream file = fs.open(path);
+    try {
+      byte[] magic = LOG_FILE_HEADER_V2.getBytes();
+      byte[] buffer = new byte[magic.length];
+      int read = file.read(buffer);
+      if (read == magic.length && Arrays.equals(buffer, magic)) {
+        int count = file.readInt();
+        for (int i = 0; i < count; i++) {
+          String key = file.readUTF();
+          String value = file.readUTF();
+          opts.put(key, value);
+        }
+      } else {
+        file.seek(0);
+        return file;
+      }
+      return file;
+    } catch (IOException ex) {
+      file.seek(0);
+      return file;
+    }
+  }
+  
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
     logger = StringUtil.join(Arrays.asList(address.split(":")), "+");
@@ -241,7 +266,7 @@ public class DfsLogger {
       CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
       
       // Initialize the log file with a header and the crypto params used to set up this log file.
-      logFile.writeUTF(LOG_FILE_HEADER_V2);
+      logFile.write(LOG_FILE_HEADER_V2.getBytes());
       Map<String,String> cryptoOpts = conf.getConfiguration().getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
       
       logFile.writeInt(cryptoOpts.size());
