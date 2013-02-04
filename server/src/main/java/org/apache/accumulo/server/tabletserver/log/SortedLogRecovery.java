@@ -51,7 +51,13 @@ public class SortedLogRecovery {
 
     public EmptyMapFileException() { super(); }
   }
-  
+
+  static class UnusedException extends Exception {
+    private static final long serialVersionUID = 1L;
+
+    public UnusedException() { super(); }
+  }
+
   public SortedLogRecovery() {}
   
   private enum Status {
@@ -98,6 +104,9 @@ public class SortedLogRecovery {
         } catch (EmptyMapFileException ex) {
           log.info("Ignoring empty map file " + logfile);
           tids[i] = -1;
+        } catch (UnusedException ex) {
+          log.info("Ignoring log file " + logfile + " appears to be unused by " + extent);
+          tids[i] = -1;
         }
       } finally {
         try {
@@ -128,7 +137,7 @@ public class SortedLogRecovery {
     }
   }
   
-  int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent, Set<String> tabletFiles, LastStartToFinish lastStartToFinish) throws IOException, EmptyMapFileException {
+  int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent, Set<String> tabletFiles, LastStartToFinish lastStartToFinish) throws IOException, EmptyMapFileException, UnusedException {
     // Scan for tableId for this extent (should always be in the log)
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
@@ -161,7 +170,7 @@ public class SortedLogRecovery {
       }
     }
     if (tid < 0) {
-      throw new RuntimeException("log file contains no tablet definition for key extent " + extent);
+      throw new UnusedException();
     }
     
     log.debug("Found tid, seq " + tid + " " + defineKey.seq);
