@@ -21,10 +21,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.Properties;
 
-import org.apache.accumulo.proxy.thrift.PrincipalToken;
+import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
@@ -36,7 +35,7 @@ public class TestProxyInstanceOperations {
   protected static TServer proxy;
   protected static Thread thread;
   protected static TestProxyClient tpc;
-  protected static PrincipalToken userpass;
+  protected static ByteBuffer userpass;
   protected static final int port = 10197;
   
   @BeforeClass
@@ -54,7 +53,7 @@ public class TestProxyInstanceOperations {
     };
     thread.start();
     tpc = new TestProxyClient("localhost", port);
-    userpass = new PrincipalToken("root", ByteBuffer.wrap("".getBytes()));
+    userpass = tpc.proxy.login(new UserPass("root", ByteBuffer.wrap("".getBytes())));
   }
   
   @AfterClass

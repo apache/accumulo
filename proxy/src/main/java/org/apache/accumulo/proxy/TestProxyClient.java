@@ -28,9 +28,9 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.Key;
-import org.apache.accumulo.proxy.thrift.PrincipalToken;
 import org.apache.accumulo.proxy.thrift.ScanResult;
 import org.apache.accumulo.proxy.thrift.TimeType;
+import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
@@ -64,29 +64,30 @@ public class TestProxyClient {
   public static void main(String[] args) throws Exception {
     
     TestProxyClient tpc = new TestProxyClient("localhost", 42424);
-    PrincipalToken principalToken = new PrincipalToken("root", ByteBuffer.wrap("secret".getBytes()));
+    UserPass userPass = new UserPass("root", ByteBuffer.wrap("secret".getBytes()));
     
     System.out.println("Logging in");
+    ByteBuffer login = tpc.proxy.login(userPass);
     
     System.out.println("Creating user: ");
-    if (!tpc.proxy().listUsers(principalToken).contains("testuser")) {
-      tpc.proxy().createUser(principalToken, "testuser", ByteBuffer.wrap("testpass".getBytes()));
+    if (!tpc.proxy().listUsers(login).contains("testuser")) {
+      tpc.proxy().createUser(login, "testuser", ByteBuffer.wrap("testpass".getBytes()));
     }
-    System.out.println("UserList: " + tpc.proxy().listUsers(principalToken));
+    System.out.println("UserList: " + tpc.proxy().listUsers(login));
     
-    System.out.println("Listing: " + tpc.proxy().listTables(principalToken));
+    System.out.println("Listing: " + tpc.proxy().listTables(login));
     
     System.out.println("Deleting: ");
     String testTable = "testtableOMGOMGOMG";
     
     System.out.println("Creating: ");
     
-    if (tpc.proxy().tableExists(principalToken, testTable))
-      tpc.proxy().deleteTable(principalToken, testTable);
+    if (tpc.proxy().tableExists(login, testTable))
+      tpc.proxy().deleteTable(login, testTable);
     
-    tpc.proxy().createTable(principalToken, testTable, true, TimeType.MILLIS);
+    tpc.proxy().createTable(login, testTable, true, TimeType.MILLIS);
     
-    System.out.println("Listing: " + tpc.proxy().listTables(principalToken));
+    System.out.println("Listing: " + tpc.proxy().listTables(login));
     
     System.out.println("Writing: ");
     Date start = new Date();
@@ -101,16 +102,16 @@ public class TestProxyClient {
       mutations.put(ByteBuffer.wrap(result.getBytes()), Collections.singletonList(update));
       
       if (i % 1000 == 0) {
-        tpc.proxy().updateAndFlush(principalToken, testTable, mutations);
+        tpc.proxy().updateAndFlush(login, testTable, mutations);
         mutations.clear();
       }
     }
-    tpc.proxy().updateAndFlush(principalToken, testTable, mutations);
+    tpc.proxy().updateAndFlush(login, testTable, mutations);
     Date end = new Date();
     System.out.println(" End of writing: " + (end.getTime() - start.getTime()));
     
-    tpc.proxy().deleteTable(principalToken, testTable);
-    tpc.proxy().createTable(principalToken, testTable, true, TimeType.MILLIS);
+    tpc.proxy().deleteTable(login, testTable);
+    tpc.proxy().createTable(login, testTable, true, TimeType.MILLIS);
     
     // Thread.sleep(1000);
     
@@ -118,7 +119,7 @@ public class TestProxyClient {
     start = new Date();
     then = new Date();
     mutations.clear();
-    String writer = tpc.proxy().createWriter(principalToken, testTable, null);
+    String writer = tpc.proxy().createWriter(login, testTable, null);
     for (int i = 0; i < maxInserts; i++) {
       String result = String.format(format, i);
       Key pkey = new Key();
@@ -145,7 +146,7 @@ public class TestProxyClient {
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, null, regex, null, null, false);
     
-    String cookie = tpc.proxy().createScanner(principalToken, testTable, null);
+    String cookie = tpc.proxy().createScanner(login, testTable, null);
     
     int i = 0;
     start = new Date();

@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ActiveScan");
 
   private static final org.apache.thrift.protocol.TField CLIENT_FIELD_DESC = new org.apache.thrift.protocol.TField("client", org.apache.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
+  private static final org.apache.thrift.protocol.TField USER_FIELD_DESC = new org.apache.thrift.protocol.TField("user", org.apache.thrift.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift.protocol.TField TABLE_FIELD_DESC = new org.apache.thrift.protocol.TField("table", org.apache.thrift.protocol.TType.STRING, (short)3);
   private static final org.apache.thrift.protocol.TField AGE_FIELD_DESC = new org.apache.thrift.protocol.TField("age", org.apache.thrift.protocol.TType.I64, (short)4);
   private static final org.apache.thrift.protocol.TField IDLE_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("idleTime", org.apache.thrift.protocol.TType.I64, (short)5);
@@ -68,7 +68,7 @@ import org.slf4j.LoggerFactory;
   }
 
   public String client; // required
-  public String principal; // required
+  public String user; // required
   public String table; // required
   public long age; // required
   public long idleTime; // required
@@ -90,7 +90,7 @@ import org.slf4j.LoggerFactory;
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     CLIENT((short)1, "client"),
-    PRINCIPAL((short)2, "principal"),
+    USER((short)2, "user"),
     TABLE((short)3, "table"),
     AGE((short)4, "age"),
     IDLE_TIME((short)5, "idleTime"),
@@ -124,8 +124,8 @@ import org.slf4j.LoggerFactory;
       switch(fieldId) {
         case 1: // CLIENT
           return CLIENT;
-        case 2: // PRINCIPAL
-          return PRINCIPAL;
+        case 2: // USER
+          return USER;
         case 3: // TABLE
           return TABLE;
         case 4: // AGE
@@ -192,7 +192,7 @@ import org.slf4j.LoggerFactory;
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.CLIENT, new org.apache.thrift.meta_data.FieldMetaData("client", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.TABLE, new org.apache.thrift.meta_data.FieldMetaData("table", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -224,7 +224,7 @@ import org.slf4j.LoggerFactory;
 
   public ActiveScan(
     String client,
-    String principal,
+    String user,
     String table,
     long age,
     long idleTime,
@@ -237,7 +237,7 @@ import org.slf4j.LoggerFactory;
   {
     this();
     this.client = client;
-    this.principal = principal;
+    this.user = user;
     this.table = table;
     this.age = age;
     setAgeIsSet(true);
@@ -259,8 +259,8 @@ import org.slf4j.LoggerFactory;
     if (other.isSetClient()) {
       this.client = other.client;
     }
-    if (other.isSetPrincipal()) {
-      this.principal = other.principal;
+    if (other.isSetUser()) {
+      this.user = other.user;
     }
     if (other.isSetTable()) {
       this.table = other.table;
@@ -308,7 +308,7 @@ import org.slf4j.LoggerFactory;
   @Override
   public void clear() {
     this.client = null;
-    this.principal = null;
+    this.user = null;
     this.table = null;
     setAgeIsSet(false);
     this.age = 0;
@@ -346,27 +346,27 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  public String getPrincipal() {
-    return this.principal;
+  public String getUser() {
+    return this.user;
   }
 
-  public ActiveScan setPrincipal(String principal) {
-    this.principal = principal;
+  public ActiveScan setUser(String user) {
+    this.user = user;
     return this;
   }
 
-  public void unsetPrincipal() {
-    this.principal = null;
+  public void unsetUser() {
+    this.user = null;
   }
 
-  /** Returns true if field principal is set (has been assigned a value) and false otherwise */
-  public boolean isSetPrincipal() {
-    return this.principal != null;
+  /** Returns true if field user is set (has been assigned a value) and false otherwise */
+  public boolean isSetUser() {
+    return this.user != null;
   }
 
-  public void setPrincipalIsSet(boolean value) {
+  public void setUserIsSet(boolean value) {
     if (!value) {
-      this.principal = null;
+      this.user = null;
     }
   }
 
@@ -655,11 +655,11 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
-    case PRINCIPAL:
+    case USER:
       if (value == null) {
-        unsetPrincipal();
+        unsetUser();
       } else {
-        setPrincipal((String)value);
+        setUser((String)value);
       }
       break;
 
@@ -743,8 +743,8 @@ import org.slf4j.LoggerFactory;
     case CLIENT:
       return getClient();
 
-    case PRINCIPAL:
-      return getPrincipal();
+    case USER:
+      return getUser();
 
     case TABLE:
       return getTable();
@@ -786,8 +786,8 @@ import org.slf4j.LoggerFactory;
     switch (field) {
     case CLIENT:
       return isSetClient();
-    case PRINCIPAL:
-      return isSetPrincipal();
+    case USER:
+      return isSetUser();
     case TABLE:
       return isSetTable();
     case AGE:
@@ -832,12 +832,12 @@ import org.slf4j.LoggerFactory;
         return false;
     }
 
-    boolean this_present_principal = true && this.isSetPrincipal();
-    boolean that_present_principal = true && that.isSetPrincipal();
-    if (this_present_principal || that_present_principal) {
-      if (!(this_present_principal && that_present_principal))
+    boolean this_present_user = true && this.isSetUser();
+    boolean that_present_user = true && that.isSetUser();
+    if (this_present_user || that_present_user) {
+      if (!(this_present_user && that_present_user))
         return false;
-      if (!this.principal.equals(that.principal))
+      if (!this.user.equals(that.user))
         return false;
     }
 
@@ -948,12 +948,12 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetPrincipal()).compareTo(typedOther.isSetPrincipal());
+    lastComparison = Boolean.valueOf(isSetUser()).compareTo(typedOther.isSetUser());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetPrincipal()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principal, typedOther.principal);
+    if (isSetUser()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.user, typedOther.user);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -1076,11 +1076,11 @@ import org.slf4j.LoggerFactory;
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("principal:");
-    if (this.principal == null) {
+    sb.append("user:");
+    if (this.user == null) {
       sb.append("null");
     } else {
-      sb.append(this.principal);
+      sb.append(this.user);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -1203,10 +1203,10 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // PRINCIPAL
+          case 2: // USER
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.principal = iprot.readString();
-              struct.setPrincipalIsSet(true);
+              struct.user = iprot.readString();
+              struct.setUserIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -1336,9 +1336,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeString(struct.client);
         oprot.writeFieldEnd();
       }
-      if (struct.principal != null) {
-        oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
-        oprot.writeString(struct.principal);
+      if (struct.user != null) {
+        oprot.writeFieldBegin(USER_FIELD_DESC);
+        oprot.writeString(struct.user);
         oprot.writeFieldEnd();
       }
       if (struct.table != null) {
@@ -1424,7 +1424,7 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetClient()) {
         optionals.set(0);
       }
-      if (struct.isSetPrincipal()) {
+      if (struct.isSetUser()) {
         optionals.set(1);
       }
       if (struct.isSetTable()) {
@@ -1458,8 +1458,8 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetClient()) {
         oprot.writeString(struct.client);
       }
-      if (struct.isSetPrincipal()) {
-        oprot.writeString(struct.principal);
+      if (struct.isSetUser()) {
+        oprot.writeString(struct.user);
       }
       if (struct.isSetTable()) {
         oprot.writeString(struct.table);
@@ -1517,8 +1517,8 @@ import org.slf4j.LoggerFactory;
         struct.setClientIsSet(true);
       }
       if (incoming.get(1)) {
-        struct.principal = iprot.readString();
-        struct.setPrincipalIsSet(true);
+        struct.user = iprot.readString();
+        struct.setUserIsSet(true);
       }
       if (incoming.get(2)) {
         struct.table = iprot.readString();
