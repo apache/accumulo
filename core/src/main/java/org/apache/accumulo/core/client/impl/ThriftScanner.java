@@ -52,8 +52,8 @@ import org.apache.accumulo.core.data.thrift.ScanResult;
 import org.apache.accumulo.core.data.thrift.TKeyValue;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -82,7 +82,7 @@ public class ThriftScanner {
     }
   }
   
-  public static boolean getBatchFromServer(InstanceTokenWrapper credentials, Text startRow, KeyExtent extent, String server, SortedMap<Key,Value> results,
+  public static boolean getBatchFromServer(Credentials credentials, Text startRow, KeyExtent extent, String server, SortedMap<Key,Value> results,
       SortedSet<Column> fetchedColumns, boolean skipStartKey, int size, Authorizations authorizations, boolean retry, AccumuloConfiguration conf)
       throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
     Key startKey;
@@ -105,13 +105,13 @@ public class ThriftScanner {
     return getBatchFromServer(credentials, startKey, (Key) null, extent, server, results, fetchedColumns, size, authorizations, retry, conf);
   }
   
-  static boolean getBatchFromServer(InstanceTokenWrapper credentials, Key key, Key endKey, KeyExtent extent, String server, SortedMap<Key,Value> results,
+  static boolean getBatchFromServer(Credentials credentials, Key key, Key endKey, KeyExtent extent, String server, SortedMap<Key,Value> results,
       SortedSet<Column> fetchedColumns, int size, Authorizations authorizations, boolean retry, AccumuloConfiguration conf) throws AccumuloException,
       AccumuloSecurityException, NotServingTabletException {
     return getBatchFromServer(credentials, new Range(key, true, endKey, true), extent, server, results, fetchedColumns, size, authorizations, retry, conf);
   }
   
-  static boolean getBatchFromServer(InstanceTokenWrapper credentials, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
+  static boolean getBatchFromServer(Credentials credentials, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
       SortedSet<Column> fetchedColumns, int size, Authorizations authorizations, boolean retry, AccumuloConfiguration conf) throws AccumuloException,
       AccumuloSecurityException, NotServingTabletException {
     if (server == null)
@@ -128,7 +128,7 @@ public class ThriftScanner {
         
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
-        InitialScan isr = client.startScan(tinfo, scanState.credentials.toThrift(), extent.toThrift(), scanState.range.toThrift(),
+        InitialScan isr = client.startScan(tinfo, scanState.credentials, extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated);
         if (waitForWrites)
@@ -170,7 +170,7 @@ public class ThriftScanner {
     
     int size;
     
-    InstanceTokenWrapper credentials;
+    Credentials credentials;
     Authorizations authorizations;
     List<Column> columns;
     
@@ -183,7 +183,7 @@ public class ThriftScanner {
     
     Map<String,Map<String,String>> serverSideIteratorOptions;
     
-    public ScanState(InstanceTokenWrapper credentials, Text tableName, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
+    public ScanState(Credentials credentials, Text tableName, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated) {
       this.credentials = credentials;
       this.authorizations = authorizations;
@@ -220,7 +220,7 @@ public class ThriftScanner {
     
   }
   
-  public static List<KeyValue> scan(Instance instance, InstanceTokenWrapper credentials, ScanState scanState, int timeOut, AccumuloConfiguration conf)
+  public static List<KeyValue> scan(Instance instance, Credentials credentials, ScanState scanState, int timeOut, AccumuloConfiguration conf)
       throws ScanTimedOutException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TabletLocation loc = null;
     
@@ -416,7 +416,7 @@ public class ThriftScanner {
         
         TabletType ttype = TabletType.type(loc.tablet_extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
-        InitialScan is = client.startScan(tinfo, scanState.credentials.toThrift(), loc.tablet_extent.toThrift(), scanState.range.toThrift(),
+        InitialScan is = client.startScan(tinfo, scanState.credentials, loc.tablet_extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated);
         if (waitForWrites)

@@ -25,10 +25,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.accumulo.proxy.thrift.PrincipalToken;
 import org.apache.accumulo.proxy.thrift.SystemPermission;
 import org.apache.accumulo.proxy.thrift.TablePermission;
 import org.apache.accumulo.proxy.thrift.TimeType;
-import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
@@ -42,7 +42,7 @@ public class TestProxySecurityOperations {
   protected static TServer proxy;
   protected static Thread thread;
   protected static TestProxyClient tpc;
-  protected static ByteBuffer userpass;
+  protected static PrincipalToken userpass;
   protected static final int port = 10196;
   protected static final String testtable = "testtable";
   protected static final String testuser = "VonJines";
@@ -64,7 +64,7 @@ public class TestProxySecurityOperations {
     thread.start();
     
     tpc = new TestProxyClient("localhost", port);
-    userpass = tpc.proxy().login(new UserPass("root", ByteBuffer.wrap("".getBytes())));
+    userpass = new PrincipalToken("root", ByteBuffer.wrap("".getBytes()));
   }
   
   @AfterClass
@@ -98,7 +98,7 @@ public class TestProxySecurityOperations {
     assertTrue(tpc.proxy().authenticateUser(userpass, testuser, testpw));
     assertFalse(tpc.proxy().authenticateUser(userpass, "EvilUser", testpw));
     
-    tpc.proxy().changeUserPassword(userpass, testuser, ByteBuffer.wrap("newpass".getBytes()));
+    tpc.proxy().changePrincipalTokenword(userpass, testuser, ByteBuffer.wrap("newpass".getBytes()));
     assertFalse(tpc.proxy().authenticateUser(userpass, testuser, testpw));
     assertTrue(tpc.proxy().authenticateUser(userpass, testuser, ByteBuffer.wrap("newpass".getBytes())));
     

@@ -20,11 +20,11 @@ import java.util.Iterator;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 
 public class RootTabletStateStore extends MetaDataStateStore {
   
-  public RootTabletStateStore(Instance instance, InstanceTokenWrapper auths, CurrentState state) {
+  public RootTabletStateStore(Instance instance, Credentials auths, CurrentState state) {
     super(instance, auths, state);
   }
   

@@ -22,8 +22,7 @@ import java.util.Random;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -34,13 +33,13 @@ public class ChangePass extends Test {
     String target = props.getProperty("target");
     String source = props.getProperty("source");
     
-    InstanceTokenWrapper auth;
+    Credentials auth;
     if (source.equals("system")) {
-      auth = WalkingSecurity.get(state).getSysAuthInfo();
+      auth = WalkingSecurity.get(state).getSysCredentials();
     } else {
-      auth = WalkingSecurity.get(state).getTabAuthInfo();
+      auth = WalkingSecurity.get(state).getTabCredentials();
     }
-    Connector conn = state.getInstance().getConnector(auth);
+    Connector conn = state.getInstance().getConnector(auth.getPrincipal(), auth.getToken());
         
     boolean hasPerm;
     boolean targetExists;
@@ -60,7 +59,7 @@ public class ChangePass extends Test {
       newPass[i] = (byte) ((r.nextInt(26)+65) & 0xFF);
     
     try {
-      conn.securityOperations().changeUserPassword(new UserPassToken(target, newPass));
+      conn.securityOperations().changeUserPassword(target, newPass);
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:
@@ -79,7 +78,7 @@ public class ChangePass extends Test {
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
-    WalkingSecurity.get(state).changePassword(new UserPassToken(target, newPass));
+    WalkingSecurity.get(state).changePassword(target, newPass);
     if (!hasPerm)
       throw new AccumuloException("Password change succeeded when it should have failed for " + source + " changing the password for " + target + ".");
   }

@@ -66,12 +66,14 @@ public class ReadWriteExample {
   
   private void execute(Opts opts, ScannerOpts scanOpts) throws Exception {
     conn = opts.getConnector();
+    
     // add the authorizations to the user
     Authorizations userAuthorizations = conn.securityOperations().getUserAuthorizations(opts.user);
     ByteArraySet auths = new ByteArraySet(userAuthorizations.getAuthorizations());
     auths.addAll(opts.auths.getAuthorizations());
     if (!auths.isEmpty())
       conn.securityOperations().changeUserAuthorizations(opts.user, new Authorizations(auths));
+    
     // create table
     if (opts.createtable) {
       SortedSet<Text> partitionKeys = new TreeSet<Text>();

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -39,9 +40,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -106,19 +105,19 @@ public abstract class FunctionalTest {
     
   }
   
-  private SecurityToken token = new UserPassToken("", "");
+  private Credentials token = new Credentials("", ByteBuffer.wrap("".getBytes()), "");
   private String instanceName = "";
   
-  protected void setToken(SecurityToken token) {
+  protected void setToken(Credentials token) {
     this.token = token;
   }
   
-  protected SecurityToken getToken() {
+  protected Credentials getToken() {
     return token;
   }
   
   protected Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getInstance().getConnector(getToken());
+    return getInstance().getConnector(token.getPrincipal(), token.getToken());
   }
   
   protected Instance getInstance() {
@@ -131,10 +130,6 @@ public abstract class FunctionalTest {
   
   private String getInstanceName() {
     return instanceName;
-  }
-  
-  protected InstanceTokenWrapper getCredentials() {
-    return new InstanceTokenWrapper(getToken(), getInstance().getInstanceID());
   }
   
   public abstract Map<String,String> getInitialConfig();
@@ -249,7 +244,7 @@ public abstract class FunctionalTest {
     FunctionalTest fTest = testClass.newInstance();
     
     //fTest.setMaster(master);
-    fTest.setToken(new UserPassToken(opts.user, opts.password.value));
+    fTest.setToken(new Credentials(opts.user, ByteBuffer.wrap(opts.password.value), opts.instance));
     fTest.setInstanceName(opts.instance);
     
     if (opts.opt.equals("getConfig")) {

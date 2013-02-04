@@ -33,11 +33,11 @@ import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
 import org.apache.accumulo.proxy.thrift.KeyValue;
+import org.apache.accumulo.proxy.thrift.PrincipalToken;
 import org.apache.accumulo.proxy.thrift.Range;
 import org.apache.accumulo.proxy.thrift.ScanOptions;
 import org.apache.accumulo.proxy.thrift.ScanResult;
 import org.apache.accumulo.proxy.thrift.TimeType;
-import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
 import org.junit.After;
@@ -50,7 +50,7 @@ public class TestProxyReadWrite {
   protected static TServer proxy;
   protected static Thread thread;
   protected static TestProxyClient tpc;
-  protected static ByteBuffer userpass;
+  protected static PrincipalToken userpass;
   protected static final int port = 10194;
   protected static final String testtable = "testtable";
   
@@ -69,7 +69,7 @@ public class TestProxyReadWrite {
     };
     thread.start();
     tpc = new TestProxyClient("localhost", port);
-    userpass = tpc.proxy().login(new UserPass("root", ByteBuffer.wrap("".getBytes())));
+    userpass = new PrincipalToken("root", ByteBuffer.wrap("".getBytes()));
   }
   
   @AfterClass

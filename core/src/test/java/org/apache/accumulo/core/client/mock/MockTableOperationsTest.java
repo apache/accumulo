@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.mock;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -52,7 +53,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -66,7 +67,7 @@ public class MockTableOperationsTest {
     @Test
     public void testCreateUseVersions() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
         Instance instance = new MockInstance("topstest");
-        Connector conn = instance.getConnector(new UserPassToken("root", ""));
+        Connector conn = instance.getConnector("user", "pass");
         String t = "tableName1";
         
         {
@@ -128,7 +129,7 @@ public class MockTableOperationsTest {
   @Test
   public void testTableNotFound() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
     Instance instance = new MockInstance("topstest");
-    Connector conn = instance.getConnector(new UserPassToken("root", ""));
+    Connector conn = instance.getConnector("user", "pass");
     String t = "tableName";
     try {
       conn.tableOperations().attachIterator(t, null);
@@ -187,7 +188,8 @@ public class MockTableOperationsTest {
   public void testImport() throws Throwable {
     ImportTestFilesAndData dataAndFiles = prepareTestFiles();
     Instance instance = new MockInstance("foo");
-    Connector connector = instance.getConnector(new UserPassToken("root", ""));
+    Connector connector = instance.getConnector(new Credentials("user", ByteBuffer
+        .wrap(new byte[0]), "foo"));
     TableOperations tableOperations = connector.tableOperations();
     tableOperations.create("a_table");
     tableOperations.importDirectory("a_table",
@@ -240,7 +242,8 @@ public class MockTableOperationsTest {
   @Test(expected = TableNotFoundException.class)
   public void testFailsWithNoTable() throws Throwable {
     Instance instance = new MockInstance("foo");
-    Connector connector = instance.getConnector(new UserPassToken("root", ""));
+    Connector connector = instance.getConnector(new Credentials("user", ByteBuffer
+        .wrap(new byte[0]), "foo"));
     TableOperations tableOperations = connector.tableOperations();
     ImportTestFilesAndData testFiles = prepareTestFiles();
     tableOperations.importDirectory("doesnt_exist_table",
@@ -251,7 +254,8 @@ public class MockTableOperationsTest {
   @Test(expected = IOException.class)
   public void testFailsWithNonEmptyFailureDirectory() throws Throwable {
     Instance instance = new MockInstance("foo");
-    Connector connector = instance.getConnector(new UserPassToken("root", ""));
+    Connector connector = instance.getConnector(new Credentials("user", ByteBuffer
+        .wrap(new byte[0]), "foo"));
     TableOperations tableOperations = connector.tableOperations();
     ImportTestFilesAndData testFiles = prepareTestFiles();
     FileSystem fs = testFiles.failurePath.getFileSystem(new Configuration());
@@ -264,7 +268,7 @@ public class MockTableOperationsTest {
   @Test
   public void testDeleteRows() throws Exception {
     Instance instance = new MockInstance("rows");
-    Connector connector = instance.getConnector(new UserPassToken("root", ""));
+    Connector connector = instance.getConnector("user", "foo");
     TableOperations to = connector.tableOperations();
     to.create("test");
     BatchWriter bw = connector.createBatchWriter("test", new BatchWriterConfig());

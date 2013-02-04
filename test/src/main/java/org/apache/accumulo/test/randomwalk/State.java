@@ -30,8 +30,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.log4j.Logger;
 
@@ -98,16 +97,16 @@ public class State {
     if (connector == null) {
       String instance = props.getProperty("INSTANCE");
       String zookeepers = props.getProperty("ZOOKEEPERS");
-      InstanceTokenWrapper auth = getAuthInfo();
-      connector = new ZooKeeperInstance(instance, zookeepers).getConnector(auth);
+      Credentials credentials = getCredentials();
+      connector = new ZooKeeperInstance(instance, zookeepers).getConnector(credentials.getPrincipal(), credentials.getToken());
     }
     return connector;
   }
   
-  public InstanceTokenWrapper getAuthInfo() {
+  public Credentials getCredentials() {
     String username = props.getProperty("USERNAME");
     String password = props.getProperty("PASSWORD");
-    return new InstanceTokenWrapper(new UserPassToken(username, ByteBuffer.wrap(password.getBytes())), this.getInstance().getInstanceID());
+    return new Credentials(username, ByteBuffer.wrap(password.getBytes()), this.getInstance().getInstanceID());
   }
 
   public Instance getInstance() {

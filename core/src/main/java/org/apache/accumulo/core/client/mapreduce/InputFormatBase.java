@@ -24,6 +24,7 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -62,9 +63,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.TokenHelper;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
@@ -105,25 +104,26 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * 
    * @param job
    *          the Hadoop job instance to be configured
-   * @param token
-   *          a valid AccumuloToken (principal must have Table.CREATE permission)
-   * @throws AccumuloSecurityException
+   * @param user
+   *          a valid Accumulo user name (user must have Table.CREATE permission)
+   * @param passwd
+   *          the user's password
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Job job, SecurityToken token) throws AccumuloSecurityException {
-    InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), token);
+  public static void setConnectorInfo(Job job, String user, byte[] passwd) {
+    InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), user, passwd);
   }
   
   /**
    * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
    * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
    * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link TokenHelper#asBase64String(SecurityToken)}.
+   * {@link TokenHelper#asBase64String(AccumuloToken)}.
    * 
    * @param job
    *          the Hadoop job instance to be configured
    * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link SecurityToken} with the user's authentication
+   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AccumuloToken} with the user's authentication
    * @since 1.5.0
    */
   public static void setConnectorInfo(Job job, Path path) {
@@ -137,7 +137,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, SecurityToken)
+   * @see #setConnectorInfo(Job, String, byte[])
    * @see #setConnectorInfo(Job, Path)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
@@ -150,12 +150,25 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @param context
    *          the Hadoop context for the configured job
    * @return the user name
-   * @throws AccumuloSecurityException
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, SecurityToken)
+   * @see #setConnectorInfo(Job, String, byte[])
    * @see #setConnectorInfo(Job, Path)
    */
-  protected static SecurityToken getToken(JobContext context) throws AccumuloSecurityException {
+  protected static String getPrincipal(JobContext context) {
+    return InputConfigurator.getPrincipal(CLASS, context.getConfiguration());
+  }
+  
+  /**
+   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
+   * provide a charset safe conversion to a string, and is not intended to be secure.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the decoded user password
+   * @since 1.5.0
+   * @see #setConnectorInfo(Job, String, byte[])
+   */
+  protected static byte[] getToken(JobContext context) {
     return InputConfigurator.getToken(CLASS, context.getConfiguration());
   }
   
@@ -506,10 +519,9 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @return an Accumulo tablet locator
    * @throws TableNotFoundException
    *           if the table name set on the configuration doesn't exist
-   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
-  protected static TabletLocator getTabletLocator(JobContext context) throws TableNotFoundException, AccumuloSecurityException {
+  protected static TabletLocator getTabletLocator(JobContext context) throws TableNotFoundException {
     return InputConfigurator.getTabletLocator(CLASS, context.getConfiguration());
   }
   
@@ -568,16 +580,18 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.range);
       Instance instance = getInstance(attempt);
+      String user = getPrincipal(attempt);
+      byte[] password = getToken(attempt);
       Authorizations authorizations = getScanAuthorizations(attempt);
       
       try {
-        SecurityToken token = getToken(attempt);
-        log.debug("Creating connector with user: " + token.getPrincipal());
-        Connector conn = instance.getConnector(token);
+        log.debug("Creating connector with user: " + user);
+        Connector conn = instance.getConnector(user, password);
         log.debug("Creating scanner for table: " + getInputTableName(attempt));
         log.debug("Authorizations are: " + authorizations);
         if (isOfflineScan(attempt)) {
-          scanner = new OfflineScanner(instance, token, Tables.getTableId(instance, getInputTableName(attempt)), authorizations);
+          scanner = new OfflineScanner(instance, new Credentials(user, ByteBuffer.wrap(password), instance.getInstanceID()), Tables.getTableId(instance,
+              getInputTableName(attempt)), authorizations);
         } else {
           scanner = conn.createScanner(getInputTableName(attempt), authorizations);
         }
@@ -645,7 +659,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     
     Instance instance = getInstance(context);
-    Connector conn = instance.getConnector(getToken(context));
+    Connector conn = instance.getConnector(getPrincipal(context), getToken(context));
     String tableId = Tables.getTableId(instance, tableName);
     
     if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
@@ -973,16 +987,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, SecurityToken)}, {@link #setInputTableName(Job, String)}, and
+   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, String, byte[])}, {@link #setInputTableName(Job, String)}, and
    *             {@link #setScanAuthorizations(Job, Authorizations)} instead.
    */
   @Deprecated
   public static void setInputInfo(Configuration conf, String user, byte[] passwd, String table, Authorizations auths) {
-    try {
-      InputConfigurator.setConnectorInfo(CLASS, conf, new UserPassToken(user, passwd));
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
+    InputConfigurator.setConnectorInfo(CLASS, conf, user, passwd);
     InputConfigurator.setInputTableName(CLASS, conf, table);
     InputConfigurator.setScanAuthorizations(CLASS, conf, auths);
   }
@@ -1082,33 +1092,19 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * @deprecated since 1.5.0; Use {@link #getToken(JobContext)} instead.
+   * @deprecated since 1.5.0; Use {@link #getPrincipal(JobContext)} instead.
    */
   @Deprecated
-  protected static String getUsername(Configuration conf) {
-    try {
-      return InputConfigurator.getToken(CLASS, conf).getPrincipal();
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
+  protected static String getPrincipal(Configuration conf) {
+    return InputConfigurator.getPrincipal(CLASS, conf);
   }
   
   /**
    * @deprecated since 1.5.0; Use {@link #getToken(JobContext)} instead.
    */
   @Deprecated
-  protected static byte[] getPassword(Configuration conf) {
-    SecurityToken token;
-    try {
-      token = InputConfigurator.getToken(CLASS, conf);
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
-    if (token instanceof UserPassToken) {
-      UserPassToken upt = (UserPassToken) token;
-      return upt.getPassword();
-    }
-    throw new RuntimeException("Not applicable for non-UserPassTokens");
+  protected static byte[] getToken(Configuration conf) {
+    return InputConfigurator.getToken(CLASS, conf);
   }
   
   /**
@@ -1140,11 +1136,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static TabletLocator getTabletLocator(Configuration conf) throws TableNotFoundException {
-    try {
-      return InputConfigurator.getTabletLocator(CLASS, conf);
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
+    return InputConfigurator.getTabletLocator(CLASS, conf);
   }
   
   /**

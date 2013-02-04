@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -39,16 +38,16 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.TokenHelper;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
@@ -91,149 +90,86 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   @Override
-  public void ping(ThriftInstanceTokenWrapper credentials) {
+  public void ping(Credentials credentials) {
     // anybody can call this; no authentication check
     log.info("Master reports: I just got pinged!");
   }
   
   @Override
-  public boolean authenticateUser(TInfo tinfo, ThriftInstanceTokenWrapper credentials, ByteBuffer token) throws ThriftSecurityException {
+  public boolean authenticateUser(TInfo tinfo, Credentials credentials, String principal, ByteBuffer token) throws ThriftSecurityException {
     try {
-      return security.authenticateUser(new InstanceTokenWrapper(credentials), TokenHelper.unwrap(token));
+      return security.authenticateUser(credentials, principal, ByteBufferUtil.toBytes(token));
     } catch (ThriftSecurityException e) {
       log.error(e);
       throw e;
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
     }
   }
   
   @Override
-  public void changeAuthorizations(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, List<ByteBuffer> authorizations)
+  public void changeAuthorizations(TInfo tinfo, Credentials credentials, String user, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+    security.changeAuthorizations(credentials, user, new Authorizations(authorizations));
+  }
+  
+  @Override
+  public void changePassword(TInfo tinfo, Credentials credentials, String principal, ByteBuffer token) throws ThriftSecurityException {
+    security.changePassword(credentials, principal, ByteBufferUtil.toBytes(token));
+  }
+  
+  @Override
+  public void createUser(TInfo tinfo, Credentials credentials, String principal, ByteBuffer token, List<ByteBuffer> authorizations)
       throws ThriftSecurityException {
-    try {
-      security.changeAuthorizations(new InstanceTokenWrapper(credentials), user, new Authorizations(authorizations));
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
+    security.createUser(credentials, principal, ByteBufferUtil.toBytes(token), new Authorizations(authorizations));
   }
   
   @Override
-  public void changePassword(TInfo tinfo, ThriftInstanceTokenWrapper credentials, ByteBuffer token) throws ThriftSecurityException {
-    try {
-      security.changePassword(new InstanceTokenWrapper(credentials), TokenHelper.unwrap(token));
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
+  public void dropUser(TInfo tinfo, Credentials credentials, String user) throws ThriftSecurityException {
+    security.dropUser(credentials, user);
   }
   
   @Override
-  public void createUser(TInfo tinfo, ThriftInstanceTokenWrapper credentials, ByteBuffer token, List<ByteBuffer> authorizations) throws ThriftSecurityException {
-    try {
-      security.createUser(new InstanceTokenWrapper(credentials), TokenHelper.unwrap(token), new Authorizations(authorizations));
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
+  public List<ByteBuffer> getUserAuthorizations(TInfo tinfo, Credentials credentials, String user) throws ThriftSecurityException {
+    return security.getUserAuthorizations(credentials, user).getAuthorizationsBB();
   }
   
   @Override
-  public void dropUser(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user) throws ThriftSecurityException {
-    try {
-      security.dropUser(new InstanceTokenWrapper(credentials), user);
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
+  public void grantSystemPermission(TInfo tinfo, Credentials credentials, String user, byte permission) throws ThriftSecurityException {
+    security.grantSystemPermission(credentials, user, SystemPermission.getPermissionById(permission));
   }
   
   @Override
-  public List<ByteBuffer> getUserAuthorizations(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user) throws ThriftSecurityException {
-    try {
-      return security.getUserAuthorizations(new InstanceTokenWrapper(credentials), user).getAuthorizationsBB();
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
-  }
-  
-  @Override
-  public void grantSystemPermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, byte permission) throws ThriftSecurityException {
-    try {
-      security.grantSystemPermission(new InstanceTokenWrapper(credentials), user, SystemPermission.getPermissionById(permission));
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
-  }
-  
-  @Override
-  public void grantTablePermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException {
+  public void grantTablePermission(TInfo tinfo, Credentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
+      ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
-    try {
-      security.grantTablePermission(new InstanceTokenWrapper(credentials), user, tableId, TablePermission.getPermissionById(permission));
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
+    security.grantTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission));
   }
   
   @Override
-  public void revokeSystemPermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, byte permission) throws ThriftSecurityException {
-    try {
-      security.revokeSystemPermission(new InstanceTokenWrapper(credentials), user, SystemPermission.getPermissionById(permission));
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
+  public void revokeSystemPermission(TInfo tinfo, Credentials credentials, String user, byte permission) throws ThriftSecurityException {
+    security.revokeSystemPermission(credentials, user, SystemPermission.getPermissionById(permission));
   }
   
   @Override
-  public void revokeTablePermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException {
+  public void revokeTablePermission(TInfo tinfo, Credentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
+      ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
-    try {
-      security.revokeTablePermission(new InstanceTokenWrapper(credentials), user, tableId, TablePermission.getPermissionById(permission));
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
+    security.revokeTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission));
   }
   
   @Override
-  public boolean hasSystemPermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, byte sysPerm) throws ThriftSecurityException {
-    try {
-      return security.hasSystemPermission(new InstanceTokenWrapper(credentials), user, SystemPermission.getPermissionById(sysPerm));
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
+  public boolean hasSystemPermission(TInfo tinfo, Credentials credentials, String user, byte sysPerm) throws ThriftSecurityException {
+    return security.hasSystemPermission(credentials, user, SystemPermission.getPermissionById(sysPerm));
   }
   
   @Override
-  public boolean hasTablePermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, String tableName, byte tblPerm)
-      throws ThriftSecurityException, ThriftTableOperationException {
+  public boolean hasTablePermission(TInfo tinfo, Credentials credentials, String user, String tableName, byte tblPerm) throws ThriftSecurityException,
+      ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
-    try {
-      return security.hasTablePermission(new InstanceTokenWrapper(credentials), user, tableId, TablePermission.getPermissionById(tblPerm));
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
+    return security.hasTablePermission(credentials, user, tableId, TablePermission.getPermissionById(tblPerm));
   }
   
   @Override
-  public Set<String> listUsers(TInfo tinfo, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException {
-    try {
-      return security.listUsers(new InstanceTokenWrapper(credentials));
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e.asThriftException();
-    }
+  public Set<String> listUsers(TInfo tinfo, Credentials credentials) throws ThriftSecurityException {
+    return security.listUsers(credentials);
   }
   
   static private Map<String,String> conf(AccumuloConfiguration conf) {
@@ -266,10 +202,10 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   @Override
-  public List<String> bulkImportFiles(TInfo tinfo, final ThriftInstanceTokenWrapper tikw, final long tid, final String tableId, final List<String> files,
+  public List<String> bulkImportFiles(TInfo tinfo, final Credentials tikw, final long tid, final String tableId, final List<String> files,
       final String errorDir, final boolean setTime) throws ThriftSecurityException, ThriftTableOperationException, TException {
     try {
-      final InstanceTokenWrapper credentials = new InstanceTokenWrapper(tikw);
+      final Credentials credentials = new Credentials(tikw);
       if (!security.hasSystemPermission(credentials, credentials.getPrincipal(), SystemPermission.SYSTEM))
         throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {

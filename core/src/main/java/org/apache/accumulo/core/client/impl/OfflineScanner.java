@@ -55,7 +55,7 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -121,7 +121,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
    * @param authorizations
    * @param table
    */
-  public OfflineIterator(ScannerOptions options, Instance instance, SecurityToken credentials, Authorizations authorizations, Text table, Range range) {
+  public OfflineIterator(ScannerOptions options, Instance instance, Credentials credentials, Authorizations authorizations, Text table, Range range) {
     this.options = new ScannerOptions(options);
     this.instance = instance;
     this.range = range;
@@ -135,7 +135,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<SortedKeyValueIterator<Key,Value>>();
     
     try {
-      conn = instance.getConnector(credentials);
+      conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
       nextTablet();
       
       while (iter != null && !iter.hasTop())
@@ -343,11 +343,11 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private Range range;
   
   private Instance instance;
-  private SecurityToken credentials;
+  private Credentials credentials;
   private Authorizations authorizations;
   private Text tableId;
   
-  public OfflineScanner(Instance instance, SecurityToken credentials, String tableId, Authorizations authorizations) {
+  public OfflineScanner(Instance instance, Credentials credentials, String tableId, Authorizations authorizations) {
     ArgumentChecker.notNull(instance, credentials, tableId, authorizations);
     this.instance = instance;
     this.credentials = credentials;

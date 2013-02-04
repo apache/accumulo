@@ -32,8 +32,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
@@ -93,11 +92,7 @@ public abstract class TabletLocator {
   
   private static final Text ROOT_TABLET_MDE = KeyExtent.getMetadataEntry(new Text(Constants.METADATA_TABLE_ID), null);
   
-  public static synchronized TabletLocator getInstance(Instance instance, SecurityToken credentials, Text tableId) {
-    return getInstance(instance, new InstanceTokenWrapper(credentials, instance.getInstanceID()), tableId);
-  }
-  
-  public static synchronized TabletLocator getInstance(Instance instance, InstanceTokenWrapper credentials, Text tableId) {
+  public static synchronized TabletLocator getInstance(Instance instance, Credentials credentials, Text tableId) {
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
     
     TabletLocator tl = locators.get(key);

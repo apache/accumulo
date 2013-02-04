@@ -17,10 +17,10 @@
 package org.apache.accumulo.server.util;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -28,10 +28,11 @@ import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.JCommander;
@@ -81,11 +82,11 @@ public class Admin {
     Instance instance = opts.getInstance();
       
     try {
-      InstanceTokenWrapper creds;
-      if (opts.getAccumuloToken() == null) {
+      Credentials creds;
+      if (opts.getPassword() == null) {
         creds = SecurityConstants.getSystemCredentials();
       } else {
-        creds = opts.getWrappedToken();
+        creds = new Credentials(opts.user, ByteBuffer.wrap(opts.getPassword()), instance.getInstanceID());
       }
 
       if (cl.getParsedCommand().equals("stop")) {
@@ -103,16 +104,16 @@ public class Admin {
     }
   }
   
-  private static void stopServer(Instance instance, final InstanceTokenWrapper credentials, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
+  private static void stopServer(Instance instance, final Credentials credentials, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
     MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
-        client.shutdown(Tracer.traceInfo(), credentials.toThrift(), tabletServersToo);
+        client.shutdown(Tracer.traceInfo(), credentials, tabletServersToo);
       }
     });
   }
   
-  private static void stopTabletServer(Instance instance, final InstanceTokenWrapper creds, List<String> servers, final boolean force) throws AccumuloException, AccumuloSecurityException {
+  private static void stopTabletServer(Instance instance, final Credentials creds, List<String> servers, final boolean force) throws AccumuloException, AccumuloSecurityException {
     for (String server : servers) {
       InetSocketAddress address = AddressUtil.parseAddress(server, Property.TSERV_CLIENTPORT);
       final String finalServer = org.apache.accumulo.core.util.AddressUtil.toString(address);
@@ -120,7 +121,7 @@ public class Admin {
       MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {
         @Override
         public void execute(MasterClientService.Client client) throws Exception {
-          client.shutdownTabletServer(Tracer.traceInfo(), creds.toThrift(), finalServer, force);
+          client.shutdownTabletServer(Tracer.traceInfo(), creds, finalServer, force);
         }
       });
     }

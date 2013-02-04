@@ -63,8 +63,7 @@ import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.MetadataTable;
@@ -120,7 +119,7 @@ public class CollectTabletStats {
     }
     
     Map<KeyExtent,String> locations = new HashMap<KeyExtent,String>();
-    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, opts.getAccumuloToken(), opts.tableName, instance, locations);
+    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, opts.getCredentials(), opts.tableName, instance, locations);
     
     if (candidates.size() < opts.numThreads) {
       System.err.println("ERROR : Unable to find " + opts.numThreads + " " + (opts.selectFarTablets ? "far" : "local") + " tablets");
@@ -132,7 +131,7 @@ public class CollectTabletStats {
     Map<KeyExtent,List<String>> tabletFiles = new HashMap<KeyExtent,List<String>>();
     
     for (KeyExtent ke : tabletsToTest) {
-      List<String> files = getTabletFiles(opts.getAccumuloToken(), opts.getInstance(), tableId, ke);
+      List<String> files = getTabletFiles(opts.getCredentials(), opts.getInstance(), tableId, ke);
       tabletFiles.put(ke, files);
     }
     
@@ -340,11 +339,11 @@ public class CollectTabletStats {
     
   }
   
-  private static List<KeyExtent> findTablets(boolean selectLocalTablets, SecurityToken token, String table, Instance zki,
+  private static List<KeyExtent> findTablets(boolean selectLocalTablets, Credentials credentials, String table, Instance zki,
       Map<KeyExtent,String> locations) throws Exception {
     SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
     
-    MetadataTable.getEntries(zki, new InstanceTokenWrapper(token, zki.getInstanceID()), table, false, locations, tablets);
+    MetadataTable.getEntries(zki, credentials, table, false, locations, tablets);
     
     InetAddress localaddress = InetAddress.getLocalHost();
     
@@ -375,11 +374,11 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
   
-  private static List<String> getTabletFiles(SecurityToken token, Instance zki, String tableId, KeyExtent ke) {
+  private static List<String> getTabletFiles(Credentials token, Instance zki, String tableId, KeyExtent ke) {
     List<String> files = new ArrayList<String>();
     
     SortedMap<Key,Value> tkv = new TreeMap<Key,Value>();
-    MetadataTable.getTabletAndPrevTabletKeyValues(zki, tkv, ke, null, new InstanceTokenWrapper(token, zki.getInstanceID()));
+    MetadataTable.getTabletAndPrevTabletKeyValues(zki, tkv, ke, null, token);
     
     Set<Entry<Key,Value>> es = tkv.entrySet();
     for (Entry<Key,Value> entry : es) {

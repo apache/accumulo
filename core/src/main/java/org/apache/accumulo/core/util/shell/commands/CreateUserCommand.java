@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -48,7 +47,7 @@ public class CreateUserCommand extends Command {
     if (!password.equals(passwordConfirm)) {
       throw new IllegalArgumentException("Passwords do not match");
     }
-    shellState.getConnector().securityOperations().createUser(new UserPassToken(user, password));
+    shellState.getConnector().securityOperations().createUser(user, password.getBytes());
     Shell.log.debug("Created user " + user);
     return 0;
   }

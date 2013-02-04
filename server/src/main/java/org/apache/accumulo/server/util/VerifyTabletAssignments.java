@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -29,8 +30,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -46,15 +45,16 @@ import org.apache.accumulo.core.data.thrift.MultiScanResult;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TRange;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.trace.instrument.Tracer;
+import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -64,23 +64,22 @@ import com.beust.jcommander.Parameter;
 public class VerifyTabletAssignments {
   
   static class Opts extends ClientOpts {
-    @Parameter(names={"-v", "--verbose"}, description="verbose mode (prints locations of tablets)")
+    @Parameter(names = {"-v", "--verbose"}, description = "verbose mode (prints locations of tablets)")
     boolean verbose = false;
   }
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
-
+    
     Connector conn = opts.getConnector();
     for (String table : conn.tableOperations().list())
       checkTable(opts, table, null);
     
   }
   
-  private static void checkTable(final Opts opts, String tableName, HashSet<KeyExtent> check)
-      throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, InterruptedException {
+  private static void checkTable(final Opts opts, String tableName, HashSet<KeyExtent> check) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InterruptedException {
     
     if (check == null)
       System.out.println("Checking table " + tableName);
@@ -92,7 +91,8 @@ public class VerifyTabletAssignments {
     
     Connector conn = opts.getConnector();
     Instance inst = conn.getInstance();
-    MetadataTable.getEntries(conn.getInstance(), new InstanceTokenWrapper(opts.getWrappedToken().toThrift()), tableName, false, locations, tablets);
+    MetadataTable.getEntries(conn.getInstance(), new Credentials(opts.user, ByteBuffer.wrap(opts.getPassword()), inst.getInstanceID()), tableName, false,
+        locations, tablets);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
     
@@ -123,7 +123,7 @@ public class VerifyTabletAssignments {
         @Override
         public void run() {
           try {
-            checkTabletServer(conf.getConfiguration(), opts.getAccumuloToken(), entry, failures);
+            checkTabletServer(conf.getConfiguration(), opts.user, ByteBuffer.wrap(opts.getPassword()), entry, failures);
           } catch (Exception e) {
             System.err.println("Failure on ts " + entry.getKey() + " " + e.getMessage());
             e.printStackTrace();
@@ -152,12 +152,11 @@ public class VerifyTabletAssignments {
     }
   }
   
-  private static void checkTabletServer(AccumuloConfiguration conf, final SecurityToken token, Entry<String,List<KeyExtent>> entry,
-      HashSet<KeyExtent> failures)
-      throws ThriftSecurityException, TException, NoSuchScanIDException {
+  private static void checkTabletServer(AccumuloConfiguration conf, final String user, final ByteBuffer pass, Entry<String,List<KeyExtent>> entry,
+      HashSet<KeyExtent> failures) throws ThriftSecurityException, TException, NoSuchScanIDException {
     TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), conf);
     
-    InstanceTokenWrapper st = new InstanceTokenWrapper(token, HdfsZooInstance.getInstance().getInstanceID());
+    Credentials st = new Credentials(user, pass, HdfsZooInstance.getInstance().getInstanceID());
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<TKeyExtent,List<TRange>>();
     
     for (KeyExtent keyExtent : entry.getValue()) {
@@ -190,13 +189,8 @@ public class VerifyTabletAssignments {
     Map<String,Map<String,String>> emptyMapSMapSS = Collections.emptyMap();
     List<IterInfo> emptyListIterInfo = Collections.emptyList();
     List<TColumn> emptyListColumn = Collections.emptyList();
-    InitialMultiScan is;
-    try {
-      is = client.startMultiScan(tinfo, st.toThrift(), batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS, Constants.NO_AUTHS.getAuthorizationsBB(),
-          false);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    InitialMultiScan is = client.startMultiScan(tinfo, st, batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS, Constants.NO_AUTHS.getAuthorizationsBB(),
+        false);
     if (is.result.more) {
       MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);
       checkFailures(entry.getKey(), failures, result);

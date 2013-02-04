@@ -36,21 +36,18 @@ enum SecurityErrorCode {
     TOKEN_EXPIRED = 15
 }
 
-struct ThriftUserPassToken {
+struct AuthInfo {
     1:string user,
-    2:binary password
+    2:binary password,
+    3:string instanceId
 }
 
-struct ThriftKerberosToken {
-	1:string user,
-	2:binary ticket
+struct Credentials {
+    1:string principal,
+    2:binary token,
+    3:string instanceId
 }
 
-struct ThriftInstanceTokenWrapper {
-	1: binary token,
-	2: string tokenClass,
-	3: string instance
-}
 exception ThriftSecurityException {
     1:string user,
     2:SecurityErrorCode code

@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.log4j.Logger;
@@ -44,7 +44,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   private Instance instance;
   private ArrayList<Range> ranges;
   
-  private InstanceTokenWrapper credentials;
+  private Credentials credentials;
   private Authorizations authorizations = Constants.NO_AUTHS;
   
   private static int nextBatchReaderInstance = 1;
@@ -55,7 +55,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   
   private final int batchReaderInstance = getNextBatchReaderInstance();
   
-  public TabletServerBatchReader(Instance instance, InstanceTokenWrapper credentials, String table, Authorizations authorizations, int numQueryThreads) {
+  public TabletServerBatchReader(Instance instance, Credentials credentials, String table, Authorizations authorizations, int numQueryThreads) {
     ArgumentChecker.notNull(instance, credentials, table, authorizations);
     this.instance = instance;
     this.credentials = credentials;

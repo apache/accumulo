@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.io.Text;
 
 public class FindMaxTest extends TestCase {
@@ -50,7 +49,7 @@ public class FindMaxTest extends TestCase {
   public void test1() throws Exception {
     MockInstance mi = new MockInstance();
     
-    Connector conn = mi.getConnector(new UserPassToken("root", ""));
+    Connector conn = mi.getConnector("root", "");
     conn.tableOperations().create("foo");
     
     BatchWriter bw = conn.createBatchWriter("foo", new BatchWriterConfig());

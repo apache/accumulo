@@ -64,9 +64,7 @@ import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.SecurityUtil;
-import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ServerServices;
@@ -81,6 +79,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.OfflineMetadataScanner;
@@ -120,7 +119,7 @@ public class SimpleGarbageCollector implements Iface {
   
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
     
-  private InstanceTokenWrapper credentials;
+  private Credentials credentials;
   private long gcStartDelay;
   private boolean checkForBulkProcessingFiles;
   private FileSystem fs;
@@ -180,7 +179,7 @@ public class SimpleGarbageCollector implements Iface {
     this.address = address;
   }
 
-  public void init(FileSystem fs, Instance instance, InstanceTokenWrapper credentials, boolean noTrash) throws IOException {
+  public void init(FileSystem fs, Instance instance, Credentials credentials, boolean noTrash) throws IOException {
     this.fs = TraceFileSystem.wrap(fs);
     this.credentials = credentials;
     this.instance = instance;
@@ -423,7 +422,7 @@ public class SimpleGarbageCollector implements Iface {
       return candidates;
     }
     
-    Scanner scanner = instance.getConnector(credentials).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
 
     if (continueKey != null) {
       // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them, then will never inspect deletes after N
@@ -471,7 +470,7 @@ public class SimpleGarbageCollector implements Iface {
       }
     } else {
       try {
-        scanner = new IsolatedScanner(instance.getConnector(credentials).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+        scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
       } catch (AccumuloSecurityException ex) {
         throw new AccumuloException(ex);
       } catch (TableNotFoundException ex) {
@@ -562,7 +561,7 @@ public class SimpleGarbageCollector implements Iface {
     if (!offline) {
       Connector c;
       try {
-        c = instance.getConnector(SecurityConstants.getSystemCredentials());
+        c = instance.getConnector(SecurityConstants.SYSTEM_PRINCIPAL, SecurityConstants.getSystemToken());
         writer = c.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
       } catch (Exception e) {
         log.error("Unable to create writer to remove file from the !METADATA table", e);
@@ -688,7 +687,7 @@ public class SimpleGarbageCollector implements Iface {
   }
   
   @Override
-  public GCStatus getStatus(TInfo info, ThriftInstanceTokenWrapper credentials) {
+  public GCStatus getStatus(TInfo info, Credentials credentials) {
     return status;
   }
 }

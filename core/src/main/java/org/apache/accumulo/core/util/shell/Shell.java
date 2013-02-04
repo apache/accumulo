@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -52,8 +53,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.security.AuditLevel;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -168,7 +168,7 @@ public class Shell extends ShellOptions {
   protected Instance instance;
   private Connector connector;
   protected ConsoleReader reader;
-  private SecurityToken credentials;
+  private Credentials credentials;
   private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
@@ -276,7 +276,9 @@ public class Shell extends ShellOptions {
       
       pass = passw.getBytes();
       this.setTableName("");
-      this.credentials = updateUser(user, pass);
+      connector = instance.getConnector(user, pass);
+      this.credentials = new Credentials(user, ByteBuffer.wrap(pass), connector.getInstance().getInstanceID());
+      
     } catch (Exception e) {
       printException(e);
       configError = true;
@@ -315,8 +317,8 @@ public class Shell extends ShellOptions {
         new TablesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
-    Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(),
-        new PasswdCommand(), new SetAuthsCommand(), new UsersCommand()};
+    Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
+        new SetAuthsCommand(), new UsersCommand()};
     commandGrouping.put("-- Writing, Reading, and Removing Data --", dataCommands);
     commandGrouping.put("-- Debugging Commands -------------------", debuggingCommands);
     commandGrouping.put("-- Shell Execution Commands -------------", execCommands);
@@ -516,7 +518,7 @@ public class Shell extends ShellOptions {
             } // user canceled
             
             try {
-              authFailed = !connector.securityOperations().authenticateUser(credentials);
+              authFailed = !connector.securityOperations().authenticateUser(connector.whoami(), pwd.getBytes());
             } catch (Exception e) {
               ++exitCode;
               printException(e);
@@ -776,7 +778,7 @@ public class Shell extends ShellOptions {
   public final void printLines(Iterator<String> lines, boolean paginate) throws IOException {
     printLines(lines, paginate, null);
   }
-  
+
   public final void printLines(Iterator<String> lines, boolean paginate, PrintLine out) throws IOException {
     int linesPrinted = 0;
     String prompt = "-- hit any key to continue or 'q' to quit --";
@@ -931,30 +933,12 @@ public class Shell extends ShellOptions {
     return reader;
   }
   
-  public SecurityToken updateUser(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    SecurityToken token;
-    try {
-      String tokenClass = instance.getSecurityTokenClass();
-      if (tokenClass.equals(UserPassToken.class.getCanonicalName())) {
-        token = new UserPassToken(user, pass);
-//      } else if (tokenClass.equals(KerberosToken.class.getCanonicalName())) {
-//        token = new KerberosToken(user, new String(pass).toCharArray(), "accumulo");
-      } else
-        throw new RuntimeException("CLI can't handle alternative tokens... yet");
-    } catch (AccumuloException e) {
-      throw new RuntimeException(e);
-//    } catch (GeneralSecurityException e) {
-//      throw new RuntimeException(e);
-    }
-    
-    connector = instance.getConnector(token);
-    credentials = token;
-    if (!connector.securityOperations().authenticateUser(token))
-      throw new RuntimeException("Unable to authenticate user " + token.getPrincipal());
-    return token;
+  public void updateUser(Credentials authInfo) throws AccumuloException, AccumuloSecurityException {
+    connector = instance.getConnector(authInfo);
+    credentials = authInfo;
   }
   
-  public SecurityToken getCredentials() {
+  public Credentials getCredentials() {
     return credentials;
   }
   

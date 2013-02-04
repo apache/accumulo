@@ -28,12 +28,12 @@ public class DropUser extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysAuthInfo());
+    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysCredentials());
     
     String tableUserName = WalkingSecurity.get(state).getTabUserName();
     
     boolean exists = WalkingSecurity.get(state).userExists(tableUserName);
-    boolean hasPermission = WalkingSecurity.get(state).canDropUser(WalkingSecurity.get(state).getSysAuthInfo(), tableUserName);
+    boolean hasPermission = WalkingSecurity.get(state).canDropUser(WalkingSecurity.get(state).getSysCredentials(), tableUserName);
     
     try {
       conn.securityOperations().dropUser(tableUserName);

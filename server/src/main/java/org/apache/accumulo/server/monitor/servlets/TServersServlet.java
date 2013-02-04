@@ -126,9 +126,9 @@ public class TServersServlet extends BasicServlet {
       TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, Monitor.getSystemConfiguration());
       try {
         for (String tableId : Monitor.getMmi().tableMap.keySet()) {
-          tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials(), tableId));
+          tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), tableId));
         }
-        historical = client.getHistoricalStats(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials());
+        historical = client.getHistoricalStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
       } finally {
         ThriftUtil.returnClient(client);
       }

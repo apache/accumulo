@@ -31,8 +31,8 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
+import org.apache.accumulo.proxy.thrift.PrincipalToken;
 import org.apache.accumulo.proxy.thrift.TimeType;
-import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
@@ -47,7 +47,7 @@ public class TestProxyTableOperations {
   protected static TServer proxy;
   protected static Thread thread;
   protected static TestProxyClient tpc;
-  protected static ByteBuffer userpass;
+  protected static PrincipalToken userpass;
   protected static final int port = 10195;
   protected static final String testtable = "testtable";
   
@@ -66,7 +66,7 @@ public class TestProxyTableOperations {
     };
     thread.start();
     tpc = new TestProxyClient("localhost", port);
-    userpass = tpc.proxy().login(new UserPass("root", ByteBuffer.wrap("".getBytes())));
+    userpass = new PrincipalToken("root", ByteBuffer.wrap("".getBytes()));
   }
   
   @AfterClass
@@ -83,6 +83,11 @@ public class TestProxyTableOperations {
   @After
   public void deleteTestTable() throws Exception {
     tpc.proxy().deleteTable(userpass, testtable);
+  }
+  
+  @Test
+  public void ping() throws Exception {
+    tpc.proxy().ping(userpass);
   }
   
   @Test

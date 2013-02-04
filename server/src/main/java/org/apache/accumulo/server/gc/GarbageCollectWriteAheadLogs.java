@@ -26,11 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -45,6 +41,9 @@ import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -142,13 +141,11 @@ public class GarbageCollectWriteAheadLogs {
         Client tserver = null;
         try {
           tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
-          tserver.removeLogs(Tracer.traceInfo(), SecurityConstants.getSystemCredentials().toThrift(), entry.getValue());
+          tserver.removeLogs(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), entry.getValue());
           log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
           status.currentLog.deleted += entry.getValue().size();
         } catch (TException e) {
           log.warn("Error talking to " + address + ": " + e);
-        } catch (AccumuloSecurityException e) {
-          log.warn("Error generating system credentials");
         } finally {
           if (tserver != null)
             ThriftUtil.returnClient(tserver);

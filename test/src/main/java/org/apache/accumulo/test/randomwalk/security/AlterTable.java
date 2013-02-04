@@ -32,12 +32,12 @@ public class AlterTable extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysAuthInfo());
+    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysCredentials());
     
     String tableName = WalkingSecurity.get(state).getTableName();
     
     boolean exists = WalkingSecurity.get(state).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state).canAlterTable(WalkingSecurity.get(state).getSysAuthInfo(), tableName);
+    boolean hasPermission = WalkingSecurity.get(state).canAlterTable(WalkingSecurity.get(state).getSysCredentials(), tableName);
     String newTableName = String.format("security_%s_%s_%d", InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_"), state.getPid(),
         System.currentTimeMillis());
     

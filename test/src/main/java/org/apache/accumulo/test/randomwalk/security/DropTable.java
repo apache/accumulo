@@ -23,8 +23,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -37,13 +37,13 @@ public class DropTable extends Test {
   
   public static void dropTable(State state, Properties props) throws Exception {
     String sourceUser = props.getProperty("source", "system");
-    InstanceTokenWrapper auth;
+    Credentials auth;
     if (sourceUser.equals("table")) {
-      auth = WalkingSecurity.get(state).getTabAuthInfo();
+      auth = WalkingSecurity.get(state).getTabCredentials();
     } else {
-      auth = WalkingSecurity.get(state).getSysAuthInfo();
+      auth = WalkingSecurity.get(state).getSysCredentials();
     }
-    Connector conn = state.getInstance().getConnector(auth);
+    Connector conn = state.getInstance().getConnector(auth.getPrincipal(), auth.getToken());
     
     String tableName = WalkingSecurity.get(state).getTableName();
     

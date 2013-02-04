@@ -44,7 +44,7 @@ public class GetMasterStats {
     MasterMonitorInfo stats = null;
     try {
       client = MasterClient.getConnectionWithRetry(HdfsZooInstance.getInstance());
-      stats = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials());
+      stats = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
     } finally {
       if (client != null)
         MasterClient.close(client);

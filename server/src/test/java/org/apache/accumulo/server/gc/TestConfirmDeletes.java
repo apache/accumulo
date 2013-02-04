@@ -22,6 +22,8 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.junit.Assert;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -32,13 +34,10 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 
@@ -47,7 +46,7 @@ import org.junit.Test;
  */
 public class TestConfirmDeletes {
   
-  SecurityToken auth = new UserPassToken("root", ByteBuffer.wrap("".getBytes()));
+  Credentials auth = new Credentials("root", ByteBuffer.wrap("".getBytes()), "instance");
 
   SortedSet<String> newSet(String... s) {
     SortedSet<String> result = new TreeSet<String>(Arrays.asList(s));
@@ -100,7 +99,7 @@ public class TestConfirmDeletes {
     load(instance, metadata, deletes);
 
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
-    gc.init(fs, instance, new InstanceTokenWrapper(auth, instance.getInstanceID()), false);
+    gc.init(fs, instance, auth, false);
     SortedSet<String> candidates = gc.getCandidates();
     Assert.assertEquals(expectedInitial, candidates.size());
     gc.confirmDeletes(candidates);
@@ -108,7 +107,7 @@ public class TestConfirmDeletes {
   }
   
   private void load(Instance instance, String[] metadata, String[] deletes) throws Exception {
-    Scanner scanner = instance.getConnector(auth).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = instance.getConnector(auth.getPrincipal(), auth.getToken()).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     int count = 0;
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
@@ -118,7 +117,7 @@ public class TestConfirmDeletes {
     // ensure there is no data from previous test
     Assert.assertEquals(0, count);
 
-    Connector conn = instance.getConnector(auth);
+    Connector conn = instance.getConnector(auth.getPrincipal(), auth.getToken());
     BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     for (String line : metadata) {
       String[] parts = line.split(" ");

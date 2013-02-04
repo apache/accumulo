@@ -20,90 +20,61 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 
 /**
  * This is an Authenticator implementation that doesn't actually do any security. Use at your own risk.
  */
 public class InsecureAuthenticator implements Authenticator {
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.Authenticator#initialize(java.lang.String)
-   */
   @Override
   public void initialize(String instanceId, boolean initialize) {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.Authenticator#validSecurityHandlers(org.apache.accumulo.server.security.handler.Authorizor, org.apache.accumulo.server.security.handler.PermissionHandler)
-   */
   @Override
   public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm) {
     return true;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.Authenticator#initializeSecurity(org.apache.accumulo.core.security.thrift.InstanceTokenWrapper, java.lang.String, byte[])
-   */
   @Override
-  public void initializeSecurity(InstanceTokenWrapper credentials, SecurityToken token) throws AccumuloSecurityException {
+  public void initializeSecurity(Credentials credentials, String principal, byte[] token) throws AccumuloSecurityException {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.Authenticator#authenticateUser(java.lang.String, java.nio.ByteBuffer, java.lang.String)
-   */
   @Override
-  public boolean authenticateUser(SecurityToken token) {
+  public boolean authenticateUser(String principal, byte[] token) {
     return true;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.Authenticator#listUsers()
-   */
   @Override
   public Set<String> listUsers() throws AccumuloSecurityException {
     return Collections.emptySet();
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.Authenticator#createUser(java.lang.String, byte[])
-   */
   @Override
-  public void createUser(SecurityToken token) throws AccumuloSecurityException {
+  public void createUser(String principal, byte[] token) throws AccumuloSecurityException {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.Authenticator#dropUser(java.lang.String)
-   */
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.Authenticator#changePassword(java.lang.String, byte[])
-   */
   @Override
-  public void changePassword(SecurityToken token) throws AccumuloSecurityException {
+  public void changePassword(String user, byte[] token) throws AccumuloSecurityException {
     return;
   }
 
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.Authenticator#userExists(java.lang.String)
-   */
   @Override
   public boolean userExists(String user) {
     return true;
   }
 
   @Override
-  public String getTokenClassName() {
-    return UserPassToken.class.getName();
+  public String getAuthorizorName() {
+    return null;
   }
   
 }

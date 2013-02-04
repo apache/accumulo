@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecurityPermission;
@@ -28,12 +29,8 @@ import java.util.Arrays;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.TabletServerState;
@@ -44,30 +41,23 @@ public class SecurityConstants {
   private static SecurityPermission SYSTEM_CREDENTIALS_PERMISSION = new SecurityPermission("systemCredentialsPermission");
   static Logger log = Logger.getLogger(SecurityConstants.class);
   
-  public static final String SYSTEM_USERNAME = "!SYSTEM";
-  private static final byte[] SYSTEM_PASSWORD = makeSystemPassword();
-  private static final SecurityToken systemToken = new UserPassToken(SYSTEM_USERNAME, SYSTEM_PASSWORD);
-  private static final InstanceTokenWrapper systemCredentials = new InstanceTokenWrapper(systemToken, HdfsZooInstance.getInstance().getInstanceID());
+  public static final String SYSTEM_PRINCIPAL = "!SYSTEM";
+  private static final byte[] SYSTEM_TOKEN = makeSystemPassword();
+  private static final Credentials systemCredentials = new Credentials(SYSTEM_PRINCIPAL, ByteBuffer.wrap(SYSTEM_TOKEN), HdfsZooInstance.getInstance().getInstanceID());
   public static byte[] confChecksum = null;
   
-  public static InstanceTokenWrapper getSystemCredentials() {
+  public static byte[] getSystemToken() {
+    return SYSTEM_TOKEN;
+  }
+  
+  public static Credentials getSystemCredentials() {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
     }
     return systemCredentials;
   }
-  
-  public static ThriftInstanceTokenWrapper getThriftSystemCredentials() {
-    try {
-      return systemCredentials.toThrift();
-    } catch (AccumuloSecurityException e) {
-      log.error("This shouldn't be happening. This is very bad.");
-      log.error(e);
-      throw new RuntimeException(e);
-    }
-  }
-  
+
   private static byte[] makeSystemPassword() {
     int wireVersion = Constants.WIRE_VERSION;
     byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8);
@@ -99,7 +89,7 @@ public class SecurityConstants {
    * @return RESERVED if the passwords match, otherwise a state that describes the failure state
    */
   public static TabletServerState compareSystemPassword(byte[] base64encodedPassword) {
-    if (Arrays.equals(SYSTEM_PASSWORD, base64encodedPassword))
+    if (Arrays.equals(SYSTEM_TOKEN, base64encodedPassword))
       return TabletServerState.RESERVED;
     
     // parse to determine why

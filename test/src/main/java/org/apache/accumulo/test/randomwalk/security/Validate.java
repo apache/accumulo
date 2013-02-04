@@ -52,9 +52,9 @@ public class Validate extends Test {
     
     Properties props = new Properties();
     props.setProperty("target", "system");
-    Authenticate.authenticate(state.getAuthInfo(), state, props);
+    Authenticate.authenticate(state.getCredentials(), state, props);
     props.setProperty("target", "table");
-    Authenticate.authenticate(state.getAuthInfo(), state, props);
+    Authenticate.authenticate(state.getCredentials(), state, props);
     
     for (String user : new String[] {WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getTabUserName()}) {
       for (SystemPermission sp : SystemPermission.values()) {
@@ -105,7 +105,7 @@ public class Validate extends Test {
     Authorizations accuAuths;
     Authorizations auths;
     try {
-      auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabAuthInfo());
+      auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabCredentials());
       accuAuths = conn.securityOperations().getUserAuthorizations(WalkingSecurity.get(state).getTabUserName());
     } catch (ThriftSecurityException ae) {
       if (ae.getCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {

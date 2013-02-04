@@ -18,10 +18,10 @@ package org.apache.accumulo.examples.simple.filedata;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
 
@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.mapreduce.Job;
@@ -199,7 +198,7 @@ public class ChunkInputFormatTest extends TestCase {
       
       job.setInputFormatClass(ChunkInputFormat.class);
       
-      ChunkInputFormat.setConnectorInfo(job, new UserPassToken(user, pass));
+      ChunkInputFormat.setConnectorInfo(job, user, pass.getBytes(Charset.forName("UTF-8")));
       ChunkInputFormat.setInputTableName(job, table);
       ChunkInputFormat.setScanAuthorizations(job, AUTHS);
       ChunkInputFormat.setMockInstance(job, instance);
@@ -225,9 +224,9 @@ public class ChunkInputFormatTest extends TestCase {
   
   public void test() throws Exception {
     MockInstance instance = new MockInstance("instance1");
-    Connector conn = instance.getConnector(new UserPassToken("root", ""));
+    Connector conn = instance.getConnector("root", "".getBytes());
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(5));
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
@@ -244,9 +243,9 @@ public class ChunkInputFormatTest extends TestCase {
   
   public void testErrorOnNextWithoutClose() throws Exception {
     MockInstance instance = new MockInstance("instance2");
-    Connector conn = instance.getConnector(new UserPassToken("root", ""));
+    Connector conn = instance.getConnector("root", "".getBytes());
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(5));
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
@@ -264,9 +263,9 @@ public class ChunkInputFormatTest extends TestCase {
   
   public void testInfoWithoutChunks() throws Exception {
     MockInstance instance = new MockInstance("instance3");
-    Connector conn = instance.getConnector(new UserPassToken("root", ""));
+    Connector conn = instance.getConnector("root", "".getBytes());
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(5));
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     for (Entry<Key,Value> e : baddata) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());

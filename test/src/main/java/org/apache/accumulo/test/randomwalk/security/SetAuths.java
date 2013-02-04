@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -31,7 +31,7 @@ public class SetAuths extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    InstanceTokenWrapper auth;
+    Credentials auth;
     
     String authsString = props.getProperty("auths", "_random");
     
@@ -39,10 +39,10 @@ public class SetAuths extends Test {
     String target;
     if ("table".equals(targetUser)) {
       target = WalkingSecurity.get(state).getTabUserName();
-      auth = WalkingSecurity.get(state).getSysAuthInfo();
+      auth = WalkingSecurity.get(state).getSysCredentials();
     } else {
       target = WalkingSecurity.get(state).getSysUserName();
-      auth = state.getAuthInfo();
+      auth = state.getCredentials();
     }
     Connector conn = state.getInstance().getConnector(auth);
     

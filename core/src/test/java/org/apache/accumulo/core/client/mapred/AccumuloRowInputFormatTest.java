@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.conf.Configured;
@@ -164,7 +163,7 @@ public class AccumuloRowInputFormatTest {
       
       job.setInputFormat(AccumuloRowInputFormat.class);
       
-      AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(user, pass));
+      AccumuloInputFormat.setConnectorInfo(job, user, pass.getBytes());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloRowInputFormat.setMockInstance(job, INSTANCE_NAME);
       
@@ -186,7 +185,7 @@ public class AccumuloRowInputFormatTest {
   @Test
   public void test() throws Exception {
     final MockInstance instance = new MockInstance(INSTANCE_NAME);
-    final Connector conn = instance.getConnector(new UserPassToken("root", ""));
+    final Connector conn = instance.getConnector("root", "");
     conn.tableOperations().create(TEST_TABLE_1);
     BatchWriter writer = null;
     try {

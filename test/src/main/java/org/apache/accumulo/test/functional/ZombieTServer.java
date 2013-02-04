@@ -27,7 +27,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
@@ -64,13 +64,13 @@ public class ZombieTServer {
     }
     
     @Override
-    synchronized public void fastHalt(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock) {
+    synchronized public void fastHalt(TInfo tinfo, Credentials credentials, String lock) {
       halted = true;
       notifyAll();
     }
     
     @Override
-    public TabletServerStatus getTabletServerStatus(TInfo tinfo, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException, TException {
+    public TabletServerStatus getTabletServerStatus(TInfo tinfo, Credentials credentials) throws ThriftSecurityException, TException {
       synchronized (this) {
         if (statusCount++ < 1) {
           TabletServerStatus result = new TabletServerStatus();
@@ -83,7 +83,7 @@ public class ZombieTServer {
     }
     
     @Override
-    synchronized public void halt(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock) throws ThriftSecurityException, TException {
+    synchronized public void halt(TInfo tinfo, Credentials credentials, String lock) throws ThriftSecurityException, TException {
       halted = true;
       notifyAll();
     }

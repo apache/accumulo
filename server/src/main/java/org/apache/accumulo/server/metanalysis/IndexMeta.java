@@ -145,7 +145,7 @@ public class IndexMeta extends Configured implements Tool {
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     AccumuloOutputFormat.setZooKeeperInstance(job, opts.instance, opts.zookeepers);
-    AccumuloOutputFormat.setConnectorInfo(job, opts.getAccumuloToken());
+    AccumuloOutputFormat.setConnectorInfo(job, opts.user, opts.getPassword());
     AccumuloOutputFormat.setCreateTables(job, false);
     
     job.setMapperClass(IndexMapper.class);

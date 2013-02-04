@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.io.Text;
@@ -41,9 +41,9 @@ public class MetaDataStateStore extends TabletStateStore {
   
   final protected Instance instance;
   final protected CurrentState state;
-  final protected InstanceTokenWrapper auths;
+  final protected Credentials auths;
   
-  public MetaDataStateStore(Instance instance, InstanceTokenWrapper auths, CurrentState state) {
+  public MetaDataStateStore(Instance instance, Credentials auths, CurrentState state) {
     this.instance = instance;
     this.state = state;
     this.auths = auths;
@@ -82,7 +82,7 @@ public class MetaDataStateStore extends TabletStateStore {
   
   BatchWriter createBatchWriter() {
     try {
-      return instance.getConnector(auths).createBatchWriter(Constants.METADATA_TABLE_NAME,
+      return instance.getConnector(auths.getPrincipal(), auths.getToken()).createBatchWriter(Constants.METADATA_TABLE_NAME,
           new BatchWriterConfig().setMaxMemory(MAX_MEMORY).setMaxLatency(LATENCY, TimeUnit.MILLISECONDS).setMaxWriteThreads(THREADS));
     } catch (TableNotFoundException e) {
       // ya, I don't think so

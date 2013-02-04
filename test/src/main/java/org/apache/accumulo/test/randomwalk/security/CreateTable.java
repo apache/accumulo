@@ -31,12 +31,12 @@ public class CreateTable extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysAuthInfo());
+    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysCredentials());
     
     String tableName = WalkingSecurity.get(state).getTableName();
     
     boolean exists = WalkingSecurity.get(state).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state).canCreateTable(WalkingSecurity.get(state).getSysAuthInfo());
+    boolean hasPermission = WalkingSecurity.get(state).canCreateTable(WalkingSecurity.get(state).getSysCredentials());
     
     try {
       conn.tableOperations().create(tableName);

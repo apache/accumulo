@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
 
@@ -76,7 +75,7 @@ public class TabletIteratorTest extends TestCase {
   // simulate a merge happening while iterating over tablets
   public void testMerge() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector(new UserPassToken("", ""));
+    Connector conn = mi.getConnector("", "");
     
     KeyExtent ke1 = new KeyExtent(new Text("0"), new Text("m"), null);
     Mutation mut1 = ke1.getPrevRowUpdateMutation();

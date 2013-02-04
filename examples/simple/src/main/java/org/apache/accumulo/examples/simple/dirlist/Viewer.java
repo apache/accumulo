@@ -103,7 +103,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     setSize(1000, 800);
     setDefaultCloseOperation(EXIT_ON_CLOSE);
     q = new QueryUtil(opts);
-    fdq = new FileDataQuery(opts.instance, opts.zookeepers, opts.getAccumuloToken(), opts.dataTable, opts.auths);
+    fdq = new FileDataQuery(opts.instance, opts.zookeepers, opts.user, opts.getPassword(), opts.dataTable, opts.auths);
     this.topPath = opts.path;
   }
   

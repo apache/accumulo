@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
@@ -50,7 +50,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   // and just query for the next highest row from the tablet server
   
   private Instance instance;
-  private InstanceTokenWrapper credentials;
+  private Credentials credentials;
   private Authorizations authorizations;
   private Text table;
   
@@ -59,7 +59,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   private Range range;
   private boolean isolated = false;
   
-  public ScannerImpl(Instance instance, InstanceTokenWrapper credentials, String table, Authorizations authorizations) {
+  public ScannerImpl(Instance instance, Credentials credentials, String table, Authorizations authorizations) {
     ArgumentChecker.notNull(instance, credentials, table, authorizations);
     this.instance = instance;
     this.credentials = credentials;

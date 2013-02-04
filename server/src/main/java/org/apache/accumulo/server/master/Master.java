@@ -81,9 +81,8 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
@@ -456,12 +455,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       log.warn(why);
       throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.OTHER, why);
     }
-    if (Tables.getNameToIdMap(HdfsZooInstance.getInstance()).containsKey(tableName))
-    {
+    if (Tables.getNameToIdMap(HdfsZooInstance.getInstance()).containsKey(tableName)) {
       String why = "Table name already exists: " + tableName;
-      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, why);      
+      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, why);
     }
-
+    
   }
   
   public void mustBeOnline(final String tableId) throws ThriftTableOperationException {
@@ -471,7 +469,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   }
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return instance.getConnector(SecurityConstants.getSystemCredentials());
+    return instance.getConnector(SecurityConstants.SYSTEM_PRINCIPAL, SecurityConstants.getSystemToken());
   }
   
   private void waitAround(EventCoordinator.Listener listener) {
@@ -533,13 +531,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public long initiateFlush(TInfo tinfo, ThriftInstanceTokenWrapper c, String tableId) throws ThriftSecurityException, ThriftTableOperationException, TException {
-      try {
-        security.canFlush(new InstanceTokenWrapper(c), tableId);
-      } catch (AccumuloSecurityException e1) {
-        log.error(e1);
-        throw e1.asThriftException();
-      }
+    public long initiateFlush(TInfo tinfo, Credentials c, String tableId) throws ThriftSecurityException, ThriftTableOperationException, TException {
+      security.canFlush(c, tableId);
       
       String zTablePath = Constants.ZROOT + "/" + getConfiguration().getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
           + Constants.ZTABLE_FLUSH_ID;
@@ -565,14 +558,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void waitForFlush(TInfo tinfo, ThriftInstanceTokenWrapper c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
+    public void waitForFlush(TInfo tinfo, Credentials c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
         throws ThriftSecurityException, ThriftTableOperationException, TException {
-      try {
-        security.canFlush(new InstanceTokenWrapper(c), tableId);
-      } catch (AccumuloSecurityException e1) {
-        log.error(e1);
-        throw e1.asThriftException();
-      }
+      security.canFlush(c, tableId);
       
       if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0)
         throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.BAD_RANGE,
@@ -681,7 +669,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public MasterMonitorInfo getMasterStats(TInfo info, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException, TException {
+    public MasterMonitorInfo getMasterStats(TInfo info, Credentials credentials) throws ThriftSecurityException, TException {
       final MasterMonitorInfo result = new MasterMonitorInfo();
       
       result.tServerInfo = new ArrayList<TabletServerStatus>();
@@ -714,17 +702,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       return result;
     }
     
-    private void alterTableProperty(ThriftInstanceTokenWrapper c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
+    private void alterTableProperty(Credentials c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
         ThriftTableOperationException {
       final String tableId = checkTableId(tableName, op);
-      InstanceTokenWrapper itw;
-      try {
-        itw = new InstanceTokenWrapper(c);
-      } catch (AccumuloSecurityException e1) {
-        throw e1.asThriftException();
-      }
-      if (!security.canAlterTable(itw, tableId))
-        throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+      if (!security.canAlterTable(c, tableId))
+        throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       
       try {
         if (value == null) {
@@ -739,34 +721,26 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void removeTableProperty(TInfo info, ThriftInstanceTokenWrapper credentials, String tableName, String property) throws ThriftSecurityException,
+    public void removeTableProperty(TInfo info, Credentials credentials, String tableName, String property) throws ThriftSecurityException,
         ThriftTableOperationException, TException {
       alterTableProperty(credentials, tableName, property, null, TableOperation.REMOVE_PROPERTY);
     }
     
     @Override
-    public void setTableProperty(TInfo info, ThriftInstanceTokenWrapper credentials, String tableName, String property, String value) throws ThriftSecurityException,
+    public void setTableProperty(TInfo info, Credentials credentials, String tableName, String property, String value) throws ThriftSecurityException,
         ThriftTableOperationException, TException {
       alterTableProperty(credentials, tableName, property, value, TableOperation.SET_PROPERTY);
     }
     
     @Override
-    public void shutdown(TInfo info, ThriftInstanceTokenWrapper c, boolean stopTabletServers) throws ThriftSecurityException, TException {
-      try {
-        security.canPerformSystemActions(new InstanceTokenWrapper(c));
-      } catch (AccumuloSecurityException e) {
-        e.asThriftException();
-      }
+    public void shutdown(TInfo info, Credentials c, boolean stopTabletServers) throws ThriftSecurityException, TException {
+      security.canPerformSystemActions(c);
       Master.this.shutdown(stopTabletServers);
     }
     
     @Override
-    public void shutdownTabletServer(TInfo info, ThriftInstanceTokenWrapper c, String tabletServer, boolean force) throws ThriftSecurityException, TException {
-      try {
-        security.canPerformSystemActions(new InstanceTokenWrapper(c));
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
+    public void shutdownTabletServer(TInfo info, Credentials c, String tabletServer, boolean force) throws ThriftSecurityException, TException {
+      security.canPerformSystemActions(c);
       
       final InetSocketAddress addr = AddressUtil.parseAddress(tabletServer, Property.TSERV_CLIENTPORT);
       final String addrString = org.apache.accumulo.core.util.AddressUtil.toString(addr);
@@ -786,7 +760,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void reportSplitExtent(TInfo info, ThriftInstanceTokenWrapper credentials, String serverName, TabletSplit split) throws TException {
+    public void reportSplitExtent(TInfo info, Credentials credentials, String serverName, TabletSplit split) throws TException {
       if (migrations.remove(new KeyExtent(split.oldTablet)) != null) {
         log.info("Canceled migration of " + split.oldTablet);
       }
@@ -800,7 +774,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void reportTabletStatus(TInfo info, ThriftInstanceTokenWrapper credentials, String serverName, TabletLoadState status, TKeyExtent ttablet) throws TException {
+    public void reportTabletStatus(TInfo info, Credentials credentials, String serverName, TabletLoadState status, TKeyExtent ttablet) throws TException {
       KeyExtent tablet = new KeyExtent(ttablet);
       
       switch (status) {
@@ -828,12 +802,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void setMasterGoalState(TInfo info, ThriftInstanceTokenWrapper c, MasterGoalState state) throws ThriftSecurityException, TException {
-      try {
-        security.canPerformSystemActions(new InstanceTokenWrapper(c));
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
+    public void setMasterGoalState(TInfo info, Credentials c, MasterGoalState state) throws ThriftSecurityException, TException {
+      security.canPerformSystemActions(c);
       
       Master.this.setMasterGoalState(state);
     }
@@ -849,12 +819,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void removeSystemProperty(TInfo info, ThriftInstanceTokenWrapper c, String property) throws ThriftSecurityException, TException {
-      try {
-        security.canPerformSystemActions(new InstanceTokenWrapper(c));
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
+    public void removeSystemProperty(TInfo info, Credentials c, String property) throws ThriftSecurityException, TException {
+      security.canPerformSystemActions(c);
       
       try {
         SystemPropUtil.removeSystemProperty(property);
@@ -866,12 +832,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void setSystemProperty(TInfo info, ThriftInstanceTokenWrapper c, String property, String value) throws ThriftSecurityException, TException {
-      try {
-        security.canPerformSystemActions(new InstanceTokenWrapper(c));
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
+    public void setSystemProperty(TInfo info, Credentials c, String property, String value) throws ThriftSecurityException, TException {
+      security.canPerformSystemActions(c);
       
       try {
         SystemPropUtil.setSystemProperty(property, value);
@@ -882,45 +844,34 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
     
-    private void authenticate(InstanceTokenWrapper itw) throws ThriftSecurityException {
-      if (!security.authenticateUser(itw, itw.getToken()))
-        throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
-
+    private void authenticate(Credentials c) throws ThriftSecurityException {
+      if (!security.authenticateUser(c, c.getPrincipal(), c.getToken()))
+        throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+      
     }
     
     @Override
-    public long beginTableOperation(TInfo tinfo, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException, TException {
-      try {
-        authenticate(new InstanceTokenWrapper(credentials));
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
+    public long beginTableOperation(TInfo tinfo, Credentials credentials) throws ThriftSecurityException, TException {
+      authenticate(credentials);
       return fate.startTransaction();
     }
     
     @Override
-    public void executeTableOperation(TInfo tinfo, ThriftInstanceTokenWrapper c, long opid, org.apache.accumulo.core.master.thrift.TableOperation op, List<ByteBuffer> arguments,
-        Map<String,String> options, boolean autoCleanup) throws ThriftSecurityException, ThriftTableOperationException, TException {
-      InstanceTokenWrapper itw;
-      try {
-        itw = new InstanceTokenWrapper(c);
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
-
-      authenticate(itw);
+    public void executeTableOperation(TInfo tinfo, Credentials c, long opid, org.apache.accumulo.core.master.thrift.TableOperation op,
+        List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup) throws ThriftSecurityException, ThriftTableOperationException, TException {
+      authenticate(c);
       
       switch (op) {
         case CREATE: {
           String tableName = ByteBufferUtil.toString(arguments.get(0));
-          if (!security.canCreateTable(itw))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          if (!security.canCreateTable(c))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           checkNotMetadataTable(tableName, TableOperation.CREATE);
           checkTableName(tableName, TableOperation.CREATE);
           
           org.apache.accumulo.core.client.admin.TimeType timeType = org.apache.accumulo.core.client.admin.TimeType.valueOf(ByteBufferUtil.toString(arguments
               .get(1)));
-          fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTable(itw.getPrincipal(), tableName, timeType, options)), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTable(c.getPrincipal(), tableName, timeType, options)), autoCleanup);
           
           break;
         }
@@ -932,8 +883,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           checkNotMetadataTable(oldTableName, TableOperation.RENAME);
           checkNotMetadataTable(newTableName, TableOperation.RENAME);
           checkTableName(newTableName, TableOperation.RENAME);
-          if (!security.canRenameTable(itw, tableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          if (!security.canRenameTable(c, tableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTable(tableId, oldTableName, newTableName)), autoCleanup);
           
@@ -945,8 +896,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           
           checkNotMetadataTable(tableName, TableOperation.CLONE);
           checkTableName(tableName, TableOperation.CLONE);
-          if (!security.canCloneTable(itw, srcTableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          if (!security.canCloneTable(c, srcTableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           Map<String,String> propertiesToSet = new HashMap<String,String>();
           Set<String> propertiesToExclude = new HashSet<String>();
@@ -965,7 +916,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             propertiesToSet.put(entry.getKey(), entry.getValue());
           }
           
-          fate.seedTransaction(opid, new TraceRepo<Master>(new CloneTable(itw.getPrincipal(), srcTableId, tableName, propertiesToSet, propertiesToExclude)), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new CloneTable(c.getPrincipal(), srcTableId, tableName, propertiesToSet, propertiesToExclude)),
+              autoCleanup);
           
           break;
         }
@@ -973,9 +925,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           final String tableId = checkTableId(tableName, TableOperation.DELETE);
           checkNotMetadataTable(tableName, TableOperation.DELETE);
-          if (!security.canDeleteTable(itw, tableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
+          if (!security.canDeleteTable(c, tableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          
           fate.seedTransaction(opid, new TraceRepo<Master>(new DeleteTable(tableId)), autoCleanup);
           break;
         }
@@ -983,10 +935,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           final String tableId = checkTableId(tableName, TableOperation.ONLINE);
           checkNotMetadataTable(tableName, TableOperation.ONLINE);
-
-          if (!security.canOnlineOfflineTable(itw, tableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
+          
+          if (!security.canOnlineOfflineTable(c, tableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          
           fate.seedTransaction(opid, new TraceRepo<Master>(new ChangeTableState(tableId, TableOperation.ONLINE)), autoCleanup);
           break;
         }
@@ -995,8 +947,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           final String tableId = checkTableId(tableName, TableOperation.OFFLINE);
           checkNotMetadataTable(tableName, TableOperation.OFFLINE);
           
-          if (!security.canOnlineOfflineTable(itw, tableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          if (!security.canOnlineOfflineTable(c, tableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new ChangeTableState(tableId, TableOperation.OFFLINE)), autoCleanup);
           break;
@@ -1016,9 +968,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           }
           log.debug("Creating merge op: " + tableId + " " + startRow + " " + endRow);
           
-          if (!security.canMerge(itw, tableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
+          if (!security.canMerge(c, tableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          
           fate.seedTransaction(opid, new TraceRepo<Master>(new TableRangeOp(MergeInfo.Operation.MERGE, tableId, startRow, endRow)), autoCleanup);
           break;
         }
@@ -1030,9 +982,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           final String tableId = checkTableId(tableName, TableOperation.DELETE_RANGE);
           checkNotMetadataTable(tableName, TableOperation.DELETE_RANGE);
           
-          if (!security.canDeleteRange(itw, tableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
+          if (!security.canDeleteRange(c, tableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          
           fate.seedTransaction(opid, new TraceRepo<Master>(new TableRangeOp(MergeInfo.Operation.DELETE, tableId, startRow, endRow)), autoCleanup);
           break;
         }
@@ -1045,9 +997,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           final String tableId = checkTableId(tableName, TableOperation.BULK_IMPORT);
           checkNotMetadataTable(tableName, TableOperation.BULK_IMPORT);
           
-          if (!security.canBulkImport(itw, tableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
+          if (!security.canBulkImport(c, tableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          
           fate.seedTransaction(opid, new TraceRepo<Master>(new BulkImport(tableId, dir, failDir, setTime)), autoCleanup);
           break;
         }
@@ -1057,17 +1009,17 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           byte[] endRow = ByteBufferUtil.toBytes(arguments.get(2));
           List<IteratorSetting> iterators = IteratorUtil.decodeIteratorSettings(ByteBufferUtil.toBytes(arguments.get(3)));
           
-          if (!security.canCompact(itw, tableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
+          if (!security.canCompact(c, tableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          
           fate.seedTransaction(opid, new TraceRepo<Master>(new CompactRange(tableId, startRow, endRow, iterators)), autoCleanup);
           break;
         }
         case COMPACT_CANCEL: {
           String tableId = ByteBufferUtil.toString(arguments.get(0));
           
-          if (!security.canCompact(itw, tableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          if (!security.canCompact(c, tableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new CancelCompactions(tableId)), autoCleanup);
           break;
@@ -1076,13 +1028,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           String exportDir = ByteBufferUtil.toString(arguments.get(1));
           
-          if (!security.canImport(itw))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
+          if (!security.canImport(c))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          
           checkNotMetadataTable(tableName, TableOperation.CREATE);
           checkTableName(tableName, TableOperation.CREATE);
           
-          fate.seedTransaction(opid, new TraceRepo<Master>(new ImportTable(itw.getPrincipal(), tableName, exportDir)), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new ImportTable(c.getPrincipal(), tableName, exportDir)), autoCleanup);
           break;
         }
         case EXPORT: {
@@ -1091,9 +1043,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           
           String tableId = checkTableId(tableName, TableOperation.EXPORT);
           
-          if (!security.canExport(itw, tableId))
-            throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
+          if (!security.canExport(c, tableId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+          
           checkNotMetadataTable(tableName, TableOperation.EXPORT);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new ExportTable(tableName, tableId, exportDir)), autoCleanup);
@@ -1107,12 +1059,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public String waitForTableOperation(TInfo tinfo, ThriftInstanceTokenWrapper credentials, long opid) throws ThriftSecurityException, ThriftTableOperationException, TException {
-      try {
-        authenticate(new InstanceTokenWrapper(credentials));
-      } catch (AccumuloSecurityException e1) {
-        throw e1.asThriftException();
-      }
+    public String waitForTableOperation(TInfo tinfo, Credentials credentials, long opid) throws ThriftSecurityException, ThriftTableOperationException,
+        TException {
+      authenticate(credentials);
       
       TStatus status = fate.waitForCompletion(opid);
       if (status == TStatus.FAILED) {
@@ -1134,18 +1083,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void finishTableOperation(TInfo tinfo, ThriftInstanceTokenWrapper credentials, long opid) throws ThriftSecurityException, TException {
-      try {
-        authenticate(new InstanceTokenWrapper(credentials));
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
+    public void finishTableOperation(TInfo tinfo, Credentials credentials, long opid) throws ThriftSecurityException, TException {
+      authenticate(credentials);
       fate.delete(opid);
     }
-
+    
     @Override
-    public String getSecurityTokenClass() throws TException {
-      return security.getTokenClassName();
+    public String getAuthenticatorClassName() throws TException {
+      return security.getAuthorizorName();
     }
   }
   
@@ -2218,7 +2163,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     });
     
-    InstanceTokenWrapper systemAuths = SecurityConstants.getSystemCredentials();
+    Credentials systemAuths = SecurityConstants.getSystemCredentials();
     final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
         new MetaDataStateStore(instance, systemAuths, this)};
     watchers.add(new TabletGroupWatcher(stores[2], null));

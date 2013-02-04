@@ -22,10 +22,8 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -57,10 +55,7 @@ public final class ZKAuthenticator implements Authenticator {
   }
   
   @Override
-  public void initializeSecurity(InstanceTokenWrapper credentials, SecurityToken token) throws AccumuloSecurityException {
-    if (!(token instanceof UserPassToken))
-      throw new AccumuloSecurityException("ZKAuthenticator doesn't take this token type", SecurityErrorCode.INVALID_TOKEN);
-    UserPassToken upt = (UserPassToken) token;
+  public void initializeSecurity(Credentials credentials, String principal, byte[] token) throws AccumuloSecurityException {
     try {
       // remove old settings from zookeeper first, if any
       IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
@@ -72,9 +67,9 @@ public final class ZKAuthenticator implements Authenticator {
         }
         
         // prep parent node of users with root username
-        zoo.putPersistentData(ZKUserPath, upt.getPrincipal().getBytes(), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(ZKUserPath, principal.getBytes(), NodeExistsPolicy.FAIL);
         
-        constructUser(upt.getPrincipal(), ZKSecurityTool.createPass(upt.getPassword()));
+        constructUser(principal, ZKSecurityTool.createPass(token));
       }
     } catch (KeeperException e) {
       log.error(e, e);
@@ -108,22 +103,19 @@ public final class ZKAuthenticator implements Authenticator {
    * Creates a user with no permissions whatsoever
    */
   @Override
-  public void createUser(SecurityToken token) throws AccumuloSecurityException {
-    if (!(token instanceof UserPassToken))
-      throw new AccumuloSecurityException("ZKAuthenticator doesn't take this token type", SecurityErrorCode.INVALID_TOKEN);
-    UserPassToken upt = (UserPassToken) token;
+  public void createUser(String principal, byte[] token) throws AccumuloSecurityException {
     try {
-      constructUser(upt.getPrincipal(), ZKSecurityTool.createPass(upt.getPassword()));
+      constructUser(principal, ZKSecurityTool.createPass(token));
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NODEEXISTS))
-        throw new AccumuloSecurityException(upt.getPrincipal(), SecurityErrorCode.USER_EXISTS, e);
-      throw new AccumuloSecurityException(upt.getPrincipal(), SecurityErrorCode.CONNECTION_ERROR, e);
+        throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_EXISTS, e);
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
       log.error(e, e);
       throw new RuntimeException(e);
     } catch (AccumuloException e) {
       log.error(e, e);
-      throw new AccumuloSecurityException(upt.getPrincipal(), SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
     }
   }
   
@@ -146,28 +138,26 @@ public final class ZKAuthenticator implements Authenticator {
   }
   
   @Override
-  public void changePassword(SecurityToken token) throws AccumuloSecurityException {
-    if (!(token instanceof UserPassToken))
-      throw new AccumuloSecurityException("ZKAuthenticator doesn't take this token type", SecurityErrorCode.INVALID_TOKEN);
-    UserPassToken upt = (UserPassToken) token;
-    if (userExists(upt.getPrincipal())) {
+  public void changePassword(String principal, byte[] token) throws AccumuloSecurityException {
+    if (userExists(principal)) {
       try {
         synchronized (zooCache) {
-          zooCache.clear(ZKUserPath + "/" + upt.getPrincipal());
-          ZooReaderWriter.getRetryingInstance().putPrivatePersistentData(ZKUserPath + "/" + upt.getPrincipal(), ZKSecurityTool.createPass(upt.getPassword()), NodeExistsPolicy.OVERWRITE);
+          zooCache.clear(ZKUserPath + "/" + principal);
+          ZooReaderWriter.getRetryingInstance().putPrivatePersistentData(ZKUserPath + "/" + principal, ZKSecurityTool.createPass(token),
+              NodeExistsPolicy.OVERWRITE);
         }
       } catch (KeeperException e) {
         log.error(e, e);
-        throw new AccumuloSecurityException(upt.getPrincipal(), SecurityErrorCode.CONNECTION_ERROR, e);
+        throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
       } catch (InterruptedException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       } catch (AccumuloException e) {
         log.error(e, e);
-        throw new AccumuloSecurityException(upt.getPrincipal(), SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
+        throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
       }
     } else
-      throw new AccumuloSecurityException(upt.getPrincipal(), SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
   
   /**
@@ -184,24 +174,21 @@ public final class ZKAuthenticator implements Authenticator {
   }
   
   @Override
-  public boolean authenticateUser(SecurityToken token) throws AccumuloSecurityException {
-    if (!(token instanceof UserPassToken))
-      throw new AccumuloSecurityException("ZKAuthenticator doesn't take this token type", SecurityErrorCode.INVALID_TOKEN);
-    UserPassToken upt = (UserPassToken) token;
+  public boolean authenticateUser(String principal, byte[] token) throws AccumuloSecurityException {
     byte[] pass;
-    String zpath = ZKUserPath + "/" + upt.getPrincipal();
+    String zpath = ZKUserPath + "/" + principal;
     pass = zooCache.get(zpath);
-    boolean result = ZKSecurityTool.checkPass(upt.getPassword(), pass);
+    boolean result = ZKSecurityTool.checkPass(token, pass);
     if (!result) {
       zooCache.clear(zpath);
       pass = zooCache.get(zpath);
-      result = ZKSecurityTool.checkPass(upt.getPassword(), pass);
+      result = ZKSecurityTool.checkPass(token, pass);
     }
     return result;
   }
-
+  
   @Override
-  public String getTokenClassName() {
-    return UserPassToken.class.getName();
+  public String getAuthorizorName() {
+    return this.getClass().getCanonicalName();
   }
 }

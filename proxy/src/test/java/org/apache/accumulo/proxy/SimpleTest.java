@@ -58,6 +58,7 @@ import org.apache.accumulo.proxy.thrift.IteratorScope;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
 import org.apache.accumulo.proxy.thrift.PartialKey;
+import org.apache.accumulo.proxy.thrift.PrincipalToken;
 import org.apache.accumulo.proxy.thrift.Range;
 import org.apache.accumulo.proxy.thrift.ScanColumn;
 import org.apache.accumulo.proxy.thrift.ScanOptions;
@@ -67,7 +68,6 @@ import org.apache.accumulo.proxy.thrift.ScanType;
 import org.apache.accumulo.proxy.thrift.SystemPermission;
 import org.apache.accumulo.proxy.thrift.TablePermission;
 import org.apache.accumulo.proxy.thrift.TimeType;
-import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
@@ -98,11 +98,10 @@ public class SimpleTest {
   private static Thread thread;
   private static int proxyPort;
   private static org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
-  private static UserPass userpass = new UserPass("root", ByteBuffer.wrap(secret.getBytes()));
-  private static ByteBuffer creds = null;
-
+  private static PrincipalToken creds = new PrincipalToken("root", ByteBuffer.wrap(secret.getBytes()));
+  
   private static Class<? extends TProtocolFactory> protocolClass;
-
+  
   static Class<? extends TProtocolFactory> getRandomProtocol() {
     List<Class<? extends TProtocolFactory>> protocolFactories = new ArrayList<Class<? extends TProtocolFactory>>();
     protocolFactories.add(org.apache.thrift.protocol.TJSONProtocol.Factory.class);
@@ -113,20 +112,20 @@ public class SimpleTest {
     Random rand = new Random();
     return protocolFactories.get(rand.nextInt(protocolFactories.size()));
   }
-
+  
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
     folder.create();
     accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
     accumulo.start();
-  
+    
     Properties props = new Properties();
     props.put("org.apache.accumulo.proxy.ProxyServer.instancename", accumulo.getInstanceName());
     props.put("org.apache.accumulo.proxy.ProxyServer.zookeepers", accumulo.getZookeepers());
     
     protocolClass = getRandomProtocol();
     System.out.println(protocolClass.getName());
-
+    
     proxyPort = 40000 + random.nextInt(20000);
     proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
         protocolClass, props);
@@ -140,9 +139,13 @@ public class SimpleTest {
     while (!proxyServer.isServing())
       UtilWaitThread.sleep(100);
     client = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
-    creds = client.login(userpass);
   }
-
+  
+  @Test(timeout = 10000)
+  public void testPing() throws Exception {
+    client.ping(creds);
+  }
+  
   @Test(timeout = 10000)
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
@@ -171,7 +174,7 @@ public class SimpleTest {
     // try to load some classes via the proxy
     assertTrue(client.testClassLoad(creds, DevNull.class.getName(), SortedKeyValueIterator.class.getName()));
     assertFalse(client.testClassLoad(creds, "foo.bar", SortedKeyValueIterator.class.getName()));
-
+    
     // create a table that's very slow, so we can look for scans/compactions
     client.createTable(creds, "slow", true, TimeType.MILLIS);
     IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "100"));
@@ -199,19 +202,18 @@ public class SimpleTest {
     t.start();
     // look for the scan
     List<ActiveScan> scans = Collections.emptyList();
-    loop:
-    for (int i = 0; i < 100; i++) {
-      for (String tserver: client.getTabletServers(creds)) {
-       scans = client.getActiveScans(creds, tserver);
-       if (!scans.isEmpty())
-         break loop;
-       UtilWaitThread.sleep(10);
+    loop: for (int i = 0; i < 100; i++) {
+      for (String tserver : client.getTabletServers(creds)) {
+        scans = client.getActiveScans(creds, tserver);
+        if (!scans.isEmpty())
+          break loop;
+        UtilWaitThread.sleep(10);
       }
     }
     t.join();
     assertFalse(scans.isEmpty());
     ActiveScan scan = scans.get(0);
-    assertEquals("root", scan.getUser());
+    assertEquals("root", scan.getPrincipal());
     assertEquals(ScanState.RUNNING, scan.getState());
     assertEquals(ScanType.SINGLE, scan.getType());
     assertEquals("slow", scan.getTable());
@@ -236,9 +238,8 @@ public class SimpleTest {
     
     // try to catch it in the act
     List<ActiveCompaction> compactions = Collections.emptyList();
-    loop2:
-    for (int i = 0; i < 100; i++) {
-      for (String tserver: client.getTabletServers(creds)) {
+    loop2: for (int i = 0; i < 100; i++) {
+      for (String tserver : client.getTabletServers(creds)) {
         compactions = client.getActiveCompactions(creds, tserver);
         if (!compactions.isEmpty())
           break loop2;
@@ -262,24 +263,23 @@ public class SimpleTest {
     // check password
     assertTrue(client.authenticateUser(creds, "root", s2bb(secret)));
     assertFalse(client.authenticateUser(creds, "root", s2bb("")));
-
+    
     // create a user
     client.createUser(creds, "stooge", s2bb("password"));
     // change auths
     Set<String> users = client.listUsers(creds);
     assertEquals(new HashSet<String>(Arrays.asList("root", "stooge")), users);
-    HashSet<ByteBuffer> auths = new HashSet<ByteBuffer>(Arrays.asList(s2bb("A"),s2bb("B")));
+    HashSet<ByteBuffer> auths = new HashSet<ByteBuffer>(Arrays.asList(s2bb("A"), s2bb("B")));
     client.changeUserAuthorizations(creds, "stooge", auths);
     List<ByteBuffer> update = client.getUserAuthorizations(creds, "stooge");
     assertEquals(auths, new HashSet<ByteBuffer>(update));
     
     // change password
-    client.changeUserPassword(creds, "stooge", s2bb(""));
+    client.changePrincipalTokenword(creds, "stooge", s2bb(""));
     assertTrue(client.authenticateUser(creds, "stooge", s2bb("")));
     
     // check permission failure
-    ByteBuffer stooge = client.login(new UserPass("stooge", s2bb("")));
-    
+    PrincipalToken stooge = new PrincipalToken("stooge", s2bb(""));
     try {
       client.createTable(stooge, "fail", true, TimeType.MILLIS);
       fail("should not create the table");
@@ -309,8 +309,7 @@ public class SimpleTest {
       String scanner = client.createScanner(stooge, "test", null);
       client.nextK(scanner, 100);
       fail("stooge should not read table test");
-    } catch (TException ex) {
-    }
+    } catch (TException ex) {}
     // grant
     assertFalse(client.hasTablePermission(creds, "stooge", "test", TablePermission.READ));
     client.grantTablePermission(creds, "stooge", "test", TablePermission.READ);
@@ -325,8 +324,7 @@ public class SimpleTest {
       scanner = client.createScanner(stooge, "test", null);
       client.nextK(scanner, 100);
       fail("stooge should not read table test");
-    } catch (TException ex) {
-    }
+    } catch (TException ex) {}
     
     // delete user
     client.dropUser(creds, "stooge");
@@ -346,8 +344,7 @@ public class SimpleTest {
     try {
       client.updateAndFlush(creds, "test", mutation("row1", "cf", "cq", "x"));
       fail("constraint did not fire");
-    } catch (Exception ex) {
-    }
+    } catch (Exception ex) {}
     client.removeConstraint(creds, "test", 1);
     client.updateAndFlush(creds, "test", mutation("row1", "cf", "cq", "x"));
     String scanner = client.createScanner(creds, "test", null);
@@ -370,7 +367,7 @@ public class SimpleTest {
     // iterators
     client.deleteTable(creds, "test");
     client.createTable(creds, "test", true, TimeType.MILLIS);
-    HashMap<String, String> options = new HashMap<String, String>();
+    HashMap<String,String> options = new HashMap<String,String>();
     options.put("type", "STRING");
     options.put("columns", "cf");
     IteratorSetting setting = new IteratorSetting(10, "test", SummingCombiner.class.getName(), options);
@@ -385,12 +382,11 @@ public class SimpleTest {
     try {
       client.checkIteratorConflicts(creds, "test", setting, EnumSet.allOf(IteratorScope.class));
       fail("checkIteratorConflicts did not throw and exception");
-    } catch (Exception ex) {
-    }
+    } catch (Exception ex) {}
     client.deleteRows(creds, "test", null, null);
     client.removeIterator(creds, "test", "test", EnumSet.allOf(IteratorScope.class));
     for (int i = 0; i < 10; i++) {
-      client.updateAndFlush(creds, "test", mutation("row"+i, "cf", "cq", ""+i));
+      client.updateAndFlush(creds, "test", mutation("row" + i, "cf", "cq", "" + i));
       client.flushTable(creds, "test", null, null, true);
     }
     scanner = client.createScanner(creds, "test", null);
@@ -438,7 +434,7 @@ public class SimpleTest {
     
     // Locality groups
     client.createTable(creds, "test", true, TimeType.MILLIS);
-    Map<String, Set<String>> groups = new HashMap<String, Set<String>>();
+    Map<String,Set<String>> groups = new HashMap<String,Set<String>>();
     groups.put("group1", Collections.singleton("cf1"));
     groups.put("group2", Collections.singleton("cf2"));
     client.setLocalityGroups(creds, "test", groups);
@@ -497,17 +493,17 @@ public class SimpleTest {
     }
     return result;
   }
-
+  
   private Map<ByteBuffer,List<ColumnUpdate>> mutation(String row, String cf, String cq, String value) {
     ColumnUpdate upd = new ColumnUpdate(s2bb(cf), s2bb(cq));
     upd.setValue(value.getBytes());
     return Collections.singletonMap(s2bb(row), Collections.singletonList(upd));
   }
-
+  
   private ByteBuffer s2bb(String cf) {
     return ByteBuffer.wrap(cf.getBytes());
   }
-
+  
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();

@@ -44,7 +44,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -84,7 +83,7 @@ public class MockConnectorTest {
   @Test
   public void testChangeAuths() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
-    c.securityOperations().createUser(new UserPassToken("greg", new byte[0]));
+    c.securityOperations().createUser("greg", new byte[] {});
     assertTrue(c.securityOperations().getUserAuthorizations("greg").isEmpty());
     c.securityOperations().changeUserAuthorizations("greg", new Authorizations("A".getBytes()));
     assertTrue(c.securityOperations().getUserAuthorizations("greg").contains("A".getBytes()));
@@ -96,7 +95,7 @@ public class MockConnectorTest {
   @Test
   public void testAggregation() throws Exception {
     MockInstance mockInstance = new MockInstance();
-    Connector c = mockInstance.getConnector(new UserPassToken("root", ""));
+    Connector c = mockInstance.getConnector("root", new byte[] {});
     String table = "perDayCounts";
     c.tableOperations().create(table);
     IteratorSetting is = new IteratorSetting(10, "String Summation", SummingCombiner.class);
@@ -344,8 +343,8 @@ public class MockConnectorTest {
       AccumuloSecurityException{
     String name = "an-interesting-instance-name";
     Instance mockInstance = new MockInstance(name);
-    assertEquals(mockInstance, mockInstance.getConnector(new UserPassToken("foo", "bar")).getInstance());
-    assertEquals(name, mockInstance.getConnector(new UserPassToken("foo", "bar")).getInstance().getInstanceName());
+    assertEquals(mockInstance, mockInstance.getConnector("foo", "bar").getInstance());
+    assertEquals(name, mockInstance.getConnector("foo","bar").getInstance().getInstanceName());
   }
 
 }

@@ -22,8 +22,7 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -31,14 +30,14 @@ public class Authenticate extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    authenticate(WalkingSecurity.get(state).getSysAuthInfo(), state, props);
+    authenticate(WalkingSecurity.get(state).getSysCredentials(), state, props);
   }
   
-  public static void authenticate(InstanceTokenWrapper auth, State state, Properties props) throws Exception {
+  public static void authenticate(Credentials auth, State state, Properties props) throws Exception {
     String targetProp = props.getProperty("target");
     boolean success = Boolean.parseBoolean(props.getProperty("valid"));
     
-    Connector conn = state.getInstance().getConnector(auth);
+    Connector conn = state.getInstance().getConnector(auth.getPrincipal(), auth.getToken());
     
     String target;
     
@@ -59,7 +58,7 @@ public class Authenticate extends Test {
     boolean result;
     
     try {
-      result = conn.securityOperations().authenticateUser(new UserPassToken(target, password));
+      result = conn.securityOperations().authenticateUser(target, password);
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:

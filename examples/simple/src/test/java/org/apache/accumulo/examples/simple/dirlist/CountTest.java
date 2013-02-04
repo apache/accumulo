@@ -18,7 +18,6 @@ package org.apache.accumulo.examples.simple.dirlist;
 
 import java.util.ArrayList;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
 
@@ -33,7 +32,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.examples.simple.dirlist.FileCount.Opts;
 import org.apache.hadoop.io.Text;
@@ -41,9 +39,9 @@ import org.apache.hadoop.io.Text;
 public class CountTest extends TestCase {
   {
     try {
-      Connector conn = new MockInstance("counttest").getConnector(new UserPassToken("root", ""));
+      Connector conn = new MockInstance("counttest").getConnector("root", "".getBytes());
       conn.tableOperations().create("dirlisttable");
-      BatchWriter bw = conn.createBatchWriter("dirlisttable", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(1));
+      BatchWriter bw = conn.createBatchWriter("dirlisttable", new BatchWriterConfig());
       ColumnVisibility cv = new ColumnVisibility();
       // / has 1 dir
       // /local has 2 dirs 1 file
@@ -62,7 +60,7 @@ public class CountTest extends TestCase {
   }
   
   public void test() throws Exception {
-    Scanner scanner = new MockInstance("counttest").getConnector(new UserPassToken("root", "")).createScanner("dirlisttable", new Authorizations());
+    Scanner scanner = new MockInstance("counttest").getConnector("root", "".getBytes()).createScanner("dirlisttable", new Authorizations());
     scanner.fetchColumn(new Text("dir"), new Text("counts"));
     assertFalse(scanner.iterator().hasNext());
     

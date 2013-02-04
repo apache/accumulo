@@ -108,9 +108,8 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
+import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -579,12 +578,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   static class TservConstraintEnv implements Environment {
     
-    private InstanceTokenWrapper credentials;
+    private Credentials credentials;
     private SecurityOperation security;
     private Authorizations auths;
     private KeyExtent ke;
     
-    TservConstraintEnv(SecurityOperation secOp, InstanceTokenWrapper credentials) {
+    TservConstraintEnv(SecurityOperation secOp, Credentials credentials) {
       this.security = secOp;
       this.credentials = credentials;
     }
@@ -720,7 +719,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     Map<KeyExtent,Long> failures = new HashMap<KeyExtent,Long>();
     HashMap<KeyExtent,SecurityErrorCode> authFailures = new HashMap<KeyExtent,SecurityErrorCode>();
     public Violations violations;
-    public InstanceTokenWrapper credentials;
+    public Credentials credentials;
     public long totalUpdates = 0;
     public long flushTime = 0;
     Stat prepareTimes = new Stat();
@@ -877,14 +876,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public List<TKeyExtent> bulkImport(TInfo tinfo, ThriftInstanceTokenWrapper titw, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime)
+    public List<TKeyExtent> bulkImport(TInfo tinfo, Credentials credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime)
         throws ThriftSecurityException {
-      InstanceTokenWrapper credentials;
-      try {
-        credentials = new InstanceTokenWrapper(titw);
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
+
       if (!security.canPerformSystemActions(credentials))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       
@@ -1100,24 +1094,18 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public InitialScan startScan(TInfo tinfo, ThriftInstanceTokenWrapper credentials, TKeyExtent textent, TRange range, List<TColumn> columns, int batchSize,
+    public InitialScan startScan(TInfo tinfo, Credentials credentials, TKeyExtent textent, TRange range, List<TColumn> columns, int batchSize,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated)
         throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
       
       Authorizations userauths = null;
-      InstanceTokenWrapper itw;
-      try {
-        itw = new InstanceTokenWrapper(credentials);
-      } catch (AccumuloSecurityException e1) {
-        throw e1.asThriftException();
-      }
-      if (!security.canScan(itw, new String(textent.getTable())))
-        throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+      if (!security.canScan(credentials, new String(textent.getTable())))
+        throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       
-      userauths = security.getUserAuthorizations(itw);
+      userauths = security.getUserAuthorizations(credentials);
       for (ByteBuffer auth : authorizations)
         if (!userauths.contains(ByteBufferUtil.toBytes(auth)))
-          throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
+          throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
       
       KeyExtent extent = new KeyExtent(textent);
       
@@ -1139,7 +1127,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throw new NotServingTabletException(textent);
       
       ScanSession scanSession = new ScanSession();
-      scanSession.user = itw.getPrincipal();
+      scanSession.user = credentials.getPrincipal();
       scanSession.extent = new KeyExtent(extent);
       scanSession.columnSet = new HashSet<Column>();
       scanSession.ssiList = ssiList;
@@ -1257,30 +1245,24 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public InitialMultiScan startMultiScan(TInfo tinfo, ThriftInstanceTokenWrapper credentials, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns,
+    public InitialMultiScan startMultiScan(TInfo tinfo, Credentials credentials, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) throws ThriftSecurityException {
       // find all of the tables that need to be scanned
       HashSet<String> tables = new HashSet<String>();
       for (TKeyExtent keyExtent : tbatch.keySet()) {
         tables.add(new String(keyExtent.getTable()));
       }
-      InstanceTokenWrapper itw;
-      try {
-        itw = new InstanceTokenWrapper(credentials);
-      } catch (AccumuloSecurityException e1) {
-        throw e1.asThriftException();
-      }
       
       // check if user has permission to the tables
       Authorizations userauths = null;
       for (String table : tables)
-        if (!security.canScan(itw, table))
-          throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        if (!security.canScan(credentials, table))
+          throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       
-      userauths = security.getUserAuthorizations(itw);
+      userauths = security.getUserAuthorizations(credentials);
       for (ByteBuffer auth : authorizations)
         if (!userauths.contains(ByteBufferUtil.toBytes(auth)))
-          throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
+          throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
       
       KeyExtent threadPoolExtent = null;
       
@@ -1301,7 +1283,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         writeTracker.waitForWrites(TabletType.type(batch.keySet()));
       
       MultiScanSession mss = new MultiScanSession();
-      mss.user = itw.getPrincipal();
+      mss.user = credentials.getPrincipal();
       mss.queries = batch;
       mss.columnSet = new HashSet<Column>(tcolumns.size());
       mss.ssiList = ssiList;
@@ -1387,22 +1369,16 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public long startUpdate(TInfo tinfo, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException {
+    public long startUpdate(TInfo tinfo, Credentials credentials) throws ThriftSecurityException {
       // Make sure user is real
-      InstanceTokenWrapper itw;
-      try {
-        itw = new InstanceTokenWrapper(credentials);
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
       
-      security.authenticateUser(itw, itw.getToken());
+      security.authenticateUser(credentials, credentials.getPrincipal(), credentials.getToken());
       if (updateMetrics.isEnabled())
         updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
       
       UpdateSession us = new UpdateSession();
       us.violations = new Violations();
-      us.credentials = itw;
+      us.credentials = credentials;
       us.cenv = new TservConstraintEnv(security, us.credentials);
       
       long sid = sessionManager.createSession(us, false);
@@ -1666,16 +1642,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void update(TInfo tinfo, ThriftInstanceTokenWrapper credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
+    public void update(TInfo tinfo, Credentials credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
         ConstraintViolationException, ThriftSecurityException {
-      InstanceTokenWrapper itw;
-      try {
-        itw = new InstanceTokenWrapper(credentials);
-      } catch (AccumuloSecurityException e1) {
-        throw e1.asThriftException();
-      }
-      if (!security.canWrite(itw, new String(tkeyExtent.getTable())))
-        throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
+      if (!security.canWrite(credentials, new String(tkeyExtent.getTable())))
+        throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       KeyExtent keyExtent = new KeyExtent(tkeyExtent);
       Tablet tablet = onlineTablets.get(new KeyExtent(keyExtent));
       if (tablet == null) {
@@ -1692,7 +1663,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         List<Mutation> mutations = Collections.singletonList(mutation);
         
         Span prep = Trace.start("prep");
-        CommitSession cs = tablet.prepareMutationsForCommit(new TservConstraintEnv(security, itw), mutations);
+        CommitSession cs = tablet.prepareMutationsForCommit(new TservConstraintEnv(security, credentials), mutations);
         prep.stop();
         if (cs == null) {
           throw new NotServingTabletException(tkeyExtent);
@@ -1720,18 +1691,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void splitTablet(TInfo tinfo, ThriftInstanceTokenWrapper credentials, TKeyExtent tkeyExtent, ByteBuffer splitPoint)
+    public void splitTablet(TInfo tinfo, Credentials credentials, TKeyExtent tkeyExtent, ByteBuffer splitPoint)
         throws NotServingTabletException, ThriftSecurityException {
-      InstanceTokenWrapper itw;
-      try {
-        itw = new InstanceTokenWrapper(credentials);
-      } catch (AccumuloSecurityException e1) {
-        throw e1.asThriftException();
-      }
       
       String tableId = new String(ByteBufferUtil.toBytes(tkeyExtent.table));
-      if (!security.canSplitTablet(itw, tableId))
-        throw new ThriftSecurityException(itw.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+      if (!security.canSplitTablet(credentials, tableId))
+        throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       
       KeyExtent keyExtent = new KeyExtent(tkeyExtent);
       
@@ -1753,12 +1718,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public TabletServerStatus getTabletServerStatus(TInfo tinfo, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException, TException {
+    public TabletServerStatus getTabletServerStatus(TInfo tinfo, Credentials credentials) throws ThriftSecurityException, TException {
       return getStats(sessionManager.getActiveScansPerTable());
     }
     
     @Override
-    public List<TabletStats> getTabletStats(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String tableId) throws ThriftSecurityException, TException {
+    public List<TabletStats> getTabletStats(TInfo tinfo, Credentials credentials, String tableId) throws ThriftSecurityException, TException {
       TreeMap<KeyExtent,Tablet> onlineTabletsCopy;
       synchronized (onlineTablets) {
         onlineTabletsCopy = new TreeMap<KeyExtent,Tablet>(onlineTablets);
@@ -1784,7 +1749,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     private ZooCache masterLockCache = new ZooCache();
     
-    private void checkPermission(InstanceTokenWrapper credentials, String lock, boolean requiresSystemPermission, final String request)
+    private void checkPermission(Credentials credentials, String lock, boolean requiresSystemPermission, final String request)
         throws ThriftSecurityException {
       if (requiresSystemPermission) {
         boolean fatal = false;
@@ -1796,7 +1761,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           }
         } catch (ThriftSecurityException e) {
           log.warn("Got " + request + " message from unauthenticatable user: " + e.getUser());
-          if (e.getUser().equals(SecurityConstants.SYSTEM_USERNAME)) {
+          if (e.getUser().equals(SecurityConstants.SYSTEM_PRINCIPAL)) {
             log.fatal("Got message from a service with a mismatched configuration. Please ensure a compatible configuration.", e);
             fatal = true;
           }
@@ -1848,17 +1813,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void loadTablet(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock, final TKeyExtent textent) {
-      InstanceTokenWrapper itw;
-      try {
-        itw = new InstanceTokenWrapper(credentials);
-      } catch (AccumuloSecurityException e1) {
-        log.error(e1, e1);
-        throw new RuntimeException(e1);
-      }
+    public void loadTablet(TInfo tinfo, Credentials credentials, String lock, final TKeyExtent textent) {
       
       try {
-        checkPermission(itw, lock, true, "loadTablet");
+        checkPermission(credentials, lock, true, "loadTablet");
       } catch (ThriftSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
@@ -1922,13 +1880,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void unloadTablet(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock, TKeyExtent textent, boolean save) {
+    public void unloadTablet(TInfo tinfo, Credentials credentials, String lock, TKeyExtent textent, boolean save) {
       try {
-        checkPermission(new InstanceTokenWrapper(credentials), lock, true, "unloadTablet");
+        checkPermission(credentials, lock, true, "unloadTablet");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
-        throw new RuntimeException(e);
-      } catch (AccumuloSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       }
@@ -1939,13 +1894,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void flush(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) {
+    public void flush(TInfo tinfo, Credentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) {
       try {
-        checkPermission(new InstanceTokenWrapper(credentials), lock, true, "flush");
+        checkPermission(credentials, lock, true, "flush");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
-        throw new RuntimeException(e);
-      } catch (AccumuloSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       }
@@ -1979,13 +1931,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void flushTablet(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock, TKeyExtent textent) throws TException {
+    public void flushTablet(TInfo tinfo, Credentials credentials, String lock, TKeyExtent textent) throws TException {
       try {
-        checkPermission(new InstanceTokenWrapper(credentials), lock, true, "flushTablet");
+        checkPermission(credentials, lock, true, "flushTablet");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
-        throw new RuntimeException(e);
-      } catch (AccumuloSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       }
@@ -2002,13 +1951,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void halt(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock) throws ThriftSecurityException {
+    public void halt(TInfo tinfo, Credentials credentials, String lock) throws ThriftSecurityException {
       
-      try {
-        checkPermission(new InstanceTokenWrapper(credentials), lock, true, "halt");
-      } catch (AccumuloSecurityException e1) {
-        throw e1.asThriftException();
-      }
+        checkPermission(credentials, lock, true, "halt");
       
       Halt.halt(0, new Runnable() {
         @Override
@@ -2026,7 +1971,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void fastHalt(TInfo info, ThriftInstanceTokenWrapper credentials, String lock) {
+    public void fastHalt(TInfo info, Credentials credentials, String lock) {
       try {
         halt(info, credentials, lock);
       } catch (Exception e) {
@@ -2035,18 +1980,15 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public TabletStats getHistoricalStats(TInfo tinfo, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException, TException {
+    public TabletStats getHistoricalStats(TInfo tinfo, Credentials credentials) throws ThriftSecurityException, TException {
       return statsKeeper.getTabletStats();
     }
     
     @Override
-    public List<ActiveScan> getActiveScans(TInfo tinfo, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException, TException {
+    public List<ActiveScan> getActiveScans(TInfo tinfo, Credentials credentials) throws ThriftSecurityException, TException {
       try {
-        checkPermission(new InstanceTokenWrapper(credentials), null, true, "getScans");
+        checkPermission(credentials, null, true, "getScans");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
-        throw new RuntimeException(e);
-      } catch (AccumuloSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       }
@@ -2055,13 +1997,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void chop(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock, TKeyExtent textent) throws TException {
+    public void chop(TInfo tinfo, Credentials credentials, String lock, TKeyExtent textent) throws TException {
       try {
-        checkPermission(new InstanceTokenWrapper(credentials), lock, true, "chop");
+        checkPermission(credentials, lock, true, "chop");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
-        throw new RuntimeException(e);
-      } catch (AccumuloSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       }
@@ -2075,14 +2014,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void compact(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow)
+    public void compact(TInfo tinfo, Credentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow)
         throws TException {
       try {
-        checkPermission(new InstanceTokenWrapper(credentials), lock, true, "compact");
+        checkPermission(credentials, lock, true, "compact");
       } catch (ThriftSecurityException e) {
-        log.error(e, e);
-        throw new RuntimeException(e);
-      } catch (AccumuloSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
       }
@@ -2117,10 +2053,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
      * (non-Javadoc)
      * 
      * @see org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface#removeLogs(org.apache.accumulo.trace.thrift.TInfo,
-     * org.apache.accumulo.core.security.thrift.InstanceTokenWrapper, java.util.List)
+     * org.apache.accumulo.core.security.thrift.Credentials, java.util.List)
      */
     @Override
-    public void removeLogs(TInfo tinfo, ThriftInstanceTokenWrapper credentials, List<String> filenames) throws TException {
+    public void removeLogs(TInfo tinfo, Credentials credentials, List<String> filenames) throws TException {
       String myname = getClientAddressString();
       myname = myname.replace(':', '+');
       Path logDir = new Path(Constants.getWalDirectory(acuConf), myname);
@@ -2167,16 +2103,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, ThriftInstanceTokenWrapper credentials) throws ThriftSecurityException, TException {
+    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, Credentials credentials) throws ThriftSecurityException, TException {
       try {
-        checkPermission(new InstanceTokenWrapper(credentials), null, true, "getActiveCompactions");
+        checkPermission(credentials, null, true, "getActiveCompactions");
       } catch (ThriftSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
-      } catch (AccumuloSecurityException e) {
-        log.error(e, e);
-        throw new RuntimeException(e);
-      }
+      } 
       
       List<CompactionInfo> compactions = Compactor.getRunningCompactions();
       List<ActiveCompaction> ret = new ArrayList<ActiveCompaction>(compactions.size());
@@ -2861,7 +2794,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           while (!serverStopRequested && mm != null && client != null && client.getOutputProtocol() != null
               && client.getOutputProtocol().getTransport() != null && client.getOutputProtocol().getTransport().isOpen()) {
             try {
-              mm.send(SecurityConstants.getThriftSystemCredentials(), getClientAddressString(), iface);
+              mm.send(SecurityConstants.getSystemCredentials(), getClientAddressString(), iface);
               mm = null;
             } catch (TException ex) {
               log.warn("Error sending message: queuing message again");

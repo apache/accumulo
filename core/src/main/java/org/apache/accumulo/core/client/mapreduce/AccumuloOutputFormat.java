@@ -41,9 +41,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
-import org.apache.accumulo.core.security.tokens.TokenHelper;
-import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
@@ -65,7 +62,7 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, SecurityToken)} OR {@link AccumuloOutputFormat#setConnectorInfo(Job, Path)}
+ * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, AccumuloToken)} OR {@link AccumuloOutputFormat#setConnectorInfo(Job, Path)}
  * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(Job, String)}
  * </ul>
  * 
@@ -85,25 +82,31 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * 
    * @param job
    *          the Hadoop job instance to be configured
+<<<<<<< .working
    * @param token
    *          a valid AccumuloToken (principal must have Table.CREATE permission)
-   * @throws AccumuloSecurityException 
+=======
+   * @param user
+   *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(Job, boolean)} is set to true)
+   * @param passwd
+   *          the user's password
+>>>>>>> .merge-right.r1438353
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Job job, SecurityToken token) throws AccumuloSecurityException {
-    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), token);
+  public static void setConnectorInfo(Job job, String user, byte[] passwd) {
+    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), user, passwd);
   }
   
   /**
    * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
    * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
    * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link TokenHelper#asBase64String(SecurityToken)}.
+   * {@link TokenHelper#asBase64String(AccumuloToken)}.
    * 
    * @param job
    *          the Hadoop job instance to be configured
    * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link SecurityToken} with the user's authentication
+   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AccumuloToken} with the user's authentication
    * @since 1.5.0
    */
   public static void setConnectorInfo(Job job, Path path) {
@@ -117,7 +120,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, SecurityToken)
+   * @see #setConnectorInfo(Job, AccumuloToken)
    * @see #setConnectorInfo(Job, Path)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
@@ -129,13 +132,26 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * 
    * @param context
    *          the Hadoop context for the configured job
-   * @return the AccumuloToken
-   * @throws AccumuloSecurityException 
+   * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, SecurityToken)
+   * @see #setConnectorInfo(Job, String, byte[])
    * @see #setConnectorInfo(Job, Path)
    */
-  protected static SecurityToken getToken(JobContext context) throws AccumuloSecurityException {
+  protected static String getPrincipal(JobContext context) {
+    return OutputConfigurator.getPrincipal(CLASS, context.getConfiguration());
+  }
+  
+  /**
+   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
+   * provide a charset safe conversion to a string, and is not intended to be secure.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the decoded user password
+   * @since 1.5.0
+   * @see #setConnectorInfo(Job, String, byte[])
+   */
+  protected static byte[] getToken(JobContext context) {
     return OutputConfigurator.getToken(CLASS, context.getConfiguration());
   }
   
@@ -351,7 +367,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
       
       if (!simulate) {
-        this.conn = getInstance(context).getConnector(getToken(context));
+        this.conn = getInstance(context).getConnector(getPrincipal(context), getToken(context));
         mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(context));
       }
     }
@@ -485,8 +501,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       throw new IOException("Connector info has not been set.");
     try {
       // if the instance isn't configured, it will complain here
-      Connector c = getInstance(job).getConnector(getToken(job));
-      if (!c.securityOperations().authenticateUser(getToken(job)))
+      Connector c = getInstance(job).getConnector(getPrincipal(job), getToken(job));
+      if (!c.securityOperations().authenticateUser(getPrincipal(job), getToken(job)))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException e) {
       throw new IOException(e);
@@ -514,16 +530,12 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   // ----------------------------------------------------------------------------------------------------
   
   /**
-   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, SecurityToken)}, {@link #setConnectorInfo(Job, Path)}, {@link #setCreateTables(Job, boolean)},
+   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, AccumuloToken)}, {@link #setConnectorInfo(Job, Path)}, {@link #setCreateTables(Job, boolean)},
    *             and {@link #setDefaultTableName(Job, String)} instead.
    */
   @Deprecated
   public static void setOutputInfo(Configuration conf, String user, byte[] passwd, boolean createTables, String defaultTable) {
-    try {
-      OutputConfigurator.setConnectorInfo(CLASS, conf, new UserPassToken(user, passwd));
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
+    OutputConfigurator.setConnectorInfo(CLASS, conf, user, passwd);
     OutputConfigurator.setCreateTables(CLASS, conf, createTables);
     OutputConfigurator.setDefaultTableName(CLASS, conf, defaultTable);
   }
@@ -594,30 +606,16 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @deprecated since 1.5.0; Use {@link #getToken(JobContext)} instead.
    */
   @Deprecated
-  protected static String getUsername(Configuration conf) {
-    try {
-      return OutputConfigurator.getToken(CLASS, conf).getPrincipal();
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
+  protected static String getPrincipal(Configuration conf) {
+    return OutputConfigurator.getPrincipal(CLASS, conf);
   }
   
   /**
    * @deprecated since 1.5.0; Use {@link #getToken(JobContext)} instead.
    */
   @Deprecated
-  protected static byte[] getPassword(Configuration conf) {
-    SecurityToken token;
-    try {
-      token = OutputConfigurator.getToken(CLASS, conf);
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
-    if (token instanceof UserPassToken) {
-      UserPassToken upt = (UserPassToken) token;
-      return upt.getPassword();
-    }
-    throw new RuntimeException("Not applicable for non-UserPassTokens");
+  protected static byte[] getToken(Configuration conf) {
+    return OutputConfigurator.getToken(CLASS, conf);
   }
   
   /**
