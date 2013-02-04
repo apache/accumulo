@@ -27,25 +27,25 @@ KEYSTOREPATH="$ACCUMULO_HOME/conf/keystore.jks"
 TRUSTSTOREPATH="$ACCUMULO_HOME/conf/cacerts.jks"
 CERTPATH="$ACCUMULO_HOME/conf/server.cer"
 
-if [ -e $KEYSTOREPATH ] ; then
+if [ -e "$KEYSTOREPATH" ] ; then
   rm -i $KEYSTOREPATH
-  if [ -e $KEYSTOREPATH ] ; then
+  if [ -e "$KEYSTOREPATH" ] ; then
     echo "keystore already exists, exiting"
     exit 1
   fi
 fi
 
-if [ -e $TRUSTSTOREPATH ] ; then
+if [ -e "$TRUSTSTOREPATH" ] ; then
   rm -i $TRUSTSTOREPATH
-  if [ -e $TRUSTSTOREPATH ] ; then
+  if [ -e "$TRUSTSTOREPATH" ] ; then
     echo "truststore already exists, exiting"
     exit 2
   fi
 fi
 
-if [ -e $CERTPATH ] ; then
+if [ -e "$CERTPATH" ] ; then
   rm -i $CERTPATH
-  if [ -e $CERTPATH ] ; then
+  if [ -e "$CERTPATH" ] ; then
     echo "cert already exists, exiting"
     exit 3
   fi

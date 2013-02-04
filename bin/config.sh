@@ -45,7 +45,7 @@ mkdir -p $ACCUMULO_LOG_DIR 2>/dev/null
 
 export ACCUMULO_LOG_DIR
 
-if [ -z ${ACCUMULO_VERSION} ]; then
+if [ -z "${ACCUMULO_VERSION}" ]; then
         ACCUMULO_VERSION=1.5.0-SNAPSHOT
 fi
 

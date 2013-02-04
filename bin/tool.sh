@@ -20,11 +20,11 @@ bin=`dirname "$0"`
 bin=`cd "$bin"; pwd`
 . "$bin"/config.sh
 
-if [ -z $HADOOP_PREFIX ] ; then
+if [ -z "$HADOOP_PREFIX" ] ; then
     echo "HADOOP_PREFIX is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
     exit 1
 fi
-if [ -z $ZOOKEEPER_HOME ] ; then
+if [ -z "$ZOOKEEPER_HOME" ] ; then
     echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
     exit 1
 fi

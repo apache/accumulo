@@ -42,9 +42,9 @@ do
       ${bin}/stop-server.sh $master "$ACCUMULO_HOME/.*/accumulo-start.*.jar" master $signal
    done
 
-   ${bin}/stop-server.sh $GC "$ACCUMULO_HOME/.*/accumulo-start.*.jar" gc $signal
+   ${bin}/stop-server.sh "$GC" "$ACCUMULO_HOME/.*/accumulo-start.*.jar" gc $signal
 
-   ${bin}/stop-server.sh $MONITOR "$ACCUMULO_HOME/.*/accumulo-start.*.jar" monitor $signal
+   ${bin}/stop-server.sh "$MONITOR" "$ACCUMULO_HOME/.*/accumulo-start.*.jar" monitor $signal
 
    for tracer in `grep -v '^#' "$ACCUMULO_HOME/conf/tracers"`
    do

@@ -29,7 +29,7 @@ if [ ! -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
 fi
 
 
-if [ -z $ZOOKEEPER_HOME ] ; then
+if [ -z "$ZOOKEEPER_HOME" ] ; then
     echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
     exit 1
 fi

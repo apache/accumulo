@@ -57,7 +57,7 @@ done
 
 for host in $HOSTS
 do
-    if [ ${host} = ${GC} ]
+    if [ ${host} = "${GC}" ]
     then
 	${bin}/start-server.sh $GC gc "garbage collector"
 	break
@@ -66,7 +66,7 @@ done
 
 for host in $HOSTS
 do
-    if [ ${host} = ${MONITOR} ]
+    if [ ${host} = "${MONITOR}" ]
     then
 	${bin}/start-server.sh $MONITOR monitor 
 	break
