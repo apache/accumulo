@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.proxy;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,6 +24,9 @@ import java.lang.reflect.Constructor;
 import java.util.Properties;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.proxy.thrift.AccumuloProxy;
+import org.apache.accumulo.test.MiniAccumuloCluster;
+import org.apache.log4j.Logger;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.THsHaServer;
@@ -32,8 +36,11 @@ import org.apache.thrift.transport.TNonblockingServerSocket;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
+import com.google.common.io.Files;
 
 public class Proxy {
+  
+  private static final Logger log = Logger.getLogger(Proxy.class); 
   
   public static class PropertiesConverter implements IStringConverter<Properties> {
     @Override
@@ -63,38 +70,44 @@ public class Proxy {
     Opts opts = new Opts();
     opts.parseArgs(Proxy.class.getName(), args);
     
-    String[] apis = opts.prop.getProperty("accumulo.proxy.apis").split(",");
-    if (apis.length == 0) {
-      System.err.println("No apis listed in the accumulo.proxy.apis property");
+    String api = ProxyServer.class.getName();
+    
+    if (!opts.prop.containsKey(api + ".port")) {
+      System.err.println("No port in the " + api + ".port property");
       System.exit(1);
     }
-    for (String api : apis) {
-      // check existence of properties
-      if (!opts.prop.containsKey(api + ".implementor")) {
-        System.err.println("No implementor listed in the " + api + ".implementor property");
-        System.exit(1);
-      }
-      if (!opts.prop.containsKey(api + ".port")) {
-        System.err.println("No port in the " + api + ".port property");
-        System.exit(1);
-      }
-      
-      Class<?> apiclass = Class.forName(api);
-      
-      Class<?> implementor = Class.forName(opts.prop.getProperty(api + ".implementor"));
-      
-      Class<? extends TProtocolFactory> protoFactoryClass = Class.forName(opts.prop.getProperty(api + ".protocolFactory")).asSubclass(TProtocolFactory.class);
-
-      int port = Integer.parseInt(opts.prop.getProperty(api + ".port"));
-      TServer server = createProxyServer(apiclass, implementor, port, protoFactoryClass, opts.prop);
-      server.serve();
+    
+    String useMini = opts.prop.getProperty(api + ".useMiniAccumulo"); 
+    if (useMini != null && Boolean.parseBoolean(useMini)) {
+      log.info("Creating mini cluster");
+      final File folder = Files.createTempDir();
+      final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
+      accumulo.start();
+      opts.prop.setProperty(api+".instancename", accumulo.getInstanceName());
+      opts.prop.setProperty(api+".zookeepers", accumulo.getZookeepers());
+      Runtime.getRuntime().addShutdownHook(new Thread() {
+        public void start() {
+          try {
+            accumulo.stop();
+          } catch (Exception e) {
+            throw new RuntimeException();
+          } finally {
+            folder.delete();
+          }
+        }
+      });
     }
+
+    Class<? extends TProtocolFactory> protoFactoryClass = Class.forName(opts.prop.getProperty(api + ".protocolFactory")).asSubclass(TProtocolFactory.class);
+    int port = Integer.parseInt(opts.prop.getProperty(api + ".port"));
+    TServer server = createProxyServer(AccumuloProxy.class, ProxyServer.class, port, protoFactoryClass, opts.prop);
+    server.serve();
   }
   
   public static TServer createProxyServer(Class<?> api, Class<?> implementor, final int port, Class<? extends TProtocolFactory> protoClass,
       Properties properties) throws Exception {
     final TNonblockingServerSocket socket = new TNonblockingServerSocket(port);
-
+    
     // create the implementor
     Object impl = implementor.getConstructor(Properties.class).newInstance(properties);
     

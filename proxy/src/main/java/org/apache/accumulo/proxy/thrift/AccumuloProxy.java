@@ -50,125 +50,125 @@ import org.slf4j.LoggerFactory;
 
   public interface Iface {
 
-    public boolean ping(PrincipalToken PrincipalToken) throws org.apache.thrift.TException;
+    public boolean ping(PrincipalToken principalToken) throws org.apache.thrift.TException;
 
-    public int addConstraint(PrincipalToken PrincipalToken, String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
+    public int addConstraint(PrincipalToken principalToken, String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void addSplits(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> splits) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void addSplits(PrincipalToken principalToken, String tableName, Set<ByteBuffer> splits) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void attachIterator(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
+    public void attachIterator(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void checkIteratorConflicts(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException;
+    public void checkIteratorConflicts(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void clearLocatorCache(PrincipalToken PrincipalToken, String tableName) throws TableNotFoundException, org.apache.thrift.TException;
+    public void clearLocatorCache(PrincipalToken principalToken, String tableName) throws TableNotFoundException, org.apache.thrift.TException;
 
-    public void cloneTable(PrincipalToken PrincipalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException, org.apache.thrift.TException;
+    public void cloneTable(PrincipalToken principalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException, org.apache.thrift.TException;
 
-    public void compactTable(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, org.apache.thrift.TException;
+    public void compactTable(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, org.apache.thrift.TException;
 
-    public void cancelCompaction(PrincipalToken PrincipalToken, String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, org.apache.thrift.TException;
+    public void cancelCompaction(PrincipalToken principalToken, String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, org.apache.thrift.TException;
 
-    public void createTable(PrincipalToken PrincipalToken, String tableName, boolean versioningIter, TimeType type) throws AccumuloException, AccumuloSecurityException, TableExistsException, org.apache.thrift.TException;
+    public void createTable(PrincipalToken principalToken, String tableName, boolean versioningIter, TimeType type) throws AccumuloException, AccumuloSecurityException, TableExistsException, org.apache.thrift.TException;
 
-    public void deleteTable(PrincipalToken PrincipalToken, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
+    public void deleteTable(PrincipalToken principalToken, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void deleteRows(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
+    public void deleteRows(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void exportTable(PrincipalToken PrincipalToken, String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void exportTable(PrincipalToken principalToken, String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void flushTable(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void flushTable(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public Map<String,Set<String>> getLocalityGroups(PrincipalToken PrincipalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException;
+    public Map<String,Set<String>> getLocalityGroups(PrincipalToken principalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public IteratorSetting getIteratorSetting(PrincipalToken PrincipalToken, String tableName, String iteratorName, IteratorScope scope) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
+    public IteratorSetting getIteratorSetting(PrincipalToken principalToken, String tableName, String iteratorName, IteratorScope scope) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public ByteBuffer getMaxRow(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public ByteBuffer getMaxRow(PrincipalToken principalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public Map<String,String> getTableProperties(PrincipalToken PrincipalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException;
+    public Map<String,String> getTableProperties(PrincipalToken principalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public List<ByteBuffer> getSplits(PrincipalToken PrincipalToken, String tableName, int maxSplits) throws TableNotFoundException, org.apache.thrift.TException;
+    public List<ByteBuffer> getSplits(PrincipalToken principalToken, String tableName, int maxSplits) throws TableNotFoundException, org.apache.thrift.TException;
 
-    public void importDirectory(PrincipalToken PrincipalToken, String tableName, String importDir, String failureDir, boolean setTime) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void importDirectory(PrincipalToken principalToken, String tableName, String importDir, String failureDir, boolean setTime) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void importTable(PrincipalToken PrincipalToken, String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void importTable(PrincipalToken principalToken, String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public Set<String> listTables(PrincipalToken PrincipalToken) throws org.apache.thrift.TException;
+    public Set<String> listTables(PrincipalToken principalToken) throws org.apache.thrift.TException;
 
-    public Map<String,Set<IteratorScope>> listIterators(PrincipalToken PrincipalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
+    public Map<String,Set<IteratorScope>> listIterators(PrincipalToken principalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public Map<String,Integer> listConstraints(PrincipalToken PrincipalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException;
+    public Map<String,Integer> listConstraints(PrincipalToken principalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void mergeTablets(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
+    public void mergeTablets(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void offlineTable(PrincipalToken PrincipalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
+    public void offlineTable(PrincipalToken principalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void onlineTable(PrincipalToken PrincipalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
+    public void onlineTable(PrincipalToken principalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void removeConstraint(PrincipalToken PrincipalToken, String tableName, int constraint) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void removeConstraint(PrincipalToken principalToken, String tableName, int constraint) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void removeIterator(PrincipalToken PrincipalToken, String tableName, String iterName, Set<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
+    public void removeIterator(PrincipalToken principalToken, String tableName, String iterName, Set<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void removeTableProperty(PrincipalToken PrincipalToken, String tableName, String property) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void removeTableProperty(PrincipalToken principalToken, String tableName, String property) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void renameTable(PrincipalToken PrincipalToken, String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TableExistsException, org.apache.thrift.TException;
+    public void renameTable(PrincipalToken principalToken, String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TableExistsException, org.apache.thrift.TException;
 
-    public void setLocalityGroups(PrincipalToken PrincipalToken, String tableName, Map<String,Set<String>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
+    public void setLocalityGroups(PrincipalToken principalToken, String tableName, Map<String,Set<String>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void setTableProperty(PrincipalToken PrincipalToken, String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void setTableProperty(PrincipalToken principalToken, String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public Set<Range> splitRangeByTablets(PrincipalToken PrincipalToken, String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
+    public Set<Range> splitRangeByTablets(PrincipalToken principalToken, String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
 
-    public boolean tableExists(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException;
+    public boolean tableExists(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException;
 
-    public Map<String,String> tableIdMap(PrincipalToken PrincipalToken) throws org.apache.thrift.TException;
+    public Map<String,String> tableIdMap(PrincipalToken principalToken) throws org.apache.thrift.TException;
 
-    public void pingTabletServer(PrincipalToken PrincipalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void pingTabletServer(PrincipalToken principalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public List<ActiveScan> getActiveScans(PrincipalToken PrincipalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public List<ActiveScan> getActiveScans(PrincipalToken principalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public List<ActiveCompaction> getActiveCompactions(PrincipalToken PrincipalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public List<ActiveCompaction> getActiveCompactions(PrincipalToken principalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public Map<String,String> getSiteConfiguration(PrincipalToken PrincipalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public Map<String,String> getSiteConfiguration(PrincipalToken principalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public Map<String,String> getSystemConfiguration(PrincipalToken PrincipalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public Map<String,String> getSystemConfiguration(PrincipalToken principalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public List<String> getTabletServers(PrincipalToken PrincipalToken) throws org.apache.thrift.TException;
+    public List<String> getTabletServers(PrincipalToken principalToken) throws org.apache.thrift.TException;
 
-    public void removeProperty(PrincipalToken PrincipalToken, String property) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void removeProperty(PrincipalToken principalToken, String property) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void setProperty(PrincipalToken PrincipalToken, String property, String value) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void setProperty(PrincipalToken principalToken, String property, String value) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public boolean testClassLoad(PrincipalToken PrincipalToken, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public boolean testClassLoad(PrincipalToken principalToken, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public boolean authenticateUser(PrincipalToken PrincipalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public boolean authenticateUser(PrincipalToken principalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void changeUserAuthorizations(PrincipalToken PrincipalToken, String principal, Set<ByteBuffer> authorizations) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void changeUserAuthorizations(PrincipalToken principalToken, String principal, Set<ByteBuffer> authorizations) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void changePrincipalTokenword(PrincipalToken PrincipalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void changePrincipalTokenword(PrincipalToken principalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void createUser(PrincipalToken PrincipalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void createUser(PrincipalToken principalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void dropUser(PrincipalToken PrincipalToken, String principal) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void dropUser(PrincipalToken principalToken, String principal) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public List<ByteBuffer> getUserAuthorizations(PrincipalToken PrincipalToken, String principal) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public List<ByteBuffer> getUserAuthorizations(PrincipalToken principalToken, String principal) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void grantSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void grantSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void grantTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void grantTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public boolean hasSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public boolean hasSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public boolean hasTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public boolean hasTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public Set<String> listUsers(PrincipalToken PrincipalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public Set<String> listUsers(PrincipalToken principalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void revokeSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void revokeSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public void revokeTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void revokeTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public String createBatchScanner(PrincipalToken PrincipalToken, String tableName, BatchScanOptions options) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public String createBatchScanner(PrincipalToken principalToken, String tableName, BatchScanOptions options) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public String createScanner(PrincipalToken PrincipalToken, String tableName, ScanOptions options) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public String createScanner(PrincipalToken principalToken, String tableName, ScanOptions options) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
     public boolean hasNext(String scanner) throws UnknownScanner, org.apache.thrift.TException;
 
@@ -178,9 +178,9 @@ import org.slf4j.LoggerFactory;
 
     public void closeScanner(String scanner) throws UnknownScanner, org.apache.thrift.TException;
 
-    public void updateAndFlush(PrincipalToken PrincipalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public void updateAndFlush(PrincipalToken principalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public String createWriter(PrincipalToken PrincipalToken, String tableName, WriterOptions opts) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public String createWriter(PrincipalToken principalToken, String tableName, WriterOptions opts) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
     public void update(String writer, Map<ByteBuffer,List<ColumnUpdate>> cells) throws org.apache.thrift.TException;
 
@@ -196,125 +196,125 @@ import org.slf4j.LoggerFactory;
 
   public interface AsyncIface {
 
-    public void ping(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.ping_call> resultHandler) throws org.apache.thrift.TException;
+    public void ping(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.ping_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void addConstraint(PrincipalToken PrincipalToken, String tableName, String constraintClassName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.addConstraint_call> resultHandler) throws org.apache.thrift.TException;
+    public void addConstraint(PrincipalToken principalToken, String tableName, String constraintClassName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.addConstraint_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void addSplits(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> splits, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.addSplits_call> resultHandler) throws org.apache.thrift.TException;
+    public void addSplits(PrincipalToken principalToken, String tableName, Set<ByteBuffer> splits, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.addSplits_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void attachIterator(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.attachIterator_call> resultHandler) throws org.apache.thrift.TException;
+    public void attachIterator(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.attachIterator_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void checkIteratorConflicts(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.checkIteratorConflicts_call> resultHandler) throws org.apache.thrift.TException;
+    public void checkIteratorConflicts(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.checkIteratorConflicts_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void clearLocatorCache(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.clearLocatorCache_call> resultHandler) throws org.apache.thrift.TException;
+    public void clearLocatorCache(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.clearLocatorCache_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void cloneTable(PrincipalToken PrincipalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.cloneTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void cloneTable(PrincipalToken principalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.cloneTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void compactTable(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.compactTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void compactTable(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.compactTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void cancelCompaction(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.cancelCompaction_call> resultHandler) throws org.apache.thrift.TException;
+    public void cancelCompaction(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.cancelCompaction_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void createTable(PrincipalToken PrincipalToken, String tableName, boolean versioningIter, TimeType type, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void createTable(PrincipalToken principalToken, String tableName, boolean versioningIter, TimeType type, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void deleteTable(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.deleteTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void deleteTable(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.deleteTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void deleteRows(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.deleteRows_call> resultHandler) throws org.apache.thrift.TException;
+    public void deleteRows(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.deleteRows_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void exportTable(PrincipalToken PrincipalToken, String tableName, String exportDir, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.exportTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void exportTable(PrincipalToken principalToken, String tableName, String exportDir, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.exportTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void flushTable(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.flushTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void flushTable(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.flushTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getLocalityGroups(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getLocalityGroups_call> resultHandler) throws org.apache.thrift.TException;
+    public void getLocalityGroups(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getLocalityGroups_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getIteratorSetting(PrincipalToken PrincipalToken, String tableName, String iteratorName, IteratorScope scope, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getIteratorSetting_call> resultHandler) throws org.apache.thrift.TException;
+    public void getIteratorSetting(PrincipalToken principalToken, String tableName, String iteratorName, IteratorScope scope, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getIteratorSetting_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getMaxRow(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getMaxRow_call> resultHandler) throws org.apache.thrift.TException;
+    public void getMaxRow(PrincipalToken principalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getMaxRow_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getTableProperties(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getTableProperties_call> resultHandler) throws org.apache.thrift.TException;
+    public void getTableProperties(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getTableProperties_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getSplits(PrincipalToken PrincipalToken, String tableName, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getSplits_call> resultHandler) throws org.apache.thrift.TException;
+    public void getSplits(PrincipalToken principalToken, String tableName, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getSplits_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void importDirectory(PrincipalToken PrincipalToken, String tableName, String importDir, String failureDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.importDirectory_call> resultHandler) throws org.apache.thrift.TException;
+    public void importDirectory(PrincipalToken principalToken, String tableName, String importDir, String failureDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.importDirectory_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void importTable(PrincipalToken PrincipalToken, String tableName, String importDir, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.importTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void importTable(PrincipalToken principalToken, String tableName, String importDir, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.importTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void listTables(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listTables_call> resultHandler) throws org.apache.thrift.TException;
+    public void listTables(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listTables_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void listIterators(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listIterators_call> resultHandler) throws org.apache.thrift.TException;
+    public void listIterators(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listIterators_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void listConstraints(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listConstraints_call> resultHandler) throws org.apache.thrift.TException;
+    public void listConstraints(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listConstraints_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void mergeTablets(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.mergeTablets_call> resultHandler) throws org.apache.thrift.TException;
+    public void mergeTablets(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.mergeTablets_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void offlineTable(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.offlineTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void offlineTable(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.offlineTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void onlineTable(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.onlineTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void onlineTable(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.onlineTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void removeConstraint(PrincipalToken PrincipalToken, String tableName, int constraint, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeConstraint_call> resultHandler) throws org.apache.thrift.TException;
+    public void removeConstraint(PrincipalToken principalToken, String tableName, int constraint, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeConstraint_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void removeIterator(PrincipalToken PrincipalToken, String tableName, String iterName, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeIterator_call> resultHandler) throws org.apache.thrift.TException;
+    public void removeIterator(PrincipalToken principalToken, String tableName, String iterName, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeIterator_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void removeTableProperty(PrincipalToken PrincipalToken, String tableName, String property, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeTableProperty_call> resultHandler) throws org.apache.thrift.TException;
+    public void removeTableProperty(PrincipalToken principalToken, String tableName, String property, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeTableProperty_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void renameTable(PrincipalToken PrincipalToken, String oldTableName, String newTableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.renameTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void renameTable(PrincipalToken principalToken, String oldTableName, String newTableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.renameTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void setLocalityGroups(PrincipalToken PrincipalToken, String tableName, Map<String,Set<String>> groups, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.setLocalityGroups_call> resultHandler) throws org.apache.thrift.TException;
+    public void setLocalityGroups(PrincipalToken principalToken, String tableName, Map<String,Set<String>> groups, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.setLocalityGroups_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void setTableProperty(PrincipalToken PrincipalToken, String tableName, String property, String value, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.setTableProperty_call> resultHandler) throws org.apache.thrift.TException;
+    public void setTableProperty(PrincipalToken principalToken, String tableName, String property, String value, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.setTableProperty_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void splitRangeByTablets(PrincipalToken PrincipalToken, String tableName, Range range, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.splitRangeByTablets_call> resultHandler) throws org.apache.thrift.TException;
+    public void splitRangeByTablets(PrincipalToken principalToken, String tableName, Range range, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.splitRangeByTablets_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void tableExists(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.tableExists_call> resultHandler) throws org.apache.thrift.TException;
+    public void tableExists(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.tableExists_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void tableIdMap(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.tableIdMap_call> resultHandler) throws org.apache.thrift.TException;
+    public void tableIdMap(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.tableIdMap_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void pingTabletServer(PrincipalToken PrincipalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.pingTabletServer_call> resultHandler) throws org.apache.thrift.TException;
+    public void pingTabletServer(PrincipalToken principalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.pingTabletServer_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getActiveScans(PrincipalToken PrincipalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getActiveScans_call> resultHandler) throws org.apache.thrift.TException;
+    public void getActiveScans(PrincipalToken principalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getActiveScans_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getActiveCompactions(PrincipalToken PrincipalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getActiveCompactions_call> resultHandler) throws org.apache.thrift.TException;
+    public void getActiveCompactions(PrincipalToken principalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getActiveCompactions_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getSiteConfiguration(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getSiteConfiguration_call> resultHandler) throws org.apache.thrift.TException;
+    public void getSiteConfiguration(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getSiteConfiguration_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getSystemConfiguration(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getSystemConfiguration_call> resultHandler) throws org.apache.thrift.TException;
+    public void getSystemConfiguration(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getSystemConfiguration_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getTabletServers(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getTabletServers_call> resultHandler) throws org.apache.thrift.TException;
+    public void getTabletServers(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getTabletServers_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void removeProperty(PrincipalToken PrincipalToken, String property, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeProperty_call> resultHandler) throws org.apache.thrift.TException;
+    public void removeProperty(PrincipalToken principalToken, String property, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeProperty_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void setProperty(PrincipalToken PrincipalToken, String property, String value, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.setProperty_call> resultHandler) throws org.apache.thrift.TException;
+    public void setProperty(PrincipalToken principalToken, String property, String value, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.setProperty_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void testClassLoad(PrincipalToken PrincipalToken, String className, String asTypeName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.testClassLoad_call> resultHandler) throws org.apache.thrift.TException;
+    public void testClassLoad(PrincipalToken principalToken, String className, String asTypeName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.testClassLoad_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void authenticateUser(PrincipalToken PrincipalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.authenticateUser_call> resultHandler) throws org.apache.thrift.TException;
+    public void authenticateUser(PrincipalToken principalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.authenticateUser_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void changeUserAuthorizations(PrincipalToken PrincipalToken, String principal, Set<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changeUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
+    public void changeUserAuthorizations(PrincipalToken principalToken, String principal, Set<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changeUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void changePrincipalTokenword(PrincipalToken PrincipalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changePrincipalTokenword_call> resultHandler) throws org.apache.thrift.TException;
+    public void changePrincipalTokenword(PrincipalToken principalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changePrincipalTokenword_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void createUser(PrincipalToken PrincipalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createUser_call> resultHandler) throws org.apache.thrift.TException;
+    public void createUser(PrincipalToken principalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createUser_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void dropUser(PrincipalToken PrincipalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.dropUser_call> resultHandler) throws org.apache.thrift.TException;
+    public void dropUser(PrincipalToken principalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.dropUser_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getUserAuthorizations(PrincipalToken PrincipalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
+    public void getUserAuthorizations(PrincipalToken principalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void grantSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void grantSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void grantTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantTablePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void grantTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void hasSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void hasSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void hasTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasTablePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void hasTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void listUsers(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listUsers_call> resultHandler) throws org.apache.thrift.TException;
+    public void listUsers(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listUsers_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void revokeSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void revokeSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void revokeTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void revokeTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void createBatchScanner(PrincipalToken PrincipalToken, String tableName, BatchScanOptions options, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createBatchScanner_call> resultHandler) throws org.apache.thrift.TException;
+    public void createBatchScanner(PrincipalToken principalToken, String tableName, BatchScanOptions options, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createBatchScanner_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void createScanner(PrincipalToken PrincipalToken, String tableName, ScanOptions options, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createScanner_call> resultHandler) throws org.apache.thrift.TException;
+    public void createScanner(PrincipalToken principalToken, String tableName, ScanOptions options, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createScanner_call> resultHandler) throws org.apache.thrift.TException;
 
     public void hasNext(String scanner, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasNext_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -324,9 +324,9 @@ import org.slf4j.LoggerFactory;
 
     public void closeScanner(String scanner, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.closeScanner_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void updateAndFlush(PrincipalToken PrincipalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.updateAndFlush_call> resultHandler) throws org.apache.thrift.TException;
+    public void updateAndFlush(PrincipalToken principalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.updateAndFlush_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void createWriter(PrincipalToken PrincipalToken, String tableName, WriterOptions opts, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createWriter_call> resultHandler) throws org.apache.thrift.TException;
+    public void createWriter(PrincipalToken principalToken, String tableName, WriterOptions opts, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createWriter_call> resultHandler) throws org.apache.thrift.TException;
 
     public void update(String writer, Map<ByteBuffer,List<ColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.update_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -360,16 +360,16 @@ import org.slf4j.LoggerFactory;
       super(iprot, oprot);
     }
 
-    public boolean ping(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public boolean ping(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
-      send_ping(PrincipalToken);
+      send_ping(principalToken);
       return recv_ping();
     }
 
-    public void send_ping(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public void send_ping(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
       ping_args args = new ping_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       sendBase("ping", args);
     }
 
@@ -383,16 +383,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "ping failed: unknown result");
     }
 
-    public int addConstraint(PrincipalToken PrincipalToken, String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
+    public int addConstraint(PrincipalToken principalToken, String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_addConstraint(PrincipalToken, tableName, constraintClassName);
+      send_addConstraint(principalToken, tableName, constraintClassName);
       return recv_addConstraint();
     }
 
-    public void send_addConstraint(PrincipalToken PrincipalToken, String tableName, String constraintClassName) throws org.apache.thrift.TException
+    public void send_addConstraint(PrincipalToken principalToken, String tableName, String constraintClassName) throws org.apache.thrift.TException
     {
       addConstraint_args args = new addConstraint_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setConstraintClassName(constraintClassName);
       sendBase("addConstraint", args);
@@ -417,16 +417,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "addConstraint failed: unknown result");
     }
 
-    public void addSplits(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> splits) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void addSplits(PrincipalToken principalToken, String tableName, Set<ByteBuffer> splits) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_addSplits(PrincipalToken, tableName, splits);
+      send_addSplits(principalToken, tableName, splits);
       recv_addSplits();
     }
 
-    public void send_addSplits(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> splits) throws org.apache.thrift.TException
+    public void send_addSplits(PrincipalToken principalToken, String tableName, Set<ByteBuffer> splits) throws org.apache.thrift.TException
     {
       addSplits_args args = new addSplits_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setSplits(splits);
       sendBase("addSplits", args);
@@ -448,16 +448,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void attachIterator(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
+    public void attachIterator(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_attachIterator(PrincipalToken, tableName, setting, scopes);
+      send_attachIterator(principalToken, tableName, setting, scopes);
       recv_attachIterator();
     }
 
-    public void send_attachIterator(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws org.apache.thrift.TException
+    public void send_attachIterator(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws org.apache.thrift.TException
     {
       attachIterator_args args = new attachIterator_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setSetting(setting);
       args.setScopes(scopes);
@@ -480,16 +480,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void checkIteratorConflicts(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException
+    public void checkIteratorConflicts(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_checkIteratorConflicts(PrincipalToken, tableName, setting, scopes);
+      send_checkIteratorConflicts(principalToken, tableName, setting, scopes);
       recv_checkIteratorConflicts();
     }
 
-    public void send_checkIteratorConflicts(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws org.apache.thrift.TException
+    public void send_checkIteratorConflicts(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes) throws org.apache.thrift.TException
     {
       checkIteratorConflicts_args args = new checkIteratorConflicts_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setSetting(setting);
       args.setScopes(scopes);
@@ -509,16 +509,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void clearLocatorCache(PrincipalToken PrincipalToken, String tableName) throws TableNotFoundException, org.apache.thrift.TException
+    public void clearLocatorCache(PrincipalToken principalToken, String tableName) throws TableNotFoundException, org.apache.thrift.TException
     {
-      send_clearLocatorCache(PrincipalToken, tableName);
+      send_clearLocatorCache(principalToken, tableName);
       recv_clearLocatorCache();
     }
 
-    public void send_clearLocatorCache(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public void send_clearLocatorCache(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
       clearLocatorCache_args args = new clearLocatorCache_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       sendBase("clearLocatorCache", args);
     }
@@ -533,16 +533,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void cloneTable(PrincipalToken PrincipalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException, org.apache.thrift.TException
+    public void cloneTable(PrincipalToken principalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException, org.apache.thrift.TException
     {
-      send_cloneTable(PrincipalToken, tableName, newTableName, flush, propertiesToSet, propertiesToExclude);
+      send_cloneTable(principalToken, tableName, newTableName, flush, propertiesToSet, propertiesToExclude);
       recv_cloneTable();
     }
 
-    public void send_cloneTable(PrincipalToken PrincipalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) throws org.apache.thrift.TException
+    public void send_cloneTable(PrincipalToken principalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) throws org.apache.thrift.TException
     {
       cloneTable_args args = new cloneTable_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setNewTableName(newTableName);
       args.setFlush(flush);
@@ -570,16 +570,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void compactTable(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, org.apache.thrift.TException
+    public void compactTable(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, org.apache.thrift.TException
     {
-      send_compactTable(PrincipalToken, tableName, startRow, endRow, iterators, flush, wait);
+      send_compactTable(principalToken, tableName, startRow, endRow, iterators, flush, wait);
       recv_compactTable();
     }
 
-    public void send_compactTable(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait) throws org.apache.thrift.TException
+    public void send_compactTable(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait) throws org.apache.thrift.TException
     {
       compactTable_args args = new compactTable_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setStartRow(startRow);
       args.setEndRow(endRow);
@@ -605,16 +605,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void cancelCompaction(PrincipalToken PrincipalToken, String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, org.apache.thrift.TException
+    public void cancelCompaction(PrincipalToken principalToken, String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, org.apache.thrift.TException
     {
-      send_cancelCompaction(PrincipalToken, tableName);
+      send_cancelCompaction(principalToken, tableName);
       recv_cancelCompaction();
     }
 
-    public void send_cancelCompaction(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public void send_cancelCompaction(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
       cancelCompaction_args args = new cancelCompaction_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       sendBase("cancelCompaction", args);
     }
@@ -635,16 +635,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void createTable(PrincipalToken PrincipalToken, String tableName, boolean versioningIter, TimeType type) throws AccumuloException, AccumuloSecurityException, TableExistsException, org.apache.thrift.TException
+    public void createTable(PrincipalToken principalToken, String tableName, boolean versioningIter, TimeType type) throws AccumuloException, AccumuloSecurityException, TableExistsException, org.apache.thrift.TException
     {
-      send_createTable(PrincipalToken, tableName, versioningIter, type);
+      send_createTable(principalToken, tableName, versioningIter, type);
       recv_createTable();
     }
 
-    public void send_createTable(PrincipalToken PrincipalToken, String tableName, boolean versioningIter, TimeType type) throws org.apache.thrift.TException
+    public void send_createTable(PrincipalToken principalToken, String tableName, boolean versioningIter, TimeType type) throws org.apache.thrift.TException
     {
       createTable_args args = new createTable_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setVersioningIter(versioningIter);
       args.setType(type);
@@ -667,16 +667,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void deleteTable(PrincipalToken PrincipalToken, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
+    public void deleteTable(PrincipalToken principalToken, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_deleteTable(PrincipalToken, tableName);
+      send_deleteTable(principalToken, tableName);
       recv_deleteTable();
     }
 
-    public void send_deleteTable(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public void send_deleteTable(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
       deleteTable_args args = new deleteTable_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       sendBase("deleteTable", args);
     }
@@ -697,16 +697,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void deleteRows(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
+    public void deleteRows(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_deleteRows(PrincipalToken, tableName, startRow, endRow);
+      send_deleteRows(principalToken, tableName, startRow, endRow);
       recv_deleteRows();
     }
 
-    public void send_deleteRows(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws org.apache.thrift.TException
+    public void send_deleteRows(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws org.apache.thrift.TException
     {
       deleteRows_args args = new deleteRows_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setStartRow(startRow);
       args.setEndRow(endRow);
@@ -729,16 +729,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void exportTable(PrincipalToken PrincipalToken, String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void exportTable(PrincipalToken principalToken, String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_exportTable(PrincipalToken, tableName, exportDir);
+      send_exportTable(principalToken, tableName, exportDir);
       recv_exportTable();
     }
 
-    public void send_exportTable(PrincipalToken PrincipalToken, String tableName, String exportDir) throws org.apache.thrift.TException
+    public void send_exportTable(PrincipalToken principalToken, String tableName, String exportDir) throws org.apache.thrift.TException
     {
       exportTable_args args = new exportTable_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setExportDir(exportDir);
       sendBase("exportTable", args);
@@ -760,16 +760,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void flushTable(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void flushTable(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_flushTable(PrincipalToken, tableName, startRow, endRow, wait);
+      send_flushTable(principalToken, tableName, startRow, endRow, wait);
       recv_flushTable();
     }
 
-    public void send_flushTable(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait) throws org.apache.thrift.TException
+    public void send_flushTable(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait) throws org.apache.thrift.TException
     {
       flushTable_args args = new flushTable_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setStartRow(startRow);
       args.setEndRow(endRow);
@@ -790,16 +790,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public Map<String,Set<String>> getLocalityGroups(PrincipalToken PrincipalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException
+    public Map<String,Set<String>> getLocalityGroups(PrincipalToken principalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_getLocalityGroups(PrincipalToken, tableName);
+      send_getLocalityGroups(principalToken, tableName);
       return recv_getLocalityGroups();
     }
 
-    public void send_getLocalityGroups(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public void send_getLocalityGroups(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
       getLocalityGroups_args args = new getLocalityGroups_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       sendBase("getLocalityGroups", args);
     }
@@ -820,16 +820,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getLocalityGroups failed: unknown result");
     }
 
-    public IteratorSetting getIteratorSetting(PrincipalToken PrincipalToken, String tableName, String iteratorName, IteratorScope scope) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
+    public IteratorSetting getIteratorSetting(PrincipalToken principalToken, String tableName, String iteratorName, IteratorScope scope) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_getIteratorSetting(PrincipalToken, tableName, iteratorName, scope);
+      send_getIteratorSetting(principalToken, tableName, iteratorName, scope);
       return recv_getIteratorSetting();
     }
 
-    public void send_getIteratorSetting(PrincipalToken PrincipalToken, String tableName, String iteratorName, IteratorScope scope) throws org.apache.thrift.TException
+    public void send_getIteratorSetting(PrincipalToken principalToken, String tableName, String iteratorName, IteratorScope scope) throws org.apache.thrift.TException
     {
       getIteratorSetting_args args = new getIteratorSetting_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setIteratorName(iteratorName);
       args.setScope(scope);
@@ -855,16 +855,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getIteratorSetting failed: unknown result");
     }
 
-    public ByteBuffer getMaxRow(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public ByteBuffer getMaxRow(PrincipalToken principalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_getMaxRow(PrincipalToken, tableName, auths, startRow, startInclusive, endRow, endInclusive);
+      send_getMaxRow(principalToken, tableName, auths, startRow, startInclusive, endRow, endInclusive);
       return recv_getMaxRow();
     }
 
-    public void send_getMaxRow(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws org.apache.thrift.TException
+    public void send_getMaxRow(PrincipalToken principalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws org.apache.thrift.TException
     {
       getMaxRow_args args = new getMaxRow_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setAuths(auths);
       args.setStartRow(startRow);
@@ -893,16 +893,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getMaxRow failed: unknown result");
     }
 
-    public Map<String,String> getTableProperties(PrincipalToken PrincipalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException
+    public Map<String,String> getTableProperties(PrincipalToken principalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_getTableProperties(PrincipalToken, tableName);
+      send_getTableProperties(principalToken, tableName);
       return recv_getTableProperties();
     }
 
-    public void send_getTableProperties(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public void send_getTableProperties(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
       getTableProperties_args args = new getTableProperties_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       sendBase("getTableProperties", args);
     }
@@ -923,16 +923,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTableProperties failed: unknown result");
     }
 
-    public List<ByteBuffer> getSplits(PrincipalToken PrincipalToken, String tableName, int maxSplits) throws TableNotFoundException, org.apache.thrift.TException
+    public List<ByteBuffer> getSplits(PrincipalToken principalToken, String tableName, int maxSplits) throws TableNotFoundException, org.apache.thrift.TException
     {
-      send_getSplits(PrincipalToken, tableName, maxSplits);
+      send_getSplits(principalToken, tableName, maxSplits);
       return recv_getSplits();
     }
 
-    public void send_getSplits(PrincipalToken PrincipalToken, String tableName, int maxSplits) throws org.apache.thrift.TException
+    public void send_getSplits(PrincipalToken principalToken, String tableName, int maxSplits) throws org.apache.thrift.TException
     {
       getSplits_args args = new getSplits_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setMaxSplits(maxSplits);
       sendBase("getSplits", args);
@@ -951,16 +951,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getSplits failed: unknown result");
     }
 
-    public void importDirectory(PrincipalToken PrincipalToken, String tableName, String importDir, String failureDir, boolean setTime) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void importDirectory(PrincipalToken principalToken, String tableName, String importDir, String failureDir, boolean setTime) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_importDirectory(PrincipalToken, tableName, importDir, failureDir, setTime);
+      send_importDirectory(principalToken, tableName, importDir, failureDir, setTime);
       recv_importDirectory();
     }
 
-    public void send_importDirectory(PrincipalToken PrincipalToken, String tableName, String importDir, String failureDir, boolean setTime) throws org.apache.thrift.TException
+    public void send_importDirectory(PrincipalToken principalToken, String tableName, String importDir, String failureDir, boolean setTime) throws org.apache.thrift.TException
     {
       importDirectory_args args = new importDirectory_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setImportDir(importDir);
       args.setFailureDir(failureDir);
@@ -984,16 +984,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void importTable(PrincipalToken PrincipalToken, String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void importTable(PrincipalToken principalToken, String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_importTable(PrincipalToken, tableName, importDir);
+      send_importTable(principalToken, tableName, importDir);
       recv_importTable();
     }
 
-    public void send_importTable(PrincipalToken PrincipalToken, String tableName, String importDir) throws org.apache.thrift.TException
+    public void send_importTable(PrincipalToken principalToken, String tableName, String importDir) throws org.apache.thrift.TException
     {
       importTable_args args = new importTable_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setImportDir(importDir);
       sendBase("importTable", args);
@@ -1015,16 +1015,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public Set<String> listTables(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public Set<String> listTables(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
-      send_listTables(PrincipalToken);
+      send_listTables(principalToken);
       return recv_listTables();
     }
 
-    public void send_listTables(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public void send_listTables(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
       listTables_args args = new listTables_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       sendBase("listTables", args);
     }
 
@@ -1038,16 +1038,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "listTables failed: unknown result");
     }
 
-    public Map<String,Set<IteratorScope>> listIterators(PrincipalToken PrincipalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
+    public Map<String,Set<IteratorScope>> listIterators(PrincipalToken principalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_listIterators(PrincipalToken, tableName);
+      send_listIterators(principalToken, tableName);
       return recv_listIterators();
     }
 
-    public void send_listIterators(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public void send_listIterators(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
       listIterators_args args = new listIterators_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       sendBase("listIterators", args);
     }
@@ -1071,16 +1071,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "listIterators failed: unknown result");
     }
 
-    public Map<String,Integer> listConstraints(PrincipalToken PrincipalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException
+    public Map<String,Integer> listConstraints(PrincipalToken principalToken, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_listConstraints(PrincipalToken, tableName);
+      send_listConstraints(principalToken, tableName);
       return recv_listConstraints();
     }
 
-    public void send_listConstraints(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public void send_listConstraints(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
       listConstraints_args args = new listConstraints_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       sendBase("listConstraints", args);
     }
@@ -1101,16 +1101,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "listConstraints failed: unknown result");
     }
 
-    public void mergeTablets(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
+    public void mergeTablets(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_mergeTablets(PrincipalToken, tableName, startRow, endRow);
+      send_mergeTablets(principalToken, tableName, startRow, endRow);
       recv_mergeTablets();
     }
 
-    public void send_mergeTablets(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws org.apache.thrift.TException
+    public void send_mergeTablets(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws org.apache.thrift.TException
     {
       mergeTablets_args args = new mergeTablets_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setStartRow(startRow);
       args.setEndRow(endRow);
@@ -1133,16 +1133,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void offlineTable(PrincipalToken PrincipalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
+    public void offlineTable(PrincipalToken principalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_offlineTable(PrincipalToken, tableName);
+      send_offlineTable(principalToken, tableName);
       recv_offlineTable();
     }
 
-    public void send_offlineTable(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public void send_offlineTable(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
       offlineTable_args args = new offlineTable_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       sendBase("offlineTable", args);
     }
@@ -1163,16 +1163,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void onlineTable(PrincipalToken PrincipalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
+    public void onlineTable(PrincipalToken principalToken, String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_onlineTable(PrincipalToken, tableName);
+      send_onlineTable(principalToken, tableName);
       recv_onlineTable();
     }
 
-    public void send_onlineTable(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public void send_onlineTable(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
       onlineTable_args args = new onlineTable_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       sendBase("onlineTable", args);
     }
@@ -1193,16 +1193,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void removeConstraint(PrincipalToken PrincipalToken, String tableName, int constraint) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void removeConstraint(PrincipalToken principalToken, String tableName, int constraint) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_removeConstraint(PrincipalToken, tableName, constraint);
+      send_removeConstraint(principalToken, tableName, constraint);
       recv_removeConstraint();
     }
 
-    public void send_removeConstraint(PrincipalToken PrincipalToken, String tableName, int constraint) throws org.apache.thrift.TException
+    public void send_removeConstraint(PrincipalToken principalToken, String tableName, int constraint) throws org.apache.thrift.TException
     {
       removeConstraint_args args = new removeConstraint_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setConstraint(constraint);
       sendBase("removeConstraint", args);
@@ -1221,16 +1221,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void removeIterator(PrincipalToken PrincipalToken, String tableName, String iterName, Set<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
+    public void removeIterator(PrincipalToken principalToken, String tableName, String iterName, Set<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_removeIterator(PrincipalToken, tableName, iterName, scopes);
+      send_removeIterator(principalToken, tableName, iterName, scopes);
       recv_removeIterator();
     }
 
-    public void send_removeIterator(PrincipalToken PrincipalToken, String tableName, String iterName, Set<IteratorScope> scopes) throws org.apache.thrift.TException
+    public void send_removeIterator(PrincipalToken principalToken, String tableName, String iterName, Set<IteratorScope> scopes) throws org.apache.thrift.TException
     {
       removeIterator_args args = new removeIterator_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setIterName(iterName);
       args.setScopes(scopes);
@@ -1253,16 +1253,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void removeTableProperty(PrincipalToken PrincipalToken, String tableName, String property) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void removeTableProperty(PrincipalToken principalToken, String tableName, String property) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_removeTableProperty(PrincipalToken, tableName, property);
+      send_removeTableProperty(principalToken, tableName, property);
       recv_removeTableProperty();
     }
 
-    public void send_removeTableProperty(PrincipalToken PrincipalToken, String tableName, String property) throws org.apache.thrift.TException
+    public void send_removeTableProperty(PrincipalToken principalToken, String tableName, String property) throws org.apache.thrift.TException
     {
       removeTableProperty_args args = new removeTableProperty_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setProperty(property);
       sendBase("removeTableProperty", args);
@@ -1281,16 +1281,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void renameTable(PrincipalToken PrincipalToken, String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TableExistsException, org.apache.thrift.TException
+    public void renameTable(PrincipalToken principalToken, String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TableExistsException, org.apache.thrift.TException
     {
-      send_renameTable(PrincipalToken, oldTableName, newTableName);
+      send_renameTable(principalToken, oldTableName, newTableName);
       recv_renameTable();
     }
 
-    public void send_renameTable(PrincipalToken PrincipalToken, String oldTableName, String newTableName) throws org.apache.thrift.TException
+    public void send_renameTable(PrincipalToken principalToken, String oldTableName, String newTableName) throws org.apache.thrift.TException
     {
       renameTable_args args = new renameTable_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setOldTableName(oldTableName);
       args.setNewTableName(newTableName);
       sendBase("renameTable", args);
@@ -1315,16 +1315,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void setLocalityGroups(PrincipalToken PrincipalToken, String tableName, Map<String,Set<String>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
+    public void setLocalityGroups(PrincipalToken principalToken, String tableName, Map<String,Set<String>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_setLocalityGroups(PrincipalToken, tableName, groups);
+      send_setLocalityGroups(principalToken, tableName, groups);
       recv_setLocalityGroups();
     }
 
-    public void send_setLocalityGroups(PrincipalToken PrincipalToken, String tableName, Map<String,Set<String>> groups) throws org.apache.thrift.TException
+    public void send_setLocalityGroups(PrincipalToken principalToken, String tableName, Map<String,Set<String>> groups) throws org.apache.thrift.TException
     {
       setLocalityGroups_args args = new setLocalityGroups_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setGroups(groups);
       sendBase("setLocalityGroups", args);
@@ -1346,16 +1346,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void setTableProperty(PrincipalToken PrincipalToken, String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void setTableProperty(PrincipalToken principalToken, String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_setTableProperty(PrincipalToken, tableName, property, value);
+      send_setTableProperty(principalToken, tableName, property, value);
       recv_setTableProperty();
     }
 
-    public void send_setTableProperty(PrincipalToken PrincipalToken, String tableName, String property, String value) throws org.apache.thrift.TException
+    public void send_setTableProperty(PrincipalToken principalToken, String tableName, String property, String value) throws org.apache.thrift.TException
     {
       setTableProperty_args args = new setTableProperty_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setProperty(property);
       args.setValue(value);
@@ -1375,16 +1375,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public Set<Range> splitRangeByTablets(PrincipalToken PrincipalToken, String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
+    public Set<Range> splitRangeByTablets(PrincipalToken principalToken, String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_splitRangeByTablets(PrincipalToken, tableName, range, maxSplits);
+      send_splitRangeByTablets(principalToken, tableName, range, maxSplits);
       return recv_splitRangeByTablets();
     }
 
-    public void send_splitRangeByTablets(PrincipalToken PrincipalToken, String tableName, Range range, int maxSplits) throws org.apache.thrift.TException
+    public void send_splitRangeByTablets(PrincipalToken principalToken, String tableName, Range range, int maxSplits) throws org.apache.thrift.TException
     {
       splitRangeByTablets_args args = new splitRangeByTablets_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setRange(range);
       args.setMaxSplits(maxSplits);
@@ -1410,16 +1410,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "splitRangeByTablets failed: unknown result");
     }
 
-    public boolean tableExists(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public boolean tableExists(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
-      send_tableExists(PrincipalToken, tableName);
+      send_tableExists(principalToken, tableName);
       return recv_tableExists();
     }
 
-    public void send_tableExists(PrincipalToken PrincipalToken, String tableName) throws org.apache.thrift.TException
+    public void send_tableExists(PrincipalToken principalToken, String tableName) throws org.apache.thrift.TException
     {
       tableExists_args args = new tableExists_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       sendBase("tableExists", args);
     }
@@ -1434,16 +1434,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "tableExists failed: unknown result");
     }
 
-    public Map<String,String> tableIdMap(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public Map<String,String> tableIdMap(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
-      send_tableIdMap(PrincipalToken);
+      send_tableIdMap(principalToken);
       return recv_tableIdMap();
     }
 
-    public void send_tableIdMap(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public void send_tableIdMap(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
       tableIdMap_args args = new tableIdMap_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       sendBase("tableIdMap", args);
     }
 
@@ -1457,16 +1457,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "tableIdMap failed: unknown result");
     }
 
-    public void pingTabletServer(PrincipalToken PrincipalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void pingTabletServer(PrincipalToken principalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_pingTabletServer(PrincipalToken, tserver);
+      send_pingTabletServer(principalToken, tserver);
       recv_pingTabletServer();
     }
 
-    public void send_pingTabletServer(PrincipalToken PrincipalToken, String tserver) throws org.apache.thrift.TException
+    public void send_pingTabletServer(PrincipalToken principalToken, String tserver) throws org.apache.thrift.TException
     {
       pingTabletServer_args args = new pingTabletServer_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTserver(tserver);
       sendBase("pingTabletServer", args);
     }
@@ -1484,16 +1484,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public List<ActiveScan> getActiveScans(PrincipalToken PrincipalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public List<ActiveScan> getActiveScans(PrincipalToken principalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_getActiveScans(PrincipalToken, tserver);
+      send_getActiveScans(principalToken, tserver);
       return recv_getActiveScans();
     }
 
-    public void send_getActiveScans(PrincipalToken PrincipalToken, String tserver) throws org.apache.thrift.TException
+    public void send_getActiveScans(PrincipalToken principalToken, String tserver) throws org.apache.thrift.TException
     {
       getActiveScans_args args = new getActiveScans_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTserver(tserver);
       sendBase("getActiveScans", args);
     }
@@ -1514,16 +1514,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getActiveScans failed: unknown result");
     }
 
-    public List<ActiveCompaction> getActiveCompactions(PrincipalToken PrincipalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public List<ActiveCompaction> getActiveCompactions(PrincipalToken principalToken, String tserver) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_getActiveCompactions(PrincipalToken, tserver);
+      send_getActiveCompactions(principalToken, tserver);
       return recv_getActiveCompactions();
     }
 
-    public void send_getActiveCompactions(PrincipalToken PrincipalToken, String tserver) throws org.apache.thrift.TException
+    public void send_getActiveCompactions(PrincipalToken principalToken, String tserver) throws org.apache.thrift.TException
     {
       getActiveCompactions_args args = new getActiveCompactions_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTserver(tserver);
       sendBase("getActiveCompactions", args);
     }
@@ -1544,16 +1544,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getActiveCompactions failed: unknown result");
     }
 
-    public Map<String,String> getSiteConfiguration(PrincipalToken PrincipalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public Map<String,String> getSiteConfiguration(PrincipalToken principalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_getSiteConfiguration(PrincipalToken);
+      send_getSiteConfiguration(principalToken);
       return recv_getSiteConfiguration();
     }
 
-    public void send_getSiteConfiguration(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public void send_getSiteConfiguration(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
       getSiteConfiguration_args args = new getSiteConfiguration_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       sendBase("getSiteConfiguration", args);
     }
 
@@ -1573,16 +1573,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getSiteConfiguration failed: unknown result");
     }
 
-    public Map<String,String> getSystemConfiguration(PrincipalToken PrincipalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public Map<String,String> getSystemConfiguration(PrincipalToken principalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_getSystemConfiguration(PrincipalToken);
+      send_getSystemConfiguration(principalToken);
       return recv_getSystemConfiguration();
     }
 
-    public void send_getSystemConfiguration(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public void send_getSystemConfiguration(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
       getSystemConfiguration_args args = new getSystemConfiguration_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       sendBase("getSystemConfiguration", args);
     }
 
@@ -1602,16 +1602,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getSystemConfiguration failed: unknown result");
     }
 
-    public List<String> getTabletServers(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public List<String> getTabletServers(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
-      send_getTabletServers(PrincipalToken);
+      send_getTabletServers(principalToken);
       return recv_getTabletServers();
     }
 
-    public void send_getTabletServers(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public void send_getTabletServers(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
       getTabletServers_args args = new getTabletServers_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       sendBase("getTabletServers", args);
     }
 
@@ -1625,16 +1625,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTabletServers failed: unknown result");
     }
 
-    public void removeProperty(PrincipalToken PrincipalToken, String property) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void removeProperty(PrincipalToken principalToken, String property) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_removeProperty(PrincipalToken, property);
+      send_removeProperty(principalToken, property);
       recv_removeProperty();
     }
 
-    public void send_removeProperty(PrincipalToken PrincipalToken, String property) throws org.apache.thrift.TException
+    public void send_removeProperty(PrincipalToken principalToken, String property) throws org.apache.thrift.TException
     {
       removeProperty_args args = new removeProperty_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setProperty(property);
       sendBase("removeProperty", args);
     }
@@ -1652,16 +1652,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void setProperty(PrincipalToken PrincipalToken, String property, String value) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void setProperty(PrincipalToken principalToken, String property, String value) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_setProperty(PrincipalToken, property, value);
+      send_setProperty(principalToken, property, value);
       recv_setProperty();
     }
 
-    public void send_setProperty(PrincipalToken PrincipalToken, String property, String value) throws org.apache.thrift.TException
+    public void send_setProperty(PrincipalToken principalToken, String property, String value) throws org.apache.thrift.TException
     {
       setProperty_args args = new setProperty_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setProperty(property);
       args.setValue(value);
       sendBase("setProperty", args);
@@ -1680,16 +1680,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public boolean testClassLoad(PrincipalToken PrincipalToken, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public boolean testClassLoad(PrincipalToken principalToken, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_testClassLoad(PrincipalToken, className, asTypeName);
+      send_testClassLoad(principalToken, className, asTypeName);
       return recv_testClassLoad();
     }
 
-    public void send_testClassLoad(PrincipalToken PrincipalToken, String className, String asTypeName) throws org.apache.thrift.TException
+    public void send_testClassLoad(PrincipalToken principalToken, String className, String asTypeName) throws org.apache.thrift.TException
     {
       testClassLoad_args args = new testClassLoad_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setClassName(className);
       args.setAsTypeName(asTypeName);
       sendBase("testClassLoad", args);
@@ -1711,16 +1711,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "testClassLoad failed: unknown result");
     }
 
-    public boolean authenticateUser(PrincipalToken PrincipalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public boolean authenticateUser(PrincipalToken principalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_authenticateUser(PrincipalToken, principal, token);
+      send_authenticateUser(principalToken, principal, token);
       return recv_authenticateUser();
     }
 
-    public void send_authenticateUser(PrincipalToken PrincipalToken, String principal, ByteBuffer token) throws org.apache.thrift.TException
+    public void send_authenticateUser(PrincipalToken principalToken, String principal, ByteBuffer token) throws org.apache.thrift.TException
     {
       authenticateUser_args args = new authenticateUser_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       args.setToken(token);
       sendBase("authenticateUser", args);
@@ -1742,16 +1742,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "authenticateUser failed: unknown result");
     }
 
-    public void changeUserAuthorizations(PrincipalToken PrincipalToken, String principal, Set<ByteBuffer> authorizations) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void changeUserAuthorizations(PrincipalToken principalToken, String principal, Set<ByteBuffer> authorizations) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_changeUserAuthorizations(PrincipalToken, principal, authorizations);
+      send_changeUserAuthorizations(principalToken, principal, authorizations);
       recv_changeUserAuthorizations();
     }
 
-    public void send_changeUserAuthorizations(PrincipalToken PrincipalToken, String principal, Set<ByteBuffer> authorizations) throws org.apache.thrift.TException
+    public void send_changeUserAuthorizations(PrincipalToken principalToken, String principal, Set<ByteBuffer> authorizations) throws org.apache.thrift.TException
     {
       changeUserAuthorizations_args args = new changeUserAuthorizations_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       args.setAuthorizations(authorizations);
       sendBase("changeUserAuthorizations", args);
@@ -1770,16 +1770,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void changePrincipalTokenword(PrincipalToken PrincipalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void changePrincipalTokenword(PrincipalToken principalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_changePrincipalTokenword(PrincipalToken, principal, token);
+      send_changePrincipalTokenword(principalToken, principal, token);
       recv_changePrincipalTokenword();
     }
 
-    public void send_changePrincipalTokenword(PrincipalToken PrincipalToken, String principal, ByteBuffer token) throws org.apache.thrift.TException
+    public void send_changePrincipalTokenword(PrincipalToken principalToken, String principal, ByteBuffer token) throws org.apache.thrift.TException
     {
       changePrincipalTokenword_args args = new changePrincipalTokenword_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       args.setToken(token);
       sendBase("changePrincipalTokenword", args);
@@ -1798,16 +1798,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void createUser(PrincipalToken PrincipalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void createUser(PrincipalToken principalToken, String principal, ByteBuffer token) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_createUser(PrincipalToken, principal, token);
+      send_createUser(principalToken, principal, token);
       recv_createUser();
     }
 
-    public void send_createUser(PrincipalToken PrincipalToken, String principal, ByteBuffer token) throws org.apache.thrift.TException
+    public void send_createUser(PrincipalToken principalToken, String principal, ByteBuffer token) throws org.apache.thrift.TException
     {
       createUser_args args = new createUser_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       args.setToken(token);
       sendBase("createUser", args);
@@ -1826,16 +1826,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void dropUser(PrincipalToken PrincipalToken, String principal) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void dropUser(PrincipalToken principalToken, String principal) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_dropUser(PrincipalToken, principal);
+      send_dropUser(principalToken, principal);
       recv_dropUser();
     }
 
-    public void send_dropUser(PrincipalToken PrincipalToken, String principal) throws org.apache.thrift.TException
+    public void send_dropUser(PrincipalToken principalToken, String principal) throws org.apache.thrift.TException
     {
       dropUser_args args = new dropUser_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       sendBase("dropUser", args);
     }
@@ -1853,16 +1853,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public List<ByteBuffer> getUserAuthorizations(PrincipalToken PrincipalToken, String principal) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public List<ByteBuffer> getUserAuthorizations(PrincipalToken principalToken, String principal) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_getUserAuthorizations(PrincipalToken, principal);
+      send_getUserAuthorizations(principalToken, principal);
       return recv_getUserAuthorizations();
     }
 
-    public void send_getUserAuthorizations(PrincipalToken PrincipalToken, String principal) throws org.apache.thrift.TException
+    public void send_getUserAuthorizations(PrincipalToken principalToken, String principal) throws org.apache.thrift.TException
     {
       getUserAuthorizations_args args = new getUserAuthorizations_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       sendBase("getUserAuthorizations", args);
     }
@@ -1883,16 +1883,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getUserAuthorizations failed: unknown result");
     }
 
-    public void grantSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void grantSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_grantSystemPermission(PrincipalToken, principal, perm);
+      send_grantSystemPermission(principalToken, principal, perm);
       recv_grantSystemPermission();
     }
 
-    public void send_grantSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm) throws org.apache.thrift.TException
+    public void send_grantSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm) throws org.apache.thrift.TException
     {
       grantSystemPermission_args args = new grantSystemPermission_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       args.setPerm(perm);
       sendBase("grantSystemPermission", args);
@@ -1911,16 +1911,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void grantTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void grantTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_grantTablePermission(PrincipalToken, principal, table, perm);
+      send_grantTablePermission(principalToken, principal, table, perm);
       recv_grantTablePermission();
     }
 
-    public void send_grantTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm) throws org.apache.thrift.TException
+    public void send_grantTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm) throws org.apache.thrift.TException
     {
       grantTablePermission_args args = new grantTablePermission_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       args.setTable(table);
       args.setPerm(perm);
@@ -1940,16 +1940,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public boolean hasSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public boolean hasSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_hasSystemPermission(PrincipalToken, principal, perm);
+      send_hasSystemPermission(principalToken, principal, perm);
       return recv_hasSystemPermission();
     }
 
-    public void send_hasSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm) throws org.apache.thrift.TException
+    public void send_hasSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm) throws org.apache.thrift.TException
     {
       hasSystemPermission_args args = new hasSystemPermission_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       args.setPerm(perm);
       sendBase("hasSystemPermission", args);
@@ -1971,16 +1971,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasSystemPermission failed: unknown result");
     }
 
-    public boolean hasTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public boolean hasTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_hasTablePermission(PrincipalToken, principal, table, perm);
+      send_hasTablePermission(principalToken, principal, table, perm);
       return recv_hasTablePermission();
     }
 
-    public void send_hasTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm) throws org.apache.thrift.TException
+    public void send_hasTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm) throws org.apache.thrift.TException
     {
       hasTablePermission_args args = new hasTablePermission_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       args.setTable(table);
       args.setPerm(perm);
@@ -2003,16 +2003,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasTablePermission failed: unknown result");
     }
 
-    public Set<String> listUsers(PrincipalToken PrincipalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public Set<String> listUsers(PrincipalToken principalToken) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_listUsers(PrincipalToken);
+      send_listUsers(principalToken);
       return recv_listUsers();
     }
 
-    public void send_listUsers(PrincipalToken PrincipalToken) throws org.apache.thrift.TException
+    public void send_listUsers(PrincipalToken principalToken) throws org.apache.thrift.TException
     {
       listUsers_args args = new listUsers_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       sendBase("listUsers", args);
     }
 
@@ -2032,16 +2032,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "listUsers failed: unknown result");
     }
 
-    public void revokeSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void revokeSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_revokeSystemPermission(PrincipalToken, principal, perm);
+      send_revokeSystemPermission(principalToken, principal, perm);
       recv_revokeSystemPermission();
     }
 
-    public void send_revokeSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm) throws org.apache.thrift.TException
+    public void send_revokeSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm) throws org.apache.thrift.TException
     {
       revokeSystemPermission_args args = new revokeSystemPermission_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       args.setPerm(perm);
       sendBase("revokeSystemPermission", args);
@@ -2060,16 +2060,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void revokeTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void revokeTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_revokeTablePermission(PrincipalToken, principal, table, perm);
+      send_revokeTablePermission(principalToken, principal, table, perm);
       recv_revokeTablePermission();
     }
 
-    public void send_revokeTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm) throws org.apache.thrift.TException
+    public void send_revokeTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm) throws org.apache.thrift.TException
     {
       revokeTablePermission_args args = new revokeTablePermission_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setPrincipal(principal);
       args.setTable(table);
       args.setPerm(perm);
@@ -2089,16 +2089,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public String createBatchScanner(PrincipalToken PrincipalToken, String tableName, BatchScanOptions options) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public String createBatchScanner(PrincipalToken principalToken, String tableName, BatchScanOptions options) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_createBatchScanner(PrincipalToken, tableName, options);
+      send_createBatchScanner(principalToken, tableName, options);
       return recv_createBatchScanner();
     }
 
-    public void send_createBatchScanner(PrincipalToken PrincipalToken, String tableName, BatchScanOptions options) throws org.apache.thrift.TException
+    public void send_createBatchScanner(PrincipalToken principalToken, String tableName, BatchScanOptions options) throws org.apache.thrift.TException
     {
       createBatchScanner_args args = new createBatchScanner_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setOptions(options);
       sendBase("createBatchScanner", args);
@@ -2120,16 +2120,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "createBatchScanner failed: unknown result");
     }
 
-    public String createScanner(PrincipalToken PrincipalToken, String tableName, ScanOptions options) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public String createScanner(PrincipalToken principalToken, String tableName, ScanOptions options) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_createScanner(PrincipalToken, tableName, options);
+      send_createScanner(principalToken, tableName, options);
       return recv_createScanner();
     }
 
-    public void send_createScanner(PrincipalToken PrincipalToken, String tableName, ScanOptions options) throws org.apache.thrift.TException
+    public void send_createScanner(PrincipalToken principalToken, String tableName, ScanOptions options) throws org.apache.thrift.TException
     {
       createScanner_args args = new createScanner_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setOptions(options);
       sendBase("createScanner", args);
@@ -2265,16 +2265,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void updateAndFlush(PrincipalToken PrincipalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public void updateAndFlush(PrincipalToken principalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_updateAndFlush(PrincipalToken, tableName, cells);
+      send_updateAndFlush(principalToken, tableName, cells);
       recv_updateAndFlush();
     }
 
-    public void send_updateAndFlush(PrincipalToken PrincipalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws org.apache.thrift.TException
+    public void send_updateAndFlush(PrincipalToken principalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws org.apache.thrift.TException
     {
       updateAndFlush_args args = new updateAndFlush_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setCells(cells);
       sendBase("updateAndFlush", args);
@@ -2293,16 +2293,16 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public String createWriter(PrincipalToken PrincipalToken, String tableName, WriterOptions opts) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public String createWriter(PrincipalToken principalToken, String tableName, WriterOptions opts) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_createWriter(PrincipalToken, tableName, opts);
+      send_createWriter(principalToken, tableName, opts);
       return recv_createWriter();
     }
 
-    public void send_createWriter(PrincipalToken PrincipalToken, String tableName, WriterOptions opts) throws org.apache.thrift.TException
+    public void send_createWriter(PrincipalToken principalToken, String tableName, WriterOptions opts) throws org.apache.thrift.TException
     {
       createWriter_args args = new createWriter_args();
-      args.setPrincipalToken(PrincipalToken);
+      args.setPrincipalToken(principalToken);
       args.setTableName(tableName);
       args.setOpts(opts);
       sendBase("createWriter", args);
@@ -2454,24 +2454,24 @@ import org.slf4j.LoggerFactory;
       super(protocolFactory, clientManager, transport);
     }
 
-    public void ping(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler) throws org.apache.thrift.TException {
+    public void ping(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      ping_call method_call = new ping_call(PrincipalToken, resultHandler, this, ___protocolFactory, ___transport);
+      ping_call method_call = new ping_call(principalToken, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class ping_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
-      public ping_call(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private PrincipalToken principalToken;
+      public ping_call(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("ping", org.apache.thrift.protocol.TMessageType.CALL, 0));
         ping_args args = new ping_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -2486,20 +2486,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void addConstraint(PrincipalToken PrincipalToken, String tableName, String constraintClassName, org.apache.thrift.async.AsyncMethodCallback<addConstraint_call> resultHandler) throws org.apache.thrift.TException {
+    public void addConstraint(PrincipalToken principalToken, String tableName, String constraintClassName, org.apache.thrift.async.AsyncMethodCallback<addConstraint_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      addConstraint_call method_call = new addConstraint_call(PrincipalToken, tableName, constraintClassName, resultHandler, this, ___protocolFactory, ___transport);
+      addConstraint_call method_call = new addConstraint_call(principalToken, tableName, constraintClassName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class addConstraint_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private String constraintClassName;
-      public addConstraint_call(PrincipalToken PrincipalToken, String tableName, String constraintClassName, org.apache.thrift.async.AsyncMethodCallback<addConstraint_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public addConstraint_call(PrincipalToken principalToken, String tableName, String constraintClassName, org.apache.thrift.async.AsyncMethodCallback<addConstraint_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.constraintClassName = constraintClassName;
       }
@@ -2507,7 +2507,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("addConstraint", org.apache.thrift.protocol.TMessageType.CALL, 0));
         addConstraint_args args = new addConstraint_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setConstraintClassName(constraintClassName);
         args.write(prot);
@@ -2524,20 +2524,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void addSplits(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> splits, org.apache.thrift.async.AsyncMethodCallback<addSplits_call> resultHandler) throws org.apache.thrift.TException {
+    public void addSplits(PrincipalToken principalToken, String tableName, Set<ByteBuffer> splits, org.apache.thrift.async.AsyncMethodCallback<addSplits_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      addSplits_call method_call = new addSplits_call(PrincipalToken, tableName, splits, resultHandler, this, ___protocolFactory, ___transport);
+      addSplits_call method_call = new addSplits_call(principalToken, tableName, splits, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class addSplits_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private Set<ByteBuffer> splits;
-      public addSplits_call(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> splits, org.apache.thrift.async.AsyncMethodCallback<addSplits_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public addSplits_call(PrincipalToken principalToken, String tableName, Set<ByteBuffer> splits, org.apache.thrift.async.AsyncMethodCallback<addSplits_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.splits = splits;
       }
@@ -2545,7 +2545,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("addSplits", org.apache.thrift.protocol.TMessageType.CALL, 0));
         addSplits_args args = new addSplits_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setSplits(splits);
         args.write(prot);
@@ -2562,21 +2562,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void attachIterator(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<attachIterator_call> resultHandler) throws org.apache.thrift.TException {
+    public void attachIterator(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<attachIterator_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      attachIterator_call method_call = new attachIterator_call(PrincipalToken, tableName, setting, scopes, resultHandler, this, ___protocolFactory, ___transport);
+      attachIterator_call method_call = new attachIterator_call(principalToken, tableName, setting, scopes, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class attachIterator_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private IteratorSetting setting;
       private Set<IteratorScope> scopes;
-      public attachIterator_call(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<attachIterator_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public attachIterator_call(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<attachIterator_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.setting = setting;
         this.scopes = scopes;
@@ -2585,7 +2585,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("attachIterator", org.apache.thrift.protocol.TMessageType.CALL, 0));
         attachIterator_args args = new attachIterator_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setSetting(setting);
         args.setScopes(scopes);
@@ -2603,21 +2603,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void checkIteratorConflicts(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<checkIteratorConflicts_call> resultHandler) throws org.apache.thrift.TException {
+    public void checkIteratorConflicts(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<checkIteratorConflicts_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      checkIteratorConflicts_call method_call = new checkIteratorConflicts_call(PrincipalToken, tableName, setting, scopes, resultHandler, this, ___protocolFactory, ___transport);
+      checkIteratorConflicts_call method_call = new checkIteratorConflicts_call(principalToken, tableName, setting, scopes, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class checkIteratorConflicts_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private IteratorSetting setting;
       private Set<IteratorScope> scopes;
-      public checkIteratorConflicts_call(PrincipalToken PrincipalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<checkIteratorConflicts_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public checkIteratorConflicts_call(PrincipalToken principalToken, String tableName, IteratorSetting setting, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<checkIteratorConflicts_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.setting = setting;
         this.scopes = scopes;
@@ -2626,7 +2626,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("checkIteratorConflicts", org.apache.thrift.protocol.TMessageType.CALL, 0));
         checkIteratorConflicts_args args = new checkIteratorConflicts_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setSetting(setting);
         args.setScopes(scopes);
@@ -2644,26 +2644,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void clearLocatorCache(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<clearLocatorCache_call> resultHandler) throws org.apache.thrift.TException {
+    public void clearLocatorCache(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<clearLocatorCache_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      clearLocatorCache_call method_call = new clearLocatorCache_call(PrincipalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      clearLocatorCache_call method_call = new clearLocatorCache_call(principalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class clearLocatorCache_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
-      public clearLocatorCache_call(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<clearLocatorCache_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public clearLocatorCache_call(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<clearLocatorCache_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("clearLocatorCache", org.apache.thrift.protocol.TMessageType.CALL, 0));
         clearLocatorCache_args args = new clearLocatorCache_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -2679,23 +2679,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void cloneTable(PrincipalToken PrincipalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, org.apache.thrift.async.AsyncMethodCallback<cloneTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void cloneTable(PrincipalToken principalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, org.apache.thrift.async.AsyncMethodCallback<cloneTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      cloneTable_call method_call = new cloneTable_call(PrincipalToken, tableName, newTableName, flush, propertiesToSet, propertiesToExclude, resultHandler, this, ___protocolFactory, ___transport);
+      cloneTable_call method_call = new cloneTable_call(principalToken, tableName, newTableName, flush, propertiesToSet, propertiesToExclude, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class cloneTable_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private String newTableName;
       private boolean flush;
       private Map<String,String> propertiesToSet;
       private Set<String> propertiesToExclude;
-      public cloneTable_call(PrincipalToken PrincipalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, org.apache.thrift.async.AsyncMethodCallback<cloneTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public cloneTable_call(PrincipalToken principalToken, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, org.apache.thrift.async.AsyncMethodCallback<cloneTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.newTableName = newTableName;
         this.flush = flush;
@@ -2706,7 +2706,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("cloneTable", org.apache.thrift.protocol.TMessageType.CALL, 0));
         cloneTable_args args = new cloneTable_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setNewTableName(newTableName);
         args.setFlush(flush);
@@ -2726,24 +2726,24 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void compactTable(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait, org.apache.thrift.async.AsyncMethodCallback<compactTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void compactTable(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait, org.apache.thrift.async.AsyncMethodCallback<compactTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      compactTable_call method_call = new compactTable_call(PrincipalToken, tableName, startRow, endRow, iterators, flush, wait, resultHandler, this, ___protocolFactory, ___transport);
+      compactTable_call method_call = new compactTable_call(principalToken, tableName, startRow, endRow, iterators, flush, wait, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class compactTable_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private ByteBuffer startRow;
       private ByteBuffer endRow;
       private List<IteratorSetting> iterators;
       private boolean flush;
       private boolean wait;
-      public compactTable_call(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait, org.apache.thrift.async.AsyncMethodCallback<compactTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public compactTable_call(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, List<IteratorSetting> iterators, boolean flush, boolean wait, org.apache.thrift.async.AsyncMethodCallback<compactTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.startRow = startRow;
         this.endRow = endRow;
@@ -2755,7 +2755,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("compactTable", org.apache.thrift.protocol.TMessageType.CALL, 0));
         compactTable_args args = new compactTable_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setStartRow(startRow);
         args.setEndRow(endRow);
@@ -2776,26 +2776,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void cancelCompaction(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<cancelCompaction_call> resultHandler) throws org.apache.thrift.TException {
+    public void cancelCompaction(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<cancelCompaction_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      cancelCompaction_call method_call = new cancelCompaction_call(PrincipalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      cancelCompaction_call method_call = new cancelCompaction_call(principalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class cancelCompaction_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
-      public cancelCompaction_call(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<cancelCompaction_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public cancelCompaction_call(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<cancelCompaction_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("cancelCompaction", org.apache.thrift.protocol.TMessageType.CALL, 0));
         cancelCompaction_args args = new cancelCompaction_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -2811,21 +2811,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void createTable(PrincipalToken PrincipalToken, String tableName, boolean versioningIter, TimeType type, org.apache.thrift.async.AsyncMethodCallback<createTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void createTable(PrincipalToken principalToken, String tableName, boolean versioningIter, TimeType type, org.apache.thrift.async.AsyncMethodCallback<createTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      createTable_call method_call = new createTable_call(PrincipalToken, tableName, versioningIter, type, resultHandler, this, ___protocolFactory, ___transport);
+      createTable_call method_call = new createTable_call(principalToken, tableName, versioningIter, type, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class createTable_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private boolean versioningIter;
       private TimeType type;
-      public createTable_call(PrincipalToken PrincipalToken, String tableName, boolean versioningIter, TimeType type, org.apache.thrift.async.AsyncMethodCallback<createTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public createTable_call(PrincipalToken principalToken, String tableName, boolean versioningIter, TimeType type, org.apache.thrift.async.AsyncMethodCallback<createTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.versioningIter = versioningIter;
         this.type = type;
@@ -2834,7 +2834,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("createTable", org.apache.thrift.protocol.TMessageType.CALL, 0));
         createTable_args args = new createTable_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setVersioningIter(versioningIter);
         args.setType(type);
@@ -2852,26 +2852,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void deleteTable(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<deleteTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void deleteTable(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<deleteTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      deleteTable_call method_call = new deleteTable_call(PrincipalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      deleteTable_call method_call = new deleteTable_call(principalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class deleteTable_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
-      public deleteTable_call(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<deleteTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public deleteTable_call(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<deleteTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("deleteTable", org.apache.thrift.protocol.TMessageType.CALL, 0));
         deleteTable_args args = new deleteTable_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -2887,21 +2887,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void deleteRows(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<deleteRows_call> resultHandler) throws org.apache.thrift.TException {
+    public void deleteRows(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<deleteRows_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      deleteRows_call method_call = new deleteRows_call(PrincipalToken, tableName, startRow, endRow, resultHandler, this, ___protocolFactory, ___transport);
+      deleteRows_call method_call = new deleteRows_call(principalToken, tableName, startRow, endRow, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class deleteRows_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private ByteBuffer startRow;
       private ByteBuffer endRow;
-      public deleteRows_call(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<deleteRows_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public deleteRows_call(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<deleteRows_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.startRow = startRow;
         this.endRow = endRow;
@@ -2910,7 +2910,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("deleteRows", org.apache.thrift.protocol.TMessageType.CALL, 0));
         deleteRows_args args = new deleteRows_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setStartRow(startRow);
         args.setEndRow(endRow);
@@ -2928,20 +2928,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void exportTable(PrincipalToken PrincipalToken, String tableName, String exportDir, org.apache.thrift.async.AsyncMethodCallback<exportTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void exportTable(PrincipalToken principalToken, String tableName, String exportDir, org.apache.thrift.async.AsyncMethodCallback<exportTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      exportTable_call method_call = new exportTable_call(PrincipalToken, tableName, exportDir, resultHandler, this, ___protocolFactory, ___transport);
+      exportTable_call method_call = new exportTable_call(principalToken, tableName, exportDir, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class exportTable_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private String exportDir;
-      public exportTable_call(PrincipalToken PrincipalToken, String tableName, String exportDir, org.apache.thrift.async.AsyncMethodCallback<exportTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public exportTable_call(PrincipalToken principalToken, String tableName, String exportDir, org.apache.thrift.async.AsyncMethodCallback<exportTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.exportDir = exportDir;
       }
@@ -2949,7 +2949,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("exportTable", org.apache.thrift.protocol.TMessageType.CALL, 0));
         exportTable_args args = new exportTable_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setExportDir(exportDir);
         args.write(prot);
@@ -2966,22 +2966,22 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void flushTable(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait, org.apache.thrift.async.AsyncMethodCallback<flushTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void flushTable(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait, org.apache.thrift.async.AsyncMethodCallback<flushTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      flushTable_call method_call = new flushTable_call(PrincipalToken, tableName, startRow, endRow, wait, resultHandler, this, ___protocolFactory, ___transport);
+      flushTable_call method_call = new flushTable_call(principalToken, tableName, startRow, endRow, wait, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class flushTable_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private ByteBuffer startRow;
       private ByteBuffer endRow;
       private boolean wait;
-      public flushTable_call(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait, org.apache.thrift.async.AsyncMethodCallback<flushTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public flushTable_call(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait, org.apache.thrift.async.AsyncMethodCallback<flushTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.startRow = startRow;
         this.endRow = endRow;
@@ -2991,7 +2991,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("flushTable", org.apache.thrift.protocol.TMessageType.CALL, 0));
         flushTable_args args = new flushTable_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setStartRow(startRow);
         args.setEndRow(endRow);
@@ -3010,26 +3010,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getLocalityGroups(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<getLocalityGroups_call> resultHandler) throws org.apache.thrift.TException {
+    public void getLocalityGroups(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<getLocalityGroups_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getLocalityGroups_call method_call = new getLocalityGroups_call(PrincipalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      getLocalityGroups_call method_call = new getLocalityGroups_call(principalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getLocalityGroups_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
-      public getLocalityGroups_call(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<getLocalityGroups_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getLocalityGroups_call(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<getLocalityGroups_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getLocalityGroups", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getLocalityGroups_args args = new getLocalityGroups_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3045,21 +3045,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getIteratorSetting(PrincipalToken PrincipalToken, String tableName, String iteratorName, IteratorScope scope, org.apache.thrift.async.AsyncMethodCallback<getIteratorSetting_call> resultHandler) throws org.apache.thrift.TException {
+    public void getIteratorSetting(PrincipalToken principalToken, String tableName, String iteratorName, IteratorScope scope, org.apache.thrift.async.AsyncMethodCallback<getIteratorSetting_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getIteratorSetting_call method_call = new getIteratorSetting_call(PrincipalToken, tableName, iteratorName, scope, resultHandler, this, ___protocolFactory, ___transport);
+      getIteratorSetting_call method_call = new getIteratorSetting_call(principalToken, tableName, iteratorName, scope, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getIteratorSetting_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private String iteratorName;
       private IteratorScope scope;
-      public getIteratorSetting_call(PrincipalToken PrincipalToken, String tableName, String iteratorName, IteratorScope scope, org.apache.thrift.async.AsyncMethodCallback<getIteratorSetting_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getIteratorSetting_call(PrincipalToken principalToken, String tableName, String iteratorName, IteratorScope scope, org.apache.thrift.async.AsyncMethodCallback<getIteratorSetting_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.iteratorName = iteratorName;
         this.scope = scope;
@@ -3068,7 +3068,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getIteratorSetting", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getIteratorSetting_args args = new getIteratorSetting_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setIteratorName(iteratorName);
         args.setScope(scope);
@@ -3086,24 +3086,24 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getMaxRow(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<getMaxRow_call> resultHandler) throws org.apache.thrift.TException {
+    public void getMaxRow(PrincipalToken principalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<getMaxRow_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getMaxRow_call method_call = new getMaxRow_call(PrincipalToken, tableName, auths, startRow, startInclusive, endRow, endInclusive, resultHandler, this, ___protocolFactory, ___transport);
+      getMaxRow_call method_call = new getMaxRow_call(principalToken, tableName, auths, startRow, startInclusive, endRow, endInclusive, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getMaxRow_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private Set<ByteBuffer> auths;
       private ByteBuffer startRow;
       private boolean startInclusive;
       private ByteBuffer endRow;
       private boolean endInclusive;
-      public getMaxRow_call(PrincipalToken PrincipalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<getMaxRow_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getMaxRow_call(PrincipalToken principalToken, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<getMaxRow_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.auths = auths;
         this.startRow = startRow;
@@ -3115,7 +3115,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getMaxRow", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getMaxRow_args args = new getMaxRow_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setAuths(auths);
         args.setStartRow(startRow);
@@ -3136,26 +3136,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getTableProperties(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<getTableProperties_call> resultHandler) throws org.apache.thrift.TException {
+    public void getTableProperties(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<getTableProperties_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getTableProperties_call method_call = new getTableProperties_call(PrincipalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      getTableProperties_call method_call = new getTableProperties_call(principalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getTableProperties_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
-      public getTableProperties_call(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<getTableProperties_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getTableProperties_call(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<getTableProperties_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getTableProperties", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getTableProperties_args args = new getTableProperties_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3171,20 +3171,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getSplits(PrincipalToken PrincipalToken, String tableName, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<getSplits_call> resultHandler) throws org.apache.thrift.TException {
+    public void getSplits(PrincipalToken principalToken, String tableName, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<getSplits_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getSplits_call method_call = new getSplits_call(PrincipalToken, tableName, maxSplits, resultHandler, this, ___protocolFactory, ___transport);
+      getSplits_call method_call = new getSplits_call(principalToken, tableName, maxSplits, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getSplits_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private int maxSplits;
-      public getSplits_call(PrincipalToken PrincipalToken, String tableName, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<getSplits_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getSplits_call(PrincipalToken principalToken, String tableName, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<getSplits_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.maxSplits = maxSplits;
       }
@@ -3192,7 +3192,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getSplits", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getSplits_args args = new getSplits_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setMaxSplits(maxSplits);
         args.write(prot);
@@ -3209,22 +3209,22 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void importDirectory(PrincipalToken PrincipalToken, String tableName, String importDir, String failureDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<importDirectory_call> resultHandler) throws org.apache.thrift.TException {
+    public void importDirectory(PrincipalToken principalToken, String tableName, String importDir, String failureDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<importDirectory_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      importDirectory_call method_call = new importDirectory_call(PrincipalToken, tableName, importDir, failureDir, setTime, resultHandler, this, ___protocolFactory, ___transport);
+      importDirectory_call method_call = new importDirectory_call(principalToken, tableName, importDir, failureDir, setTime, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class importDirectory_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private String importDir;
       private String failureDir;
       private boolean setTime;
-      public importDirectory_call(PrincipalToken PrincipalToken, String tableName, String importDir, String failureDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<importDirectory_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public importDirectory_call(PrincipalToken principalToken, String tableName, String importDir, String failureDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<importDirectory_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.importDir = importDir;
         this.failureDir = failureDir;
@@ -3234,7 +3234,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("importDirectory", org.apache.thrift.protocol.TMessageType.CALL, 0));
         importDirectory_args args = new importDirectory_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setImportDir(importDir);
         args.setFailureDir(failureDir);
@@ -3253,20 +3253,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void importTable(PrincipalToken PrincipalToken, String tableName, String importDir, org.apache.thrift.async.AsyncMethodCallback<importTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void importTable(PrincipalToken principalToken, String tableName, String importDir, org.apache.thrift.async.AsyncMethodCallback<importTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      importTable_call method_call = new importTable_call(PrincipalToken, tableName, importDir, resultHandler, this, ___protocolFactory, ___transport);
+      importTable_call method_call = new importTable_call(principalToken, tableName, importDir, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class importTable_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private String importDir;
-      public importTable_call(PrincipalToken PrincipalToken, String tableName, String importDir, org.apache.thrift.async.AsyncMethodCallback<importTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public importTable_call(PrincipalToken principalToken, String tableName, String importDir, org.apache.thrift.async.AsyncMethodCallback<importTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.importDir = importDir;
       }
@@ -3274,7 +3274,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("importTable", org.apache.thrift.protocol.TMessageType.CALL, 0));
         importTable_args args = new importTable_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setImportDir(importDir);
         args.write(prot);
@@ -3291,24 +3291,24 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void listTables(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<listTables_call> resultHandler) throws org.apache.thrift.TException {
+    public void listTables(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<listTables_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      listTables_call method_call = new listTables_call(PrincipalToken, resultHandler, this, ___protocolFactory, ___transport);
+      listTables_call method_call = new listTables_call(principalToken, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class listTables_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
-      public listTables_call(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<listTables_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private PrincipalToken principalToken;
+      public listTables_call(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<listTables_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("listTables", org.apache.thrift.protocol.TMessageType.CALL, 0));
         listTables_args args = new listTables_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -3323,26 +3323,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void listIterators(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<listIterators_call> resultHandler) throws org.apache.thrift.TException {
+    public void listIterators(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<listIterators_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      listIterators_call method_call = new listIterators_call(PrincipalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      listIterators_call method_call = new listIterators_call(principalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class listIterators_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
-      public listIterators_call(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<listIterators_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public listIterators_call(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<listIterators_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("listIterators", org.apache.thrift.protocol.TMessageType.CALL, 0));
         listIterators_args args = new listIterators_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3358,26 +3358,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void listConstraints(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<listConstraints_call> resultHandler) throws org.apache.thrift.TException {
+    public void listConstraints(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<listConstraints_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      listConstraints_call method_call = new listConstraints_call(PrincipalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      listConstraints_call method_call = new listConstraints_call(principalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class listConstraints_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
-      public listConstraints_call(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<listConstraints_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public listConstraints_call(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<listConstraints_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("listConstraints", org.apache.thrift.protocol.TMessageType.CALL, 0));
         listConstraints_args args = new listConstraints_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3393,21 +3393,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void mergeTablets(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<mergeTablets_call> resultHandler) throws org.apache.thrift.TException {
+    public void mergeTablets(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<mergeTablets_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      mergeTablets_call method_call = new mergeTablets_call(PrincipalToken, tableName, startRow, endRow, resultHandler, this, ___protocolFactory, ___transport);
+      mergeTablets_call method_call = new mergeTablets_call(principalToken, tableName, startRow, endRow, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class mergeTablets_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private ByteBuffer startRow;
       private ByteBuffer endRow;
-      public mergeTablets_call(PrincipalToken PrincipalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<mergeTablets_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public mergeTablets_call(PrincipalToken principalToken, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<mergeTablets_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.startRow = startRow;
         this.endRow = endRow;
@@ -3416,7 +3416,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("mergeTablets", org.apache.thrift.protocol.TMessageType.CALL, 0));
         mergeTablets_args args = new mergeTablets_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setStartRow(startRow);
         args.setEndRow(endRow);
@@ -3434,26 +3434,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void offlineTable(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<offlineTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void offlineTable(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<offlineTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      offlineTable_call method_call = new offlineTable_call(PrincipalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      offlineTable_call method_call = new offlineTable_call(principalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class offlineTable_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
-      public offlineTable_call(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<offlineTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public offlineTable_call(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<offlineTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("offlineTable", org.apache.thrift.protocol.TMessageType.CALL, 0));
         offlineTable_args args = new offlineTable_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3469,26 +3469,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void onlineTable(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<onlineTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void onlineTable(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<onlineTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      onlineTable_call method_call = new onlineTable_call(PrincipalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      onlineTable_call method_call = new onlineTable_call(principalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class onlineTable_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
-      public onlineTable_call(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<onlineTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public onlineTable_call(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<onlineTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("onlineTable", org.apache.thrift.protocol.TMessageType.CALL, 0));
         onlineTable_args args = new onlineTable_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3504,20 +3504,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void removeConstraint(PrincipalToken PrincipalToken, String tableName, int constraint, org.apache.thrift.async.AsyncMethodCallback<removeConstraint_call> resultHandler) throws org.apache.thrift.TException {
+    public void removeConstraint(PrincipalToken principalToken, String tableName, int constraint, org.apache.thrift.async.AsyncMethodCallback<removeConstraint_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      removeConstraint_call method_call = new removeConstraint_call(PrincipalToken, tableName, constraint, resultHandler, this, ___protocolFactory, ___transport);
+      removeConstraint_call method_call = new removeConstraint_call(principalToken, tableName, constraint, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class removeConstraint_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private int constraint;
-      public removeConstraint_call(PrincipalToken PrincipalToken, String tableName, int constraint, org.apache.thrift.async.AsyncMethodCallback<removeConstraint_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public removeConstraint_call(PrincipalToken principalToken, String tableName, int constraint, org.apache.thrift.async.AsyncMethodCallback<removeConstraint_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.constraint = constraint;
       }
@@ -3525,7 +3525,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("removeConstraint", org.apache.thrift.protocol.TMessageType.CALL, 0));
         removeConstraint_args args = new removeConstraint_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setConstraint(constraint);
         args.write(prot);
@@ -3542,21 +3542,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void removeIterator(PrincipalToken PrincipalToken, String tableName, String iterName, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<removeIterator_call> resultHandler) throws org.apache.thrift.TException {
+    public void removeIterator(PrincipalToken principalToken, String tableName, String iterName, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<removeIterator_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      removeIterator_call method_call = new removeIterator_call(PrincipalToken, tableName, iterName, scopes, resultHandler, this, ___protocolFactory, ___transport);
+      removeIterator_call method_call = new removeIterator_call(principalToken, tableName, iterName, scopes, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class removeIterator_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private String iterName;
       private Set<IteratorScope> scopes;
-      public removeIterator_call(PrincipalToken PrincipalToken, String tableName, String iterName, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<removeIterator_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public removeIterator_call(PrincipalToken principalToken, String tableName, String iterName, Set<IteratorScope> scopes, org.apache.thrift.async.AsyncMethodCallback<removeIterator_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.iterName = iterName;
         this.scopes = scopes;
@@ -3565,7 +3565,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("removeIterator", org.apache.thrift.protocol.TMessageType.CALL, 0));
         removeIterator_args args = new removeIterator_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setIterName(iterName);
         args.setScopes(scopes);
@@ -3583,20 +3583,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void removeTableProperty(PrincipalToken PrincipalToken, String tableName, String property, org.apache.thrift.async.AsyncMethodCallback<removeTableProperty_call> resultHandler) throws org.apache.thrift.TException {
+    public void removeTableProperty(PrincipalToken principalToken, String tableName, String property, org.apache.thrift.async.AsyncMethodCallback<removeTableProperty_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      removeTableProperty_call method_call = new removeTableProperty_call(PrincipalToken, tableName, property, resultHandler, this, ___protocolFactory, ___transport);
+      removeTableProperty_call method_call = new removeTableProperty_call(principalToken, tableName, property, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class removeTableProperty_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private String property;
-      public removeTableProperty_call(PrincipalToken PrincipalToken, String tableName, String property, org.apache.thrift.async.AsyncMethodCallback<removeTableProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public removeTableProperty_call(PrincipalToken principalToken, String tableName, String property, org.apache.thrift.async.AsyncMethodCallback<removeTableProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.property = property;
       }
@@ -3604,7 +3604,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("removeTableProperty", org.apache.thrift.protocol.TMessageType.CALL, 0));
         removeTableProperty_args args = new removeTableProperty_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setProperty(property);
         args.write(prot);
@@ -3621,20 +3621,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void renameTable(PrincipalToken PrincipalToken, String oldTableName, String newTableName, org.apache.thrift.async.AsyncMethodCallback<renameTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void renameTable(PrincipalToken principalToken, String oldTableName, String newTableName, org.apache.thrift.async.AsyncMethodCallback<renameTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      renameTable_call method_call = new renameTable_call(PrincipalToken, oldTableName, newTableName, resultHandler, this, ___protocolFactory, ___transport);
+      renameTable_call method_call = new renameTable_call(principalToken, oldTableName, newTableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class renameTable_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String oldTableName;
       private String newTableName;
-      public renameTable_call(PrincipalToken PrincipalToken, String oldTableName, String newTableName, org.apache.thrift.async.AsyncMethodCallback<renameTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public renameTable_call(PrincipalToken principalToken, String oldTableName, String newTableName, org.apache.thrift.async.AsyncMethodCallback<renameTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.oldTableName = oldTableName;
         this.newTableName = newTableName;
       }
@@ -3642,7 +3642,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("renameTable", org.apache.thrift.protocol.TMessageType.CALL, 0));
         renameTable_args args = new renameTable_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setOldTableName(oldTableName);
         args.setNewTableName(newTableName);
         args.write(prot);
@@ -3659,20 +3659,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void setLocalityGroups(PrincipalToken PrincipalToken, String tableName, Map<String,Set<String>> groups, org.apache.thrift.async.AsyncMethodCallback<setLocalityGroups_call> resultHandler) throws org.apache.thrift.TException {
+    public void setLocalityGroups(PrincipalToken principalToken, String tableName, Map<String,Set<String>> groups, org.apache.thrift.async.AsyncMethodCallback<setLocalityGroups_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      setLocalityGroups_call method_call = new setLocalityGroups_call(PrincipalToken, tableName, groups, resultHandler, this, ___protocolFactory, ___transport);
+      setLocalityGroups_call method_call = new setLocalityGroups_call(principalToken, tableName, groups, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class setLocalityGroups_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private Map<String,Set<String>> groups;
-      public setLocalityGroups_call(PrincipalToken PrincipalToken, String tableName, Map<String,Set<String>> groups, org.apache.thrift.async.AsyncMethodCallback<setLocalityGroups_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public setLocalityGroups_call(PrincipalToken principalToken, String tableName, Map<String,Set<String>> groups, org.apache.thrift.async.AsyncMethodCallback<setLocalityGroups_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.groups = groups;
       }
@@ -3680,7 +3680,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setLocalityGroups", org.apache.thrift.protocol.TMessageType.CALL, 0));
         setLocalityGroups_args args = new setLocalityGroups_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setGroups(groups);
         args.write(prot);
@@ -3697,21 +3697,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void setTableProperty(PrincipalToken PrincipalToken, String tableName, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setTableProperty_call> resultHandler) throws org.apache.thrift.TException {
+    public void setTableProperty(PrincipalToken principalToken, String tableName, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setTableProperty_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      setTableProperty_call method_call = new setTableProperty_call(PrincipalToken, tableName, property, value, resultHandler, this, ___protocolFactory, ___transport);
+      setTableProperty_call method_call = new setTableProperty_call(principalToken, tableName, property, value, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class setTableProperty_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private String property;
       private String value;
-      public setTableProperty_call(PrincipalToken PrincipalToken, String tableName, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setTableProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public setTableProperty_call(PrincipalToken principalToken, String tableName, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setTableProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.property = property;
         this.value = value;
@@ -3720,7 +3720,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setTableProperty", org.apache.thrift.protocol.TMessageType.CALL, 0));
         setTableProperty_args args = new setTableProperty_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setProperty(property);
         args.setValue(value);
@@ -3738,21 +3738,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void splitRangeByTablets(PrincipalToken PrincipalToken, String tableName, Range range, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<splitRangeByTablets_call> resultHandler) throws org.apache.thrift.TException {
+    public void splitRangeByTablets(PrincipalToken principalToken, String tableName, Range range, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<splitRangeByTablets_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      splitRangeByTablets_call method_call = new splitRangeByTablets_call(PrincipalToken, tableName, range, maxSplits, resultHandler, this, ___protocolFactory, ___transport);
+      splitRangeByTablets_call method_call = new splitRangeByTablets_call(principalToken, tableName, range, maxSplits, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class splitRangeByTablets_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private Range range;
       private int maxSplits;
-      public splitRangeByTablets_call(PrincipalToken PrincipalToken, String tableName, Range range, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<splitRangeByTablets_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public splitRangeByTablets_call(PrincipalToken principalToken, String tableName, Range range, int maxSplits, org.apache.thrift.async.AsyncMethodCallback<splitRangeByTablets_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.range = range;
         this.maxSplits = maxSplits;
@@ -3761,7 +3761,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("splitRangeByTablets", org.apache.thrift.protocol.TMessageType.CALL, 0));
         splitRangeByTablets_args args = new splitRangeByTablets_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setRange(range);
         args.setMaxSplits(maxSplits);
@@ -3779,26 +3779,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void tableExists(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<tableExists_call> resultHandler) throws org.apache.thrift.TException {
+    public void tableExists(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<tableExists_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      tableExists_call method_call = new tableExists_call(PrincipalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      tableExists_call method_call = new tableExists_call(principalToken, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class tableExists_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
-      public tableExists_call(PrincipalToken PrincipalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<tableExists_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public tableExists_call(PrincipalToken principalToken, String tableName, org.apache.thrift.async.AsyncMethodCallback<tableExists_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("tableExists", org.apache.thrift.protocol.TMessageType.CALL, 0));
         tableExists_args args = new tableExists_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3814,24 +3814,24 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void tableIdMap(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<tableIdMap_call> resultHandler) throws org.apache.thrift.TException {
+    public void tableIdMap(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<tableIdMap_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      tableIdMap_call method_call = new tableIdMap_call(PrincipalToken, resultHandler, this, ___protocolFactory, ___transport);
+      tableIdMap_call method_call = new tableIdMap_call(principalToken, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class tableIdMap_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
-      public tableIdMap_call(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<tableIdMap_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private PrincipalToken principalToken;
+      public tableIdMap_call(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<tableIdMap_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("tableIdMap", org.apache.thrift.protocol.TMessageType.CALL, 0));
         tableIdMap_args args = new tableIdMap_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -3846,26 +3846,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void pingTabletServer(PrincipalToken PrincipalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<pingTabletServer_call> resultHandler) throws org.apache.thrift.TException {
+    public void pingTabletServer(PrincipalToken principalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<pingTabletServer_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      pingTabletServer_call method_call = new pingTabletServer_call(PrincipalToken, tserver, resultHandler, this, ___protocolFactory, ___transport);
+      pingTabletServer_call method_call = new pingTabletServer_call(principalToken, tserver, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class pingTabletServer_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tserver;
-      public pingTabletServer_call(PrincipalToken PrincipalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<pingTabletServer_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public pingTabletServer_call(PrincipalToken principalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<pingTabletServer_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tserver = tserver;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("pingTabletServer", org.apache.thrift.protocol.TMessageType.CALL, 0));
         pingTabletServer_args args = new pingTabletServer_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTserver(tserver);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3881,26 +3881,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getActiveScans(PrincipalToken PrincipalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<getActiveScans_call> resultHandler) throws org.apache.thrift.TException {
+    public void getActiveScans(PrincipalToken principalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<getActiveScans_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getActiveScans_call method_call = new getActiveScans_call(PrincipalToken, tserver, resultHandler, this, ___protocolFactory, ___transport);
+      getActiveScans_call method_call = new getActiveScans_call(principalToken, tserver, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getActiveScans_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tserver;
-      public getActiveScans_call(PrincipalToken PrincipalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<getActiveScans_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getActiveScans_call(PrincipalToken principalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<getActiveScans_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tserver = tserver;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getActiveScans", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getActiveScans_args args = new getActiveScans_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTserver(tserver);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3916,26 +3916,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getActiveCompactions(PrincipalToken PrincipalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<getActiveCompactions_call> resultHandler) throws org.apache.thrift.TException {
+    public void getActiveCompactions(PrincipalToken principalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<getActiveCompactions_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getActiveCompactions_call method_call = new getActiveCompactions_call(PrincipalToken, tserver, resultHandler, this, ___protocolFactory, ___transport);
+      getActiveCompactions_call method_call = new getActiveCompactions_call(principalToken, tserver, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getActiveCompactions_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tserver;
-      public getActiveCompactions_call(PrincipalToken PrincipalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<getActiveCompactions_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getActiveCompactions_call(PrincipalToken principalToken, String tserver, org.apache.thrift.async.AsyncMethodCallback<getActiveCompactions_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tserver = tserver;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getActiveCompactions", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getActiveCompactions_args args = new getActiveCompactions_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTserver(tserver);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3951,24 +3951,24 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getSiteConfiguration(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<getSiteConfiguration_call> resultHandler) throws org.apache.thrift.TException {
+    public void getSiteConfiguration(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<getSiteConfiguration_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getSiteConfiguration_call method_call = new getSiteConfiguration_call(PrincipalToken, resultHandler, this, ___protocolFactory, ___transport);
+      getSiteConfiguration_call method_call = new getSiteConfiguration_call(principalToken, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getSiteConfiguration_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
-      public getSiteConfiguration_call(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<getSiteConfiguration_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private PrincipalToken principalToken;
+      public getSiteConfiguration_call(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<getSiteConfiguration_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getSiteConfiguration", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getSiteConfiguration_args args = new getSiteConfiguration_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -3983,24 +3983,24 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getSystemConfiguration(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<getSystemConfiguration_call> resultHandler) throws org.apache.thrift.TException {
+    public void getSystemConfiguration(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<getSystemConfiguration_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getSystemConfiguration_call method_call = new getSystemConfiguration_call(PrincipalToken, resultHandler, this, ___protocolFactory, ___transport);
+      getSystemConfiguration_call method_call = new getSystemConfiguration_call(principalToken, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getSystemConfiguration_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
-      public getSystemConfiguration_call(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<getSystemConfiguration_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private PrincipalToken principalToken;
+      public getSystemConfiguration_call(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<getSystemConfiguration_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getSystemConfiguration", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getSystemConfiguration_args args = new getSystemConfiguration_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -4015,24 +4015,24 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getTabletServers(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<getTabletServers_call> resultHandler) throws org.apache.thrift.TException {
+    public void getTabletServers(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<getTabletServers_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getTabletServers_call method_call = new getTabletServers_call(PrincipalToken, resultHandler, this, ___protocolFactory, ___transport);
+      getTabletServers_call method_call = new getTabletServers_call(principalToken, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getTabletServers_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
-      public getTabletServers_call(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<getTabletServers_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private PrincipalToken principalToken;
+      public getTabletServers_call(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<getTabletServers_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getTabletServers", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getTabletServers_args args = new getTabletServers_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -4047,26 +4047,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void removeProperty(PrincipalToken PrincipalToken, String property, org.apache.thrift.async.AsyncMethodCallback<removeProperty_call> resultHandler) throws org.apache.thrift.TException {
+    public void removeProperty(PrincipalToken principalToken, String property, org.apache.thrift.async.AsyncMethodCallback<removeProperty_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      removeProperty_call method_call = new removeProperty_call(PrincipalToken, property, resultHandler, this, ___protocolFactory, ___transport);
+      removeProperty_call method_call = new removeProperty_call(principalToken, property, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class removeProperty_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String property;
-      public removeProperty_call(PrincipalToken PrincipalToken, String property, org.apache.thrift.async.AsyncMethodCallback<removeProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public removeProperty_call(PrincipalToken principalToken, String property, org.apache.thrift.async.AsyncMethodCallback<removeProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.property = property;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("removeProperty", org.apache.thrift.protocol.TMessageType.CALL, 0));
         removeProperty_args args = new removeProperty_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setProperty(property);
         args.write(prot);
         prot.writeMessageEnd();
@@ -4082,20 +4082,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void setProperty(PrincipalToken PrincipalToken, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setProperty_call> resultHandler) throws org.apache.thrift.TException {
+    public void setProperty(PrincipalToken principalToken, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setProperty_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      setProperty_call method_call = new setProperty_call(PrincipalToken, property, value, resultHandler, this, ___protocolFactory, ___transport);
+      setProperty_call method_call = new setProperty_call(principalToken, property, value, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class setProperty_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String property;
       private String value;
-      public setProperty_call(PrincipalToken PrincipalToken, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public setProperty_call(PrincipalToken principalToken, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.property = property;
         this.value = value;
       }
@@ -4103,7 +4103,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setProperty", org.apache.thrift.protocol.TMessageType.CALL, 0));
         setProperty_args args = new setProperty_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setProperty(property);
         args.setValue(value);
         args.write(prot);
@@ -4120,20 +4120,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void testClassLoad(PrincipalToken PrincipalToken, String className, String asTypeName, org.apache.thrift.async.AsyncMethodCallback<testClassLoad_call> resultHandler) throws org.apache.thrift.TException {
+    public void testClassLoad(PrincipalToken principalToken, String className, String asTypeName, org.apache.thrift.async.AsyncMethodCallback<testClassLoad_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      testClassLoad_call method_call = new testClassLoad_call(PrincipalToken, className, asTypeName, resultHandler, this, ___protocolFactory, ___transport);
+      testClassLoad_call method_call = new testClassLoad_call(principalToken, className, asTypeName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class testClassLoad_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String className;
       private String asTypeName;
-      public testClassLoad_call(PrincipalToken PrincipalToken, String className, String asTypeName, org.apache.thrift.async.AsyncMethodCallback<testClassLoad_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public testClassLoad_call(PrincipalToken principalToken, String className, String asTypeName, org.apache.thrift.async.AsyncMethodCallback<testClassLoad_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.className = className;
         this.asTypeName = asTypeName;
       }
@@ -4141,7 +4141,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("testClassLoad", org.apache.thrift.protocol.TMessageType.CALL, 0));
         testClassLoad_args args = new testClassLoad_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setClassName(className);
         args.setAsTypeName(asTypeName);
         args.write(prot);
@@ -4158,20 +4158,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void authenticateUser(PrincipalToken PrincipalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler) throws org.apache.thrift.TException {
+    public void authenticateUser(PrincipalToken principalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      authenticateUser_call method_call = new authenticateUser_call(PrincipalToken, principal, token, resultHandler, this, ___protocolFactory, ___transport);
+      authenticateUser_call method_call = new authenticateUser_call(principalToken, principal, token, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class authenticateUser_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
       private ByteBuffer token;
-      public authenticateUser_call(PrincipalToken PrincipalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public authenticateUser_call(PrincipalToken principalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
         this.token = token;
       }
@@ -4179,7 +4179,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("authenticateUser", org.apache.thrift.protocol.TMessageType.CALL, 0));
         authenticateUser_args args = new authenticateUser_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.setToken(token);
         args.write(prot);
@@ -4196,20 +4196,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void changeUserAuthorizations(PrincipalToken PrincipalToken, String principal, Set<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
+    public void changeUserAuthorizations(PrincipalToken principalToken, String principal, Set<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      changeUserAuthorizations_call method_call = new changeUserAuthorizations_call(PrincipalToken, principal, authorizations, resultHandler, this, ___protocolFactory, ___transport);
+      changeUserAuthorizations_call method_call = new changeUserAuthorizations_call(principalToken, principal, authorizations, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class changeUserAuthorizations_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
       private Set<ByteBuffer> authorizations;
-      public changeUserAuthorizations_call(PrincipalToken PrincipalToken, String principal, Set<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeUserAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public changeUserAuthorizations_call(PrincipalToken principalToken, String principal, Set<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeUserAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
         this.authorizations = authorizations;
       }
@@ -4217,7 +4217,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("changeUserAuthorizations", org.apache.thrift.protocol.TMessageType.CALL, 0));
         changeUserAuthorizations_args args = new changeUserAuthorizations_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.setAuthorizations(authorizations);
         args.write(prot);
@@ -4234,20 +4234,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void changePrincipalTokenword(PrincipalToken PrincipalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<changePrincipalTokenword_call> resultHandler) throws org.apache.thrift.TException {
+    public void changePrincipalTokenword(PrincipalToken principalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<changePrincipalTokenword_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      changePrincipalTokenword_call method_call = new changePrincipalTokenword_call(PrincipalToken, principal, token, resultHandler, this, ___protocolFactory, ___transport);
+      changePrincipalTokenword_call method_call = new changePrincipalTokenword_call(principalToken, principal, token, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class changePrincipalTokenword_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
       private ByteBuffer token;
-      public changePrincipalTokenword_call(PrincipalToken PrincipalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<changePrincipalTokenword_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public changePrincipalTokenword_call(PrincipalToken principalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<changePrincipalTokenword_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
         this.token = token;
       }
@@ -4255,7 +4255,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("changePrincipalTokenword", org.apache.thrift.protocol.TMessageType.CALL, 0));
         changePrincipalTokenword_args args = new changePrincipalTokenword_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.setToken(token);
         args.write(prot);
@@ -4272,20 +4272,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void createUser(PrincipalToken PrincipalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<createUser_call> resultHandler) throws org.apache.thrift.TException {
+    public void createUser(PrincipalToken principalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<createUser_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      createUser_call method_call = new createUser_call(PrincipalToken, principal, token, resultHandler, this, ___protocolFactory, ___transport);
+      createUser_call method_call = new createUser_call(principalToken, principal, token, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class createUser_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
       private ByteBuffer token;
-      public createUser_call(PrincipalToken PrincipalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<createUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public createUser_call(PrincipalToken principalToken, String principal, ByteBuffer token, org.apache.thrift.async.AsyncMethodCallback<createUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
         this.token = token;
       }
@@ -4293,7 +4293,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("createUser", org.apache.thrift.protocol.TMessageType.CALL, 0));
         createUser_args args = new createUser_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.setToken(token);
         args.write(prot);
@@ -4310,26 +4310,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void dropUser(PrincipalToken PrincipalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<dropUser_call> resultHandler) throws org.apache.thrift.TException {
+    public void dropUser(PrincipalToken principalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<dropUser_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      dropUser_call method_call = new dropUser_call(PrincipalToken, principal, resultHandler, this, ___protocolFactory, ___transport);
+      dropUser_call method_call = new dropUser_call(principalToken, principal, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class dropUser_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
-      public dropUser_call(PrincipalToken PrincipalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<dropUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public dropUser_call(PrincipalToken principalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<dropUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("dropUser", org.apache.thrift.protocol.TMessageType.CALL, 0));
         dropUser_args args = new dropUser_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.write(prot);
         prot.writeMessageEnd();
@@ -4345,26 +4345,26 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getUserAuthorizations(PrincipalToken PrincipalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
+    public void getUserAuthorizations(PrincipalToken principalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getUserAuthorizations_call method_call = new getUserAuthorizations_call(PrincipalToken, principal, resultHandler, this, ___protocolFactory, ___transport);
+      getUserAuthorizations_call method_call = new getUserAuthorizations_call(principalToken, principal, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getUserAuthorizations_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
-      public getUserAuthorizations_call(PrincipalToken PrincipalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getUserAuthorizations_call(PrincipalToken principalToken, String principal, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getUserAuthorizations", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getUserAuthorizations_args args = new getUserAuthorizations_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.write(prot);
         prot.writeMessageEnd();
@@ -4380,20 +4380,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void grantSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void grantSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      grantSystemPermission_call method_call = new grantSystemPermission_call(PrincipalToken, principal, perm, resultHandler, this, ___protocolFactory, ___transport);
+      grantSystemPermission_call method_call = new grantSystemPermission_call(principalToken, principal, perm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class grantSystemPermission_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
       private SystemPermission perm;
-      public grantSystemPermission_call(PrincipalToken PrincipalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public grantSystemPermission_call(PrincipalToken principalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
         this.perm = perm;
       }
@@ -4401,7 +4401,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("grantSystemPermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         grantSystemPermission_args args = new grantSystemPermission_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.setPerm(perm);
         args.write(prot);
@@ -4418,21 +4418,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void grantTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void grantTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      grantTablePermission_call method_call = new grantTablePermission_call(PrincipalToken, principal, table, perm, resultHandler, this, ___protocolFactory, ___transport);
+      grantTablePermission_call method_call = new grantTablePermission_call(principalToken, principal, table, perm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class grantTablePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
       private String table;
       private TablePermission perm;
-      public grantTablePermission_call(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public grantTablePermission_call(PrincipalToken principalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
         this.table = table;
         this.perm = perm;
@@ -4441,7 +4441,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("grantTablePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         grantTablePermission_args args = new grantTablePermission_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.setTable(table);
         args.setPerm(perm);
@@ -4459,20 +4459,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void hasSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void hasSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      hasSystemPermission_call method_call = new hasSystemPermission_call(PrincipalToken, principal, perm, resultHandler, this, ___protocolFactory, ___transport);
+      hasSystemPermission_call method_call = new hasSystemPermission_call(principalToken, principal, perm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class hasSystemPermission_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
       private SystemPermission perm;
-      public hasSystemPermission_call(PrincipalToken PrincipalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public hasSystemPermission_call(PrincipalToken principalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
         this.perm = perm;
       }
@@ -4480,7 +4480,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("hasSystemPermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         hasSystemPermission_args args = new hasSystemPermission_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.setPerm(perm);
         args.write(prot);
@@ -4497,21 +4497,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void hasTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void hasTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      hasTablePermission_call method_call = new hasTablePermission_call(PrincipalToken, principal, table, perm, resultHandler, this, ___protocolFactory, ___transport);
+      hasTablePermission_call method_call = new hasTablePermission_call(principalToken, principal, table, perm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class hasTablePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
       private String table;
       private TablePermission perm;
-      public hasTablePermission_call(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public hasTablePermission_call(PrincipalToken principalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
         this.table = table;
         this.perm = perm;
@@ -4520,7 +4520,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("hasTablePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         hasTablePermission_args args = new hasTablePermission_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.setTable(table);
         args.setPerm(perm);
@@ -4538,24 +4538,24 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void listUsers(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<listUsers_call> resultHandler) throws org.apache.thrift.TException {
+    public void listUsers(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<listUsers_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      listUsers_call method_call = new listUsers_call(PrincipalToken, resultHandler, this, ___protocolFactory, ___transport);
+      listUsers_call method_call = new listUsers_call(principalToken, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class listUsers_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
-      public listUsers_call(PrincipalToken PrincipalToken, org.apache.thrift.async.AsyncMethodCallback<listUsers_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private PrincipalToken principalToken;
+      public listUsers_call(PrincipalToken principalToken, org.apache.thrift.async.AsyncMethodCallback<listUsers_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("listUsers", org.apache.thrift.protocol.TMessageType.CALL, 0));
         listUsers_args args = new listUsers_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -4570,20 +4570,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void revokeSystemPermission(PrincipalToken PrincipalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void revokeSystemPermission(PrincipalToken principalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      revokeSystemPermission_call method_call = new revokeSystemPermission_call(PrincipalToken, principal, perm, resultHandler, this, ___protocolFactory, ___transport);
+      revokeSystemPermission_call method_call = new revokeSystemPermission_call(principalToken, principal, perm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class revokeSystemPermission_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
       private SystemPermission perm;
-      public revokeSystemPermission_call(PrincipalToken PrincipalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public revokeSystemPermission_call(PrincipalToken principalToken, String principal, SystemPermission perm, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
         this.perm = perm;
       }
@@ -4591,7 +4591,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("revokeSystemPermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         revokeSystemPermission_args args = new revokeSystemPermission_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.setPerm(perm);
         args.write(prot);
@@ -4608,21 +4608,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void revokeTablePermission(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void revokeTablePermission(PrincipalToken principalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      revokeTablePermission_call method_call = new revokeTablePermission_call(PrincipalToken, principal, table, perm, resultHandler, this, ___protocolFactory, ___transport);
+      revokeTablePermission_call method_call = new revokeTablePermission_call(principalToken, principal, table, perm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class revokeTablePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String principal;
       private String table;
       private TablePermission perm;
-      public revokeTablePermission_call(PrincipalToken PrincipalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public revokeTablePermission_call(PrincipalToken principalToken, String principal, String table, TablePermission perm, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.principal = principal;
         this.table = table;
         this.perm = perm;
@@ -4631,7 +4631,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("revokeTablePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         revokeTablePermission_args args = new revokeTablePermission_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setPrincipal(principal);
         args.setTable(table);
         args.setPerm(perm);
@@ -4649,20 +4649,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void createBatchScanner(PrincipalToken PrincipalToken, String tableName, BatchScanOptions options, org.apache.thrift.async.AsyncMethodCallback<createBatchScanner_call> resultHandler) throws org.apache.thrift.TException {
+    public void createBatchScanner(PrincipalToken principalToken, String tableName, BatchScanOptions options, org.apache.thrift.async.AsyncMethodCallback<createBatchScanner_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      createBatchScanner_call method_call = new createBatchScanner_call(PrincipalToken, tableName, options, resultHandler, this, ___protocolFactory, ___transport);
+      createBatchScanner_call method_call = new createBatchScanner_call(principalToken, tableName, options, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class createBatchScanner_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private BatchScanOptions options;
-      public createBatchScanner_call(PrincipalToken PrincipalToken, String tableName, BatchScanOptions options, org.apache.thrift.async.AsyncMethodCallback<createBatchScanner_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public createBatchScanner_call(PrincipalToken principalToken, String tableName, BatchScanOptions options, org.apache.thrift.async.AsyncMethodCallback<createBatchScanner_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.options = options;
       }
@@ -4670,7 +4670,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("createBatchScanner", org.apache.thrift.protocol.TMessageType.CALL, 0));
         createBatchScanner_args args = new createBatchScanner_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setOptions(options);
         args.write(prot);
@@ -4687,20 +4687,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void createScanner(PrincipalToken PrincipalToken, String tableName, ScanOptions options, org.apache.thrift.async.AsyncMethodCallback<createScanner_call> resultHandler) throws org.apache.thrift.TException {
+    public void createScanner(PrincipalToken principalToken, String tableName, ScanOptions options, org.apache.thrift.async.AsyncMethodCallback<createScanner_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      createScanner_call method_call = new createScanner_call(PrincipalToken, tableName, options, resultHandler, this, ___protocolFactory, ___transport);
+      createScanner_call method_call = new createScanner_call(principalToken, tableName, options, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class createScanner_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private ScanOptions options;
-      public createScanner_call(PrincipalToken PrincipalToken, String tableName, ScanOptions options, org.apache.thrift.async.AsyncMethodCallback<createScanner_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public createScanner_call(PrincipalToken principalToken, String tableName, ScanOptions options, org.apache.thrift.async.AsyncMethodCallback<createScanner_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.options = options;
       }
@@ -4708,7 +4708,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("createScanner", org.apache.thrift.protocol.TMessageType.CALL, 0));
         createScanner_args args = new createScanner_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setOptions(options);
         args.write(prot);
@@ -4856,20 +4856,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void updateAndFlush(PrincipalToken PrincipalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<updateAndFlush_call> resultHandler) throws org.apache.thrift.TException {
+    public void updateAndFlush(PrincipalToken principalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<updateAndFlush_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      updateAndFlush_call method_call = new updateAndFlush_call(PrincipalToken, tableName, cells, resultHandler, this, ___protocolFactory, ___transport);
+      updateAndFlush_call method_call = new updateAndFlush_call(principalToken, tableName, cells, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class updateAndFlush_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private Map<ByteBuffer,List<ColumnUpdate>> cells;
-      public updateAndFlush_call(PrincipalToken PrincipalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<updateAndFlush_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public updateAndFlush_call(PrincipalToken principalToken, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<updateAndFlush_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.cells = cells;
       }
@@ -4877,7 +4877,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("updateAndFlush", org.apache.thrift.protocol.TMessageType.CALL, 0));
         updateAndFlush_args args = new updateAndFlush_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setCells(cells);
         args.write(prot);
@@ -4894,20 +4894,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void createWriter(PrincipalToken PrincipalToken, String tableName, WriterOptions opts, org.apache.thrift.async.AsyncMethodCallback<createWriter_call> resultHandler) throws org.apache.thrift.TException {
+    public void createWriter(PrincipalToken principalToken, String tableName, WriterOptions opts, org.apache.thrift.async.AsyncMethodCallback<createWriter_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      createWriter_call method_call = new createWriter_call(PrincipalToken, tableName, opts, resultHandler, this, ___protocolFactory, ___transport);
+      createWriter_call method_call = new createWriter_call(principalToken, tableName, opts, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class createWriter_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private PrincipalToken PrincipalToken;
+      private PrincipalToken principalToken;
       private String tableName;
       private WriterOptions opts;
-      public createWriter_call(PrincipalToken PrincipalToken, String tableName, WriterOptions opts, org.apache.thrift.async.AsyncMethodCallback<createWriter_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public createWriter_call(PrincipalToken principalToken, String tableName, WriterOptions opts, org.apache.thrift.async.AsyncMethodCallback<createWriter_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.PrincipalToken = PrincipalToken;
+        this.principalToken = principalToken;
         this.tableName = tableName;
         this.opts = opts;
       }
@@ -4915,7 +4915,7 @@ import org.slf4j.LoggerFactory;
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("createWriter", org.apache.thrift.protocol.TMessageType.CALL, 0));
         createWriter_args args = new createWriter_args();
-        args.setPrincipalToken(PrincipalToken);
+        args.setPrincipalToken(principalToken);
         args.setTableName(tableName);
         args.setOpts(opts);
         args.write(prot);
@@ -5199,7 +5199,7 @@ import org.slf4j.LoggerFactory;
 
       public ping_result getResult(I iface, ping_args args) throws org.apache.thrift.TException {
         ping_result result = new ping_result();
-        result.success = iface.ping(args.PrincipalToken);
+        result.success = iface.ping(args.principalToken);
         result.setSuccessIsSet(true);
         return result;
       }
@@ -5221,7 +5221,7 @@ import org.slf4j.LoggerFactory;
       public addConstraint_result getResult(I iface, addConstraint_args args) throws org.apache.thrift.TException {
         addConstraint_result result = new addConstraint_result();
         try {
-          result.success = iface.addConstraint(args.PrincipalToken, args.tableName, args.constraintClassName);
+          result.success = iface.addConstraint(args.principalToken, args.tableName, args.constraintClassName);
           result.setSuccessIsSet(true);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
@@ -5250,7 +5250,7 @@ import org.slf4j.LoggerFactory;
       public addSplits_result getResult(I iface, addSplits_args args) throws org.apache.thrift.TException {
         addSplits_result result = new addSplits_result();
         try {
-          iface.addSplits(args.PrincipalToken, args.tableName, args.splits);
+          iface.addSplits(args.principalToken, args.tableName, args.splits);
         } catch (TableNotFoundException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch2) {
@@ -5278,7 +5278,7 @@ import org.slf4j.LoggerFactory;
       public attachIterator_result getResult(I iface, attachIterator_args args) throws org.apache.thrift.TException {
         attachIterator_result result = new attachIterator_result();
         try {
-          iface.attachIterator(args.PrincipalToken, args.tableName, args.setting, args.scopes);
+          iface.attachIterator(args.principalToken, args.tableName, args.setting, args.scopes);
         } catch (AccumuloSecurityException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch2) {
@@ -5306,7 +5306,7 @@ import org.slf4j.LoggerFactory;
       public checkIteratorConflicts_result getResult(I iface, checkIteratorConflicts_args args) throws org.apache.thrift.TException {
         checkIteratorConflicts_result result = new checkIteratorConflicts_result();
         try {
-          iface.checkIteratorConflicts(args.PrincipalToken, args.tableName, args.setting, args.scopes);
+          iface.checkIteratorConflicts(args.principalToken, args.tableName, args.setting, args.scopes);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (TableNotFoundException ouch2) {
@@ -5332,7 +5332,7 @@ import org.slf4j.LoggerFactory;
       public clearLocatorCache_result getResult(I iface, clearLocatorCache_args args) throws org.apache.thrift.TException {
         clearLocatorCache_result result = new clearLocatorCache_result();
         try {
-          iface.clearLocatorCache(args.PrincipalToken, args.tableName);
+          iface.clearLocatorCache(args.principalToken, args.tableName);
         } catch (TableNotFoundException ouch1) {
           result.ouch1 = ouch1;
         }
@@ -5356,7 +5356,7 @@ import org.slf4j.LoggerFactory;
       public cloneTable_result getResult(I iface, cloneTable_args args) throws org.apache.thrift.TException {
         cloneTable_result result = new cloneTable_result();
         try {
-          iface.cloneTable(args.PrincipalToken, args.tableName, args.newTableName, args.flush, args.propertiesToSet, args.propertiesToExclude);
+          iface.cloneTable(args.principalToken, args.tableName, args.newTableName, args.flush, args.propertiesToSet, args.propertiesToExclude);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -5386,7 +5386,7 @@ import org.slf4j.LoggerFactory;
       public compactTable_result getResult(I iface, compactTable_args args) throws org.apache.thrift.TException {
         compactTable_result result = new compactTable_result();
         try {
-          iface.compactTable(args.PrincipalToken, args.tableName, args.startRow, args.endRow, args.iterators, args.flush, args.wait);
+          iface.compactTable(args.principalToken, args.tableName, args.startRow, args.endRow, args.iterators, args.flush, args.wait);
         } catch (AccumuloSecurityException ouch1) {
           result.ouch1 = ouch1;
         } catch (TableNotFoundException ouch2) {
@@ -5414,7 +5414,7 @@ import org.slf4j.LoggerFactory;
       public cancelCompaction_result getResult(I iface, cancelCompaction_args args) throws org.apache.thrift.TException {
         cancelCompaction_result result = new cancelCompaction_result();
         try {
-          iface.cancelCompaction(args.PrincipalToken, args.tableName);
+          iface.cancelCompaction(args.principalToken, args.tableName);
         } catch (AccumuloSecurityException ouch1) {
           result.ouch1 = ouch1;
         } catch (TableNotFoundException ouch2) {
@@ -5442,7 +5442,7 @@ import org.slf4j.LoggerFactory;
       public createTable_result getResult(I iface, createTable_args args) throws org.apache.thrift.TException {
         createTable_result result = new createTable_result();
         try {
-          iface.createTable(args.PrincipalToken, args.tableName, args.versioningIter, args.type);
+          iface.createTable(args.principalToken, args.tableName, args.versioningIter, args.type);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -5470,7 +5470,7 @@ import org.slf4j.LoggerFactory;
       public deleteTable_result getResult(I iface, deleteTable_args args) throws org.apache.thrift.TException {
         deleteTable_result result = new deleteTable_result();
         try {
-          iface.deleteTable(args.PrincipalToken, args.tableName);
+          iface.deleteTable(args.principalToken, args.tableName);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -5498,7 +5498,7 @@ import org.slf4j.LoggerFactory;
       public deleteRows_result getResult(I iface, deleteRows_args args) throws org.apache.thrift.TException {
         deleteRows_result result = new deleteRows_result();
         try {
-          iface.deleteRows(args.PrincipalToken, args.tableName, args.startRow, args.endRow);
+          iface.deleteRows(args.principalToken, args.tableName, args.startRow, args.endRow);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -5526,7 +5526,7 @@ import org.slf4j.LoggerFactory;
       public exportTable_result getResult(I iface, exportTable_args args) throws org.apache.thrift.TException {
         exportTable_result result = new exportTable_result();
         try {
-          iface.exportTable(args.PrincipalToken, args.tableName, args.exportDir);
+          iface.exportTable(args.principalToken, args.tableName, args.exportDir);
         } catch (TableNotFoundException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch2) {
@@ -5554,7 +5554,7 @@ import org.slf4j.LoggerFactory;
       public flushTable_result getResult(I iface, flushTable_args args) throws org.apache.thrift.TException {
         flushTable_result result = new flushTable_result();
         try {
-          iface.flushTable(args.PrincipalToken, args.tableName, args.startRow, args.endRow, args.wait);
+          iface.flushTable(args.principalToken, args.tableName, args.startRow, args.endRow, args.wait);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -5580,7 +5580,7 @@ import org.slf4j.LoggerFactory;
       public getLocalityGroups_result getResult(I iface, getLocalityGroups_args args) throws org.apache.thrift.TException {
         getLocalityGroups_result result = new getLocalityGroups_result();
         try {
-          result.success = iface.getLocalityGroups(args.PrincipalToken, args.tableName);
+          result.success = iface.getLocalityGroups(args.principalToken, args.tableName);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (TableNotFoundException ouch2) {
@@ -5606,7 +5606,7 @@ import org.slf4j.LoggerFactory;
       public getIteratorSetting_result getResult(I iface, getIteratorSetting_args args) throws org.apache.thrift.TException {
         getIteratorSetting_result result = new getIteratorSetting_result();
         try {
-          result.success = iface.getIteratorSetting(args.PrincipalToken, args.tableName, args.iteratorName, args.scope);
+          result.success = iface.getIteratorSetting(args.principalToken, args.tableName, args.iteratorName, args.scope);
         } catch (AccumuloSecurityException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch2) {
@@ -5634,7 +5634,7 @@ import org.slf4j.LoggerFactory;
       public getMaxRow_result getResult(I iface, getMaxRow_args args) throws org.apache.thrift.TException {
         getMaxRow_result result = new getMaxRow_result();
         try {
-          result.success = iface.getMaxRow(args.PrincipalToken, args.tableName, args.auths, args.startRow, args.startInclusive, args.endRow, args.endInclusive);
+          result.success = iface.getMaxRow(args.principalToken, args.tableName, args.auths, args.startRow, args.startInclusive, args.endRow, args.endInclusive);
         } catch (TableNotFoundException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch2) {
@@ -5662,7 +5662,7 @@ import org.slf4j.LoggerFactory;
       public getTableProperties_result getResult(I iface, getTableProperties_args args) throws org.apache.thrift.TException {
         getTableProperties_result result = new getTableProperties_result();
         try {
-          result.success = iface.getTableProperties(args.PrincipalToken, args.tableName);
+          result.success = iface.getTableProperties(args.principalToken, args.tableName);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (TableNotFoundException ouch2) {
@@ -5688,7 +5688,7 @@ import org.slf4j.LoggerFactory;
       public getSplits_result getResult(I iface, getSplits_args args) throws org.apache.thrift.TException {
         getSplits_result result = new getSplits_result();
         try {
-          result.success = iface.getSplits(args.PrincipalToken, args.tableName, args.maxSplits);
+          result.success = iface.getSplits(args.principalToken, args.tableName, args.maxSplits);
         } catch (TableNotFoundException ouch1) {
           result.ouch1 = ouch1;
         }
@@ -5712,7 +5712,7 @@ import org.slf4j.LoggerFactory;
       public importDirectory_result getResult(I iface, importDirectory_args args) throws org.apache.thrift.TException {
         importDirectory_result result = new importDirectory_result();
         try {
-          iface.importDirectory(args.PrincipalToken, args.tableName, args.importDir, args.failureDir, args.setTime);
+          iface.importDirectory(args.principalToken, args.tableName, args.importDir, args.failureDir, args.setTime);
         } catch (TableNotFoundException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch3) {
@@ -5740,7 +5740,7 @@ import org.slf4j.LoggerFactory;
       public importTable_result getResult(I iface, importTable_args args) throws org.apache.thrift.TException {
         importTable_result result = new importTable_result();
         try {
-          iface.importTable(args.PrincipalToken, args.tableName, args.importDir);
+          iface.importTable(args.principalToken, args.tableName, args.importDir);
         } catch (TableExistsException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch2) {
@@ -5767,7 +5767,7 @@ import org.slf4j.LoggerFactory;
 
       public listTables_result getResult(I iface, listTables_args args) throws org.apache.thrift.TException {
         listTables_result result = new listTables_result();
-        result.success = iface.listTables(args.PrincipalToken);
+        result.success = iface.listTables(args.principalToken);
         return result;
       }
     }
@@ -5788,7 +5788,7 @@ import org.slf4j.LoggerFactory;
       public listIterators_result getResult(I iface, listIterators_args args) throws org.apache.thrift.TException {
         listIterators_result result = new listIterators_result();
         try {
-          result.success = iface.listIterators(args.PrincipalToken, args.tableName);
+          result.success = iface.listIterators(args.principalToken, args.tableName);
         } catch (AccumuloSecurityException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch2) {
@@ -5816,7 +5816,7 @@ import org.slf4j.LoggerFactory;
       public listConstraints_result getResult(I iface, listConstraints_args args) throws org.apache.thrift.TException {
         listConstraints_result result = new listConstraints_result();
         try {
-          result.success = iface.listConstraints(args.PrincipalToken, args.tableName);
+          result.success = iface.listConstraints(args.principalToken, args.tableName);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (TableNotFoundException ouch2) {
@@ -5842,7 +5842,7 @@ import org.slf4j.LoggerFactory;
       public mergeTablets_result getResult(I iface, mergeTablets_args args) throws org.apache.thrift.TException {
         mergeTablets_result result = new mergeTablets_result();
         try {
-          iface.mergeTablets(args.PrincipalToken, args.tableName, args.startRow, args.endRow);
+          iface.mergeTablets(args.principalToken, args.tableName, args.startRow, args.endRow);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -5870,7 +5870,7 @@ import org.slf4j.LoggerFactory;
       public offlineTable_result getResult(I iface, offlineTable_args args) throws org.apache.thrift.TException {
         offlineTable_result result = new offlineTable_result();
         try {
-          iface.offlineTable(args.PrincipalToken, args.tableName);
+          iface.offlineTable(args.principalToken, args.tableName);
         } catch (AccumuloSecurityException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch2) {
@@ -5898,7 +5898,7 @@ import org.slf4j.LoggerFactory;
       public onlineTable_result getResult(I iface, onlineTable_args args) throws org.apache.thrift.TException {
         onlineTable_result result = new onlineTable_result();
         try {
-          iface.onlineTable(args.PrincipalToken, args.tableName);
+          iface.onlineTable(args.principalToken, args.tableName);
         } catch (AccumuloSecurityException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch2) {
@@ -5926,7 +5926,7 @@ import org.slf4j.LoggerFactory;
       public removeConstraint_result getResult(I iface, removeConstraint_args args) throws org.apache.thrift.TException {
         removeConstraint_result result = new removeConstraint_result();
         try {
-          iface.removeConstraint(args.PrincipalToken, args.tableName, args.constraint);
+          iface.removeConstraint(args.principalToken, args.tableName, args.constraint);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -5952,7 +5952,7 @@ import org.slf4j.LoggerFactory;
       public removeIterator_result getResult(I iface, removeIterator_args args) throws org.apache.thrift.TException {
         removeIterator_result result = new removeIterator_result();
         try {
-          iface.removeIterator(args.PrincipalToken, args.tableName, args.iterName, args.scopes);
+          iface.removeIterator(args.principalToken, args.tableName, args.iterName, args.scopes);
         } catch (AccumuloSecurityException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloException ouch2) {
@@ -5980,7 +5980,7 @@ import org.slf4j.LoggerFactory;
       public removeTableProperty_result getResult(I iface, removeTableProperty_args args) throws org.apache.thrift.TException {
         removeTableProperty_result result = new removeTableProperty_result();
         try {
-          iface.removeTableProperty(args.PrincipalToken, args.tableName, args.property);
+          iface.removeTableProperty(args.principalToken, args.tableName, args.property);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6006,7 +6006,7 @@ import org.slf4j.LoggerFactory;
       public renameTable_result getResult(I iface, renameTable_args args) throws org.apache.thrift.TException {
         renameTable_result result = new renameTable_result();
         try {
-          iface.renameTable(args.PrincipalToken, args.oldTableName, args.newTableName);
+          iface.renameTable(args.principalToken, args.oldTableName, args.newTableName);
         } catch (AccumuloSecurityException ouch1) {
           result.ouch1 = ouch1;
         } catch (TableNotFoundException ouch2) {
@@ -6036,7 +6036,7 @@ import org.slf4j.LoggerFactory;
       public setLocalityGroups_result getResult(I iface, setLocalityGroups_args args) throws org.apache.thrift.TException {
         setLocalityGroups_result result = new setLocalityGroups_result();
         try {
-          iface.setLocalityGroups(args.PrincipalToken, args.tableName, args.groups);
+          iface.setLocalityGroups(args.principalToken, args.tableName, args.groups);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6064,7 +6064,7 @@ import org.slf4j.LoggerFactory;
       public setTableProperty_result getResult(I iface, setTableProperty_args args) throws org.apache.thrift.TException {
         setTableProperty_result result = new setTableProperty_result();
         try {
-          iface.setTableProperty(args.PrincipalToken, args.tableName, args.property, args.value);
+          iface.setTableProperty(args.principalToken, args.tableName, args.property, args.value);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6090,7 +6090,7 @@ import org.slf4j.LoggerFactory;
       public splitRangeByTablets_result getResult(I iface, splitRangeByTablets_args args) throws org.apache.thrift.TException {
         splitRangeByTablets_result result = new splitRangeByTablets_result();
         try {
-          result.success = iface.splitRangeByTablets(args.PrincipalToken, args.tableName, args.range, args.maxSplits);
+          result.success = iface.splitRangeByTablets(args.principalToken, args.tableName, args.range, args.maxSplits);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6117,7 +6117,7 @@ import org.slf4j.LoggerFactory;
 
       public tableExists_result getResult(I iface, tableExists_args args) throws org.apache.thrift.TException {
         tableExists_result result = new tableExists_result();
-        result.success = iface.tableExists(args.PrincipalToken, args.tableName);
+        result.success = iface.tableExists(args.principalToken, args.tableName);
         result.setSuccessIsSet(true);
         return result;
       }
@@ -6138,7 +6138,7 @@ import org.slf4j.LoggerFactory;
 
       public tableIdMap_result getResult(I iface, tableIdMap_args args) throws org.apache.thrift.TException {
         tableIdMap_result result = new tableIdMap_result();
-        result.success = iface.tableIdMap(args.PrincipalToken);
+        result.success = iface.tableIdMap(args.principalToken);
         return result;
       }
     }
@@ -6159,7 +6159,7 @@ import org.slf4j.LoggerFactory;
       public pingTabletServer_result getResult(I iface, pingTabletServer_args args) throws org.apache.thrift.TException {
         pingTabletServer_result result = new pingTabletServer_result();
         try {
-          iface.pingTabletServer(args.PrincipalToken, args.tserver);
+          iface.pingTabletServer(args.principalToken, args.tserver);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6185,7 +6185,7 @@ import org.slf4j.LoggerFactory;
       public getActiveScans_result getResult(I iface, getActiveScans_args args) throws org.apache.thrift.TException {
         getActiveScans_result result = new getActiveScans_result();
         try {
-          result.success = iface.getActiveScans(args.PrincipalToken, args.tserver);
+          result.success = iface.getActiveScans(args.principalToken, args.tserver);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6211,7 +6211,7 @@ import org.slf4j.LoggerFactory;
       public getActiveCompactions_result getResult(I iface, getActiveCompactions_args args) throws org.apache.thrift.TException {
         getActiveCompactions_result result = new getActiveCompactions_result();
         try {
-          result.success = iface.getActiveCompactions(args.PrincipalToken, args.tserver);
+          result.success = iface.getActiveCompactions(args.principalToken, args.tserver);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6237,7 +6237,7 @@ import org.slf4j.LoggerFactory;
       public getSiteConfiguration_result getResult(I iface, getSiteConfiguration_args args) throws org.apache.thrift.TException {
         getSiteConfiguration_result result = new getSiteConfiguration_result();
         try {
-          result.success = iface.getSiteConfiguration(args.PrincipalToken);
+          result.success = iface.getSiteConfiguration(args.principalToken);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6263,7 +6263,7 @@ import org.slf4j.LoggerFactory;
       public getSystemConfiguration_result getResult(I iface, getSystemConfiguration_args args) throws org.apache.thrift.TException {
         getSystemConfiguration_result result = new getSystemConfiguration_result();
         try {
-          result.success = iface.getSystemConfiguration(args.PrincipalToken);
+          result.success = iface.getSystemConfiguration(args.principalToken);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6288,7 +6288,7 @@ import org.slf4j.LoggerFactory;
 
       public getTabletServers_result getResult(I iface, getTabletServers_args args) throws org.apache.thrift.TException {
         getTabletServers_result result = new getTabletServers_result();
-        result.success = iface.getTabletServers(args.PrincipalToken);
+        result.success = iface.getTabletServers(args.principalToken);
         return result;
       }
     }
@@ -6309,7 +6309,7 @@ import org.slf4j.LoggerFactory;
       public removeProperty_result getResult(I iface, removeProperty_args args) throws org.apache.thrift.TException {
         removeProperty_result result = new removeProperty_result();
         try {
-          iface.removeProperty(args.PrincipalToken, args.property);
+          iface.removeProperty(args.principalToken, args.property);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6335,7 +6335,7 @@ import org.slf4j.LoggerFactory;
       public setProperty_result getResult(I iface, setProperty_args args) throws org.apache.thrift.TException {
         setProperty_result result = new setProperty_result();
         try {
-          iface.setProperty(args.PrincipalToken, args.property, args.value);
+          iface.setProperty(args.principalToken, args.property, args.value);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6361,7 +6361,7 @@ import org.slf4j.LoggerFactory;
       public testClassLoad_result getResult(I iface, testClassLoad_args args) throws org.apache.thrift.TException {
         testClassLoad_result result = new testClassLoad_result();
         try {
-          result.success = iface.testClassLoad(args.PrincipalToken, args.className, args.asTypeName);
+          result.success = iface.testClassLoad(args.principalToken, args.className, args.asTypeName);
           result.setSuccessIsSet(true);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
@@ -6388,7 +6388,7 @@ import org.slf4j.LoggerFactory;
       public authenticateUser_result getResult(I iface, authenticateUser_args args) throws org.apache.thrift.TException {
         authenticateUser_result result = new authenticateUser_result();
         try {
-          result.success = iface.authenticateUser(args.PrincipalToken, args.principal, args.token);
+          result.success = iface.authenticateUser(args.principalToken, args.principal, args.token);
           result.setSuccessIsSet(true);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
@@ -6415,7 +6415,7 @@ import org.slf4j.LoggerFactory;
       public changeUserAuthorizations_result getResult(I iface, changeUserAuthorizations_args args) throws org.apache.thrift.TException {
         changeUserAuthorizations_result result = new changeUserAuthorizations_result();
         try {
-          iface.changeUserAuthorizations(args.PrincipalToken, args.principal, args.authorizations);
+          iface.changeUserAuthorizations(args.principalToken, args.principal, args.authorizations);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6441,7 +6441,7 @@ import org.slf4j.LoggerFactory;
       public changePrincipalTokenword_result getResult(I iface, changePrincipalTokenword_args args) throws org.apache.thrift.TException {
         changePrincipalTokenword_result result = new changePrincipalTokenword_result();
         try {
-          iface.changePrincipalTokenword(args.PrincipalToken, args.principal, args.token);
+          iface.changePrincipalTokenword(args.principalToken, args.principal, args.token);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6467,7 +6467,7 @@ import org.slf4j.LoggerFactory;
       public createUser_result getResult(I iface, createUser_args args) throws org.apache.thrift.TException {
         createUser_result result = new createUser_result();
         try {
-          iface.createUser(args.PrincipalToken, args.principal, args.token);
+          iface.createUser(args.principalToken, args.principal, args.token);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6493,7 +6493,7 @@ import org.slf4j.LoggerFactory;
       public dropUser_result getResult(I iface, dropUser_args args) throws org.apache.thrift.TException {
         dropUser_result result = new dropUser_result();
         try {
-          iface.dropUser(args.PrincipalToken, args.principal);
+          iface.dropUser(args.principalToken, args.principal);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6519,7 +6519,7 @@ import org.slf4j.LoggerFactory;
       public getUserAuthorizations_result getResult(I iface, getUserAuthorizations_args args) throws org.apache.thrift.TException {
         getUserAuthorizations_result result = new getUserAuthorizations_result();
         try {
-          result.success = iface.getUserAuthorizations(args.PrincipalToken, args.principal);
+          result.success = iface.getUserAuthorizations(args.principalToken, args.principal);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6545,7 +6545,7 @@ import org.slf4j.LoggerFactory;
       public grantSystemPermission_result getResult(I iface, grantSystemPermission_args args) throws org.apache.thrift.TException {
         grantSystemPermission_result result = new grantSystemPermission_result();
         try {
-          iface.grantSystemPermission(args.PrincipalToken, args.principal, args.perm);
+          iface.grantSystemPermission(args.principalToken, args.principal, args.perm);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6571,7 +6571,7 @@ import org.slf4j.LoggerFactory;
       public grantTablePermission_result getResult(I iface, grantTablePermission_args args) throws org.apache.thrift.TException {
         grantTablePermission_result result = new grantTablePermission_result();
         try {
-          iface.grantTablePermission(args.PrincipalToken, args.principal, args.table, args.perm);
+          iface.grantTablePermission(args.principalToken, args.principal, args.table, args.perm);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6597,7 +6597,7 @@ import org.slf4j.LoggerFactory;
       public hasSystemPermission_result getResult(I iface, hasSystemPermission_args args) throws org.apache.thrift.TException {
         hasSystemPermission_result result = new hasSystemPermission_result();
         try {
-          result.success = iface.hasSystemPermission(args.PrincipalToken, args.principal, args.perm);
+          result.success = iface.hasSystemPermission(args.principalToken, args.principal, args.perm);
           result.setSuccessIsSet(true);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
@@ -6624,7 +6624,7 @@ import org.slf4j.LoggerFactory;
       public hasTablePermission_result getResult(I iface, hasTablePermission_args args) throws org.apache.thrift.TException {
         hasTablePermission_result result = new hasTablePermission_result();
         try {
-          result.success = iface.hasTablePermission(args.PrincipalToken, args.principal, args.table, args.perm);
+          result.success = iface.hasTablePermission(args.principalToken, args.principal, args.table, args.perm);
           result.setSuccessIsSet(true);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
@@ -6651,7 +6651,7 @@ import org.slf4j.LoggerFactory;
       public listUsers_result getResult(I iface, listUsers_args args) throws org.apache.thrift.TException {
         listUsers_result result = new listUsers_result();
         try {
-          result.success = iface.listUsers(args.PrincipalToken);
+          result.success = iface.listUsers(args.principalToken);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6677,7 +6677,7 @@ import org.slf4j.LoggerFactory;
       public revokeSystemPermission_result getResult(I iface, revokeSystemPermission_args args) throws org.apache.thrift.TException {
         revokeSystemPermission_result result = new revokeSystemPermission_result();
         try {
-          iface.revokeSystemPermission(args.PrincipalToken, args.principal, args.perm);
+          iface.revokeSystemPermission(args.principalToken, args.principal, args.perm);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6703,7 +6703,7 @@ import org.slf4j.LoggerFactory;
       public revokeTablePermission_result getResult(I iface, revokeTablePermission_args args) throws org.apache.thrift.TException {
         revokeTablePermission_result result = new revokeTablePermission_result();
         try {
-          iface.revokeTablePermission(args.PrincipalToken, args.principal, args.table, args.perm);
+          iface.revokeTablePermission(args.principalToken, args.principal, args.table, args.perm);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6729,7 +6729,7 @@ import org.slf4j.LoggerFactory;
       public createBatchScanner_result getResult(I iface, createBatchScanner_args args) throws org.apache.thrift.TException {
         createBatchScanner_result result = new createBatchScanner_result();
         try {
-          result.success = iface.createBatchScanner(args.PrincipalToken, args.tableName, args.options);
+          result.success = iface.createBatchScanner(args.principalToken, args.tableName, args.options);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6755,7 +6755,7 @@ import org.slf4j.LoggerFactory;
       public createScanner_result getResult(I iface, createScanner_args args) throws org.apache.thrift.TException {
         createScanner_result result = new createScanner_result();
         try {
-          result.success = iface.createScanner(args.PrincipalToken, args.tableName, args.options);
+          result.success = iface.createScanner(args.principalToken, args.tableName, args.options);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6886,7 +6886,7 @@ import org.slf4j.LoggerFactory;
       public updateAndFlush_result getResult(I iface, updateAndFlush_args args) throws org.apache.thrift.TException {
         updateAndFlush_result result = new updateAndFlush_result();
         try {
-          iface.updateAndFlush(args.PrincipalToken, args.tableName, args.cells);
+          iface.updateAndFlush(args.principalToken, args.tableName, args.cells);
         } catch (AccumuloException outch1) {
           result.outch1 = outch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6912,7 +6912,7 @@ import org.slf4j.LoggerFactory;
       public createWriter_result getResult(I iface, createWriter_args args) throws org.apache.thrift.TException {
         createWriter_result result = new createWriter_result();
         try {
-          result.success = iface.createWriter(args.PrincipalToken, args.tableName, args.opts);
+          result.success = iface.createWriter(args.principalToken, args.tableName, args.opts);
         } catch (AccumuloException outch1) {
           result.outch1 = outch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -7038,7 +7038,7 @@ import org.slf4j.LoggerFactory;
   public static class ping_args implements org.apache.thrift.TBase<ping_args, ping_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ping_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -7046,11 +7046,11 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new ping_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken");
+      PRINCIPAL_TOKEN((short)1, "principalToken");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -7110,7 +7110,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ping_args.class, metaDataMap);
@@ -7120,10 +7120,10 @@ import org.slf4j.LoggerFactory;
     }
 
     public ping_args(
-      PrincipalToken PrincipalToken)
+      PrincipalToken principalToken)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
     }
 
     /**
@@ -7131,7 +7131,7 @@ import org.slf4j.LoggerFactory;
      */
     public ping_args(ping_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
     }
 
@@ -7141,30 +7141,30 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public ping_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public ping_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -7216,12 +7216,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -7246,7 +7246,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -7271,11 +7271,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("ping_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       sb.append(")");
@@ -7285,8 +7285,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -7326,8 +7326,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -7348,9 +7348,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -7376,7 +7376,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 1);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
       }
 
@@ -7385,8 +7385,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
       }
@@ -7751,7 +7751,7 @@ import org.slf4j.LoggerFactory;
   public static class addConstraint_args implements org.apache.thrift.TBase<addConstraint_args, addConstraint_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("addConstraint_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField CONSTRAINT_CLASS_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("constraintClassName", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -7761,13 +7761,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new addConstraint_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public String constraintClassName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       CONSTRAINT_CLASS_NAME((short)3, "constraintClassName");
 
@@ -7833,7 +7833,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -7847,12 +7847,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public addConstraint_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       String constraintClassName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.constraintClassName = constraintClassName;
     }
@@ -7862,7 +7862,7 @@ import org.slf4j.LoggerFactory;
      */
     public addConstraint_args(addConstraint_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -7878,32 +7878,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.constraintClassName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public addConstraint_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public addConstraint_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -8029,12 +8029,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -8077,7 +8077,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -8122,11 +8122,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("addConstraint_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -8152,8 +8152,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -8193,8 +8193,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -8231,9 +8231,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -8275,7 +8275,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -8290,8 +8290,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -8970,7 +8970,7 @@ import org.slf4j.LoggerFactory;
   public static class addSplits_args implements org.apache.thrift.TBase<addSplits_args, addSplits_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("addSplits_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField SPLITS_FIELD_DESC = new org.apache.thrift.protocol.TField("splits", org.apache.thrift.protocol.TType.SET, (short)3);
 
@@ -8980,13 +8980,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new addSplits_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public Set<ByteBuffer> splits; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       SPLITS((short)3, "splits");
 
@@ -9052,7 +9052,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -9067,12 +9067,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public addSplits_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       Set<ByteBuffer> splits)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.splits = splits;
     }
@@ -9082,7 +9082,7 @@ import org.slf4j.LoggerFactory;
      */
     public addSplits_args(addSplits_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -9104,32 +9104,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.splits = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public addSplits_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public addSplits_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -9270,12 +9270,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -9318,7 +9318,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -9363,11 +9363,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("addSplits_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -9393,8 +9393,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -9434,8 +9434,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -9482,9 +9482,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -9533,7 +9533,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -9554,8 +9554,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -10143,7 +10143,7 @@ import org.slf4j.LoggerFactory;
   public static class attachIterator_args implements org.apache.thrift.TBase<attachIterator_args, attachIterator_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("attachIterator_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField SETTING_FIELD_DESC = new org.apache.thrift.protocol.TField("setting", org.apache.thrift.protocol.TType.STRUCT, (short)3);
     private static final org.apache.thrift.protocol.TField SCOPES_FIELD_DESC = new org.apache.thrift.protocol.TField("scopes", org.apache.thrift.protocol.TType.SET, (short)4);
@@ -10154,14 +10154,14 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new attachIterator_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public IteratorSetting setting; // required
     public Set<IteratorScope> scopes; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       SETTING((short)3, "setting"),
       SCOPES((short)4, "scopes");
@@ -10230,7 +10230,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -10247,13 +10247,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public attachIterator_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       IteratorSetting setting,
       Set<IteratorScope> scopes)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.setting = setting;
       this.scopes = scopes;
@@ -10264,7 +10264,7 @@ import org.slf4j.LoggerFactory;
      */
     public attachIterator_args(attachIterator_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -10287,33 +10287,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.setting = null;
       this.scopes = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public attachIterator_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public attachIterator_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -10491,12 +10491,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -10548,7 +10548,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -10603,11 +10603,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("attachIterator_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -10641,8 +10641,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
       if (setting != null) {
         setting.validate();
@@ -10685,8 +10685,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -10742,9 +10742,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -10801,7 +10801,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -10825,8 +10825,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -11419,7 +11419,7 @@ import org.slf4j.LoggerFactory;
   public static class checkIteratorConflicts_args implements org.apache.thrift.TBase<checkIteratorConflicts_args, checkIteratorConflicts_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("checkIteratorConflicts_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField SETTING_FIELD_DESC = new org.apache.thrift.protocol.TField("setting", org.apache.thrift.protocol.TType.STRUCT, (short)3);
     private static final org.apache.thrift.protocol.TField SCOPES_FIELD_DESC = new org.apache.thrift.protocol.TField("scopes", org.apache.thrift.protocol.TType.SET, (short)4);
@@ -11430,14 +11430,14 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new checkIteratorConflicts_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public IteratorSetting setting; // required
     public Set<IteratorScope> scopes; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       SETTING((short)3, "setting"),
       SCOPES((short)4, "scopes");
@@ -11506,7 +11506,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -11523,13 +11523,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public checkIteratorConflicts_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       IteratorSetting setting,
       Set<IteratorScope> scopes)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.setting = setting;
       this.scopes = scopes;
@@ -11540,7 +11540,7 @@ import org.slf4j.LoggerFactory;
      */
     public checkIteratorConflicts_args(checkIteratorConflicts_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -11563,33 +11563,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.setting = null;
       this.scopes = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public checkIteratorConflicts_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public checkIteratorConflicts_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -11767,12 +11767,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -11824,7 +11824,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -11879,11 +11879,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("checkIteratorConflicts_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -11917,8 +11917,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
       if (setting != null) {
         setting.validate();
@@ -11961,8 +11961,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -12018,9 +12018,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -12077,7 +12077,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -12101,8 +12101,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -12593,7 +12593,7 @@ import org.slf4j.LoggerFactory;
   public static class clearLocatorCache_args implements org.apache.thrift.TBase<clearLocatorCache_args, clearLocatorCache_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("clearLocatorCache_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -12602,12 +12602,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new clearLocatorCache_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -12670,7 +12670,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -12682,11 +12682,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public clearLocatorCache_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
     }
 
@@ -12695,7 +12695,7 @@ import org.slf4j.LoggerFactory;
      */
     public clearLocatorCache_args(clearLocatorCache_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -12708,31 +12708,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public clearLocatorCache_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public clearLocatorCache_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -12821,12 +12821,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -12860,7 +12860,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -12895,11 +12895,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("clearLocatorCache_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -12917,8 +12917,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -12958,8 +12958,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -12988,9 +12988,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -13024,7 +13024,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -13036,8 +13036,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -13408,7 +13408,7 @@ import org.slf4j.LoggerFactory;
   public static class cloneTable_args implements org.apache.thrift.TBase<cloneTable_args, cloneTable_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("cloneTable_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField NEW_TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("newTableName", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField FLUSH_FIELD_DESC = new org.apache.thrift.protocol.TField("flush", org.apache.thrift.protocol.TType.BOOL, (short)4);
@@ -13421,7 +13421,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new cloneTable_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public String newTableName; // required
     public boolean flush; // required
@@ -13430,7 +13430,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       NEW_TABLE_NAME((short)3, "newTableName"),
       FLUSH((short)4, "flush"),
@@ -13507,7 +13507,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -13530,7 +13530,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public cloneTable_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       String newTableName,
       boolean flush,
@@ -13538,7 +13538,7 @@ import org.slf4j.LoggerFactory;
       Set<String> propertiesToExclude)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.newTableName = newTableName;
       this.flush = flush;
@@ -13553,7 +13553,7 @@ import org.slf4j.LoggerFactory;
     public cloneTable_args(cloneTable_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -13592,7 +13592,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.newTableName = null;
       setFlushIsSet(false);
@@ -13602,26 +13602,26 @@ import org.slf4j.LoggerFactory;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public cloneTable_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public cloneTable_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -13883,12 +13883,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -13958,7 +13958,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -14033,11 +14033,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("cloneTable_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -14083,8 +14083,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -14126,8 +14126,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -14210,9 +14210,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -14291,7 +14291,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 6);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -14328,8 +14328,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(6);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -15042,7 +15042,7 @@ import org.slf4j.LoggerFactory;
   public static class compactTable_args implements org.apache.thrift.TBase<compactTable_args, compactTable_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("compactTable_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField START_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("startRow", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField END_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("endRow", org.apache.thrift.protocol.TType.STRING, (short)4);
@@ -15056,7 +15056,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new compactTable_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public ByteBuffer startRow; // required
     public ByteBuffer endRow; // required
@@ -15066,7 +15066,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       START_ROW((short)3, "startRow"),
       END_ROW((short)4, "endRow"),
@@ -15147,7 +15147,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -15170,7 +15170,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public compactTable_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       ByteBuffer startRow,
       ByteBuffer endRow,
@@ -15179,7 +15179,7 @@ import org.slf4j.LoggerFactory;
       boolean wait)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.startRow = startRow;
       this.endRow = endRow;
@@ -15196,7 +15196,7 @@ import org.slf4j.LoggerFactory;
     public compactTable_args(compactTable_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -15226,7 +15226,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.startRow = null;
       this.endRow = null;
@@ -15238,26 +15238,26 @@ import org.slf4j.LoggerFactory;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public compactTable_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public compactTable_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -15564,12 +15564,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -15648,7 +15648,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -15733,11 +15733,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("compactTable_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -15787,8 +15787,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -15830,8 +15830,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -15911,9 +15911,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -15990,7 +15990,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 7);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -16023,8 +16023,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(7);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -16629,7 +16629,7 @@ import org.slf4j.LoggerFactory;
   public static class cancelCompaction_args implements org.apache.thrift.TBase<cancelCompaction_args, cancelCompaction_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("cancelCompaction_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -16638,12 +16638,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new cancelCompaction_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -16706,7 +16706,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -16718,11 +16718,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public cancelCompaction_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
     }
 
@@ -16731,7 +16731,7 @@ import org.slf4j.LoggerFactory;
      */
     public cancelCompaction_args(cancelCompaction_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -16744,31 +16744,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public cancelCompaction_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public cancelCompaction_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -16857,12 +16857,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -16896,7 +16896,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -16931,11 +16931,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("cancelCompaction_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -16953,8 +16953,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -16994,8 +16994,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -17024,9 +17024,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -17060,7 +17060,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -17072,8 +17072,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -17648,7 +17648,7 @@ import org.slf4j.LoggerFactory;
   public static class createTable_args implements org.apache.thrift.TBase<createTable_args, createTable_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("createTable_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField VERSIONING_ITER_FIELD_DESC = new org.apache.thrift.protocol.TField("versioningIter", org.apache.thrift.protocol.TType.BOOL, (short)3);
     private static final org.apache.thrift.protocol.TField TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("type", org.apache.thrift.protocol.TType.I32, (short)4);
@@ -17659,7 +17659,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new createTable_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public boolean versioningIter; // required
     /**
@@ -17670,7 +17670,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       VERSIONING_ITER((short)3, "versioningIter"),
       /**
@@ -17745,7 +17745,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -17761,13 +17761,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public createTable_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       boolean versioningIter,
       TimeType type)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.versioningIter = versioningIter;
       setVersioningIterIsSet(true);
@@ -17780,7 +17780,7 @@ import org.slf4j.LoggerFactory;
     public createTable_args(createTable_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -17797,7 +17797,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       setVersioningIterIsSet(false);
       this.versioningIter = false;
@@ -17805,26 +17805,26 @@ import org.slf4j.LoggerFactory;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public createTable_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public createTable_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -17994,12 +17994,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -18051,7 +18051,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -18106,11 +18106,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("createTable_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -18140,8 +18140,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -18183,8 +18183,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -18229,9 +18229,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -18279,7 +18279,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -18297,8 +18297,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -18881,7 +18881,7 @@ import org.slf4j.LoggerFactory;
   public static class deleteTable_args implements org.apache.thrift.TBase<deleteTable_args, deleteTable_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("deleteTable_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -18890,12 +18890,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new deleteTable_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -18958,7 +18958,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -18970,11 +18970,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public deleteTable_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
     }
 
@@ -18983,7 +18983,7 @@ import org.slf4j.LoggerFactory;
      */
     public deleteTable_args(deleteTable_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -18996,31 +18996,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public deleteTable_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public deleteTable_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -19109,12 +19109,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -19148,7 +19148,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -19183,11 +19183,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("deleteTable_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -19205,8 +19205,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -19246,8 +19246,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -19276,9 +19276,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -19312,7 +19312,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -19324,8 +19324,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -19900,7 +19900,7 @@ import org.slf4j.LoggerFactory;
   public static class deleteRows_args implements org.apache.thrift.TBase<deleteRows_args, deleteRows_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("deleteRows_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField START_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("startRow", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField END_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("endRow", org.apache.thrift.protocol.TType.STRING, (short)4);
@@ -19911,14 +19911,14 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new deleteRows_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public ByteBuffer startRow; // required
     public ByteBuffer endRow; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       START_ROW((short)3, "startRow"),
       END_ROW((short)4, "endRow");
@@ -19987,7 +19987,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -20003,13 +20003,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public deleteRows_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       ByteBuffer startRow,
       ByteBuffer endRow)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.startRow = startRow;
       this.endRow = endRow;
@@ -20020,7 +20020,7 @@ import org.slf4j.LoggerFactory;
      */
     public deleteRows_args(deleteRows_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -20041,33 +20041,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.startRow = null;
       this.endRow = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public deleteRows_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public deleteRows_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -20250,12 +20250,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -20307,7 +20307,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -20362,11 +20362,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("deleteRows_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -20400,8 +20400,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -20441,8 +20441,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -20487,9 +20487,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -20539,7 +20539,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -20557,8 +20557,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -21141,7 +21141,7 @@ import org.slf4j.LoggerFactory;
   public static class exportTable_args implements org.apache.thrift.TBase<exportTable_args, exportTable_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("exportTable_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField EXPORT_DIR_FIELD_DESC = new org.apache.thrift.protocol.TField("exportDir", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -21151,13 +21151,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new exportTable_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public String exportDir; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       EXPORT_DIR((short)3, "exportDir");
 
@@ -21223,7 +21223,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -21237,12 +21237,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public exportTable_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       String exportDir)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.exportDir = exportDir;
     }
@@ -21252,7 +21252,7 @@ import org.slf4j.LoggerFactory;
      */
     public exportTable_args(exportTable_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -21268,32 +21268,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.exportDir = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public exportTable_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public exportTable_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -21419,12 +21419,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -21467,7 +21467,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -21512,11 +21512,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("exportTable_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -21542,8 +21542,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -21583,8 +21583,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -21621,9 +21621,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -21665,7 +21665,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -21680,8 +21680,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -22260,7 +22260,7 @@ import org.slf4j.LoggerFactory;
   public static class flushTable_args implements org.apache.thrift.TBase<flushTable_args, flushTable_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("flushTable_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField START_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("startRow", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField END_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("endRow", org.apache.thrift.protocol.TType.STRING, (short)4);
@@ -22272,7 +22272,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new flushTable_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public ByteBuffer startRow; // required
     public ByteBuffer endRow; // required
@@ -22280,7 +22280,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       START_ROW((short)3, "startRow"),
       END_ROW((short)4, "endRow"),
@@ -22354,7 +22354,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -22372,14 +22372,14 @@ import org.slf4j.LoggerFactory;
     }
 
     public flushTable_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       ByteBuffer startRow,
       ByteBuffer endRow,
       boolean wait)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.startRow = startRow;
       this.endRow = endRow;
@@ -22393,7 +22393,7 @@ import org.slf4j.LoggerFactory;
     public flushTable_args(flushTable_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -22415,7 +22415,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.startRow = null;
       this.endRow = null;
@@ -22424,26 +22424,26 @@ import org.slf4j.LoggerFactory;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public flushTable_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public flushTable_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -22662,12 +22662,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -22728,7 +22728,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -22793,11 +22793,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("flushTable_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -22835,8 +22835,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -22878,8 +22878,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -22932,9 +22932,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -22990,7 +22990,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 5);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -23011,8 +23011,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -23497,7 +23497,7 @@ import org.slf4j.LoggerFactory;
   public static class getLocalityGroups_args implements org.apache.thrift.TBase<getLocalityGroups_args, getLocalityGroups_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getLocalityGroups_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -23506,12 +23506,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getLocalityGroups_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -23574,7 +23574,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -23586,11 +23586,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public getLocalityGroups_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
     }
 
@@ -23599,7 +23599,7 @@ import org.slf4j.LoggerFactory;
      */
     public getLocalityGroups_args(getLocalityGroups_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -23612,31 +23612,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getLocalityGroups_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getLocalityGroups_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -23725,12 +23725,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -23764,7 +23764,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -23799,11 +23799,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getLocalityGroups_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -23821,8 +23821,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -23862,8 +23862,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -23892,9 +23892,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -23928,7 +23928,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -23940,8 +23940,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -24613,7 +24613,7 @@ import org.slf4j.LoggerFactory;
   public static class getIteratorSetting_args implements org.apache.thrift.TBase<getIteratorSetting_args, getIteratorSetting_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getIteratorSetting_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField ITERATOR_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("iteratorName", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField SCOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("scope", org.apache.thrift.protocol.TType.I32, (short)4);
@@ -24624,7 +24624,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getIteratorSetting_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public String iteratorName; // required
     /**
@@ -24635,7 +24635,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       ITERATOR_NAME((short)3, "iteratorName"),
       /**
@@ -24708,7 +24708,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -24724,13 +24724,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public getIteratorSetting_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       String iteratorName,
       IteratorScope scope)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.iteratorName = iteratorName;
       this.scope = scope;
@@ -24741,7 +24741,7 @@ import org.slf4j.LoggerFactory;
      */
     public getIteratorSetting_args(getIteratorSetting_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -24760,33 +24760,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.iteratorName = null;
       this.scope = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getIteratorSetting_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getIteratorSetting_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -24957,12 +24957,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -25014,7 +25014,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -25069,11 +25069,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getIteratorSetting_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -25107,8 +25107,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -25148,8 +25148,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -25194,9 +25194,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -25246,7 +25246,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -25264,8 +25264,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -25953,7 +25953,7 @@ import org.slf4j.LoggerFactory;
   public static class getMaxRow_args implements org.apache.thrift.TBase<getMaxRow_args, getMaxRow_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getMaxRow_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField AUTHS_FIELD_DESC = new org.apache.thrift.protocol.TField("auths", org.apache.thrift.protocol.TType.SET, (short)3);
     private static final org.apache.thrift.protocol.TField START_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("startRow", org.apache.thrift.protocol.TType.STRING, (short)4);
@@ -25967,7 +25967,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getMaxRow_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public Set<ByteBuffer> auths; // required
     public ByteBuffer startRow; // required
@@ -25977,7 +25977,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       AUTHS((short)3, "auths"),
       START_ROW((short)4, "startRow"),
@@ -26058,7 +26058,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -26081,7 +26081,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public getMaxRow_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       Set<ByteBuffer> auths,
       ByteBuffer startRow,
@@ -26090,7 +26090,7 @@ import org.slf4j.LoggerFactory;
       boolean endInclusive)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.auths = auths;
       this.startRow = startRow;
@@ -26107,7 +26107,7 @@ import org.slf4j.LoggerFactory;
     public getMaxRow_args(getMaxRow_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -26139,7 +26139,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.auths = null;
       this.startRow = null;
@@ -26151,26 +26151,26 @@ import org.slf4j.LoggerFactory;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getMaxRow_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getMaxRow_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -26477,12 +26477,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -26561,7 +26561,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -26646,11 +26646,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getMaxRow_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -26700,8 +26700,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -26743,8 +26743,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -26823,9 +26823,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -26902,7 +26902,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 7);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -26935,8 +26935,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(7);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -27651,7 +27651,7 @@ import org.slf4j.LoggerFactory;
   public static class getTableProperties_args implements org.apache.thrift.TBase<getTableProperties_args, getTableProperties_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTableProperties_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -27660,12 +27660,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getTableProperties_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -27728,7 +27728,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -27740,11 +27740,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public getTableProperties_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
     }
 
@@ -27753,7 +27753,7 @@ import org.slf4j.LoggerFactory;
      */
     public getTableProperties_args(getTableProperties_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -27766,31 +27766,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getTableProperties_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getTableProperties_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -27879,12 +27879,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -27918,7 +27918,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -27953,11 +27953,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getTableProperties_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -27975,8 +27975,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -28016,8 +28016,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -28046,9 +28046,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -28082,7 +28082,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -28094,8 +28094,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -28731,7 +28731,7 @@ import org.slf4j.LoggerFactory;
   public static class getSplits_args implements org.apache.thrift.TBase<getSplits_args, getSplits_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSplits_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField MAX_SPLITS_FIELD_DESC = new org.apache.thrift.protocol.TField("maxSplits", org.apache.thrift.protocol.TType.I32, (short)3);
 
@@ -28741,13 +28741,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getSplits_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public int maxSplits; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       MAX_SPLITS((short)3, "maxSplits");
 
@@ -28815,7 +28815,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -28829,12 +28829,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public getSplits_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       int maxSplits)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.maxSplits = maxSplits;
       setMaxSplitsIsSet(true);
@@ -28846,7 +28846,7 @@ import org.slf4j.LoggerFactory;
     public getSplits_args(getSplits_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -28860,33 +28860,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       setMaxSplitsIsSet(false);
       this.maxSplits = 0;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getSplits_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getSplits_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -29011,12 +29011,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -29059,7 +29059,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -29104,11 +29104,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getSplits_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -29130,8 +29130,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -29173,8 +29173,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -29211,9 +29211,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -29253,7 +29253,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -29268,8 +29268,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -29798,7 +29798,7 @@ import org.slf4j.LoggerFactory;
   public static class importDirectory_args implements org.apache.thrift.TBase<importDirectory_args, importDirectory_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("importDirectory_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField IMPORT_DIR_FIELD_DESC = new org.apache.thrift.protocol.TField("importDir", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField FAILURE_DIR_FIELD_DESC = new org.apache.thrift.protocol.TField("failureDir", org.apache.thrift.protocol.TType.STRING, (short)4);
@@ -29810,7 +29810,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new importDirectory_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public String importDir; // required
     public String failureDir; // required
@@ -29818,7 +29818,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       IMPORT_DIR((short)3, "importDir"),
       FAILURE_DIR((short)4, "failureDir"),
@@ -29892,7 +29892,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -29910,14 +29910,14 @@ import org.slf4j.LoggerFactory;
     }
 
     public importDirectory_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       String importDir,
       String failureDir,
       boolean setTime)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.importDir = importDir;
       this.failureDir = failureDir;
@@ -29931,7 +29931,7 @@ import org.slf4j.LoggerFactory;
     public importDirectory_args(importDirectory_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -29951,7 +29951,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.importDir = null;
       this.failureDir = null;
@@ -29960,26 +29960,26 @@ import org.slf4j.LoggerFactory;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public importDirectory_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public importDirectory_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -30178,12 +30178,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -30244,7 +30244,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -30309,11 +30309,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("importDirectory_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -30351,8 +30351,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -30394,8 +30394,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -30448,9 +30448,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -30506,7 +30506,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 5);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -30527,8 +30527,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -31115,7 +31115,7 @@ import org.slf4j.LoggerFactory;
   public static class importTable_args implements org.apache.thrift.TBase<importTable_args, importTable_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("importTable_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField IMPORT_DIR_FIELD_DESC = new org.apache.thrift.protocol.TField("importDir", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -31125,13 +31125,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new importTable_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public String importDir; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       IMPORT_DIR((short)3, "importDir");
 
@@ -31197,7 +31197,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -31211,12 +31211,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public importTable_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       String importDir)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.importDir = importDir;
     }
@@ -31226,7 +31226,7 @@ import org.slf4j.LoggerFactory;
      */
     public importTable_args(importTable_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -31242,32 +31242,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.importDir = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public importTable_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public importTable_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -31393,12 +31393,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -31441,7 +31441,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -31486,11 +31486,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("importTable_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -31516,8 +31516,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -31557,8 +31557,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -31595,9 +31595,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -31639,7 +31639,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -31654,8 +31654,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -32234,7 +32234,7 @@ import org.slf4j.LoggerFactory;
   public static class listTables_args implements org.apache.thrift.TBase<listTables_args, listTables_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("listTables_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -32242,11 +32242,11 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new listTables_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken");
+      PRINCIPAL_TOKEN((short)1, "principalToken");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -32306,7 +32306,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(listTables_args.class, metaDataMap);
@@ -32316,10 +32316,10 @@ import org.slf4j.LoggerFactory;
     }
 
     public listTables_args(
-      PrincipalToken PrincipalToken)
+      PrincipalToken principalToken)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
     }
 
     /**
@@ -32327,7 +32327,7 @@ import org.slf4j.LoggerFactory;
      */
     public listTables_args(listTables_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
     }
 
@@ -32337,30 +32337,30 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public listTables_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public listTables_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -32412,12 +32412,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -32442,7 +32442,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -32467,11 +32467,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("listTables_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       sb.append(")");
@@ -32481,8 +32481,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -32522,8 +32522,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -32544,9 +32544,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -32572,7 +32572,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 1);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
       }
 
@@ -32581,8 +32581,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
       }
@@ -32999,7 +32999,7 @@ import org.slf4j.LoggerFactory;
   public static class listIterators_args implements org.apache.thrift.TBase<listIterators_args, listIterators_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("listIterators_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -33008,12 +33008,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new listIterators_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -33076,7 +33076,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -33088,11 +33088,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public listIterators_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
     }
 
@@ -33101,7 +33101,7 @@ import org.slf4j.LoggerFactory;
      */
     public listIterators_args(listIterators_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -33114,31 +33114,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public listIterators_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public listIterators_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -33227,12 +33227,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -33266,7 +33266,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -33301,11 +33301,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("listIterators_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -33323,8 +33323,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -33364,8 +33364,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -33394,9 +33394,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -33430,7 +33430,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -33442,8 +33442,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -34217,7 +34217,7 @@ import org.slf4j.LoggerFactory;
   public static class listConstraints_args implements org.apache.thrift.TBase<listConstraints_args, listConstraints_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("listConstraints_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -34226,12 +34226,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new listConstraints_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -34294,7 +34294,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -34306,11 +34306,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public listConstraints_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
     }
 
@@ -34319,7 +34319,7 @@ import org.slf4j.LoggerFactory;
      */
     public listConstraints_args(listConstraints_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -34332,31 +34332,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public listConstraints_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public listConstraints_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -34445,12 +34445,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -34484,7 +34484,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -34519,11 +34519,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("listConstraints_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -34541,8 +34541,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -34582,8 +34582,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -34612,9 +34612,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -34648,7 +34648,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -34660,8 +34660,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -35297,7 +35297,7 @@ import org.slf4j.LoggerFactory;
   public static class mergeTablets_args implements org.apache.thrift.TBase<mergeTablets_args, mergeTablets_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("mergeTablets_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField START_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("startRow", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField END_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("endRow", org.apache.thrift.protocol.TType.STRING, (short)4);
@@ -35308,14 +35308,14 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new mergeTablets_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public ByteBuffer startRow; // required
     public ByteBuffer endRow; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       START_ROW((short)3, "startRow"),
       END_ROW((short)4, "endRow");
@@ -35384,7 +35384,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -35400,13 +35400,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public mergeTablets_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       ByteBuffer startRow,
       ByteBuffer endRow)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.startRow = startRow;
       this.endRow = endRow;
@@ -35417,7 +35417,7 @@ import org.slf4j.LoggerFactory;
      */
     public mergeTablets_args(mergeTablets_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -35438,33 +35438,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.startRow = null;
       this.endRow = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public mergeTablets_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public mergeTablets_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -35647,12 +35647,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -35704,7 +35704,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -35759,11 +35759,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("mergeTablets_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -35797,8 +35797,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -35838,8 +35838,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -35884,9 +35884,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -35936,7 +35936,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -35954,8 +35954,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -36538,7 +36538,7 @@ import org.slf4j.LoggerFactory;
   public static class offlineTable_args implements org.apache.thrift.TBase<offlineTable_args, offlineTable_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("offlineTable_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -36547,12 +36547,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new offlineTable_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -36615,7 +36615,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -36627,11 +36627,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public offlineTable_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
     }
 
@@ -36640,7 +36640,7 @@ import org.slf4j.LoggerFactory;
      */
     public offlineTable_args(offlineTable_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -36653,31 +36653,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public offlineTable_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public offlineTable_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -36766,12 +36766,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -36805,7 +36805,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -36840,11 +36840,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("offlineTable_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -36862,8 +36862,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -36903,8 +36903,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -36933,9 +36933,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -36969,7 +36969,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -36981,8 +36981,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -37557,7 +37557,7 @@ import org.slf4j.LoggerFactory;
   public static class onlineTable_args implements org.apache.thrift.TBase<onlineTable_args, onlineTable_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("onlineTable_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -37566,12 +37566,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new onlineTable_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -37634,7 +37634,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -37646,11 +37646,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public onlineTable_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
     }
 
@@ -37659,7 +37659,7 @@ import org.slf4j.LoggerFactory;
      */
     public onlineTable_args(onlineTable_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -37672,31 +37672,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public onlineTable_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public onlineTable_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -37785,12 +37785,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -37824,7 +37824,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -37859,11 +37859,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("onlineTable_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -37881,8 +37881,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -37922,8 +37922,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -37952,9 +37952,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -37988,7 +37988,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -38000,8 +38000,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -38576,7 +38576,7 @@ import org.slf4j.LoggerFactory;
   public static class removeConstraint_args implements org.apache.thrift.TBase<removeConstraint_args, removeConstraint_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeConstraint_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField CONSTRAINT_FIELD_DESC = new org.apache.thrift.protocol.TField("constraint", org.apache.thrift.protocol.TType.I32, (short)3);
 
@@ -38586,13 +38586,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new removeConstraint_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public int constraint; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       CONSTRAINT((short)3, "constraint");
 
@@ -38660,7 +38660,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -38674,12 +38674,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public removeConstraint_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       int constraint)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.constraint = constraint;
       setConstraintIsSet(true);
@@ -38691,7 +38691,7 @@ import org.slf4j.LoggerFactory;
     public removeConstraint_args(removeConstraint_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -38705,33 +38705,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       setConstraintIsSet(false);
       this.constraint = 0;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public removeConstraint_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public removeConstraint_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -38856,12 +38856,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -38904,7 +38904,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -38949,11 +38949,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("removeConstraint_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -38975,8 +38975,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -39018,8 +39018,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -39056,9 +39056,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -39098,7 +39098,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -39113,8 +39113,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -39591,7 +39591,7 @@ import org.slf4j.LoggerFactory;
   public static class removeIterator_args implements org.apache.thrift.TBase<removeIterator_args, removeIterator_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeIterator_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField ITER_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("iterName", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField SCOPES_FIELD_DESC = new org.apache.thrift.protocol.TField("scopes", org.apache.thrift.protocol.TType.SET, (short)4);
@@ -39602,14 +39602,14 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new removeIterator_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public String iterName; // required
     public Set<IteratorScope> scopes; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       ITER_NAME((short)3, "iterName"),
       SCOPES((short)4, "scopes");
@@ -39678,7 +39678,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -39695,13 +39695,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public removeIterator_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       String iterName,
       Set<IteratorScope> scopes)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.iterName = iterName;
       this.scopes = scopes;
@@ -39712,7 +39712,7 @@ import org.slf4j.LoggerFactory;
      */
     public removeIterator_args(removeIterator_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -39735,33 +39735,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.iterName = null;
       this.scopes = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public removeIterator_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public removeIterator_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -39939,12 +39939,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -39996,7 +39996,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -40051,11 +40051,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("removeIterator_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -40089,8 +40089,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -40130,8 +40130,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -40186,9 +40186,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -40245,7 +40245,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -40269,8 +40269,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -40862,7 +40862,7 @@ import org.slf4j.LoggerFactory;
   public static class removeTableProperty_args implements org.apache.thrift.TBase<removeTableProperty_args, removeTableProperty_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeTableProperty_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -40872,13 +40872,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new removeTableProperty_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public String property; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       PROPERTY((short)3, "property");
 
@@ -40944,7 +40944,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -40958,12 +40958,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public removeTableProperty_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       String property)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.property = property;
     }
@@ -40973,7 +40973,7 @@ import org.slf4j.LoggerFactory;
      */
     public removeTableProperty_args(removeTableProperty_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -40989,32 +40989,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.property = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public removeTableProperty_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public removeTableProperty_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -41140,12 +41140,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -41188,7 +41188,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -41233,11 +41233,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("removeTableProperty_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -41263,8 +41263,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -41304,8 +41304,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -41342,9 +41342,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -41386,7 +41386,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -41401,8 +41401,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -41879,7 +41879,7 @@ import org.slf4j.LoggerFactory;
   public static class renameTable_args implements org.apache.thrift.TBase<renameTable_args, renameTable_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("renameTable_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField OLD_TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("oldTableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField NEW_TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("newTableName", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -41889,13 +41889,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new renameTable_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String oldTableName; // required
     public String newTableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       OLD_TABLE_NAME((short)2, "oldTableName"),
       NEW_TABLE_NAME((short)3, "newTableName");
 
@@ -41961,7 +41961,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.OLD_TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("oldTableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -41975,12 +41975,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public renameTable_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String oldTableName,
       String newTableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.oldTableName = oldTableName;
       this.newTableName = newTableName;
     }
@@ -41990,7 +41990,7 @@ import org.slf4j.LoggerFactory;
      */
     public renameTable_args(renameTable_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetOldTableName()) {
         this.oldTableName = other.oldTableName;
@@ -42006,32 +42006,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.oldTableName = null;
       this.newTableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public renameTable_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public renameTable_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -42157,12 +42157,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -42205,7 +42205,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -42250,11 +42250,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("renameTable_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -42280,8 +42280,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -42321,8 +42321,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -42359,9 +42359,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.oldTableName != null) {
@@ -42403,7 +42403,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetOldTableName()) {
           oprot.writeString(struct.oldTableName);
@@ -42418,8 +42418,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -43100,7 +43100,7 @@ import org.slf4j.LoggerFactory;
   public static class setLocalityGroups_args implements org.apache.thrift.TBase<setLocalityGroups_args, setLocalityGroups_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setLocalityGroups_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField GROUPS_FIELD_DESC = new org.apache.thrift.protocol.TField("groups", org.apache.thrift.protocol.TType.MAP, (short)3);
 
@@ -43110,13 +43110,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new setLocalityGroups_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public Map<String,Set<String>> groups; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       GROUPS((short)3, "groups");
 
@@ -43182,7 +43182,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -43199,12 +43199,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public setLocalityGroups_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       Map<String,Set<String>> groups)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.groups = groups;
     }
@@ -43214,7 +43214,7 @@ import org.slf4j.LoggerFactory;
      */
     public setLocalityGroups_args(setLocalityGroups_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -43245,32 +43245,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.groups = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public setLocalityGroups_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public setLocalityGroups_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -43407,12 +43407,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -43455,7 +43455,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -43500,11 +43500,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("setLocalityGroups_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -43530,8 +43530,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -43571,8 +43571,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -43631,9 +43631,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -43690,7 +43690,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -43718,8 +43718,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -44318,7 +44318,7 @@ import org.slf4j.LoggerFactory;
   public static class setTableProperty_args implements org.apache.thrift.TBase<setTableProperty_args, setTableProperty_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setTableProperty_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)4);
@@ -44329,14 +44329,14 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new setTableProperty_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public String property; // required
     public String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       PROPERTY((short)3, "property"),
       VALUE((short)4, "value");
@@ -44405,7 +44405,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -44421,13 +44421,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public setTableProperty_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       String property,
       String value)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.property = property;
       this.value = value;
@@ -44438,7 +44438,7 @@ import org.slf4j.LoggerFactory;
      */
     public setTableProperty_args(setTableProperty_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -44457,33 +44457,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.property = null;
       this.value = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public setTableProperty_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public setTableProperty_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -44646,12 +44646,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -44703,7 +44703,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -44758,11 +44758,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("setTableProperty_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -44796,8 +44796,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -44837,8 +44837,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -44883,9 +44883,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -44935,7 +44935,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -44953,8 +44953,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -45435,7 +45435,7 @@ import org.slf4j.LoggerFactory;
   public static class splitRangeByTablets_args implements org.apache.thrift.TBase<splitRangeByTablets_args, splitRangeByTablets_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("splitRangeByTablets_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField RANGE_FIELD_DESC = new org.apache.thrift.protocol.TField("range", org.apache.thrift.protocol.TType.STRUCT, (short)3);
     private static final org.apache.thrift.protocol.TField MAX_SPLITS_FIELD_DESC = new org.apache.thrift.protocol.TField("maxSplits", org.apache.thrift.protocol.TType.I32, (short)4);
@@ -45446,14 +45446,14 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new splitRangeByTablets_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public Range range; // required
     public int maxSplits; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       RANGE((short)3, "range"),
       MAX_SPLITS((short)4, "maxSplits");
@@ -45524,7 +45524,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -45540,13 +45540,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public splitRangeByTablets_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       Range range,
       int maxSplits)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.range = range;
       this.maxSplits = maxSplits;
@@ -45559,7 +45559,7 @@ import org.slf4j.LoggerFactory;
     public splitRangeByTablets_args(splitRangeByTablets_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -45576,7 +45576,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.range = null;
       setMaxSplitsIsSet(false);
@@ -45584,26 +45584,26 @@ import org.slf4j.LoggerFactory;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public splitRangeByTablets_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public splitRangeByTablets_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -45765,12 +45765,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -45822,7 +45822,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -45877,11 +45877,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("splitRangeByTablets_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -45911,8 +45911,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
       if (range != null) {
         range.validate();
@@ -45957,8 +45957,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -46004,9 +46004,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -46054,7 +46054,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -46072,8 +46072,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -46811,7 +46811,7 @@ import org.slf4j.LoggerFactory;
   public static class tableExists_args implements org.apache.thrift.TBase<tableExists_args, tableExists_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("tableExists_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -46820,12 +46820,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new tableExists_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -46888,7 +46888,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -46900,11 +46900,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public tableExists_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
     }
 
@@ -46913,7 +46913,7 @@ import org.slf4j.LoggerFactory;
      */
     public tableExists_args(tableExists_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -46926,31 +46926,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public tableExists_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public tableExists_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -47039,12 +47039,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -47078,7 +47078,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -47113,11 +47113,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("tableExists_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -47135,8 +47135,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -47176,8 +47176,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -47206,9 +47206,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -47242,7 +47242,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -47254,8 +47254,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -47624,7 +47624,7 @@ import org.slf4j.LoggerFactory;
   public static class tableIdMap_args implements org.apache.thrift.TBase<tableIdMap_args, tableIdMap_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("tableIdMap_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -47632,11 +47632,11 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new tableIdMap_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken");
+      PRINCIPAL_TOKEN((short)1, "principalToken");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -47696,7 +47696,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(tableIdMap_args.class, metaDataMap);
@@ -47706,10 +47706,10 @@ import org.slf4j.LoggerFactory;
     }
 
     public tableIdMap_args(
-      PrincipalToken PrincipalToken)
+      PrincipalToken principalToken)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
     }
 
     /**
@@ -47717,7 +47717,7 @@ import org.slf4j.LoggerFactory;
      */
     public tableIdMap_args(tableIdMap_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
     }
 
@@ -47727,30 +47727,30 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public tableIdMap_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public tableIdMap_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -47802,12 +47802,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -47832,7 +47832,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -47857,11 +47857,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("tableIdMap_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       sb.append(")");
@@ -47871,8 +47871,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -47912,8 +47912,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -47934,9 +47934,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -47962,7 +47962,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 1);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
       }
 
@@ -47971,8 +47971,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
       }
@@ -48400,7 +48400,7 @@ import org.slf4j.LoggerFactory;
   public static class pingTabletServer_args implements org.apache.thrift.TBase<pingTabletServer_args, pingTabletServer_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("pingTabletServer_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TSERVER_FIELD_DESC = new org.apache.thrift.protocol.TField("tserver", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -48409,12 +48409,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new pingTabletServer_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tserver; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TSERVER((short)2, "tserver");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -48477,7 +48477,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TSERVER, new org.apache.thrift.meta_data.FieldMetaData("tserver", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -48489,11 +48489,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public pingTabletServer_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tserver)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tserver = tserver;
     }
 
@@ -48502,7 +48502,7 @@ import org.slf4j.LoggerFactory;
      */
     public pingTabletServer_args(pingTabletServer_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTserver()) {
         this.tserver = other.tserver;
@@ -48515,31 +48515,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tserver = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public pingTabletServer_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public pingTabletServer_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -48628,12 +48628,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -48667,7 +48667,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -48702,11 +48702,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("pingTabletServer_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -48724,8 +48724,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -48765,8 +48765,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -48795,9 +48795,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tserver != null) {
@@ -48831,7 +48831,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTserver()) {
           oprot.writeString(struct.tserver);
@@ -48843,8 +48843,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -49317,7 +49317,7 @@ import org.slf4j.LoggerFactory;
   public static class getActiveScans_args implements org.apache.thrift.TBase<getActiveScans_args, getActiveScans_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getActiveScans_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TSERVER_FIELD_DESC = new org.apache.thrift.protocol.TField("tserver", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -49326,12 +49326,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getActiveScans_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tserver; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TSERVER((short)2, "tserver");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -49394,7 +49394,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TSERVER, new org.apache.thrift.meta_data.FieldMetaData("tserver", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -49406,11 +49406,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public getActiveScans_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tserver)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tserver = tserver;
     }
 
@@ -49419,7 +49419,7 @@ import org.slf4j.LoggerFactory;
      */
     public getActiveScans_args(getActiveScans_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTserver()) {
         this.tserver = other.tserver;
@@ -49432,31 +49432,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tserver = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getActiveScans_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getActiveScans_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -49545,12 +49545,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -49584,7 +49584,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -49619,11 +49619,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getActiveScans_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -49641,8 +49641,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -49682,8 +49682,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -49712,9 +49712,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tserver != null) {
@@ -49748,7 +49748,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTserver()) {
           oprot.writeString(struct.tserver);
@@ -49760,8 +49760,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -50388,7 +50388,7 @@ import org.slf4j.LoggerFactory;
   public static class getActiveCompactions_args implements org.apache.thrift.TBase<getActiveCompactions_args, getActiveCompactions_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getActiveCompactions_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TSERVER_FIELD_DESC = new org.apache.thrift.protocol.TField("tserver", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -50397,12 +50397,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getActiveCompactions_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tserver; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TSERVER((short)2, "tserver");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -50465,7 +50465,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TSERVER, new org.apache.thrift.meta_data.FieldMetaData("tserver", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -50477,11 +50477,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public getActiveCompactions_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tserver)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tserver = tserver;
     }
 
@@ -50490,7 +50490,7 @@ import org.slf4j.LoggerFactory;
      */
     public getActiveCompactions_args(getActiveCompactions_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTserver()) {
         this.tserver = other.tserver;
@@ -50503,31 +50503,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tserver = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getActiveCompactions_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getActiveCompactions_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -50616,12 +50616,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -50655,7 +50655,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -50690,11 +50690,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getActiveCompactions_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -50712,8 +50712,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -50753,8 +50753,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -50783,9 +50783,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tserver != null) {
@@ -50819,7 +50819,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTserver()) {
           oprot.writeString(struct.tserver);
@@ -50831,8 +50831,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -51459,7 +51459,7 @@ import org.slf4j.LoggerFactory;
   public static class getSiteConfiguration_args implements org.apache.thrift.TBase<getSiteConfiguration_args, getSiteConfiguration_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSiteConfiguration_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -51467,11 +51467,11 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getSiteConfiguration_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken");
+      PRINCIPAL_TOKEN((short)1, "principalToken");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -51531,7 +51531,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getSiteConfiguration_args.class, metaDataMap);
@@ -51541,10 +51541,10 @@ import org.slf4j.LoggerFactory;
     }
 
     public getSiteConfiguration_args(
-      PrincipalToken PrincipalToken)
+      PrincipalToken principalToken)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
     }
 
     /**
@@ -51552,7 +51552,7 @@ import org.slf4j.LoggerFactory;
      */
     public getSiteConfiguration_args(getSiteConfiguration_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
     }
 
@@ -51562,30 +51562,30 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getSiteConfiguration_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getSiteConfiguration_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -51637,12 +51637,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -51667,7 +51667,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -51692,11 +51692,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getSiteConfiguration_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       sb.append(")");
@@ -51706,8 +51706,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -51747,8 +51747,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -51769,9 +51769,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -51797,7 +51797,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 1);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
       }
 
@@ -51806,8 +51806,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
       }
@@ -52439,7 +52439,7 @@ import org.slf4j.LoggerFactory;
   public static class getSystemConfiguration_args implements org.apache.thrift.TBase<getSystemConfiguration_args, getSystemConfiguration_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSystemConfiguration_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -52447,11 +52447,11 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getSystemConfiguration_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken");
+      PRINCIPAL_TOKEN((short)1, "principalToken");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -52511,7 +52511,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getSystemConfiguration_args.class, metaDataMap);
@@ -52521,10 +52521,10 @@ import org.slf4j.LoggerFactory;
     }
 
     public getSystemConfiguration_args(
-      PrincipalToken PrincipalToken)
+      PrincipalToken principalToken)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
     }
 
     /**
@@ -52532,7 +52532,7 @@ import org.slf4j.LoggerFactory;
      */
     public getSystemConfiguration_args(getSystemConfiguration_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
     }
 
@@ -52542,30 +52542,30 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getSystemConfiguration_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getSystemConfiguration_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -52617,12 +52617,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -52647,7 +52647,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -52672,11 +52672,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getSystemConfiguration_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       sb.append(")");
@@ -52686,8 +52686,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -52727,8 +52727,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -52749,9 +52749,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -52777,7 +52777,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 1);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
       }
 
@@ -52786,8 +52786,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
       }
@@ -53419,7 +53419,7 @@ import org.slf4j.LoggerFactory;
   public static class getTabletServers_args implements org.apache.thrift.TBase<getTabletServers_args, getTabletServers_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTabletServers_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -53427,11 +53427,11 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getTabletServers_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken");
+      PRINCIPAL_TOKEN((short)1, "principalToken");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -53491,7 +53491,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getTabletServers_args.class, metaDataMap);
@@ -53501,10 +53501,10 @@ import org.slf4j.LoggerFactory;
     }
 
     public getTabletServers_args(
-      PrincipalToken PrincipalToken)
+      PrincipalToken principalToken)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
     }
 
     /**
@@ -53512,7 +53512,7 @@ import org.slf4j.LoggerFactory;
      */
     public getTabletServers_args(getTabletServers_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
     }
 
@@ -53522,30 +53522,30 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getTabletServers_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getTabletServers_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -53597,12 +53597,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -53627,7 +53627,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -53652,11 +53652,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getTabletServers_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       sb.append(")");
@@ -53666,8 +53666,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -53707,8 +53707,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -53729,9 +53729,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -53757,7 +53757,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 1);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
       }
 
@@ -53766,8 +53766,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
       }
@@ -54184,7 +54184,7 @@ import org.slf4j.LoggerFactory;
   public static class removeProperty_args implements org.apache.thrift.TBase<removeProperty_args, removeProperty_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeProperty_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -54193,12 +54193,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new removeProperty_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String property; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PROPERTY((short)2, "property");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -54261,7 +54261,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PROPERTY, new org.apache.thrift.meta_data.FieldMetaData("property", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -54273,11 +54273,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public removeProperty_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String property)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.property = property;
     }
 
@@ -54286,7 +54286,7 @@ import org.slf4j.LoggerFactory;
      */
     public removeProperty_args(removeProperty_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetProperty()) {
         this.property = other.property;
@@ -54299,31 +54299,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.property = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public removeProperty_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public removeProperty_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -54412,12 +54412,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -54451,7 +54451,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -54486,11 +54486,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("removeProperty_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -54508,8 +54508,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -54549,8 +54549,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -54579,9 +54579,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.property != null) {
@@ -54615,7 +54615,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetProperty()) {
           oprot.writeString(struct.property);
@@ -54627,8 +54627,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -55101,7 +55101,7 @@ import org.slf4j.LoggerFactory;
   public static class setProperty_args implements org.apache.thrift.TBase<setProperty_args, setProperty_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setProperty_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -55111,13 +55111,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new setProperty_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String property; // required
     public String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PROPERTY((short)2, "property"),
       VALUE((short)3, "value");
 
@@ -55183,7 +55183,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PROPERTY, new org.apache.thrift.meta_data.FieldMetaData("property", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -55197,12 +55197,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public setProperty_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String property,
       String value)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.property = property;
       this.value = value;
     }
@@ -55212,7 +55212,7 @@ import org.slf4j.LoggerFactory;
      */
     public setProperty_args(setProperty_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetProperty()) {
         this.property = other.property;
@@ -55228,32 +55228,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.property = null;
       this.value = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public setProperty_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public setProperty_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -55379,12 +55379,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -55427,7 +55427,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -55472,11 +55472,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("setProperty_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -55502,8 +55502,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -55543,8 +55543,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -55581,9 +55581,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.property != null) {
@@ -55625,7 +55625,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetProperty()) {
           oprot.writeString(struct.property);
@@ -55640,8 +55640,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -56118,7 +56118,7 @@ import org.slf4j.LoggerFactory;
   public static class testClassLoad_args implements org.apache.thrift.TBase<testClassLoad_args, testClassLoad_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("testClassLoad_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CLASS_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("className", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField AS_TYPE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("asTypeName", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -56128,13 +56128,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new testClassLoad_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String className; // required
     public String asTypeName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       CLASS_NAME((short)2, "className"),
       AS_TYPE_NAME((short)3, "asTypeName");
 
@@ -56200,7 +56200,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.CLASS_NAME, new org.apache.thrift.meta_data.FieldMetaData("className", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -56214,12 +56214,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public testClassLoad_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String className,
       String asTypeName)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.className = className;
       this.asTypeName = asTypeName;
     }
@@ -56229,7 +56229,7 @@ import org.slf4j.LoggerFactory;
      */
     public testClassLoad_args(testClassLoad_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetClassName()) {
         this.className = other.className;
@@ -56245,32 +56245,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.className = null;
       this.asTypeName = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public testClassLoad_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public testClassLoad_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -56396,12 +56396,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -56444,7 +56444,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -56489,11 +56489,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("testClassLoad_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -56519,8 +56519,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -56560,8 +56560,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -56598,9 +56598,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.className != null) {
@@ -56642,7 +56642,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetClassName()) {
           oprot.writeString(struct.className);
@@ -56657,8 +56657,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -57235,7 +57235,7 @@ import org.slf4j.LoggerFactory;
   public static class authenticateUser_args implements org.apache.thrift.TBase<authenticateUser_args, authenticateUser_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("authenticateUser_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("token", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -57245,13 +57245,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new authenticateUser_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
     public ByteBuffer token; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal"),
       TOKEN((short)3, "token");
 
@@ -57317,7 +57317,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -57331,12 +57331,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public authenticateUser_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal,
       ByteBuffer token)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
       this.token = token;
     }
@@ -57346,7 +57346,7 @@ import org.slf4j.LoggerFactory;
      */
     public authenticateUser_args(authenticateUser_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -57363,32 +57363,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
       this.token = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public authenticateUser_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public authenticateUser_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -57524,12 +57524,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -57572,7 +57572,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -57617,11 +57617,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("authenticateUser_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -57647,8 +57647,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -57688,8 +57688,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -57726,9 +57726,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -57770,7 +57770,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -57785,8 +57785,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -58363,7 +58363,7 @@ import org.slf4j.LoggerFactory;
   public static class changeUserAuthorizations_args implements org.apache.thrift.TBase<changeUserAuthorizations_args, changeUserAuthorizations_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("changeUserAuthorizations_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.SET, (short)3);
 
@@ -58373,13 +58373,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new changeUserAuthorizations_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
     public Set<ByteBuffer> authorizations; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal"),
       AUTHORIZATIONS((short)3, "authorizations");
 
@@ -58445,7 +58445,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -58460,12 +58460,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public changeUserAuthorizations_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal,
       Set<ByteBuffer> authorizations)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
       this.authorizations = authorizations;
     }
@@ -58475,7 +58475,7 @@ import org.slf4j.LoggerFactory;
      */
     public changeUserAuthorizations_args(changeUserAuthorizations_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -58497,32 +58497,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
       this.authorizations = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public changeUserAuthorizations_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public changeUserAuthorizations_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -58663,12 +58663,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -58711,7 +58711,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -58756,11 +58756,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("changeUserAuthorizations_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -58786,8 +58786,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -58827,8 +58827,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -58875,9 +58875,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -58926,7 +58926,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -58947,8 +58947,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -59434,7 +59434,7 @@ import org.slf4j.LoggerFactory;
   public static class changePrincipalTokenword_args implements org.apache.thrift.TBase<changePrincipalTokenword_args, changePrincipalTokenword_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("changePrincipalTokenword_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("token", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -59444,13 +59444,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new changePrincipalTokenword_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
     public ByteBuffer token; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal"),
       TOKEN((short)3, "token");
 
@@ -59516,7 +59516,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -59530,12 +59530,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public changePrincipalTokenword_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal,
       ByteBuffer token)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
       this.token = token;
     }
@@ -59545,7 +59545,7 @@ import org.slf4j.LoggerFactory;
      */
     public changePrincipalTokenword_args(changePrincipalTokenword_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -59562,32 +59562,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
       this.token = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public changePrincipalTokenword_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public changePrincipalTokenword_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -59723,12 +59723,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -59771,7 +59771,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -59816,11 +59816,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("changePrincipalTokenword_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -59846,8 +59846,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -59887,8 +59887,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -59925,9 +59925,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -59969,7 +59969,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -59984,8 +59984,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -60462,7 +60462,7 @@ import org.slf4j.LoggerFactory;
   public static class createUser_args implements org.apache.thrift.TBase<createUser_args, createUser_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("createUser_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("token", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -60472,13 +60472,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new createUser_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
     public ByteBuffer token; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal"),
       TOKEN((short)3, "token");
 
@@ -60544,7 +60544,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -60558,12 +60558,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public createUser_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal,
       ByteBuffer token)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
       this.token = token;
     }
@@ -60573,7 +60573,7 @@ import org.slf4j.LoggerFactory;
      */
     public createUser_args(createUser_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -60590,32 +60590,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
       this.token = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public createUser_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public createUser_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -60751,12 +60751,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -60799,7 +60799,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -60844,11 +60844,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("createUser_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -60874,8 +60874,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -60915,8 +60915,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -60953,9 +60953,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -60997,7 +60997,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -61012,8 +61012,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -61490,7 +61490,7 @@ import org.slf4j.LoggerFactory;
   public static class dropUser_args implements org.apache.thrift.TBase<dropUser_args, dropUser_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("dropUser_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -61499,12 +61499,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new dropUser_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -61567,7 +61567,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -61579,11 +61579,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public dropUser_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
     }
 
@@ -61592,7 +61592,7 @@ import org.slf4j.LoggerFactory;
      */
     public dropUser_args(dropUser_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -61605,31 +61605,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public dropUser_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public dropUser_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -61718,12 +61718,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -61757,7 +61757,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -61792,11 +61792,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("dropUser_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -61814,8 +61814,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -61855,8 +61855,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -61885,9 +61885,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -61921,7 +61921,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -61933,8 +61933,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -62407,7 +62407,7 @@ import org.slf4j.LoggerFactory;
   public static class getUserAuthorizations_args implements org.apache.thrift.TBase<getUserAuthorizations_args, getUserAuthorizations_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getUserAuthorizations_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -62416,12 +62416,12 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new getUserAuthorizations_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -62484,7 +62484,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -62496,11 +62496,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public getUserAuthorizations_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
     }
 
@@ -62509,7 +62509,7 @@ import org.slf4j.LoggerFactory;
      */
     public getUserAuthorizations_args(getUserAuthorizations_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -62522,31 +62522,31 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public getUserAuthorizations_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public getUserAuthorizations_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -62635,12 +62635,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -62674,7 +62674,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -62709,11 +62709,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("getUserAuthorizations_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -62731,8 +62731,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -62772,8 +62772,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -62802,9 +62802,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -62838,7 +62838,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -62850,8 +62850,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -63478,7 +63478,7 @@ import org.slf4j.LoggerFactory;
   public static class grantSystemPermission_args implements org.apache.thrift.TBase<grantSystemPermission_args, grantSystemPermission_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantSystemPermission_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("perm", org.apache.thrift.protocol.TType.I32, (short)3);
 
@@ -63488,7 +63488,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new grantSystemPermission_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
     /**
      * 
@@ -63498,7 +63498,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal"),
       /**
        * 
@@ -63568,7 +63568,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -63582,12 +63582,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public grantSystemPermission_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal,
       SystemPermission perm)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
       this.perm = perm;
     }
@@ -63597,7 +63597,7 @@ import org.slf4j.LoggerFactory;
      */
     public grantSystemPermission_args(grantSystemPermission_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -63613,32 +63613,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
       this.perm = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public grantSystemPermission_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public grantSystemPermission_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -63772,12 +63772,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -63820,7 +63820,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -63865,11 +63865,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("grantSystemPermission_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -63895,8 +63895,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -63936,8 +63936,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -63974,9 +63974,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -64018,7 +64018,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -64033,8 +64033,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -64511,7 +64511,7 @@ import org.slf4j.LoggerFactory;
   public static class grantTablePermission_args implements org.apache.thrift.TBase<grantTablePermission_args, grantTablePermission_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantTablePermission_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField TABLE_FIELD_DESC = new org.apache.thrift.protocol.TField("table", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("perm", org.apache.thrift.protocol.TType.I32, (short)4);
@@ -64522,7 +64522,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new grantTablePermission_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
     public String table; // required
     /**
@@ -64533,7 +64533,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal"),
       TABLE((short)3, "table"),
       /**
@@ -64606,7 +64606,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -64622,13 +64622,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public grantTablePermission_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal,
       String table,
       TablePermission perm)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
       this.table = table;
       this.perm = perm;
@@ -64639,7 +64639,7 @@ import org.slf4j.LoggerFactory;
      */
     public grantTablePermission_args(grantTablePermission_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -64658,33 +64658,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
       this.table = null;
       this.perm = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public grantTablePermission_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public grantTablePermission_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -64855,12 +64855,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -64912,7 +64912,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -64967,11 +64967,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("grantTablePermission_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -65005,8 +65005,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -65046,8 +65046,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -65092,9 +65092,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -65144,7 +65144,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -65162,8 +65162,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -65644,7 +65644,7 @@ import org.slf4j.LoggerFactory;
   public static class hasSystemPermission_args implements org.apache.thrift.TBase<hasSystemPermission_args, hasSystemPermission_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("hasSystemPermission_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("perm", org.apache.thrift.protocol.TType.I32, (short)3);
 
@@ -65654,7 +65654,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new hasSystemPermission_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
     /**
      * 
@@ -65664,7 +65664,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal"),
       /**
        * 
@@ -65734,7 +65734,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -65748,12 +65748,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public hasSystemPermission_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal,
       SystemPermission perm)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
       this.perm = perm;
     }
@@ -65763,7 +65763,7 @@ import org.slf4j.LoggerFactory;
      */
     public hasSystemPermission_args(hasSystemPermission_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -65779,32 +65779,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
       this.perm = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public hasSystemPermission_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public hasSystemPermission_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -65938,12 +65938,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -65986,7 +65986,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -66031,11 +66031,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("hasSystemPermission_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -66061,8 +66061,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -66102,8 +66102,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -66140,9 +66140,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -66184,7 +66184,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -66199,8 +66199,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -66777,7 +66777,7 @@ import org.slf4j.LoggerFactory;
   public static class hasTablePermission_args implements org.apache.thrift.TBase<hasTablePermission_args, hasTablePermission_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("hasTablePermission_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField TABLE_FIELD_DESC = new org.apache.thrift.protocol.TField("table", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("perm", org.apache.thrift.protocol.TType.I32, (short)4);
@@ -66788,7 +66788,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new hasTablePermission_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
     public String table; // required
     /**
@@ -66799,7 +66799,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal"),
       TABLE((short)3, "table"),
       /**
@@ -66872,7 +66872,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -66888,13 +66888,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public hasTablePermission_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal,
       String table,
       TablePermission perm)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
       this.table = table;
       this.perm = perm;
@@ -66905,7 +66905,7 @@ import org.slf4j.LoggerFactory;
      */
     public hasTablePermission_args(hasTablePermission_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -66924,33 +66924,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
       this.table = null;
       this.perm = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public hasTablePermission_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public hasTablePermission_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -67121,12 +67121,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -67178,7 +67178,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -67233,11 +67233,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("hasTablePermission_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -67271,8 +67271,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -67312,8 +67312,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -67358,9 +67358,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -67410,7 +67410,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -67428,8 +67428,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -68010,7 +68010,7 @@ import org.slf4j.LoggerFactory;
   public static class listUsers_args implements org.apache.thrift.TBase<listUsers_args, listUsers_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("listUsers_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -68018,11 +68018,11 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new listUsers_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken");
+      PRINCIPAL_TOKEN((short)1, "principalToken");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -68082,7 +68082,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(listUsers_args.class, metaDataMap);
@@ -68092,10 +68092,10 @@ import org.slf4j.LoggerFactory;
     }
 
     public listUsers_args(
-      PrincipalToken PrincipalToken)
+      PrincipalToken principalToken)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
     }
 
     /**
@@ -68103,7 +68103,7 @@ import org.slf4j.LoggerFactory;
      */
     public listUsers_args(listUsers_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
     }
 
@@ -68113,30 +68113,30 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public listUsers_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public listUsers_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -68188,12 +68188,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -68218,7 +68218,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -68243,11 +68243,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("listUsers_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       sb.append(")");
@@ -68257,8 +68257,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -68298,8 +68298,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -68320,9 +68320,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -68348,7 +68348,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 1);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
       }
 
@@ -68357,8 +68357,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
       }
@@ -68979,7 +68979,7 @@ import org.slf4j.LoggerFactory;
   public static class revokeSystemPermission_args implements org.apache.thrift.TBase<revokeSystemPermission_args, revokeSystemPermission_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("revokeSystemPermission_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("perm", org.apache.thrift.protocol.TType.I32, (short)3);
 
@@ -68989,7 +68989,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new revokeSystemPermission_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
     /**
      * 
@@ -68999,7 +68999,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal"),
       /**
        * 
@@ -69069,7 +69069,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -69083,12 +69083,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public revokeSystemPermission_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal,
       SystemPermission perm)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
       this.perm = perm;
     }
@@ -69098,7 +69098,7 @@ import org.slf4j.LoggerFactory;
      */
     public revokeSystemPermission_args(revokeSystemPermission_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -69114,32 +69114,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
       this.perm = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public revokeSystemPermission_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public revokeSystemPermission_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -69273,12 +69273,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -69321,7 +69321,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -69366,11 +69366,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("revokeSystemPermission_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -69396,8 +69396,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -69437,8 +69437,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -69475,9 +69475,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -69519,7 +69519,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -69534,8 +69534,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -70012,7 +70012,7 @@ import org.slf4j.LoggerFactory;
   public static class revokeTablePermission_args implements org.apache.thrift.TBase<revokeTablePermission_args, revokeTablePermission_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("revokeTablePermission_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField TABLE_FIELD_DESC = new org.apache.thrift.protocol.TField("table", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("perm", org.apache.thrift.protocol.TType.I32, (short)4);
@@ -70023,7 +70023,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new revokeTablePermission_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String principal; // required
     public String table; // required
     /**
@@ -70034,7 +70034,7 @@ import org.slf4j.LoggerFactory;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       PRINCIPAL((short)2, "principal"),
       TABLE((short)3, "table"),
       /**
@@ -70107,7 +70107,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -70123,13 +70123,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public revokeTablePermission_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String principal,
       String table,
       TablePermission perm)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.principal = principal;
       this.table = table;
       this.perm = perm;
@@ -70140,7 +70140,7 @@ import org.slf4j.LoggerFactory;
      */
     public revokeTablePermission_args(revokeTablePermission_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -70159,33 +70159,33 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.principal = null;
       this.table = null;
       this.perm = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public revokeTablePermission_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public revokeTablePermission_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -70356,12 +70356,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -70413,7 +70413,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -70468,11 +70468,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("revokeTablePermission_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -70506,8 +70506,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -70547,8 +70547,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -70593,9 +70593,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.principal != null) {
@@ -70645,7 +70645,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 4);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -70663,8 +70663,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -71145,7 +71145,7 @@ import org.slf4j.LoggerFactory;
   public static class createBatchScanner_args implements org.apache.thrift.TBase<createBatchScanner_args, createBatchScanner_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("createBatchScanner_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField OPTIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("options", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
@@ -71155,13 +71155,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new createBatchScanner_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public BatchScanOptions options; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       OPTIONS((short)3, "options");
 
@@ -71227,7 +71227,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -71241,12 +71241,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public createBatchScanner_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       BatchScanOptions options)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.options = options;
     }
@@ -71256,7 +71256,7 @@ import org.slf4j.LoggerFactory;
      */
     public createBatchScanner_args(createBatchScanner_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -71272,32 +71272,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.options = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public createBatchScanner_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public createBatchScanner_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -71423,12 +71423,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -71471,7 +71471,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -71516,11 +71516,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("createBatchScanner_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -71546,8 +71546,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
       if (options != null) {
         options.validate();
@@ -71590,8 +71590,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -71629,9 +71629,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -71673,7 +71673,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -71688,8 +71688,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -72267,7 +72267,7 @@ import org.slf4j.LoggerFactory;
   public static class createScanner_args implements org.apache.thrift.TBase<createScanner_args, createScanner_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("createScanner_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField OPTIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("options", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
@@ -72277,13 +72277,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new createScanner_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public ScanOptions options; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       OPTIONS((short)3, "options");
 
@@ -72349,7 +72349,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -72363,12 +72363,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public createScanner_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       ScanOptions options)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.options = options;
     }
@@ -72378,7 +72378,7 @@ import org.slf4j.LoggerFactory;
      */
     public createScanner_args(createScanner_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -72394,32 +72394,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.options = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public createScanner_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public createScanner_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -72545,12 +72545,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -72593,7 +72593,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -72638,11 +72638,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("createScanner_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -72668,8 +72668,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
       if (options != null) {
         options.validate();
@@ -72712,8 +72712,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -72751,9 +72751,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -72795,7 +72795,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -72810,8 +72810,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -77045,7 +77045,7 @@ import org.slf4j.LoggerFactory;
   public static class updateAndFlush_args implements org.apache.thrift.TBase<updateAndFlush_args, updateAndFlush_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("updateAndFlush_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField CELLS_FIELD_DESC = new org.apache.thrift.protocol.TField("cells", org.apache.thrift.protocol.TType.MAP, (short)3);
 
@@ -77055,13 +77055,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new updateAndFlush_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public Map<ByteBuffer,List<ColumnUpdate>> cells; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       CELLS((short)3, "cells");
 
@@ -77127,7 +77127,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -77144,12 +77144,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public updateAndFlush_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       Map<ByteBuffer,List<ColumnUpdate>> cells)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.cells = cells;
     }
@@ -77159,7 +77159,7 @@ import org.slf4j.LoggerFactory;
      */
     public updateAndFlush_args(updateAndFlush_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -77191,32 +77191,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.cells = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public updateAndFlush_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public updateAndFlush_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -77353,12 +77353,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -77401,7 +77401,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -77446,11 +77446,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("updateAndFlush_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -77476,8 +77476,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
     }
 
@@ -77517,8 +77517,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -77578,9 +77578,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -77637,7 +77637,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -77665,8 +77665,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {
@@ -78164,7 +78164,7 @@ import org.slf4j.LoggerFactory;
   public static class createWriter_args implements org.apache.thrift.TBase<createWriter_args, createWriter_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("createWriter_args");
 
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("PrincipalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("principalToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField OPTS_FIELD_DESC = new org.apache.thrift.protocol.TField("opts", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
@@ -78174,13 +78174,13 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new createWriter_argsTupleSchemeFactory());
     }
 
-    public PrincipalToken PrincipalToken; // required
+    public PrincipalToken principalToken; // required
     public String tableName; // required
     public WriterOptions opts; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      PRINCIPAL_TOKEN((short)1, "PrincipalToken"),
+      PRINCIPAL_TOKEN((short)1, "principalToken"),
       TABLE_NAME((short)2, "tableName"),
       OPTS((short)3, "opts");
 
@@ -78246,7 +78246,7 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("PrincipalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.PRINCIPAL_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("principalToken", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PrincipalToken.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -78260,12 +78260,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public createWriter_args(
-      PrincipalToken PrincipalToken,
+      PrincipalToken principalToken,
       String tableName,
       WriterOptions opts)
     {
       this();
-      this.PrincipalToken = PrincipalToken;
+      this.principalToken = principalToken;
       this.tableName = tableName;
       this.opts = opts;
     }
@@ -78275,7 +78275,7 @@ import org.slf4j.LoggerFactory;
      */
     public createWriter_args(createWriter_args other) {
       if (other.isSetPrincipalToken()) {
-        this.PrincipalToken = new PrincipalToken(other.PrincipalToken);
+        this.principalToken = new PrincipalToken(other.principalToken);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -78291,32 +78291,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
       this.tableName = null;
       this.opts = null;
     }
 
     public PrincipalToken getPrincipalToken() {
-      return this.PrincipalToken;
+      return this.principalToken;
     }
 
-    public createWriter_args setPrincipalToken(PrincipalToken PrincipalToken) {
-      this.PrincipalToken = PrincipalToken;
+    public createWriter_args setPrincipalToken(PrincipalToken principalToken) {
+      this.principalToken = principalToken;
       return this;
     }
 
     public void unsetPrincipalToken() {
-      this.PrincipalToken = null;
+      this.principalToken = null;
     }
 
-    /** Returns true if field PrincipalToken is set (has been assigned a value) and false otherwise */
+    /** Returns true if field principalToken is set (has been assigned a value) and false otherwise */
     public boolean isSetPrincipalToken() {
-      return this.PrincipalToken != null;
+      return this.principalToken != null;
     }
 
     public void setPrincipalTokenIsSet(boolean value) {
       if (!value) {
-        this.PrincipalToken = null;
+        this.principalToken = null;
       }
     }
 
@@ -78442,12 +78442,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_PrincipalToken = true && this.isSetPrincipalToken();
-      boolean that_present_PrincipalToken = true && that.isSetPrincipalToken();
-      if (this_present_PrincipalToken || that_present_PrincipalToken) {
-        if (!(this_present_PrincipalToken && that_present_PrincipalToken))
+      boolean this_present_principalToken = true && this.isSetPrincipalToken();
+      boolean that_present_principalToken = true && that.isSetPrincipalToken();
+      if (this_present_principalToken || that_present_principalToken) {
+        if (!(this_present_principalToken && that_present_principalToken))
           return false;
-        if (!this.PrincipalToken.equals(that.PrincipalToken))
+        if (!this.principalToken.equals(that.principalToken))
           return false;
       }
 
@@ -78490,7 +78490,7 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
       if (isSetPrincipalToken()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.PrincipalToken, typedOther.PrincipalToken);
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principalToken, typedOther.principalToken);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -78535,11 +78535,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("createWriter_args(");
       boolean first = true;
 
-      sb.append("PrincipalToken:");
-      if (this.PrincipalToken == null) {
+      sb.append("principalToken:");
+      if (this.principalToken == null) {
         sb.append("null");
       } else {
-        sb.append(this.PrincipalToken);
+        sb.append(this.principalToken);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -78565,8 +78565,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (PrincipalToken != null) {
-        PrincipalToken.validate();
+      if (principalToken != null) {
+        principalToken.validate();
       }
       if (opts != null) {
         opts.validate();
@@ -78609,8 +78609,8 @@ import org.slf4j.LoggerFactory;
           switch (schemeField.id) {
             case 1: // PRINCIPAL_TOKEN
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.PrincipalToken = new PrincipalToken();
-                struct.PrincipalToken.read(iprot);
+                struct.principalToken = new PrincipalToken();
+                struct.principalToken.read(iprot);
                 struct.setPrincipalTokenIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -78648,9 +78648,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.PrincipalToken != null) {
+        if (struct.principalToken != null) {
           oprot.writeFieldBegin(PRINCIPAL_TOKEN_FIELD_DESC);
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.tableName != null) {
@@ -78692,7 +78692,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetPrincipalToken()) {
-          struct.PrincipalToken.write(oprot);
+          struct.principalToken.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -78707,8 +78707,8 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.PrincipalToken = new PrincipalToken();
-          struct.PrincipalToken.read(iprot);
+          struct.principalToken = new PrincipalToken();
+          struct.principalToken.read(iprot);
           struct.setPrincipalTokenIsSet(true);
         }
         if (incoming.get(1)) {

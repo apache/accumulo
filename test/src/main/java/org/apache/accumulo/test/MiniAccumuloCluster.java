@@ -39,6 +39,7 @@ import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.tabletserver.TabletServer;
 import org.apache.accumulo.server.util.Initialize;
 import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.start.Main;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 
 /**
@@ -156,13 +157,22 @@ public class MiniAccumuloCluster {
     
     ArrayList<String> argList = new ArrayList<String>();
     
-    argList.addAll(Arrays.asList(javaBin, "-cp", classpath, "-Xmx128m", "-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", className));
+    argList.addAll(Arrays.asList(javaBin, "-cp", classpath, "-Xmx128m", "-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", Main.class.getName(), className));
+    
     argList.addAll(Arrays.asList(args));
     
     ProcessBuilder builder = new ProcessBuilder(argList);
     
     builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", logDir.getAbsolutePath());
+    
+    // if we're running under accumulo.start, we forward these env vars
+    String env = System.getenv("HADOOP_PREFIX");
+    if (env != null)
+      builder.environment().put("HADOOP_PREFIX", env);
+    env = System.getenv("ZOOKEEPER_HOME");
+    if (env != null)
+      builder.environment().put("ZOOKEEPER_HOME", env);
     
     Process process = builder.start();
     
@@ -253,7 +263,8 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TSERV_NATIVEMAP_ENABLED, "false", siteConfig);
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);
-    appendProp(fileWriter, Property.GENERAL_CLASSPATHS, libDir.getAbsolutePath(), siteConfig);
+    String cp = System.getenv("ACCUMULO_HOME")+"/lib/.*.jar,$ZOOKEEPER_HOME/zookeeper[^.].*.jar,$HADOOP_HOME/[^.].*.jar,$HADOOP_HOME/lib/[^.].*.jar"; 
+    appendProp(fileWriter, Property.GENERAL_CLASSPATHS, cp, siteConfig);
     appendProp(fileWriter, Property.GENERAL_DYNAMIC_CLASSPATHS, libDir.getAbsolutePath(), siteConfig);
     
     for (Entry<String,String> entry : siteConfig.entrySet())
@@ -264,7 +275,7 @@ public class MiniAccumuloCluster {
     zooCfgFile = new File(confDir, "zoo.cfg");
     fileWriter = new FileWriter(zooCfgFile);
     
-    // zookeeper uses Properties to read its config, so use that to write inorder to properly escape things like Windows paths
+    // zookeeper uses Properties to read its config, so use that to write in order to properly escape things like Windows paths
     Properties zooCfg = new Properties();
     zooCfg.setProperty("tickTime", "1000");
     zooCfg.setProperty("initLimit", "10");
@@ -304,7 +315,7 @@ public class MiniAccumuloCluster {
       }
     });
     
-    zooKeeperProcess = exec(ZooKeeperServerMain.class, zooCfgFile.getAbsolutePath());
+    zooKeeperProcess = exec(Main.class, ZooKeeperServerMain.class.getName(), zooCfgFile.getAbsolutePath());
     
     // sleep a little bit to let zookeeper come up before calling init, seems to work better
     UtilWaitThread.sleep(250);

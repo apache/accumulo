@@ -30,7 +30,7 @@ protocol = TCompactProtocol.TCompactProtocol(transport)
 client = AccumuloProxy.Client(protocol)
 transport.open()
 
-login = client.login(UserPass("root","secret"))
+login = PrincipalToken("root","secret")
 
 print client.listTables(login)
 
