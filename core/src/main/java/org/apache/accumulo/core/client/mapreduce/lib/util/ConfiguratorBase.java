@@ -138,7 +138,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return true if the connector info has already been set, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, AccumuloToken)
+   * @see #setConnectorInfo(Class, Configuration, String, byte[])
    * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static Boolean isConnectorInfoSet(Class<?> implementingClass, Configuration conf) {

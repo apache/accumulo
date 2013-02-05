@@ -39,7 +39,7 @@ import org.apache.hadoop.mapred.Reporter;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloRowInputFormat#setConnectorInfo(JobConf, AccumuloToken)} OR {@link AccumuloRowInputFormat#setConnectorInfo(JobConf, Path)}
+ * <li>{@link AccumuloRowInputFormat#setConnectorInfo(JobConf, String, byte[])} OR {@link AccumuloRowInputFormat#setConnectorInfo(JobConf, Path)}
  * <li>{@link AccumuloRowInputFormat#setInputTableName(JobConf, String)}
  * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(JobConf, Authorizations)}
  * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloRowInputFormat#setMockInstance(JobConf, String)}

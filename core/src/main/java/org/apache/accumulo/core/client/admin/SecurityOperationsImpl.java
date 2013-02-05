@@ -122,15 +122,17 @@ public class SecurityOperationsImpl implements SecurityOperations {
   /**
    * Create a user
    * 
-   * @param newToken
+   * @param principal
+   *          the principal to create
+   * @param token
    *          the security token with the information about the user to create
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
    */
-  public void createUser(final String user, final byte[] password) throws AccumuloException, AccumuloSecurityException {
-    createUser(user, password, new Authorizations());
+  public void createUser(final String principal, final byte[] token) throws AccumuloException, AccumuloSecurityException {
+    createUser(principal, token, new Authorizations());
   }
   
   /**
@@ -157,9 +159,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
   /**
    * Verify a username/password combination is valid
    * 
-   * @param user
+   * @param principal
    *          the name of the user to authenticate
-   * @param password
+   * @param token
    *          the plaintext password for the user
    * @return true if the user asking is allowed to know and the specified user/password is valid, false otherwise
    * @throws AccumuloException
@@ -169,12 +171,12 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   @Deprecated
   @Override
-  public boolean authenticateUser(final String user, final byte[] password) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(user, password);
+  public boolean authenticateUser(final String principal, final byte[] token) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, token);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
-        return client.authenticateUser(Tracer.traceInfo(), credentials, user, ByteBuffer.wrap(password));
+        return client.authenticateUser(Tracer.traceInfo(), credentials, principal, ByteBuffer.wrap(token));
       }
     });
   }
@@ -182,7 +184,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
   /**
    * Set the user's password
    * 
-   * @param newToken
+   * @param principal
+   *          the principal who's password is to be changed
+   * @param token
    *          the security token with the information about the user to modify
    * @throws AccumuloException
    *           if a general error occurs

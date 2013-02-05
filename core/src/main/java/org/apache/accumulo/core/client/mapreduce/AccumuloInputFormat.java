@@ -37,7 +37,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloInputFormat#setConnectorInfo(Job, AccumuloToken)} OR {@link AccumuloInputFormat#setConnectorInfo(Job, Path)}
+ * <li>{@link AccumuloInputFormat#setConnectorInfo(Job, String, byte[])} OR {@link AccumuloInputFormat#setConnectorInfo(Job, Path)}
  * <li>{@link AccumuloInputFormat#setInputTableName(Job, String)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(Job, Authorizations)}
  * <li>{@link AccumuloInputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloInputFormat#setMockInstance(Job, String)}

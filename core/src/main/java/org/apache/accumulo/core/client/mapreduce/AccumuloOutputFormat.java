@@ -62,7 +62,7 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, AccumuloToken)} OR {@link AccumuloOutputFormat#setConnectorInfo(Job, Path)}
+ * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, String, byte[])} OR {@link AccumuloOutputFormat#setConnectorInfo(Job, Path)}
  * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(Job, String)}
  * </ul>
  * 
@@ -82,19 +82,14 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * 
    * @param job
    *          the Hadoop job instance to be configured
-<<<<<<< .working
-   * @param token
-   *          a valid AccumuloToken (principal must have Table.CREATE permission)
-=======
-   * @param user
+   * @param principal
    *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(Job, boolean)} is set to true)
-   * @param passwd
+   * @param token
    *          the user's password
->>>>>>> .merge-right.r1438353
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Job job, String user, byte[] passwd) {
-    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), user, passwd);
+  public static void setConnectorInfo(Job job, String principal, byte[] token) {
+    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
   }
   
   /**
@@ -530,7 +525,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   // ----------------------------------------------------------------------------------------------------
   
   /**
-   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, AccumuloToken)}, {@link #setConnectorInfo(Job, Path)}, {@link #setCreateTables(Job, boolean)},
+   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, String, byte[])}, {@link #setConnectorInfo(Job, Path)}, {@link #setCreateTables(Job, boolean)},
    *             and {@link #setDefaultTableName(Job, String)} instead.
    */
   @Deprecated

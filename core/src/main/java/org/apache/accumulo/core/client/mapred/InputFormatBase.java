@@ -92,19 +92,14 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * 
    * @param job
    *          the Hadoop job instance to be configured
-<<<<<<< .working
-   * @param token
-   *          a valid AccumuloToken (principal must have Table.CREATE permission)
-=======
-   * @param user
+   * @param principal
    *          a valid Accumulo user name (user must have Table.CREATE permission)
-   * @param passwd
+   * @param token
    *          the user's password
->>>>>>> .merge-right.r1438353
    * @since 1.5.0
    */
-  public static void setConnectorInfo(JobConf job, String user, byte[] passwd) {
-    InputConfigurator.setConnectorInfo(CLASS, job, user, passwd);
+  public static void setConnectorInfo(JobConf job, String principal, byte[] token) {
+    InputConfigurator.setConnectorInfo(CLASS, job, principal, token);
   }
   
   /**

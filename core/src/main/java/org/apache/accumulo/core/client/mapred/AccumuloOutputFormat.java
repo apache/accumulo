@@ -59,11 +59,7 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
-<<<<<<< .working
- * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, AccumuloToken)} OR {@link AccumuloOutputFormat#setConnectorInfo(JobConf, Path)}
-=======
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, byte[])}
->>>>>>> .merge-right.r1438353
  * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
  * </ul>
  * 
@@ -83,15 +79,10 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * 
    * @param job
    *          the Hadoop job instance to be configured
-<<<<<<< .working
-   * @param token
-   *          a valid AccumuloToken (principal must have Table.CREATE permission)
-=======
    * @param user
    *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
    * @param passwd
    *          the user's password
->>>>>>> .merge-right.r1438353
    * @since 1.5.0
    */
   public static void setConnectorInfo(JobConf job, String user, byte[] passwd) {

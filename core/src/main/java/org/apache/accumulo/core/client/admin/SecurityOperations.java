@@ -42,7 +42,7 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
-   * @deprecated Use {@link #createUser(SecurityToken)} instead
+   * @deprecated Use {@link #createUser(String, byte[])} instead
    */
   @Deprecated
   public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
@@ -50,6 +50,8 @@ public interface SecurityOperations {
   /**
    * Create a user
    * 
+   * @param principal
+   *          the principal being created
    * @param token
    *          the security token with the information about the user to create
    * @throws AccumuloException
@@ -57,7 +59,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
    */
-  public void createUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
+  public void createUser(String principal, byte[] token) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Delete a user
