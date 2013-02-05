@@ -121,7 +121,7 @@ public class Framework {
     DOMConfigurator.configure(opts.configDir + "logger.xml");
     
     State state = new State(props);
-    int retval = getInstance().run(opts.module, state, configDir);
+    int retval = getInstance().run(opts.module, state, opts.configDir);
     
     System.exit(retval);
   }
