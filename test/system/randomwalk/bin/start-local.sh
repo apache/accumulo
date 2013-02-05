@@ -39,8 +39,8 @@ if [ -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
 . $ACCUMULO_HOME/conf/accumulo-env.sh
 fi
 
-if [ -z "$HADOOP_HOME" ] ; then
-    echo "HADOOP_HOME is not set.  Please make sure it's set globally."
+if [ -z "$HADOOP_PREFIX" ] ; then
+    echo "HADOOP_PREFIX is not set.  Please make sure it's set globally."
     exit 1
 fi
 
@@ -54,7 +54,7 @@ RW_HOME="$ACCUMULO_HOME/test/system/randomwalk"
 cd "$RW_HOME"
 
 # grab config from HDFS
-"$HADOOP_HOME/bin/hadoop" fs -get /randomwalk/config.tgz config.tgz
+"$HADOOP_PREFIX/bin/hadoop" fs -get /randomwalk/config.tgz config.tgz
 
 # extract config to a tmp directory
 TEMP="`hostname`-tmp"

@@ -16,8 +16,8 @@
 # limitations under the License.
 
 
-if [ -z $HADOOP_HOME ] ; then
-    echo "HADOOP_HOME is not set.  Please make sure it's set globally."
+if [ -z $HADOOP_PREFIX ] ; then
+    echo "HADOOP_PREFIX is not set.  Please make sure it's set globally."
     exit 1
 fi
 
@@ -31,8 +31,8 @@ RW_HOME=$ACCUMULO_HOME/test/system/randomwalk
 cd $RW_HOME
 
 tar czf config.tgz conf
-$HADOOP_HOME/bin/hadoop fs -rmr /randomwalk 2>/dev/null
-$HADOOP_HOME/bin/hadoop fs -mkdir /randomwalk
-$HADOOP_HOME/bin/hadoop fs -put config.tgz /randomwalk
-$HADOOP_HOME/bin/hadoop fs -setrep 3 /randomwalk/config.tgz
+$HADOOP_PREFIX/bin/hadoop fs -rmr /randomwalk 2>/dev/null
+$HADOOP_PREFIX/bin/hadoop fs -mkdir /randomwalk
+$HADOOP_PREFIX/bin/hadoop fs -put config.tgz /randomwalk
+$HADOOP_PREFIX/bin/hadoop fs -setrep 3 /randomwalk/config.tgz
 rm config.tgz

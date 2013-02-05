@@ -38,8 +38,8 @@ if [ -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
 . $ACCUMULO_HOME/conf/accumulo-env.sh
 fi
 
-if [ -z $HADOOP_HOME ] ; then
-    echo "HADOOP_HOME is not set.  Please make sure it's set globally."
+if [ -z $HADOOP_PREFIX ] ; then
+    echo "HADOOP_PREFIX is not set.  Please make sure it's set globally."
     exit 1
 fi
 
@@ -70,7 +70,7 @@ echo 'pushing new code'
 prsync -r -h $ACCUMULO_HOME/conf/slaves $ACCUMULO_HOME /opt/dev
 
 echo 'removing /accumulo dir'
-$HADOOP_HOME/bin/hadoop fs -rmr /accumulo
+$HADOOP_PREFIX/bin/hadoop fs -rmr /accumulo
 
 echo 'creating new instance'
 printf "test\nY\nsecret\nsecret\n" | $ACCUMULO_HOME/bin/accumulo init

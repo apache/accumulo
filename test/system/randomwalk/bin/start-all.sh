@@ -39,8 +39,8 @@ if [ -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
 fi
 
 
-if [ -z "$HADOOP_HOME" ] ; then
-    echo "HADOOP_HOME is not set.  Please make sure it's set globally."
+if [ -z "$HADOOP_PREFIX" ] ; then
+    echo "HADOOP_PREFIX is not set.  Please make sure it's set globally."
     exit 1
 fi
 
