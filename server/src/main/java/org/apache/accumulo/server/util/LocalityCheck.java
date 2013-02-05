@@ -62,7 +62,7 @@ public class LocalityCheck {
         addBlocks(fs, host, files, totalBlocks, localBlocks);
         files.clear();
       } else if (key.compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
-        files.add(new String(KeyExtent.tableOfMetadataRow(key.getRow())) + key.getColumnQualifier().toString());
+        files.add(new String(KeyExtent.tableOfMetadataRow(key.getRow())) + slash(key.getColumnQualifier().toString()));
       }
     }
     System.out.println(" Server         %local  total blocks");
@@ -72,6 +72,12 @@ public class LocalityCheck {
     return 0;
   }
   
+  private static String slash(String path) {
+    if (path.startsWith("/"))
+      return path;
+    return "/" + path;
+  }
+
   private void addBlocks(FileSystem fs, String host, ArrayList<String> files, Map<String,Long> totalBlocks, Map<String,Long> localBlocks) throws Exception {
     long allBlocks = 0;
     long matchingBlocks = 0;
