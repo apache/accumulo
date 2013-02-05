@@ -84,7 +84,7 @@ public class Proxy {
       final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
       accumulo.start();
       opts.prop.setProperty(api+".instancename", accumulo.getInstanceName());
-      opts.prop.setProperty(api+".zookeepers", accumulo.getZookeepers());
+      opts.prop.setProperty(api+".zookeepers", accumulo.getZooKeepers());
       Runtime.getRuntime().addShutdownHook(new Thread() {
         public void start() {
           try {

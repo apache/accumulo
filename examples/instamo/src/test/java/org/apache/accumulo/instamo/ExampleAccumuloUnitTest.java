@@ -46,7 +46,7 @@ public class ExampleAccumuloUnitTest {
 
   @Test(timeout = 30000)
   public void test() throws Exception {
-    AccumuloApp.run(accumulo.getInstanceName(), accumulo.getZookeepers(), "superSecret", new String[0]);
+    AccumuloApp.run(accumulo.getInstanceName(), accumulo.getZooKeepers(), "superSecret", new String[0]);
   }
   
   @AfterClass

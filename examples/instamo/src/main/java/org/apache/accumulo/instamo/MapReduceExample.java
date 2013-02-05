@@ -56,7 +56,7 @@ public class MapReduceExample {
       
       System.out.println("\n   ---- Running Mapred Against Accumulo\n");
       
-      run(la.getInstanceName(), la.getZookeepers(), "pass1234", args);
+      run(la.getInstanceName(), la.getZooKeepers(), "pass1234", args);
       
       System.out.println("\n   ---- Ran Mapred Against Accumulo\n");
       

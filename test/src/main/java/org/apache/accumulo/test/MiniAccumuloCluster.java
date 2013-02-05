@@ -346,7 +346,7 @@ public class MiniAccumuloCluster {
    * @return zookeeper connection string
    */
   
-  public String getZookeepers() {
+  public String getZooKeepers() {
     return "localhost:" + zooKeeperPort;
   }
   

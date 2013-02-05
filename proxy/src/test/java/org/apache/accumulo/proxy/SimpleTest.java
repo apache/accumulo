@@ -122,7 +122,7 @@ public class SimpleTest {
   
     Properties props = new Properties();
     props.put("org.apache.accumulo.proxy.ProxyServer.instancename", accumulo.getInstanceName());
-    props.put("org.apache.accumulo.proxy.ProxyServer.zookeepers", accumulo.getZookeepers());
+    props.put("org.apache.accumulo.proxy.ProxyServer.zookeepers", accumulo.getZooKeepers());
     
     protocolClass = getRandomProtocol();
     System.out.println(protocolClass.getName());

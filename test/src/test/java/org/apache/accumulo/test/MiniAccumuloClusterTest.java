@@ -67,7 +67,7 @@ public class MiniAccumuloClusterTest {
 
   @Test(timeout = 30000)
   public void test() throws Exception {
-    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZookeepers()).getConnector("root", "superSecret");
+    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", "superSecret");
     
     conn.tableOperations().create("table1");
     
@@ -82,7 +82,7 @@ public class MiniAccumuloClusterTest {
     
     conn.tableOperations().attachIterator("table1", is);
 
-    Connector uconn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZookeepers()).getConnector("user1", "pass1");
+    Connector uconn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("user1", "pass1");
     
     BatchWriter bw = uconn.createBatchWriter("table1", new BatchWriterConfig());
     
@@ -138,7 +138,7 @@ public class MiniAccumuloClusterTest {
   @Test(timeout = 30000)
   public void testPerTableClasspath() throws Exception {
     
-    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZookeepers()).getConnector("root", "superSecret");
+    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", "superSecret");
     
     conn.tableOperations().create("table2");
     
