@@ -30,7 +30,7 @@ public class Framework {
   
   private static final Logger log = Logger.getLogger(Framework.class);
   private HashMap<String,Node> nodes = new HashMap<String,Node>();
-  private static String configDir = null;
+  private String configDir = null;
   private static final Framework INSTANCE = new Framework();
   
   /**
@@ -40,11 +40,11 @@ public class Framework {
     return INSTANCE;
   }
   
-  public static String getConfigDir() {
+  public String getConfigDir() {
     return configDir;
   }
   
-  public static void setConfigDir(String confDir) {
+  public void setConfigDir(String confDir) {
     configDir = confDir;
   }
   
@@ -59,6 +59,7 @@ public class Framework {
   public int run(String startName, State state, String confDir) {
     
     try {
+      System.out.println("confDir " + confDir);
       setConfigDir(confDir);
       Node node = getNode(startName);
       node.visit(state, new Properties());

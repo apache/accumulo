@@ -76,7 +76,6 @@ public class FrameworkTest extends TestCase {
       return;
     
     String confDir = acuHome + "/test/system/randomwalk/conf/";
-    Framework.setConfigDir(confDir);
     try {
       Module module = new Module(new File(confDir + "modules/unit/Basic.xml"));
       module.visit(new State(new Properties()), new Properties());
