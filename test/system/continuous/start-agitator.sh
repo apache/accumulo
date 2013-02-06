@@ -17,6 +17,7 @@
 
 
 . continuous-env.sh
+export HADOOP_PREFIX
 
 mkdir -p $CONTINUOUS_LOG_DIR
 

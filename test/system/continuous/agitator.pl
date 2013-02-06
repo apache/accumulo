@@ -24,7 +24,7 @@ if(scalar(@ARGV) != 4 && scalar(@ARGV) != 2){
 }
 
 $ACCUMULO_HOME="../../..";
-$HADOOP_PREFIX=$ENV{'HADOOP_PREFIX'};
+$HADOOP_PREFIX=$ENV{"HADOOP_PREFIX"};
 
 $sleep1 = $ARGV[0];
 $sleep2 = $ARGV[1];
@@ -64,6 +64,7 @@ if ($minKill > $maxKill){
 }
 
 while(1){
+
 
 	$numToKill = int(rand($maxKill - $minKill + 1)) + $minKill;
 	%killed = {};
