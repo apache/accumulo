@@ -77,16 +77,37 @@ while(1){
 		$killed{$server} = 1;
 
 		$t = strftime "%Y%m%d %H:%M:%S", localtime;
-	
+
 		$rn = rand(1);
-		print STDERR "$t Killing $server\n";
-		system("$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.*.jar\" tserver KILL");
+		$kill_tserver = 0;
+		$kill_datanode = 0;
+		if($rn <.33){
+			$kill_tserver = 1;
+			$kill_datanode = 1;
+		}elsif($rn < .66){
+			$kill_tserver = 1;
+			$kill_datanode = 0;
+		}else{
+			$kill_tserver = 0;
+			$kill_datanode = 1;
+		}
+	
+		print STDERR "$t Killing $server $kill_tserver $kill_datanode\n";
+	        if($kill_tserver) {
+			system("$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.*.jar\" tserver KILL");
+		}
+
+	        if($kill_datanode) {
+		        system("ssh $server pkill -9 -f [p]roc_datanode");
+		}
 	}
 
 	sleep($sleep2 * 60);
 	$t = strftime "%Y%m%d %H:%M:%S", localtime;
 	print STDERR "$t Running tup\n";
 	system("$ACCUMULO_HOME/bin/tup.sh");
+	print STDERR "$t Running start-dfs\n";
+	system("$HADOOP_PREFIX/bin/start-dfs.sh");
 
 	sleep($sleep1 * 60);
 }
