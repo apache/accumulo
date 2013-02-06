@@ -46,6 +46,7 @@
   <edge id="ct.CheckBalance" weight="1000"/>
   <edge id="ct.StopTabletServer" weight="1000"/>
   <edge id="ct.StartAll" weight="1000"/>
+  <edge id="ct.Shutdown" weight="100"/>
   <edge id="ct.Config" weight="1000"/>
   <edge id="END" weight="1"/>
 </node>
@@ -145,6 +146,10 @@
 
 <node id="ct.Config">
   <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="ct.Shutdown">
+  <edge id="ct.StartAll" weight="1"/>
 </node>
 
 </module>

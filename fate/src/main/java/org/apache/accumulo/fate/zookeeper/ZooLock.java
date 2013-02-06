@@ -223,7 +223,7 @@ public class ZooLock implements Watcher {
             } else if (asyncLock != null && event.getType() == EventType.NodeDeleted && event.getPath().equals(path + "/" + asyncLock)) {
               failedToAcquireLock();
             } else if(event.getState() != KeeperState.Expired) {
-              log.warn("Unexpected event wathcing lock node "+event+" "+asyncLockPath);
+              log.warn("Unexpected event watching lock node "+event+" "+asyncLockPath);
               try {
                 Stat stat2 = zooKeeper.getStatus(asyncLockPath, this);
                 if(stat2 == null){

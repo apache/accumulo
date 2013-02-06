@@ -21,7 +21,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.SetGoalState;
@@ -30,24 +29,29 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.accumulo.trace.instrument.Tracer;
 
-public class StartAll extends Test {
+public class Shutdown extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    log.info("Starting all servers");
-    SetGoalState.main(new String[]{MasterGoalState.NORMAL.name()});
-    Process exec = Runtime.getRuntime().exec(new String[]{System.getenv().get("ACCUMULO_HOME") + "/bin/start-all.sh"});
-    exec.waitFor();
-    while (true) {
-      try {
-        Client client = MasterClient.getConnection(HdfsZooInstance.getInstance());
-        MasterMonitorInfo masterStats = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
-        if (!masterStats.tServerInfo.isEmpty())
-          break;
-      } catch (Exception ex) {
-        UtilWaitThread.sleep(1000);
-      }
+  public void visit(State state, Properties props) throws Exception  {
+    log.debug("shutting down");
+    SetGoalState.main(new String[]{MasterGoalState.CLEAN_STOP.name()});
+    
+    while (!state.getConnector().instanceOperations().getTabletServers().isEmpty()) {
+      UtilWaitThread.sleep(1000);
     }
+    
+    while (true) {
+        try {
+          Client client = MasterClient.getConnection(HdfsZooInstance.getInstance());
+          client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
+        } catch (Exception e) {
+          // assume this is due to server shutdown
+          break;
+        }
+        UtilWaitThread.sleep(1000);
+    }
+
+    log.debug("tablet servers stopped");
   }
   
 }
