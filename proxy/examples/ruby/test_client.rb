@@ -24,13 +24,12 @@ socket = Thrift::Socket.new(server, 42424, 9001)
 transport = Thrift::FramedTransport.new(socket)
 proto = Thrift::CompactProtocol.new(transport)
 proxy = AccumuloProxy::Client.new(proto)
-login = PrincipalToken.new({'principal' => 'root', 'token' => 'secret'})
 
 # open up the connect
 transport.open()
 
 # Test if the server is up
-proxy.ping(login)
+login = proxy.login(UserPass.new('username' => 'root', 'password' => 'secret'))
 
 # print out a table list
 puts "List of tables: #{proxy.listTables(login).inspect}"
