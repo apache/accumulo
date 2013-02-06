@@ -83,7 +83,7 @@ public class ZooLockTest {
     
     folder.create();
     
-    Logger.getLogger("org.apache.zookeeper").setLevel(Level.WARN);
+    Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
     
     accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
     
