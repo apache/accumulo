@@ -32,12 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.trace.instrument.CountSampler;
-import org.apache.accumulo.trace.instrument.Sampler;
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
-import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -64,6 +58,7 @@ import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.Credentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -79,13 +74,18 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.OfflineMetadataScanner;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
+import org.apache.accumulo.trace.instrument.CountSampler;
+import org.apache.accumulo.trace.instrument.Sampler;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
+import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
+import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -372,6 +372,18 @@ public class SimpleGarbageCollector implements Iface {
     LockWatcher lockWatcher = new LockWatcher() {
       public void lostLock(LockLossReason reason) {
         Halt.halt("GC lock in zookeeper lost (reason = " + reason + "), exiting!");
+      }
+      
+      @Override
+      public void unableToMonitorLockNode(final Throwable e) {
+        Halt.halt(-1, new Runnable() {
+          
+          @Override
+          public void run() {
+            log.fatal("No longer able to monitor lock node ", e);
+          }
+        });
+        
       }
     };
     

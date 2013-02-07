@@ -31,34 +31,4 @@ public class ZooLock extends org.apache.accumulo.fate.zookeeper.ZooLock {
   public static boolean deleteLock(String path, String lockData) throws InterruptedException, KeeperException {
     return deleteLock(ZooReaderWriter.getInstance(), path, lockData);
   }
-  
-  public static void main(String[] args) throws Exception {
-    String node = "/test/lock1";
-    ZooLock zl = new ZooLock(node);
-    
-    zl.lockAsync(new AsyncLockWatcher() {
-      
-      @Override
-      public void acquiredLock() {
-        System.out.println("I got the lock");
-      }
-      
-      @Override
-      public void lostLock(LockLossReason reason) {
-        System.out.println("OMG I lost my lock, reason = " + reason);
-        
-      }
-      
-      @Override
-      public void failedToAcquireLock(Exception e) {
-        System.out.println("Failed to acquire lock  ");
-        e.printStackTrace();
-      }
-      
-    }, new byte[0]);
-    
-    while (true) {
-      Thread.sleep(1000);
-    }
-  }
 }

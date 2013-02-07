@@ -87,6 +87,11 @@ public class SplitRecoveryTest extends FunctionalTest {
         System.exit(-1);
         
       }
+      
+      @Override
+      public void unableToMonitorLockNode(Throwable e) {
+        System.exit(-1);
+      }
     }, "foo".getBytes());
     
     if (!gotLock) {

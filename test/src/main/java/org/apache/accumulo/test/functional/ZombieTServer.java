@@ -21,8 +21,6 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Random;
 
-import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -45,6 +43,8 @@ import org.apache.accumulo.server.util.TServerUtils.ServerPort;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.trace.instrument.Tracer;
+import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
@@ -112,6 +112,16 @@ public class ZombieTServer {
     LockWatcher lw = new LockWatcher() {
       @Override
       public void lostLock(final LockLossReason reason) {
+        try {
+          tch.halt(Tracer.traceInfo(), null, null);
+        } catch (Exception ex) {
+          log.error(ex, ex);
+          System.exit(1);
+        }
+      }
+      
+      @Override
+      public void unableToMonitorLockNode(Throwable e) {
         try {
           tch.halt(Tracer.traceInfo(), null, null);
         } catch (Exception ex) {

@@ -76,6 +76,12 @@ public class ZooLockTest {
         this.wait();
       }
     }
+    
+    @Override
+    public synchronized void unableToMonitorLockNode(Throwable e) {
+      changes++;
+      this.notifyAll();
+    }
   }
 
   @BeforeClass
@@ -123,6 +129,8 @@ public class ZooLockTest {
     Assert.assertTrue(zl.isLocked());
     Assert.assertNull(lw.exception);
     Assert.assertNull(lw.reason);
+    
+    zl.unlock();
   }
   
   @Test(timeout = 10000)
@@ -244,6 +252,8 @@ public class ZooLockTest {
     Assert.assertTrue(zl3.isLocked());
     Assert.assertNull(lw3.exception);
     Assert.assertNull(lw3.reason);
+    
+    zl3.unlock();
 
   }
   
@@ -285,11 +295,11 @@ public class ZooLockTest {
 
     Assert.assertEquals(LockLossReason.LOCK_DELETED, lw.reason);
     Assert.assertNull(lw.exception);
+
   }
 
   @Test(timeout = 10000)
   public void testTryLock() throws Exception {
-    
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
     
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "digest", "secret".getBytes(), parent);
@@ -311,9 +321,13 @@ public class ZooLockTest {
     Assert.assertTrue(ret);
     
     // make sure still watching parent even though a lot of events occurred for the parent
-    Field field = zl.getClass().getDeclaredField("watchingParent");
-    field.setAccessible(true);
-    Assert.assertTrue((Boolean) field.get(zl));
+    synchronized (zl) {
+      Field field = zl.getClass().getDeclaredField("watchingParent");
+      field.setAccessible(true);
+      Assert.assertTrue((Boolean) field.get(zl));
+    }
+    
+    zl.unlock();
   }
 
   @AfterClass
