@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -79,7 +79,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   public static final String AUTH_OPT = "authorizations";
   public static final String MAX_BUFFER_SIZE_OPT = "maxBufferSize";
   private static final long DEFAULT_MAX_BUFFER_SIZE = 10000000;
-
+  
   protected Logger log = Logger.getLogger(getClass());
   
   protected ArrayList<Pair<Key,Value>> keys = new ArrayList<Pair<Key,Value>>();
@@ -120,7 +120,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     } else {
       maxBufferSize = DEFAULT_MAX_BUFFER_SIZE;
     }
-
+    
     parsedVisibilitiesCache = new LRUMap(100);
   }
   
@@ -129,9 +129,9 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     String desc = "This iterator allows ranges of key to be transformed (with the exception of row transformations).";
     String authDesc = "Comma-separated list of user's scan authorizations.  "
         + "If excluded or empty, then no visibility check is performed on transformed keys.";
-    String bufferDesc = "Maximum buffer size (in accumulo memory spec) to use for buffering keys before throwing a BufferOverflowException.  " +
-    		"Users should keep this limit in mind when deciding what to transform.  That is, if transforming the column family for example, then all " +
-    		"keys sharing the same row and column family must fit within this limit (along with their associated values)";
+    String bufferDesc = "Maximum buffer size (in accumulo memory spec) to use for buffering keys before throwing a BufferOverflowException.  "
+        + "Users should keep this limit in mind when deciding what to transform.  That is, if transforming the column family for example, then all "
+        + "keys sharing the same row and column family must fit within this limit (along with their associated values)";
     HashMap<String,String> namedOptions = new HashMap<String,String>();
     namedOptions.put(AUTH_OPT, authDesc);
     namedOptions.put(MAX_BUFFER_SIZE_OPT, bufferDesc);
@@ -231,7 +231,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
       transformKeys();
     }
   }
-
+  
   private static class RangeIterator implements SortedKeyValueIterator<Key,Value> {
     
     private SortedKeyValueIterator<Key,Value> source;
@@ -244,7 +244,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
       this.prefixKey = prefixKey;
       this.keyPrefix = keyPrefix;
     }
-
+    
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
       throw new UnsupportedOperationException();
@@ -286,7 +286,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     }
     
   }
-
+  
   /**
    * Reads all keys matching the first key's prefix from the source iterator, transforms them, and sorts the resulting keys. Transformed keys that fall outside
    * of our seek range or can't be seen by the user are excluded.
@@ -299,7 +299,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     transformRange(new RangeIterator(getSource(), prefixKey, getKeyPrefix()), new KVBuffer() {
       
       long appened = 0;
-
+      
       @Override
       public void append(Key key, Value val) {
         // ensure the key provided by the user has the correct prefix
@@ -314,7 +314,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
           // try to defend against a scan or compaction using all memory in a tablet server
           if (appened > maxBufferSize)
             throw new BufferOverflowException("Exceeded buffer size of " + maxBufferSize + ", prefixKey: " + prefixKey);
-
+          
           if (getSource().hasTop() && key == getSource().getTopKey())
             key = new Key(key);
           keys.add(new Pair<Key,Value>(key, new Value(val)));
@@ -322,7 +322,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
         }
       }
     });
-
+    
     // consume any key in range that user did not consume
     while (super.hasTop() && super.getTopKey().equals(prefixKey, getKeyPrefix())) {
       super.next();
@@ -643,7 +643,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
    * @param config
    * @param auths
    */
-  public static void setAutorizations(IteratorSetting config, Authorizations auths) {
+  public static void setAuthorizations(IteratorSetting config, Authorizations auths) {
     config.addOption(AUTH_OPT, auths.serialize());
   }
   
@@ -657,5 +657,5 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   public static void setMaxBufferSize(IteratorSetting config, long maxBufferSize) {
     config.addOption(MAX_BUFFER_SIZE_OPT, maxBufferSize + "");
   }
-
+  
 }

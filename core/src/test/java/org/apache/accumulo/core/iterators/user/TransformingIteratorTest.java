@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -91,7 +91,7 @@ public class TransformingIteratorTest {
   private void setUpTransformIterator(Class<? extends TransformingIterator> clazz) {
     IteratorSetting cfg = new IteratorSetting(21, clazz);
     cfg.setName("keyTransformIter");
-    TransformingIterator.setAutorizations(cfg, new Authorizations("vis0", "vis1", "vis2", "vis3"));
+    TransformingIterator.setAuthorizations(cfg, new Authorizations("vis0", "vis1", "vis2", "vis3"));
     scanner.addScanIterator(cfg);
   }
   
@@ -183,7 +183,7 @@ public class TransformingIteratorTest {
     setUpTransformIterator(IllegalVisKeyTransformingIterator.class);
     checkExpected(new TreeMap<Key,Value>());
   }
-
+  
   @Test
   public void testRangeStart() throws Exception {
     setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
@@ -296,7 +296,7 @@ public class TransformingIteratorTest {
     
     bw.addMutation(m1);
     bw.close();
-
+    
     BatchScanner bs = connector.createBatchScanner("shard_table", authorizations, 1);
     
     bs.addScanIterator(new IteratorSetting(21, ColVisReversingKeyTransformingIterator.class));
@@ -311,7 +311,7 @@ public class TransformingIteratorTest {
     assertEquals("shard001", docKey.getRowData().toString());
     assertEquals("doc02", docKey.getColumnQualifierData().toString());
     assertFalse(iter.hasNext());
-
+    
     bs.close();
   }
   
@@ -370,7 +370,7 @@ public class TransformingIteratorTest {
       
     }
   }
-
+  
   @Test
   public void testDupes() throws Exception {
     setUpTransformIterator(DupeTransformingIterator.class);
@@ -387,7 +387,7 @@ public class TransformingIteratorTest {
     
     assertEquals(81, count);
   }
-
+  
   private Key createDeleteKey(String row, String colFam, String colQual, String colVis, long timestamp) {
     Key key = new Key(row, colFam, colQual, colVis, timestamp);
     key.setDeleted(true);
@@ -518,7 +518,7 @@ public class TransformingIteratorTest {
     }
     
   }
-
+  
   public static abstract class ReversingKeyTransformingIterator extends TransformingIterator {
     
     @Override
@@ -579,7 +579,7 @@ public class TransformingIteratorTest {
     protected PartialKey getKeyPrefix() {
       return PartialKey.ROW_COLFAM_COLQUAL;
     }
-
+    
     @Override
     protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
       while (input.hasTop()) {
@@ -591,7 +591,7 @@ public class TransformingIteratorTest {
       }
     }
   }
-
+  
   public static class IllegalVisCompactionKeyTransformingIterator extends IllegalVisKeyTransformingIterator {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
@@ -599,7 +599,7 @@ public class TransformingIteratorTest {
       super.init(source, options, env);
     }
   }
-
+  
   public static class BadVisKeyTransformingIterator extends TransformingIterator {
     @Override
     protected PartialKey getKeyPrefix() {
@@ -667,22 +667,27 @@ public class TransformingIteratorTest {
       this.delegate = delegate;
     }
     
+    @Override
     public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
       return delegate.reserveMapFileReader(mapFileName);
     }
     
+    @Override
     public AccumuloConfiguration getConfig() {
       return delegate.getConfig();
     }
     
+    @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.majc;
     }
     
+    @Override
     public boolean isFullMajorCompaction() {
       return delegate.isFullMajorCompaction();
     }
     
+    @Override
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
       delegate.registerSideChannel(iter);
     }
