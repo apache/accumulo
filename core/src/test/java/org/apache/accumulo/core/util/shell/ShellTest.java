@@ -143,4 +143,25 @@ public class ShellTest {
     exec("scan", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
+  
+  @Test
+  public void authsTest() throws Exception {
+    Shell.log.debug("Starting auths test --------------------------");
+    exec("setauths x,y,z", false, "Missing required option");
+    exec("setauths -s x,y,z -u notauser", false, "user does not exist");
+    exec("setauths -s x,y,z", true);
+    exec("getauths -u notauser", false,"user does not exist");
+    exec("getauths", true,"y,z,x");
+    exec("addauths -u notauser", false,"Missing required option");
+    exec("addauths -u notauser -s foo", false,"user does not exist");
+    exec("addauths -s a", true);
+    exec("getauths", true, "y,z,a,x");
+    exec("setauths -c", true);
+  }
+  
+  @Test
+  public void userTest() throws Exception {
+    Shell.log.debug("Starting user test --------------------------");
+    //exec("createuser root", false, "user exists");
+  }
 }

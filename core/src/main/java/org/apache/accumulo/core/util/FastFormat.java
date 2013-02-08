@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.core.util;
 
 public class FastFormat {
   // this 7 to 8 times faster than String.format("%s%06d",prefix, num)
