@@ -162,7 +162,7 @@ public class ConfigCommand extends Command {
         boolean printed = false;
         
         if (dfault != null && key.toLowerCase().contains("password")) {
-          dfault = curVal = curVal.replaceAll(".", "*");
+          siteVal = sysVal = dfault = curVal = curVal.replaceAll(".", "*");
         }
         if (sysVal != null) {
           if (defaults.containsKey(key)) {
