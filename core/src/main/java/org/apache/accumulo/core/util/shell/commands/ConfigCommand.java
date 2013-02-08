@@ -165,14 +165,14 @@ public class ConfigCommand extends Command {
         if (tableName != null && !Property.isValidTablePropertyKey(key)) {
           continue;
         }
-        final String siteVal = siteConfig.get(key);
-        final String sysVal = systemConfig.get(key);
+        String siteVal = siteConfig.get(key);
+        String sysVal = systemConfig.get(key);
         String curVal = propEntry.getValue();
         String dfault = defaults.get(key);
         boolean printed = false;
         
         if (dfault != null && key.toLowerCase().contains("password")) {
-          dfault = curVal = curVal.replaceAll(".", "*");
+          siteVal = sysVal = dfault = curVal = curVal.replaceAll(".", "*");
         }
         if (sysVal != null) {
           if (defaults.containsKey(key)) {
