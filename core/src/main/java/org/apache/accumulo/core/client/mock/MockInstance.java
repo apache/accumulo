@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.mock;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -29,8 +28,13 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.handler.ZKAuthenticator;
+import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
@@ -114,12 +118,7 @@ public class MockInstance implements Instance {
   
   @Override
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    Connector conn = new MockConnector(user, acu, this);
-    if (!acu.users.containsKey(user))
-      conn.securityOperations().createUser(user, pass);
-    else if (!Arrays.equals(acu.users.get(user).password, pass))
-        throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
-    return conn;
+    return getConnector(user, new PasswordToken().setPassword(pass));
   }
   
   @Override
@@ -147,13 +146,27 @@ public class MockInstance implements Instance {
   }
   
   @Override
-  public Connector getConnector(Credentials auth) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(auth.getPrincipal(), auth.getToken());
+  public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(auth.user, auth.password);
   }
-
+  
   @Override
   public String getAuthenticatorClassName() throws AccumuloException {
-    // TODO: This should be updated with a MockAuthenticator or something?
-    return null;
+    return ZKAuthenticator.class.getCanonicalName();
+  }
+  
+  @Override
+  public Connector getConnector(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+    Connector conn = new MockConnector(principal, acu, this);
+    if (!acu.users.containsKey(principal))
+      conn.securityOperations().createUser(principal, token);
+    else if (!acu.users.get(principal).token.equals(token))
+        throw new AccumuloSecurityException(principal, SecurityErrorCode.BAD_CREDENTIALS);
+    return conn;
+  }
+  
+  @Override
+  public Connector getConnector(Credential credential) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(credential.principal, CredentialHelper.extractToken(credential));
   }
 }

@@ -33,7 +33,7 @@ import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -49,7 +49,7 @@ import org.apache.thrift.transport.TTransportException;
  */
 public class InstanceOperationsImpl implements InstanceOperations {
   private Instance instance;
-  private Credentials credentials;
+  private Credential credentials;
   
   /**
    * @param instance
@@ -57,7 +57,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
    * @param credentials
    *          the username/password for this connection
    */
-  public InstanceOperationsImpl(Instance instance, Credentials credentials) {
+  public InstanceOperationsImpl(Instance instance, Credential credentials) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;

@@ -22,7 +22,9 @@ import java.util.Random;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -33,7 +35,7 @@ public class ChangePass extends Test {
     String target = props.getProperty("target");
     String source = props.getProperty("source");
     
-    Credentials auth;
+    Credential auth;
     if (source.equals("system")) {
       auth = WalkingSecurity.get(state).getSysCredentials();
     } else {
@@ -54,12 +56,13 @@ public class ChangePass extends Test {
     
     Random r = new Random();
     
-    byte[] newPass = new byte[r.nextInt(50) + 1];
-    for (int i =0; i < newPass.length; i++)
-      newPass[i] = (byte) ((r.nextInt(26)+65) & 0xFF);
+    byte[] newPassw = new byte[r.nextInt(50) + 1];
+    for (int i =0; i < newPassw.length; i++)
+      newPassw[i] = (byte) ((r.nextInt(26)+65) & 0xFF);
     
+    SecurityToken newPass = new PasswordToken().setPassword(newPassw);
     try {
-      conn.securityOperations().changeUserPassword(target, newPass);
+      conn.securityOperations().changeLoginInfo(target, newPass);
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:

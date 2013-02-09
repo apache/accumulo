@@ -18,7 +18,6 @@ package org.apache.accumulo.test.randomwalk;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +29,9 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.log4j.Logger;
 
@@ -97,16 +98,16 @@ public class State {
     if (connector == null) {
       String instance = props.getProperty("INSTANCE");
       String zookeepers = props.getProperty("ZOOKEEPERS");
-      Credentials credentials = getCredentials();
+      Credential credentials = getCredentials();
       connector = new ZooKeeperInstance(instance, zookeepers).getConnector(credentials.getPrincipal(), credentials.getToken());
     }
     return connector;
   }
   
-  public Credentials getCredentials() {
+  public Credential getCredentials() {
     String username = props.getProperty("USERNAME");
     String password = props.getProperty("PASSWORD");
-    return new Credentials(username, ByteBuffer.wrap(password.getBytes()), this.getInstance().getInstanceID());
+    return CredentialHelper.createSquelchError(username, new PasswordToken().setPassword(password.getBytes()), this.getInstance().getInstanceID());
   }
 
   public Instance getInstance() {

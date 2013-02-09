@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.cli;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -27,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
 import org.junit.Test;
 
 import com.beust.jcommander.JCommander;
@@ -41,9 +41,9 @@ public class TestClientOpts {
     ClientOpts args = new ClientOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();
-    assertEquals(System.getProperty("user.name"), args.user);
+    assertEquals(System.getProperty("user.name"), args.principal);
     assertNull(args.securePassword);
-    assertArrayEquals("secret".getBytes(), args.getPassword());
+    assertEquals(new PasswordToken().setPassword("secret".getBytes()), args.getToken());
     assertEquals(new Long(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), bwOpts.batchLatency);
     assertEquals(new Long(cfg.getTimeout(TimeUnit.MILLISECONDS)), bwOpts.batchTimeout);
     assertEquals(new Long(cfg.getMaxMemory()), bwOpts.batchMemory);
@@ -72,9 +72,9 @@ public class TestClientOpts {
         "--auths", "G1,G2,G3",
         "-z", "zoohost1,zoohost2",
         "--help");
-    assertEquals("bar", args.user);
+    assertEquals("bar", args.principal);
     assertNull(args.securePassword);
-    assertArrayEquals("foo".getBytes(), args.getPassword());
+    assertEquals(new PasswordToken().setPassword("foo".getBytes()), args.getToken());
     assertEquals(new Long(3000), bwOpts.batchLatency);
     assertEquals(new Long(2000), bwOpts.batchTimeout);
     assertEquals(new Long(1024*1024), bwOpts.batchMemory);

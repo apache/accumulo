@@ -58,7 +58,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.data.thrift.UpdateErrors;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -111,7 +111,7 @@ public class TabletServerBatchWriter {
   private FailedMutations failedMutations;
   
   private Instance instance;
-  private Credentials credentials;
+  private Credential credentials;
   
   private Violations violations;
   private Map<KeyExtent,Set<SecurityErrorCode>> authorizationFailures;
@@ -187,7 +187,7 @@ public class TabletServerBatchWriter {
     }
   }
   
-  public TabletServerBatchWriter(Instance instance, Credentials credentials, BatchWriterConfig config) {
+  public TabletServerBatchWriter(Instance instance, Credential credentials, BatchWriterConfig config) {
     this.instance = instance;
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE : config.getMaxLatency(TimeUnit.MILLISECONDS);

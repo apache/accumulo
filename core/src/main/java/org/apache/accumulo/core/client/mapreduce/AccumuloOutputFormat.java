@@ -40,7 +40,10 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
@@ -86,9 +89,10 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(Job, boolean)} is set to true)
    * @param token
    *          the user's password
+   * @throws AccumuloSecurityException 
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Job job, String principal, byte[] token) {
+  public static void setConnectorInfo(Job job, String principal, SecurityToken token) throws AccumuloSecurityException {
     OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
   }
   
@@ -129,11 +133,25 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
+   * @see #setConnectorInfo(Job, String, SecurityToken)
    * @see #setConnectorInfo(Job, Path)
    */
   protected static String getPrincipal(JobContext context) {
     return OutputConfigurator.getPrincipal(CLASS, context.getConfiguration());
+  }
+  
+  /**
+   * Gets the serialized token class name from the configuration.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the user name
+   * @since 1.5.0
+   * @see #setConnectorInfo(Job, String, SecurityToken)
+   * @see #setConnectorInfo(Job, Path)
+   */
+  protected static String getTokenClass(JobContext context) {
+    return OutputConfigurator.getTokenClass(CLASS, context.getConfiguration());
   }
   
   /**
@@ -362,7 +380,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
       
       if (!simulate) {
-        this.conn = getInstance(context).getConnector(getPrincipal(context), getToken(context));
+        this.conn = getInstance(context).getConnector(getPrincipal(context), CredentialHelper.extractToken(getTokenClass(context), getToken(context)));
         mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(context));
       }
     }
@@ -496,8 +514,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       throw new IOException("Connector info has not been set.");
     try {
       // if the instance isn't configured, it will complain here
-      Connector c = getInstance(job).getConnector(getPrincipal(job), getToken(job));
-      if (!c.securityOperations().authenticateUser(getPrincipal(job), getToken(job)))
+      Connector c = getInstance(job).getConnector(getPrincipal(job), CredentialHelper.extractToken(getTokenClass(job), getToken(job)));
+      if (!c.securityOperations().authenticateUser(getPrincipal(job), CredentialHelper.extractToken(getTokenClass(job), getToken(job))))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException e) {
       throw new IOException(e);
@@ -530,7 +548,11 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setOutputInfo(Configuration conf, String user, byte[] passwd, boolean createTables, String defaultTable) {
-    OutputConfigurator.setConnectorInfo(CLASS, conf, user, passwd);
+    try {
+      OutputConfigurator.setConnectorInfo(CLASS, conf, user, new PasswordToken().setPassword(passwd));
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
     OutputConfigurator.setCreateTables(CLASS, conf, createTables);
     OutputConfigurator.setDefaultTableName(CLASS, conf, defaultTable);
   }

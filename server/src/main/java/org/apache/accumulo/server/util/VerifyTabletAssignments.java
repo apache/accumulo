@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -45,13 +44,12 @@ import org.apache.accumulo.core.data.thrift.MultiScanResult;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TRange;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.trace.thrift.TInfo;
@@ -91,7 +89,7 @@ public class VerifyTabletAssignments {
     
     Connector conn = opts.getConnector();
     Instance inst = conn.getInstance();
-    MetadataTable.getEntries(conn.getInstance(), new Credentials(opts.user, ByteBuffer.wrap(opts.getPassword()), inst.getInstanceID()), tableName, false,
+    MetadataTable.getEntries(conn.getInstance(), opts.getCredentials(), tableName, false,
         locations, tablets);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
@@ -123,7 +121,7 @@ public class VerifyTabletAssignments {
         @Override
         public void run() {
           try {
-            checkTabletServer(conf.getConfiguration(), opts.user, ByteBuffer.wrap(opts.getPassword()), entry, failures);
+            checkTabletServer(conf.getConfiguration(), opts.getCredentials(), entry, failures);
           } catch (Exception e) {
             System.err.println("Failure on ts " + entry.getKey() + " " + e.getMessage());
             e.printStackTrace();
@@ -152,11 +150,10 @@ public class VerifyTabletAssignments {
     }
   }
   
-  private static void checkTabletServer(AccumuloConfiguration conf, final String user, final ByteBuffer pass, Entry<String,List<KeyExtent>> entry,
+  private static void checkTabletServer(AccumuloConfiguration conf, Credential st, Entry<String,List<KeyExtent>> entry,
       HashSet<KeyExtent> failures) throws ThriftSecurityException, TException, NoSuchScanIDException {
     TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), conf);
     
-    Credentials st = new Credentials(user, pass, HdfsZooInstance.getInstance().getInstanceID());
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<TKeyExtent,List<TRange>>();
     
     for (KeyExtent keyExtent : entry.getValue()) {

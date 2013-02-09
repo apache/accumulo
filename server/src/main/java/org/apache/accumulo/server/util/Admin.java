@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.util;
 
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,7 +27,7 @@ import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
@@ -82,11 +81,11 @@ public class Admin {
     Instance instance = opts.getInstance();
       
     try {
-      Credentials creds;
-      if (opts.getPassword() == null) {
+      Credential creds;
+      if (opts.getToken() == null) {
         creds = SecurityConstants.getSystemCredentials();
       } else {
-        creds = new Credentials(opts.user, ByteBuffer.wrap(opts.getPassword()), instance.getInstanceID());
+        creds = opts.getCredentials();
       }
 
       if (cl.getParsedCommand().equals("stop")) {
@@ -96,15 +95,15 @@ public class Admin {
         stopServer(instance, creds, everything);
       }
     } catch (AccumuloException e) {
-      log.error(e);
+      log.error(e,e);
       System.exit(1);
     } catch (AccumuloSecurityException e) {
-      log.error(e);
+      log.error(e,e);
       System.exit(2);
     }
   }
   
-  private static void stopServer(Instance instance, final Credentials credentials, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
+  private static void stopServer(Instance instance, final Credential credentials, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
     MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
@@ -113,7 +112,7 @@ public class Admin {
     });
   }
   
-  private static void stopTabletServer(Instance instance, final Credentials creds, List<String> servers, final boolean force) throws AccumuloException, AccumuloSecurityException {
+  private static void stopTabletServer(Instance instance, final Credential creds, List<String> servers, final boolean force) throws AccumuloException, AccumuloSecurityException {
     for (String server : servers) {
       InetSocketAddress address = AddressUtil.parseAddress(server, Property.TSERV_CLIENTPORT);
       final String finalServer = org.apache.accumulo.core.util.AddressUtil.toString(address);

@@ -25,7 +25,7 @@ import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -44,21 +44,21 @@ public class Writer {
   private static final Logger log = Logger.getLogger(Writer.class);
   
   private Instance instance;
-  private Credentials credentials;
+  private Credential credentials;
   private Text table;
   
-  public Writer(Instance instance, Credentials credentials, Text table) {
+  public Writer(Instance instance, Credential credentials, Text table) {
     ArgumentChecker.notNull(instance, credentials, table);
     this.instance = instance;
     this.credentials = credentials;
     this.table = table;
   }
   
-  public Writer(Instance instance, Credentials credentials, String table) {
+  public Writer(Instance instance, Credential credentials, String table) {
     this(instance, credentials, new Text(table));
   }
   
-  private static void updateServer(Mutation m, KeyExtent extent, String server, Credentials ai, AccumuloConfiguration configuration) throws TException,
+  private static void updateServer(Mutation m, KeyExtent extent, String server, Credential ai, AccumuloConfiguration configuration) throws TException,
       NotServingTabletException, ConstraintViolationException, AccumuloSecurityException {
     ArgumentChecker.notNull(m, extent, server, ai);
     

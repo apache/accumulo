@@ -21,6 +21,8 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -34,7 +36,7 @@ public class CreateUser extends Test {
     
     boolean exists = WalkingSecurity.get(state).userExists(tableUserName);
     boolean hasPermission = WalkingSecurity.get(state).canCreateUser(WalkingSecurity.get(state).getSysCredentials(), tableUserName);
-    byte[] tabUserPass = "Super Sekret Table User Password".getBytes();
+    SecurityToken tabUserPass = new PasswordToken().setPassword("Super Sekret Table User Password".getBytes());
     try {
       conn.securityOperations().createUser(tableUserName, tabUserPass);
     } catch (AccumuloSecurityException ae) {

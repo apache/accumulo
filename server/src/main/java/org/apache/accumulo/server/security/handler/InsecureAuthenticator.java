@@ -20,12 +20,14 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.NullToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 
 /**
  * This is an Authenticator implementation that doesn't actually do any security. Use at your own risk.
  */
-public class InsecureAuthenticator implements Authenticator {
+public class InsecureAuthenticator extends org.apache.accumulo.core.security.handler.InsecureAuthenticator implements Authenticator {
   
   @Override
   public void initialize(String instanceId, boolean initialize) {
@@ -38,12 +40,12 @@ public class InsecureAuthenticator implements Authenticator {
   }
   
   @Override
-  public void initializeSecurity(Credentials credentials, String principal, byte[] token) throws AccumuloSecurityException {
+  public void initializeSecurity(Credential credentials, String principal, byte[] token) throws AccumuloSecurityException {
     return;
   }
   
   @Override
-  public boolean authenticateUser(String principal, byte[] token) {
+  public boolean authenticateUser(String principal, SecurityToken token) {
     return true;
   }
   
@@ -53,7 +55,7 @@ public class InsecureAuthenticator implements Authenticator {
   }
   
   @Override
-  public void createUser(String principal, byte[] token) throws AccumuloSecurityException {
+  public void createUser(String principal, SecurityToken token) throws AccumuloSecurityException {
     return;
   }
   
@@ -63,7 +65,7 @@ public class InsecureAuthenticator implements Authenticator {
   }
   
   @Override
-  public void changePassword(String user, byte[] token) throws AccumuloSecurityException {
+  public void changePassword(String user, SecurityToken token) throws AccumuloSecurityException {
     return;
   }
 
@@ -73,8 +75,13 @@ public class InsecureAuthenticator implements Authenticator {
   }
 
   @Override
-  public String getAuthorizorName() {
+  public String getTokenLoginClass() {
     return null;
+  }
+
+  @Override
+  public boolean validTokenClass(String tokenClass) {
+    return tokenClass.equals(NullToken.class.getCanonicalName());
   }
   
 }

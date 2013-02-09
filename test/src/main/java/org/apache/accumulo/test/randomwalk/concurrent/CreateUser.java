@@ -22,6 +22,7 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -39,7 +40,7 @@ public class CreateUser extends Test {
     
     try {
       log.debug("Creating user " + userName);
-      conn.securityOperations().createUser(userName, (userName + "pass").getBytes());
+      conn.securityOperations().createUser(userName, new PasswordToken().setPassword((userName + "pass").getBytes()));
     } catch (AccumuloSecurityException ex) {
       log.debug("Create user failed " + ex.getCause());
     }

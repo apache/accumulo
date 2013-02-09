@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.mapreduce.Job;
@@ -198,7 +199,7 @@ public class ChunkInputFormatTest extends TestCase {
       
       job.setInputFormatClass(ChunkInputFormat.class);
       
-      ChunkInputFormat.setConnectorInfo(job, user, pass.getBytes(Charset.forName("UTF-8")));
+      ChunkInputFormat.setConnectorInfo(job, user, new PasswordToken().setPassword(pass.getBytes(Charset.forName("UTF-8"))));
       ChunkInputFormat.setInputTableName(job, table);
       ChunkInputFormat.setScanAuthorizations(job, AUTHS);
       ChunkInputFormat.setMockInstance(job, instance);

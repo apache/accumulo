@@ -20,7 +20,9 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 
 /**
  * This class represents the information a client needs to know to connect to an instance of accumulo.
@@ -94,9 +96,10 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
+   * @deprecated since 1.5, use {@link #getConnector(String, SecurityToken)}
    */
-  public abstract Connector getConnector(Credentials auth) throws AccumuloException, AccumuloSecurityException;
-  
+  public abstract Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException;
+    
   /**
    * Returns a connection to accumulo.
    * 
@@ -147,4 +150,22 @@ public interface Instance {
    * @throws AccumuloException
    */
   public abstract String getAuthenticatorClassName() throws AccumuloException;
+
+  /**
+   * @param principal
+   * @param token
+   *  A known SecurityToken type. If uncertain which should be provided, use {@link #getAuthenticatorClassName()} and {@link Authenticator#login(Properties)}
+   * @return
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  Connector getConnector(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * @param auth
+   * @return
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  Connector getConnector(Credential auth) throws AccumuloException, AccumuloSecurityException;
 }

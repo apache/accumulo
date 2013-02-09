@@ -18,9 +18,13 @@ package org.apache.accumulo.core.client.mapreduce.lib.util;
 
 import java.net.URI;
 import java.nio.charset.Charset;
+
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -41,7 +45,7 @@ public class ConfiguratorBase {
    * @since 1.5.0
    */
   public static enum ConnectorInfo {
-    IS_CONFIGURED, PRINCIPAL, TOKEN, CREDENTIALS_IN_CACHE_FILE
+    IS_CONFIGURED, PRINCIPAL, TOKEN, CREDENTIALS_IN_CACHE_FILE, TOKEN_CLASS
   }
   
   /**
@@ -87,20 +91,22 @@ public class ConfiguratorBase {
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @param user
+   * @param principal
    *          a valid Accumulo user name
-   * @param passwd
+   * @param token
    *          the user's password
+   * @throws AccumuloSecurityException 
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String user, byte[] passwd) {
+  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, SecurityToken token) throws AccumuloSecurityException {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
     
-    ArgumentChecker.notNull(user, passwd);
+    ArgumentChecker.notNull(principal, token);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), user);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), new String(Base64.encodeBase64(passwd), Charset.forName("UTF-8")));
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS), token.getClass().getCanonicalName());
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), CredentialHelper.tokenAsBase64(token));
   }
   
   /**
@@ -154,11 +160,27 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return the principal
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, byte[])
+   * @see #setConnectorInfo(Class, Configuration, String, SecurityToken)
    * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
     return conf.get(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL));
+  }
+
+  /**
+   * Gets the serialized token class from the configuration.
+   * 
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @return the principal
+   * @since 1.5.0
+   * @see #setConnectorInfo(Class, Configuration, String, SecurityToken)
+   * @see #setConnectorInfo(Class, Configuration, Path)
+   */
+  public static String getTokenClass(Class<?> implementingClass, Configuration conf) {
+    return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS));
   }
   
   /**

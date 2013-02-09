@@ -46,8 +46,9 @@ import org.apache.accumulo.core.client.mock.MockTabletLocator;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -481,10 +482,11 @@ public class InputConfigurator extends ConfiguratorBase {
     if ("MockInstance".equals(instanceType))
       return new MockTabletLocator();
     Instance instance = getInstance(implementingClass, conf);
-    String username = getPrincipal(implementingClass, conf);
-    byte[] password = getToken(implementingClass, conf);
+    String principal = getPrincipal(implementingClass, conf);
+    String tokenClass = getTokenClass(implementingClass, conf);
+    byte[] token = getToken(implementingClass, conf);
     String tableName = getInputTableName(implementingClass, conf);
-    return TabletLocator.getInstance(instance, new Credentials(username, ByteBuffer.wrap(password), instance.getInstanceID()),
+    return TabletLocator.getInstance(instance, new Credential(principal, tokenClass, ByteBuffer.wrap(token), instance.getInstanceID()),
         new Text(Tables.getTableId(instance, tableName)));
   }
   
@@ -508,8 +510,10 @@ public class InputConfigurator extends ConfiguratorBase {
       throw new IOException("Instance info has not been set.");
     // validate that we can connect as configured
     try {
-      Connector c = getInstance(implementingClass, conf).getConnector(getPrincipal(implementingClass, conf), getToken(implementingClass, conf));
-      if (!c.securityOperations().authenticateUser(getPrincipal(implementingClass, conf), getToken(implementingClass, conf)))
+      Connector c = getInstance(implementingClass, conf).getConnector(
+          new Credential(getPrincipal(implementingClass, conf), getTokenClass(implementingClass, conf), ByteBuffer.wrap(getToken(implementingClass, conf)),
+              getInstance(implementingClass, conf).getInstanceID()));
+      if (!c.securityOperations().authenticateUser(getPrincipal(implementingClass, conf), CredentialHelper.extractToken(getTokenClass(implementingClass, conf), getToken(implementingClass, conf))))
         throw new IOException("Unable to authenticate user");
       if (!c.securityOperations().hasTablePermission(getPrincipal(implementingClass, conf), getInputTableName(implementingClass, conf), TablePermission.READ))
         throw new IOException("Unable to access table");

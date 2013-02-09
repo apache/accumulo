@@ -16,24 +16,22 @@
  */
 package org.apache.accumulo.server.security;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecurityPermission;
-import java.util.Arrays;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
@@ -42,15 +40,15 @@ public class SecurityConstants {
   static Logger log = Logger.getLogger(SecurityConstants.class);
   
   public static final String SYSTEM_PRINCIPAL = "!SYSTEM";
-  private static final byte[] SYSTEM_TOKEN = makeSystemPassword();
-  private static final Credentials systemCredentials = new Credentials(SYSTEM_PRINCIPAL, ByteBuffer.wrap(SYSTEM_TOKEN), HdfsZooInstance.getInstance().getInstanceID());
+  private static final SecurityToken SYSTEM_TOKEN = makeSystemPassword();
+  private static final Credential systemCredentials = CredentialHelper.createSquelchError(SYSTEM_PRINCIPAL, SYSTEM_TOKEN, HdfsZooInstance.getInstance().getInstanceID());
   public static byte[] confChecksum = null;
   
-  public static byte[] getSystemToken() {
+  public static SecurityToken getSystemToken() {
     return SYSTEM_TOKEN;
   }
   
-  public static Credentials getSystemCredentials() {
+  public static Credential getSystemCredentials() {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
@@ -58,7 +56,7 @@ public class SecurityConstants {
     return systemCredentials;
   }
 
-  private static byte[] makeSystemPassword() {
+  private static SecurityToken makeSystemPassword() {
     int wireVersion = Constants.WIRE_VERSION;
     byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8);
     try {
@@ -80,51 +78,7 @@ public class SecurityConstants {
       // ByteArrayOutputStream; crash hard
       // if this happens
     }
-    return Base64.encodeBase64(bytes.toByteArray());
-  }
-  
-  /**
-   * Compare a byte array to the system password.
-   * 
-   * @return RESERVED if the passwords match, otherwise a state that describes the failure state
-   */
-  public static TabletServerState compareSystemPassword(byte[] base64encodedPassword) {
-    if (Arrays.equals(SYSTEM_TOKEN, base64encodedPassword))
-      return TabletServerState.RESERVED;
-    
-    // parse to determine why
-    byte[] decodedPassword = Base64.decodeBase64(base64encodedPassword);
-    boolean versionFails, instanceFails, confFails;
-    
-    ByteArrayInputStream bytes = new ByteArrayInputStream(decodedPassword);
-    DataInputStream in = new DataInputStream(bytes);
-    try {
-      versionFails = in.readInt() * -1 != Constants.WIRE_VERSION;
-      byte[] buff = new byte[in.readInt()];
-      in.readFully(buff);
-      instanceFails = !Arrays.equals(buff, HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8));
-      buff = new byte[in.readInt()];
-      in.readFully(buff);
-      confFails = !Arrays.equals(buff, getSystemConfigChecksum());
-      if (in.available() > 0)
-        throw new IOException();
-    } catch (IOException e) {
-      return TabletServerState.BAD_SYSTEM_PASSWORD;
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("Failed to compare system password", e);
-    }
-    
-    // to be fair, I wanted to do this as one big return statement with
-    // nested ternary conditionals, but
-    // this is more readable; no fun :/
-    if (versionFails) {
-      if (instanceFails)
-        return confFails ? TabletServerState.BAD_VERSION_AND_INSTANCE_AND_CONFIG : TabletServerState.BAD_VERSION_AND_INSTANCE;
-      return confFails ? TabletServerState.BAD_VERSION_AND_CONFIG : TabletServerState.BAD_VERSION;
-    }
-    if (instanceFails)
-      return confFails ? TabletServerState.BAD_INSTANCE_AND_CONFIG : TabletServerState.BAD_INSTANCE;
-    return confFails ? TabletServerState.BAD_CONFIG : TabletServerState.BAD_SYSTEM_PASSWORD;
+    return new PasswordToken().setPassword(Base64.encodeBase64(bytes.toByteArray()));
   }
   
   private static byte[] getSystemConfigChecksum() throws NoSuchAlgorithmException {

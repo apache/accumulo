@@ -19,33 +19,39 @@ package org.apache.accumulo.server.security.handler;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 
 /**
  * This interface is used for the system which will be used for authenticating a user. If the implementation does not support configuration through Accumulo, it
  * should throw an AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
  */
 
-public interface Authenticator {
+public interface Authenticator extends org.apache.accumulo.core.security.handler.Authenticator {
   
   public void initialize(String instanceId, boolean initialize);
-
+  
   public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
-
-  public void initializeSecurity(Credentials credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException;
-
-  public boolean authenticateUser(String principal, byte[] token) throws AccumuloSecurityException;
+  
+  public void initializeSecurity(Credential credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException;
+  
+  public boolean authenticateUser(String principal, SecurityToken token) throws AccumuloSecurityException;
   
   public Set<String> listUsers() throws AccumuloSecurityException;
   
-  public void createUser(String principal, byte[] token) throws AccumuloSecurityException;
+  public void createUser(String principal, SecurityToken token) throws AccumuloSecurityException;
   
   public void dropUser(String user) throws AccumuloSecurityException;
   
-  public void changePassword(String principal, byte[] token) throws AccumuloSecurityException;
+  public void changePassword(String principal, SecurityToken token) throws AccumuloSecurityException;
   
   public boolean userExists(String user) throws AccumuloSecurityException;
-
-  public String getAuthorizorName();
+  
+  public String getTokenLoginClass();
+  
+  /**
+   * Returns true if the given token is appropriate for this Authenticator
+   */
+  public boolean validTokenClass(String tokenClass);
 }

@@ -88,7 +88,7 @@ public class RandomWriter {
     opts.parseArgs(RandomWriter.class.getName(), args, bwOpts);
     
     long start = System.currentTimeMillis();
-    log.info("starting at " + start + " for user " + opts.user);
+    log.info("starting at " + start + " for user " + opts.principal);
     try {
       Connector connector = opts.getConnector();
       BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());

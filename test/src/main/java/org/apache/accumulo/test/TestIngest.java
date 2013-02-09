@@ -215,7 +215,7 @@ public class TestIngest {
       } else {
         bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
       }
-      connector.securityOperations().changeUserAuthorizations(opts.user, AUTHS);
+      connector.securityOperations().changeUserAuthorizations(opts.principal, AUTHS);
       Text labBA = new Text(opts.columnVisibility.getExpression());
       
       long startTime = System.currentTimeMillis();

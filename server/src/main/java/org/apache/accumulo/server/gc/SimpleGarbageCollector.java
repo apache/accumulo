@@ -58,8 +58,9 @@ import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SecurityUtil;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ServerServices;
@@ -119,7 +120,7 @@ public class SimpleGarbageCollector implements Iface {
   
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
     
-  private Credentials credentials;
+  private Credential credentials;
   private long gcStartDelay;
   private boolean checkForBulkProcessingFiles;
   private FileSystem fs;
@@ -179,7 +180,7 @@ public class SimpleGarbageCollector implements Iface {
     this.address = address;
   }
 
-  public void init(FileSystem fs, Instance instance, Credentials credentials, boolean noTrash) throws IOException {
+  public void init(FileSystem fs, Instance instance, Credential credentials, boolean noTrash) throws IOException {
     this.fs = TraceFileSystem.wrap(fs);
     this.credentials = credentials;
     this.instance = instance;
@@ -434,7 +435,7 @@ public class SimpleGarbageCollector implements Iface {
       return candidates;
     }
     
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
 
     if (continueKey != null) {
       // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them, then will never inspect deletes after N
@@ -482,7 +483,7 @@ public class SimpleGarbageCollector implements Iface {
       }
     } else {
       try {
-        scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+        scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
       } catch (AccumuloSecurityException ex) {
         throw new AccumuloException(ex);
       } catch (TableNotFoundException ex) {
@@ -699,7 +700,7 @@ public class SimpleGarbageCollector implements Iface {
   }
   
   @Override
-  public GCStatus getStatus(TInfo info, Credentials credentials) {
+  public GCStatus getStatus(TInfo info, Credential credentials) {
     return status;
   }
 }

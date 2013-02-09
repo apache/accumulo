@@ -23,6 +23,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
 
@@ -47,7 +49,7 @@ public class SecurityFixture extends Fixture {
     if (users.contains(systemUserName))
       conn.securityOperations().dropUser(systemUserName);
     
-    byte[] sysUserPass = "sysUser".getBytes();
+    SecurityToken sysUserPass = new PasswordToken().setPassword("sysUser".getBytes());
     conn.securityOperations().createUser(systemUserName, sysUserPass);
     
     WalkingSecurity.get(state).setTableName(secTableName);
@@ -56,7 +58,7 @@ public class SecurityFixture extends Fixture {
     WalkingSecurity.get(state).setSysUserName(systemUserName);
     WalkingSecurity.get(state).createUser(systemUserName, sysUserPass);
     
-    WalkingSecurity.get(state).changePassword(tableUserName, new byte[0]);
+    WalkingSecurity.get(state).changePassword(tableUserName, new PasswordToken().setPassword(new byte[0]));
     
     WalkingSecurity.get(state).setTabUserName(tableUserName);
     

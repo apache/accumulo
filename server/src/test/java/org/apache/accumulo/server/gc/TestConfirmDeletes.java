@@ -16,13 +16,10 @@
  */
 package org.apache.accumulo.server.gc;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
-import org.junit.Assert;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -34,25 +31,25 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
-
 
 /**
  * 
  */
 public class TestConfirmDeletes {
   
-  Credentials auth = new Credentials("root", ByteBuffer.wrap("".getBytes()), "instance");
-
   SortedSet<String> newSet(String... s) {
     SortedSet<String> result = new TreeSet<String>(Arrays.asList(s));
     return result;
   }
-
+  
   @Test
   public void test() throws Exception {
     
@@ -62,17 +59,17 @@ public class TestConfirmDeletes {
     String deletes[] = {"~del/1636/default_tablet"};
     
     test1(metadata, deletes, 1, 0);
-      
+    
     // have no file reference
     deletes = new String[] {"~del/1636/default_tablet/someFile"};
     test1(metadata, deletes, 1, 1);
-
+    
     // have a file reference
     metadata = new String[] {"1636< file:/default_tablet/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997", "1636< srv:dir /default_tablet",
         "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb", "1636< srv:time M1328505870023",
         "1636< ~tab:~pr \0"};
     test1(metadata, deletes, 1, 0);
-
+    
     // have an indirect file reference
     deletes = new String[] {"~del/9/default_tablet/someFile"};
     metadata = new String[] {"1636< file:../9/default_tablet/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997",
@@ -84,7 +81,7 @@ public class TestConfirmDeletes {
     // have an indirect file reference and a directory candidate
     deletes = new String[] {"~del/9/default_tablet"};
     test1(metadata, deletes, 1, 0);
-     
+    
     deletes = new String[] {"~del/9/default_tablet", "~del/9/default_tablet/someFile"};
     test1(metadata, deletes, 2, 0);
     
@@ -93,11 +90,13 @@ public class TestConfirmDeletes {
   }
   
   private void test1(String[] metadata, String[] deletes, int expectedInitial, int expected) throws Exception {
+    Credential auth = CredentialHelper.create("root", new PasswordToken().setPassword(new byte[0]), "instance");
+    
     Instance instance = new MockInstance();
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     
     load(instance, metadata, deletes);
-
+    
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
     gc.init(fs, instance, auth, false);
     SortedSet<String> candidates = gc.getCandidates();
@@ -107,7 +106,9 @@ public class TestConfirmDeletes {
   }
   
   private void load(Instance instance, String[] metadata, String[] deletes) throws Exception {
-    Scanner scanner = instance.getConnector(auth.getPrincipal(), auth.getToken()).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Credential credential = CredentialHelper.create("root", new PasswordToken().setPassword(new byte[0]), "instance");
+    
+    Scanner scanner = instance.getConnector(credential.getPrincipal(), CredentialHelper.extractToken(credential)).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     int count = 0;
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
@@ -116,8 +117,8 @@ public class TestConfirmDeletes {
     
     // ensure there is no data from previous test
     Assert.assertEquals(0, count);
-
-    Connector conn = instance.getConnector(auth.getPrincipal(), auth.getToken());
+    
+    Connector conn = instance.getConnector(credential.getPrincipal(), CredentialHelper.extractToken(credential));
     BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     for (String line : metadata) {
       String[] parts = line.split(" ");

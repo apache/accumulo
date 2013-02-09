@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.mock;
 
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -27,6 +26,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 
 public class MockSecurityOperations implements SecurityOperations {
   
@@ -41,12 +42,12 @@ public class MockSecurityOperations implements SecurityOperations {
    */
   @Override
   public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
-    this.acu.users.put(user, new MockUser(user, password, authorizations));
+    this.acu.users.put(user, new MockUser(user, new PasswordToken().setPassword(password), authorizations));
   }
   
   @Override
-  public void createUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
-    createUser(user, password, new Authorizations());
+  public void createUser(String user, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+    this.acu.users.put(user, new MockUser(user, token, new Authorizations()));
   }
   
   public void dropUser(String user) throws AccumuloException, AccumuloSecurityException {
@@ -55,19 +56,29 @@ public class MockSecurityOperations implements SecurityOperations {
   
   @Override
   public boolean authenticateUser(String name, byte[] password) throws AccumuloException, AccumuloSecurityException {
+    return authenticateUser(name, new PasswordToken().setPassword(password));
+  }
+  
+  @Override
+  public boolean authenticateUser(String name, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(name);
     if (user == null)
       return false;
-    return Arrays.equals(user.password, password);
+    return user.token.equals(token);
+  }
+  
+  @Override
+  public void changeLoginInfo(String name, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+    MockUser user = acu.users.get(name);
+    if (user != null)
+      user.token = token.clone();
+    else
+      throw new AccumuloSecurityException(name, SecurityErrorCode.USER_DOESNT_EXIST);
   }
   
   @Override
   public void changeUserPassword(String name, byte[] password) throws AccumuloException, AccumuloSecurityException {
-    MockUser user = acu.users.get(name);
-    if (user != null)
-      user.password = Arrays.copyOf(password, password.length);
-    else
-      throw new AccumuloSecurityException(name, SecurityErrorCode.USER_DOESNT_EXIST);
+    changeLoginInfo(name, new PasswordToken().setPassword(password));
   }
   
   @Override

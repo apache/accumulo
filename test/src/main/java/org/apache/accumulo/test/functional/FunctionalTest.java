@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +39,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -105,19 +107,28 @@ public abstract class FunctionalTest {
     
   }
   
-  private Credentials token = new Credentials("", ByteBuffer.wrap("".getBytes()), "");
+  private SecurityToken token = null;
   private String instanceName = "";
+  private String principal = "";
   
-  protected void setToken(Credentials token) {
+  protected void setPrincipal(String princ) {
+    this.principal = princ;
+  }
+  
+  protected String getPrincipal() {
+    return principal;
+  }
+  
+  protected void setToken(SecurityToken token) {
     this.token = token;
   }
   
-  protected Credentials getToken() {
+  protected SecurityToken getToken() {
     return token;
   }
   
   protected Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getInstance().getConnector(token.getPrincipal(), token.getToken());
+    return getInstance().getConnector(getPrincipal(), getToken());
   }
   
   protected Instance getInstance() {
@@ -237,6 +248,7 @@ public abstract class FunctionalTest {
   
   
   public static void main(String[] args) throws Exception {
+    CredentialHelper.create("", new PasswordToken().setPassword(new byte[0]), "");
     Opts opts = new Opts();
     opts.parseArgs(FunctionalTest.class.getName(), args);
     
@@ -244,9 +256,10 @@ public abstract class FunctionalTest {
     FunctionalTest fTest = testClass.newInstance();
     
     //fTest.setMaster(master);
-    fTest.setToken(new Credentials(opts.user, ByteBuffer.wrap(opts.password.value), opts.instance));
     fTest.setInstanceName(opts.instance);
-    
+    fTest.setPrincipal(opts.principal);
+    fTest.setToken(opts.getToken());
+
     if (opts.opt.equals("getConfig")) {
       Map<String,String> iconfig = fTest.getInitialConfig();
       System.out.println("{");

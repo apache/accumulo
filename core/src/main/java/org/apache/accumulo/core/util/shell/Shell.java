@@ -21,7 +21,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,7 +52,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.security.AuditLevel;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -168,7 +169,7 @@ public class Shell extends ShellOptions {
   protected Instance instance;
   private Connector connector;
   protected ConsoleReader reader;
-  private Credentials credentials;
+  private Credential credentials;
   private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
@@ -277,7 +278,7 @@ public class Shell extends ShellOptions {
       pass = passw.getBytes();
       this.setTableName("");
       connector = instance.getConnector(user, pass);
-      this.credentials = new Credentials(user, ByteBuffer.wrap(pass), connector.getInstance().getInstanceID());
+      this.credentials = CredentialHelper.create(user, new PasswordToken().setPassword(pass), connector.getInstance().getInstanceID());
       
     } catch (Exception e) {
       printException(e);
@@ -933,12 +934,12 @@ public class Shell extends ShellOptions {
     return reader;
   }
   
-  public void updateUser(Credentials authInfo) throws AccumuloException, AccumuloSecurityException {
+  public void updateUser(Credential authInfo) throws AccumuloException, AccumuloSecurityException {
     connector = instance.getConnector(authInfo);
     credentials = authInfo;
   }
   
-  public Credentials getCredentials() {
+  public Credential getCredentials() {
     return credentials;
   }
   

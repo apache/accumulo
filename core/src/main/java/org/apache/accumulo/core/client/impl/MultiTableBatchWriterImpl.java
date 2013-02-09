@@ -29,7 +29,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.log4j.Logger;
 
@@ -72,7 +72,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   private HashMap<String,BatchWriter> tableWriters;
   private Instance instance;
   
-  public MultiTableBatchWriterImpl(Instance instance, Credentials credentials, BatchWriterConfig config) {
+  public MultiTableBatchWriterImpl(Instance instance, Credential credentials, BatchWriterConfig config) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.bw = new TabletServerBatchWriter(instance, credentials, config);

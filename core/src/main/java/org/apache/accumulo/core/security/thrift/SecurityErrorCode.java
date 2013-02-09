@@ -43,7 +43,9 @@ import org.apache.thrift.TEnum;
   AUTHENTICATOR_FAILED(12),
   AUTHORIZOR_FAILED(13),
   PERMISSIONHANDLER_FAILED(14),
-  TOKEN_EXPIRED(15);
+  TOKEN_EXPIRED(15),
+  SERIALIZATION_ERROR(16),
+  INSUFFICIENT_PROPERTIES(17);
 
   private final int value;
 
@@ -96,6 +98,10 @@ import org.apache.thrift.TEnum;
         return PERMISSIONHANDLER_FAILED;
       case 15:
         return TOKEN_EXPIRED;
+      case 16:
+        return SERIALIZATION_ERROR;
+      case 17:
+        return INSUFFICIENT_PROPERTIES;
       default:
         return null;
     }

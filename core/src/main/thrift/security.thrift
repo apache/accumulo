@@ -34,6 +34,8 @@ enum SecurityErrorCode {
     AUTHORIZOR_FAILED = 13,
     PERMISSIONHANDLER_FAILED = 14,
     TOKEN_EXPIRED = 15
+    SERIALIZATION_ERROR = 16;
+    INSUFFICIENT_PROPERTIES = 17;
 }
 
 struct AuthInfo {
@@ -42,10 +44,11 @@ struct AuthInfo {
     3:string instanceId
 }
 
-struct Credentials {
+struct Credential {
     1:string principal,
-    2:binary token,
-    3:string instanceId
+    2:string tokenClass,
+    3:binary token,
+    4:string instanceId
 }
 
 exception ThriftSecurityException {

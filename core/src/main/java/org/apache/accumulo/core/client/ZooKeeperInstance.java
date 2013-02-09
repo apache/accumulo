@@ -29,8 +29,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -218,10 +222,19 @@ public class ZooKeeperInstance implements Instance {
   }
   
   // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
-  @SuppressWarnings("deprecation")
   @Override
-  public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, user, pass);
+  public Connector getConnector(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
+  }
+  
+  @SuppressWarnings("deprecation")
+  public Connector getConnector(Credential credential) throws AccumuloException, AccumuloSecurityException {
+    return new ConnectorImpl(this, credential);
+  }
+  
+  @Override
+  public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(principal, new PasswordToken().setPassword(pass));
   }
   
   private AccumuloConfiguration conf = null;
@@ -288,8 +301,8 @@ public class ZooKeeperInstance implements Instance {
   }
   
   @Override
-  public Connector getConnector(Credentials auth) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(auth.getPrincipal(), auth.getToken());
+  public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(auth.user, auth.password);
   }
   
   @Override

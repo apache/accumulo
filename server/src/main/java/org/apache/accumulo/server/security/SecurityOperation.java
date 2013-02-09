@@ -25,11 +25,13 @@ import org.apache.accumulo.core.client.admin.SecurityOperationsImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.security.handler.Authenticator;
@@ -114,7 +116,7 @@ public class SecurityOperation {
           + " do not play nice with eachother. Please choose authentication and authorization mechanisms that are compatible with one another.");
   }
   
-  public void initializeSecurity(Credentials credentials, String rootPrincipal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException {
+  public void initializeSecurity(Credential credentials, String rootPrincipal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException {
     authenticate(credentials);
     
     if (!credentials.getPrincipal().equals(SecurityConstants.SYSTEM_PRINCIPAL))
@@ -137,7 +139,7 @@ public class SecurityOperation {
     return rootUserName;
   }
   
-  private void authenticate(Credentials credentials) throws ThriftSecurityException {
+  private void authenticate(Credential credentials) throws ThriftSecurityException {
     if (!credentials.getInstanceId().equals(HdfsZooInstance.getInstance().getInstanceID()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.INVALID_INSTANCEID);
     
@@ -148,7 +150,8 @@ public class SecurityOperation {
     }
     
     try {
-      if (!authenticator.authenticateUser(credentials.getPrincipal(), credentials.getToken())) {
+      SecurityToken token = reassembleToken(credentials);
+      if (!authenticator.authenticateUser(credentials.getPrincipal(), token)) {
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
       }
     } catch (AccumuloSecurityException e) {
@@ -157,26 +160,40 @@ public class SecurityOperation {
     }
   }
   
-  public boolean canAskAboutUser(Credentials credentials, String user) throws ThriftSecurityException {
+  public boolean canAskAboutUser(Credential credentials, String user) throws ThriftSecurityException {
     // Authentication done in canPerformSystemActions
     if (!(canPerformSystemActions(credentials) || credentials.getPrincipal().equals(user)))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     return true;
   }
   
-  public boolean authenticateUser(Credentials credentials, String principal, byte[] token) throws ThriftSecurityException {
-    canAskAboutUser(credentials, principal);
+  public boolean authenticateUser(Credential credentials, Credential toAuth) throws ThriftSecurityException {
+    canAskAboutUser(credentials, toAuth.getPrincipal());
     // User is already authenticated from canAskAboutUser, this gets around issues with !SYSTEM user
-    if (credentials.getToken().equals(token))
+    if (credentials.equals(toAuth))
       return true;
     try {
-      return authenticator.authenticateUser(principal, token);
+      SecurityToken token = reassembleToken(toAuth);
+      return authenticator.authenticateUser(toAuth.getPrincipal(), token);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
   }
   
-  public Authorizations getUserAuthorizations(Credentials credentials, String user) throws ThriftSecurityException {
+  /**
+   * @param toAuth
+   * @return
+   * @throws AccumuloSecurityException 
+   */
+  private SecurityToken reassembleToken(Credential toAuth) throws AccumuloSecurityException {
+    String tokenClass = toAuth.getTokenClass();
+    if (authenticator.validTokenClass(tokenClass)) {
+      return CredentialHelper.extractToken(toAuth);
+    }
+    throw new AccumuloSecurityException(toAuth.getPrincipal(), SecurityErrorCode.INVALID_TOKEN);
+  }
+
+  public Authorizations getUserAuthorizations(Credential credentials, String user) throws ThriftSecurityException {
     authenticate(credentials);
     
     targetUserExists(user);
@@ -195,7 +212,7 @@ public class SecurityOperation {
     }
   }
   
-  public Authorizations getUserAuthorizations(Credentials credentials) throws ThriftSecurityException {
+  public Authorizations getUserAuthorizations(Credential credentials) throws ThriftSecurityException {
     return getUserAuthorizations(credentials, credentials.getPrincipal());
   }
   
@@ -245,7 +262,7 @@ public class SecurityOperation {
   }
   
   // some people just aren't allowed to ask about other users; here are those who can ask
-  private boolean canAskAboutOtherUsers(Credentials credentials, String user) throws ThriftSecurityException {
+  private boolean canAskAboutOtherUsers(Credential credentials, String user) throws ThriftSecurityException {
     authenticate(credentials);
     return credentials.getPrincipal().equals(user) || hasSystemPermission(credentials.getPrincipal(), SystemPermission.SYSTEM, false)
         || hasSystemPermission(credentials.getPrincipal(), SystemPermission.CREATE_USER, false)
@@ -265,17 +282,17 @@ public class SecurityOperation {
     }
   }
   
-  public boolean canScan(Credentials credentials, String table) throws ThriftSecurityException {
+  public boolean canScan(Credential credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
     return hasTablePermission(credentials.getPrincipal(), table, TablePermission.READ, true);
   }
   
-  public boolean canWrite(Credentials credentials, String table) throws ThriftSecurityException {
+  public boolean canWrite(Credential credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
     return hasTablePermission(credentials.getPrincipal(), table, TablePermission.WRITE, true);
   }
   
-  public boolean canSplitTablet(Credentials credentials, String table) throws ThriftSecurityException {
+  public boolean canSplitTablet(Credential credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermission(credentials.getPrincipal(), SystemPermission.ALTER_TABLE, false)
         || hasSystemPermission(credentials.getPrincipal(), SystemPermission.SYSTEM, false)
@@ -285,90 +302,90 @@ public class SecurityOperation {
   /**
    * This is the check to perform any system action. This includes tserver's loading of a tablet, shutting the system down, or altering system properties.
    */
-  public boolean canPerformSystemActions(Credentials credentials) throws ThriftSecurityException {
+  public boolean canPerformSystemActions(Credential credentials) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermission(credentials.getPrincipal(), SystemPermission.SYSTEM, false);
   }
   
-  public boolean canFlush(Credentials c, String tableId) throws ThriftSecurityException {
+  public boolean canFlush(Credential c, String tableId) throws ThriftSecurityException {
     authenticate(c);
     return hasTablePermission(c.getPrincipal(), tableId, TablePermission.WRITE, false)
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.ALTER_TABLE, false);
   }
   
-  public boolean canAlterTable(Credentials c, String tableId) throws ThriftSecurityException {
+  public boolean canAlterTable(Credential c, String tableId) throws ThriftSecurityException {
     authenticate(c);
     return hasTablePermission(c.getPrincipal(), tableId, TablePermission.ALTER_TABLE, false)
         || hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_TABLE, false);
   }
   
-  public boolean canCreateTable(Credentials c) throws ThriftSecurityException {
+  public boolean canCreateTable(Credential c) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.CREATE_TABLE, false);
   }
   
-  public boolean canRenameTable(Credentials c, String tableId) throws ThriftSecurityException {
+  public boolean canRenameTable(Credential c, String tableId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_TABLE, false)
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.ALTER_TABLE, false);
   }
   
-  public boolean canCloneTable(Credentials c, String tableId) throws ThriftSecurityException {
+  public boolean canCloneTable(Credential c, String tableId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.CREATE_TABLE, false)
         && hasTablePermission(c.getPrincipal(), tableId, TablePermission.READ, false);
   }
   
-  public boolean canDeleteTable(Credentials c, String tableId) throws ThriftSecurityException {
+  public boolean canDeleteTable(Credential c, String tableId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.DROP_TABLE, false)
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.DROP_TABLE, false);
   }
   
-  public boolean canOnlineOfflineTable(Credentials c, String tableId) throws ThriftSecurityException {
+  public boolean canOnlineOfflineTable(Credential c, String tableId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.SYSTEM, false) || hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_TABLE, false)
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.ALTER_TABLE, false);
   }
   
-  public boolean canMerge(Credentials c, String tableId) throws ThriftSecurityException {
+  public boolean canMerge(Credential c, String tableId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.SYSTEM, false) || hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_TABLE, false)
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.ALTER_TABLE, false);
   }
   
-  public boolean canDeleteRange(Credentials c, String tableId) throws ThriftSecurityException {
+  public boolean canDeleteRange(Credential c, String tableId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.SYSTEM, false) || hasTablePermission(c.getPrincipal(), tableId, TablePermission.WRITE, false);
   }
   
-  public boolean canBulkImport(Credentials c, String tableId) throws ThriftSecurityException {
+  public boolean canBulkImport(Credential c, String tableId) throws ThriftSecurityException {
     authenticate(c);
     return hasTablePermission(c.getPrincipal(), tableId, TablePermission.BULK_IMPORT, false);
   }
   
-  public boolean canCompact(Credentials c, String tableId) throws ThriftSecurityException {
+  public boolean canCompact(Credential c, String tableId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_TABLE, false)
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.ALTER_TABLE, false)
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.WRITE, false);
   }
   
-  public boolean canChangeAuthorizations(Credentials c, String user) throws ThriftSecurityException {
+  public boolean canChangeAuthorizations(Credential c, String user) throws ThriftSecurityException {
     authenticate(c);
     if (user.equals(SecurityConstants.SYSTEM_PRINCIPAL))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_USER, false);
   }
   
-  public boolean canChangePassword(Credentials c, String user) throws ThriftSecurityException {
+  public boolean canChangePassword(Credential c, String user) throws ThriftSecurityException {
     authenticate(c);
     if (user.equals(SecurityConstants.SYSTEM_PRINCIPAL))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     return c.getPrincipal().equals(user) || hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_USER, false);
   }
   
-  public boolean canCreateUser(Credentials c, String user) throws ThriftSecurityException {
+  public boolean canCreateUser(Credential c, String user) throws ThriftSecurityException {
     authenticate(c);
     
     // don't allow creating a user with the same name as system user
@@ -378,7 +395,7 @@ public class SecurityOperation {
     return hasSystemPermission(c.getPrincipal(), SystemPermission.CREATE_USER, false);
   }
   
-  public boolean canDropUser(Credentials c, String user) throws ThriftSecurityException {
+  public boolean canDropUser(Credential c, String user) throws ThriftSecurityException {
     authenticate(c);
     
     // can't delete root or system users
@@ -388,7 +405,7 @@ public class SecurityOperation {
     return hasSystemPermission(c.getPrincipal(), SystemPermission.DROP_USER, false);
   }
   
-  public boolean canGrantSystem(Credentials c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
+  public boolean canGrantSystem(Credential c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
     authenticate(c);
     
     // can't modify system user
@@ -402,7 +419,7 @@ public class SecurityOperation {
     return hasSystemPermission(c.getPrincipal(), SystemPermission.GRANT, false);
   }
   
-  public boolean canGrantTable(Credentials c, String user, String table) throws ThriftSecurityException {
+  public boolean canGrantTable(Credential c, String user, String table) throws ThriftSecurityException {
     authenticate(c);
     
     // can't modify system user
@@ -413,7 +430,7 @@ public class SecurityOperation {
         || hasTablePermission(c.getPrincipal(), table, TablePermission.GRANT, false);
   }
   
-  public boolean canRevokeSystem(Credentials c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
+  public boolean canRevokeSystem(Credential c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
     authenticate(c);
     
     // can't modify system or root user
@@ -427,7 +444,7 @@ public class SecurityOperation {
     return hasSystemPermission(c.getPrincipal(), SystemPermission.GRANT, false);
   }
   
-  public boolean canRevokeTable(Credentials c, String user, String table) throws ThriftSecurityException {
+  public boolean canRevokeTable(Credential c, String user, String table) throws ThriftSecurityException {
     authenticate(c);
     
     // can't modify system user
@@ -438,7 +455,7 @@ public class SecurityOperation {
         || hasTablePermission(c.getPrincipal(), table, TablePermission.GRANT, false);
   }
   
-  public void changeAuthorizations(Credentials credentials, String user, Authorizations authorizations) throws ThriftSecurityException {
+  public void changeAuthorizations(Credential credentials, String user, Authorizations authorizations) throws ThriftSecurityException {
     if (!canChangeAuthorizations(credentials, user))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     
@@ -452,33 +469,35 @@ public class SecurityOperation {
     }
   }
   
-  public void changePassword(Credentials credentials, String principal, byte[] token) throws ThriftSecurityException {
-    if (!canChangePassword(credentials, principal))
+  public void changePassword(Credential credentials, Credential toChange) throws ThriftSecurityException {
+    if (!canChangePassword(credentials, toChange.getPrincipal()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     try {
-      authenticator.changePassword(principal, token);
-      log.info("Changed password for user " + principal + " at the request of user " + credentials.getPrincipal());
+      SecurityToken token = reassembleToken(toChange);
+      authenticator.changePassword(toChange.getPrincipal(), token);
+      log.info("Changed password for user " + toChange.getPrincipal() + " at the request of user " + credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
   }
   
-  public void createUser(Credentials credentials, String principal, byte[] token, Authorizations authorizations) throws ThriftSecurityException {
-    if (!canCreateUser(credentials, principal))
+  public void createUser(Credential credentials, Credential newUser, Authorizations authorizations) throws ThriftSecurityException {
+    if (!canCreateUser(credentials, newUser.getPrincipal()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     try {
-      authenticator.createUser(principal, token);
-      authorizor.initUser(principal);
-      permHandle.initUser(principal);
-      log.info("Created user " + principal + " at the request of user " + credentials.getPrincipal());
-      if (canChangeAuthorizations(credentials, principal))
-        authorizor.changeAuthorizations(principal, authorizations);
+      SecurityToken token = reassembleToken(newUser);
+      authenticator.createUser(newUser.getPrincipal(), token);
+      authorizor.initUser(newUser.getPrincipal());
+      permHandle.initUser(newUser.getPrincipal());
+      log.info("Created user " + newUser.getPrincipal() + " at the request of user " + credentials.getPrincipal());
+      if (canChangeAuthorizations(credentials, newUser.getPrincipal()))
+        authorizor.changeAuthorizations(newUser.getPrincipal(), authorizations);
     } catch (AccumuloSecurityException ase) {
       throw ase.asThriftException();
     }
   }
   
-  public void dropUser(Credentials credentials, String user) throws ThriftSecurityException {
+  public void dropUser(Credential credentials, String user) throws ThriftSecurityException {
     if (!canDropUser(credentials, user))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     try {
@@ -491,7 +510,7 @@ public class SecurityOperation {
     }
   }
   
-  public void grantSystemPermission(Credentials credentials, String user, SystemPermission permissionById) throws ThriftSecurityException {
+  public void grantSystemPermission(Credential credentials, String user, SystemPermission permissionById) throws ThriftSecurityException {
     if (!canGrantSystem(credentials, user, permissionById))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     
@@ -505,7 +524,7 @@ public class SecurityOperation {
     }
   }
   
-  public void grantTablePermission(Credentials c, String user, String tableId, TablePermission permission) throws ThriftSecurityException {
+  public void grantTablePermission(Credential c, String user, String tableId, TablePermission permission) throws ThriftSecurityException {
     if (!canGrantTable(c, user, tableId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     
@@ -521,7 +540,7 @@ public class SecurityOperation {
     }
   }
   
-  public void revokeSystemPermission(Credentials credentials, String user, SystemPermission permission) throws ThriftSecurityException {
+  public void revokeSystemPermission(Credential credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     if (!canRevokeSystem(credentials, user, permission))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     
@@ -536,7 +555,7 @@ public class SecurityOperation {
     }
   }
   
-  public void revokeTablePermission(Credentials c, String user, String tableId, TablePermission permission) throws ThriftSecurityException {
+  public void revokeTablePermission(Credential c, String user, String tableId, TablePermission permission) throws ThriftSecurityException {
     if (!canRevokeTable(c, user, tableId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     
@@ -553,20 +572,20 @@ public class SecurityOperation {
     }
   }
   
-  public boolean hasSystemPermission(Credentials credentials, String user, SystemPermission permissionById) throws ThriftSecurityException {
+  public boolean hasSystemPermission(Credential credentials, String user, SystemPermission permissionById) throws ThriftSecurityException {
     if (!canAskAboutOtherUsers(credentials, user))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     return hasSystemPermission(user, permissionById, false);
   }
   
-  public boolean hasTablePermission(Credentials credentials, String user, String tableId, TablePermission permissionById)
+  public boolean hasTablePermission(Credential credentials, String user, String tableId, TablePermission permissionById)
       throws ThriftSecurityException {
     if (!canAskAboutOtherUsers(credentials, user))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     return hasTablePermission(user, tableId, permissionById, false);
   }
   
-  public Set<String> listUsers(Credentials credentials) throws ThriftSecurityException {
+  public Set<String> listUsers(Credential credentials) throws ThriftSecurityException {
     authenticate(credentials);
     try {
       return authenticator.listUsers();
@@ -575,7 +594,7 @@ public class SecurityOperation {
     }
   }
   
-  public void deleteTable(Credentials credentials, String tableId) throws ThriftSecurityException {
+  public void deleteTable(Credential credentials, String tableId) throws ThriftSecurityException {
     if (!canDeleteTable(credentials, tableId))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     try {
@@ -588,17 +607,17 @@ public class SecurityOperation {
     }
   }
   
-  public boolean canExport(Credentials credentials, String tableId) throws ThriftSecurityException {
+  public boolean canExport(Credential credentials, String tableId) throws ThriftSecurityException {
     authenticate(credentials);
     return hasTablePermission(credentials.getPrincipal(), tableId, TablePermission.READ, false);
   }
   
-  public boolean canImport(Credentials credentials) throws ThriftSecurityException {
+  public boolean canImport(Credential credentials) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermission(credentials.getPrincipal(), SystemPermission.CREATE_TABLE, false);
   }
   
-  public String getAuthorizorName() {
-    return authenticator.getAuthorizorName();
+  public String getTokenLoginClass() {
+    return authenticator.getTokenLoginClass();
   }
 }

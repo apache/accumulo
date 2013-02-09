@@ -87,7 +87,8 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
@@ -685,10 +686,10 @@ public class Tablet {
       }
       
       synchronized (bulkFileImportLock) {
-        Credentials auths = SecurityConstants.getSystemCredentials();
+        Credential auths = SecurityConstants.getSystemCredentials();
         Connector conn;
         try {
-          conn = HdfsZooInstance.getInstance().getConnector(auths.getPrincipal(), auths.getToken());
+          conn = HdfsZooInstance.getInstance().getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths));
         } catch (Exception ex) {
           throw new IOException(ex);
         }
@@ -850,7 +851,7 @@ public class Tablet {
         // need to write to !METADATA before writing to walog, when things are done in the reverse order
         // data could be lost... the minor compaction start even should be written before the following metadata
         // write is made
-        Credentials creds = SecurityConstants.getSystemCredentials();
+        Credential creds = SecurityConstants.getSystemCredentials();
         
         synchronized (timeLock) {
           if (commitSession.getMaxCommittedTime() > persistedTime)
@@ -2274,7 +2275,7 @@ public class Tablet {
       }
       
       if (updateMetadata) {
-        Credentials creds = SecurityConstants.getSystemCredentials();
+        Credential creds = SecurityConstants.getSystemCredentials();
         // if multiple threads were allowed to update this outside of a sync block, then it would be
         // a race condition
         MetadataTable.updateTabletFlushID(extent, tableFlushID, creds, tabletServer.getLock());

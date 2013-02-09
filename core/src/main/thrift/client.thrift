@@ -71,26 +71,26 @@ service ClientService {
     string getInstanceId()
     string getZooKeepers()
     
-    list<string> bulkImportFiles(1:trace.TInfo tinfo, 2:security.Credentials credentials, 3:i64 tid, 4:string tableId, 5:list<string> files, 6:string errorDir, 7:bool setTime) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope);
+    list<string> bulkImportFiles(1:trace.TInfo tinfo, 2:security.Credential credential, 3:i64 tid, 4:string tableId, 5:list<string> files, 6:string errorDir, 7:bool setTime) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope);
     // ensures that nobody is working on the transaction id above
     bool isActive(1:trace.TInfo tinfo, 2:i64 tid),
 
-    void ping(1:security.Credentials credentials) throws (1:security.ThriftSecurityException sec)
+    void ping(1:security.Credential credential) throws (1:security.ThriftSecurityException sec)
 
     // user management methods
-    bool authenticateUser(4:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal, 3:binary token) throws (1:security.ThriftSecurityException sec)
-    set<string> listUsers(2:trace.TInfo tinfo, 1:security.Credentials credentials) throws (1:security.ThriftSecurityException sec)
-    void createUser(5:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal 3:binary token, 4:list<binary> authorizations) throws (1:security.ThriftSecurityException sec)
-    void dropUser(3:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal) throws (1:security.ThriftSecurityException sec)
-    void changePassword(4:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal, 3:binary token) throws (1:security.ThriftSecurityException sec)
-    void changeAuthorizations(4:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal, 3:list<binary> authorizations) throws (1:security.ThriftSecurityException sec)
-    list<binary> getUserAuthorizations(3:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal) throws (1:security.ThriftSecurityException sec)
-    bool hasSystemPermission(4:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal, 3:byte sysPerm) throws (1:security.ThriftSecurityException sec)
-    bool hasTablePermission(5:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal, 3:string tableName, 4:byte tblPerm) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
-    void grantSystemPermission(4:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal, 3:byte permission) throws (1:security.ThriftSecurityException sec)
-    void revokeSystemPermission(4:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal, 3:byte permission) throws (1:security.ThriftSecurityException sec)
-    void grantTablePermission(5:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal, 3:string tableName, 4:byte permission) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
-    void revokeTablePermission(5:trace.TInfo tinfo, 1:security.Credentials credentials, 2:string principal, 3:string tableName, 4:byte permission) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
+    bool authenticateUser(4:trace.TInfo tinfo, 1:security.Credential credential, 2:security.Credential toAuthenticate) throws (1:security.ThriftSecurityException sec)
+    set<string> listUsers(2:trace.TInfo tinfo, 1:security.Credential credential) throws (1:security.ThriftSecurityException sec)
+    void createUser(5:trace.TInfo tinfo, 1:security.Credential credential, 2:security.Credential toCreate, 4:list<binary> authorizations) throws (1:security.ThriftSecurityException sec)
+    void dropUser(3:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal) throws (1:security.ThriftSecurityException sec)
+    void changePassword(4:trace.TInfo tinfo, 1:security.Credential credential, 2:security.Credential toChange) throws (1:security.ThriftSecurityException sec)
+    void changeAuthorizations(4:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal, 3:list<binary> authorizations) throws (1:security.ThriftSecurityException sec)
+    list<binary> getUserAuthorizations(3:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal) throws (1:security.ThriftSecurityException sec)
+    bool hasSystemPermission(4:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal, 3:byte sysPerm) throws (1:security.ThriftSecurityException sec)
+    bool hasTablePermission(5:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal, 3:string tableName, 4:byte tblPerm) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
+    void grantSystemPermission(4:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal, 3:byte permission) throws (1:security.ThriftSecurityException sec)
+    void revokeSystemPermission(4:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal, 3:byte permission) throws (1:security.ThriftSecurityException sec)
+    void grantTablePermission(5:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal, 3:string tableName, 4:byte permission) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
+    void revokeTablePermission(5:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal, 3:string tableName, 4:byte permission) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
     
     map<string, string> getConfiguration(1:ConfigurationType type);
     map<string, string> getTableConfiguration(2:string tableName) throws (1:ThriftTableOperationException tope);

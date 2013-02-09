@@ -40,7 +40,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -50,10 +51,10 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   BatchScanner mdScanner;
   Iterator<Entry<Key,Value>> iter;
   
-  public MetaDataTableScanner(Instance instance, Credentials auths, Range range, CurrentState state) {
+  public MetaDataTableScanner(Instance instance, Credential auths, Range range, CurrentState state) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
     try {
-      Connector connector = instance.getConnector(auths.getPrincipal(), auths.getToken());
+      Connector connector = instance.getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths));
       mdScanner = connector.createBatchScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 8);
       configureScanner(mdScanner, state);
       mdScanner.setRanges(Collections.singletonList(range));
@@ -80,7 +81,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     scanner.addScanIterator(tabletChange);
   }
   
-  public MetaDataTableScanner(Instance instance, Credentials auths, Range range) {
+  public MetaDataTableScanner(Instance instance, Credential auths, Range range) {
     this(instance, auths, range, null);
   }
   

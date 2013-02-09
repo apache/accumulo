@@ -54,7 +54,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.filecache.DistributedCache;
@@ -96,9 +98,10 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    *          a valid Accumulo user name (user must have Table.CREATE permission)
    * @param token
    *          the user's password
+   * @throws AccumuloSecurityException 
    * @since 1.5.0
    */
-  public static void setConnectorInfo(JobConf job, String principal, byte[] token) {
+  public static void setConnectorInfo(JobConf job, String principal, SecurityToken token) throws AccumuloSecurityException {
     InputConfigurator.setConnectorInfo(CLASS, job, principal, token);
   }
   
@@ -139,11 +142,25 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, byte[])
+   * @see #setConnectorInfo(JobConf, String, SecurityToken)
    * @see #setConnectorInfo(JobConf, Path)
    */
   protected static String getUsername(JobConf job) {
     return InputConfigurator.getPrincipal(CLASS, job);
+  }
+  
+  /**
+   * Gets the serialized token class from the configuration.
+   * 
+   * @param job
+   *          the Hadoop context for the configured job
+   * @return the user name
+   * @since 1.5.0
+   * @see #setConnectorInfo(JobConf, String, SecurityToken)
+   * @see #setConnectorInfo(JobConf, Path)
+   */
+  protected static String getTokenClass(JobConf job) {
+    return InputConfigurator.getTokenClass(CLASS, job);
   }
   
   /**
@@ -566,16 +583,17 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       log.debug("Initializing input split: " + split.getRange());
       Instance instance = getInstance(job);
       String user = getUsername(job);
+      String tokenClass = getTokenClass(job);
       byte[] password = getPassword(job);
       Authorizations authorizations = getScanAuthorizations(job);
       
       try {
         log.debug("Creating connector with user: " + user);
-        Connector conn = instance.getConnector(user, password);
+        Connector conn = instance.getConnector(user, CredentialHelper.extractToken(tokenClass, password));
         log.debug("Creating scanner for table: " + getInputTableName(job));
         log.debug("Authorizations are: " + authorizations);
         if (isOfflineScan(job)) {
-          scanner = new OfflineScanner(instance, new Credentials(user, ByteBuffer.wrap(password), instance.getInstanceID()), Tables.getTableId(instance,
+          scanner = new OfflineScanner(instance, new Credential(user, tokenClass, ByteBuffer.wrap(password), instance.getInstanceID()), Tables.getTableId(instance,
               getInputTableName(job)), authorizations);
         } else {
           scanner = conn.createScanner(getInputTableName(job), authorizations);

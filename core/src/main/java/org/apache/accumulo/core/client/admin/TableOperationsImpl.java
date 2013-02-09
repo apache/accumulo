@@ -74,7 +74,8 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.TableOperation;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -105,7 +106,7 @@ import org.apache.thrift.transport.TTransportException;
  */
 public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
-  private Credentials credentials;
+  private Credential credentials;
   
   private static final Logger log = Logger.getLogger(TableOperations.class);
   
@@ -115,7 +116,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @param credentials
    *          the username/password for this connection
    */
-  public TableOperationsImpl(Instance instance, Credentials credentials) {
+  public TableOperationsImpl(Instance instance, Credential credentials) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;
@@ -1153,7 +1154,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, auths);
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName, auths);
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
   }
   

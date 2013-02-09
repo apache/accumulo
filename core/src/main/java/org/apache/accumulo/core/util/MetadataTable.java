@@ -39,7 +39,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.hadoop.io.Text;
 
 public class MetadataTable {
@@ -169,7 +170,7 @@ public class MetadataTable {
     return new Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>>(results, locationless);
   }
   
-  public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(Instance instance, KeyExtent ke, List<ColumnFQ> columns, Credentials credentials) {
+  public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(Instance instance, KeyExtent ke, List<ColumnFQ> columns, Credential credentials) {
     TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
     getTabletAndPrevTabletKeyValues(instance, tkv, ke, columns, credentials);
     return getTabletEntries(tkv, columns);
@@ -203,7 +204,7 @@ public class MetadataTable {
     return tabletEntries;
   }
   
-  public static void getTabletAndPrevTabletKeyValues(Instance instance, SortedMap<Key,Value> tkv, KeyExtent ke, List<ColumnFQ> columns, Credentials credentials) {
+  public static void getTabletAndPrevTabletKeyValues(Instance instance, SortedMap<Key,Value> tkv, KeyExtent ke, List<ColumnFQ> columns, Credential credentials) {
     Text startRow;
     Text endRow = ke.getMetadataEntry();
     
@@ -236,11 +237,11 @@ public class MetadataTable {
     }
   }
   
-  public static void getEntries(Instance instance, Credentials credentials, String table, boolean isTid, Map<KeyExtent,String> locations,
+  public static void getEntries(Instance instance, Credential credentials, String table, boolean isTid, Map<KeyExtent,String> locations,
       SortedSet<KeyExtent> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableId = isTid ? table : Tables.getNameToIdMap(instance).get(table);
     
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     
     Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);

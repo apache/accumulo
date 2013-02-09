@@ -32,8 +32,12 @@ import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.StringUtil;
@@ -144,18 +148,27 @@ public class HdfsZooInstance implements Instance {
     return (int) ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
   }
   
-  @SuppressWarnings("deprecation")
   @Override
   // Not really deprecated, just not for client use
-  public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, user, pass);
+  public Connector getConnector(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
   }
   
   @SuppressWarnings("deprecation")
+  public Connector getConnector(Credential cred) throws AccumuloException, AccumuloSecurityException {
+    return new ConnectorImpl(this, cred);
+  }
+  
+  @Override
+  // Not really deprecated, just not for client use
+  public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(user, new PasswordToken().setPassword(pass));
+  }
+  
   @Override
   // Not really deprecated, just not for client use
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, user, ByteBufferUtil.toBytes(pass));
+    return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
   
   @Override
@@ -186,8 +199,8 @@ public class HdfsZooInstance implements Instance {
   }
   
   @Override
-  public Connector getConnector(Credentials auth) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(auth.getPrincipal(), auth.getToken());
+  public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(auth.user, auth.getPassword());
   }
   
   @Override

@@ -36,6 +36,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -71,7 +72,7 @@ public class MiniAccumuloClusterTest {
     
     conn.tableOperations().create("table1");
     
-    conn.securityOperations().createUser("user1", "pass1".getBytes());
+    conn.securityOperations().createUser("user1", new PasswordToken().setPassword("pass1".getBytes()));
     conn.securityOperations().changeUserAuthorizations("user1", new Authorizations("A", "B"));
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.WRITE);
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.READ);

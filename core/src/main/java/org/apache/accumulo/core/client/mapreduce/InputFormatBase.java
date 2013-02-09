@@ -63,7 +63,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
@@ -104,14 +107,15 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * 
    * @param job
    *          the Hadoop job instance to be configured
-   * @param user
+   * @param principal
    *          a valid Accumulo user name (user must have Table.CREATE permission)
-   * @param passwd
+   * @param token
    *          the user's password
+   * @throws AccumuloSecurityException 
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Job job, String user, byte[] passwd) {
-    InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), user, passwd);
+  public static void setConnectorInfo(Job job, String principal, SecurityToken token) throws AccumuloSecurityException {
+    InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
   }
   
   /**
@@ -151,11 +155,25 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
+   * @see #setConnectorInfo(Job, String, SecurityToken)
    * @see #setConnectorInfo(Job, Path)
    */
   protected static String getPrincipal(JobContext context) {
     return InputConfigurator.getPrincipal(CLASS, context.getConfiguration());
+  }
+  
+  /**
+   * Gets the serialized token class from the configuration.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the user name
+   * @since 1.5.0
+   * @see #setConnectorInfo(Job, String, SecurityToken)
+   * @see #setConnectorInfo(Job, Path)
+   */
+  protected static String getTokenClass(JobContext context) {
+    return InputConfigurator.getTokenClass(CLASS, context.getConfiguration());
   }
   
   /**
@@ -580,17 +598,18 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.range);
       Instance instance = getInstance(attempt);
-      String user = getPrincipal(attempt);
-      byte[] password = getToken(attempt);
+      String principal = getPrincipal(attempt);
+      String tokenClass = getTokenClass(attempt);
+      byte[] token = getToken(attempt);
       Authorizations authorizations = getScanAuthorizations(attempt);
       
       try {
-        log.debug("Creating connector with user: " + user);
-        Connector conn = instance.getConnector(user, password);
+        log.debug("Creating connector with user: " + principal);
+        Connector conn = instance.getConnector(principal, CredentialHelper.extractToken(tokenClass, token));
         log.debug("Creating scanner for table: " + getInputTableName(attempt));
         log.debug("Authorizations are: " + authorizations);
         if (isOfflineScan(attempt)) {
-          scanner = new OfflineScanner(instance, new Credentials(user, ByteBuffer.wrap(password), instance.getInstanceID()), Tables.getTableId(instance,
+          scanner = new OfflineScanner(instance, new Credential(principal, tokenClass, ByteBuffer.wrap(token), instance.getInstanceID()), Tables.getTableId(instance,
               getInputTableName(attempt)), authorizations);
         } else {
           scanner = conn.createScanner(getInputTableName(attempt), authorizations);
@@ -992,7 +1011,11 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setInputInfo(Configuration conf, String user, byte[] passwd, String table, Authorizations auths) {
-    InputConfigurator.setConnectorInfo(CLASS, conf, user, passwd);
+    try {
+      InputConfigurator.setConnectorInfo(CLASS, conf, user, new PasswordToken().setPassword(passwd));
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
     InputConfigurator.setInputTableName(CLASS, conf, table);
     InputConfigurator.setScanAuthorizations(CLASS, conf, auths);
   }

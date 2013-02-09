@@ -17,12 +17,12 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -69,7 +69,7 @@ public class PasswdCommand extends Command {
     // update the current credentials if the password changed was for
     // the current user
     if (shellState.getConnector().whoami().equals(user)) {
-      shellState.updateUser(new Credentials(user, ByteBuffer.wrap(pass), shellState.getConnector().getInstance().getInstanceID()));
+      shellState.updateUser(CredentialHelper.create(user, new PasswordToken().setPassword(pass), shellState.getConnector().getInstance().getInstanceID()));
     }
     Shell.log.debug("Changed password for user " + user);
     return 0;

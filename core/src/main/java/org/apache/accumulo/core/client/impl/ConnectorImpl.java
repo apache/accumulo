@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -40,14 +39,14 @@ import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.trace.instrument.Tracer;
 
 public class ConnectorImpl extends Connector {
   private Instance instance;
-  private Credentials credentials;
+  private Credential credentials;
   private SecurityOperations secops = null;
   private TableOperations tableops = null;
   private InstanceOperations instanceops = null;
@@ -65,22 +64,20 @@ public class ConnectorImpl extends Connector {
    * @deprecated Not for client use
    */
   @Deprecated
-  public ConnectorImpl(Instance instance, String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(instance, user, password);
+  public ConnectorImpl(Instance instance, Credential cred) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(instance, cred);
     this.instance = instance;
     
-    // copy password so that user can clear it.... in future versions we can clear it...
-    byte[] passCopy = new byte[password.length];
-    System.arraycopy(password, 0, passCopy, 0, password.length);
-    this.credentials = new Credentials(user, ByteBuffer.wrap(password), instance.getInstanceID());
+    
+    this.credentials = cred;
     
     // hardcoded string for SYSTEM user since the definition is
     // in server code
-    if (!user.equals("!SYSTEM")) {
+    if (!cred.getPrincipal().equals("!SYSTEM")) {
       ServerClient.execute(instance, new ClientExec<ClientService.Client>() {
         @Override
         public void execute(ClientService.Client iface) throws Exception {
-          if (!iface.authenticateUser(Tracer.traceInfo(), credentials, credentials.getPrincipal(), credentials.token))
+          if (!iface.authenticateUser(Tracer.traceInfo(), credentials, credentials))
             throw new AccumuloSecurityException("Authentication failed, access denied", SecurityErrorCode.BAD_CREDENTIALS);
         }
       });

@@ -17,12 +17,12 @@
 package org.apache.accumulo.server.tabletserver.mastermessage;
 
 import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.thrift.TException;
 
 public interface MasterMessage {
   
-  void send(Credentials info, String serverName, MasterClientService.Iface client) throws TException, ThriftSecurityException;
+  void send(Credential info, String serverName, MasterClientService.Iface client) throws TException, ThriftSecurityException;
   
 }

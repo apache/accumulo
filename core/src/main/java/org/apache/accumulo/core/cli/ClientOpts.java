@@ -16,13 +16,12 @@
  */
 package org.apache.accumulo.core.cli;
 
-import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -37,7 +36,11 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.thrift.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -74,7 +77,7 @@ public class ClientOpts extends Help {
     public byte[] value;
     
     public Password(String dfault) {
-      value = dfault.getBytes();
+      value = dfault.getBytes(Charset.forName("UTF-8"));
     }
     
     @Override
@@ -98,7 +101,7 @@ public class ClientOpts extends Help {
   }
   
   @Parameter(names = {"-u", "--user"}, description = "Connection user")
-  public String user = System.getProperty("user.name");
+  public String principal = System.getProperty("user.name");
   
   @Parameter(names = "-p", converter = PasswordConverter.class, description = "Connection password")
   public Password password = new Password("secret");
@@ -106,11 +109,14 @@ public class ClientOpts extends Help {
   @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
   public Password securePassword = null;
   
-  public byte[] getPassword() {
+  public SecurityToken getToken() {
+    PasswordToken pt = new PasswordToken();
     if (securePassword == null) {
-      return password.value;
+      if (password.value == null)
+        return null;
+      return pt.setPassword(password.value);
     }
-    return securePassword.value;
+    return pt.setPassword(securePassword.value);
   }
   
   @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
@@ -197,14 +203,14 @@ public class ClientOpts extends Help {
   }
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getInstance().getConnector(this.user, this.getPassword());
+    return getInstance().getConnector(this.principal, this.getToken());
   }
   
-  public Credentials getCredentials() {
-    return new Credentials(user, ByteBuffer.wrap(getPassword()), getInstance().getInstanceID());
+  public Credential getCredentials() throws AccumuloSecurityException {
+    return CredentialHelper.create(principal, getToken(), getInstance().getInstanceID());
   }
   
-  public void setAccumuloConfigs(Job job) {
+  public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
     AccumuloInputFormat.setZooKeeperInstance(job, instance, zookeepers);
     AccumuloOutputFormat.setZooKeeperInstance(job, instance, zookeepers);
   }
