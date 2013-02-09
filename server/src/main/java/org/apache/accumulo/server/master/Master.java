@@ -98,7 +98,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.balancer.TabletBalancer;
@@ -157,7 +156,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -171,8 +169,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 /**
@@ -279,53 +275,21 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.info("Upgrading zookeeper");
         
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-        
-        TablePropUtil.setTableProperty(Constants.METADATA_TABLE_ID, Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter", "20,"
-            + MetadataBulkLoadFilter.class.getName());
-        
-        zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, new byte[0], NodeExistsPolicy.SKIP);
-        zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS, new byte[0], NodeExistsPolicy.SKIP);
-        zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZNEXT_FILE, new byte[] {'0'}, NodeExistsPolicy.SKIP);
-        
-        String[] tablePropsToDelete = new String[] {"table.scan.cache.size", "table.scan.cache.enable"};
-        
+
+        zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.SKIP);
+
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
-          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_FLUSH_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
-          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
+
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, "0".getBytes(),
               NodeExistsPolicy.SKIP);
-          
-          for (String prop : tablePropsToDelete) {
-            String propPath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + prop;
-            if (zoo.exists(propPath))
-              zoo.delete(propPath, -1);
-          }
         }
-        
-        setACLs(zoo, ZooUtil.getRoot(instance), ZooUtil.getRoot(instance) + Constants.ZUSERS);
-        
       } catch (Exception ex) {
         log.fatal("Error performing upgrade", ex);
         System.exit(1);
       }
     }
   }
-  
-  private void setACLs(IZooReaderWriter zoo, String root, String users) throws Exception {
-    Stat stat = new Stat();
-    List<ACL> acls = zoo.getZooKeeper().getACL(root, stat);
-    if (acls.equals(ZooDefs.Ids.OPEN_ACL_UNSAFE)) {
-      if (root.startsWith(users)) {
-        zoo.getZooKeeper().setACL(root, ZooUtil.PRIVATE, -1);
-      } else {
-        zoo.getZooKeeper().setACL(root, ZooUtil.PUBLIC, -1);
-      }
-      for (String child : zoo.getChildren(root)) {
-        setACLs(zoo, root + "/" + child, users);
-      }
-    }
-  }
-  
+
   private final AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
   
   private final ServerConfiguration serverConfig;
@@ -337,22 +301,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           @Override
           public void run() {
             try {
-              // add delete entries to metadata table for bulk dirs
-              
-              log.info("Adding bulk dir delete entries to !METADATA table for upgrade");
-              
-              BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
-              
-              FileStatus[] tables = fs.globStatus(new Path(Constants.getTablesDir(getSystemConfiguration()) + "/*"));
-              for (FileStatus tableDir : tables) {
-                FileStatus[] bulkDirs = fs.globStatus(new Path(tableDir.getPath() + "/bulk_*"));
-                for (FileStatus bulkDir : bulkDirs) {
-                  bw.addMutation(MetadataTable.createDeleteMutation(tableDir.getPath().getName(), "/" + bulkDir.getPath().getName()));
-                }
-              }
-              
-              bw.close();
-              
               Accumulo.updateAccumuloVersion(fs);
               
               log.info("Upgrade complete");

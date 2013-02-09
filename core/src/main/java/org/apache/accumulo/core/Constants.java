@@ -35,8 +35,8 @@ public class Constants {
   
   // versions should never be negative
   public static final Integer WIRE_VERSION = 2;
-  public static final int DATA_VERSION = 4;
-  public static final int PREV_DATA_VERSION = 3;
+  public static final int DATA_VERSION = 5;
+  public static final int PREV_DATA_VERSION = 4;
   
   // Zookeeper locations
   public static final String ZROOT = "/accumulo";
