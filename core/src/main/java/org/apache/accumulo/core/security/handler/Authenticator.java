@@ -19,7 +19,7 @@ package org.apache.accumulo.core.security.handler;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 
 public interface Authenticator {
   public SecurityToken login(Properties properties) throws AccumuloSecurityException;

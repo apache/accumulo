@@ -31,7 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.util.PeekingIterator;
 
 /**

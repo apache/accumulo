@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
+import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.fs.FileSystem;
 

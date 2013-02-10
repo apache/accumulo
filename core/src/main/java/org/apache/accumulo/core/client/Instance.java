@@ -22,7 +22,7 @@ import java.util.List;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.Credential;
-import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 
 /**
  * This class represents the information a client needs to know to connect to an instance of accumulo.

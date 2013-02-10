@@ -21,8 +21,8 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.thrift.Credential;
-import org.apache.accumulo.core.security.thrift.tokens.NullToken;
-import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.NullToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 
 /**
  * This is an Authenticator implementation that doesn't actually do any security. Use at your own risk.

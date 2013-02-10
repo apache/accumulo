@@ -21,8 +21,8 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
-import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.PasswordToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 
 /**
  * 

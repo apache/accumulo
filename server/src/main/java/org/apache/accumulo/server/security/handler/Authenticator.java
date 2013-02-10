@@ -21,7 +21,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 
 /**
  * This interface is used for the system which will be used for authenticating a user. If the implementation does not support configuration through Accumulo, it

@@ -26,8 +26,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.thrift.tokens.PasswordToken;
-import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.PasswordToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 
 public class MockSecurityOperations implements SecurityOperations {
   

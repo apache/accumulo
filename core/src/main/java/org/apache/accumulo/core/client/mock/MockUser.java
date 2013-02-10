@@ -20,7 +20,7 @@ import java.util.EnumSet;
 
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.thrift.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.SecurityToken;
 
 public class MockUser {
   final EnumSet<SystemPermission> permissions;
