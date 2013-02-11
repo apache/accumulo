@@ -444,6 +444,8 @@ public interface TableOperations {
    *          the HDFS directory to find files for importing
    * @param failureDir
    *          the HDFS directory to place files that failed to be imported, must exist and be empty
+   * @param setTime
+   *          override the time values in the input files, and use the current time for all mutations 
    * @throws IOException
    *           when there is an error reading/writing to HDFS
    * @throws AccumuloException
