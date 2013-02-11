@@ -468,35 +468,6 @@ public class Mutation implements Writable {
   }
 
   private ColumnUpdate deserializeColumnUpdate(SimpleReader in) {
-    if (useOldDeserialize)
-      return oldDeserializeColumnUpdate(in);
-    return newDeserializeColumnUpdate(in);
-  }
-  
-  private ColumnUpdate oldDeserializeColumnUpdate(SimpleReader in) {
-    byte[] cf = oldReadBytes(in);
-    byte[] cq = oldReadBytes(in);
-    byte[] cv = oldReadBytes(in);
-    boolean hasts = in.readBoolean();
-    long ts = in.readLong();
-    boolean deleted = in.readBoolean();
-    
-    byte[] val;
-    int valLen = in.readInt();
-    
-    if (valLen < 0) {
-      val = values.get((-1 * valLen) - 1);
-    } else if (valLen == 0) {
-      val = EMPTY_BYTES;
-    } else {
-      val = new byte[valLen];
-      in.readBytes(val);
-    }
-    
-    return newColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
-  }
-  
-  private ColumnUpdate newDeserializeColumnUpdate(SimpleReader in) {
     byte[] cf = readBytes(in);
     byte[] cq = readBytes(in);
     byte[] cv = readBytes(in);
@@ -557,11 +528,6 @@ public class Mutation implements Writable {
   
   @Override
   public void readFields(DataInput in) throws IOException {
-    byte first = in.readByte();
-    if ((first & 0x80) != 0x80) {
-      oldReadFields(first, in);
-      return;
-    }
     
     // Clear out cached column updates and value lengths so
     // that we recalculate them based on the (potentially) new
@@ -569,7 +535,15 @@ public class Mutation implements Writable {
     updates = null;
     cachedValLens = -1;
     buffer = null;
+    useOldDeserialize = false;
     
+    byte first = in.readByte();
+    if ((first & 0x80) != 0x80) {
+      oldReadFields(first, in);
+      useOldDeserialize = true;
+      return;
+    }
+
     int len = WritableUtils.readVInt(in);
     row = new byte[len];
     in.readFully(row);
@@ -593,14 +567,10 @@ public class Mutation implements Writable {
     }
   }
   
-  public void oldReadFields(byte first, DataInput in) throws IOException {
-    // Clear out cached column updates and value lengths so
-    // that we recalculate them based on the (potentially) new
-    // data we are about to read in.
-    useOldDeserialize = true;
-    updates = null;
-    cachedValLens = -1;
-    buffer = null;
+  protected void droppingOldTimestamp(long ts) {}
+
+  private void oldReadFields(byte first, DataInput in) throws IOException {
+
     byte b = (byte)in.readByte();
     byte c = (byte)in.readByte();
     byte d = (byte)in.readByte();
@@ -610,27 +580,56 @@ public class Mutation implements Writable {
     row = new byte[len];
     in.readFully(row);
     len = in.readInt();
-    data = new byte[len];
-    in.readFully(data);
-    entries = in.readInt();
+    byte[] localData = new byte[len];
+    in.readFully(localData);
+    int localEntries = in.readInt();
     
+    List<byte[]> localValues;
     boolean valuesPresent = in.readBoolean();
     if (!valuesPresent) {
-      values = null;
+      localValues = null;
     } else {
-      values = new ArrayList<byte[]>();
+      localValues = new ArrayList<byte[]>();
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
         len = in.readInt();
         byte val[] = new byte[len];
         in.readFully(val);
-        values.add(val);
+        localValues.add(val);
       }
     }
-  }
-  
+    
+    // convert data to new format
+    SimpleReader din = new SimpleReader(localData);
+    buffer = new ByteBuffer();
+    for (int i = 0; i < localEntries; i++) {
+      byte[] cf = oldReadBytes(din);
+      byte[] cq = oldReadBytes(din);
+      byte[] cv = oldReadBytes(din);
+      boolean hasts = din.readBoolean();
+      long ts = din.readLong();
+      boolean deleted = din.readBoolean();
+      
+      byte[] val;
+      int valLen = din.readInt();
+      
+      if (valLen < 0) {
+        val = localValues.get((-1 * valLen) - 1);
+      } else if (valLen == 0) {
+        val = EMPTY_BYTES;
+      } else {
+        val = new byte[valLen];
+        din.readBytes(val);
+      }
+      
+      put(cf, cq, cv, hasts, ts, deleted, val);
+      if (!hasts)
+        droppingOldTimestamp(ts);
+    }
 
-  
+    serialize();
+
+  }
   
   @Override
   public void write(DataOutput out) throws IOException {
@@ -640,6 +639,7 @@ public class Mutation implements Writable {
     
     WritableUtils.writeVInt(out, row.length);
     out.write(row);
+
     WritableUtils.writeVInt(out, data.length);
     out.write(data);
     WritableUtils.writeVInt(out, entries);
@@ -691,7 +691,7 @@ public class Mutation implements Writable {
     return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
   }
   
-  public SERIALIZED_FORMAT getSerializedFormat() {
+  protected SERIALIZED_FORMAT getSerializedFormat() {
     return this.useOldDeserialize ? SERIALIZED_FORMAT.VERSION1 : SERIALIZED_FORMAT.VERSION2;
   }
 

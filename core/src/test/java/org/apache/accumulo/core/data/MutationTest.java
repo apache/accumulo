@@ -444,7 +444,7 @@ public class MutationTest extends TestCase {
     assertEquals(3, m1.size());
     assertEquals(m1.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
     assertEquals(m1.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    assertEquals(m2.getUpdates().get(2), "cf3", "cq3", "", 0l, false, true, "");
+    assertEquals(m1.getUpdates().get(2), "cf3", "cq3", "", 0l, false, true, "");
     
     Text exampleRow = new Text(" 123456789 123456789 123456789 123456789 123456789");
     int exampleLen = exampleRow.getLength();
@@ -473,4 +473,39 @@ public class MutationTest extends TestCase {
     
   }
   
+  public void testReserialize() throws Exception {
+    // test reading in a new mutation from an old mutation and reserializing the new mutation... this was failing
+    OldMutation om = new OldMutation("r1");
+    om.put("cf1", "cq1", "v1");
+    om.put("cf2", "cq2", new ColumnVisibility("cv2"), "v2");
+    om.putDelete("cf3", "cq3");
+    StringBuilder bigVal = new StringBuilder();
+    for (int i = 0; i < 100000; i++) {
+      bigVal.append('a');
+    }
+    om.put("cf2", "big", bigVal);
+
+    
+    Mutation m1 = convert(om);
+
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(bos);
+    m1.write(dos);
+    dos.close();
+    
+    Mutation m2 = new Mutation();
+    
+    ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+    DataInputStream dis = new DataInputStream(bis);
+    m2.readFields(dis);
+    
+    assertEquals("r1", new String(m1.getRow()));
+    assertEquals(4, m2.getUpdates().size());
+    assertEquals(4, m2.size());
+    assertEquals(m2.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
+    assertEquals(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+    assertEquals(m2.getUpdates().get(2), "cf3", "cq3", "", 0l, false, true, "");
+    assertEquals(m2.getUpdates().get(3), "cf2", "big", "", 0l, false, false, bigVal.toString());
+  }
+
 }

@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.server.data;
 
-import static org.apache.accumulo.core.data.Mutation.SERIALIZED_FORMAT.VERSION2;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -45,21 +43,16 @@ public class ServerMutation extends Mutation {
   public ServerMutation() {
   }
 
+  protected void droppingOldTimestamp(long ts) {
+    this.systemTime = ts;
+  }
+
   @Override
   public void readFields(DataInput in) throws IOException {
     super.readFields(in);
     // new format writes system time with the mutation
-    if (getSerializedFormat() == VERSION2)
+    if (getSerializedFormat() == SERIALIZED_FORMAT.VERSION2)
       systemTime = WritableUtils.readVLong(in);
-    else {
-      // old format stored it in the timestamp of each mutation
-      for (ColumnUpdate upd : getUpdates()) {
-        if (!upd.hasTimestamp()) {
-          systemTime = upd.getTimestamp();
-          break;
-        }
-      }
-    }
   }
   
   @Override

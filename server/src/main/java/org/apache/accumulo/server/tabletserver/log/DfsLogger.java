@@ -222,8 +222,8 @@ public class DfsLogger {
     try {
       byte[] magic = LOG_FILE_HEADER_V2.getBytes();
       byte[] buffer = new byte[magic.length];
-      int read = file.read(buffer);
-      if (read == magic.length && Arrays.equals(buffer, magic)) {
+      file.readFully(buffer);
+      if (Arrays.equals(buffer, magic)) {
         int count = file.readInt();
         for (int i = 0; i < count; i++) {
           String key = file.readUTF();
