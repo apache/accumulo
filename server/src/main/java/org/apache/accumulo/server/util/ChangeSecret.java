@@ -51,9 +51,10 @@ public class ChangeSecret {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    List<String> argsList = Arrays.asList(args);
+    List<String> argsList = new ArrayList<String>(args.length + 2);
     argsList.add("--old");
     argsList.add("--new");
+    argsList.addAll(Arrays.asList(args));
     opts.parseArgs(ChangeSecret.class.getName(), argsList.toArray(new String[0]));
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Instance inst = opts.getInstance();
