@@ -61,16 +61,17 @@ fi
 #
 # Copy all jars in lib to the system context directory
 #
-"$HADOOP_PREFIX/bin/hadoop" fs -moveFromLocal "$ACCUMULO_HOME/lib/*.jar" "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -moveFromLocal "$ACCUMULO_HOME"/lib/*.jar "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 
 "$HADOOP_PREFIX/bin/hadoop" fs -setrep -R $REP "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
+
 
 #
 # We need two of the jars in lib, copy them back out and remove them from the system context dir
 #
 "$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/log4j-1.2.16.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/log4j-1.2.16.jar"  > /dev/null
-"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2-2.0.jar $ACCUMULO_HOME/lib/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2-2.0.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2-2.0.jar"  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start-${ACCUMULO_VERSION}.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start-${ACCUMULO_VERSION}.jar"  > /dev/null
