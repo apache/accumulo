@@ -112,7 +112,7 @@ public class ShowTrace extends Basic {
         sb.append("  <table class='indent,noborder'>\n");
         for (Entry<String,String> entry : node.data.entrySet()) {
           sb.append("  <tr><td>" + BasicServlet.sanitize(entry.getKey()) + "</td>");
-          sb.append("<td>" + BasicServlet.sanitize(entry.getValue()) + "</td></tr>%n");
+          sb.append("<td>" + BasicServlet.sanitize(entry.getValue()) + "</td></tr>\n");
         }
         sb.append("  </table>");
         sb.append("</td>\n");
