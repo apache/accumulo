@@ -23,9 +23,10 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -37,14 +38,14 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   
   private static final long serialVersionUID = 1L;
   
-  private HashSet<ByteSequence> auths = new HashSet<ByteSequence>();
+  private Set<ByteSequence> auths = new TreeSet<ByteSequence>();
   private List<byte[]> authsList = new ArrayList<byte[]>();
   private List<byte[]> immutableList = Collections.unmodifiableList(authsList);
   
   private static final boolean[] validAuthChars = new boolean[256];
   
   public static final String HEADER = "!AUTH1:";
-
+  
   static {
     for (int i = 0; i < 256; i++) {
       validAuthChars[i] = false;
@@ -103,11 +104,11 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
    * @param authorizations
    *          a serialized authorizations string produced by {@link #getAuthorizationsArray()} or {@link #serialize()}
    */
-
+  
   public Authorizations(byte[] authorizations) {
     
     ArgumentChecker.notNull(authorizations);
-
+    
     String authsString = new String(authorizations);
     if (authsString.startsWith(HEADER)) {
       // its the new format
@@ -140,7 +141,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   public Authorizations(Charset charset, String... authorizations) {
     setAuthorizations(charset, authorizations);
   }
-
+  
   public Authorizations(String... authorizations) {
     setAuthorizations(authorizations);
   }
@@ -176,6 +177,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
     return ByteBufferUtil.toByteBuffers(immutableList);
   }
   
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     String sep = "";
@@ -196,6 +198,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
     return auths.contains(auth);
   }
   
+  @Override
   public boolean equals(Object o) {
     if (o == null) {
       return false;
@@ -210,6 +213,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
     return false;
   }
   
+  @Override
   public int hashCode() {
     int result = 0;
     for (ByteSequence b : auths)
