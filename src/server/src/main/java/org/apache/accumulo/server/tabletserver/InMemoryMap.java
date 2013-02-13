@@ -260,6 +260,8 @@ public class InMemoryMap {
   
   private AtomicInteger nextMutationCount = new AtomicInteger(1);
   private AtomicInteger mutationCount = new AtomicInteger(0);
+
+  private Object writeSerializer = new Object();
   
   /**
    * Applies changes to a row in the InMemoryMap
@@ -267,25 +269,19 @@ public class InMemoryMap {
    */
   public void mutate(List<Mutation> mutations) {
     int mc = nextMutationCount.getAndAdd(mutations.size());
-    try {
-      map.mutate(mutations, mc);
-    } finally {
-      synchronized (this) {
-        // Can not update mutationCount while writes that started before
-        // are in progress, this would cause partial mutations to be seen.
-        // Also, can not continue until mutation count is updated, because
-        // a read may not see a successful write. Therefore writes must
-        // wait for writes that started before to finish.
-        
-        while (mutationCount.get() != mc - 1) {
-          try {
-            wait();
-          } catch (InterruptedException ex) {
-            // ignored
-          }
-        }
+    int numKVs = 0;
+    // Can not update mutationCount while writes that started before
+    // are in progress, this would cause partial mutations to be seen.
+    // Also, can not continue until mutation count is updated, because
+    // a read may not see a successful write. Therefore writes must
+    // wait for writes that started before to finish.
+    //
+    // using separate lock from this map, to allow read/write in parallel
+    synchronized (writeSerializer ) {
+      try {
+        map.mutate(mutations, mc);
+      } finally {
         mutationCount.set(mc + mutations.size() - 1);
-        notifyAll();
       }
     }
   }
