@@ -260,7 +260,7 @@
                 <configuration>
                   <deb>${project.build.directory}/${project.artifactId}_${project.version}.deb</deb>
                   <attach>false</attach>
-                  <controlDir>packages/deb/accumulo</controlDir>
+                  <controlDir>assemble/deb/accumulo</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <dataSet>
                     <data>
@@ -344,7 +344,7 @@
                 </goals>
                 <configuration>
                   <attach>false</attach>
-                  <controlDir>packages/deb/accumulo-native</controlDir>
+                  <controlDir>assemble/deb/accumulo-native</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <deb>${project.build.directory}/${project.artifactId}-native_${project.version}-${os.arch}.deb</deb>
                   <dataSet>
@@ -384,7 +384,7 @@
                 </goals>
                 <configuration>
                   <attach>false</attach>
-                  <controlDir>packages/deb/accumulo-test</controlDir>
+                  <controlDir>assemble/deb/accumulo-test</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <deb>${project.build.directory}/${project.artifactId}-test_${project.version}-${os.arch}.deb</deb>
                   <dataSet>
