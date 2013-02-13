@@ -62,10 +62,6 @@ public class AccumuloClassLoader {
     } else {
       SITE_CONF = null;
     }
-    
-    // Register the shutdown hook
-    // TODO
-    // Runtime.getRuntime().addShutdownHook(new Thread(new AccumuloVFSClassLoaderShutdownThread()));
   }
   
   /**

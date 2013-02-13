@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -29,7 +30,6 @@ import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.FileType;
-import org.apache.commons.vfs2.cache.DefaultFilesCache;
 import org.apache.commons.vfs2.cache.SoftRefFilesCache;
 import org.apache.commons.vfs2.impl.DefaultFileReplicator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
@@ -61,7 +61,11 @@ public class AccumuloVFSClassLoader {
   public static class AccumuloVFSClassLoaderShutdownThread implements Runnable {
 
     public void run() {
-      AccumuloVFSClassLoader.close();
+      try {
+	AccumuloVFSClassLoader.close();
+      } catch (Exception e) {
+	  //do nothing, we are shutting down anyway
+      }
     }
     
   }
@@ -74,6 +78,8 @@ public class AccumuloVFSClassLoader {
   
   public static final String VFS_CONTEXT_CLASSPATH_PROPERTY = "general.vfs.context.classpath.";
   
+  public static final String VFS_CACHE_DIR = "general.vfs.cache.dir";
+  
   private static DefaultFileSystemManager vfs = null;
   private static ClassLoader parent = null;
   private static volatile ReloadingClassLoader loader = null;
@@ -82,6 +88,11 @@ public class AccumuloVFSClassLoader {
   private static ContextManager contextManager;
 
   private static Logger log = Logger.getLogger(AccumuloVFSClassLoader.class);
+  
+  static {
+    // Register the shutdown hook
+    Runtime.getRuntime().addShutdownHook(new Thread(new AccumuloVFSClassLoaderShutdownThread()));      
+  }
   
   public synchronized static <U> Class<? extends U> loadClass(String classname, Class<U> extension) throws ClassNotFoundException {
     try {
@@ -186,8 +197,6 @@ public class AccumuloVFSClassLoader {
           
           if (null == vfs) {
             vfs = new DefaultFileSystemManager();
-            //TODO: Might be able to use a different cache impl or specify cache directory in configuration.
-            vfs.setFilesCache(new DefaultFilesCache());
             vfs.addProvider("res", new org.apache.commons.vfs2.provider.res.ResourceFileProvider());
             vfs.addProvider("zip", new org.apache.commons.vfs2.provider.zip.ZipFileProvider());
             vfs.addProvider("gz", new org.apache.commons.vfs2.provider.gzip.GzipFileProvider());
@@ -221,7 +230,11 @@ public class AccumuloVFSClassLoader {
             vfs.addMimeTypeMap("application/zip", "zip");
             vfs.setFileContentInfoFactory(new FileContentInfoFilenameFactory());
             vfs.setFilesCache(new SoftRefFilesCache());
-            vfs.setReplicator(new DefaultFileReplicator());
+            String cacheDirPath = AccumuloClassLoader.getAccumuloString(VFS_CACHE_DIR, "");
+            File cacheDir = new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache");
+            if (!("".equals(cacheDirPath)))
+        	cacheDir = new File(cacheDirPath);
+            vfs.setReplicator(new DefaultFileReplicator(cacheDir));
             vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
             vfs.init();
           }

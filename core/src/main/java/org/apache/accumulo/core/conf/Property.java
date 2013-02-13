@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.io.File;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -335,7 +336,14 @@ public enum Property {
           + "The value is a comma seperated list of URIs. Supports full regex on filename alone. For example general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar.  "
           + "You can enable post delegation for a context, which will load classes from the context first instead of the parent first.  "
           + "Do this by setting general.vfs.context.classpath.<name>.delegation=post, where <name> is your context name.  "
-          + "If delegation is not specified, it defaults to loading from parent classloader first.");
+          + "If delegation is not specified, it defaults to loading from parent classloader first."),
+ VFS_CLASSLOADER_CACHE_DIR(
+	    AccumuloVFSClassLoader.VFS_CACHE_DIR,
+	    new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache")
+		    .getAbsolutePath(),
+	    PropertyType.ABSOLUTEPATH,
+	    "Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM. This should be on local disk on each node with sufficient space. It defaults to /tmp",
+	    false);
   
   private String key, defaultValue, description;
   private PropertyType type;
