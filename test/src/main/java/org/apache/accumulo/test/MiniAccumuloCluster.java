@@ -332,8 +332,6 @@ public class MiniAccumuloCluster {
     }
     
     masterProcess = exec(Master.class);
-    // give the processes a little time to get sockets and start listening
-    UtilWaitThread.sleep(100);
   }
   
   /**

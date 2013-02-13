@@ -174,7 +174,7 @@ public class SimpleTest {
 
     // create a table that's very slow, so we can look for scans/compactions
     client.createTable(creds, "slow", true, TimeType.MILLIS);
-    IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "100"));
+    IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
     client.attachIterator(creds, "slow", setting, EnumSet.allOf(IteratorScope.class));
     client.updateAndFlush(creds, "slow", mutation("row", "cf", "cq", "value"));
     client.updateAndFlush(creds, "slow", mutation("row2", "cf", "cq", "value"));
