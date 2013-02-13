@@ -334,6 +334,8 @@ public class InMemoryMap {
   
   private AtomicInteger nextKVCount = new AtomicInteger(1);
   private AtomicInteger kvCount = new AtomicInteger(0);
+
+  private Object writeSerializer = new Object();
   
   /**
    * Applies changes to a row in the InMemoryMap
@@ -343,26 +345,20 @@ public class InMemoryMap {
     int numKVs = 0;
     for (int i = 0; i < mutations.size(); i++)
       numKVs += mutations.get(i).size();
-    int kv = nextKVCount.getAndAdd(numKVs);
-    try {
-      map.mutate(mutations, kv);
-    } finally {
-      synchronized (this) {
-        // Can not update mutationCount while writes that started before
-        // are in progress, this would cause partial mutations to be seen.
-        // Also, can not continue until mutation count is updated, because
-        // a read may not see a successful write. Therefore writes must
-        // wait for writes that started before to finish.
-        
-        while (kvCount.get() != kv - 1) {
-          try {
-            wait();
-          } catch (InterruptedException ex) {
-            // ignored
-          }
-        }
+    
+    // Can not update mutationCount while writes that started before
+    // are in progress, this would cause partial mutations to be seen.
+    // Also, can not continue until mutation count is updated, because
+    // a read may not see a successful write. Therefore writes must
+    // wait for writes that started before to finish.
+    //
+    // using separate lock from this map, to allow read/write in parallel
+    synchronized (writeSerializer ) {
+      int kv = nextKVCount.getAndAdd(numKVs);
+      try {
+        map.mutate(mutations, kv);
+      } finally {
         kvCount.set(kv + numKVs - 1);
-        notifyAll();
       }
     }
   }
