@@ -1,54 +1,8 @@
 Apache Accumulo
-Copyright 2011 The Apache Software Foundation
+Copyright 2001-2013 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
-This product includes Flot (http://code.google.com/p/flot/), which is 
-licensed under the MIT License.  Flot includes excanvas.js, which is licensed
-under the Apache License.
-Copyright (c) 2007-2009 IOLA and Ole Laursen
-Copyright (c) 2008, Three Dub Media (http://threedubmedia.com)
-Copyright (c) 2009 Brandon Aaron (http://brandonaaron.net)
-Copyright (c) 2010 "Cowboy" Ben Alman
-Copyright 2011, John Resig
-Copyright 2011, The Dojo Foundation
-Copyright 2006 Google Inc.
-
-This product includes JLine (http://jline.sourceforge.net/), which is licensed 
-under the BSD License.
-Copyright (c) 2002-2006, Marc Prud'hommeaux <mwp1@cornell.edu>, All rights 
-reserved.
-
-Files in src/core/src/main/java/org/apache/accumulo/core/bloomfilter
-derived from sources
-Copyright (c) 2005, European Commission project OneLab under contract
-034819 (http://www.one-lab.org)
-All rights reserved.
-
-This product includes Kryo (http://code.google.com/p/kryo/), which is licensed
-under the BSD License.
-Copyright (c) 2008, Nathan Sweet
-All rights reserved.
-
-This product includes Protobuf (http://code.google.com/p/protobuf/), which is
-licensed under the BSD License.
-Copyright 2008 Google Inc.  All rights reserved.
-
-This product includes MinLog (http://code.google.com/p/minlog/), which is 
-licensed under the BSD License.
-Copyright (c) 2008, Nathan Sweet
-All rights reserved.
-
-This product includes Google Collections Library
-(http://code.google.com/p/google-collections/), which is licensed under the 
-Apache License.
-Copyright (C) 2007 Google Inc.
-
-This product includes enwiki-20110901-001.xml, which is a selection from a 
-larger dump 
-(http://dumps.wikimedia.org/enwiki/20110901/enwiki-20110901-pages-meta-history1.xml-p000000010p000002326.7z), 
-the contents of which are licensed under the CC-BY-SA License.
-
-This product depends upon, but does not distribute, Jersey 
-(http://jersey.java.net/) which is licensed under the CDDL License.
+This product includes JCommander (https://github.com/cbeust/jcommander),
+Copyright 2010 Cedric Beust cedric@beust.com.
