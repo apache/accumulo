@@ -309,7 +309,7 @@ public class InMemoryMapTest extends TestCase {
   @Test
   public void testParallelWriteSpeed() throws InterruptedException {
     List<Double> timings = new ArrayList<Double>();
-    for (int threads: new int[]{1, 2, 16, 64, 256, 2048} ) {
+    for (int threads: new int[]{1, 2, 16, 64, 256} ) {
       final long now = System.currentTimeMillis();
       final long counts[] = new long[threads];
       final InMemoryMap imm = new InMemoryMap(false, "/tmp");
