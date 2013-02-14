@@ -47,6 +47,7 @@ import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.Trash;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -57,10 +58,14 @@ public class GarbageCollectWriteAheadLogs {
   
   private final Instance instance;
   private final FileSystem fs;
+
+  private Trash trash;
   
-  GarbageCollectWriteAheadLogs(Instance instance, FileSystem fs) {
+  GarbageCollectWriteAheadLogs(Instance instance, FileSystem fs, boolean noTrash) throws IOException {
     this.instance = instance;
     this.fs = fs;
+    if (!noTrash)
+      this.trash = new Trash(fs, fs.getConf());
   }
 
   public void collect(GCStatus status) {
@@ -129,7 +134,9 @@ public class GarbageCollectWriteAheadLogs {
         for (String filename : entry.getValue()) {
           log.debug("Removing old-style WAL " + entry.getValue());
           try {
-            fs.delete(new Path(Constants.getWalDirectory(conf), filename), true);
+            Path path = new Path(Constants.getWalDirectory(conf), filename);
+            if (trash == null || !trash.moveToTrash(path))
+              fs.delete(path, true);
           } catch (IOException ex) {
             log.error("Unable to delete wal " + filename + ": " + ex);
           }

@@ -207,6 +207,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
@@ -2090,9 +2091,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
               log.error("rename is unsuccessful");
           } else {
             log.info("Deleting walog " + filename);
-            if (!fs.delete(new Path(source), true))
+            Trash trash = new Trash(fs, fs.getConf());
+            Path sourcePath = new Path(source);
+            if (!trash.moveToTrash(sourcePath) && !fs.delete(sourcePath, true))
               log.warn("Failed to delete walog " + source);
-            if (fs.delete(new Path(Constants.getRecoveryDir(acuConf), filename), true))
+            Path recoveryPath = new Path(Constants.getRecoveryDir(acuConf), filename); 
+            if (trash.moveToTrash(recoveryPath) || fs.delete(recoveryPath, true))
               log.info("Deleted any recovery log " + filename);
             
           }

@@ -132,6 +132,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -1037,8 +1038,11 @@ public class Tablet {
           
           // start deleting files, if we do not finish they will be cleaned
           // up later
+          Trash trash = new Trash(fs, fs.getConf());
           for (Path path : oldDatafiles) {
-            fs.delete(new Path(location + "/delete+" + compactName + "+" + path.getName()), true);
+            Path deleteFile = new Path(location + "/delete+" + compactName + "+" + path.getName());
+            if (!trash.moveToTrash(deleteFile))
+              fs.delete(deleteFile, true);
           }
         }
         
