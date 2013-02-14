@@ -43,12 +43,4 @@ public class AuthorizationsTest {
     assertEquals(a, b);
   }
   
-  @Test
-  public void testSerialization() {
-    Authorizations a1 = new Authorizations("a", "b");
-    Authorizations a2 = new Authorizations("b", "a");
-    
-    assertEquals(a1, a2);
-    assertEquals(a1.serialize(), a2.serialize());
-  }
 }
