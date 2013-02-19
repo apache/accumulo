@@ -31,7 +31,7 @@ import org.apache.hadoop.io.Text;
 
 public class Constants {
   public static final Charset UTF8 = Charset.forName("UTF-8");
-  public static final String VERSION = "1.5.0-SNAPSHOT";
+  public static final String VERSION = "1.6.0-SNAPSHOT";
   
   // versions should never be negative
   public static final Integer WIRE_VERSION = 2;

@@ -3,7 +3,7 @@ following notes are not guaranteed since there are so many different server conf
 Please let us know if anything is wrong or could be improved.
 
 ---------------------------
-- ACCUMULO 1.5.0-SNAPSHOT -
+- ACCUMULO 1.6.0-SNAPSHOT -
 ---------------------------
 
  NOTE: These steps were tested on Ubuntu 12.04.1 LTS. 'file /sbin/init' displays this:

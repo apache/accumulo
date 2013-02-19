@@ -1,9 +1,9 @@
 <version>
-  1.5.0-SNAPSHOT
+  1.6.0-SNAPSHOT
 </version>
 
 <archives>
-  ../../../lib/accumulo-core-1.5.0-SNAPSHOT.jar
+  ../../../lib/accumulo-core-1.6.0-SNAPSHOT.jar
 </archives>
 
 <skip_packages>

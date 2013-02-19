@@ -44,7 +44,7 @@ easier to install.
 
 Copy the accumulo tar file produced by mvn package from the src/assemble/target/
 directory to the desired destination, then untar it (e.g. 
-tar xzf apache-accumulo-1.5.0-SNAPSHOT-dist.tar.gz).
+tar xzf apache-accumulo-1.6.0-SNAPSHOT-dist.tar.gz).
 
 If you are using the RPM, install the RPM on every machine that will run
 accumulo.
@@ -71,7 +71,7 @@ found in the same location on every machine in the cluster.  You will need to
 have password-less ssh set up as described in the hadoop documentation. 
 
 You will need to have hadoop installed and configured on your system.  Accumulo
-1.5.0-SNAPSHOT has been tested with hadoop version 0.20.2.  To avoid data loss,
+1.6.0-SNAPSHOT has been tested with hadoop version 0.20.2.  To avoid data loss,
 you must enable HDFS durable sync.  How you enable this depends on your version
 of Hadoop. Please consult the table below for information regarding your version.
 If you need to set the coniguration, please be sure to restart HDFS. See 
@@ -182,7 +182,7 @@ scanned.
 
     Shell - Apache Accumulo Interactive Shell
     - 
-    - version: 1.5.0-SNAPSHOT
+    - version: 1.6.0-SNAPSHOT
     - instance name: accumulo
     - instance id: f5947fe6-081e-41a8-9877-43730c4dfc6f
     - 
@@ -203,7 +203,7 @@ certain column.
 
     Shell - Apache Accumulo Interactive Shell
     - 
-    - version: 1.5.0-SNAPSHOT
+    - version: 1.6.0-SNAPSHOT
     - instance name: accumulo
     - instance id: f5947fe6-081e-41a8-9877-43730c4dfc6f
     - 
