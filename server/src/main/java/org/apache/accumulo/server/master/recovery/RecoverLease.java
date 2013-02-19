@@ -20,7 +20,6 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.tableOps.MasterRepo;
@@ -67,14 +66,14 @@ public class RecoverLease extends MasterRepo {
     if (diff < master.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_DELAY))
       return Math.max(diff, 0);
     FileSystem fs = master.getFileSystem();
-    if (fs.exists(getSource(master)))
-      return 0;
+    if (fs.exists(getSource(master))) {
+      return recoverLease(master);
+    }
     log.warn("Unable to locate file " + file + " wal for server " + server);
     return 1000;
   }
-
-  @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  
+  private long recoverLease(Master master) {
     Path source = getSource(master);
     FileSystem fs = master.getFileSystem();
     if (fs instanceof TraceFileSystem)
@@ -82,12 +81,12 @@ public class RecoverLease extends MasterRepo {
     try {
       if (fs instanceof DistributedFileSystem) {
         DistributedFileSystem dfs = (DistributedFileSystem) fs;
-        while (!dfs.recoverLease(source)) {
+        if (!dfs.recoverLease(source)) {
           log.info("Waiting for file to be closed " + source.toString());
-          UtilWaitThread.sleep(1000);
+          return 1000;
         }
         log.info("Recovered lease on " + source.toString());
-        return new SubmitFileForRecovery(server, file);
+        return 0;
       }
     } catch (IOException ex) {
       log.error("error recovering lease ", ex);
@@ -95,13 +94,16 @@ public class RecoverLease extends MasterRepo {
     try {
       fs.append(source).close();
       log.info("Recovered lease on " + source.toString() + " using append");
-      return new SubmitFileForRecovery(server, file);
+      return 0;
     } catch (IOException ex) {
       log.error("error recovering lease using append", ex);
-      RecoverLease result = new RecoverLease();
-      result.init(server, file);
-      return result;
+      return 1000;
     }
+  }
+
+  @Override
+  public Repo<Master> call(long tid, Master master) throws Exception {
+    return new SubmitFileForRecovery(server, file);
   }
   
 }
