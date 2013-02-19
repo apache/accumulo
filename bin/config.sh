@@ -110,5 +110,8 @@ if [ ! -f "$ACCUMULO_HOME/conf/tracers" ]; then
 fi
 SSH='ssh -qnf -o ConnectTimeout=2'
 
+export HADOOP_HOME=$HADOOP_PREFIX
+export HADOOP_HOME_WARN_SUPPRESS=true
+
 # See HADOOP-7154 and ACCUMULO-847
 export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-1}
