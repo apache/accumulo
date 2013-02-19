@@ -65,19 +65,11 @@ public class RecoverLease extends MasterRepo {
     long diff = System.currentTimeMillis() - start;
     if (diff < master.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_DELAY))
       return Math.max(diff, 0);
-    FileSystem fs = master.getFileSystem();
-    if (fs.exists(getSource(master))) {
-      return recoverLease(master);
-    }
-    log.warn("Unable to locate file " + file + " wal for server " + server);
-    return 1000;
-  }
-  
-  private long recoverLease(Master master) {
     Path source = getSource(master);
     FileSystem fs = master.getFileSystem();
     if (fs instanceof TraceFileSystem)
       fs = ((TraceFileSystem) fs).getImplementation();
+    
     try {
       if (fs instanceof DistributedFileSystem) {
         DistributedFileSystem dfs = (DistributedFileSystem) fs;
@@ -100,7 +92,7 @@ public class RecoverLease extends MasterRepo {
       return 1000;
     }
   }
-
+  
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     return new SubmitFileForRecovery(server, file);
