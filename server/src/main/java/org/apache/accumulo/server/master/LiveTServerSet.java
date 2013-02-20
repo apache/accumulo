@@ -277,14 +277,10 @@ public class LiveTServerSet implements Watcher {
       if (info == null) {
         updates.add(instance);
         current.put(server, new TServerInfo(instance, new TServerConnection(addr)));
-        if (server.startsWith("/"))
-          log.error(server, new Throwable());
       } else if (!info.instance.equals(instance)) {
         doomed.add(info.instance);
         updates.add(instance);
         current.put(server, new TServerInfo(instance, new TServerConnection(addr)));
-        if (server.startsWith("/"))
-          log.error(server, new Throwable());
       }
     }
   }
