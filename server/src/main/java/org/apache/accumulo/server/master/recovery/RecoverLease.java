@@ -25,6 +25,7 @@ import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 
@@ -79,6 +80,10 @@ public class RecoverLease extends MasterRepo {
         }
         log.info("Recovered lease on " + source.toString());
         return 0;
+      } else if (fs instanceof LocalFileSystem) {
+        // ignore
+      } else {
+        throw new IllegalStateException("Don't know how to recover a lease for "  + fs.getClass().getName()); 
       }
     } catch (IOException ex) {
       log.error("error recovering lease ", ex);
