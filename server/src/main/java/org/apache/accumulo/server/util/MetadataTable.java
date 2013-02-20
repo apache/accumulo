@@ -14,9 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * provides a reference to the metadata table for updates by tablet servers
- */
 package org.apache.accumulo.server.util;
 
 import java.io.IOException;
@@ -92,6 +89,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
+/**
+ * provides a reference to the metadata table for updates by tablet servers
+ */
 public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   
   private static final Text EMPTY_TEXT = new Text();
