@@ -16,17 +16,6 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-/**
- * provides scanner functionality
- * 
- * "Clients can iterate over multiple column families, and there are several 
- * mechanisms for limiting the rows, columns, and timestamps traversed by a 
- * scan. For example, we could restrict [a] scan ... to only produce anchors 
- * whose columns match [a] regular expression ..., or to only produce 
- * anchors whose timestamps fall within ten days of the current time."
- * 
- */
-
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +31,16 @@ import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
+/**
+ * provides scanner functionality
+ * 
+ * "Clients can iterate over multiple column families, and there are several 
+ * mechanisms for limiting the rows, columns, and timestamps traversed by a 
+ * scan. For example, we could restrict [a] scan ... to only produce anchors 
+ * whose columns match [a] regular expression ..., or to only produce 
+ * anchors whose timestamps fall within ten days of the current time."
+ * 
+ */
 public class ScannerImpl extends ScannerOptions implements Scanner {
   
   // keep a list of columns over which to scan

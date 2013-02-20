@@ -16,13 +16,6 @@
  */
 package org.apache.accumulo.server.tabletserver;
 
-/*
- * We need to be able to have the master tell a tabletServer to
- * close this file, and the tablet server to handle all pending client reads
- * before closing
- * 
- */
-
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -138,6 +131,13 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
+
+/*
+ * We need to be able to have the master tell a tabletServer to
+ * close this file, and the tablet server to handle all pending client reads
+ * before closing
+ * 
+ */
 
 /**
  * 

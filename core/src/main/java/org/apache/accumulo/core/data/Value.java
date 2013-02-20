@@ -1,6 +1,4 @@
-package org.apache.accumulo.core.data;
-
-/**
+/*
  * Copyright 2007 The Apache Software Foundation
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,6 +17,7 @@ package org.apache.accumulo.core.data;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.accumulo.core.data;
 
 import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
