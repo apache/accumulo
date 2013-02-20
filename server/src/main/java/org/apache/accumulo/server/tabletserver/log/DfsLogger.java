@@ -291,6 +291,7 @@ public class DfsLogger {
       key.tserverSession = filename;
       key.filename = filename;
       write(key, EMPTY);
+      logFile.sync();
       log.debug("Got new write-ahead log: " + this);
     } catch (IOException ex) {
       if (logFile != null)
