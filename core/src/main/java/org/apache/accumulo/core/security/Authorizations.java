@@ -26,6 +26,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -37,7 +39,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   
   private static final long serialVersionUID = 1L;
   
-  private HashSet<ByteSequence> auths = new HashSet<ByteSequence>();
+  private Set<ByteSequence> auths = new HashSet<ByteSequence>();
   private List<byte[]> authsList = new ArrayList<byte[]>();
   private List<byte[]> immutableList = Collections.unmodifiableList(authsList);
   
@@ -74,8 +76,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   }
   
   private void checkAuths() {
+    Set<ByteSequence> sortedAuths = new TreeSet<ByteSequence>(auths);
     
-    for (ByteSequence bs : auths) {
+    for (ByteSequence bs : sortedAuths) {
       if (bs.length() == 0) {
         throw new IllegalArgumentException("Empty authorization");
       }
@@ -233,10 +236,10 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   public String serialize() {
     StringBuilder sb = new StringBuilder(HEADER);
     String sep = "";
-    for (ByteSequence auth : auths) {
+    for (byte[] auth : immutableList) {
       sb.append(sep);
       sep = ",";
-      sb.append(new String(Base64.encodeBase64(auth.toArray())));
+      sb.append(new String(Base64.encodeBase64(auth)));
     }
     
     return sb.toString();
