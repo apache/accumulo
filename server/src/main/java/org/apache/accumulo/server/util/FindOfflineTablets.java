@@ -19,12 +19,12 @@ package org.apache.accumulo.server.util;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
@@ -62,7 +62,7 @@ public class FindOfflineTablets {
       TabletState state = locationState.getState(tservers.getCurrentServers());
       if (state != TabletState.HOSTED && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
         if (!locationState.extent.equals(Constants.ROOT_TABLET_EXTENT))
-          System.out.println(locationState + " is " + state);
+          System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
     }
   }
   
