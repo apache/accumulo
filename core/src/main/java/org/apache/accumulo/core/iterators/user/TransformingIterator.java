@@ -140,9 +140,22 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
+    
+    for (String opt : options.keySet()) {
+      try {
+        if (options.equals(AUTH_OPT)) {
+          new Authorizations(options.get(opt).getBytes());
+        } else if (opt.equals(MAX_BUFFER_SIZE_OPT)) {
+          AccumuloConfiguration.getMemoryInBytes(options.get(opt));
+        }
+      } catch (Exception e) {
+        throw new IllegalArgumentException("Failed to parse opt " + opt + " " + options.get(opt), e);
+      }
+    }
+    
     return true;
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     TransformingIterator copy;
