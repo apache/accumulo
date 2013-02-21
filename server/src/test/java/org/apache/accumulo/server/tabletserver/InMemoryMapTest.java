@@ -341,8 +341,8 @@ public class InMemoryMapTest extends TestCase {
     // verify that more threads doesn't go a lot faster, or a lot slower than one thread
     for (int i = 0; i < timings.size(); i++) {
       double ratioFirst = timings.get(0) / timings.get(i); 
-      assertTrue(ratioFirst < 2);
-      assertTrue(ratioFirst > 0.5);
+      assertTrue(ratioFirst < 3);
+      assertTrue(ratioFirst > 0.3);
     }
   }
 
