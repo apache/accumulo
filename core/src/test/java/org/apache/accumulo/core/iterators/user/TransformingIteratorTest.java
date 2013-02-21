@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -386,6 +388,28 @@ public class TransformingIteratorTest {
     }
     
     assertEquals(81, count);
+  }
+  
+  @Test
+  public void testValidateOptions() {
+    TransformingIterator ti = new ColFamReversingKeyTransformingIterator();
+    IteratorSetting is = new IteratorSetting(100, "cfrkt", ColFamReversingKeyTransformingIterator.class);
+    TransformingIterator.setAuthorizations(is, new Authorizations("A", "B"));
+    TransformingIterator.setMaxBufferSize(is, 10000000);
+    Assert.assertTrue(ti.validateOptions(is.getOptions()));
+    
+    Map<String,String> opts = new HashMap<String,String>();
+    
+    opts.put(TransformingIterator.MAX_BUFFER_SIZE_OPT, "10M");
+    Assert.assertTrue(ti.validateOptions(is.getOptions()));
+    
+    opts.clear();
+    opts.put(TransformingIterator.MAX_BUFFER_SIZE_OPT, "A,B");
+    try {
+      ti.validateOptions(opts);
+      Assert.assertFalse(true);
+    } catch (IllegalArgumentException e) {}
+
   }
   
   private Key createDeleteKey(String row, String colFam, String colQual, String colVis, long timestamp) {
