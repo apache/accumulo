@@ -23,7 +23,7 @@ import org.apache.accumulo.core.security.AuditLevel;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
@@ -49,16 +49,16 @@ public class AuditedSecurityOperation extends SecurityOperation {
     return instance;
   }
   
-  private void audit(Credential credentials, ThriftSecurityException ex, String template, Object... args) {
+  private void audit(TCredentials credentials, ThriftSecurityException ex, String template, Object... args) {
     log.log(AuditLevel.AUDIT, "Error: authenticated operation failed: " + credentials.getPrincipal() + ": " + String.format(template, args));
   }
   
-  private void audit(Credential credentials, String template, Object... args) {
+  private void audit(TCredentials credentials, String template, Object... args) {
     log.log(AuditLevel.AUDIT, "Using credentials " + credentials.getPrincipal() + ": " + String.format(template, args));
   }
   
   @Override
-  public boolean authenticateUser(Credential credentials, Credential toAuth) throws ThriftSecurityException {
+  public boolean authenticateUser(TCredentials credentials, TCredentials toAuth) throws ThriftSecurityException {
     try {
       boolean result = super.authenticateUser(credentials, toAuth);
       audit(credentials, result ? "authenticated" : "failed authentication");
@@ -71,7 +71,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public Authorizations getUserAuthorizations(Credential credentials, String user) throws ThriftSecurityException {
+  public Authorizations getUserAuthorizations(TCredentials credentials, String user) throws ThriftSecurityException {
     try {
       Authorizations result = super.getUserAuthorizations(credentials, user);
       audit(credentials, "got authorizations for %s", user);
@@ -85,7 +85,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public Authorizations getUserAuthorizations(Credential credentials) throws ThriftSecurityException {
+  public Authorizations getUserAuthorizations(TCredentials credentials) throws ThriftSecurityException {
     try {
       return getUserAuthorizations(credentials, credentials.getPrincipal());
     } catch (ThriftSecurityException ex) {
@@ -95,7 +95,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void changeAuthorizations(Credential credentials, String user, Authorizations authorizations) throws ThriftSecurityException {
+  public void changeAuthorizations(TCredentials credentials, String user, Authorizations authorizations) throws ThriftSecurityException {
     try {
       super.changeAuthorizations(credentials, user, authorizations);
       audit(credentials, "changed authorizations for %s to %s", user, authorizations);
@@ -107,7 +107,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void changePassword(Credential credentials, Credential newInfo) throws ThriftSecurityException {
+  public void changePassword(TCredentials credentials, TCredentials newInfo) throws ThriftSecurityException {
     try {
       super.changePassword(credentials, newInfo);
       audit(credentials, "changed password for %s", newInfo.getPrincipal());
@@ -119,7 +119,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void createUser(Credential credentials, Credential newUser, Authorizations authorizations) throws ThriftSecurityException {
+  public void createUser(TCredentials credentials, TCredentials newUser, Authorizations authorizations) throws ThriftSecurityException {
     try {
       super.createUser(credentials, newUser, authorizations);
       audit(credentials, "createUser");
@@ -131,7 +131,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void dropUser(Credential credentials, String user) throws ThriftSecurityException {
+  public void dropUser(TCredentials credentials, String user) throws ThriftSecurityException {
     try {
       super.dropUser(credentials, user);
       audit(credentials, "dropUser");
@@ -143,7 +143,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void grantSystemPermission(Credential credentials, String user, SystemPermission permission) throws ThriftSecurityException {
+  public void grantSystemPermission(TCredentials credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     try {
       super.grantSystemPermission(credentials, user, permission);
       audit(credentials, "granted permission %s for %s", permission, user);
@@ -155,7 +155,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void grantTablePermission(Credential credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
+  public void grantTablePermission(TCredentials credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
     try {
       super.grantTablePermission(credentials, user, table, permission);
       audit(credentials, "granted permission %s on table %s for %s", permission, table, user);
@@ -167,7 +167,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void revokeSystemPermission(Credential credentials, String user, SystemPermission permission) throws ThriftSecurityException {
+  public void revokeSystemPermission(TCredentials credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     try {
       super.revokeSystemPermission(credentials, user, permission);
       audit(credentials, "revoked permission %s for %s", permission, user);
@@ -179,7 +179,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void revokeTablePermission(Credential credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
+  public void revokeTablePermission(TCredentials credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
     try {
       super.revokeTablePermission(credentials, user, table, permission);
       audit(credentials, "revoked permission %s on table %s for %s", permission, table, user);
@@ -191,7 +191,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public boolean hasSystemPermission(Credential credentials, String user, SystemPermission permission) throws ThriftSecurityException {
+  public boolean hasSystemPermission(TCredentials credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     try {
       boolean result = super.hasSystemPermission(credentials, user, permission);
       audit(credentials, "checked permission %s on %s", permission, user);
@@ -204,7 +204,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public boolean hasTablePermission(Credential credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
+  public boolean hasTablePermission(TCredentials credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
     try {
       boolean result = super.hasTablePermission(credentials, user, table, permission);
       audit(credentials, "checked permission %s on table %s for %s", permission, table, user);
@@ -217,7 +217,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public Set<String> listUsers(Credential credentials) throws ThriftSecurityException {
+  public Set<String> listUsers(TCredentials credentials) throws ThriftSecurityException {
     try {
       Set<String> result = super.listUsers(credentials);
       audit(credentials, "listUsers");
@@ -230,7 +230,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void deleteTable(Credential credentials, String table) throws ThriftSecurityException {
+  public void deleteTable(TCredentials credentials, String table) throws ThriftSecurityException {
     try {
       super.deleteTable(credentials, table);
       audit(credentials, "deleted table %s", table);
@@ -242,7 +242,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   @Override
-  public void initializeSecurity(Credential credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException {
+  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException {
     super.initializeSecurity(credentials, principal, token);
     log.info("Initialized root user with username: " + principal + " at the request of user " + credentials.getPrincipal());
   }

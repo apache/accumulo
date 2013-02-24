@@ -29,11 +29,11 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.handler.Authenticator;
@@ -108,7 +108,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   @Override
-  public void initializeSecurity(Credential rootuser, String token) throws ThriftSecurityException {
+  public void initializeSecurity(TCredentials rootuser, String token) throws ThriftSecurityException {
     throw new UnsupportedOperationException("nope");
   }
   
@@ -138,14 +138,14 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   @Override
-  public boolean authenticateUser(String principal, SecurityToken token) {
+  public boolean authenticateUser(String principal, AuthenticationToken token) {
     PasswordToken pass = (PasswordToken) state.get(principal + userPass);
     boolean ret = pass.equals(token);
     return ret;
   }
   
   @Override
-  public void createUser(String principal, SecurityToken token) throws AccumuloSecurityException {
+  public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
     state.set(principal + userExists, Boolean.toString(true));
     changePassword(principal, token);
     cleanUser(principal);
@@ -160,7 +160,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   @Override
-  public void changePassword(String principal, SecurityToken token) throws AccumuloSecurityException {
+  public void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException {
     state.set(principal + userPass, token);
     state.set(principal + userPass + "time", System.currentTimeMillis());
   }
@@ -270,12 +270,12 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     return Boolean.parseBoolean(state.getString(tableExists));
   }
   
-  public Credential getSysCredentials() {
-    return CredentialHelper.createSquelchError(getSysUserName(), new PasswordToken().setPassword(getSysPassword()), state.getInstance().getInstanceID());
+  public TCredentials getSysCredentials() {
+    return CredentialHelper.createSquelchError(getSysUserName(), new PasswordToken(getSysPassword()), state.getInstance().getInstanceID());
   }
   
-  public Credential getTabCredentials() {
-    return CredentialHelper.createSquelchError(getTabUserName(), new PasswordToken().setPassword(getTabPassword()), state.getInstance().getInstanceID());
+  public TCredentials getTabCredentials() {
+    return CredentialHelper.createSquelchError(getTabUserName(), new PasswordToken(getTabPassword()), state.getInstance().getInstanceID());
   }
   
   public byte[] getUserPassword(String user) {
@@ -355,7 +355,8 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     return fs;
   }
   
-  public boolean canAskAboutUser(Credential credentials, String user) throws ThriftSecurityException {
+  @Override
+  public boolean canAskAboutUser(TCredentials credentials, String user) throws ThriftSecurityException {
     try {
       return super.canAskAboutUser(credentials, user);
     } catch (ThriftSecurityException tse) {
@@ -364,12 +365,12 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
       throw tse;
     }
   }
-
+  
   @Override
-  public SecurityToken login(Properties properties) throws AccumuloSecurityException {
+  public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
     return authenticator.login(properties);
   }
-
+  
   @Override
   public boolean validTokenClass(String tokenClass) {
     return authenticator.validTokenClass(tokenClass);

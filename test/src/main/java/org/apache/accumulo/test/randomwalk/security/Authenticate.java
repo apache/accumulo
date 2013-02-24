@@ -22,7 +22,7 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -33,7 +33,7 @@ public class Authenticate extends Test {
     authenticate(WalkingSecurity.get(state).getSysCredentials(), state, props);
   }
   
-  public static void authenticate(Credential auth, State state, Properties props) throws Exception {
+  public static void authenticate(TCredentials auth, State state, Properties props) throws Exception {
     String targetProp = props.getProperty("target");
     boolean success = Boolean.parseBoolean(props.getProperty("valid"));
     

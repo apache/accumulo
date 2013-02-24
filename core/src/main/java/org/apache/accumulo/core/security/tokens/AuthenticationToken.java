@@ -20,6 +20,6 @@ import javax.security.auth.Destroyable;
 
 import org.apache.hadoop.io.Writable;
 
-public interface SecurityToken extends Writable, Destroyable, Cloneable {
-  public SecurityToken clone();
+public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
+  public AuthenticationToken clone();
 }

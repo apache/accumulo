@@ -46,33 +46,32 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-
 public class MiniAccumuloClusterTest {
   
   public static TemporaryFolder folder = new TemporaryFolder();
   
   private static MiniAccumuloCluster accumulo;
-
+  
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
-
+    
     folder.create();
     
     Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
-
+    
     accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
     
     accumulo.start();
     
   }
-
+  
   @Test(timeout = 30000)
   public void test() throws Exception {
     Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", "superSecret");
     
     conn.tableOperations().create("table1");
     
-    conn.securityOperations().createUser("user1", new PasswordToken().setPassword("pass1".getBytes()));
+    conn.securityOperations().createUser("user1", new PasswordToken("pass1"));
     conn.securityOperations().changeUserAuthorizations("user1", new Authorizations("A", "B"));
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.WRITE);
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.READ);
@@ -82,7 +81,7 @@ public class MiniAccumuloClusterTest {
     SummingCombiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("META", "COUNT")));
     
     conn.tableOperations().attachIterator("table1", is);
-
+    
     Connector uconn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("user1", "pass1");
     
     BatchWriter bw = uconn.createBatchWriter("table1", new BatchWriterConfig());
@@ -102,7 +101,7 @@ public class MiniAccumuloClusterTest {
     m.put("META", "COUNT", new ColumnVisibility("A|B"), "1");
     m.put("META", "CRC", new ColumnVisibility("A|B"), "123");
     bw.addMutation(m);
-
+    
     bw.close();
     
     int count = 0;
@@ -146,11 +145,11 @@ public class MiniAccumuloClusterTest {
     File jarFile = File.createTempFile("iterator", ".jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), jarFile);
     jarFile.deleteOnExit();
-
+    
     conn.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
     conn.tableOperations().setProperty("table2", Property.TABLE_CLASSPATH.getKey(), "cx1");
     conn.tableOperations().attachIterator("table2", new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
-
+    
     BatchWriter bw = conn.createBatchWriter("table2", new BatchWriterConfig());
     
     Mutation m1 = new Mutation("foo");
@@ -179,9 +178,9 @@ public class MiniAccumuloClusterTest {
     
     conn.instanceOperations().removeProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
     conn.tableOperations().delete("table2");
-
+    
   }
-
+  
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();

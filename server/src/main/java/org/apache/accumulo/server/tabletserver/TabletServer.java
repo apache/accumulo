@@ -104,7 +104,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
@@ -579,12 +579,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   static class TservConstraintEnv implements Environment {
     
-    private Credential credentials;
+    private TCredentials credentials;
     private SecurityOperation security;
     private Authorizations auths;
     private KeyExtent ke;
     
-    TservConstraintEnv(SecurityOperation secOp, Credential credentials) {
+    TservConstraintEnv(SecurityOperation secOp, TCredentials credentials) {
       this.security = secOp;
       this.credentials = credentials;
     }
@@ -720,7 +720,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     Map<KeyExtent,Long> failures = new HashMap<KeyExtent,Long>();
     HashMap<KeyExtent,SecurityErrorCode> authFailures = new HashMap<KeyExtent,SecurityErrorCode>();
     public Violations violations;
-    public Credential credentials;
+    public TCredentials credentials;
     public long totalUpdates = 0;
     public long flushTime = 0;
     Stat prepareTimes = new Stat();
@@ -877,7 +877,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public List<TKeyExtent> bulkImport(TInfo tinfo, Credential credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime)
+    public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime)
         throws ThriftSecurityException {
 
       if (!security.canPerformSystemActions(credentials))
@@ -1095,7 +1095,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public InitialScan startScan(TInfo tinfo, Credential credentials, TKeyExtent textent, TRange range, List<TColumn> columns, int batchSize,
+    public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent, TRange range, List<TColumn> columns, int batchSize,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated)
         throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
       
@@ -1246,7 +1246,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public InitialMultiScan startMultiScan(TInfo tinfo, Credential credentials, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns,
+    public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) throws ThriftSecurityException {
       // find all of the tables that need to be scanned
       HashSet<String> tables = new HashSet<String>();
@@ -1370,7 +1370,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public long startUpdate(TInfo tinfo, Credential credentials) throws ThriftSecurityException {
+    public long startUpdate(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException {
       // Make sure user is real
       
       security.authenticateUser(credentials, credentials);
@@ -1643,7 +1643,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void update(TInfo tinfo, Credential credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
+    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
         ConstraintViolationException, ThriftSecurityException {
 
       if (!security.canWrite(credentials, new String(tkeyExtent.getTable())))
@@ -1692,7 +1692,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void splitTablet(TInfo tinfo, Credential credentials, TKeyExtent tkeyExtent, ByteBuffer splitPoint)
+    public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, ByteBuffer splitPoint)
         throws NotServingTabletException, ThriftSecurityException {
       
       String tableId = new String(ByteBufferUtil.toBytes(tkeyExtent.table));
@@ -1719,12 +1719,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public TabletServerStatus getTabletServerStatus(TInfo tinfo, Credential credentials) throws ThriftSecurityException, TException {
+    public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return getStats(sessionManager.getActiveScansPerTable());
     }
     
     @Override
-    public List<TabletStats> getTabletStats(TInfo tinfo, Credential credentials, String tableId) throws ThriftSecurityException, TException {
+    public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId) throws ThriftSecurityException, TException {
       TreeMap<KeyExtent,Tablet> onlineTabletsCopy;
       synchronized (onlineTablets) {
         onlineTabletsCopy = new TreeMap<KeyExtent,Tablet>(onlineTablets);
@@ -1750,7 +1750,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     private ZooCache masterLockCache = new ZooCache();
     
-    private void checkPermission(Credential credentials, String lock, boolean requiresSystemPermission, final String request)
+    private void checkPermission(TCredentials credentials, String lock, boolean requiresSystemPermission, final String request)
         throws ThriftSecurityException {
       if (requiresSystemPermission) {
         boolean fatal = false;
@@ -1814,7 +1814,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void loadTablet(TInfo tinfo, Credential credentials, String lock, final TKeyExtent textent) {
+    public void loadTablet(TInfo tinfo, TCredentials credentials, String lock, final TKeyExtent textent) {
       
       try {
         checkPermission(credentials, lock, true, "loadTablet");
@@ -1881,7 +1881,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void unloadTablet(TInfo tinfo, Credential credentials, String lock, TKeyExtent textent, boolean save) {
+    public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent, boolean save) {
       try {
         checkPermission(credentials, lock, true, "unloadTablet");
       } catch (ThriftSecurityException e) {
@@ -1895,7 +1895,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void flush(TInfo tinfo, Credential credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) {
+    public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) {
       try {
         checkPermission(credentials, lock, true, "flush");
       } catch (ThriftSecurityException e) {
@@ -1932,7 +1932,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void flushTablet(TInfo tinfo, Credential credentials, String lock, TKeyExtent textent) throws TException {
+    public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) throws TException {
       try {
         checkPermission(credentials, lock, true, "flushTablet");
       } catch (ThriftSecurityException e) {
@@ -1952,7 +1952,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void halt(TInfo tinfo, Credential credentials, String lock) throws ThriftSecurityException {
+    public void halt(TInfo tinfo, TCredentials credentials, String lock) throws ThriftSecurityException {
       
         checkPermission(credentials, lock, true, "halt");
       
@@ -1972,7 +1972,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void fastHalt(TInfo info, Credential credentials, String lock) {
+    public void fastHalt(TInfo info, TCredentials credentials, String lock) {
       try {
         halt(info, credentials, lock);
       } catch (Exception e) {
@@ -1981,12 +1981,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public TabletStats getHistoricalStats(TInfo tinfo, Credential credentials) throws ThriftSecurityException, TException {
+    public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return statsKeeper.getTabletStats();
     }
     
     @Override
-    public List<ActiveScan> getActiveScans(TInfo tinfo, Credential credentials) throws ThriftSecurityException, TException {
+    public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       try {
         checkPermission(credentials, null, true, "getScans");
       } catch (ThriftSecurityException e) {
@@ -1998,7 +1998,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void chop(TInfo tinfo, Credential credentials, String lock, TKeyExtent textent) throws TException {
+    public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) throws TException {
       try {
         checkPermission(credentials, lock, true, "chop");
       } catch (ThriftSecurityException e) {
@@ -2015,7 +2015,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void compact(TInfo tinfo, Credential credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow)
+    public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow)
         throws TException {
       try {
         checkPermission(credentials, lock, true, "compact");
@@ -2057,7 +2057,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
      * org.apache.accumulo.core.security.thrift.Credentials, java.util.List)
      */
     @Override
-    public void removeLogs(TInfo tinfo, Credential credentials, List<String> filenames) throws TException {
+    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
       String myname = getClientAddressString();
       myname = myname.replace(':', '+');
       Path logDir = new Path(Constants.getWalDirectory(acuConf), myname);
@@ -2107,7 +2107,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, Credential credentials) throws ThriftSecurityException, TException {
+    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       try {
         checkPermission(credentials, null, true, "getActiveCompactions");
       } catch (ThriftSecurityException e) {

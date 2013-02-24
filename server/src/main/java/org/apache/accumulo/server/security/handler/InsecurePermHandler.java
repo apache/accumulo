@@ -20,7 +20,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 
 /**
  * This is a Permission Handler implementation that doesn't actually do any security. Use at your own risk.
@@ -47,7 +47,7 @@ public class InsecurePermHandler implements PermissionHandler {
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#initializeSecurity(java.lang.String)
    */
   @Override
-  public void initializeSecurity(Credential token, String rootuser) throws AccumuloSecurityException {
+  public void initializeSecurity(TCredentials token, String rootuser) throws AccumuloSecurityException {
     return;
   }
   

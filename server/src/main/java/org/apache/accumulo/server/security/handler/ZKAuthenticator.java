@@ -22,10 +22,10 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -57,7 +57,7 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
   }
   
   @Override
-  public void initializeSecurity(Credential credentials, String principal, byte[] token) throws AccumuloSecurityException {
+  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException {
     try {
       // remove old settings from zookeeper first, if any
       IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
@@ -105,7 +105,7 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
    * Creates a user with no permissions whatsoever
    */
   @Override
-  public void createUser(String principal, SecurityToken token) throws AccumuloSecurityException {
+  public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
     try {
       if (!(token instanceof PasswordToken))
         throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
@@ -143,7 +143,7 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
   }
   
   @Override
-  public void changePassword(String principal, SecurityToken token) throws AccumuloSecurityException {
+  public void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException {
     if (!(token instanceof PasswordToken))
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     PasswordToken pt = (PasswordToken) token;
@@ -182,7 +182,7 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
   }
   
   @Override
-  public boolean authenticateUser(String principal, SecurityToken token) throws AccumuloSecurityException {
+  public boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
     if (!(token instanceof PasswordToken))
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     PasswordToken pt = (PasswordToken) token;

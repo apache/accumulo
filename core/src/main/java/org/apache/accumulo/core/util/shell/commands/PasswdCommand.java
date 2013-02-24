@@ -69,7 +69,7 @@ public class PasswdCommand extends Command {
     // update the current credentials if the password changed was for
     // the current user
     if (shellState.getConnector().whoami().equals(user)) {
-      shellState.updateUser(CredentialHelper.create(user, new PasswordToken().setPassword(pass), shellState.getConnector().getInstance().getInstanceID()));
+      shellState.updateUser(CredentialHelper.create(user, new PasswordToken(pass), shellState.getConnector().getInstance().getInstanceID()));
     }
     Shell.log.debug("Changed password for user " + user);
     return 0;

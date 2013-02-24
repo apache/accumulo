@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 
 /**
  * Provides a class for managing users and permissions
@@ -43,7 +43,7 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
-   * @deprecated Use {@link #createUser(String, SecurityToken)} instead
+   * @deprecated Use {@link #createUser(String, AuthenticationToken)} instead
    */
   @Deprecated
   public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
@@ -60,7 +60,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
    */
-  public void createUser(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException;
+  public void createUser(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Delete a user
@@ -86,7 +86,7 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to ask
-   * @deprecated see {@link #authenticateUser(String, SecurityToken)}
+   * @deprecated see {@link #authenticateUser(String, AuthenticationToken)}
    */
   public boolean authenticateUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
   
@@ -103,7 +103,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to ask
    */
-  boolean authenticateUser(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException; 
+  boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException; 
 
   /**
    * Set the user's password
@@ -116,7 +116,7 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to modify a user
-   * @deprecated see {@link #changeLoginInfo(String, SecurityToken)}          
+   * @deprecated see {@link #changeLoginInfo(String, AuthenticationToken)}          
    */
   public void changeUserPassword(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
   
@@ -262,6 +262,6 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to modify a user
    */
-  void changeLoginInfo(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException;
+  void changeLoginInfo(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
 
 }

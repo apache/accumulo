@@ -41,7 +41,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -88,7 +88,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @throws AccumuloSecurityException 
    * @since 1.5.0
    */
-  public static void setConnectorInfo(JobConf job, String principal, SecurityToken token) throws AccumuloSecurityException {
+  public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
     OutputConfigurator.setConnectorInfo(CLASS, job, principal, token);
   }
   
@@ -129,7 +129,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, SecurityToken)
+   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
    * @see #setConnectorInfo(JobConf, Path)
    */
   protected static String getPrincipal(JobConf job) {
@@ -143,7 +143,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, SecurityToken)
+   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
    * @see #setConnectorInfo(JobConf, Path)
    */
   protected static String getTokenClass(JobConf job) {

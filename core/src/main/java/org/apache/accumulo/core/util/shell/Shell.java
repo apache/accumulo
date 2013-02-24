@@ -53,7 +53,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.security.AuditLevel;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
@@ -169,7 +169,7 @@ public class Shell extends ShellOptions {
   protected Instance instance;
   private Connector connector;
   protected ConsoleReader reader;
-  private Credential credentials;
+  private TCredentials credentials;
   private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
@@ -278,7 +278,7 @@ public class Shell extends ShellOptions {
       pass = passw.getBytes();
       this.setTableName("");
       connector = instance.getConnector(user, pass);
-      this.credentials = CredentialHelper.create(user, new PasswordToken().setPassword(pass), connector.getInstance().getInstanceID());
+      this.credentials = CredentialHelper.create(user, new PasswordToken(pass), connector.getInstance().getInstanceID());
       
     } catch (Exception e) {
       printException(e);
@@ -318,8 +318,8 @@ public class Shell extends ShellOptions {
         new TablesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
-    Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
-        new SetAuthsCommand(), new UsersCommand()};
+    Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(),
+        new PasswdCommand(), new SetAuthsCommand(), new UsersCommand()};
     commandGrouping.put("-- Writing, Reading, and Removing Data --", dataCommands);
     commandGrouping.put("-- Debugging Commands -------------------", debuggingCommands);
     commandGrouping.put("-- Shell Execution Commands -------------", execCommands);
@@ -749,6 +749,7 @@ public class Shell extends ShellOptions {
       this.reader = reader;
     }
     
+    @Override
     public void print(String s) {
       try {
         reader.printString(s + "\n");
@@ -757,6 +758,7 @@ public class Shell extends ShellOptions {
       }
     }
     
+    @Override
     public void close() {}
   };
   
@@ -767,10 +769,12 @@ public class Shell extends ShellOptions {
       writer = new PrintWriter(filename);
     }
     
+    @Override
     public void print(String s) {
       writer.println(s);
     }
     
+    @Override
     public void close() {
       writer.close();
     }
@@ -779,7 +783,7 @@ public class Shell extends ShellOptions {
   public final void printLines(Iterator<String> lines, boolean paginate) throws IOException {
     printLines(lines, paginate, null);
   }
-
+  
   public final void printLines(Iterator<String> lines, boolean paginate, PrintLine out) throws IOException {
     int linesPrinted = 0;
     String prompt = "-- hit any key to continue or 'q' to quit --";
@@ -934,12 +938,12 @@ public class Shell extends ShellOptions {
     return reader;
   }
   
-  public void updateUser(Credential authInfo) throws AccumuloException, AccumuloSecurityException {
+  public void updateUser(TCredentials authInfo) throws AccumuloException, AccumuloSecurityException {
     connector = instance.getConnector(authInfo);
     credentials = authInfo;
   }
   
-  public Credential getCredentials() {
+  public TCredentials getCredentials() {
     return credentials;
   }
   

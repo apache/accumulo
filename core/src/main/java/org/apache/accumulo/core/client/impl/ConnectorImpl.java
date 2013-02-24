@@ -39,14 +39,14 @@ import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.trace.instrument.Tracer;
 
 public class ConnectorImpl extends Connector {
   private Instance instance;
-  private Credential credentials;
+  private TCredentials credentials;
   private SecurityOperations secops = null;
   private TableOperations tableops = null;
   private InstanceOperations instanceops = null;
@@ -64,10 +64,9 @@ public class ConnectorImpl extends Connector {
    * @deprecated Not for client use
    */
   @Deprecated
-  public ConnectorImpl(Instance instance, Credential cred) throws AccumuloException, AccumuloSecurityException {
+  public ConnectorImpl(Instance instance, TCredentials cred) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(instance, cred);
     this.instance = instance;
-    
     
     this.credentials = cred;
     
@@ -77,7 +76,7 @@ public class ConnectorImpl extends Connector {
       ServerClient.execute(instance, new ClientExec<ClientService.Client>() {
         @Override
         public void execute(ClientService.Client iface) throws Exception {
-          if (!iface.authenticateUser(Tracer.traceInfo(), credentials, credentials))
+          if (!iface.authenticate(Tracer.traceInfo(), credentials))
             throw new AccumuloSecurityException("Authentication failed, access denied", SecurityErrorCode.BAD_CREDENTIALS);
         }
       });

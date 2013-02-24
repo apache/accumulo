@@ -38,15 +38,16 @@ enum SecurityErrorCode {
     INSUFFICIENT_PROPERTIES = 17;
 }
 
+/* deprecated */
 struct AuthInfo {
     1:string user,
     2:binary password,
     3:string instanceId
 }
 
-struct Credential {
+struct TCredentials {
     1:string principal,
-    2:string tokenClass,
+    2:string tokenClassName,
     3:binary token,
     4:string instanceId
 }

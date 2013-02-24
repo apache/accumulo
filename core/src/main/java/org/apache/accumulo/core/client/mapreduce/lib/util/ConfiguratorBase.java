@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -98,7 +98,7 @@ public class ConfiguratorBase {
    * @throws AccumuloSecurityException 
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, SecurityToken token) throws AccumuloSecurityException {
+  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, AuthenticationToken token) throws AccumuloSecurityException {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
     
@@ -160,7 +160,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return the principal
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, SecurityToken)
+   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
@@ -176,7 +176,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return the principal
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, SecurityToken)
+   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static String getTokenClass(Class<?> implementingClass, Configuration conf) {

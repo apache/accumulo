@@ -132,31 +132,31 @@ enum TableOperation {
 service MasterClientService {
 
     // table management methods
-    i64 initiateFlush(3:trace.TInfo tinfo, 1:security.Credential credential, 2:string tableName) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-    void waitForFlush(5:trace.TInfo tinfo, 1:security.Credential credential, 2:string tableName, 6:binary startRow, 7:binary endRow, 3:i64 flushID, 4:i64 maxLoops) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+    i64 initiateFlush(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+    void waitForFlush(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 6:binary startRow, 7:binary endRow, 3:i64 flushID, 4:i64 maxLoops) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
     
-    void setTableProperty(5:trace.TInfo tinfo, 1:security.Credential credential, 2:string tableName, 3:string property, 4:string value) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-    void removeTableProperty(4:trace.TInfo tinfo, 1:security.Credential credential, 2:string tableName, 3:string property) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+    void setTableProperty(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property, 4:string value) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+    void removeTableProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
 
     // system management methods
-    void setMasterGoalState(3:trace.TInfo tinfo, 1:security.Credential credential, 2:MasterGoalState state) throws (1:security.ThriftSecurityException sec);
-    void shutdown(3:trace.TInfo tinfo, 1:security.Credential credential, 2:bool stopTabletServers) throws (1:security.ThriftSecurityException sec)
-    void shutdownTabletServer(3:trace.TInfo tinfo, 1:security.Credential credential, 2:string tabletServer, 4:bool force) throws (1: security.ThriftSecurityException sec)
-    void setSystemProperty(4:trace.TInfo tinfo, 1:security.Credential credential, 2:string property, 3:string value) throws (1:security.ThriftSecurityException sec)
-    void removeSystemProperty(3:trace.TInfo tinfo, 1:security.Credential credential, 2:string property) throws (1:security.ThriftSecurityException sec)
+    void setMasterGoalState(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:MasterGoalState state) throws (1:security.ThriftSecurityException sec);
+    void shutdown(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:bool stopTabletServers) throws (1:security.ThriftSecurityException sec)
+    void shutdownTabletServer(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tabletServer, 4:bool force) throws (1: security.ThriftSecurityException sec)
+    void setSystemProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string property, 3:string value) throws (1:security.ThriftSecurityException sec)
+    void removeSystemProperty(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string property) throws (1:security.ThriftSecurityException sec)
 
     // system monitoring methods
-    MasterMonitorInfo getMasterStats(2:trace.TInfo tinfo, 1:security.Credential credential) throws (1:security.ThriftSecurityException sec)
+    MasterMonitorInfo getMasterStats(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:security.ThriftSecurityException sec)
     
     // tablet server reporting
-    oneway void reportSplitExtent(4:trace.TInfo tinfo, 1:security.Credential credential, 2:string serverName, 3:TabletSplit split)
-    oneway void reportTabletStatus(5:trace.TInfo tinfo, 1:security.Credential credential, 2:string serverName, 3:TabletLoadState status, 4:data.TKeyExtent tablet)
+    oneway void reportSplitExtent(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletSplit split)
+    oneway void reportTabletStatus(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletLoadState status, 4:data.TKeyExtent tablet)
 
    //table operations
-   i64 beginTableOperation(2:trace.TInfo tinfo, 1:security.Credential credential) throws (1:security.ThriftSecurityException sec)
-   void executeTableOperation(7:trace.TInfo tinfo, 1:security.Credential credential, 2:i64 opid, 3:TableOperation op, 4:list<binary> arguments, 5:map<string, string> options, 6:bool autoClean)throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-   string waitForTableOperation(3:trace.TInfo tinfo, 1:security.Credential credential, 2:i64 opid) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-   void finishTableOperation(3:trace.TInfo tinfo, 1:security.Credential credential, 2:i64 opid) throws (1:security.ThriftSecurityException sec)
+   i64 beginTableOperation(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:security.ThriftSecurityException sec)
+   void executeTableOperation(7:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid, 3:TableOperation op, 4:list<binary> arguments, 5:map<string, string> options, 6:bool autoClean)throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+   string waitForTableOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+   void finishTableOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:security.ThriftSecurityException sec)
    string getAuthenticatorClassName() throws (1:security.ThriftSecurityException tse);
 
 }

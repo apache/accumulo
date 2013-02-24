@@ -43,7 +43,7 @@ public class TestClientOpts {
     BatchScannerOpts bsOpts = new BatchScannerOpts();
     assertEquals(System.getProperty("user.name"), args.principal);
     assertNull(args.securePassword);
-    assertEquals(new PasswordToken().setPassword("secret".getBytes()), args.getToken());
+    assertEquals(new PasswordToken("secret"), args.getToken());
     assertEquals(new Long(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), bwOpts.batchLatency);
     assertEquals(new Long(cfg.getTimeout(TimeUnit.MILLISECONDS)), bwOpts.batchTimeout);
     assertEquals(new Long(cfg.getMaxMemory()), bwOpts.batchMemory);
@@ -54,30 +54,19 @@ public class TestClientOpts {
     assertEquals(Constants.NO_AUTHS, args.auths);
     assertEquals("localhost:2181", args.zookeepers);
     assertFalse(args.help);
-
+    
     JCommander jc = new JCommander();
     jc.addObject(args);
     jc.addObject(bwOpts);
     jc.addObject(bsOpts);
-    jc.parse(
-        "-u", "bar",
-        "-p", "foo",
-        "--batchLatency", "3s", 
-        "--batchTimeout", "2s", 
-        "--batchMemory", "1M",
-        "--debug", 
-        "--trace", 
-        "--scanThreads", "7",
-        "-i", "instance",
-        "--auths", "G1,G2,G3",
-        "-z", "zoohost1,zoohost2",
-        "--help");
+    jc.parse("-u", "bar", "-p", "foo", "--batchLatency", "3s", "--batchTimeout", "2s", "--batchMemory", "1M", "--debug", "--trace", "--scanThreads", "7", "-i",
+        "instance", "--auths", "G1,G2,G3", "-z", "zoohost1,zoohost2", "--help");
     assertEquals("bar", args.principal);
     assertNull(args.securePassword);
-    assertEquals(new PasswordToken().setPassword("foo".getBytes()), args.getToken());
+    assertEquals(new PasswordToken("foo"), args.getToken());
     assertEquals(new Long(3000), bwOpts.batchLatency);
     assertEquals(new Long(2000), bwOpts.batchTimeout);
-    assertEquals(new Long(1024*1024), bwOpts.batchMemory);
+    assertEquals(new Long(1024 * 1024), bwOpts.batchMemory);
     assertTrue(args.debug);
     assertTrue(args.trace);
     assertEquals(7, bsOpts.scanThreads.intValue());
@@ -87,5 +76,5 @@ public class TestClientOpts {
     assertTrue(args.help);
     
   }
-
+  
 }

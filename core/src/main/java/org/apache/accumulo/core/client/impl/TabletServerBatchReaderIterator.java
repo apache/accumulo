@@ -58,7 +58,7 @@ import org.apache.accumulo.core.data.thrift.TKeyValue;
 import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -79,7 +79,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private static final Logger log = Logger.getLogger(TabletServerBatchReaderIterator.class);
   
   private final Instance instance;
-  private final Credential credentials;
+  private final TCredentials credentials;
   private final String table;
   private Authorizations authorizations = Constants.NO_AUTHS;
   private final int numThreads;
@@ -133,7 +133,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     
   }
   
-  public TabletServerBatchReaderIterator(Instance instance, Credential credentials, String table, Authorizations authorizations, ArrayList<Range> ranges,
+  public TabletServerBatchReaderIterator(Instance instance, TCredentials credentials, String table, Authorizations authorizations, ArrayList<Range> ranges,
       int numThreads, ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
     
     this.instance = instance;
@@ -600,13 +600,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
   
   static void doLookup(String server, Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned,
-      ResultReceiver receiver, List<Column> columns, Credential credentials, ScannerOptions options, Authorizations authorizations, AccumuloConfiguration conf)
+      ResultReceiver receiver, List<Column> columns, TCredentials credentials, ScannerOptions options, Authorizations authorizations, AccumuloConfiguration conf)
       throws IOException, AccumuloSecurityException, AccumuloServerException {
     doLookup(server, requested, failures, unscanned, receiver, columns, credentials, options, authorizations, conf, new TimeoutTracker(Long.MAX_VALUE));
   }
   
   static void doLookup(String server, Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned,
-      ResultReceiver receiver, List<Column> columns, Credential credentials, ScannerOptions options, Authorizations authorizations, AccumuloConfiguration conf,
+      ResultReceiver receiver, List<Column> columns, TCredentials credentials, ScannerOptions options, Authorizations authorizations, AccumuloConfiguration conf,
       TimeoutTracker timeoutTracker) throws IOException, AccumuloSecurityException, AccumuloServerException {
     
     if (requested.size() == 0) {

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.nio.ByteBuffer;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -31,11 +32,11 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
@@ -43,7 +44,7 @@ import org.apache.accumulo.trace.instrument.Tracer;
 public class SecurityOperationsImpl implements SecurityOperations {
   
   private Instance instance;
-  private Credential credentials;
+  private TCredentials credentials;
   
   private void execute(ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
@@ -87,7 +88,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @param credentials
    *          the user credentials to use for security operations
    */
-  public SecurityOperationsImpl(Instance instance, Credential credentials) {
+  public SecurityOperationsImpl(Instance instance, TCredentials credentials) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;
@@ -96,7 +97,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Deprecated
   @Override
   public void createUser(final String user, final byte[] password, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
-    createUser(user, new PasswordToken().setPassword(password), authorizations);
+    createUser(user, new PasswordToken(password));
+    changeUserAuthorizations(user, authorizations);
   }
   
   /**
@@ -111,18 +113,18 @@ public class SecurityOperationsImpl implements SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
    */
-  public void createUser(final String principal, final SecurityToken token) throws AccumuloException, AccumuloSecurityException {
-    createUser(principal, token, new Authorizations());
+  @Override
+  public void createUser(final String principal, final AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+    _createUser(principal, token);
   }
   
   // Private method because the token/authorization constructor is something which is essentially new and depreciated.
-  private void createUser(String principal, SecurityToken token, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, token, authorizations);
-    final Credential toCreate = CredentialHelper.create(principal, token, instance.getInstanceID());
+  private void _createUser(final String principal, final AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, token);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.createUser(Tracer.traceInfo(), credentials, toCreate, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
+        client.createLocalUser(Tracer.traceInfo(), credentials, principal, ByteBuffer.wrap(((PasswordToken) token).getPassword()));
       }
     });
   }
@@ -143,7 +145,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.dropUser(Tracer.traceInfo(), credentials, user);
+        client.dropLocalUser(Tracer.traceInfo(), credentials, user);
       }
     });
   }
@@ -160,18 +162,19 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to ask
-   * @deprecated see {@link #authenticateUser(String, SecurityToken)}
+   * @deprecated see {@link #authenticateUser(String, AuthenticationToken)}
    */
+  @Deprecated
   @Override
   public boolean authenticateUser(final String principal, final byte[] token) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(token);
-    return authenticateUser(principal, new PasswordToken().setPassword(token));
+    return authenticateUser(principal, new PasswordToken(token));
   }
   
   @Override
-  public boolean authenticateUser(final String principal, final SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+  public boolean authenticateUser(final String principal, final AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, token);
-    final Credential toAuth = CredentialHelper.create(principal, token, instance.getInstanceID());
+    final TCredentials toAuth = CredentialHelper.create(principal, token, instance.getInstanceID());
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
@@ -193,20 +196,21 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if the user does not have permission to modify a user
    * @deprecated
    */
+  @Override
   @Deprecated
   public void changeUserPassword(final String principal, final byte[] token) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(token);
-    changeLoginInfo(principal, new PasswordToken().setPassword(token));
+    changeLoginInfo(principal, new PasswordToken(token));
   }
   
   @Override
-  public void changeLoginInfo(final String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+  public void changeLoginInfo(final String principal, final AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, token);
-    final Credential toChange = CredentialHelper.create(principal, token, instance.getInstanceID());
+    final TCredentials toChange = CredentialHelper.create(principal, token, instance.getInstanceID());
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.changePassword(Tracer.traceInfo(), credentials, toChange);
+        client.changeLocalUserPassword(Tracer.traceInfo(), credentials, principal, ByteBuffer.wrap(((PasswordToken) token).getPassword()));
       }
     });
     if (this.credentials.principal.equals(principal)) {
@@ -420,7 +424,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     return execute(new ClientExecReturn<Set<String>,ClientService.Client>() {
       @Override
       public Set<String> execute(ClientService.Client client) throws Exception {
-        return client.listUsers(Tracer.traceInfo(), credentials);
+        return client.listLocalUsers(Tracer.traceInfo(), credentials);
       }
     });
   }

@@ -31,10 +31,10 @@ import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -223,18 +223,19 @@ public class ZooKeeperInstance implements Instance {
   
   // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
   @Override
-  public Connector getConnector(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
   }
   
+  @Override
   @SuppressWarnings("deprecation")
-  public Connector getConnector(Credential credential) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, credential);
   }
   
   @Override
   public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(principal, new PasswordToken().setPassword(pass));
+    return getConnector(principal, new PasswordToken(pass));
   }
   
   private AccumuloConfiguration conf = null;

@@ -32,16 +32,16 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 
 public class TabletServerBatchDeleter extends TabletServerBatchReader implements BatchDeleter {
   
   private Instance instance;
-  private Credential credentials;
+  private TCredentials credentials;
   private String tableId;
   private BatchWriterConfig bwConfig;
   
-  public TabletServerBatchDeleter(Instance instance, Credential credentials, String tableId, Authorizations authorizations, int numQueryThreads,
+  public TabletServerBatchDeleter(Instance instance, TCredentials credentials, String tableId, Authorizations authorizations, int numQueryThreads,
       BatchWriterConfig bwConfig) throws TableNotFoundException {
     super(instance, credentials, tableId, authorizations, numQueryThreads);
     this.instance = instance;
