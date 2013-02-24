@@ -127,6 +127,7 @@ public class HdfsZooInstance implements Instance {
     return instanceId;
   }
   
+  @SuppressWarnings("deprecation")
   private static synchronized void _getInstanceID() {
     if (instanceId == null) {
       instanceId = ZooKeeperInstance.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation());

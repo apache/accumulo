@@ -84,7 +84,7 @@ public class MockConnectorTest {
   @Test
   public void testChangeAuths() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
-    c.securityOperations().createUser("greg", new PasswordToken(new byte[0]));
+    c.securityOperations().createLocalUser("greg", new PasswordToken(new byte[0]));
     assertTrue(c.securityOperations().getUserAuthorizations("greg").isEmpty());
     c.securityOperations().changeUserAuthorizations("greg", new Authorizations("A".getBytes()));
     assertTrue(c.securityOperations().getUserAuthorizations("greg").contains("A".getBytes()));

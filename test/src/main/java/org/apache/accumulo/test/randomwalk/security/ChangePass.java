@@ -23,7 +23,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -60,9 +59,9 @@ public class ChangePass extends Test {
     for (int i = 0; i < newPassw.length; i++)
       newPassw[i] = (byte) ((r.nextInt(26) + 65) & 0xFF);
     
-    AuthenticationToken newPass = new PasswordToken(newPassw);
+    PasswordToken newPass = new PasswordToken(newPassw);
     try {
-      conn.securityOperations().changeLoginInfo(target, newPass);
+      conn.securityOperations().changeLocalUserPassword(target, newPass);
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:

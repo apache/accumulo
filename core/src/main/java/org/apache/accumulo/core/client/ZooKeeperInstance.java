@@ -301,6 +301,7 @@ public class ZooKeeperInstance implements Instance {
     }
   }
   
+  @Deprecated
   @Override
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
     return getConnector(auth.user, auth.password);

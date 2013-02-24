@@ -21,7 +21,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -36,9 +35,9 @@ public class CreateUser extends Test {
     
     boolean exists = WalkingSecurity.get(state).userExists(tableUserName);
     boolean hasPermission = WalkingSecurity.get(state).canCreateUser(WalkingSecurity.get(state).getSysCredentials(), tableUserName);
-    AuthenticationToken tabUserPass = new PasswordToken("Super Sekret Table User Password");
+    PasswordToken tabUserPass = new PasswordToken("Super Sekret Table User Password");
     try {
-      conn.securityOperations().createUser(tableUserName, tabUserPass);
+      conn.securityOperations().createLocalUser(tableUserName, tabUserPass);
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:
@@ -48,7 +47,7 @@ public class CreateUser extends Test {
           // create user anyway for sake of state
           {
             if (!exists) {
-              state.getConnector().securityOperations().createUser(tableUserName, tabUserPass);
+              state.getConnector().securityOperations().createLocalUser(tableUserName, tabUserPass);
               WalkingSecurity.get(state).createUser(tableUserName, tabUserPass);
             }
             return;

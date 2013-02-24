@@ -519,7 +519,7 @@ public class Shell extends ShellOptions {
             } // user canceled
             
             try {
-              authFailed = !connector.securityOperations().authenticateUser(connector.whoami(), pwd.getBytes());
+              authFailed = !connector.securityOperations().authenticateUser(connector.whoami(), new PasswordToken(pwd));
             } catch (Exception e) {
               ++exitCode;
               printException(e);
@@ -601,7 +601,7 @@ public class Shell extends ShellOptions {
     
     Set<String> userlist = null;
     try {
-      userlist = connector.securityOperations().listUsers();
+      userlist = connector.securityOperations().listLocalUsers();
     } catch (Exception e) {
       log.debug("Unable to obtain list of users", e);
       userlist = Collections.emptySet();

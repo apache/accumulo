@@ -145,6 +145,7 @@ public class MockInstance implements Instance {
     this.conf = conf;
   }
   
+  @Deprecated
   @Override
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
     return getConnector(auth.user, auth.password);
@@ -159,7 +160,7 @@ public class MockInstance implements Instance {
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     Connector conn = new MockConnector(principal, acu, this);
     if (!acu.users.containsKey(principal))
-      conn.securityOperations().createUser(principal, token);
+      conn.securityOperations().createLocalUser(principal, (PasswordToken) token);
     else if (!acu.users.get(principal).token.equals(token))
       throw new AccumuloSecurityException(principal, SecurityErrorCode.BAD_CREDENTIALS);
     return conn;

@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -50,7 +51,7 @@ public class Authenticate extends Test {
     // Copy so if failed it doesn't mess with the password stored in state
     byte[] password = Arrays.copyOf(WalkingSecurity.get(state).getUserPassword(target), WalkingSecurity.get(state).getUserPassword(target).length);
     boolean hasPermission = WalkingSecurity.get(state).canAskAboutUser(auth, target);
-
+    
     if (!success)
       for (int i = 0; i < password.length; i++)
         password[i]++;
@@ -58,7 +59,7 @@ public class Authenticate extends Test {
     boolean result;
     
     try {
-      result = conn.securityOperations().authenticateUser(target, password);
+      result = conn.securityOperations().authenticateUser(target, new PasswordToken(password));
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:

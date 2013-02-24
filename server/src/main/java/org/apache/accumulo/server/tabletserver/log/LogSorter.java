@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
-import org.apache.accumulo.core.security.crypto.CryptoModule;
 import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
@@ -137,7 +136,7 @@ public class LogSorter {
           }
           
           @SuppressWarnings("deprecation")
-          CryptoModule cryptoOps = CryptoModuleFactory.getCryptoModule(cryptoModuleName);
+          org.apache.accumulo.core.security.crypto.CryptoModule cryptoOps = CryptoModuleFactory.getCryptoModule(cryptoModuleName);
           @SuppressWarnings("deprecation")
           InputStream decryptingInputStream = cryptoOps.getDecryptingInputStream(input, cryptoOpts);
           

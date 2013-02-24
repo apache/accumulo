@@ -23,7 +23,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
@@ -43,14 +42,14 @@ public class SecurityFixture extends Fixture {
     
     if (conn.tableOperations().exists(secTableName))
       conn.tableOperations().delete(secTableName);
-    Set<String> users = conn.securityOperations().listUsers();
+    Set<String> users = conn.securityOperations().listLocalUsers();
     if (users.contains(tableUserName))
-      conn.securityOperations().dropUser(tableUserName);
+      conn.securityOperations().dropLocalUser(tableUserName);
     if (users.contains(systemUserName))
-      conn.securityOperations().dropUser(systemUserName);
+      conn.securityOperations().dropLocalUser(systemUserName);
     
-    AuthenticationToken sysUserPass = new PasswordToken("sysUser");
-    conn.securityOperations().createUser(systemUserName, sysUserPass);
+    PasswordToken sysUserPass = new PasswordToken("sysUser");
+    conn.securityOperations().createLocalUser(systemUserName, sysUserPass);
     
     WalkingSecurity.get(state).setTableName(secTableName);
     state.set("rootUserPass", state.getCredentials().getToken());
@@ -90,11 +89,11 @@ public class SecurityFixture extends Fixture {
       String tableUserName = WalkingSecurity.get(state).getTabUserName();
       log.debug("Dropping user: " + tableUserName);
       
-      conn.securityOperations().dropUser(tableUserName);
+      conn.securityOperations().dropLocalUser(tableUserName);
     }
     String systemUserName = WalkingSecurity.get(state).getSysUserName();
     log.debug("Dropping user: " + systemUserName);
-    conn.securityOperations().dropUser(systemUserName);
+    conn.securityOperations().dropLocalUser(systemUserName);
     
   }
 }

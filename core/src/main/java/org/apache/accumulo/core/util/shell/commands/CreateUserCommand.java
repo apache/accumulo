@@ -22,18 +22,18 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-public class CreateUserCommand extends Command {  
+public class CreateUserCommand extends Command {
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
-      TableExistsException, IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, TableExistsException, IOException {
     final String user = cl.getArgs()[0];
-   
+    
     final String password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
     if (password == null) {
       shellState.getReader().printNewline();
@@ -48,7 +48,7 @@ public class CreateUserCommand extends Command {
     if (!password.equals(passwordConfirm)) {
       throw new IllegalArgumentException("Passwords do not match");
     }
-    shellState.getConnector().securityOperations().createUser(user, password.getBytes(), new Authorizations());
+    shellState.getConnector().securityOperations().createLocalUser(user, new PasswordToken(password));
     Shell.log.debug("Created user " + user);
     return 0;
   }
