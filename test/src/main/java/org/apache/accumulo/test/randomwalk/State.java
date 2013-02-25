@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.log4j.Logger;
 
 public class State {
@@ -96,10 +95,7 @@ public class State {
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (connector == null) {
-      String instance = props.getProperty("INSTANCE");
-      String zookeepers = props.getProperty("ZOOKEEPERS");
-      Credential credentials = getCredentials();
-      connector = new ZooKeeperInstance(instance, zookeepers).getConnector(credentials.getPrincipal(), credentials.getToken());
+      connector = getInstance().getConnector(getCredentials());
     }
     return connector;
   }
@@ -107,12 +103,14 @@ public class State {
   public Credential getCredentials() {
     String username = props.getProperty("USERNAME");
     String password = props.getProperty("PASSWORD");
-    return CredentialHelper.createSquelchError(username, new PasswordToken().setPassword(password.getBytes()), this.getInstance().getInstanceID());
+    return CredentialHelper.createSquelchError(username, new PasswordToken().setPassword(password.getBytes()), getInstance().getInstanceID());
   }
 
   public Instance getInstance() {
     if (instance == null) {
-      instance = HdfsZooInstance.getInstance();
+      String instance = props.getProperty("INSTANCE");
+      String zookeepers = props.getProperty("ZOOKEEPERS");
+      this.instance = new ZooKeeperInstance(instance, zookeepers);
     }
     return instance;
   }
