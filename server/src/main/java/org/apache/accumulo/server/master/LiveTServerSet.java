@@ -288,7 +288,7 @@ public class LiveTServerSet implements Watcher {
   @Override
   public void process(WatchedEvent event) {
 
-    // its imporant that these event are propogated by ZooCache, because this ensures when reading zoocache that is has already processed the event and cleared
+    // its important that these event are propagated by ZooCache, because this ensures when reading zoocache that is has already processed the event and cleared
     // relevant nodes before code below reads from zoocache
 
     if (event.getPath() != null) {
