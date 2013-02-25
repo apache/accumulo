@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.server.master.recovery;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.Repo;
@@ -71,31 +69,22 @@ public class RecoverLease extends MasterRepo {
     if (fs instanceof TraceFileSystem)
       fs = ((TraceFileSystem) fs).getImplementation();
     
-    try {
-      if (fs instanceof DistributedFileSystem) {
-        DistributedFileSystem dfs = (DistributedFileSystem) fs;
-        if (!dfs.recoverLease(source)) {
-          log.info("Waiting for file to be closed " + source.toString());
-          return 1000;
-        }
-        log.info("Recovered lease on " + source.toString());
-        return 0;
-      } else if (fs instanceof LocalFileSystem) {
-        // ignore
-      } else {
-        throw new IllegalStateException("Don't know how to recover a lease for "  + fs.getClass().getName()); 
+    if (fs instanceof DistributedFileSystem) {
+      DistributedFileSystem dfs = (DistributedFileSystem) fs;
+      if (!dfs.recoverLease(source)) {
+        log.info("Waiting for file to be closed " + source.toString());
+        return 1000;
       }
-    } catch (IOException ex) {
-      log.error("error recovering lease ", ex);
-    }
-    try {
-      fs.append(source).close();
-      log.info("Recovered lease on " + source.toString() + " using append");
+      log.info("Recovered lease on " + source.toString());
       return 0;
-    } catch (IOException ex) {
-      log.error("error recovering lease using append", ex);
-      return 1000;
+    } else if (fs instanceof LocalFileSystem) {
+      // ignore
+    } else {
+      throw new IllegalStateException("Don't know how to recover a lease for "  + fs.getClass().getName()); 
     }
+    fs.append(source).close();
+    log.info("Recovered lease on " + source.toString() + " using append");
+    return 0;
   }
   
   @Override
