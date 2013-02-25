@@ -303,8 +303,8 @@ public class TestIngest {
         try {
           bw.close();
         } catch (MutationsRejectedException e) {
-          if (e.getAuthorizationFailures().size() > 0) {
-            for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : e.getAuthorizationFailures().entrySet()) {
+          if (e.getAuthorizationFailuresMap().size() > 0) {
+            for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : e.getAuthorizationFailuresMap().entrySet()) {
               System.err.println("ERROR : Not authorized to write to : " + entry.getKey() + " due to " + entry.getValue());
             }
           }
