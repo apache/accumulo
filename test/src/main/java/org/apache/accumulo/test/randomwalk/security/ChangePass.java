@@ -41,7 +41,7 @@ public class ChangePass extends Test {
     } else {
       auth = WalkingSecurity.get(state).getTabCredentials();
     }
-    Connector conn = state.getInstance().getConnector(auth.getPrincipal(), auth.getToken());
+    Connector conn = state.getInstance().getConnector(auth);
         
     boolean hasPerm;
     boolean targetExists;

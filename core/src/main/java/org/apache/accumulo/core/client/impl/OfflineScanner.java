@@ -135,7 +135,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<SortedKeyValueIterator<Key,Value>>();
     
     try {
-      conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
+      conn = instance.getConnector(credentials);
       nextTablet();
       
       while (iter != null && !iter.hasTop())
