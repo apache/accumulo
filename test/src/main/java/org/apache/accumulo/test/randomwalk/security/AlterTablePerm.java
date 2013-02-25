@@ -69,7 +69,7 @@ public class AlterTablePerm extends Test {
     } else {
       source = state.getCredentials();
     }
-    Connector conn = state.getInstance().getConnector(source.getPrincipal(), source.getToken());
+    Connector conn = state.getInstance().getConnector(source);
     
     canGive = WalkingSecurity.get(state).canGrantTable(source, target, WalkingSecurity.get(state).getTableName());
 

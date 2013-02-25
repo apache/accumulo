@@ -37,7 +37,7 @@ public class Authenticate extends Test {
     String targetProp = props.getProperty("target");
     boolean success = Boolean.parseBoolean(props.getProperty("valid"));
     
-    Connector conn = state.getInstance().getConnector(auth.getPrincipal(), auth.getToken());
+    Connector conn = state.getInstance().getConnector(auth);
     
     String target;
     
