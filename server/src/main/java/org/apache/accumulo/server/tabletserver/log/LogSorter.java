@@ -116,7 +116,7 @@ public class LogSorter {
         
         if (!cryptoOpts.containsKey(Property.CRYPTO_MODULE_CLASS.getKey())) {
           
-          log.debug("Not a V2 log file, so re-opening it and passing it on");
+          log.debug("Log file " + name + " not encrypted");
           
           synchronized (this) {
             this.input = tmpInput;
