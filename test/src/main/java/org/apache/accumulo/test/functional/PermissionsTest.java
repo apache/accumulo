@@ -392,7 +392,7 @@ public class PermissionsTest {
             try {
               writer.close();
             } catch (MutationsRejectedException e1) {
-              if (e1.getAuthorizationFailures().size() > 0)
+              if (e1.getAuthorizationFailuresMap().size() > 0)
                 throw new AccumuloSecurityException(test_user_conn.whoami(), SecurityErrorCode.PERMISSION_DENIED, e1);
             }
             throw new IllegalStateException("Should NOT be able to write to a table");
