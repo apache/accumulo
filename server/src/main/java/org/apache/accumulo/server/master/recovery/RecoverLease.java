@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.master.recovery;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.Repo;
@@ -71,12 +73,16 @@ public class RecoverLease extends MasterRepo {
     
     if (fs instanceof DistributedFileSystem) {
       DistributedFileSystem dfs = (DistributedFileSystem) fs;
-      if (!dfs.recoverLease(source)) {
-        log.info("Waiting for file to be closed " + source.toString());
-        return 1000;
+      try {
+        if (!dfs.recoverLease(source)) {
+          log.info("Waiting for file to be closed " + source.toString());
+          return 1000;
+        }
+        log.info("Recovered lease on " + source.toString());
+        return 0;
+      } catch (IOException ex) {
+        log.error("Error recovery lease on " + source.toString(), ex);
       }
-      log.info("Recovered lease on " + source.toString());
-      return 0;
     } else if (fs instanceof LocalFileSystem) {
       // ignore
     } else {
