@@ -2242,6 +2242,19 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     serversToShutdown.removeAll(deleted);
     badServers.keySet().removeAll(deleted);
+    // clear out any bad server with the same host/port as a new server
+    synchronized (badServers) {
+      Iterator<Entry<TServerInstance,AtomicInteger>> badIter = badServers.entrySet().iterator();
+      while (badIter.hasNext()) {
+        Entry<TServerInstance,AtomicInteger> bad = badIter.next();
+        for (TServerInstance add : added) {
+          if (bad.getKey().hostPort().equals(add.hostPort())) {
+            badIter.remove();
+            break;
+          }
+        }
+      }
+    }
     
     synchronized (migrations) {
       Iterator<Entry<KeyExtent,TServerInstance>> iter = migrations.entrySet().iterator();
