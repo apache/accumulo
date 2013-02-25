@@ -279,11 +279,19 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   public byte[] getUserPassword(String user) {
-    return (byte[]) state.get(user + userPass);
+    Object obj = state.get(getSysUserName() + userPass);
+    if (obj instanceof PasswordToken) {
+      return ((PasswordToken)obj).getPassword();
+    }
+    return null;
   }
   
   public byte[] getSysPassword() {
-    return (byte[]) state.get(getSysUserName() + userPass);
+    Object obj = state.get(getSysUserName() + userPass);
+    if (obj instanceof PasswordToken) {
+      return ((PasswordToken)obj).getPassword();
+    }
+    return null;
   }
   
   public byte[] getTabPassword() {

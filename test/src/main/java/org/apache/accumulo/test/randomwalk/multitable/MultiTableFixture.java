@@ -33,8 +33,8 @@ public class MultiTableFixture extends Fixture {
     
     state.set("tableNamePrefix", String.format("multi_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis()));
     state.set("nextId", new Integer(0));
-    state.set("numWrites", new Integer(0));
-    state.set("totalWrites", new Integer(0));
+    state.set("numWrites", new Long(0));
+    state.set("totalWrites", new Long(0));
     state.set("tableList", new ArrayList<String>());
   }
   
