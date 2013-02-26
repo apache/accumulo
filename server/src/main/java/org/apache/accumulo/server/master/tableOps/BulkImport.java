@@ -103,7 +103,8 @@ import org.apache.thrift.TException;
  */
 
 public class BulkImport extends MasterRepo {
-  
+  public static final String FAILURES_TXT = "failures.txt";
+
   private static final long serialVersionUID = 1L;
   
   private static final Logger log = Logger.getLogger(BulkImport.class);
@@ -363,13 +364,13 @@ class CopyFailed extends MasterRepo {
 	  
     FileSystem fs = master.getFileSystem();
 	  
-    if (!fs.exists(new Path(error, "failures.txt")))
+    if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
     
     HashMap<String,String> failures = new HashMap<String,String>();
     HashMap<String,String> loadedFailures = new HashMap<String,String>();
     
-    FSDataInputStream failFile = fs.open(new Path(error, "failures.txt"));
+    FSDataInputStream failFile = fs.open(new Path(error, BulkImport.FAILURES_TXT));
     BufferedReader in = new BufferedReader(new InputStreamReader(failFile));
     try {
       String line = null;
@@ -408,7 +409,7 @@ class CopyFailed extends MasterRepo {
       Path orig = new Path(failure);
       Path dest = new Path(error, orig.getName());
       fs.rename(orig, dest);
-      log.debug("tid " + tid + " renamed " + orig + " to " + dest + ": failed");
+      log.debug("tid " + tid + " renamed " + orig + " to " + dest + ": import failed");
     }
     
     if (loadedFailures.size() > 0) {
@@ -432,7 +433,7 @@ class CopyFailed extends MasterRepo {
       bifCopyQueue.waitUntilDone(workIds);
     }
 
-    fs.delete(new Path(error, "failures.txt"), true);
+    fs.delete(new Path(error, BulkImport.FAILURES_TXT), true);
     return new CleanUpBulkImport(tableId, source, bulk, error);
   }
   
@@ -539,7 +540,7 @@ class LoadFiles extends MasterRepo {
                 failures.addAll(fail);
               }
             } catch (Exception ex) {
-              log.error("rpc failed server:" + server + ", tid:" + tid + " " + ex, ex);
+              log.error("rpc failed server:" + server + ", tid:" + tid + " " + ex);
             } finally {
               ServerClient.close(client);
             }
@@ -556,7 +557,7 @@ class LoadFiles extends MasterRepo {
       }
     }
     
-    FSDataOutputStream failFile = fs.create(new Path(errorDir, "failures.txt"), true);
+    FSDataOutputStream failFile = fs.create(new Path(errorDir, BulkImport.FAILURES_TXT), true);
     BufferedWriter out = new BufferedWriter(new OutputStreamWriter(failFile));
     try {
       for (String f : filesToLoad) {

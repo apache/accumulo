@@ -92,7 +92,7 @@ class TableRangeOpWait extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     Text tableIdText = new Text(tableId);
     MergeInfo mergeInfo = master.getMergeInfo(tableIdText);
-    log.warn("removing merge information " + mergeInfo);
+    log.info("removing merge information " + mergeInfo);
     master.clearMergeState(tableIdText);
     Utils.unreserveTable(tableId, tid, true);
     // We can't add entries to the metadata table if it is offline for this merge.
@@ -159,7 +159,7 @@ public class TableRangeOp extends MasterRepo {
     Text tableIdText = new Text(tableId);
     MergeInfo mergeInfo = env.getMergeInfo(tableIdText);
     if (mergeInfo.getState() != MergeState.NONE)
-      log.warn("removing merge information " + mergeInfo);
+      log.info("removing merge information " + mergeInfo);
     env.clearMergeState(tableIdText);
     Utils.unreserveTable(tableId, tid, true);
   }
