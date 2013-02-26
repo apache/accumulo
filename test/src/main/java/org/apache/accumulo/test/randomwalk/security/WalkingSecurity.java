@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.randomwalk.security;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -281,7 +282,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public byte[] getUserPassword(String user) {
     Object obj = state.get(getSysUserName() + userPass);
     if (obj instanceof PasswordToken) {
-      return ((PasswordToken)obj).getPassword();
+      return ((PasswordToken) obj).getPassword();
     }
     return null;
   }
@@ -289,7 +290,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public byte[] getSysPassword() {
     Object obj = state.get(getSysUserName() + userPass);
     if (obj instanceof PasswordToken) {
-      return ((PasswordToken)obj).getPassword();
+      return ((PasswordToken) obj).getPassword();
     }
     return null;
   }
@@ -372,14 +373,16 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
       throw tse;
     }
   }
-
+  
   @Override
   public SecurityToken login(Properties properties) throws AccumuloSecurityException {
-    return authenticator.login(properties);
+    if (properties.containsKey("password"))
+      return new PasswordToken().setPassword(properties.getProperty("password").getBytes(Charset.forName("UTF-8")));
+    throw new AccumuloSecurityException(properties.getProperty("user"), SecurityErrorCode.INSUFFICIENT_PROPERTIES);
   }
-
+  
   @Override
   public boolean validTokenClass(String tokenClass) {
-    return authenticator.validTokenClass(tokenClass);
+    return tokenClass.equals(PasswordToken.class.getCanonicalName());
   }
 }
