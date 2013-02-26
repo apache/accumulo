@@ -104,7 +104,7 @@ public class ClientOpts extends Help {
   public String principal = System.getProperty("user.name");
   
   @Parameter(names = "-p", converter = PasswordConverter.class, description = "Connection password")
-  public Password password = new Password("secret");
+  public Password password = new Password("");
   
   @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
   public Password securePassword = null;
