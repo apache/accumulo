@@ -85,10 +85,10 @@ public class InsertCommand extends Command {
       bw.close();
     } catch (MutationsRejectedException e) {
       final ArrayList<String> lines = new ArrayList<String>();
-      if (e.getAuthorizationFailures().isEmpty() == false) {
+      if (e.getAuthorizationFailuresMap().isEmpty() == false) {
         lines.add("	Authorization Failures:");
       }
-      for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : e.getAuthorizationFailures().entrySet()) {
+      for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : e.getAuthorizationFailuresMap().entrySet()) {
         lines.add("		" + entry);
       }
       if (e.getConstraintViolationSummaries().isEmpty() == false) {

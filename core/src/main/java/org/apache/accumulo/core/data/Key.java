@@ -478,6 +478,17 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
+   * This method creates a new ColumnVisibility representing the column visibility for this key
+   * 
+   * WARNING: using this method may inhibit performance since a new ColumnVisibility object is created on every call.
+   * 
+   * @return A new object representing the column visibility field
+   */
+  public final ColumnVisibility getColumnVisibilityParsed() {
+    return new ColumnVisibility(colVisibility);
+  }
+  
+  /**
    * Sets this key's row, column family, column qualifier, column visibility, timestamp, and delete marker to be the same as another key's.
    */
   public void set(Key k) {

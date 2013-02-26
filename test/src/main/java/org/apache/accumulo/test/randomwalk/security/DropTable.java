@@ -43,7 +43,7 @@ public class DropTable extends Test {
     } else {
       auth = WalkingSecurity.get(state).getSysCredentials();
     }
-    Connector conn = state.getInstance().getConnector(auth.getPrincipal(), auth.getToken());
+    Connector conn = state.getInstance().getConnector(auth);
     
     String tableName = WalkingSecurity.get(state).getTableName();
     

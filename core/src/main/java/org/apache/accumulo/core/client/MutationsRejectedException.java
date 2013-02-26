@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -67,8 +68,17 @@ public class MutationsRejectedException extends AccumuloException {
   
   /**
    * @return the internal list of authorization failures
+   * @deprecated since 1.5, see {@link #getAuthorizationFailuresMap()}
    */
-  public Map<KeyExtent,Set<SecurityErrorCode>> getAuthorizationFailures() {
+  List<KeyExtent> getAuthorizationFailures() {
+    return new ArrayList<KeyExtent>(af.keySet());
+  }
+  
+  /**
+   * 
+   * @return the internal mapping of keyextent mappings to SecurityErrorCode
+   */
+  public Map<KeyExtent,Set<SecurityErrorCode>> getAuthorizationFailuresMap() {
     return af;
   }
   

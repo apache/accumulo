@@ -395,7 +395,7 @@ class CopyFailed extends MasterRepo {
     
     for (Entry<Key,Value> entry : mscanner) {
       if (Long.parseLong(entry.getValue().toString()) == tid) {
-        String loadedFile = entry.getKey().getColumnQualifierData().toString();
+        String loadedFile = entry.getKey().getColumnQualifier().toString();
         String absPath = failures.remove(loadedFile);
         if (absPath != null) {
           loadedFailures.put(loadedFile, absPath);

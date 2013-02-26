@@ -58,7 +58,7 @@ public class QueryMetadataTable {
       try {
         KeyExtent extent = new KeyExtent(row, (Text) null);
         
-        Connector connector = HdfsZooInstance.getInstance().getConnector(credentials.getPrincipal(), credentials.getToken());
+        Connector connector = HdfsZooInstance.getInstance().getConnector(credentials);
         Scanner mdScanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         Text row = extent.getMetadataEntry();
         

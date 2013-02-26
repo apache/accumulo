@@ -148,9 +148,9 @@ public class RandomBatchWriter {
     try {
       bw.close();
     } catch (MutationsRejectedException e) {
-      if (e.getAuthorizationFailures().size() > 0) {
+      if (e.getAuthorizationFailuresMap().size() > 0) {
         HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<String,Set<SecurityErrorCode>>();
-        for (Entry<KeyExtent,Set<SecurityErrorCode>> ke : e.getAuthorizationFailures().entrySet()) {
+        for (Entry<KeyExtent,Set<SecurityErrorCode>> ke : e.getAuthorizationFailuresMap().entrySet()) {
           Set<SecurityErrorCode> secCodes = tables.get(ke.getKey().getTableId().toString());
           if (secCodes == null) {
             secCodes = new HashSet<SecurityErrorCode>();

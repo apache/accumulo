@@ -279,11 +279,19 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   public byte[] getUserPassword(String user) {
-    return (byte[]) state.get(user + userPass);
+    Object obj = state.get(getSysUserName() + userPass);
+    if (obj instanceof PasswordToken) {
+      return ((PasswordToken) obj).getPassword();
+    }
+    return null;
   }
   
   public byte[] getSysPassword() {
-    return (byte[]) state.get(getSysUserName() + userPass);
+    Object obj = state.get(getSysUserName() + userPass);
+    if (obj instanceof PasswordToken) {
+      return ((PasswordToken) obj).getPassword();
+    }
+    return null;
   }
   
   public byte[] getTabPassword() {
@@ -368,11 +376,13 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   @Override
   public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
-    return authenticator.login(properties);
+    if (properties.containsKey("password"))
+      return new PasswordToken(properties.getProperty("password"));
+    throw new AccumuloSecurityException(properties.getProperty("user"), SecurityErrorCode.INSUFFICIENT_PROPERTIES);
   }
   
   @Override
   public boolean validTokenClass(String tokenClass) {
-    return authenticator.validTokenClass(tokenClass);
+    return tokenClass.equals(PasswordToken.class.getCanonicalName());
   }
 }
