@@ -78,9 +78,10 @@ import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.security.SecurityUtil;
-import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
@@ -233,7 +234,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       /* SAFE_MODE */               {_,     _,        X,        X,     X,          _,          X},
       /* NORMAL */                  {_,     _,        X,        X,     X,          _,          X},
       /* UNLOAD_METADATA_TABLETS */ {_,     _,        X,        X,     X,          X,          X},
-      /* UNLOAD_ROOT_TABLET */      {_,     _,        _,        _,     _,          X,          X},
+      /* UNLOAD_ROOT_TABLET */      {_,     _,        _,        X,     _,          X,          X},
       /* STOP */                    {_,     _,        _,        _,     _,          _,          X}
   };
   
@@ -710,7 +711,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     @Override
     public void reportSplitExtent(TInfo info, Credential credentials, String serverName, TabletSplit split) throws TException {
-      if (migrations.remove(new KeyExtent(split.oldTablet)) != null) {
+      KeyExtent oldTablet = new KeyExtent(split.oldTablet);
+      if (migrations.remove(oldTablet) != null) {
         log.info("Canceled migration of " + split.oldTablet);
       }
       for (TServerInstance instance : tserverSet.getCurrentServers()) {
@@ -721,6 +723,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
       log.warn("Got a split from a server we don't recognize: " + serverName);
     }
+    
     
     @Override
     public void reportTabletStatus(TInfo info, Credential credentials, String serverName, TabletLoadState status, TKeyExtent ttablet) throws TException {
@@ -1469,6 +1472,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             } else {
               log.warn("Not connected to server " + tls.current);
             }
+          } catch (NotServingTabletException e) {
+            log.debug("Error asking tablet server to split a tablet: " + e);
           } catch (Exception e) {
             log.warn("Error asking tablet server to split a tablet: " + e);
           }
@@ -1858,13 +1863,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         try {
           switch (getMasterGoalState()) {
             case NORMAL:
-              switch (getMasterState()) {
-                case HAVE_LOCK:
-                case SAFE_MODE:
-                  setMasterState(MasterState.NORMAL);
-                default:
-                  break;
-              }
+              setMasterState(MasterState.NORMAL);
               break;
             case SAFE_MODE:
               if (getMasterState() == MasterState.NORMAL) {
@@ -2002,7 +2001,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         String oldName = t.getName();
         try {
           t.setName("Getting status from " + server);
-          TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
+          TServerConnection connection = tserverSet.getConnection(server);
+          if (connection == null)
+            throw new IOException("No connection to " + server);
+          TabletServerStatus status = connection.getTableMap();
           // TODO maybe remove from bad servers
           result.put(server, status);
         } finally {
