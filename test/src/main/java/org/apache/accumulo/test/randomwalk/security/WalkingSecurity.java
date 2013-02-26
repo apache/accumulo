@@ -280,7 +280,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   public byte[] getUserPassword(String user) {
-    Object obj = state.get(getSysUserName() + userPass);
+    Object obj = state.get(user + userPass);
     if (obj instanceof PasswordToken) {
       return ((PasswordToken) obj).getPassword();
     }
@@ -296,7 +296,11 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   public byte[] getTabPassword() {
-    return (byte[]) state.get(getTabUserName() + userPass);
+    Object obj = state.get(getTabUserName() + userPass);
+    if (obj instanceof PasswordToken) {
+      return ((PasswordToken) obj).getPassword();
+    }
+    return null;
   }
   
   public boolean userPassTransient(String user) {
