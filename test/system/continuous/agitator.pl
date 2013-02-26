@@ -19,15 +19,38 @@
 use POSIX qw(strftime);
 
 if(scalar(@ARGV) != 4 && scalar(@ARGV) != 2){
-	print "Usage : agitator.pl <sleep before kill in minutes> <sleep before tup in minutes> [<min kill> <max kill>]\n";
+	print "Usage : agitator.pl <min sleep before kill in minutes>[:max sleep before kill in minutes] <min sleep before tup in minutes>[:max sleep before tup in minutes] [<min kill> <max kill>]\n";
 	exit(1);
 }
 
 $ACCUMULO_HOME="../../..";
 $HADOOP_PREFIX=$ENV{"HADOOP_PREFIX"};
 
-$sleep1 = $ARGV[0];
-$sleep2 = $ARGV[1];
+@sleeprange1 = split(/:/, $ARGV[0]);
+$sleep1 = $sleeprange1[0];
+
+@sleeprange2 = split(/:/, $ARGV[1]);
+$sleep2 = $sleeprange2[0];
+
+if(scalar(@sleeprange1) > 1){
+    $sleep1max = $sleeprange1[1] + 1;
+}else{
+    $sleep1max = $sleep1;
+}
+
+if($sleep1 > $sleep1max){
+	die("sleep1 > sleep1max $sleep1 > $sleep1max");
+}
+
+if(scalar(@sleeprange2) > 1){
+    $sleep2max = $sleeprange2[1] + 1;
+}else{
+    $sleep2max = $sleep2;
+}
+
+if($sleep2 > $sleep2max){
+	die("sleep2 > sleep2max $sleep2 > $sleep2max");
+}
 
 if(scalar(@ARGV) == 4){
 	$minKill = $ARGV[2];
@@ -104,13 +127,15 @@ while(1){
 		}
 	}
 
-	sleep($sleep2 * 60);
+  $nextsleep2 = int(rand($sleep2max - $sleep2)) + $sleep2;
+	sleep($nextsleep2 * 60);
 	$t = strftime "%Y%m%d %H:%M:%S", localtime;
 	print STDERR "$t Running tup\n";
 	system("$ACCUMULO_HOME/bin/tup.sh");
 	print STDERR "$t Running start-dfs\n";
 	system("$HADOOP_PREFIX/bin/start-dfs.sh");
 
-	sleep($sleep1 * 60);
+  $nextsleep1 = int(rand($sleep1max - $sleep1)) + $sleep1;
+  sleep($nextsleep1 * 60);
 }
 
