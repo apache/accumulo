@@ -110,8 +110,10 @@ public class Config extends Test {
       String table = parts[0];
       int choice = Integer.parseInt(parts[1]);
       Property property = tableSettings[choice].property;
-      log.debug("Setting " + property.getKey() + " on " + table + " back to " + property.getDefaultValue());
-      state.getConnector().tableOperations().setProperty(table, property.getKey(), property.getDefaultValue());
+      if (state.getConnector().tableOperations().exists(table)) {
+        log.debug("Setting " + property.getKey() + " on " + table + " back to " + property.getDefaultValue());
+        state.getConnector().tableOperations().setProperty(table, property.getKey(), property.getDefaultValue());
+      }
     }
     state.getMap().remove(LAST_SETTING);
     state.getMap().remove(LAST_TABLE_SETTING);
@@ -136,9 +138,9 @@ public class Config extends Test {
     
     // generate a random value
     long newValue = random.nextLong(setting.min, setting.max);
-    state.getMap().put(LAST_TABLE_SETTING, "" + choice);
+    state.getMap().put(LAST_TABLE_SETTING, table + "," + choice);
     log.debug("Setting " + setting.property.getKey() + " on table " + table + " to " + newValue);
-    state.getConnector().instanceOperations().setProperty(setting.property.getKey(), table + "," + newValue);
+    state.getConnector().tableOperations().setProperty(table, setting.property.getKey(), "" + newValue);
   }
   
   private void changeSetting(RandomData random, State state, Properties props) throws Exception {
