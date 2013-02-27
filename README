@@ -31,7 +31,7 @@ If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary
 but having them available suppresses a runtime warning:
 
-  $ ( cd ./src/server/src/main/c++ ; make )
+  $ ( cd ./server/src/main/c++ ; make )
 
 If you want to build the debian release, use the command "mvn install -Pdeb" to 
 generate the .deb files in the target/ directory. Please follow the steps at 
@@ -42,7 +42,7 @@ easier to install.
 ******************************************************************************
 2. Deployment
 
-Copy the accumulo tar file produced by mvn package from the src/assemble/target/
+Copy the accumulo tar file produced by mvn package from the assemble/target/
 directory to the desired destination, then untar it (e.g. 
 tar xzf apache-accumulo-1.6.0-SNAPSHOT-dist.tar.gz).
 
