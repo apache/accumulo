@@ -70,6 +70,7 @@ public class CountTest extends TestCase {
     opts.instance = "counttest";
     opts.tableName = "dirlisttable";
     opts.mock = true;
+    opts.password = new Opts.Password("");
     FileCount fc = new FileCount(opts, scanOpts, bwOpts);
     fc.run();
     

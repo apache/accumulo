@@ -71,19 +71,12 @@ public class VerifyIngest {
         Trace.currentTrace().data("cmdLine", Arrays.asList(args).toString());
       }
       
-      Connector connector = null;
-      while (connector == null) {
-        try {
-          connector = opts.getConnector();
-        } catch (AccumuloException e) {
-          log.warn("Could not connect to accumulo; will retry: " + e);
-          UtilWaitThread.sleep(1000);
-        }
-      }
+      Connector connector = opts.getConnector();
       
       byte[][] bytevals = TestIngest.generateValues(opts);
       
       Authorizations labelAuths = new Authorizations("L1", "L2", "G1", "GROUP2");
+      connector.securityOperations().changeUserAuthorizations(opts.principal, labelAuths);
       
       int expectedRow = opts.startRow;
       int expectedCol = 0;

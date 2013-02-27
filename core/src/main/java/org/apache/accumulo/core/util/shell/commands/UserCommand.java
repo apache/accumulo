@@ -17,14 +17,12 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;

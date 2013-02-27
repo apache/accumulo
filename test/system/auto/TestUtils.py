@@ -120,7 +120,7 @@ class TestUtilsMixin:
             ld = 'ACCUMULO_LOG_DIR=%s/logs/%s' % (ACCUMULO_HOME, ID)
             execcmd = ['ssh', '-q', host, cp, jo, go, ld] + quote(cmd)
             log.debug(repr(execcmd))
-            return Popen(execcmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, **opts)
+            return Popen(execcmd, stdout=PIPE, stderr=PIPE, **opts)
             
     def shell(self, host, input, **opts):
         """Run accumulo shell with the given input,
@@ -220,7 +220,7 @@ class TestUtilsMixin:
         args = ''
         if timestamp:
             args += "-ts %ld " % int(timestamp)
-        args += '--debug -i %s -u %s --size %d --random 56 --rows %d --start %d --cols 1 --createTable ' % (INSTANCE_NAME, ROOT, size, count, start)
+        args += '--debug -i %s -u %s --size %d --random 56 --rows %d --start %d --cols 1 --createTable -p %s' % (INSTANCE_NAME, ROOT, size, count, start, ROOT_PASSWORD)
         if colf:
            args = '--columnFamily %s ' % colf + args
         return self.runClassOn(host, klass, args.split(), **kwargs)
@@ -230,7 +230,7 @@ class TestUtilsMixin:
         args = ''
         if timestamp:
             args += "-ts %ld " % int(timestamp)
-        args += '-i %s -u %s --size %d --random 56 -cf %s --rows %d --start %d --cols 1 ' % (INSTANCE_NAME, ROOT, size, colf, count, start)
+        args += '-i %s -u %s --size %d --random 56 -cf %s --rows %d --start %d --cols 1 -p %s' % (INSTANCE_NAME, ROOT, size, colf, count, start, ROOT_PASSWORD)
         return self.runClassOn(host, klass, args.split())
 
     def stop_accumulo(self, signal=signal.SIGHUP):
