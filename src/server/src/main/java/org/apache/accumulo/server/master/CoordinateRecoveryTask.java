@@ -46,6 +46,7 @@ import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobStatus;
 import org.apache.hadoop.mapred.RunningJob;
@@ -61,6 +62,8 @@ public class CoordinateRecoveryTask implements Runnable {
   private boolean stop = false;
   
   private ZooCache zcache;
+
+  private Trash trash;
   
   private static String fullName(String name) {
     return ServerConstants.getRecoveryDir() + "/" + name;
@@ -259,8 +262,9 @@ public class CoordinateRecoveryTask implements Runnable {
     }
   }
   
-  public CoordinateRecoveryTask(FileSystem fs) {
+  public CoordinateRecoveryTask(FileSystem fs) throws IOException {
     this.fs = fs;
+    this.trash = new Trash(fs, fs.getConf());
     zcache = new ZooCache();
   }
   
@@ -345,7 +349,8 @@ public class CoordinateRecoveryTask implements Runnable {
       if (children != null) {
         for (FileStatus child : children) {
           log.info("Deleting recovery directory " + child);
-          fs.delete(child.getPath(), true);
+          if (!trash.moveToTrash(child.getPath()))
+            fs.delete(child.getPath(), true);
         }
       }
     } catch (IOException e) {

@@ -27,7 +27,6 @@ import org.apache.accumulo.server.test.CreateMapFiles;
 import org.apache.accumulo.server.test.VerifyIngest;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
 
 /**
  * This test verifies that when a lot of files are bulk imported into a table with one tablet and then splits that not all map files go to the children tablets.
