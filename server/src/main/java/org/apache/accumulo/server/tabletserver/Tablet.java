@@ -2891,9 +2891,10 @@ public class Tablet {
     }
     
     private int getNumFiles() {
-      synchronized (Tablet.this) {
+      // Locked tablets put themselves in the run queue, so we can't lock them
+      //synchronized (Tablet.this) {
         return datafileManager.datafileSizes.size();
-      }
+      //}
     }
     
     @Override

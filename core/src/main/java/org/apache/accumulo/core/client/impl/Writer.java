@@ -99,7 +99,7 @@ public class Writer {
         log.trace("Not serving tablet, server = " + tabLoc.tablet_location);
         TabletLocator.getInstance(instance, credentials, table).invalidateCache(tabLoc.tablet_extent);
       } catch (TException e) {
-        log.error("server = " + tabLoc.tablet_location, e);
+        log.error("error sending update to " + tabLoc.tablet_location + ": " + e);
         TabletLocator.getInstance(instance, credentials, table).invalidateCache(tabLoc.tablet_extent);
       } 
       
