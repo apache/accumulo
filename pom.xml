@@ -383,6 +383,7 @@
           <onlyCurrentVersion>true</onlyCurrentVersion>
           <statusIds>resolved</statusIds>
           <maxEntries>10000</maxEntries>
+          <useJql>true</useJql>
         </configuration>
         <reportSets>
           <reportSet>

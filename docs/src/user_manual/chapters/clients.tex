@@ -27,7 +27,7 @@ of the different ways to execute client code.
   \item using the tool script 
 \end{itemize}
 
-Inorder to run client code written to run against Accumulo, you will need to
+In order to run client code written to run against Accumulo, you will need to
 include the jars that Accumulo depends on in your classpath.  Accumulo client
 code depends on Hadoop and Zookeeper.  For Hadoop add the hadoop core jar, all
 of the jars in the Hadoop lib directory, and the conf directory to the
@@ -123,7 +123,7 @@ to efficiently return ranges of consecutive keys and their associated values.
 
 \subsection{Scanner}
 
-To retrieve data, Clients use a Scanner, which provides acts like an Iterator over
+To retrieve data, Clients use a Scanner, which acts like an Iterator over
 keys and values. Scanners can be configured to start and stop at particular keys, and
 to return a subset of the columns available.
 

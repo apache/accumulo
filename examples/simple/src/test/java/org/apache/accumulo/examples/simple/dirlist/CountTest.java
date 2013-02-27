@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -69,6 +70,7 @@ public class CountTest extends TestCase {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.instance = "counttest";
     opts.tableName = "dirlisttable";
+    opts.password = new Password("secret");
     opts.mock = true;
     opts.password = new Opts.Password("");
     FileCount fc = new FileCount(opts, scanOpts, bwOpts);

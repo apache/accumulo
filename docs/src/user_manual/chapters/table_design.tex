@@ -19,7 +19,7 @@
 \section{Basic Table}
 
 Since Accumulo tables are sorted by row ID, each table can be thought of as being
-indexed by the row ID. Lookups performed row ID can be executed quickly, by doing
+indexed by the row ID. Lookups performed by row ID can be executed quickly, by doing
 a binary search, first across the tablets, and then within a tablet. Clients should
 choose a row ID carefully in order to support their desired application. A simple rule
 is to select a unique identifier as the row ID for each entity to be stored and assign

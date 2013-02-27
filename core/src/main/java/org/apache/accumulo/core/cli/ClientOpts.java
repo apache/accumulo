@@ -104,7 +104,7 @@ public class ClientOpts extends Help {
   public String principal = System.getProperty("user.name");
   
   @Parameter(names = "-p", converter = PasswordConverter.class, description = "Connection password")
-  public Password password = new Password("secret");
+  public Password password = null;
   
   @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
   public Password securePassword = null;
@@ -112,7 +112,7 @@ public class ClientOpts extends Help {
   public SecurityToken getToken() {
     PasswordToken pt = new PasswordToken();
     if (securePassword == null) {
-      if (password.value == null)
+      if (password == null)
         return null;
       return pt.setPassword(password.value);
     }
