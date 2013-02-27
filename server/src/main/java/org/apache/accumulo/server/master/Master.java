@@ -102,7 +102,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.balancer.TabletBalancer;
-import org.apache.accumulo.server.master.recovery.RecoverLease;
+import org.apache.accumulo.server.master.recovery.RecoveryManager;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.DeadServerList;
@@ -158,7 +158,6 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -203,6 +202,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final private SortedMap<KeyExtent,TServerInstance> migrations = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
   final private EventCoordinator nextEvent = new EventCoordinator();
   final private Object mergeLock = new Object();
+  private RecoveryManager recoveryManager = null;
   
   private ZooLock masterLock = null;
   private TServer clientService = null;
@@ -1344,7 +1344,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             
             if (goal == TabletGoalState.HOSTED) {
               if (state != TabletState.HOSTED && !tls.walogs.isEmpty()) {
-                if (recoverLogs(tls.extent, tls.walogs))
+                if (recoveryManager.recoverLogs(tls.extent, tls.walogs))
                   continue;
               }
               switch (state) {
@@ -2036,39 +2036,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return result;
   }
   
-  public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs) throws IOException {
-    boolean recoveryNeeded = false;
-    for (Collection<String> logs : walogs) {
-      for (String log : logs) {
-        String parts[] = log.split("/");
-        String host = parts[0];
-        String filename = parts[1];
-        if (fs.exists(new Path(Constants.getRecoveryDir(getSystemConfiguration()) + "/" + filename + "/finished"))) {
-          recoveriesInProgress.remove(filename);
-          continue;
-        }
-        recoveryNeeded = true;
-        synchronized (recoveriesInProgress) {
-          if (!recoveriesInProgress.contains(filename)) {
-            Master.log.info("Starting recovery of " + filename + " created for " + host + ", tablet " + extent + " holds a reference");
-            AccumuloConfiguration aconf = getConfiguration().getConfiguration();
-            RecoverLease impl = createInstanceFromPropertyName(aconf, Property.MASTER_LEASE_RECOVERY_IMPLEMETATION, RecoverLease.class, new RecoverLease());
-            impl.init(host, filename);
-            long tid = fate.startTransaction();
-            fate.seedTransaction(tid, impl, true);
-            recoveriesInProgress.add(filename);
-          }
-        }
-      }
-    }
-    return recoveryNeeded;
-  }
-  
   public void run() throws IOException, InterruptedException, KeeperException {
     final String zroot = ZooUtil.getRoot(instance);
     
     getMasterLock(zroot + Constants.ZMASTER_LOCK);
     
+    recoveryManager = new RecoveryManager(this);
+
     TableManager.getInstance().addObserver(this);
     
     StatusThread statusThread = new StatusThread();
