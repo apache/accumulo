@@ -92,9 +92,9 @@ service ClientService {
     void grantTablePermission(5:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal, 3:string tableName, 4:byte permission) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
     void revokeTablePermission(5:trace.TInfo tinfo, 1:security.Credential credential, 2:string principal, 3:string tableName, 4:byte permission) throws (1:security.ThriftSecurityException sec, 2:ThriftTableOperationException tope)
     
-    map<string, string> getConfiguration(1:ConfigurationType type);
-    map<string, string> getTableConfiguration(2:string tableName) throws (1:ThriftTableOperationException tope);
-    bool checkClass(1:trace.TInfo tinfo, 2:string className, 3:string interfaceMatch);
+    map<string, string> getConfiguration(2:trace.TInfo tinfo, 3:security.Credential credential, 1:ConfigurationType type);
+    map<string, string> getTableConfiguration(1:trace.TInfo tinfo, 3:security.Credential credential, 2:string tableName) throws (1:ThriftTableOperationException tope);
+    bool checkClass(1:trace.TInfo tinfo, 4:security.Credential credential, 2:string className, 3:string interfaceMatch);
     }
 
 // Only used for a unit test

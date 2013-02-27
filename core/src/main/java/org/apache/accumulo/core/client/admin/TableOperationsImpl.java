@@ -866,7 +866,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
         @Override
         public Map<String,String> execute(ClientService.Client client) throws Exception {
-          return client.getTableConfiguration(tableName);
+          return client.getTableConfiguration(Tracer.traceInfo(), credentials, tableName);
         }
       }).entrySet();
     } catch (ThriftTableOperationException e) {
