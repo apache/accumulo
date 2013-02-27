@@ -43,7 +43,7 @@ public class TestClientOpts {
     BatchScannerOpts bsOpts = new BatchScannerOpts();
     assertEquals(System.getProperty("user.name"), args.principal);
     assertNull(args.securePassword);
-    assertEquals(new PasswordToken().setPassword("".getBytes()), args.getToken());
+    assertEquals(new PasswordToken().setPassword("secret".getBytes()), args.getToken());
     assertEquals(new Long(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), bwOpts.batchLatency);
     assertEquals(new Long(cfg.getTimeout(TimeUnit.MILLISECONDS)), bwOpts.batchTimeout);
     assertEquals(new Long(cfg.getMaxMemory()), bwOpts.batchMemory);
