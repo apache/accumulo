@@ -133,7 +133,7 @@ delete entry when the new file is created.
 
 If a TabletServer fails, the Master detects it and automatically reassigns the tablets
 assigned from the failed server to other servers. Any key-value pairs that were in
-memory at the time the TabletServer are automatically reapplied from the Write-Ahead
+memory at the time the TabletServer fails are automatically reapplied from the Write-Ahead
 Log to prevent any loss of data.
 
 The Master will coordinate the copying of write-ahead logs to HDFS so the logs

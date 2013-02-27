@@ -21,13 +21,13 @@ behavior of Accumulo as well as improve performance based on the data stored.
 These include locality groups, constraints, bloom filters, iterators, and block cache.
 
 \section{Locality Groups}
-Accumulo supports storing of sets of column families separately on disk to allow
-clients to scan over columns that are frequently used together efficient and to avoid
-scanning over column families that are not requested. After a locality group is set
+Accumulo supports storing sets of column families separately on disk to allow
+clients to efficiently scan over columns that are frequently used together and to avoid
+scanning over column families that are not requested. After a locality group is set,
 Scanner and BatchScanner operations will automatically take advantage of them
 whenever the fetchColumnFamilies() method is used.
 
-By default tables place all column families into the same ``default" locality group.
+By default, tables place all column families into the same ``default'' locality group.
 Additional locality groups can be configured anytime via the shell or
 programmatically as follows:
 
@@ -38,10 +38,9 @@ programmatically as follows:
 usage: setgroups <group>=<col fam>{,<col fam>}{ <group>=<col fam>{,<col
 fam>}} [-?] -t <table>
 
-user@myinstance mytable> setgroups -t mytable group_one=colf1,colf2
+user@myinstance mytable> setgroups group_one=colf1,colf2 -t mytable
 
-user@myinstance mytable> getgroups -t mytable
-group_one=colf1,colf2
+user@myinstance mytable> getgroups group_one=colf1,colf2 -t mytable
 \end{verbatim}
 \normalsize
 
@@ -51,8 +50,7 @@ group_one=colf1,colf2
 \begin{verbatim}
 Connector conn;
 
-HashMap<String,Set<Text>> localityGroups =
-    new HashMap<String, Set<Text>>();
+HashMap<String,Set<Text>> localityGroups = new HashMap<String, Set<Text>>();
 
 HashSet<Text> metadataColumns = new HashSet<Text>();
 metadataColumns.add(new Text("domain"));
@@ -470,7 +468,7 @@ compact tablets that overlap the given row range.
 
 \section{Pre-splitting tables}
 
-Accumulo will balance and distribute tables accross servers. Before a
+Accumulo will balance and distribute tables across servers. Before a
 table gets large, it will be maintained as a single tablet on a single
 server.  This limits the speed at which data can be added or queried
 to the speed of a single node. To improve performance when the a table
@@ -503,7 +501,7 @@ of data may change over time.  For example, if row data contains date
 information, and data is continually added and removed to maintain a
 window of current information, tablets for older rows may be empty.
 
-Accumulo supports tablet merging, which can be used to reduce delete
+Accumulo supports tablet merging, which can be used to reduce 
 the number of split points.  The following command will merge all rows
 from ``A'' to ``Z'' into a single tablet:
 
@@ -536,7 +534,7 @@ root@myinstance> merge -t myTable -s 100M
 By default, small tablets will not be merged into tablets that are
 already larger than the given size.  This can leave isolated small
 tablets.  To force small tablets to be merged into larger tablets use
-the ``--force'' option:
+the ``--{}--force'' option:
 
 \small
 \begin{verbatim}
@@ -562,7 +560,7 @@ Consider an indexing scheme that uses date information in each row.
 For example ``20110823-15:20:25.013'' might be a row that specifies a
 date and time.  In some cases, we might like to delete rows based on
 this date, say to remove all the data older than the current year.
-Accumulo supports a delete range operation which can efficiently
+Accumulo supports a delete range operation which efficiently
 removes data between two rows.  For example:
 
 \small
@@ -582,7 +580,7 @@ root@myinstance> deleterange -t myTable -e 2011 --force
 \normalsize
 
 The shell will not allow you to delete an unbounded range (no start)
-unless you provide the ``--force'' option.
+unless you provide the ``--{}--force'' option.
 
 Range deletion is implemented using splits at the given start/end
 positions, and will affect the number of splits in the table.
