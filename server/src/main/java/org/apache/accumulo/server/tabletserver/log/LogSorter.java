@@ -104,7 +104,7 @@ public class LogSorter {
       String formerThreadName = Thread.currentThread().getName();
       int part = 0;
       try {
-        
+
         // the following call does not throw an exception if the file/dir does not exist
         fs.delete(new Path(destPath), true);
         
@@ -183,7 +183,7 @@ public class LogSorter {
         Thread.currentThread().setName(formerThreadName);
         try {
           close();
-        } catch (IOException e) {
+        } catch (Exception e) {
           log.error("Error during cleanup sort/copy " + name, e);
         }
         synchronized (this) {
