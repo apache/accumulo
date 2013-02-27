@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
@@ -53,7 +54,7 @@ public class SecurityFixture extends Fixture {
     conn.securityOperations().createUser(systemUserName, sysUserPass);
     
     WalkingSecurity.get(state).setTableName(secTableName);
-    state.set("rootUserPass", state.getCredentials().getToken());
+    state.set("rootUserPass", CredentialHelper.extractToken(state.getCredentials()));
     
     WalkingSecurity.get(state).setSysUserName(systemUserName);
     WalkingSecurity.get(state).createUser(systemUserName, sysUserPass);
