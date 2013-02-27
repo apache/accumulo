@@ -41,7 +41,8 @@
     <site>
       <id>accumulo.mvn.website</id>
       <name>Accumulo Maven Site</name>
-      <url>scp://people.apache.org/x1/home/bimargulies/public_html/accumulo-site-stage</url>
+      <!-- this is not likely to be what we really want, but it's good enough for a test -->
+      <url>scm:svn:https://svn.apache.org/repos/asf/accumulo/site/trunk/maven-site</url>
     </site>
   </distributionManagement>
 
@@ -68,6 +69,28 @@
     </extensions>
     <defaultGoal>package</defaultGoal>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>3.2</version>
+        <configuration>
+          <skipDeploy>true</skipDeploy>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-scm-publish-plugin</artifactId>
+        <version>1.0-beta-2</version>
+        <executions>
+          <execution>
+            <id>scm-publish</id>
+            <phase>site-deploy</phase>
+            <goals>
+              <goal>publish-scm</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>
@@ -351,13 +374,14 @@
 
   <reporting>
     <plugins>
+      <!--
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-changes-plugin</artifactId>
         <version>2.8</version>
         <configuration>
           <onlyCurrentVersion>true</onlyCurrentVersion>
-          <statusIds>closed,resolved</statusIds>
+          <statusIds>resolved</statusIds>
           <maxEntries>10000</maxEntries>
         </configuration>
         <reportSets>
@@ -368,6 +392,7 @@
           </reportSet>
         </reportSets>
       </plugin>
+-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jxr-plugin</artifactId>
