@@ -36,7 +36,7 @@ class BinaryTest(unittest.TestCase, TestUtilsMixin):
         handle = self.runClassOn(self.masterHost(), testClass, 
                                  ['-u', 'root',
                                   '--mode', mode, '-t', table, 
-                                  '--start', min, '--count', max])
+                                  '--start', min, '--count', max, '-p', 'secret'])
         self.waitForStop(handle, 200)
         
     def tearDown(self):

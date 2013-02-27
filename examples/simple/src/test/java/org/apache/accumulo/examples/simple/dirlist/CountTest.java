@@ -72,6 +72,7 @@ public class CountTest extends TestCase {
     opts.tableName = "dirlisttable";
     opts.password = new Password("secret");
     opts.mock = true;
+    opts.password = new Opts.Password("");
     FileCount fc = new FileCount(opts, scanOpts, bwOpts);
     fc.run();
     
