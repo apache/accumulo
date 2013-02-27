@@ -220,7 +220,7 @@ class TestUtilsMixin:
         args = ''
         if timestamp:
             args += "-ts %ld " % int(timestamp)
-        args += '--debug -i %s -u %s --size %d --random 56 --rows %d --start %d --cols 1 --createTable ' % (INSTANCE_NAME, ROOT, size, count, start)
+        args += '--debug -i %s -u %s --size %d --random 56 --rows %d --start %d --cols 1 --createTable -p secret' % (INSTANCE_NAME, ROOT, size, count, start)
         if colf:
            args = '--columnFamily %s ' % colf + args
         return self.runClassOn(host, klass, args.split(), **kwargs)
@@ -230,7 +230,7 @@ class TestUtilsMixin:
         args = ''
         if timestamp:
             args += "-ts %ld " % int(timestamp)
-        args += '-i %s -u %s --size %d --random 56 -cf %s --rows %d --start %d --cols 1 ' % (INSTANCE_NAME, ROOT, size, colf, count, start)
+        args += '-i %s -u %s --size %d --random 56 -cf %s --rows %d --start %d --cols 1 -p secret' % (INSTANCE_NAME, ROOT, size, colf, count, start)
         return self.runClassOn(host, klass, args.split())
 
     def stop_accumulo(self, signal=signal.SIGHUP):
