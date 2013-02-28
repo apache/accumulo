@@ -2353,9 +2353,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           log.debug("Failed to unload tablet " + extent + "... it was alread closing or closed : " + e.getMessage());
         } else {
           log.error("Failed to close tablet " + extent + "... Aborting migration", e);
+          enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_ERROR, extent));
         }
-        
-        enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_ERROR, extent));
         return;
       }
       

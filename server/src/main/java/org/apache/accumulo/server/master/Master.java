@@ -81,6 +81,7 @@ import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
@@ -101,7 +102,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.balancer.TabletBalancer;
-import org.apache.accumulo.server.master.recovery.RecoverLease;
+import org.apache.accumulo.server.master.recovery.RecoveryManager;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.DeadServerList;
@@ -157,7 +158,6 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -202,6 +202,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final private SortedMap<KeyExtent,TServerInstance> migrations = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
   final private EventCoordinator nextEvent = new EventCoordinator();
   final private Object mergeLock = new Object();
+  private RecoveryManager recoveryManager = null;
   
   private ZooLock masterLock = null;
   private TServer clientService = null;
@@ -227,15 +228,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   static final boolean X = true;
   static final boolean _ = false;
   static final boolean transitionOK[][] = {
-      //                            INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-      /* INITIAL */                 {X,     X,        _,        _,     _,          _,          X},
-      /* HAVE_LOCK */               {_,     X,        X,        X,     _,          _,          X},
-      /* SAFE_MODE */               {_,     _,        X,        X,     X,          _,          X},
-      /* NORMAL */                  {_,     _,        X,        X,     X,          _,          X},
-      /* UNLOAD_METADATA_TABLETS */ {_,     _,        X,        X,     X,          X,          X},
-      /* UNLOAD_ROOT_TABLET */      {_,     _,        _,        _,     _,          X,          X},
-      /* STOP */                    {_,     _,        _,        _,     _,          _,          X}
-  };
+      // INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
+      /* INITIAL */{X, X, _, _, _, _, X},
+      /* HAVE_LOCK */{_, X, X, X, _, _, X},
+      /* SAFE_MODE */{_, _, X, X, X, _, X},
+      /* NORMAL */{_, _, X, X, X, _, X},
+      /* UNLOAD_METADATA_TABLETS */{_, _, X, X, X, X, X},
+      /* UNLOAD_ROOT_TABLET */{_, _, _, X, _, X, X},
+      /* STOP */{_, _, _, _, _, _, X}};
   
   synchronized private void setMasterState(MasterState newState) {
     if (state.equals(newState))
@@ -275,11 +275,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.info("Upgrading zookeeper");
         
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-
+        
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.SKIP);
-
+        
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
-
+          
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, "0".getBytes(),
               NodeExistsPolicy.SKIP);
         }
@@ -289,7 +289,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
   }
-
+  
   private final AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
   
   private final ServerConfiguration serverConfig;
@@ -710,7 +710,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     @Override
     public void reportSplitExtent(TInfo info, TCredentials credentials, String serverName, TabletSplit split) throws TException {
-      if (migrations.remove(new KeyExtent(split.oldTablet)) != null) {
+      KeyExtent oldTablet = new KeyExtent(split.oldTablet);
+      if (migrations.remove(oldTablet) != null) {
         log.info("Canceled migration of " + split.oldTablet);
       }
       for (TServerInstance instance : tserverSet.getCurrentServers()) {
@@ -1341,7 +1342,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             
             if (goal == TabletGoalState.HOSTED) {
               if (state != TabletState.HOSTED && !tls.walogs.isEmpty()) {
-                if (recoverLogs(tls.extent, tls.walogs))
+                if (recoveryManager.recoverLogs(tls.extent, tls.walogs))
                   continue;
               }
               switch (state) {
@@ -1469,6 +1470,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             } else {
               log.warn("Not connected to server " + tls.current);
             }
+          } catch (NotServingTabletException e) {
+            log.debug("Error asking tablet server to split a tablet: " + e);
           } catch (Exception e) {
             log.warn("Error asking tablet server to split a tablet: " + e);
           }
@@ -1858,13 +1861,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         try {
           switch (getMasterGoalState()) {
             case NORMAL:
-              switch (getMasterState()) {
-                case HAVE_LOCK:
-                case SAFE_MODE:
-                  setMasterState(MasterState.NORMAL);
-                default:
-                  break;
-              }
+              setMasterState(MasterState.NORMAL);
               break;
             case SAFE_MODE:
               if (getMasterState() == MasterState.NORMAL) {
@@ -2002,7 +1999,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         String oldName = t.getName();
         try {
           t.setName("Getting status from " + server);
-          TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
+          TServerConnection connection = tserverSet.getConnection(server);
+          if (connection == null)
+            throw new IOException("No connection to " + server);
+          TabletServerStatus status = connection.getTableMap();
           // TODO maybe remove from bad servers
           result.put(server, status);
         } finally {
@@ -2034,38 +2034,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return result;
   }
   
-  public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs) throws IOException {
-    boolean recoveryNeeded = false;
-    for (Collection<String> logs : walogs) {
-      for (String log : logs) {
-        String parts[] = log.split("/");
-        String host = parts[0];
-        String filename = parts[1];
-        if (fs.exists(new Path(Constants.getRecoveryDir(getSystemConfiguration()) + "/" + filename + "/finished"))) {
-          recoveriesInProgress.remove(filename);
-          continue;
-        }
-        recoveryNeeded = true;
-        synchronized (recoveriesInProgress) {
-          if (!recoveriesInProgress.contains(filename)) {
-            Master.log.info("Starting recovery of " + filename + " created for " + host + ", tablet " + extent + " holds a reference");
-            AccumuloConfiguration aconf = getConfiguration().getConfiguration();
-            RecoverLease impl = createInstanceFromPropertyName(aconf, Property.MASTER_LEASE_RECOVERY_IMPLEMETATION, RecoverLease.class, new RecoverLease());
-            impl.init(host, filename);
-            long tid = fate.startTransaction();
-            fate.seedTransaction(tid, impl, true);
-            recoveriesInProgress.add(filename);
-          }
-        }
-      }
-    }
-    return recoveryNeeded;
-  }
-  
   public void run() throws IOException, InterruptedException, KeeperException {
     final String zroot = ZooUtil.getRoot(instance);
     
     getMasterLock(zroot + Constants.ZMASTER_LOCK);
+    
+    recoveryManager = new RecoveryManager(this);
     
     TableManager.getInstance().addObserver(this);
     

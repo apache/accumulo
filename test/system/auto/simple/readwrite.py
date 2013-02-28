@@ -20,7 +20,7 @@ import unittest
 import time
 import sys
 
-from TestUtils import TestUtilsMixin, FUZZ, ACCUMULO_HOME, SITE, INSTANCE_NAME
+from TestUtils import TestUtilsMixin, FUZZ, ACCUMULO_HOME, SITE, INSTANCE_NAME, ROOT, ROOT_PASSWORD
 
 log = logging.getLogger('test.auto')
 
@@ -82,12 +82,12 @@ class MultiTableTest(SunnyDayTest):
     
     def ingest(self, host, count, *args, **kwargs):
         klass = 'org.apache.accumulo.test.TestMultiTableIngest'
-        args = '--count %d -u root -i %s ' % (count, INSTANCE_NAME)
+        args = '--count %d -u root -i %s -p %s' % (count, INSTANCE_NAME, ROOT_PASSWORD)
         return self.runClassOn(host, klass, args.split())
 
     def verify(self, host, count, *args, **kwargs):
         klass = 'org.apache.accumulo.test.TestMultiTableIngest'
-        args = '--count %d --readonly -u root -i %s ' % (count, INSTANCE_NAME)
+        args = '--count %d --readonly -u root -i %s -p %s' % (count, INSTANCE_NAME, ROOT_PASSWORD)
         return self.runClassOn(host, klass, args.split())
 
 

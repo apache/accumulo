@@ -99,7 +99,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return ServerClient.execute(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
       @Override
       public Map<String,String> execute(ClientService.Client client) throws Exception {
-        return client.getConfiguration(ConfigurationType.CURRENT);
+        return client.getConfiguration(Tracer.traceInfo(), credentials, ConfigurationType.CURRENT);
       }
     });
   }
@@ -112,7 +112,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return ServerClient.execute(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
       @Override
       public Map<String,String> execute(ClientService.Client client) throws Exception {
-        return client.getConfiguration(ConfigurationType.SITE);
+        return client.getConfiguration(Tracer.traceInfo(), credentials, ConfigurationType.SITE);
       }
     });
   }
@@ -179,7 +179,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return ServerClient.execute(instance, new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
-        return client.checkClass(Tracer.traceInfo(), className, asTypeName);
+        return client.checkClass(Tracer.traceInfo(), credentials, className, asTypeName);
       }
     });
   }

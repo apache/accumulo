@@ -186,33 +186,38 @@ public class ClientServiceHandler implements ClientService.Iface {
     return security.listUsers(credentials);
   }
   
-  static private Map<String,String> conf(AccumuloConfiguration conf) {
+  static private Map<String,String> conf(TCredentials credentials, AccumuloConfiguration conf) throws TException {
+    security.authenticateUser(credentials, credentials);
+    
     Map<String,String> result = new HashMap<String,String>();
     for (Entry<String,String> entry : conf) {
       // TODO: do we need to send any instance information?
-      if (!entry.getKey().equals(Property.INSTANCE_SECRET.getKey()))
-        result.put(entry.getKey(), entry.getValue());
+      if (entry.getKey().equals(Property.INSTANCE_SECRET.getKey()))
+        continue;
+      if (entry.getKey().toLowerCase().contains("password"))
+        continue;
+      result.put(entry.getKey(), entry.getValue());
     }
     return result;
   }
   
   @Override
-  public Map<String,String> getConfiguration(ConfigurationType type) throws TException {
+  public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials, ConfigurationType type) throws TException {
     switch (type) {
       case CURRENT:
-        return conf(new ServerConfiguration(instance).getConfiguration());
+        return conf(credentials, new ServerConfiguration(instance).getConfiguration());
       case SITE:
-        return conf(ServerConfiguration.getSiteConfiguration());
+        return conf(credentials, ServerConfiguration.getSiteConfiguration());
       case DEFAULT:
-        return conf(AccumuloConfiguration.getDefaultConfiguration());
+        return conf(credentials, AccumuloConfiguration.getDefaultConfiguration());
     }
     throw new RuntimeException("Unexpected configuration type " + type);
   }
   
   @Override
-  public Map<String,String> getTableConfiguration(String tableName) throws TException, ThriftTableOperationException {
+  public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials, String tableName) throws TException, ThriftTableOperationException {
     String tableId = checkTableId(tableName, null);
-    return conf(new ServerConfiguration(instance).getTableConfiguration(tableId));
+    return conf(credentials, new ServerConfiguration(instance).getTableConfiguration(tableId));
   }
   
   @Override
@@ -242,7 +247,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
-  public boolean checkClass(TInfo tinfo, String className, String interfaceMatch) throws TException {
+  public boolean checkClass(TInfo tinfo, TCredentials credentials, String className, String interfaceMatch) throws TException {
     ClassLoader loader = getClass().getClassLoader();
     Class shouldMatch;
     try {

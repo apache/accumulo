@@ -204,7 +204,6 @@ public class TestIngest {
       
       BatchWriter bw = null;
       FileSKVWriter writer = null;
-      Connector connector = opts.getConnector();
       
       if (opts.outputFile != null) {
         Configuration conf = CachedConfiguration.getInstance();
@@ -213,9 +212,10 @@ public class TestIngest {
             AccumuloConfiguration.getDefaultConfiguration());
         writer.startDefaultLocalityGroup();
       } else {
+        Connector connector = opts.getConnector();
         bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
+        connector.securityOperations().changeUserAuthorizations(opts.principal, AUTHS);
       }
-      connector.securityOperations().changeUserAuthorizations(opts.principal, AUTHS);
       Text labBA = new Text(opts.columnVisibility.getExpression());
       
       long startTime = System.currentTimeMillis();

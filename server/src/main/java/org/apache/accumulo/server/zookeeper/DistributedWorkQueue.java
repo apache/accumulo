@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -106,16 +107,16 @@ public class DistributedWorkQueue {
                   log.error("Error received when trying to delete entry in zookeeper " + childPath, e);
                 }
                 
-                try {
-                  zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
-                } catch (Exception e) {
-                  log.error("Error received when trying to delete entry in zookeeper " + childPath, e);
-                }
-                
               } catch (Exception e) {
                 log.warn("Failed to process work " + child, e);
               }
               
+              try {
+                zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
+              } catch (Exception e) {
+                log.error("Error received when trying to delete entry in zookeeper " + childPath, e);
+              }
+
             } finally {
               numTask.decrementAndGet();
             }
@@ -210,6 +211,12 @@ public class DistributedWorkQueue {
     zoo.putPersistentData(path + "/" + workId, data, NodeExistsPolicy.SKIP);
   }
   
+  public List<String> getWorkQueued() throws KeeperException, InterruptedException {
+    ArrayList<String> children = new ArrayList<String>(zoo.getChildren(path));
+    children.remove(LOCKS_NODE);
+    return children;
+  }
+
   public void waitUntilDone(Set<String> workIDs) throws KeeperException, InterruptedException {
     
     final String condVar = new String("cond");

@@ -359,6 +359,7 @@
           <onlyCurrentVersion>true</onlyCurrentVersion>
           <statusIds>closed,resolved</statusIds>
           <maxEntries>10000</maxEntries>
+          <useJql>true</useJql>
         </configuration>
         <reportSets>
           <reportSet>

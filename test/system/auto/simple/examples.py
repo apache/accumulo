@@ -63,7 +63,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
 	self.comment("Testing MaxMutation constraint")
 	self.ashell('createtable test_ingest\n'
                     'constraint -a org.apache.accumulo.examples.simple.constraints.MaxMutationSize\n')
-        handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.test.TestIngest', '-u', ROOT, '--rows', '1', '--start', '0', '--cols', '10000'])
+        handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.test.TestIngest', '-u', ROOT, '--rows', '1', '--start', '0', '--cols', '10000', '-p', ROOT_PASSWORD])
         out, err = handle.communicate()
         self.failIf(handle.returncode==0)
         self.failUnless(err.find("MutationsRejectedException: # constraint violations : 1") >= 0, "Was able to insert a mutation larger than max size")

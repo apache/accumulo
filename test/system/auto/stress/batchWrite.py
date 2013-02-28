@@ -19,7 +19,7 @@ import logging
 import unittest
 import time
 
-from TestUtils import TestUtilsMixin
+from TestUtils import TestUtilsMixin, ROOT_PASSWORD
 
 log = logging.getLogger('test.auto')
 
@@ -33,7 +33,7 @@ class WriteLots(unittest.TestCase, TestUtilsMixin):
 
     def ingest(self, host, start, count, **kwargs):
         klass = 'org.apache.accumulo.test.TestIngest'
-        args = '--user root --size 50 --random 56 --rows %d --start %d --cols 1' % (count, start)
+        args = '--user root --size 50 --random 56 --rows %d --start %d --cols 1 -p %s' % (count, start, ROOT_PASSWORD)
         return self.runClassOn(host, klass, args.split(), **kwargs)
 
     def setUp(self):
