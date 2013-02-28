@@ -41,7 +41,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.OpTimer;
@@ -53,12 +53,12 @@ import org.apache.log4j.Logger;
 
 public class MetadataLocationObtainer implements TabletLocationObtainer {
   private static final Logger log = Logger.getLogger(MetadataLocationObtainer.class);
-  private Credential credentials;
+  private TCredentials credentials;
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
   private Instance instance;
   
-  MetadataLocationObtainer(Credential credentials, Instance instance) {
+  MetadataLocationObtainer(TCredentials credentials, Instance instance) {
     
     this.instance = instance;
     this.credentials = credentials;

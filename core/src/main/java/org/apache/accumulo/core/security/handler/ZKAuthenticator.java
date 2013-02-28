@@ -16,13 +16,12 @@
  */
 package org.apache.accumulo.core.security.handler;
 
-import java.nio.charset.Charset;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 
 /**
  * 
@@ -30,9 +29,9 @@ import org.apache.accumulo.core.security.tokens.SecurityToken;
 public class ZKAuthenticator implements Authenticator {
   
   @Override
-  public SecurityToken login(Properties properties) throws AccumuloSecurityException{
+  public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
     if (properties.containsKey("password"))
-      return new PasswordToken().setPassword(properties.getProperty("password").getBytes(Charset.forName("UTF-8")));
+      return new PasswordToken(properties.getProperty("password"));
     throw new AccumuloSecurityException(properties.getProperty("user"), SecurityErrorCode.INSUFFICIENT_PROPERTIES);
   }
 }

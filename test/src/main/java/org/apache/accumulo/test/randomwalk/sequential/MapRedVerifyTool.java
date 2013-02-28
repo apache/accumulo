@@ -17,7 +17,6 @@
 package org.apache.accumulo.test.randomwalk.sequential;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Iterator;
 
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
@@ -87,7 +86,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
     }
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setConnectorInfo(job, args[0], new PasswordToken().setPassword(args[1].getBytes(Charset.forName("UTF-8"))));
+    AccumuloInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     AccumuloInputFormat.setInputTableName(job, args[2]);
     AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
     
@@ -99,7 +98,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
     job.setNumReduceTasks(1);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setConnectorInfo(job, args[0], new PasswordToken().setPassword(args[1].getBytes(Charset.forName("UTF-8"))));
+    AccumuloOutputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     AccumuloOutputFormat.setCreateTables(job, true);
     AccumuloOutputFormat.setDefaultTableName(job, args[5]);
     AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);

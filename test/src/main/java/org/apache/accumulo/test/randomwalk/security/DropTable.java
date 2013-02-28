@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -37,7 +37,7 @@ public class DropTable extends Test {
   
   public static void dropTable(State state, Properties props) throws Exception {
     String sourceUser = props.getProperty("source", "system");
-    Credential auth;
+    TCredentials auth;
     if (sourceUser.equals("table")) {
       auth = WalkingSecurity.get(state).getTabCredentials();
     } else {

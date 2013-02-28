@@ -40,8 +40,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.crypto.CryptoModule;
-import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.logger.LogFileKey;
@@ -80,7 +78,7 @@ public class DfsLogger {
     Set<TServerInstance> getCurrentTServers();
   }
   
-  private LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<DfsLogger.LogWork>();
+  private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<DfsLogger.LogWork>();
   
   private final Object closeLock = new Object();
   
@@ -151,7 +149,7 @@ public class DfsLogger {
   }
   
   public static class LoggerOperation {
-    private LogWork work;
+    private final LogWork work;
     
     public LoggerOperation(LogWork work) {
       this.work = work;
@@ -201,7 +199,7 @@ public class DfsLogger {
     return getFileName().hashCode();
   }
   
-  private ServerResources conf;
+  private final ServerResources conf;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
   private Path logPath;
@@ -217,7 +215,7 @@ public class DfsLogger {
     this.logPath = new Path(Constants.getWalDirectory(conf.getConfiguration()), filename);
   }
   
-  public static FSDataInputStream readHeader(FileSystem fs, Path path, Map<String, String> opts) throws IOException {
+  public static FSDataInputStream readHeader(FileSystem fs, Path path, Map<String,String> opts) throws IOException {
     FSDataInputStream file = fs.open(path);
     try {
       byte[] magic = LOG_FILE_HEADER_V2.getBytes();
@@ -252,7 +250,7 @@ public class DfsLogger {
       FileSystem fs = conf.getFileSystem();
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
       if (replication == 0)
-        replication = (short) fs.getDefaultReplication();
+        replication = fs.getDefaultReplication();
       long blockSize = conf.getConfiguration().getMemoryInBytes(Property.TSERV_WAL_BLOCKSIZE);
       if (blockSize == 0)
         blockSize = (long) (conf.getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
@@ -263,7 +261,8 @@ public class DfsLogger {
       
       // Initialize the crypto operations.
       @SuppressWarnings("deprecation")
-      CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
+      org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory.getCryptoModule(conf
+          .getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
       
       // Initialize the log file with a header and the crypto params used to set up this log file.
       logFile.write(LOG_FILE_HEADER_V2.getBytes());

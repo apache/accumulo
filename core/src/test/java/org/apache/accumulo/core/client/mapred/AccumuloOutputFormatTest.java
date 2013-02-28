@@ -23,7 +23,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -111,7 +110,7 @@ public class AccumuloOutputFormatTest {
       
       job.setInputFormat(AccumuloInputFormat.class);
       
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken().setPassword(pass.getBytes(Charset.forName("UTF-8"))));
+      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloInputFormat.setInputTableName(job, table1);
       AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
       
@@ -122,7 +121,7 @@ public class AccumuloOutputFormatTest {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
       
-      AccumuloOutputFormat.setConnectorInfo(job, user, new PasswordToken().setPassword(pass.getBytes(Charset.forName("UTF-8"))));
+      AccumuloOutputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
       AccumuloOutputFormat.setMockInstance(job, INSTANCE_NAME);

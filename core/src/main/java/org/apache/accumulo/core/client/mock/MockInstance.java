@@ -31,10 +31,10 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.handler.ZKAuthenticator;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
@@ -118,7 +118,7 @@ public class MockInstance implements Instance {
   
   @Override
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, new PasswordToken().setPassword(pass));
+    return getConnector(user, new PasswordToken(pass));
   }
   
   @Override
@@ -145,6 +145,7 @@ public class MockInstance implements Instance {
     this.conf = conf;
   }
   
+  @Deprecated
   @Override
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
     return getConnector(auth.user, auth.password);
@@ -156,17 +157,17 @@ public class MockInstance implements Instance {
   }
   
   @Override
-  public Connector getConnector(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     Connector conn = new MockConnector(principal, acu, this);
     if (!acu.users.containsKey(principal))
-      conn.securityOperations().createUser(principal, token);
+      conn.securityOperations().createLocalUser(principal, (PasswordToken) token);
     else if (!acu.users.get(principal).token.equals(token))
-        throw new AccumuloSecurityException(principal, SecurityErrorCode.BAD_CREDENTIALS);
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.BAD_CREDENTIALS);
     return conn;
   }
   
   @Override
-  public Connector getConnector(Credential credential) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
     return getConnector(credential.principal, CredentialHelper.extractToken(credential));
   }
 }

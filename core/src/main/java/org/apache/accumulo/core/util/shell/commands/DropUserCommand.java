@@ -34,7 +34,7 @@ public class DropUserCommand extends Command {
     if (shellState.getConnector().whoami().equals(user)) {
       throw new BadArgumentException("You cannot delete yourself", fullCommand, fullCommand.indexOf(user));
     }
-    shellState.getConnector().securityOperations().dropUser(user);
+    shellState.getConnector().securityOperations().dropLocalUser(user);
     Shell.log.debug("Deleted user " + user);
     return 0;
   }

@@ -19,9 +19,9 @@ package org.apache.accumulo.server.trace;
 import java.io.IOException;
 import java.net.URI;
 
+import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.ContentSummary;
@@ -266,14 +266,13 @@ public class TraceFileSystem extends FileSystem {
     }
   }
   
-  @SuppressWarnings("deprecation")
   @Override
   public boolean isDirectory(Path f) throws IOException {
     Span span = Trace.start("isDirectory");
     if (Trace.isTracing())
       span.data("path", f.toString());
     try {
-      return impl.isDirectory(f);
+      return impl.getFileStatus(f).isDir();
     } finally {
       span.stop();
     }

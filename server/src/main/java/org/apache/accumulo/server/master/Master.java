@@ -78,8 +78,8 @@ import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.security.SecurityUtil;
-import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -228,15 +228,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   static final boolean X = true;
   static final boolean _ = false;
   static final boolean transitionOK[][] = {
-      //                            INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-      /* INITIAL */                 {X,     X,        _,        _,     _,          _,          X},
-      /* HAVE_LOCK */               {_,     X,        X,        X,     _,          _,          X},
-      /* SAFE_MODE */               {_,     _,        X,        X,     X,          _,          X},
-      /* NORMAL */                  {_,     _,        X,        X,     X,          _,          X},
-      /* UNLOAD_METADATA_TABLETS */ {_,     _,        X,        X,     X,          X,          X},
-      /* UNLOAD_ROOT_TABLET */      {_,     _,        _,        X,     _,          X,          X},
-      /* STOP */                    {_,     _,        _,        _,     _,          _,          X}
-  };
+      // INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
+      /* INITIAL */{X, X, _, _, _, _, X},
+      /* HAVE_LOCK */{_, X, X, X, _, _, X},
+      /* SAFE_MODE */{_, _, X, X, X, _, X},
+      /* NORMAL */{_, _, X, X, X, _, X},
+      /* UNLOAD_METADATA_TABLETS */{_, _, X, X, X, X, X},
+      /* UNLOAD_ROOT_TABLET */{_, _, _, X, _, X, X},
+      /* STOP */{_, _, _, _, _, _, X}};
   
   synchronized private void setMasterState(MasterState newState) {
     if (state.equals(newState))
@@ -276,11 +275,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.info("Upgrading zookeeper");
         
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-
+        
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.SKIP);
-
+        
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
-
+          
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, "0".getBytes(),
               NodeExistsPolicy.SKIP);
         }
@@ -290,7 +289,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
   }
-
+  
   private final AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
   
   private final ServerConfiguration serverConfig;
@@ -481,7 +480,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public long initiateFlush(TInfo tinfo, Credential c, String tableId) throws ThriftSecurityException, ThriftTableOperationException, TException {
+    public long initiateFlush(TInfo tinfo, TCredentials c, String tableId) throws ThriftSecurityException, ThriftTableOperationException, TException {
       security.canFlush(c, tableId);
       
       String zTablePath = Constants.ZROOT + "/" + getConfiguration().getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
@@ -508,7 +507,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void waitForFlush(TInfo tinfo, Credential c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
+    public void waitForFlush(TInfo tinfo, TCredentials c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
         throws ThriftSecurityException, ThriftTableOperationException, TException {
       security.canFlush(c, tableId);
       
@@ -619,7 +618,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public MasterMonitorInfo getMasterStats(TInfo info, Credential credentials) throws ThriftSecurityException, TException {
+    public MasterMonitorInfo getMasterStats(TInfo info, TCredentials credentials) throws ThriftSecurityException, TException {
       final MasterMonitorInfo result = new MasterMonitorInfo();
       
       result.tServerInfo = new ArrayList<TabletServerStatus>();
@@ -652,7 +651,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       return result;
     }
     
-    private void alterTableProperty(Credential c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
+    private void alterTableProperty(TCredentials c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
         ThriftTableOperationException {
       final String tableId = checkTableId(tableName, op);
       if (!security.canAlterTable(c, tableId))
@@ -671,25 +670,25 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void removeTableProperty(TInfo info, Credential credentials, String tableName, String property) throws ThriftSecurityException,
+    public void removeTableProperty(TInfo info, TCredentials credentials, String tableName, String property) throws ThriftSecurityException,
         ThriftTableOperationException, TException {
       alterTableProperty(credentials, tableName, property, null, TableOperation.REMOVE_PROPERTY);
     }
     
     @Override
-    public void setTableProperty(TInfo info, Credential credentials, String tableName, String property, String value) throws ThriftSecurityException,
+    public void setTableProperty(TInfo info, TCredentials credentials, String tableName, String property, String value) throws ThriftSecurityException,
         ThriftTableOperationException, TException {
       alterTableProperty(credentials, tableName, property, value, TableOperation.SET_PROPERTY);
     }
     
     @Override
-    public void shutdown(TInfo info, Credential c, boolean stopTabletServers) throws ThriftSecurityException, TException {
+    public void shutdown(TInfo info, TCredentials c, boolean stopTabletServers) throws ThriftSecurityException, TException {
       security.canPerformSystemActions(c);
       Master.this.shutdown(stopTabletServers);
     }
     
     @Override
-    public void shutdownTabletServer(TInfo info, Credential c, String tabletServer, boolean force) throws ThriftSecurityException, TException {
+    public void shutdownTabletServer(TInfo info, TCredentials c, String tabletServer, boolean force) throws ThriftSecurityException, TException {
       security.canPerformSystemActions(c);
       
       final InetSocketAddress addr = AddressUtil.parseAddress(tabletServer, Property.TSERV_CLIENTPORT);
@@ -710,7 +709,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void reportSplitExtent(TInfo info, Credential credentials, String serverName, TabletSplit split) throws TException {
+    public void reportSplitExtent(TInfo info, TCredentials credentials, String serverName, TabletSplit split) throws TException {
       KeyExtent oldTablet = new KeyExtent(split.oldTablet);
       if (migrations.remove(oldTablet) != null) {
         log.info("Canceled migration of " + split.oldTablet);
@@ -724,9 +723,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       log.warn("Got a split from a server we don't recognize: " + serverName);
     }
     
-    
     @Override
-    public void reportTabletStatus(TInfo info, Credential credentials, String serverName, TabletLoadState status, TKeyExtent ttablet) throws TException {
+    public void reportTabletStatus(TInfo info, TCredentials credentials, String serverName, TabletLoadState status, TKeyExtent ttablet) throws TException {
       KeyExtent tablet = new KeyExtent(ttablet);
       
       switch (status) {
@@ -754,7 +752,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void setMasterGoalState(TInfo info, Credential c, MasterGoalState state) throws ThriftSecurityException, TException {
+    public void setMasterGoalState(TInfo info, TCredentials c, MasterGoalState state) throws ThriftSecurityException, TException {
       security.canPerformSystemActions(c);
       
       Master.this.setMasterGoalState(state);
@@ -771,7 +769,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void removeSystemProperty(TInfo info, Credential c, String property) throws ThriftSecurityException, TException {
+    public void removeSystemProperty(TInfo info, TCredentials c, String property) throws ThriftSecurityException, TException {
       security.canPerformSystemActions(c);
       
       try {
@@ -784,7 +782,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void setSystemProperty(TInfo info, Credential c, String property, String value) throws ThriftSecurityException, TException {
+    public void setSystemProperty(TInfo info, TCredentials c, String property, String value) throws ThriftSecurityException, TException {
       security.canPerformSystemActions(c);
       
       try {
@@ -796,20 +794,20 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
     
-    private void authenticate(Credential c) throws ThriftSecurityException {
+    private void authenticate(TCredentials c) throws ThriftSecurityException {
       if (!security.authenticateUser(c, c))
         throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
       
     }
     
     @Override
-    public long beginTableOperation(TInfo tinfo, Credential credentials) throws ThriftSecurityException, TException {
+    public long beginTableOperation(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       authenticate(credentials);
       return fate.startTransaction();
     }
     
     @Override
-    public void executeTableOperation(TInfo tinfo, Credential c, long opid, org.apache.accumulo.core.master.thrift.TableOperation op,
+    public void executeTableOperation(TInfo tinfo, TCredentials c, long opid, org.apache.accumulo.core.master.thrift.TableOperation op,
         List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup) throws ThriftSecurityException, ThriftTableOperationException, TException {
       authenticate(c);
       
@@ -1011,7 +1009,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public String waitForTableOperation(TInfo tinfo, Credential credentials, long opid) throws ThriftSecurityException, ThriftTableOperationException,
+    public String waitForTableOperation(TInfo tinfo, TCredentials credentials, long opid) throws ThriftSecurityException, ThriftTableOperationException,
         TException {
       authenticate(credentials);
       
@@ -1035,7 +1033,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     @Override
-    public void finishTableOperation(TInfo tinfo, Credential credentials, long opid) throws ThriftSecurityException, TException {
+    public void finishTableOperation(TInfo tinfo, TCredentials credentials, long opid) throws ThriftSecurityException, TException {
       authenticate(credentials);
       fate.delete(opid);
     }
@@ -2042,7 +2040,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     getMasterLock(zroot + Constants.ZMASTER_LOCK);
     
     recoveryManager = new RecoveryManager(this);
-
+    
     TableManager.getInstance().addObserver(this);
     
     StatusThread statusThread = new StatusThread();
@@ -2088,7 +2086,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     });
     
-    Credential systemAuths = SecurityConstants.getSystemCredentials();
+    TCredentials systemAuths = SecurityConstants.getSystemCredentials();
     final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
         new MetaDataStateStore(instance, systemAuths, this)};
     watchers.add(new TabletGroupWatcher(stores[2], null));

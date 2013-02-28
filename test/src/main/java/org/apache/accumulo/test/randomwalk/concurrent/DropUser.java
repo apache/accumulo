@@ -39,7 +39,7 @@ public class DropUser extends Test {
     
     try {
       log.debug("Dropping user " + userName);
-      conn.securityOperations().dropUser(userName);
+      conn.securityOperations().dropLocalUser(userName);
     } catch (AccumuloSecurityException ex) {
       log.debug("Unable to drop " + ex.getCause());
     }

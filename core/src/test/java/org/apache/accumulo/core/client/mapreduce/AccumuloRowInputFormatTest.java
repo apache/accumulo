@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -158,7 +157,7 @@ public class AccumuloRowInputFormatTest {
       
       job.setInputFormatClass(AccumuloRowInputFormat.class);
       
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken().setPassword(pass.getBytes(Charset.forName("UTF-8"))));
+      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloRowInputFormat.setMockInstance(job, INSTANCE_NAME);
       

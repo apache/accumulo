@@ -48,8 +48,8 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.security.thrift.Credential;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -447,23 +447,24 @@ public class TabletLocatorImplTest extends TestCase {
     }
     
     @Override
-    public Connector getConnector(Credential auth) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(TCredentials auth) throws AccumuloException, AccumuloSecurityException {
       return getConnector(auth.getPrincipal(), auth.getToken());
     }
-
+    
+    @Deprecated
     @Override
     public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
       return getConnector(auth.user, auth.getPassword());
     }
-
+    
     @Override
     public String getAuthenticatorClassName() throws AccumuloException {
       return null;
       // Doesn't matter
     }
-
+    
     @Override
-    public Connector getConnector(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+    public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
   }
@@ -592,7 +593,7 @@ public class TabletLocatorImplTest extends TestCase {
       throw new RuntimeException("Asked for empty tablet, but non empty tablet exists");
     }
   }
-
+  
   static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke, String location) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
     if (tablets == null) {

@@ -46,7 +46,7 @@ import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.data.thrift.UpdateErrors;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
@@ -89,7 +89,7 @@ public class NullTserver {
     }
     
     @Override
-    public long startUpdate(TInfo tinfo, Credential credentials) {
+    public long startUpdate(TInfo tinfo, TCredentials credentials) {
       return updateSession++;
     }
     
@@ -102,7 +102,7 @@ public class NullTserver {
     }
     
     @Override
-    public List<TKeyExtent> bulkImport(TInfo tinfo, Credential credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
+    public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
       return null;
     }
     
@@ -123,74 +123,74 @@ public class NullTserver {
     }
     
     @Override
-    public void splitTablet(TInfo tinfo, Credential credentials, TKeyExtent extent, ByteBuffer splitPoint) {
+    public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent extent, ByteBuffer splitPoint) {
       
     }
     
     @Override
-    public InitialMultiScan startMultiScan(TInfo tinfo, Credential credentials, Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns,
+    public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials, Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) {
       return null;
     }
     
     @Override
-    public InitialScan startScan(TInfo tinfo, Credential credentials, TKeyExtent extent, TRange range, List<TColumn> columns, int batchSize,
+    public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent extent, TRange range, List<TColumn> columns, int batchSize,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated) {
       return null;
     }
     
     @Override
-    public void update(TInfo tinfo, Credential credentials, TKeyExtent keyExtent, TMutation mutation) {
+    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent, TMutation mutation) {
       
     }
     
     @Override
-    public TabletServerStatus getTabletServerStatus(TInfo tinfo, Credential credentials) throws ThriftSecurityException, TException {
+    public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return null;
     }
     
     @Override
-    public List<TabletStats> getTabletStats(TInfo tinfo, Credential credentials, String tableId) throws ThriftSecurityException, TException {
+    public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId) throws ThriftSecurityException, TException {
       return null;
     }
     
     @Override
-    public TabletStats getHistoricalStats(TInfo tinfo, Credential credentials) throws ThriftSecurityException, TException {
+    public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return null;
     }
     
     @Override
-    public void halt(TInfo tinfo, Credential credentials, String lock) throws ThriftSecurityException, TException {}
+    public void halt(TInfo tinfo, TCredentials credentials, String lock) throws ThriftSecurityException, TException {}
     
     @Override
-    public void fastHalt(TInfo tinfo, Credential credentials, String lock) {}
+    public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) {}
     
     @Override
-    public void loadTablet(TInfo tinfo, Credential credentials, String lock, TKeyExtent extent) throws TException {}
+    public void loadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) throws TException {}
     
     @Override
-    public void unloadTablet(TInfo tinfo, Credential credentials, String lock, TKeyExtent extent, boolean save) throws TException {}
+    public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent, boolean save) throws TException {}
     
     @Override
-    public List<ActiveScan> getActiveScans(TInfo tinfo, Credential credentials) throws ThriftSecurityException, TException {
+    public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return new ArrayList<ActiveScan>();
     }
     
     @Override
-    public void chop(TInfo tinfo, Credential credentials, String lock, TKeyExtent extent) throws TException {}
+    public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) throws TException {}
     
     @Override
-    public void flushTablet(TInfo tinfo, Credential credentials, String lock, TKeyExtent extent) throws TException {
+    public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) throws TException {
       
     }
     
     @Override
-    public void compact(TInfo tinfo, Credential credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
+    public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
       
     }
     
     @Override
-    public void flush(TInfo tinfo, Credential credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
+    public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
       
     }
     
@@ -201,11 +201,11 @@ public class NullTserver {
      * org.apache.accumulo.core.security.thrift.Credentials, java.util.List)
      */
     @Override
-    public void removeLogs(TInfo tinfo, Credential credentials, List<String> filenames) throws TException {
+    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
     }
     
     @Override
-    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, Credential credentials) throws ThriftSecurityException, TException {
+    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return new ArrayList<ActiveCompaction>();
     }
   }

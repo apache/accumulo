@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.nio.ByteBuffer;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -31,11 +32,11 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
@@ -43,7 +44,7 @@ import org.apache.accumulo.trace.instrument.Tracer;
 public class SecurityOperationsImpl implements SecurityOperations {
   
   private Instance instance;
-  private Credential credentials;
+  private TCredentials credentials;
   
   private void execute(ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
@@ -81,13 +82,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     }
   }
   
-  /**
-   * @param instance
-   *          the connection information
-   * @param credentials
-   *          the user credentials to use for security operations
-   */
-  public SecurityOperationsImpl(Instance instance, Credential credentials) {
+  public SecurityOperationsImpl(Instance instance, TCredentials credentials) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;
@@ -95,83 +90,49 @@ public class SecurityOperationsImpl implements SecurityOperations {
   
   @Deprecated
   @Override
-  public void createUser(final String user, final byte[] password, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
-    createUser(user, new PasswordToken().setPassword(password), authorizations);
+  public void createUser(String user, byte[] password, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
+    createLocalUser(user, new PasswordToken(password));
+    changeUserAuthorizations(user, authorizations);
   }
   
-  /**
-   * Create a user
-   * 
-   * @param principal
-   *          the principal to create
-   * @param token
-   *          the security token with the information about the user to create
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to create a user
-   */
-  public void createUser(final String principal, final SecurityToken token) throws AccumuloException, AccumuloSecurityException {
-    createUser(principal, token, new Authorizations());
-  }
-  
-  // Private method because the token/authorization constructor is something which is essentially new and depreciated.
-  private void createUser(String principal, SecurityToken token, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, token, authorizations);
-    final Credential toCreate = CredentialHelper.create(principal, token, instance.getInstanceID());
+  @Override
+  public void createLocalUser(final String principal, final PasswordToken password) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, password);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.createUser(Tracer.traceInfo(), credentials, toCreate, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
+        client.createLocalUser(Tracer.traceInfo(), credentials, principal, ByteBuffer.wrap(password.getPassword()));
       }
     });
   }
   
-  /**
-   * Delete a user
-   * 
-   * @param user
-   *          the user name to delete
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to delete a user
-   */
+  @Deprecated
   @Override
   public void dropUser(final String user) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(user);
+    dropLocalUser(user);
+  }
+  
+  @Override
+  public void dropLocalUser(final String principal) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.dropUser(Tracer.traceInfo(), credentials, user);
+        client.dropLocalUser(Tracer.traceInfo(), credentials, principal);
       }
     });
   }
   
-  /**
-   * Verify a username/password combination is valid
-   * 
-   * @param principal
-   *          the name of the user to authenticate
-   * @param token
-   *          the plaintext password for the user
-   * @return true if the user asking is allowed to know and the specified user/password is valid, false otherwise
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to ask
-   * @deprecated see {@link #authenticateUser(String, SecurityToken)}
-   */
+  @Deprecated
   @Override
-  public boolean authenticateUser(final String principal, final byte[] token) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(token);
-    return authenticateUser(principal, new PasswordToken().setPassword(token));
+  public boolean authenticateUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
+    return authenticateUser(user, new PasswordToken(password));
   }
   
   @Override
-  public boolean authenticateUser(final String principal, final SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+  public boolean authenticateUser(final String principal, final AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, token);
-    final Credential toAuth = CredentialHelper.create(principal, token, instance.getInstanceID());
+    final TCredentials toAuth = CredentialHelper.create(principal, token, instance.getInstanceID());
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
@@ -180,33 +141,20 @@ public class SecurityOperationsImpl implements SecurityOperations {
     });
   }
   
-  /**
-   * Set the user's password
-   * 
-   * @param principal
-   *          the principal who's password is to be changed
-   * @param token
-   *          the security token with the information about the user to modify
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to modify a user
-   * @deprecated
-   */
+  @Override
   @Deprecated
-  public void changeUserPassword(final String principal, final byte[] token) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(token);
-    changeLoginInfo(principal, new PasswordToken().setPassword(token));
+  public void changeUserPassword(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
+    changeLocalUserPassword(user, new PasswordToken(password));
   }
   
   @Override
-  public void changeLoginInfo(final String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+  public void changeLocalUserPassword(final String principal, final PasswordToken token) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, token);
-    final Credential toChange = CredentialHelper.create(principal, token, instance.getInstanceID());
+    final TCredentials toChange = CredentialHelper.create(principal, token, instance.getInstanceID());
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.changePassword(Tracer.traceInfo(), credentials, toChange);
+        client.changeLocalUserPassword(Tracer.traceInfo(), credentials, principal, ByteBuffer.wrap(token.getPassword()));
       }
     });
     if (this.credentials.principal.equals(principal)) {
@@ -214,213 +162,108 @@ public class SecurityOperationsImpl implements SecurityOperations {
     }
   }
   
-  /**
-   * Set the user's record-level authorizations
-   * 
-   * @param user
-   *          the name of the user to modify
-   * @param authorizations
-   *          the authorizations that the user has for scanning
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to modify a user
-   */
   @Override
-  public void changeUserAuthorizations(final String user, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(user, authorizations);
+  public void changeUserAuthorizations(final String principal, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, authorizations);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.changeAuthorizations(Tracer.traceInfo(), credentials, user, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
+        client.changeAuthorizations(Tracer.traceInfo(), credentials, principal, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
       }
     });
   }
   
-  /**
-   * Retrieves the user's authorizations for scanning
-   * 
-   * @param user
-   *          the name of the user to query
-   * @return the set of authorizations the user has available for scanning
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to query a user
-   */
   @Override
-  public Authorizations getUserAuthorizations(final String user) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(user);
+  public Authorizations getUserAuthorizations(final String principal) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal);
     return execute(new ClientExecReturn<Authorizations,ClientService.Client>() {
       @Override
       public Authorizations execute(ClientService.Client client) throws Exception {
-        return new Authorizations(client.getUserAuthorizations(Tracer.traceInfo(), credentials, user));
+        return new Authorizations(client.getUserAuthorizations(Tracer.traceInfo(), credentials, principal));
       }
     });
   }
   
-  /**
-   * Verify the user has a particular system permission
-   * 
-   * @param user
-   *          the name of the user to query
-   * @param perm
-   *          the system permission to check for
-   * @return true if user has that permission; false otherwise
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to query a user
-   */
   @Override
-  public boolean hasSystemPermission(final String user, final SystemPermission perm) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(user, perm);
+  public boolean hasSystemPermission(final String principal, final SystemPermission perm) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, perm);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
-        return client.hasSystemPermission(Tracer.traceInfo(), credentials, user, perm.getId());
+        return client.hasSystemPermission(Tracer.traceInfo(), credentials, principal, perm.getId());
       }
     });
   }
   
-  /**
-   * Verify the user has a particular table permission
-   * 
-   * @param user
-   *          the name of the user to query
-   * @param table
-   *          the name of the table to query about
-   * @param perm
-   *          the table permission to check for
-   * @return true if user has that permission; false otherwise
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to query a user
-   */
   @Override
-  public boolean hasTablePermission(final String user, final String table, final TablePermission perm) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(user, table, perm);
+  public boolean hasTablePermission(final String principal, final String table, final TablePermission perm) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, table, perm);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
-        return client.hasTablePermission(Tracer.traceInfo(), credentials, user, table, perm.getId());
+        return client.hasTablePermission(Tracer.traceInfo(), credentials, principal, table, perm.getId());
       }
     });
   }
   
-  /**
-   * Grant a user a system permission
-   * 
-   * @param user
-   *          the name of the user to modify
-   * @param permission
-   *          the system permission to grant to the user
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to grant a user permissions
-   */
   @Override
-  public void grantSystemPermission(final String user, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(user, permission);
+  public void grantSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, permission);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.grantSystemPermission(Tracer.traceInfo(), credentials, user, permission.getId());
+        client.grantSystemPermission(Tracer.traceInfo(), credentials, principal, permission.getId());
       }
     });
   }
   
-  /**
-   * Grant a user a specific permission for a specific table
-   * 
-   * @param user
-   *          the name of the user to modify
-   * @param table
-   *          the name of the table to modify for the user
-   * @param permission
-   *          the table permission to grant to the user
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to grant a user permissions
-   */
   @Override
-  public void grantTablePermission(final String user, final String table, final TablePermission permission) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(user, table, permission);
-    execute(new ClientExec<ClientService.Client>() {
-      @Override
-      public void execute(ClientService.Client client) throws Exception {
-        client.grantTablePermission(Tracer.traceInfo(), credentials, user, table, permission.getId());
-      }
-    });
-  }
-  
-  /**
-   * Revoke a system permission from a user
-   * 
-   * @param user
-   *          the name of the user to modify
-   * @param permission
-   *          the system permission to revoke for the user
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to revoke a user's permissions
-   */
-  @Override
-  public void revokeSystemPermission(final String user, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(user, permission);
-    execute(new ClientExec<ClientService.Client>() {
-      @Override
-      public void execute(ClientService.Client client) throws Exception {
-        client.revokeSystemPermission(Tracer.traceInfo(), credentials, user, permission.getId());
-      }
-    });
-  }
-  
-  /**
-   * Revoke a table permission for a specific user on a specific table
-   * 
-   * @param user
-   *          the name of the user to modify
-   * @param table
-   *          the name of the table to modify for the user
-   * @param permission
-   *          the table permission to revoke for the user
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to revoke a user's permissions
-   */
-  @Override
-  public void revokeTablePermission(final String user, final String table, final TablePermission permission) throws AccumuloException,
+  public void grantTablePermission(final String principal, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    ArgumentChecker.notNull(user, table, permission);
+    ArgumentChecker.notNull(principal, table, permission);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.revokeTablePermission(Tracer.traceInfo(), credentials, user, table, permission.getId());
+        client.grantTablePermission(Tracer.traceInfo(), credentials, principal, table, permission.getId());
       }
     });
   }
   
-  /**
-   * Return a list of users in accumulo
-   * 
-   * @return a set of user names
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to query users
-   */
+  @Override
+  public void revokeSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, permission);
+    execute(new ClientExec<ClientService.Client>() {
+      @Override
+      public void execute(ClientService.Client client) throws Exception {
+        client.revokeSystemPermission(Tracer.traceInfo(), credentials, principal, permission.getId());
+      }
+    });
+  }
+  
+  @Override
+  public void revokeTablePermission(final String principal, final String table, final TablePermission permission) throws AccumuloException,
+      AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, table, permission);
+    execute(new ClientExec<ClientService.Client>() {
+      @Override
+      public void execute(ClientService.Client client) throws Exception {
+        client.revokeTablePermission(Tracer.traceInfo(), credentials, principal, table, permission.getId());
+      }
+    });
+  }
+  
+  @Deprecated
   @Override
   public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException {
+    return listLocalUsers();
+  }
+  
+  @Override
+  public Set<String> listLocalUsers() throws AccumuloException, AccumuloSecurityException {
     return execute(new ClientExecReturn<Set<String>,ClientService.Client>() {
       @Override
       public Set<String> execute(ClientService.Client client) throws Exception {
-        return client.listUsers(Tracer.traceInfo(), credentials);
+        return client.listLocalUsers(Tracer.traceInfo(), credentials);
       }
     });
   }

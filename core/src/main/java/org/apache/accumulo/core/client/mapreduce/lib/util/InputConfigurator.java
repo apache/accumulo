@@ -48,7 +48,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -486,7 +486,7 @@ public class InputConfigurator extends ConfiguratorBase {
     String tokenClass = getTokenClass(implementingClass, conf);
     byte[] token = getToken(implementingClass, conf);
     String tableName = getInputTableName(implementingClass, conf);
-    return TabletLocator.getInstance(instance, new Credential(principal, tokenClass, ByteBuffer.wrap(token), instance.getInstanceID()),
+    return TabletLocator.getInstance(instance, new TCredentials(principal, tokenClass, ByteBuffer.wrap(token), instance.getInstanceID()),
         new Text(Tables.getTableId(instance, tableName)));
   }
   
@@ -511,7 +511,7 @@ public class InputConfigurator extends ConfiguratorBase {
     // validate that we can connect as configured
     try {
       Connector c = getInstance(implementingClass, conf).getConnector(
-          new Credential(getPrincipal(implementingClass, conf), getTokenClass(implementingClass, conf), ByteBuffer.wrap(getToken(implementingClass, conf)),
+          new TCredentials(getPrincipal(implementingClass, conf), getTokenClass(implementingClass, conf), ByteBuffer.wrap(getToken(implementingClass, conf)),
               getInstance(implementingClass, conf).getInstanceID()));
       if (!c.securityOperations().authenticateUser(getPrincipal(implementingClass, conf), CredentialHelper.extractToken(getTokenClass(implementingClass, conf), getToken(implementingClass, conf))))
         throw new IOException("Unable to authenticate user");

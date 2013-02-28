@@ -44,9 +44,9 @@ import org.apache.log4j.Logger;
  * This class contains the gritty details around setting up encrypted streams for reading and writing the log file. It obeys the interface CryptoModule, which
  * other developers can implement to change out this logic as necessary.
  * 
+ * @deprecated This feature is experimental and may go away in future versions.
  */
-
-@SuppressWarnings("deprecation")
+@Deprecated
 public class DefaultCryptoModule implements CryptoModule {
   
   // This is how *I* like to format my variable declarations. Your mileage may vary.

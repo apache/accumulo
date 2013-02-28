@@ -29,12 +29,10 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.iterators.AggregatingIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.ReqVisFilter;
@@ -49,14 +47,14 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-@SuppressWarnings("deprecation")
 public class SetIterCommand extends Command {
   
   private Option mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt, priorityOpt;
   private Option aggTypeOpt, ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
   
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, ShellCommandException {
+  @Override
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, IOException, ShellCommandException {
     
     final int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
     
@@ -64,7 +62,9 @@ public class SetIterCommand extends Command {
     String classname = cl.getOptionValue(classnameTypeOpt.getOpt());
     if (cl.hasOption(aggTypeOpt.getOpt())) {
       Shell.log.warn("aggregators are deprecated");
-      classname = AggregatingIterator.class.getName();
+      @SuppressWarnings("deprecation")
+      String deprecatedClassName = org.apache.accumulo.core.iterators.AggregatingIterator.class.getName();
+      classname = deprecatedClassName;
     } else if (cl.hasOption(regexTypeOpt.getOpt())) {
       classname = RegExFilter.class.getName();
     } else if (cl.hasOption(ageoffTypeOpt.getOpt())) {
@@ -78,26 +78,27 @@ public class SetIterCommand extends Command {
     if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
           + SortedKeyValueIterator.class.getName());
-    }    
+    }
     final String name = cl.getOptionValue(nameOpt.getOpt(), setUpOptions(shellState.getReader(), classname, options));
     
     final String aggregatorClass = options.get("aggregatorClass");
-    if (aggregatorClass != null && !shellState.getConnector().instanceOperations().testClassLoad(aggregatorClass, Aggregator.class.getName())) {
+    @SuppressWarnings("deprecation")
+    String deprecatedAggregatorClassName = org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
+    if (aggregatorClass != null && !shellState.getConnector().instanceOperations().testClassLoad(aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + aggregatorClass + " as type "
-          + Aggregator.class.getName());
-    }    
+          + deprecatedAggregatorClassName);
+    }
     setTableProperties(cl, shellState, priority, options, classname, name);
     
     return 0;
   }
   
   protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
-      final String name)
-      throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
+      final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
     // remove empty values
     
     final String tableName = OptUtil.getTableOpt(cl, shellState);
-
+    
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty()) {
@@ -116,12 +117,13 @@ public class SetIterCommand extends Command {
     }
     if (scopes.isEmpty()) {
       throw new IllegalArgumentException("You must select at least one scope to configure");
-    }    
+    }
     final IteratorSetting setting = new IteratorSetting(priority, name, classname, options);
     shellState.getConnector().tableOperations().attachIterator(tableName, setting, scopes);
   }
   
-  private static String setUpOptions(final ConsoleReader reader, final String className, final Map<String,String> options) throws IOException, ShellCommandException {
+  private static String setUpOptions(final ConsoleReader reader, final String className, final Map<String,String> options) throws IOException,
+      ShellCommandException {
     String input;
     OptionDescriber skvi;
     Class<? extends OptionDescriber> clazz;
@@ -215,6 +217,7 @@ public class SetIterCommand extends Command {
     return "sets a table-specific iterator";
   }
   
+  @Override
   public Options getOptions() {
     final Options o = new Options();
     

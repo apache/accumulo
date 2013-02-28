@@ -25,7 +25,6 @@ import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
 
@@ -44,14 +43,14 @@ public class SecurityFixture extends Fixture {
     
     if (conn.tableOperations().exists(secTableName))
       conn.tableOperations().delete(secTableName);
-    Set<String> users = conn.securityOperations().listUsers();
+    Set<String> users = conn.securityOperations().listLocalUsers();
     if (users.contains(tableUserName))
-      conn.securityOperations().dropUser(tableUserName);
+      conn.securityOperations().dropLocalUser(tableUserName);
     if (users.contains(systemUserName))
-      conn.securityOperations().dropUser(systemUserName);
+      conn.securityOperations().dropLocalUser(systemUserName);
     
-    SecurityToken sysUserPass = new PasswordToken().setPassword("sysUser".getBytes());
-    conn.securityOperations().createUser(systemUserName, sysUserPass);
+    PasswordToken sysUserPass = new PasswordToken("sysUser");
+    conn.securityOperations().createLocalUser(systemUserName, sysUserPass);
     
     WalkingSecurity.get(state).setTableName(secTableName);
     state.set("rootUserPass", CredentialHelper.extractToken(state.getCredentials()));
@@ -59,7 +58,7 @@ public class SecurityFixture extends Fixture {
     WalkingSecurity.get(state).setSysUserName(systemUserName);
     WalkingSecurity.get(state).createUser(systemUserName, sysUserPass);
     
-    WalkingSecurity.get(state).changePassword(tableUserName, new PasswordToken().setPassword(new byte[0]));
+    WalkingSecurity.get(state).changePassword(tableUserName, new PasswordToken(new byte[0]));
     
     WalkingSecurity.get(state).setTabUserName(tableUserName);
     
@@ -91,11 +90,11 @@ public class SecurityFixture extends Fixture {
       String tableUserName = WalkingSecurity.get(state).getTabUserName();
       log.debug("Dropping user: " + tableUserName);
       
-      conn.securityOperations().dropUser(tableUserName);
+      conn.securityOperations().dropLocalUser(tableUserName);
     }
     String systemUserName = WalkingSecurity.get(state).getSysUserName();
     log.debug("Dropping user: " + systemUserName);
-    conn.securityOperations().dropUser(systemUserName);
+    conn.securityOperations().dropLocalUser(systemUserName);
     
   }
 }

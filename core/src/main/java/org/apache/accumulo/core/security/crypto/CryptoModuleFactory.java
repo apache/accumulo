@@ -28,7 +28,10 @@ import org.apache.log4j.Logger;
 
 /**
  * This factory module exists to assist other classes in loading crypto modules.
+ * 
+ * @deprecated This feature is experimental and may go away in future versions.
  */
+@Deprecated
 public class CryptoModuleFactory {
   
   private static Logger log = Logger.getLogger(CryptoModuleFactory.class);
@@ -40,14 +43,12 @@ public class CryptoModuleFactory {
    * @return a class implementing the CryptoModule interface. It will *never* return null; rather, it will return a class which obeys the interface but makes no
    *         changes to the underlying data.
    */
-  
-  @SuppressWarnings("deprecation")
   public static CryptoModule getCryptoModule(AccumuloConfiguration conf) {
     String cryptoModuleClassname = conf.get(Property.CRYPTO_MODULE_CLASS);
     return getCryptoModule(cryptoModuleClassname);
   }
   
-  @SuppressWarnings({"rawtypes", "deprecation"})
+  @SuppressWarnings({"rawtypes"})
   public static CryptoModule getCryptoModule(String cryptoModuleClassname) {
     log.debug(String.format("About to instantiate crypto module %s", cryptoModuleClassname));
     
@@ -172,37 +173,46 @@ public class CryptoModuleFactory {
       return context;
     }
     
+    @Override
     public SecretKeyEncryptionStrategyContext getNewContext() {
       return new SecretKeyEncryptionStrategyContext() {
         
+        @Override
         public byte[] getPlaintextSecretKey() {
           return plaintextSecretKey;
         }
         
+        @Override
         public void setPlaintextSecretKey(byte[] plaintextSecretKey) {
           this.plaintextSecretKey = plaintextSecretKey;
         }
         
+        @Override
         public byte[] getEncryptedSecretKey() {
           return encryptedSecretKey;
         }
         
+        @Override
         public void setEncryptedSecretKey(byte[] encryptedSecretKey) {
           this.encryptedSecretKey = encryptedSecretKey;
         }
         
+        @Override
         public String getOpaqueKeyEncryptionKeyID() {
           return opaqueKeyEncryptionKeyID;
         }
         
+        @Override
         public void setOpaqueKeyEncryptionKeyID(String opaqueKeyEncryptionKeyID) {
           this.opaqueKeyEncryptionKeyID = opaqueKeyEncryptionKeyID;
         }
         
+        @Override
         public Map<String,String> getContext() {
           return context;
         }
         
+        @Override
         public void setContext(Map<String,String> context) {
           this.context = context;
         }
@@ -216,7 +226,6 @@ public class CryptoModuleFactory {
     
   }
   
-  @SuppressWarnings("deprecation")
   private static class NullCryptoModule implements CryptoModule {
     
     @Override

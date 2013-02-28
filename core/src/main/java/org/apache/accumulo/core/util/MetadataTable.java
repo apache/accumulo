@@ -40,7 +40,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.hadoop.io.Text;
 
 public class MetadataTable {
@@ -170,7 +170,7 @@ public class MetadataTable {
     return new Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>>(results, locationless);
   }
   
-  public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(Instance instance, KeyExtent ke, List<ColumnFQ> columns, Credential credentials) {
+  public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(Instance instance, KeyExtent ke, List<ColumnFQ> columns, TCredentials credentials) {
     TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
     getTabletAndPrevTabletKeyValues(instance, tkv, ke, columns, credentials);
     return getTabletEntries(tkv, columns);
@@ -204,7 +204,7 @@ public class MetadataTable {
     return tabletEntries;
   }
   
-  public static void getTabletAndPrevTabletKeyValues(Instance instance, SortedMap<Key,Value> tkv, KeyExtent ke, List<ColumnFQ> columns, Credential credentials) {
+  public static void getTabletAndPrevTabletKeyValues(Instance instance, SortedMap<Key,Value> tkv, KeyExtent ke, List<ColumnFQ> columns, TCredentials credentials) {
     Text startRow;
     Text endRow = ke.getMetadataEntry();
     
@@ -237,7 +237,7 @@ public class MetadataTable {
     }
   }
   
-  public static void getEntries(Instance instance, Credential credentials, String table, boolean isTid, Map<KeyExtent,String> locations,
+  public static void getEntries(Instance instance, TCredentials credentials, String table, boolean isTid, Map<KeyExtent,String> locations,
       SortedSet<KeyExtent> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableId = isTid ? table : Tables.getNameToIdMap(instance).get(table);
     

@@ -18,7 +18,6 @@ package org.apache.accumulo.examples.simple.filedata;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -199,7 +198,7 @@ public class ChunkInputFormatTest extends TestCase {
       
       job.setInputFormatClass(ChunkInputFormat.class);
       
-      ChunkInputFormat.setConnectorInfo(job, user, new PasswordToken().setPassword(pass.getBytes(Charset.forName("UTF-8"))));
+      ChunkInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       ChunkInputFormat.setInputTableName(job, table);
       ChunkInputFormat.setScanAuthorizations(job, AUTHS);
       ChunkInputFormat.setMockInstance(job, instance);

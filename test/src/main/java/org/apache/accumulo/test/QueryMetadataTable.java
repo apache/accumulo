@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.io.Text;
@@ -43,7 +43,7 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 public class QueryMetadataTable {
-  private static Credential credentials;
+  private static TCredentials credentials;
   
   static String location;
   

@@ -38,13 +38,11 @@ public class MockConnector extends Connector {
   private final MockAccumulo acu;
   private final Instance instance;
   
-  MockConnector(String username, Instance instance) {
+  MockConnector(String username, MockInstance instance) {
     this(username, new MockAccumulo(MockInstance.getDefaultFileSystem()), instance);
   }
   
-  @SuppressWarnings("deprecation")
-  // Not really deprecated, just discouraging client use.
-  MockConnector(String username, MockAccumulo acu, Instance instance) {
+  MockConnector(String username, MockAccumulo acu, MockInstance instance) {
     this.username = username;
     this.acu = acu;
     this.instance = instance;

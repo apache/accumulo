@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
@@ -85,7 +85,7 @@ public class TestMergeState {
     bw.addMutation(m);
     bw.close();
   }
-
+  
   @Test
   public void test() throws Exception {
     Instance instance = new MockInstance();
@@ -113,8 +113,8 @@ public class TestMergeState {
     
     // Read out the TabletLocationStates
     MockCurrentState state = new MockCurrentState(new MergeInfo(new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
-    Credential auths = CredentialHelper.create("root", new PasswordToken().setPassword(new byte[0]), "instance");
-
+    TCredentials auths = CredentialHelper.create("root", new PasswordToken(new byte[0]), "instance");
+    
     // Verify the tablet state: hosted, and count
     MetaDataStateStore metaDataStateStore = new MetaDataStateStore(instance, auths, state);
     int count = 0;
@@ -161,10 +161,10 @@ public class TestMergeState {
     m = tablet.getPrevRowUpdateMutation();
     Constants.METADATA_CHOPPED_COLUMN.put(m, new Value("junk".getBytes()));
     update(connector, m);
-
+    
     stats = scan(state, metaDataStateStore);
     Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
-
+    
     // take it offline
     m = tablet.getPrevRowUpdateMutation();
     Collection<Collection<String>> walogs = Collections.emptyList();
@@ -173,9 +173,9 @@ public class TestMergeState {
     // now we can split
     stats = scan(state, metaDataStateStore);
     Assert.assertEquals(MergeState.MERGING, stats.nextMergeState(connector, state));
-
+    
   }
-
+  
   /**
    * @param state
    * @param metaDataStateStore

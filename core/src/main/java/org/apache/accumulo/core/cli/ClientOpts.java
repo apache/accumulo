@@ -37,9 +37,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -109,14 +109,13 @@ public class ClientOpts extends Help {
   @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
   public Password securePassword = null;
   
-  public SecurityToken getToken() {
-    PasswordToken pt = new PasswordToken();
+  public AuthenticationToken getToken() {
     if (securePassword == null) {
       if (password == null)
         return null;
-      return pt.setPassword(password.value);
+      return new PasswordToken(password.value);
     }
-    return pt.setPassword(securePassword.value);
+    return new PasswordToken(securePassword.value);
   }
   
   @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
@@ -164,7 +163,6 @@ public class ClientOpts extends Help {
   
   protected Instance cachedInstance = null;
   
-  @SuppressWarnings("deprecation")
   synchronized public Instance getInstance() {
     if (cachedInstance != null)
       return cachedInstance;
@@ -197,7 +195,9 @@ public class ClientOpts extends Help {
       };
       this.zookeepers = config.get(Property.INSTANCE_ZK_HOST);
       Path instanceDir = new Path(config.get(Property.INSTANCE_DFS_DIR), "instance_id");
-      return cachedInstance = new ZooKeeperInstance(UUID.fromString(ZooKeeperInstance.getInstanceIDFromHdfs(instanceDir)), zookeepers);
+      @SuppressWarnings("deprecation")
+      String instanceIDFromFile = ZooKeeperInstance.getInstanceIDFromHdfs(instanceDir);
+      return cachedInstance = new ZooKeeperInstance(UUID.fromString(instanceIDFromFile), zookeepers);
     }
     return cachedInstance = new ZooKeeperInstance(this.instance, this.zookeepers);
   }
@@ -206,7 +206,7 @@ public class ClientOpts extends Help {
     return getInstance().getConnector(this.principal, this.getToken());
   }
   
-  public Credential getCredentials() throws AccumuloSecurityException {
+  public TCredentials getCredentials() throws AccumuloSecurityException {
     return CredentialHelper.create(principal, getToken(), getInstance().getInstanceID());
   }
   

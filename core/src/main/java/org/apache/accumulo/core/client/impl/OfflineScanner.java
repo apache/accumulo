@@ -55,7 +55,7 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -121,7 +121,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
    * @param authorizations
    * @param table
    */
-  public OfflineIterator(ScannerOptions options, Instance instance, Credential credentials, Authorizations authorizations, Text table, Range range) {
+  public OfflineIterator(ScannerOptions options, Instance instance, TCredentials credentials, Authorizations authorizations, Text table, Range range) {
     this.options = new ScannerOptions(options);
     this.instance = instance;
     this.range = range;
@@ -343,11 +343,11 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private Range range;
   
   private Instance instance;
-  private Credential credentials;
+  private TCredentials credentials;
   private Authorizations authorizations;
   private Text tableId;
   
-  public OfflineScanner(Instance instance, Credential credentials, String tableId, Authorizations authorizations) {
+  public OfflineScanner(Instance instance, TCredentials credentials, String tableId, Authorizations authorizations) {
     ArgumentChecker.notNull(instance, credentials, tableId, authorizations);
     this.instance = instance;
     this.credentials = credentials;
