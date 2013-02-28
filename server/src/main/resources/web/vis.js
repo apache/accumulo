@@ -47,6 +47,7 @@ canvas.addEventListener('click', goToServer, false);
 var main = document.getElementById('main');
 var speedStatType;
 var colorStatType;
+var speedDisabled = true;
 var useCircles = true;
 setShape(document.getElementById('shape'));
 setSize(document.getElementById('size'));
@@ -178,7 +179,7 @@ function drawDots() {
       strokeDot(x,y,maxDotRadius-1,deadColor);
       continue;
     }
-    if (Math.floor(dots[i].size) > maxDotRadius) {
+    if (speedDisabled || Math.floor(dots[i].size) > maxDotRadius) {
       // check for resize by the user
       dots[i].size = maxDotRadius;
     } else if (server[speedStatType]<=0) {
@@ -325,7 +326,12 @@ function setSize(obj) {
 
 // callback for motion selection
 function setMotion(obj) {
-  var i = 0;
+  if (obj.selectedIndex==0) {
+    speedDisabled = true;
+    setState();
+    return;
+  }
+  var i = 1;
   for (var s in statNames) {
     if (i==obj.selectedIndex) {
       speedStatType = s;
@@ -333,6 +339,7 @@ function setMotion(obj) {
     }
     i++;
   }
+  speedDisabled = false;
   setState();
 }
 
@@ -383,7 +390,7 @@ function showId(e) {
 }
 
 function setState() {
-  var url = visurl+'?shape='+(useCircles?'circles':'squares')+'&size='+(dotSpacing*2)+'&motion='+speedStatType+'&color='+colorStatType;
+  var url = visurl+'?shape='+(useCircles?'circles':'squares')+'&size='+(dotSpacing*2)+(speedDisabled ? '' : '&motion='+speedStatType)+'&color='+colorStatType;
   window.history.replaceState(window.history.state,'Server Activity',url);
 }
 
