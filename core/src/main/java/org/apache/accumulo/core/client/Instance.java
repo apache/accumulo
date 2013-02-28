@@ -22,7 +22,6 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.handler.Authenticator;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 
@@ -101,7 +100,7 @@ public interface Instance {
    * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)}
    */
   @Deprecated
-  public abstract Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException;
+  public abstract Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Returns a connection to accumulo.
