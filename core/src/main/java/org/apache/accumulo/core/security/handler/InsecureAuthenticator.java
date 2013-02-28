@@ -26,10 +26,10 @@ import org.apache.accumulo.core.security.tokens.AuthenticationToken;
  * 
  */
 public class InsecureAuthenticator implements Authenticator {
-  
+  static NullToken nt = new NullToken();
   @Override
   public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
-    return new NullToken();
+    return nt;
   }
   
 }

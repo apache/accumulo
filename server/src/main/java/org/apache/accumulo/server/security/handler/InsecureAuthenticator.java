@@ -25,7 +25,8 @@ import org.apache.accumulo.core.security.tokens.NullToken;
 import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 
 /**
- * This is an Authenticator implementation that doesn't actually do any security. Use at your own risk.
+ * This is an Authenticator implementation that doesn't actually do any security. Any principal will authenticate if a NullToken is provided. It's existence is
+ * primarily for testing, but can also be used for any system where user space management is not a concern.
  */
 public class InsecureAuthenticator extends org.apache.accumulo.core.security.handler.InsecureAuthenticator implements Authenticator {
   
@@ -46,7 +47,7 @@ public class InsecureAuthenticator extends org.apache.accumulo.core.security.han
   
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token) {
-    return true;
+    return token instanceof NullToken;
   }
   
   @Override
@@ -68,20 +69,20 @@ public class InsecureAuthenticator extends org.apache.accumulo.core.security.han
   public void changePassword(String user, AuthenticationToken token) throws AccumuloSecurityException {
     return;
   }
-
+  
   @Override
   public boolean userExists(String user) {
     return true;
   }
-
+  
   @Override
   public String getTokenLoginClass() {
-    return null;
+    return org.apache.accumulo.core.security.handler.InsecureAuthenticator.class.getName();
   }
-
+  
   @Override
   public boolean validTokenClass(String tokenClass) {
-    return tokenClass.equals(NullToken.class.getCanonicalName());
+    return tokenClass.equals(NullToken.class.getName());
   }
   
 }
