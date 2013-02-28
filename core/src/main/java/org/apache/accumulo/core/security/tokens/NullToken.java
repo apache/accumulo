@@ -50,4 +50,8 @@ public class NullToken implements AuthenticationToken {
   public NullToken clone() {
     return new NullToken();
   }
+  
+  public boolean equals(Object obj) {
+    return obj instanceof NullToken;
+  }
 }

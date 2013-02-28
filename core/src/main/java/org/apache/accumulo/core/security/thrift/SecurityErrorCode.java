@@ -27,6 +27,9 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
+/**
+ * @deprecated since 1.5, see org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode
+ */
 @SuppressWarnings("all") public enum SecurityErrorCode implements org.apache.thrift.TEnum {
   DEFAULT_SECURITY_ERROR(0),
   BAD_CREDENTIALS(1),

@@ -20,10 +20,10 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.handler.Authenticator;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 
 /**
  * This class represents the information a client needs to know to connect to an instance of accumulo.

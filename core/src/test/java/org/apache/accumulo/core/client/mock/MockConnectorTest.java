@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -44,7 +45,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 

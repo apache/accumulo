@@ -17,6 +17,9 @@
 namespace java org.apache.accumulo.core.security.thrift
 namespace cpp org.apache.accumulo.core.security.thrift
 
+/**
+@deprecated since 1.5, see org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode
+*/
 enum SecurityErrorCode {
     DEFAULT_SECURITY_ERROR = 0,
     BAD_CREDENTIALS = 1,
@@ -39,7 +42,7 @@ enum SecurityErrorCode {
 }
 
 /**
- @deprecated since 1.5
+@deprecated since 1.5
 */
 struct AuthInfo {
     1:string user,
@@ -54,6 +57,9 @@ struct TCredentials {
     4:string instanceId
 }
 
+/**
+@deprecated since 1.5, see org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException
+*/
 exception ThriftSecurityException {
     1:string user,
     2:SecurityErrorCode code

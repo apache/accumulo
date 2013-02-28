@@ -17,9 +17,9 @@
 package org.apache.accumulo.server.security.handler;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 
 /**
  * This interface is used for the system which will be used for getting a users Authorizations. If the implementation does not support configuration through

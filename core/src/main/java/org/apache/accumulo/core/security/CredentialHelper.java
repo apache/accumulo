@@ -24,9 +24,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.log4j.Logger;

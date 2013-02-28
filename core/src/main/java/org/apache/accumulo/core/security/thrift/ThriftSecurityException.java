@@ -46,6 +46,10 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @deprecated since 1.5, see org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException
+ * *
+ */
 @SuppressWarnings("all") public class ThriftSecurityException extends TException implements org.apache.thrift.TBase<ThriftSecurityException, ThriftSecurityException._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftSecurityException");
 

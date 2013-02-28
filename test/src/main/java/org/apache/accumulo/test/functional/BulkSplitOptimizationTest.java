@@ -20,9 +20,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.test.CreateRFiles;
