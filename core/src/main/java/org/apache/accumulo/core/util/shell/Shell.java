@@ -170,8 +170,8 @@ public class Shell extends ShellOptions {
   private Connector connector;
   protected ConsoleReader reader;
   private TCredentials credentials;
-  private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
-  private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
+  private final Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
+  private final Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
   public Map<String,List<IteratorSetting>> iteratorProfiles = new HashMap<String,List<IteratorSetting>>();
   
@@ -342,19 +342,22 @@ public class Shell extends ShellOptions {
     return configError;
   }
   
-  @SuppressWarnings("deprecation")
   protected void setInstance(CommandLine cl) {
     // should only be one instance option set
     instance = null;
     if (cl.hasOption(fakeOption.getLongOpt())) {
       instance = new MockInstance("fake");
     } else if (cl.hasOption(hdfsZooInstance.getOpt())) {
-      instance = getDefaultInstance(AccumuloConfiguration.getSiteConfiguration());
+      @SuppressWarnings("deprecation")
+      AccumuloConfiguration deprecatedSiteConfiguration = AccumuloConfiguration.getSiteConfiguration();
+      instance = getDefaultInstance(deprecatedSiteConfiguration);
     } else if (cl.hasOption(zooKeeperInstance.getOpt())) {
       String[] zkOpts = cl.getOptionValues(zooKeeperInstance.getOpt());
       instance = new ZooKeeperInstance(zkOpts[0], zkOpts[1]);
     } else {
-      instance = getDefaultInstance(AccumuloConfiguration.getSiteConfiguration());
+      @SuppressWarnings("deprecation")
+      AccumuloConfiguration deprecatedSiteConfiguration = AccumuloConfiguration.getSiteConfiguration();
+      instance = getDefaultInstance(deprecatedSiteConfiguration);
     }
   }
   

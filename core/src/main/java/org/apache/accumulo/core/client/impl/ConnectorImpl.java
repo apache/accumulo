@@ -45,19 +45,12 @@ import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.trace.instrument.Tracer;
 
 public class ConnectorImpl extends Connector {
-  private Instance instance;
-  private TCredentials credentials;
+  private final Instance instance;
+  private final TCredentials credentials;
   private SecurityOperations secops = null;
   private TableOperations tableops = null;
   private InstanceOperations instanceops = null;
   
-  /**
-   * 
-   * Use {@link Instance#getConnector(String, byte[])}
-   * 
-   * @see Instance#getConnector(String user, byte[] password)
-   * @deprecated Not for client use
-   */
   @Deprecated
   public ConnectorImpl(Instance instance, TCredentials cred) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(instance, cred);

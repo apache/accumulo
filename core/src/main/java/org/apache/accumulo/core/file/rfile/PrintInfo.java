@@ -37,18 +37,17 @@ import com.beust.jcommander.Parameter;
 public class PrintInfo {
   
   static class Opts extends Help {
-    @Parameter(names={"-d", "--dump"}, description="dump the key/value pairs")
+    @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
     boolean dump = false;
-    @Parameter(names={"--historgram"}, description="print a histogram of the key-value sizes")
+    @Parameter(names = {"--historgram"}, description = "print a histogram of the key-value sizes")
     boolean histogram = false;
-    @Parameter(description=" <file> { <file> ... }")
+    @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<String>();
   }
   
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     @SuppressWarnings("deprecation")
-    //Not for client use
     FileSystem fs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
     Opts opts = new Opts();
     opts.parseArgs(PrintInfo.class.getName(), args);
@@ -60,7 +59,7 @@ public class PrintInfo {
     long countBuckets[] = new long[11];
     long sizeBuckets[] = new long[countBuckets.length];
     long totalSize = 0;
-
+    
     for (String arg : opts.files) {
       
       Path path = new Path(arg);

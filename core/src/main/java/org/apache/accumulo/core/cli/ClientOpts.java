@@ -163,7 +163,6 @@ public class ClientOpts extends Help {
   
   protected Instance cachedInstance = null;
   
-  @SuppressWarnings("deprecation")
   synchronized public Instance getInstance() {
     if (cachedInstance != null)
       return cachedInstance;
@@ -196,7 +195,9 @@ public class ClientOpts extends Help {
       };
       this.zookeepers = config.get(Property.INSTANCE_ZK_HOST);
       Path instanceDir = new Path(config.get(Property.INSTANCE_DFS_DIR), "instance_id");
-      return cachedInstance = new ZooKeeperInstance(UUID.fromString(ZooKeeperInstance.getInstanceIDFromHdfs(instanceDir)), zookeepers);
+      @SuppressWarnings("deprecation")
+      String instanceIDFromFile = ZooKeeperInstance.getInstanceIDFromHdfs(instanceDir);
+      return cachedInstance = new ZooKeeperInstance(UUID.fromString(instanceIDFromFile), zookeepers);
     }
     return cachedInstance = new ZooKeeperInstance(this.instance, this.zookeepers);
   }

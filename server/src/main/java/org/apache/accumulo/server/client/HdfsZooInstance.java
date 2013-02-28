@@ -127,10 +127,11 @@ public class HdfsZooInstance implements Instance {
     return instanceId;
   }
   
-  @SuppressWarnings("deprecation")
   private static synchronized void _getInstanceID() {
     if (instanceId == null) {
-      instanceId = ZooKeeperInstance.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation());
+      @SuppressWarnings("deprecation")
+      String instanceIdFromFile = ZooKeeperInstance.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation());
+      instanceId = instanceIdFromFile;
     }
   }
   
@@ -156,7 +157,7 @@ public class HdfsZooInstance implements Instance {
   }
   
   @Override
-  @SuppressWarnings("deprecation")
+  @Deprecated
   public Connector getConnector(TCredentials cred) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, cred);
   }

@@ -73,11 +73,11 @@ public class ZooKeeperInstance implements Instance {
   private String instanceId = null;
   private String instanceName = null;
   
-  private ZooCache zooCache;
+  private final ZooCache zooCache;
   
-  private String zooKeepers;
+  private final String zooKeepers;
   
-  private int zooKeepersSessionTimeOut;
+  private final int zooKeepersSessionTimeOut;
   
   /**
    * 
@@ -221,14 +221,13 @@ public class ZooKeeperInstance implements Instance {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
   
-  // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
   }
   
   @Override
-  @SuppressWarnings("deprecation")
+  @Deprecated
   public Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, credential);
   }
@@ -279,7 +278,9 @@ public class ZooKeeperInstance implements Instance {
     return null;
   }
   
-  // To be moved to server code. Only lives here to support the Accumulo Shell
+  /**
+   * To be moved to server code. Only lives here to support certain client side utilities to minimize command-line options.
+   */
   @Deprecated
   public static String getInstanceIDFromHdfs(Path instanceDirectory) {
     try {

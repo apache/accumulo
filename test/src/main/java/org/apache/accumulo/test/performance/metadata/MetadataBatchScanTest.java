@@ -56,7 +56,8 @@ public class MetadataBatchScanTest {
    */
   public static void main(String[] args) throws Exception {
     
-    final Connector connector = new ZooKeeperInstance("acu14", "localhost").getConnector(SecurityConstants.getSystemCredentials());
+    final Connector connector = new ZooKeeperInstance("acu14", "localhost")
+        .getConnector(SecurityConstants.SYSTEM_PRINCIPAL, SecurityConstants.getSystemToken());
     
     TreeSet<Long> splits = new TreeSet<Long>();
     Random r = new Random(42);
@@ -205,6 +206,7 @@ public class MetadataBatchScanTest {
       count2.addStat(ss.count2);
     }
     
+    @Override
     public String toString() {
       return "[" + delta1 + "] [" + delta2 + "]";
     }
