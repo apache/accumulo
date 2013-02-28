@@ -165,7 +165,7 @@ public class Accumulo {
           log.error(t, t);
         }
       }
-    }, 1000, 10 * 1000);
+    }, 1000, 10 * 60 * 1000);
   }
   
   public static String getLocalAddress(String[] args) throws UnknownHostException {
