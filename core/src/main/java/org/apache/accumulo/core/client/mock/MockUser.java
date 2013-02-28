@@ -20,15 +20,15 @@ import java.util.EnumSet;
 
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 
 public class MockUser {
   final EnumSet<SystemPermission> permissions;
   final String name;
-  SecurityToken token;
+  AuthenticationToken token;
   Authorizations authorizations;
   
-  MockUser(String principal, SecurityToken token, Authorizations auths) {
+  MockUser(String principal, AuthenticationToken token, Authorizations auths) {
     this.name = principal;
     this.token = token.clone();
     this.authorizations = auths;

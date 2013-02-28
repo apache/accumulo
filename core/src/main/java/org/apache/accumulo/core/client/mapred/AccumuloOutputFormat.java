@@ -41,7 +41,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -61,7 +61,7 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, byte[])}
+ * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
  * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
  * </ul>
  * 
@@ -85,10 +85,10 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
    * @param token
    *          the user's password
-   * @throws AccumuloSecurityException 
+   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
-  public static void setConnectorInfo(JobConf job, String principal, SecurityToken token) throws AccumuloSecurityException {
+  public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
     OutputConfigurator.setConnectorInfo(CLASS, job, principal, token);
   }
   
@@ -96,12 +96,13 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
    * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
    * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link TokenHelper#asBase64String(AccumuloToken)}.
+   * {@link CredentialHelper#asBase64String(org.apache.accumulo.core.security.thrift.TCredentials)}.
    * 
    * @param job
    *          the Hadoop job instance to be configured
    * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AccumuloToken} with the user's authentication
+   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AuthenticationToken} with the user's
+   *          authentication
    * @since 1.5.0
    */
   public static void setConnectorInfo(JobConf job, Path path) {
@@ -115,7 +116,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, byte[])
+   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
    * @see #setConnectorInfo(JobConf, Path)
    */
   protected static Boolean isConnectorInfoSet(JobConf job) {
@@ -129,7 +130,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, SecurityToken)
+   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
    * @see #setConnectorInfo(JobConf, Path)
    */
   protected static String getPrincipal(JobConf job) {
@@ -143,7 +144,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, SecurityToken)
+   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
    * @see #setConnectorInfo(JobConf, Path)
    */
   protected static String getTokenClass(JobConf job) {
@@ -158,7 +159,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return the decoded user password
    * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, byte[])
+   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
    */
   protected static byte[] getToken(JobConf job) {
     return OutputConfigurator.getToken(CLASS, job);

@@ -64,9 +64,9 @@ import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
@@ -111,10 +111,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          a valid Accumulo user name (user must have Table.CREATE permission)
    * @param token
    *          the user's password
-   * @throws AccumuloSecurityException 
+   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Job job, String principal, SecurityToken token) throws AccumuloSecurityException {
+  public static void setConnectorInfo(Job job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
     InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
   }
   
@@ -122,12 +122,13 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
    * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
    * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link TokenHelper#asBase64String(AccumuloToken)}.
+   * {@link CredentialHelper#asBase64String(TCredentials)}.
    * 
    * @param job
    *          the Hadoop job instance to be configured
    * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AccumuloToken} with the user's authentication
+   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AuthenticationToken} with the user's
+   *          authentication
    * @since 1.5.0
    */
   public static void setConnectorInfo(Job job, Path path) {
@@ -141,7 +142,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
+   * @see #setConnectorInfo(Job, String, AuthenticationToken)
    * @see #setConnectorInfo(Job, Path)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
@@ -155,7 +156,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, SecurityToken)
+   * @see #setConnectorInfo(Job, String, AuthenticationToken)
    * @see #setConnectorInfo(Job, Path)
    */
   protected static String getPrincipal(JobContext context) {
@@ -169,7 +170,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, SecurityToken)
+   * @see #setConnectorInfo(Job, String, AuthenticationToken)
    * @see #setConnectorInfo(Job, Path)
    */
   protected static String getTokenClass(JobContext context) {
@@ -184,7 +185,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return the decoded user password
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
+   * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static byte[] getToken(JobContext context) {
     return InputConfigurator.getToken(CLASS, context.getConfiguration());
@@ -609,8 +610,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         log.debug("Creating scanner for table: " + getInputTableName(attempt));
         log.debug("Authorizations are: " + authorizations);
         if (isOfflineScan(attempt)) {
-          scanner = new OfflineScanner(instance, new Credential(principal, tokenClass, ByteBuffer.wrap(token), instance.getInstanceID()), Tables.getTableId(instance,
-              getInputTableName(attempt)), authorizations);
+          scanner = new OfflineScanner(instance, new TCredentials(principal, tokenClass, ByteBuffer.wrap(token), instance.getInstanceID()), Tables.getTableId(
+              instance, getInputTableName(attempt)), authorizations);
         } else {
           scanner = conn.createScanner(getInputTableName(attempt), authorizations);
         }
@@ -1006,13 +1007,13 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, String, byte[])}, {@link #setInputTableName(Job, String)}, and
+   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, String, AuthenticationToken)}, {@link #setInputTableName(Job, String)}, and
    *             {@link #setScanAuthorizations(Job, Authorizations)} instead.
    */
   @Deprecated
   public static void setInputInfo(Configuration conf, String user, byte[] passwd, String table, Authorizations auths) {
     try {
-      InputConfigurator.setConnectorInfo(CLASS, conf, user, new PasswordToken().setPassword(passwd));
+      InputConfigurator.setConnectorInfo(CLASS, conf, user, new PasswordToken(passwd));
     } catch (AccumuloSecurityException e) {
       throw new RuntimeException(e);
     }

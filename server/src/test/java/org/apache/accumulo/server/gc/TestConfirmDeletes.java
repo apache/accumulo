@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FileSystem;
@@ -90,7 +90,7 @@ public class TestConfirmDeletes {
   }
   
   private void test1(String[] metadata, String[] deletes, int expectedInitial, int expected) throws Exception {
-    Credential auth = CredentialHelper.create("root", new PasswordToken().setPassword(new byte[0]), "instance");
+    TCredentials auth = CredentialHelper.create("root", new PasswordToken(new byte[0]), "instance");
     
     Instance instance = new MockInstance();
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
@@ -106,9 +106,10 @@ public class TestConfirmDeletes {
   }
   
   private void load(Instance instance, String[] metadata, String[] deletes) throws Exception {
-    Credential credential = CredentialHelper.create("root", new PasswordToken().setPassword(new byte[0]), "instance");
+    TCredentials credential = CredentialHelper.create("root", new PasswordToken(new byte[0]), "instance");
     
-    Scanner scanner = instance.getConnector(credential.getPrincipal(), CredentialHelper.extractToken(credential)).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = instance.getConnector(credential.getPrincipal(), CredentialHelper.extractToken(credential)).createScanner(Constants.METADATA_TABLE_NAME,
+        Constants.NO_AUTHS);
     int count = 0;
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {

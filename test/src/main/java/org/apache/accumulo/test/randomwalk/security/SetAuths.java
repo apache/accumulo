@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -31,7 +31,7 @@ public class SetAuths extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Credential auth;
+    TCredentials auth;
     
     String authsString = props.getProperty("auths", "_random");
     

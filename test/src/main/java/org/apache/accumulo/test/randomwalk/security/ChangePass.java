@@ -22,9 +22,8 @@ import java.util.Random;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -35,14 +34,14 @@ public class ChangePass extends Test {
     String target = props.getProperty("target");
     String source = props.getProperty("source");
     
-    Credential auth;
+    TCredentials auth;
     if (source.equals("system")) {
       auth = WalkingSecurity.get(state).getSysCredentials();
     } else {
       auth = WalkingSecurity.get(state).getTabCredentials();
     }
     Connector conn = state.getInstance().getConnector(auth);
-        
+    
     boolean hasPerm;
     boolean targetExists;
     if (target.equals("table")) {
@@ -51,18 +50,18 @@ public class ChangePass extends Test {
       target = WalkingSecurity.get(state).getSysUserName();
     
     targetExists = WalkingSecurity.get(state).userExists(target);
-      
+    
     hasPerm = WalkingSecurity.get(state).canChangePassword(auth, target);
     
     Random r = new Random();
     
     byte[] newPassw = new byte[r.nextInt(50) + 1];
-    for (int i =0; i < newPassw.length; i++)
-      newPassw[i] = (byte) ((r.nextInt(26)+65) & 0xFF);
+    for (int i = 0; i < newPassw.length; i++)
+      newPassw[i] = (byte) ((r.nextInt(26) + 65) & 0xFF);
     
-    SecurityToken newPass = new PasswordToken().setPassword(newPassw);
+    PasswordToken newPass = new PasswordToken(newPassw);
     try {
-      conn.securityOperations().changeLoginInfo(target, newPass);
+      conn.securityOperations().changeLocalUserPassword(target, newPass);
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:

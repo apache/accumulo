@@ -46,7 +46,7 @@ public class Validate extends Test {
       throw new AccumuloException("Table existance out of sync");
     
     boolean tableUserExists = WalkingSecurity.get(state).userExists(WalkingSecurity.get(state).getTabUserName());
-    boolean cloudTableUserExists = conn.securityOperations().listUsers().contains(WalkingSecurity.get(state).getTabUserName());
+    boolean cloudTableUserExists = conn.securityOperations().listLocalUsers().contains(WalkingSecurity.get(state).getTabUserName());
     if (tableUserExists != cloudTableUserExists)
       throw new AccumuloException("Table User existance out of sync");
     

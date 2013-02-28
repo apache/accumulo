@@ -20,9 +20,9 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.tokens.NullToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 
 /**
  * This is an Authenticator implementation that doesn't actually do any security. Use at your own risk.
@@ -40,12 +40,12 @@ public class InsecureAuthenticator extends org.apache.accumulo.core.security.han
   }
   
   @Override
-  public void initializeSecurity(Credential credentials, String principal, byte[] token) throws AccumuloSecurityException {
+  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException {
     return;
   }
   
   @Override
-  public boolean authenticateUser(String principal, SecurityToken token) {
+  public boolean authenticateUser(String principal, AuthenticationToken token) {
     return true;
   }
   
@@ -55,7 +55,7 @@ public class InsecureAuthenticator extends org.apache.accumulo.core.security.han
   }
   
   @Override
-  public void createUser(String principal, SecurityToken token) throws AccumuloSecurityException {
+  public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
     return;
   }
   
@@ -65,7 +65,7 @@ public class InsecureAuthenticator extends org.apache.accumulo.core.security.han
   }
   
   @Override
-  public void changePassword(String user, SecurityToken token) throws AccumuloSecurityException {
+  public void changePassword(String user, AuthenticationToken token) throws AccumuloSecurityException {
     return;
   }
 

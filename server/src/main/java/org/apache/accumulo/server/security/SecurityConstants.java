@@ -27,9 +27,9 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.commons.codec.binary.Base64;
@@ -40,23 +40,24 @@ public class SecurityConstants {
   static Logger log = Logger.getLogger(SecurityConstants.class);
   
   public static final String SYSTEM_PRINCIPAL = "!SYSTEM";
-  private static final SecurityToken SYSTEM_TOKEN = makeSystemPassword();
-  private static final Credential systemCredentials = CredentialHelper.createSquelchError(SYSTEM_PRINCIPAL, SYSTEM_TOKEN, HdfsZooInstance.getInstance().getInstanceID());
+  private static final AuthenticationToken SYSTEM_TOKEN = makeSystemPassword();
+  private static final TCredentials systemCredentials = CredentialHelper.createSquelchError(SYSTEM_PRINCIPAL, SYSTEM_TOKEN, HdfsZooInstance.getInstance()
+      .getInstanceID());
   public static byte[] confChecksum = null;
   
-  public static SecurityToken getSystemToken() {
+  public static AuthenticationToken getSystemToken() {
     return SYSTEM_TOKEN;
   }
   
-  public static Credential getSystemCredentials() {
+  public static TCredentials getSystemCredentials() {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
     }
     return systemCredentials;
   }
-
-  private static SecurityToken makeSystemPassword() {
+  
+  private static AuthenticationToken makeSystemPassword() {
     int wireVersion = Constants.WIRE_VERSION;
     byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8);
     try {
@@ -78,7 +79,7 @@ public class SecurityConstants {
       // ByteArrayOutputStream; crash hard
       // if this happens
     }
-    return new PasswordToken().setPassword(Base64.encodeBase64(bytes.toByteArray()));
+    return new PasswordToken(Base64.encodeBase64(bytes.toByteArray()));
   }
   
   private static byte[] getSystemConfigChecksum() throws NoSuchAlgorithmException {

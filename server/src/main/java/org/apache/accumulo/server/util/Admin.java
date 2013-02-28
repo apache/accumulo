@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
@@ -81,7 +81,7 @@ public class Admin {
     Instance instance = opts.getInstance();
       
     try {
-      Credential creds;
+      TCredentials creds;
       if (opts.getToken() == null) {
         creds = SecurityConstants.getSystemCredentials();
       } else {
@@ -103,7 +103,7 @@ public class Admin {
     }
   }
   
-  private static void stopServer(Instance instance, final Credential credentials, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
+  private static void stopServer(Instance instance, final TCredentials credentials, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
     MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
@@ -112,7 +112,7 @@ public class Admin {
     });
   }
   
-  private static void stopTabletServer(Instance instance, final Credential creds, List<String> servers, final boolean force) throws AccumuloException, AccumuloSecurityException {
+  private static void stopTabletServer(Instance instance, final TCredentials creds, List<String> servers, final boolean force) throws AccumuloException, AccumuloSecurityException {
     for (String server : servers) {
       InetSocketAddress address = AddressUtil.parseAddress(server, Property.TSERV_CLIENTPORT);
       final String finalServer = org.apache.accumulo.core.util.AddressUtil.toString(address);

@@ -21,9 +21,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
@@ -33,13 +31,12 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
-
 
 public class VerifyIngest {
   
@@ -54,7 +51,7 @@ public class VerifyIngest {
   }
   
   public static class Opts extends TestIngest.Opts {
-    @Parameter(names="-useGet", description="fetches values one at a time, instead of scanning")
+    @Parameter(names = "-useGet", description = "fetches values one at a time, instead of scanning")
     boolean useGet = false;
   }
   

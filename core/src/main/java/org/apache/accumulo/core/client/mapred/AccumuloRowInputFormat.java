@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -39,7 +40,7 @@ import org.apache.hadoop.mapred.Reporter;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloRowInputFormat#setConnectorInfo(JobConf, String, byte[])} OR {@link AccumuloRowInputFormat#setConnectorInfo(JobConf, Path)}
+ * <li>{@link AccumuloRowInputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)} OR {@link AccumuloRowInputFormat#setConnectorInfo(JobConf, Path)}
  * <li>{@link AccumuloRowInputFormat#setInputTableName(JobConf, String)}
  * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(JobConf, Authorizations)}
  * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloRowInputFormat#setMockInstance(JobConf, String)}

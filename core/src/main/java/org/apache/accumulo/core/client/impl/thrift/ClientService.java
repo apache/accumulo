@@ -56,43 +56,45 @@ import org.slf4j.LoggerFactory;
 
     public String getZooKeepers() throws org.apache.thrift.TException;
 
-    public List<String> bulkImportFiles(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public List<String> bulkImportFiles(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public boolean isActive(org.apache.accumulo.trace.thrift.TInfo tinfo, long tid) throws org.apache.thrift.TException;
 
-    public void ping(org.apache.accumulo.core.security.thrift.Credential credential) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void ping(org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public boolean authenticateUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toAuthenticate) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public Set<String> listLocalUsers(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public Set<String> listUsers(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void createLocalUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void createUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toCreate, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void dropLocalUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void dropUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void changeLocalUserPassword(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void changePassword(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toChange) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public boolean authenticate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void changeAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public boolean authenticateUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.security.thrift.TCredentials toAuth) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public List<ByteBuffer> getUserAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void changeAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public boolean hasSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte sysPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public List<ByteBuffer> getUserAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public boolean hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte tblPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public boolean hasSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte sysPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public boolean hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte tblPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public void revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public void revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public void grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public Map<String,String> getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, ConfigurationType type) throws org.apache.thrift.TException;
+    public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public Map<String,String> getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String tableName) throws ThriftTableOperationException, org.apache.thrift.TException;
+    public Map<String,String> getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, ConfigurationType type) throws org.apache.thrift.TException;
 
-    public boolean checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String className, String interfaceMatch) throws org.apache.thrift.TException;
+    public Map<String,String> getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableName) throws ThriftTableOperationException, org.apache.thrift.TException;
+
+    public boolean checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String className, String interfaceMatch) throws org.apache.thrift.TException;
 
   }
 
@@ -104,43 +106,45 @@ import org.slf4j.LoggerFactory;
 
     public void getZooKeepers(org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getZooKeepers_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void bulkImportFiles(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.bulkImportFiles_call> resultHandler) throws org.apache.thrift.TException;
+    public void bulkImportFiles(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.bulkImportFiles_call> resultHandler) throws org.apache.thrift.TException;
 
     public void isActive(org.apache.accumulo.trace.thrift.TInfo tinfo, long tid, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.isActive_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void ping(org.apache.accumulo.core.security.thrift.Credential credential, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.ping_call> resultHandler) throws org.apache.thrift.TException;
+    public void ping(org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.ping_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void authenticateUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toAuthenticate, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.authenticateUser_call> resultHandler) throws org.apache.thrift.TException;
+    public void listLocalUsers(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listLocalUsers_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void listUsers(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listUsers_call> resultHandler) throws org.apache.thrift.TException;
+    public void createLocalUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createLocalUser_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void createUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toCreate, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createUser_call> resultHandler) throws org.apache.thrift.TException;
+    public void dropLocalUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.dropLocalUser_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void dropUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.dropUser_call> resultHandler) throws org.apache.thrift.TException;
+    public void changeLocalUserPassword(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changeLocalUserPassword_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void changePassword(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toChange, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changePassword_call> resultHandler) throws org.apache.thrift.TException;
+    public void authenticate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.authenticate_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void changeAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changeAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
+    public void authenticateUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.security.thrift.TCredentials toAuth, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.authenticateUser_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getUserAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
+    public void changeAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.changeAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void hasSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void getUserAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasTablePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void hasSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantTablePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, ConfigurationType type, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getConfiguration_call> resultHandler) throws org.apache.thrift.TException;
+    public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getTableConfiguration_call> resultHandler) throws org.apache.thrift.TException;
+    public void getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, ConfigurationType type, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getConfiguration_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.checkClass_call> resultHandler) throws org.apache.thrift.TException;
+    public void getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getTableConfiguration_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.checkClass_call> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -230,17 +234,17 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getZooKeepers failed: unknown result");
     }
 
-    public List<String> bulkImportFiles(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public List<String> bulkImportFiles(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_bulkImportFiles(tinfo, credential, tid, tableId, files, errorDir, setTime);
+      send_bulkImportFiles(tinfo, credentials, tid, tableId, files, errorDir, setTime);
       return recv_bulkImportFiles();
     }
 
-    public void send_bulkImportFiles(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.thrift.TException
+    public void send_bulkImportFiles(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime) throws org.apache.thrift.TException
     {
       bulkImportFiles_args args = new bulkImportFiles_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setTid(tid);
       args.setTableId(tableId);
       args.setFiles(files);
@@ -289,16 +293,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "isActive failed: unknown result");
     }
 
-    public void ping(org.apache.accumulo.core.security.thrift.Credential credential) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void ping(org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_ping(credential);
+      send_ping(credentials);
       recv_ping();
     }
 
-    public void send_ping(org.apache.accumulo.core.security.thrift.Credential credential) throws org.apache.thrift.TException
+    public void send_ping(org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
       ping_args args = new ping_args();
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       sendBase("ping", args);
     }
 
@@ -312,18 +316,149 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public boolean authenticateUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toAuthenticate) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public Set<String> listLocalUsers(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_authenticateUser(tinfo, credential, toAuthenticate);
+      send_listLocalUsers(tinfo, credentials);
+      return recv_listLocalUsers();
+    }
+
+    public void send_listLocalUsers(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    {
+      listLocalUsers_args args = new listLocalUsers_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      sendBase("listLocalUsers", args);
+    }
+
+    public Set<String> recv_listLocalUsers() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      listLocalUsers_result result = new listLocalUsers_result();
+      receiveBase(result, "listLocalUsers");
+      if (result.isSetSuccess()) {
+        return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "listLocalUsers failed: unknown result");
+    }
+
+    public void createLocalUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      send_createLocalUser(tinfo, credentials, principal, password);
+      recv_createLocalUser();
+    }
+
+    public void send_createLocalUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password) throws org.apache.thrift.TException
+    {
+      createLocalUser_args args = new createLocalUser_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setPrincipal(principal);
+      args.setPassword(password);
+      sendBase("createLocalUser", args);
+    }
+
+    public void recv_createLocalUser() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      createLocalUser_result result = new createLocalUser_result();
+      receiveBase(result, "createLocalUser");
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      return;
+    }
+
+    public void dropLocalUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      send_dropLocalUser(tinfo, credentials, principal);
+      recv_dropLocalUser();
+    }
+
+    public void send_dropLocalUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal) throws org.apache.thrift.TException
+    {
+      dropLocalUser_args args = new dropLocalUser_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setPrincipal(principal);
+      sendBase("dropLocalUser", args);
+    }
+
+    public void recv_dropLocalUser() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      dropLocalUser_result result = new dropLocalUser_result();
+      receiveBase(result, "dropLocalUser");
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      return;
+    }
+
+    public void changeLocalUserPassword(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      send_changeLocalUserPassword(tinfo, credentials, principal, password);
+      recv_changeLocalUserPassword();
+    }
+
+    public void send_changeLocalUserPassword(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password) throws org.apache.thrift.TException
+    {
+      changeLocalUserPassword_args args = new changeLocalUserPassword_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setPrincipal(principal);
+      args.setPassword(password);
+      sendBase("changeLocalUserPassword", args);
+    }
+
+    public void recv_changeLocalUserPassword() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      changeLocalUserPassword_result result = new changeLocalUserPassword_result();
+      receiveBase(result, "changeLocalUserPassword");
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      return;
+    }
+
+    public boolean authenticate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      send_authenticate(tinfo, credentials);
+      return recv_authenticate();
+    }
+
+    public void send_authenticate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    {
+      authenticate_args args = new authenticate_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      sendBase("authenticate", args);
+    }
+
+    public boolean recv_authenticate() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      authenticate_result result = new authenticate_result();
+      receiveBase(result, "authenticate");
+      if (result.isSetSuccess()) {
+        return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "authenticate failed: unknown result");
+    }
+
+    public boolean authenticateUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.security.thrift.TCredentials toAuth) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      send_authenticateUser(tinfo, credentials, toAuth);
       return recv_authenticateUser();
     }
 
-    public void send_authenticateUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toAuthenticate) throws org.apache.thrift.TException
+    public void send_authenticateUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.security.thrift.TCredentials toAuth) throws org.apache.thrift.TException
     {
       authenticateUser_args args = new authenticateUser_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
-      args.setToAuthenticate(toAuthenticate);
+      args.setCredentials(credentials);
+      args.setToAuth(toAuth);
       sendBase("authenticateUser", args);
     }
 
@@ -340,120 +475,17 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "authenticateUser failed: unknown result");
     }
 
-    public Set<String> listUsers(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void changeAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_listUsers(tinfo, credential);
-      return recv_listUsers();
-    }
-
-    public void send_listUsers(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential) throws org.apache.thrift.TException
-    {
-      listUsers_args args = new listUsers_args();
-      args.setTinfo(tinfo);
-      args.setCredential(credential);
-      sendBase("listUsers", args);
-    }
-
-    public Set<String> recv_listUsers() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
-    {
-      listUsers_result result = new listUsers_result();
-      receiveBase(result, "listUsers");
-      if (result.isSetSuccess()) {
-        return result.success;
-      }
-      if (result.sec != null) {
-        throw result.sec;
-      }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "listUsers failed: unknown result");
-    }
-
-    public void createUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toCreate, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
-    {
-      send_createUser(tinfo, credential, toCreate, authorizations);
-      recv_createUser();
-    }
-
-    public void send_createUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toCreate, List<ByteBuffer> authorizations) throws org.apache.thrift.TException
-    {
-      createUser_args args = new createUser_args();
-      args.setTinfo(tinfo);
-      args.setCredential(credential);
-      args.setToCreate(toCreate);
-      args.setAuthorizations(authorizations);
-      sendBase("createUser", args);
-    }
-
-    public void recv_createUser() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
-    {
-      createUser_result result = new createUser_result();
-      receiveBase(result, "createUser");
-      if (result.sec != null) {
-        throw result.sec;
-      }
-      return;
-    }
-
-    public void dropUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
-    {
-      send_dropUser(tinfo, credential, principal);
-      recv_dropUser();
-    }
-
-    public void send_dropUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal) throws org.apache.thrift.TException
-    {
-      dropUser_args args = new dropUser_args();
-      args.setTinfo(tinfo);
-      args.setCredential(credential);
-      args.setPrincipal(principal);
-      sendBase("dropUser", args);
-    }
-
-    public void recv_dropUser() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
-    {
-      dropUser_result result = new dropUser_result();
-      receiveBase(result, "dropUser");
-      if (result.sec != null) {
-        throw result.sec;
-      }
-      return;
-    }
-
-    public void changePassword(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toChange) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
-    {
-      send_changePassword(tinfo, credential, toChange);
-      recv_changePassword();
-    }
-
-    public void send_changePassword(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toChange) throws org.apache.thrift.TException
-    {
-      changePassword_args args = new changePassword_args();
-      args.setTinfo(tinfo);
-      args.setCredential(credential);
-      args.setToChange(toChange);
-      sendBase("changePassword", args);
-    }
-
-    public void recv_changePassword() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
-    {
-      changePassword_result result = new changePassword_result();
-      receiveBase(result, "changePassword");
-      if (result.sec != null) {
-        throw result.sec;
-      }
-      return;
-    }
-
-    public void changeAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, List<ByteBuffer> authorizations) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
-    {
-      send_changeAuthorizations(tinfo, credential, principal, authorizations);
+      send_changeAuthorizations(tinfo, credentials, principal, authorizations);
       recv_changeAuthorizations();
     }
 
-    public void send_changeAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, List<ByteBuffer> authorizations) throws org.apache.thrift.TException
+    public void send_changeAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, List<ByteBuffer> authorizations) throws org.apache.thrift.TException
     {
       changeAuthorizations_args args = new changeAuthorizations_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setPrincipal(principal);
       args.setAuthorizations(authorizations);
       sendBase("changeAuthorizations", args);
@@ -469,17 +501,17 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public List<ByteBuffer> getUserAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public List<ByteBuffer> getUserAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_getUserAuthorizations(tinfo, credential, principal);
+      send_getUserAuthorizations(tinfo, credentials, principal);
       return recv_getUserAuthorizations();
     }
 
-    public void send_getUserAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal) throws org.apache.thrift.TException
+    public void send_getUserAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal) throws org.apache.thrift.TException
     {
       getUserAuthorizations_args args = new getUserAuthorizations_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setPrincipal(principal);
       sendBase("getUserAuthorizations", args);
     }
@@ -497,17 +529,17 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getUserAuthorizations failed: unknown result");
     }
 
-    public boolean hasSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte sysPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public boolean hasSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte sysPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_hasSystemPermission(tinfo, credential, principal, sysPerm);
+      send_hasSystemPermission(tinfo, credentials, principal, sysPerm);
       return recv_hasSystemPermission();
     }
 
-    public void send_hasSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte sysPerm) throws org.apache.thrift.TException
+    public void send_hasSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte sysPerm) throws org.apache.thrift.TException
     {
       hasSystemPermission_args args = new hasSystemPermission_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setPrincipal(principal);
       args.setSysPerm(sysPerm);
       sendBase("hasSystemPermission", args);
@@ -526,17 +558,17 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasSystemPermission failed: unknown result");
     }
 
-    public boolean hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte tblPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public boolean hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte tblPerm) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_hasTablePermission(tinfo, credential, principal, tableName, tblPerm);
+      send_hasTablePermission(tinfo, credentials, principal, tableName, tblPerm);
       return recv_hasTablePermission();
     }
 
-    public void send_hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte tblPerm) throws org.apache.thrift.TException
+    public void send_hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte tblPerm) throws org.apache.thrift.TException
     {
       hasTablePermission_args args = new hasTablePermission_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setPrincipal(principal);
       args.setTableName(tableName);
       args.setTblPerm(tblPerm);
@@ -559,17 +591,17 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasTablePermission failed: unknown result");
     }
 
-    public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_grantSystemPermission(tinfo, credential, principal, permission);
+      send_grantSystemPermission(tinfo, credentials, principal, permission);
       recv_grantSystemPermission();
     }
 
-    public void send_grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission) throws org.apache.thrift.TException
+    public void send_grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws org.apache.thrift.TException
     {
       grantSystemPermission_args args = new grantSystemPermission_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setPrincipal(principal);
       args.setPermission(permission);
       sendBase("grantSystemPermission", args);
@@ -585,17 +617,17 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_revokeSystemPermission(tinfo, credential, principal, permission);
+      send_revokeSystemPermission(tinfo, credentials, principal, permission);
       recv_revokeSystemPermission();
     }
 
-    public void send_revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission) throws org.apache.thrift.TException
+    public void send_revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws org.apache.thrift.TException
     {
       revokeSystemPermission_args args = new revokeSystemPermission_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setPrincipal(principal);
       args.setPermission(permission);
       sendBase("revokeSystemPermission", args);
@@ -611,17 +643,17 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public void grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_grantTablePermission(tinfo, credential, principal, tableName, permission);
+      send_grantTablePermission(tinfo, credentials, principal, tableName, permission);
       recv_grantTablePermission();
     }
 
-    public void send_grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission) throws org.apache.thrift.TException
+    public void send_grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission) throws org.apache.thrift.TException
     {
       grantTablePermission_args args = new grantTablePermission_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setPrincipal(principal);
       args.setTableName(tableName);
       args.setPermission(permission);
@@ -641,17 +673,17 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_revokeTablePermission(tinfo, credential, principal, tableName, permission);
+      send_revokeTablePermission(tinfo, credentials, principal, tableName, permission);
       recv_revokeTablePermission();
     }
 
-    public void send_revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission) throws org.apache.thrift.TException
+    public void send_revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission) throws org.apache.thrift.TException
     {
       revokeTablePermission_args args = new revokeTablePermission_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setPrincipal(principal);
       args.setTableName(tableName);
       args.setPermission(permission);
@@ -671,17 +703,17 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public Map<String,String> getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, ConfigurationType type) throws org.apache.thrift.TException
+    public Map<String,String> getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, ConfigurationType type) throws org.apache.thrift.TException
     {
-      send_getConfiguration(tinfo, credential, type);
+      send_getConfiguration(tinfo, credentials, type);
       return recv_getConfiguration();
     }
 
-    public void send_getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, ConfigurationType type) throws org.apache.thrift.TException
+    public void send_getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, ConfigurationType type) throws org.apache.thrift.TException
     {
       getConfiguration_args args = new getConfiguration_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setType(type);
       sendBase("getConfiguration", args);
     }
@@ -696,17 +728,17 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getConfiguration failed: unknown result");
     }
 
-    public Map<String,String> getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String tableName) throws ThriftTableOperationException, org.apache.thrift.TException
+    public Map<String,String> getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableName) throws ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_getTableConfiguration(tinfo, credential, tableName);
+      send_getTableConfiguration(tinfo, credentials, tableName);
       return recv_getTableConfiguration();
     }
 
-    public void send_getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String tableName) throws org.apache.thrift.TException
+    public void send_getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableName) throws org.apache.thrift.TException
     {
       getTableConfiguration_args args = new getTableConfiguration_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setTableName(tableName);
       sendBase("getTableConfiguration", args);
     }
@@ -724,17 +756,17 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTableConfiguration failed: unknown result");
     }
 
-    public boolean checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String className, String interfaceMatch) throws org.apache.thrift.TException
+    public boolean checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String className, String interfaceMatch) throws org.apache.thrift.TException
     {
-      send_checkClass(tinfo, credential, className, interfaceMatch);
+      send_checkClass(tinfo, credentials, className, interfaceMatch);
       return recv_checkClass();
     }
 
-    public void send_checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String className, String interfaceMatch) throws org.apache.thrift.TException
+    public void send_checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String className, String interfaceMatch) throws org.apache.thrift.TException
     {
       checkClass_args args = new checkClass_args();
       args.setTinfo(tinfo);
-      args.setCredential(credential);
+      args.setCredentials(credentials);
       args.setClassName(className);
       args.setInterfaceMatch(interfaceMatch);
       sendBase("checkClass", args);
@@ -855,25 +887,25 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void bulkImportFiles(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<bulkImportFiles_call> resultHandler) throws org.apache.thrift.TException {
+    public void bulkImportFiles(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<bulkImportFiles_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      bulkImportFiles_call method_call = new bulkImportFiles_call(tinfo, credential, tid, tableId, files, errorDir, setTime, resultHandler, this, ___protocolFactory, ___transport);
+      bulkImportFiles_call method_call = new bulkImportFiles_call(tinfo, credentials, tid, tableId, files, errorDir, setTime, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class bulkImportFiles_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private long tid;
       private String tableId;
       private List<String> files;
       private String errorDir;
       private boolean setTime;
-      public bulkImportFiles_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<bulkImportFiles_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public bulkImportFiles_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long tid, String tableId, List<String> files, String errorDir, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<bulkImportFiles_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.tid = tid;
         this.tableId = tableId;
         this.files = files;
@@ -885,7 +917,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("bulkImportFiles", org.apache.thrift.protocol.TMessageType.CALL, 0));
         bulkImportFiles_args args = new bulkImportFiles_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setTid(tid);
         args.setTableId(tableId);
         args.setFiles(files);
@@ -940,24 +972,24 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void ping(org.apache.accumulo.core.security.thrift.Credential credential, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler) throws org.apache.thrift.TException {
+    public void ping(org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      ping_call method_call = new ping_call(credential, resultHandler, this, ___protocolFactory, ___transport);
+      ping_call method_call = new ping_call(credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class ping_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private org.apache.accumulo.core.security.thrift.Credential credential;
-      public ping_call(org.apache.accumulo.core.security.thrift.Credential credential, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      public ping_call(org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.credential = credential;
+        this.credentials = credentials;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("ping", org.apache.thrift.protocol.TMessageType.CALL, 0));
         ping_args args = new ping_args();
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -972,30 +1004,220 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void authenticateUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toAuthenticate, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler) throws org.apache.thrift.TException {
+    public void listLocalUsers(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<listLocalUsers_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      authenticateUser_call method_call = new authenticateUser_call(tinfo, credential, toAuthenticate, resultHandler, this, ___protocolFactory, ___transport);
+      listLocalUsers_call method_call = new listLocalUsers_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class listLocalUsers_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private org.apache.accumulo.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      public listLocalUsers_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<listLocalUsers_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("listLocalUsers", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        listLocalUsers_args args = new listLocalUsers_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public Set<String> getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_listLocalUsers();
+      }
+    }
+
+    public void createLocalUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<createLocalUser_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      createLocalUser_call method_call = new createLocalUser_call(tinfo, credentials, principal, password, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class createLocalUser_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private org.apache.accumulo.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      private String principal;
+      private ByteBuffer password;
+      public createLocalUser_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<createLocalUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.principal = principal;
+        this.password = password;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("createLocalUser", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        createLocalUser_args args = new createLocalUser_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setPrincipal(principal);
+        args.setPassword(password);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_createLocalUser();
+      }
+    }
+
+    public void dropLocalUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, org.apache.thrift.async.AsyncMethodCallback<dropLocalUser_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      dropLocalUser_call method_call = new dropLocalUser_call(tinfo, credentials, principal, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class dropLocalUser_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private org.apache.accumulo.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      private String principal;
+      public dropLocalUser_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, org.apache.thrift.async.AsyncMethodCallback<dropLocalUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.principal = principal;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("dropLocalUser", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        dropLocalUser_args args = new dropLocalUser_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setPrincipal(principal);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_dropLocalUser();
+      }
+    }
+
+    public void changeLocalUserPassword(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<changeLocalUserPassword_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      changeLocalUserPassword_call method_call = new changeLocalUserPassword_call(tinfo, credentials, principal, password, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class changeLocalUserPassword_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private org.apache.accumulo.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      private String principal;
+      private ByteBuffer password;
+      public changeLocalUserPassword_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, ByteBuffer password, org.apache.thrift.async.AsyncMethodCallback<changeLocalUserPassword_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.principal = principal;
+        this.password = password;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("changeLocalUserPassword", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        changeLocalUserPassword_args args = new changeLocalUserPassword_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setPrincipal(principal);
+        args.setPassword(password);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_changeLocalUserPassword();
+      }
+    }
+
+    public void authenticate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<authenticate_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      authenticate_call method_call = new authenticate_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class authenticate_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private org.apache.accumulo.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      public authenticate_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<authenticate_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("authenticate", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        authenticate_args args = new authenticate_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public boolean getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_authenticate();
+      }
+    }
+
+    public void authenticateUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.security.thrift.TCredentials toAuth, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      authenticateUser_call method_call = new authenticateUser_call(tinfo, credentials, toAuth, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class authenticateUser_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
-      private org.apache.accumulo.core.security.thrift.Credential toAuthenticate;
-      public authenticateUser_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toAuthenticate, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      private org.apache.accumulo.core.security.thrift.TCredentials toAuth;
+      public authenticateUser_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.security.thrift.TCredentials toAuth, org.apache.thrift.async.AsyncMethodCallback<authenticateUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
-        this.toAuthenticate = toAuthenticate;
+        this.credentials = credentials;
+        this.toAuth = toAuth;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("authenticateUser", org.apache.thrift.protocol.TMessageType.CALL, 0));
         authenticateUser_args args = new authenticateUser_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
-        args.setToAuthenticate(toAuthenticate);
+        args.setCredentials(credentials);
+        args.setToAuth(toAuth);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -1010,174 +1232,22 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void listUsers(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.thrift.async.AsyncMethodCallback<listUsers_call> resultHandler) throws org.apache.thrift.TException {
+    public void changeAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      listUsers_call method_call = new listUsers_call(tinfo, credential, resultHandler, this, ___protocolFactory, ___transport);
-      this.___currentMethod = method_call;
-      ___manager.call(method_call);
-    }
-
-    public static class listUsers_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
-      public listUsers_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.thrift.async.AsyncMethodCallback<listUsers_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
-        super(client, protocolFactory, transport, resultHandler, false);
-        this.tinfo = tinfo;
-        this.credential = credential;
-      }
-
-      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("listUsers", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        listUsers_args args = new listUsers_args();
-        args.setTinfo(tinfo);
-        args.setCredential(credential);
-        args.write(prot);
-        prot.writeMessageEnd();
-      }
-
-      public Set<String> getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
-        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
-          throw new IllegalStateException("Method call not finished!");
-        }
-        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
-        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_listUsers();
-      }
-    }
-
-    public void createUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toCreate, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<createUser_call> resultHandler) throws org.apache.thrift.TException {
-      checkReady();
-      createUser_call method_call = new createUser_call(tinfo, credential, toCreate, authorizations, resultHandler, this, ___protocolFactory, ___transport);
-      this.___currentMethod = method_call;
-      ___manager.call(method_call);
-    }
-
-    public static class createUser_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
-      private org.apache.accumulo.core.security.thrift.Credential toCreate;
-      private List<ByteBuffer> authorizations;
-      public createUser_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toCreate, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<createUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
-        super(client, protocolFactory, transport, resultHandler, false);
-        this.tinfo = tinfo;
-        this.credential = credential;
-        this.toCreate = toCreate;
-        this.authorizations = authorizations;
-      }
-
-      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("createUser", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        createUser_args args = new createUser_args();
-        args.setTinfo(tinfo);
-        args.setCredential(credential);
-        args.setToCreate(toCreate);
-        args.setAuthorizations(authorizations);
-        args.write(prot);
-        prot.writeMessageEnd();
-      }
-
-      public void getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
-        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
-          throw new IllegalStateException("Method call not finished!");
-        }
-        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
-        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_createUser();
-      }
-    }
-
-    public void dropUser(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, org.apache.thrift.async.AsyncMethodCallback<dropUser_call> resultHandler) throws org.apache.thrift.TException {
-      checkReady();
-      dropUser_call method_call = new dropUser_call(tinfo, credential, principal, resultHandler, this, ___protocolFactory, ___transport);
-      this.___currentMethod = method_call;
-      ___manager.call(method_call);
-    }
-
-    public static class dropUser_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
-      private String principal;
-      public dropUser_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, org.apache.thrift.async.AsyncMethodCallback<dropUser_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
-        super(client, protocolFactory, transport, resultHandler, false);
-        this.tinfo = tinfo;
-        this.credential = credential;
-        this.principal = principal;
-      }
-
-      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("dropUser", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        dropUser_args args = new dropUser_args();
-        args.setTinfo(tinfo);
-        args.setCredential(credential);
-        args.setPrincipal(principal);
-        args.write(prot);
-        prot.writeMessageEnd();
-      }
-
-      public void getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
-        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
-          throw new IllegalStateException("Method call not finished!");
-        }
-        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
-        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_dropUser();
-      }
-    }
-
-    public void changePassword(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toChange, org.apache.thrift.async.AsyncMethodCallback<changePassword_call> resultHandler) throws org.apache.thrift.TException {
-      checkReady();
-      changePassword_call method_call = new changePassword_call(tinfo, credential, toChange, resultHandler, this, ___protocolFactory, ___transport);
-      this.___currentMethod = method_call;
-      ___manager.call(method_call);
-    }
-
-    public static class changePassword_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
-      private org.apache.accumulo.core.security.thrift.Credential toChange;
-      public changePassword_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, org.apache.accumulo.core.security.thrift.Credential toChange, org.apache.thrift.async.AsyncMethodCallback<changePassword_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
-        super(client, protocolFactory, transport, resultHandler, false);
-        this.tinfo = tinfo;
-        this.credential = credential;
-        this.toChange = toChange;
-      }
-
-      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("changePassword", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        changePassword_args args = new changePassword_args();
-        args.setTinfo(tinfo);
-        args.setCredential(credential);
-        args.setToChange(toChange);
-        args.write(prot);
-        prot.writeMessageEnd();
-      }
-
-      public void getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
-        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
-          throw new IllegalStateException("Method call not finished!");
-        }
-        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
-        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_changePassword();
-      }
-    }
-
-    public void changeAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
-      checkReady();
-      changeAuthorizations_call method_call = new changeAuthorizations_call(tinfo, credential, principal, authorizations, resultHandler, this, ___protocolFactory, ___transport);
+      changeAuthorizations_call method_call = new changeAuthorizations_call(tinfo, credentials, principal, authorizations, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class changeAuthorizations_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
       private List<ByteBuffer> authorizations;
-      public changeAuthorizations_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public changeAuthorizations_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, List<ByteBuffer> authorizations, org.apache.thrift.async.AsyncMethodCallback<changeAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.principal = principal;
         this.authorizations = authorizations;
       }
@@ -1186,7 +1256,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("changeAuthorizations", org.apache.thrift.protocol.TMessageType.CALL, 0));
         changeAuthorizations_args args = new changeAuthorizations_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setPrincipal(principal);
         args.setAuthorizations(authorizations);
         args.write(prot);
@@ -1203,21 +1273,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getUserAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
+    public void getUserAuthorizations(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getUserAuthorizations_call method_call = new getUserAuthorizations_call(tinfo, credential, principal, resultHandler, this, ___protocolFactory, ___transport);
+      getUserAuthorizations_call method_call = new getUserAuthorizations_call(tinfo, credentials, principal, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getUserAuthorizations_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
-      public getUserAuthorizations_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getUserAuthorizations_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, org.apache.thrift.async.AsyncMethodCallback<getUserAuthorizations_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.principal = principal;
       }
 
@@ -1225,7 +1295,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getUserAuthorizations", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getUserAuthorizations_args args = new getUserAuthorizations_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setPrincipal(principal);
         args.write(prot);
         prot.writeMessageEnd();
@@ -1241,22 +1311,22 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void hasSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void hasSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      hasSystemPermission_call method_call = new hasSystemPermission_call(tinfo, credential, principal, sysPerm, resultHandler, this, ___protocolFactory, ___transport);
+      hasSystemPermission_call method_call = new hasSystemPermission_call(tinfo, credentials, principal, sysPerm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class hasSystemPermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
       private byte sysPerm;
-      public hasSystemPermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public hasSystemPermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte sysPerm, org.apache.thrift.async.AsyncMethodCallback<hasSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.principal = principal;
         this.sysPerm = sysPerm;
       }
@@ -1265,7 +1335,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("hasSystemPermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         hasSystemPermission_args args = new hasSystemPermission_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setPrincipal(principal);
         args.setSysPerm(sysPerm);
         args.write(prot);
@@ -1282,23 +1352,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      hasTablePermission_call method_call = new hasTablePermission_call(tinfo, credential, principal, tableName, tblPerm, resultHandler, this, ___protocolFactory, ___transport);
+      hasTablePermission_call method_call = new hasTablePermission_call(tinfo, credentials, principal, tableName, tblPerm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class hasTablePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
       private String tableName;
       private byte tblPerm;
-      public hasTablePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public hasTablePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<hasTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.principal = principal;
         this.tableName = tableName;
         this.tblPerm = tblPerm;
@@ -1308,7 +1378,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("hasTablePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         hasTablePermission_args args = new hasTablePermission_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setPrincipal(principal);
         args.setTableName(tableName);
         args.setTblPerm(tblPerm);
@@ -1326,22 +1396,22 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      grantSystemPermission_call method_call = new grantSystemPermission_call(tinfo, credential, principal, permission, resultHandler, this, ___protocolFactory, ___transport);
+      grantSystemPermission_call method_call = new grantSystemPermission_call(tinfo, credentials, principal, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class grantSystemPermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
       private byte permission;
-      public grantSystemPermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public grantSystemPermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.principal = principal;
         this.permission = permission;
       }
@@ -1350,7 +1420,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("grantSystemPermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         grantSystemPermission_args args = new grantSystemPermission_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setPrincipal(principal);
         args.setPermission(permission);
         args.write(prot);
@@ -1367,22 +1437,22 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      revokeSystemPermission_call method_call = new revokeSystemPermission_call(tinfo, credential, principal, permission, resultHandler, this, ___protocolFactory, ___transport);
+      revokeSystemPermission_call method_call = new revokeSystemPermission_call(tinfo, credentials, principal, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class revokeSystemPermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
       private byte permission;
-      public revokeSystemPermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public revokeSystemPermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeSystemPermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.principal = principal;
         this.permission = permission;
       }
@@ -1391,7 +1461,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("revokeSystemPermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         revokeSystemPermission_args args = new revokeSystemPermission_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setPrincipal(principal);
         args.setPermission(permission);
         args.write(prot);
@@ -1408,23 +1478,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      grantTablePermission_call method_call = new grantTablePermission_call(tinfo, credential, principal, tableName, permission, resultHandler, this, ___protocolFactory, ___transport);
+      grantTablePermission_call method_call = new grantTablePermission_call(tinfo, credentials, principal, tableName, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class grantTablePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
       private String tableName;
       private byte permission;
-      public grantTablePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public grantTablePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.principal = principal;
         this.tableName = tableName;
         this.permission = permission;
@@ -1434,7 +1504,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("grantTablePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         grantTablePermission_args args = new grantTablePermission_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setPrincipal(principal);
         args.setTableName(tableName);
         args.setPermission(permission);
@@ -1452,23 +1522,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      revokeTablePermission_call method_call = new revokeTablePermission_call(tinfo, credential, principal, tableName, permission, resultHandler, this, ___protocolFactory, ___transport);
+      revokeTablePermission_call method_call = new revokeTablePermission_call(tinfo, credentials, principal, tableName, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class revokeTablePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
       private String tableName;
       private byte permission;
-      public revokeTablePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public revokeTablePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTablePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.principal = principal;
         this.tableName = tableName;
         this.permission = permission;
@@ -1478,7 +1548,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("revokeTablePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
         revokeTablePermission_args args = new revokeTablePermission_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setPrincipal(principal);
         args.setTableName(tableName);
         args.setPermission(permission);
@@ -1496,21 +1566,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, ConfigurationType type, org.apache.thrift.async.AsyncMethodCallback<getConfiguration_call> resultHandler) throws org.apache.thrift.TException {
+    public void getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, ConfigurationType type, org.apache.thrift.async.AsyncMethodCallback<getConfiguration_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getConfiguration_call method_call = new getConfiguration_call(tinfo, credential, type, resultHandler, this, ___protocolFactory, ___transport);
+      getConfiguration_call method_call = new getConfiguration_call(tinfo, credentials, type, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getConfiguration_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private ConfigurationType type;
-      public getConfiguration_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, ConfigurationType type, org.apache.thrift.async.AsyncMethodCallback<getConfiguration_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getConfiguration_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, ConfigurationType type, org.apache.thrift.async.AsyncMethodCallback<getConfiguration_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.type = type;
       }
 
@@ -1518,7 +1588,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getConfiguration", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getConfiguration_args args = new getConfiguration_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setType(type);
         args.write(prot);
         prot.writeMessageEnd();
@@ -1534,21 +1604,21 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String tableName, org.apache.thrift.async.AsyncMethodCallback<getTableConfiguration_call> resultHandler) throws org.apache.thrift.TException {
+    public void getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableName, org.apache.thrift.async.AsyncMethodCallback<getTableConfiguration_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getTableConfiguration_call method_call = new getTableConfiguration_call(tinfo, credential, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      getTableConfiguration_call method_call = new getTableConfiguration_call(tinfo, credentials, tableName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getTableConfiguration_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String tableName;
-      public getTableConfiguration_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String tableName, org.apache.thrift.async.AsyncMethodCallback<getTableConfiguration_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getTableConfiguration_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableName, org.apache.thrift.async.AsyncMethodCallback<getTableConfiguration_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.tableName = tableName;
       }
 
@@ -1556,7 +1626,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getTableConfiguration", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getTableConfiguration_args args = new getTableConfiguration_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setTableName(tableName);
         args.write(prot);
         prot.writeMessageEnd();
@@ -1572,22 +1642,22 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<checkClass_call> resultHandler) throws org.apache.thrift.TException {
+    public void checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<checkClass_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      checkClass_call method_call = new checkClass_call(tinfo, credential, className, interfaceMatch, resultHandler, this, ___protocolFactory, ___transport);
+      checkClass_call method_call = new checkClass_call(tinfo, credentials, className, interfaceMatch, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class checkClass_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.Credential credential;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String className;
       private String interfaceMatch;
-      public checkClass_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.Credential credential, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<checkClass_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public checkClass_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<checkClass_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credential = credential;
+        this.credentials = credentials;
         this.className = className;
         this.interfaceMatch = interfaceMatch;
       }
@@ -1596,7 +1666,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("checkClass", org.apache.thrift.protocol.TMessageType.CALL, 0));
         checkClass_args args = new checkClass_args();
         args.setTinfo(tinfo);
-        args.setCredential(credential);
+        args.setCredentials(credentials);
         args.setClassName(className);
         args.setInterfaceMatch(interfaceMatch);
         args.write(prot);
@@ -1632,11 +1702,12 @@ import org.slf4j.LoggerFactory;
       processMap.put("bulkImportFiles", new bulkImportFiles());
       processMap.put("isActive", new isActive());
       processMap.put("ping", new ping());
+      processMap.put("listLocalUsers", new listLocalUsers());
+      processMap.put("createLocalUser", new createLocalUser());
+      processMap.put("dropLocalUser", new dropLocalUser());
+      processMap.put("changeLocalUserPassword", new changeLocalUserPassword());
+      processMap.put("authenticate", new authenticate());
       processMap.put("authenticateUser", new authenticateUser());
-      processMap.put("listUsers", new listUsers());
-      processMap.put("createUser", new createUser());
-      processMap.put("dropUser", new dropUser());
-      processMap.put("changePassword", new changePassword());
       processMap.put("changeAuthorizations", new changeAuthorizations());
       processMap.put("getUserAuthorizations", new getUserAuthorizations());
       processMap.put("hasSystemPermission", new hasSystemPermission());
@@ -1727,7 +1798,7 @@ import org.slf4j.LoggerFactory;
       public bulkImportFiles_result getResult(I iface, bulkImportFiles_args args) throws org.apache.thrift.TException {
         bulkImportFiles_result result = new bulkImportFiles_result();
         try {
-          result.success = iface.bulkImportFiles(args.tinfo, args.credential, args.tid, args.tableId, args.files, args.errorDir, args.setTime);
+          result.success = iface.bulkImportFiles(args.tinfo, args.credentials, args.tid, args.tableId, args.files, args.errorDir, args.setTime);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (ThriftTableOperationException tope) {
@@ -1774,7 +1845,128 @@ import org.slf4j.LoggerFactory;
       public ping_result getResult(I iface, ping_args args) throws org.apache.thrift.TException {
         ping_result result = new ping_result();
         try {
-          iface.ping(args.credential);
+          iface.ping(args.credentials);
+        } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+          result.sec = sec;
+        }
+        return result;
+      }
+    }
+
+    public static class listLocalUsers<I extends Iface> extends org.apache.thrift.ProcessFunction<I, listLocalUsers_args> {
+      public listLocalUsers() {
+        super("listLocalUsers");
+      }
+
+      public listLocalUsers_args getEmptyArgsInstance() {
+        return new listLocalUsers_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public listLocalUsers_result getResult(I iface, listLocalUsers_args args) throws org.apache.thrift.TException {
+        listLocalUsers_result result = new listLocalUsers_result();
+        try {
+          result.success = iface.listLocalUsers(args.tinfo, args.credentials);
+        } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+          result.sec = sec;
+        }
+        return result;
+      }
+    }
+
+    public static class createLocalUser<I extends Iface> extends org.apache.thrift.ProcessFunction<I, createLocalUser_args> {
+      public createLocalUser() {
+        super("createLocalUser");
+      }
+
+      public createLocalUser_args getEmptyArgsInstance() {
+        return new createLocalUser_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public createLocalUser_result getResult(I iface, createLocalUser_args args) throws org.apache.thrift.TException {
+        createLocalUser_result result = new createLocalUser_result();
+        try {
+          iface.createLocalUser(args.tinfo, args.credentials, args.principal, args.password);
+        } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+          result.sec = sec;
+        }
+        return result;
+      }
+    }
+
+    public static class dropLocalUser<I extends Iface> extends org.apache.thrift.ProcessFunction<I, dropLocalUser_args> {
+      public dropLocalUser() {
+        super("dropLocalUser");
+      }
+
+      public dropLocalUser_args getEmptyArgsInstance() {
+        return new dropLocalUser_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public dropLocalUser_result getResult(I iface, dropLocalUser_args args) throws org.apache.thrift.TException {
+        dropLocalUser_result result = new dropLocalUser_result();
+        try {
+          iface.dropLocalUser(args.tinfo, args.credentials, args.principal);
+        } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+          result.sec = sec;
+        }
+        return result;
+      }
+    }
+
+    public static class changeLocalUserPassword<I extends Iface> extends org.apache.thrift.ProcessFunction<I, changeLocalUserPassword_args> {
+      public changeLocalUserPassword() {
+        super("changeLocalUserPassword");
+      }
+
+      public changeLocalUserPassword_args getEmptyArgsInstance() {
+        return new changeLocalUserPassword_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public changeLocalUserPassword_result getResult(I iface, changeLocalUserPassword_args args) throws org.apache.thrift.TException {
+        changeLocalUserPassword_result result = new changeLocalUserPassword_result();
+        try {
+          iface.changeLocalUserPassword(args.tinfo, args.credentials, args.principal, args.password);
+        } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+          result.sec = sec;
+        }
+        return result;
+      }
+    }
+
+    public static class authenticate<I extends Iface> extends org.apache.thrift.ProcessFunction<I, authenticate_args> {
+      public authenticate() {
+        super("authenticate");
+      }
+
+      public authenticate_args getEmptyArgsInstance() {
+        return new authenticate_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public authenticate_result getResult(I iface, authenticate_args args) throws org.apache.thrift.TException {
+        authenticate_result result = new authenticate_result();
+        try {
+          result.success = iface.authenticate(args.tinfo, args.credentials);
+          result.setSuccessIsSet(true);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -1798,104 +1990,8 @@ import org.slf4j.LoggerFactory;
       public authenticateUser_result getResult(I iface, authenticateUser_args args) throws org.apache.thrift.TException {
         authenticateUser_result result = new authenticateUser_result();
         try {
-          result.success = iface.authenticateUser(args.tinfo, args.credential, args.toAuthenticate);
+          result.success = iface.authenticateUser(args.tinfo, args.credentials, args.toAuth);
           result.setSuccessIsSet(true);
-        } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
-          result.sec = sec;
-        }
-        return result;
-      }
-    }
-
-    public static class listUsers<I extends Iface> extends org.apache.thrift.ProcessFunction<I, listUsers_args> {
-      public listUsers() {
-        super("listUsers");
-      }
-
-      public listUsers_args getEmptyArgsInstance() {
-        return new listUsers_args();
-      }
-
-      protected boolean isOneway() {
-        return false;
-      }
-
-      public listUsers_result getResult(I iface, listUsers_args args) throws org.apache.thrift.TException {
-        listUsers_result result = new listUsers_result();
-        try {
-          result.success = iface.listUsers(args.tinfo, args.credential);
-        } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
-          result.sec = sec;
-        }
-        return result;
-      }
-    }
-
-    public static class createUser<I extends Iface> extends org.apache.thrift.ProcessFunction<I, createUser_args> {
-      public createUser() {
-        super("createUser");
-      }
-
-      public createUser_args getEmptyArgsInstance() {
-        return new createUser_args();
-      }
-
-      protected boolean isOneway() {
-        return false;
-      }
-
-      public createUser_result getResult(I iface, createUser_args args) throws org.apache.thrift.TException {
-        createUser_result result = new createUser_result();
-        try {
-          iface.createUser(args.tinfo, args.credential, args.toCreate, args.authorizations);
-        } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
-          result.sec = sec;
-        }
-        return result;
-      }
-    }
-
-    public static class dropUser<I extends Iface> extends org.apache.thrift.ProcessFunction<I, dropUser_args> {
-      public dropUser() {
-        super("dropUser");
-      }
-
-      public dropUser_args getEmptyArgsInstance() {
-        return new dropUser_args();
-      }
-
-      protected boolean isOneway() {
-        return false;
-      }
-
-      public dropUser_result getResult(I iface, dropUser_args args) throws org.apache.thrift.TException {
-        dropUser_result result = new dropUser_result();
-        try {
-          iface.dropUser(args.tinfo, args.credential, args.principal);
-        } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
-          result.sec = sec;
-        }
-        return result;
-      }
-    }
-
-    public static class changePassword<I extends Iface> extends org.apache.thrift.ProcessFunction<I, changePassword_args> {
-      public changePassword() {
-        super("changePassword");
-      }
-
-      public changePassword_args getEmptyArgsInstance() {
-        return new changePassword_args();
-      }
-
-      protected boolean isOneway() {
-        return false;
-      }
-
-      public changePassword_result getResult(I iface, changePassword_args args) throws org.apache.thrift.TException {
-        changePassword_result result = new changePassword_result();
-        try {
-          iface.changePassword(args.tinfo, args.credential, args.toChange);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -1919,7 +2015,7 @@ import org.slf4j.LoggerFactory;
       public changeAuthorizations_result getResult(I iface, changeAuthorizations_args args) throws org.apache.thrift.TException {
         changeAuthorizations_result result = new changeAuthorizations_result();
         try {
-          iface.changeAuthorizations(args.tinfo, args.credential, args.principal, args.authorizations);
+          iface.changeAuthorizations(args.tinfo, args.credentials, args.principal, args.authorizations);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -1943,7 +2039,7 @@ import org.slf4j.LoggerFactory;
       public getUserAuthorizations_result getResult(I iface, getUserAuthorizations_args args) throws org.apache.thrift.TException {
         getUserAuthorizations_result result = new getUserAuthorizations_result();
         try {
-          result.success = iface.getUserAuthorizations(args.tinfo, args.credential, args.principal);
+          result.success = iface.getUserAuthorizations(args.tinfo, args.credentials, args.principal);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -1967,7 +2063,7 @@ import org.slf4j.LoggerFactory;
       public hasSystemPermission_result getResult(I iface, hasSystemPermission_args args) throws org.apache.thrift.TException {
         hasSystemPermission_result result = new hasSystemPermission_result();
         try {
-          result.success = iface.hasSystemPermission(args.tinfo, args.credential, args.principal, args.sysPerm);
+          result.success = iface.hasSystemPermission(args.tinfo, args.credentials, args.principal, args.sysPerm);
           result.setSuccessIsSet(true);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
@@ -1992,7 +2088,7 @@ import org.slf4j.LoggerFactory;
       public hasTablePermission_result getResult(I iface, hasTablePermission_args args) throws org.apache.thrift.TException {
         hasTablePermission_result result = new hasTablePermission_result();
         try {
-          result.success = iface.hasTablePermission(args.tinfo, args.credential, args.principal, args.tableName, args.tblPerm);
+          result.success = iface.hasTablePermission(args.tinfo, args.credentials, args.principal, args.tableName, args.tblPerm);
           result.setSuccessIsSet(true);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
@@ -2019,7 +2115,7 @@ import org.slf4j.LoggerFactory;
       public grantSystemPermission_result getResult(I iface, grantSystemPermission_args args) throws org.apache.thrift.TException {
         grantSystemPermission_result result = new grantSystemPermission_result();
         try {
-          iface.grantSystemPermission(args.tinfo, args.credential, args.principal, args.permission);
+          iface.grantSystemPermission(args.tinfo, args.credentials, args.principal, args.permission);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -2043,7 +2139,7 @@ import org.slf4j.LoggerFactory;
       public revokeSystemPermission_result getResult(I iface, revokeSystemPermission_args args) throws org.apache.thrift.TException {
         revokeSystemPermission_result result = new revokeSystemPermission_result();
         try {
-          iface.revokeSystemPermission(args.tinfo, args.credential, args.principal, args.permission);
+          iface.revokeSystemPermission(args.tinfo, args.credentials, args.principal, args.permission);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -2067,7 +2163,7 @@ import org.slf4j.LoggerFactory;
       public grantTablePermission_result getResult(I iface, grantTablePermission_args args) throws org.apache.thrift.TException {
         grantTablePermission_result result = new grantTablePermission_result();
         try {
-          iface.grantTablePermission(args.tinfo, args.credential, args.principal, args.tableName, args.permission);
+          iface.grantTablePermission(args.tinfo, args.credentials, args.principal, args.tableName, args.permission);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (ThriftTableOperationException tope) {
@@ -2093,7 +2189,7 @@ import org.slf4j.LoggerFactory;
       public revokeTablePermission_result getResult(I iface, revokeTablePermission_args args) throws org.apache.thrift.TException {
         revokeTablePermission_result result = new revokeTablePermission_result();
         try {
-          iface.revokeTablePermission(args.tinfo, args.credential, args.principal, args.tableName, args.permission);
+          iface.revokeTablePermission(args.tinfo, args.credentials, args.principal, args.tableName, args.permission);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (ThriftTableOperationException tope) {
@@ -2118,7 +2214,7 @@ import org.slf4j.LoggerFactory;
 
       public getConfiguration_result getResult(I iface, getConfiguration_args args) throws org.apache.thrift.TException {
         getConfiguration_result result = new getConfiguration_result();
-        result.success = iface.getConfiguration(args.tinfo, args.credential, args.type);
+        result.success = iface.getConfiguration(args.tinfo, args.credentials, args.type);
         return result;
       }
     }
@@ -2139,7 +2235,7 @@ import org.slf4j.LoggerFactory;
       public getTableConfiguration_result getResult(I iface, getTableConfiguration_args args) throws org.apache.thrift.TException {
         getTableConfiguration_result result = new getTableConfiguration_result();
         try {
-          result.success = iface.getTableConfiguration(args.tinfo, args.credential, args.tableName);
+          result.success = iface.getTableConfiguration(args.tinfo, args.credentials, args.tableName);
         } catch (ThriftTableOperationException tope) {
           result.tope = tope;
         }
@@ -2162,7 +2258,7 @@ import org.slf4j.LoggerFactory;
 
       public checkClass_result getResult(I iface, checkClass_args args) throws org.apache.thrift.TException {
         checkClass_result result = new checkClass_result();
-        result.success = iface.checkClass(args.tinfo, args.credential, args.className, args.interfaceMatch);
+        result.success = iface.checkClass(args.tinfo, args.credentials, args.className, args.interfaceMatch);
         result.setSuccessIsSet(true);
         return result;
       }
@@ -3974,7 +4070,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("bulkImportFiles_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)8);
     private static final org.apache.thrift.protocol.TField TID_FIELD_DESC = new org.apache.thrift.protocol.TField("tid", org.apache.thrift.protocol.TType.I64, (short)3);
     private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableId", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField FILES_FIELD_DESC = new org.apache.thrift.protocol.TField("files", org.apache.thrift.protocol.TType.LIST, (short)5);
@@ -3988,7 +4084,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public long tid; // required
     public String tableId; // required
     public List<String> files; // required
@@ -3998,7 +4094,7 @@ import org.slf4j.LoggerFactory;
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
-      CREDENTIAL((short)2, "credential"),
+      CREDENTIALS((short)8, "credentials"),
       TID((short)3, "tid"),
       TABLE_ID((short)4, "tableId"),
       FILES((short)5, "files"),
@@ -4020,8 +4116,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 1: // TINFO
             return TINFO;
-          case 2: // CREDENTIAL
-            return CREDENTIAL;
+          case 8: // CREDENTIALS
+            return CREDENTIALS;
           case 3: // TID
             return TID;
           case 4: // TABLE_ID
@@ -4080,8 +4176,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.TID, new org.apache.thrift.meta_data.FieldMetaData("tid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       tmpMap.put(_Fields.TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("tableId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -4102,7 +4198,7 @@ import org.slf4j.LoggerFactory;
 
     public bulkImportFiles_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       long tid,
       String tableId,
       List<String> files,
@@ -4111,7 +4207,7 @@ import org.slf4j.LoggerFactory;
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.tid = tid;
       setTidIsSet(true);
       this.tableId = tableId;
@@ -4129,8 +4225,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       this.tid = other.tid;
       if (other.isSetTableId()) {
@@ -4156,7 +4252,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       setTidIsSet(false);
       this.tid = 0;
       this.tableId = null;
@@ -4190,27 +4286,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public bulkImportFiles_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public bulkImportFiles_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -4357,11 +4453,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -4413,8 +4509,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case TID:
         return Long.valueOf(getTid());
@@ -4444,8 +4540,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case TID:
         return isSetTid();
       case TABLE_ID:
@@ -4482,12 +4578,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -4562,12 +4658,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -4650,11 +4746,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -4699,8 +4795,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -4749,11 +4845,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // CREDENTIAL
+            case 8: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -4828,11 +4924,6 @@ import org.slf4j.LoggerFactory;
           struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldBegin(TID_FIELD_DESC);
         oprot.writeI64(struct.tid);
         oprot.writeFieldEnd();
@@ -4861,6 +4952,11 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(SET_TIME_FIELD_DESC);
         oprot.writeBool(struct.setTime);
         oprot.writeFieldEnd();
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -4882,7 +4978,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetTid()) {
@@ -4904,8 +5000,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetTid()) {
           oprot.writeI64(struct.tid);
@@ -4940,9 +5036,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.tid = iprot.readI64();
@@ -6402,7 +6498,7 @@ import org.slf4j.LoggerFactory;
   public static class ping_args implements org.apache.thrift.TBase<ping_args, ping_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ping_args");
 
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -6410,11 +6506,11 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new ping_argsTupleSchemeFactory());
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      CREDENTIAL((short)1, "credential");
+      CREDENTIALS((short)2, "credentials");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -6429,8 +6525,8 @@ import org.slf4j.LoggerFactory;
        */
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
           default:
             return null;
         }
@@ -6474,8 +6570,8 @@ import org.slf4j.LoggerFactory;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ping_args.class, metaDataMap);
     }
@@ -6484,18 +6580,18 @@ import org.slf4j.LoggerFactory;
     }
 
     public ping_args(
-      org.apache.accumulo.core.security.thrift.Credential credential)
+      org.apache.accumulo.core.security.thrift.TCredentials credentials)
     {
       this();
-      this.credential = credential;
+      this.credentials = credentials;
     }
 
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public ping_args(ping_args other) {
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
     }
 
@@ -6505,40 +6601,40 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.credential = null;
+      this.credentials = null;
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public ping_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public ping_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -6547,8 +6643,8 @@ import org.slf4j.LoggerFactory;
 
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       }
       throw new IllegalStateException();
@@ -6561,8 +6657,8 @@ import org.slf4j.LoggerFactory;
       }
 
       switch (field) {
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       }
       throw new IllegalStateException();
     }
@@ -6580,12 +6676,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -6605,12 +6701,12 @@ import org.slf4j.LoggerFactory;
       int lastComparison = 0;
       ping_args typedOther = (ping_args)other;
 
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -6635,11 +6731,11 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("ping_args(");
       boolean first = true;
 
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       sb.append(")");
@@ -6649,8 +6745,8 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -6688,11 +6784,11 @@ import org.slf4j.LoggerFactory;
             break;
           }
           switch (schemeField.id) {
-            case 1: // CREDENTIAL
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -6712,9 +6808,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -6735,12 +6831,12 @@ import org.slf4j.LoggerFactory;
       public void write(org.apache.thrift.protocol.TProtocol prot, ping_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(0);
         }
         oprot.writeBitSet(optionals, 1);
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
       }
 
@@ -6749,9 +6845,9 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
       }
     }
@@ -7114,28 +7210,25 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class authenticateUser_args implements org.apache.thrift.TBase<authenticateUser_args, authenticateUser_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("authenticateUser_args");
+  public static class listLocalUsers_args implements org.apache.thrift.TBase<listLocalUsers_args, listLocalUsers_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("listLocalUsers_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TO_AUTHENTICATE_FIELD_DESC = new org.apache.thrift.protocol.TField("toAuthenticate", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new authenticateUser_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new authenticateUser_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new listLocalUsers_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new listLocalUsers_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
-    public org.apache.accumulo.core.security.thrift.Credential toAuthenticate; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)4, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
-      TO_AUTHENTICATE((short)2, "toAuthenticate");
+      TINFO((short)2, "tinfo"),
+      CREDENTIALS((short)3, "credentials");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -7150,12 +7243,10 @@ import org.slf4j.LoggerFactory;
        */
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 4: // TINFO
+          case 2: // TINFO
             return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
-          case 2: // TO_AUTHENTICATE
-            return TO_AUTHENTICATE;
+          case 3: // CREDENTIALS
+            return CREDENTIALS;
           default:
             return null;
         }
@@ -7201,10 +7292,4889 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
-      tmpMap.put(_Fields.TO_AUTHENTICATE, new org.apache.thrift.meta_data.FieldMetaData("toAuthenticate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(listLocalUsers_args.class, metaDataMap);
+    }
+
+    public listLocalUsers_args() {
+    }
+
+    public listLocalUsers_args(
+      org.apache.accumulo.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public listLocalUsers_args(listLocalUsers_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
+    }
+
+    public listLocalUsers_args deepCopy() {
+      return new listLocalUsers_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public listLocalUsers_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public listLocalUsers_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof listLocalUsers_args)
+        return this.equals((listLocalUsers_args)that);
+      return false;
+    }
+
+    public boolean equals(listLocalUsers_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(listLocalUsers_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      listLocalUsers_args typedOther = (listLocalUsers_args)other;
+
+      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("listLocalUsers_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class listLocalUsers_argsStandardSchemeFactory implements SchemeFactory {
+      public listLocalUsers_argsStandardScheme getScheme() {
+        return new listLocalUsers_argsStandardScheme();
+      }
+    }
+
+    private static class listLocalUsers_argsStandardScheme extends StandardScheme<listLocalUsers_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, listLocalUsers_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 2: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, listLocalUsers_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class listLocalUsers_argsTupleSchemeFactory implements SchemeFactory {
+      public listLocalUsers_argsTupleScheme getScheme() {
+        return new listLocalUsers_argsTupleScheme();
+      }
+    }
+
+    private static class listLocalUsers_argsTupleScheme extends TupleScheme<listLocalUsers_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, listLocalUsers_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, listLocalUsers_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class listLocalUsers_result implements org.apache.thrift.TBase<listLocalUsers_result, listLocalUsers_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("listLocalUsers_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.SET, (short)0);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new listLocalUsers_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new listLocalUsers_resultTupleSchemeFactory());
+    }
+
+    public Set<String> success; // required
+    public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      SEC((short)1, "sec");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // SEC
+            return SEC;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(listLocalUsers_result.class, metaDataMap);
+    }
+
+    public listLocalUsers_result() {
+    }
+
+    public listLocalUsers_result(
+      Set<String> success,
+      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
+    {
+      this();
+      this.success = success;
+      this.sec = sec;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public listLocalUsers_result(listLocalUsers_result other) {
+      if (other.isSetSuccess()) {
+        Set<String> __this__success = new HashSet<String>();
+        for (String other_element : other.success) {
+          __this__success.add(other_element);
+        }
+        this.success = __this__success;
+      }
+      if (other.isSetSec()) {
+        this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
+      }
+    }
+
+    public listLocalUsers_result deepCopy() {
+      return new listLocalUsers_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.sec = null;
+    }
+
+    public int getSuccessSize() {
+      return (this.success == null) ? 0 : this.success.size();
+    }
+
+    public java.util.Iterator<String> getSuccessIterator() {
+      return (this.success == null) ? null : this.success.iterator();
+    }
+
+    public void addToSuccess(String elem) {
+      if (this.success == null) {
+        this.success = new HashSet<String>();
+      }
+      this.success.add(elem);
+    }
+
+    public Set<String> getSuccess() {
+      return this.success;
+    }
+
+    public listLocalUsers_result setSuccess(Set<String> success) {
+      this.success = success;
+      return this;
+    }
+
+    public void unsetSuccess() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return this.success != null;
+    }
+
+    public void setSuccessIsSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public listLocalUsers_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unsetSuccess();
+        } else {
+          setSuccess((Set<String>)value);
+        }
+        break;
+
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return getSuccess();
+
+      case SEC:
+        return getSec();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return isSetSuccess();
+      case SEC:
+        return isSetSec();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof listLocalUsers_result)
+        return this.equals((listLocalUsers_result)that);
+      return false;
+    }
+
+    public boolean equals(listLocalUsers_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.isSetSuccess();
+      boolean that_present_success = true && that.isSetSuccess();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(listLocalUsers_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      listLocalUsers_result typedOther = (listLocalUsers_result)other;
+
+      lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("listLocalUsers_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class listLocalUsers_resultStandardSchemeFactory implements SchemeFactory {
+      public listLocalUsers_resultStandardScheme getScheme() {
+        return new listLocalUsers_resultStandardScheme();
+      }
+    }
+
+    private static class listLocalUsers_resultStandardScheme extends StandardScheme<listLocalUsers_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, listLocalUsers_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
+                {
+                  org.apache.thrift.protocol.TSet _set16 = iprot.readSetBegin();
+                  struct.success = new HashSet<String>(2*_set16.size);
+                  for (int _i17 = 0; _i17 < _set16.size; ++_i17)
+                  {
+                    String _elem18; // required
+                    _elem18 = iprot.readString();
+                    struct.success.add(_elem18);
+                  }
+                  iprot.readSetEnd();
+                }
+                struct.setSuccessIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, listLocalUsers_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.success != null) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          {
+            oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
+            for (String _iter19 : struct.success)
+            {
+              oprot.writeString(_iter19);
+            }
+            oprot.writeSetEnd();
+          }
+          oprot.writeFieldEnd();
+        }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class listLocalUsers_resultTupleSchemeFactory implements SchemeFactory {
+      public listLocalUsers_resultTupleScheme getScheme() {
+        return new listLocalUsers_resultTupleScheme();
+      }
+    }
+
+    private static class listLocalUsers_resultTupleScheme extends TupleScheme<listLocalUsers_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, listLocalUsers_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetSuccess()) {
+          optionals.set(0);
+        }
+        if (struct.isSetSec()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetSuccess()) {
+          {
+            oprot.writeI32(struct.success.size());
+            for (String _iter20 : struct.success)
+            {
+              oprot.writeString(_iter20);
+            }
+          }
+        }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, listLocalUsers_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          {
+            org.apache.thrift.protocol.TSet _set21 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new HashSet<String>(2*_set21.size);
+            for (int _i22 = 0; _i22 < _set21.size; ++_i22)
+            {
+              String _elem23; // required
+              _elem23 = iprot.readString();
+              struct.success.add(_elem23);
+            }
+          }
+          struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class createLocalUser_args implements org.apache.thrift.TBase<createLocalUser_args, createLocalUser_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("createLocalUser_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)6);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField PASSWORD_FIELD_DESC = new org.apache.thrift.protocol.TField("password", org.apache.thrift.protocol.TType.STRING, (short)3);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new createLocalUser_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new createLocalUser_argsTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public String principal; // required
+    public ByteBuffer password; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)5, "tinfo"),
+      CREDENTIALS((short)6, "credentials"),
+      PRINCIPAL((short)2, "principal"),
+      PASSWORD((short)3, "password");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 5: // TINFO
+            return TINFO;
+          case 6: // CREDENTIALS
+            return CREDENTIALS;
+          case 2: // PRINCIPAL
+            return PRINCIPAL;
+          case 3: // PASSWORD
+            return PASSWORD;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.PASSWORD, new org.apache.thrift.meta_data.FieldMetaData("password", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(createLocalUser_args.class, metaDataMap);
+    }
+
+    public createLocalUser_args() {
+    }
+
+    public createLocalUser_args(
+      org.apache.accumulo.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
+      String principal,
+      ByteBuffer password)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.principal = principal;
+      this.password = password;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public createLocalUser_args(createLocalUser_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetPrincipal()) {
+        this.principal = other.principal;
+      }
+      if (other.isSetPassword()) {
+        this.password = org.apache.thrift.TBaseHelper.copyBinary(other.password);
+;
+      }
+    }
+
+    public createLocalUser_args deepCopy() {
+      return new createLocalUser_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.principal = null;
+      this.password = null;
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public createLocalUser_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public createLocalUser_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public String getPrincipal() {
+      return this.principal;
+    }
+
+    public createLocalUser_args setPrincipal(String principal) {
+      this.principal = principal;
+      return this;
+    }
+
+    public void unsetPrincipal() {
+      this.principal = null;
+    }
+
+    /** Returns true if field principal is set (has been assigned a value) and false otherwise */
+    public boolean isSetPrincipal() {
+      return this.principal != null;
+    }
+
+    public void setPrincipalIsSet(boolean value) {
+      if (!value) {
+        this.principal = null;
+      }
+    }
+
+    public byte[] getPassword() {
+      setPassword(org.apache.thrift.TBaseHelper.rightSize(password));
+      return password == null ? null : password.array();
+    }
+
+    public ByteBuffer bufferForPassword() {
+      return password;
+    }
+
+    public createLocalUser_args setPassword(byte[] password) {
+      setPassword(password == null ? (ByteBuffer)null : ByteBuffer.wrap(password));
+      return this;
+    }
+
+    public createLocalUser_args setPassword(ByteBuffer password) {
+      this.password = password;
+      return this;
+    }
+
+    public void unsetPassword() {
+      this.password = null;
+    }
+
+    /** Returns true if field password is set (has been assigned a value) and false otherwise */
+    public boolean isSetPassword() {
+      return this.password != null;
+    }
+
+    public void setPasswordIsSet(boolean value) {
+      if (!value) {
+        this.password = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
+      case PRINCIPAL:
+        if (value == null) {
+          unsetPrincipal();
+        } else {
+          setPrincipal((String)value);
+        }
+        break;
+
+      case PASSWORD:
+        if (value == null) {
+          unsetPassword();
+        } else {
+          setPassword((ByteBuffer)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case PRINCIPAL:
+        return getPrincipal();
+
+      case PASSWORD:
+        return getPassword();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case PRINCIPAL:
+        return isSetPrincipal();
+      case PASSWORD:
+        return isSetPassword();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof createLocalUser_args)
+        return this.equals((createLocalUser_args)that);
+      return false;
+    }
+
+    public boolean equals(createLocalUser_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_principal = true && this.isSetPrincipal();
+      boolean that_present_principal = true && that.isSetPrincipal();
+      if (this_present_principal || that_present_principal) {
+        if (!(this_present_principal && that_present_principal))
+          return false;
+        if (!this.principal.equals(that.principal))
+          return false;
+      }
+
+      boolean this_present_password = true && this.isSetPassword();
+      boolean that_present_password = true && that.isSetPassword();
+      if (this_present_password || that_present_password) {
+        if (!(this_present_password && that_present_password))
+          return false;
+        if (!this.password.equals(that.password))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(createLocalUser_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      createLocalUser_args typedOther = (createLocalUser_args)other;
+
+      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetPrincipal()).compareTo(typedOther.isSetPrincipal());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetPrincipal()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principal, typedOther.principal);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetPassword()).compareTo(typedOther.isSetPassword());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetPassword()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.password, typedOther.password);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("createLocalUser_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("principal:");
+      if (this.principal == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.principal);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("password:");
+      if (this.password == null) {
+        sb.append("null");
+      } else {
+        org.apache.thrift.TBaseHelper.toString(this.password, sb);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class createLocalUser_argsStandardSchemeFactory implements SchemeFactory {
+      public createLocalUser_argsStandardScheme getScheme() {
+        return new createLocalUser_argsStandardScheme();
+      }
+    }
+
+    private static class createLocalUser_argsStandardScheme extends StandardScheme<createLocalUser_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, createLocalUser_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 5: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 6: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // PRINCIPAL
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.principal = iprot.readString();
+                struct.setPrincipalIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // PASSWORD
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.password = iprot.readBinary();
+                struct.setPasswordIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, createLocalUser_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.principal != null) {
+          oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
+          oprot.writeString(struct.principal);
+          oprot.writeFieldEnd();
+        }
+        if (struct.password != null) {
+          oprot.writeFieldBegin(PASSWORD_FIELD_DESC);
+          oprot.writeBinary(struct.password);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class createLocalUser_argsTupleSchemeFactory implements SchemeFactory {
+      public createLocalUser_argsTupleScheme getScheme() {
+        return new createLocalUser_argsTupleScheme();
+      }
+    }
+
+    private static class createLocalUser_argsTupleScheme extends TupleScheme<createLocalUser_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, createLocalUser_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetPrincipal()) {
+          optionals.set(2);
+        }
+        if (struct.isSetPassword()) {
+          optionals.set(3);
+        }
+        oprot.writeBitSet(optionals, 4);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetPrincipal()) {
+          oprot.writeString(struct.principal);
+        }
+        if (struct.isSetPassword()) {
+          oprot.writeBinary(struct.password);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, createLocalUser_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(4);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.principal = iprot.readString();
+          struct.setPrincipalIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.password = iprot.readBinary();
+          struct.setPasswordIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class createLocalUser_result implements org.apache.thrift.TBase<createLocalUser_result, createLocalUser_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("createLocalUser_result");
+
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new createLocalUser_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new createLocalUser_resultTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SEC((short)1, "sec");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SEC
+            return SEC;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(createLocalUser_result.class, metaDataMap);
+    }
+
+    public createLocalUser_result() {
+    }
+
+    public createLocalUser_result(
+      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
+    {
+      this();
+      this.sec = sec;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public createLocalUser_result(createLocalUser_result other) {
+      if (other.isSetSec()) {
+        this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
+      }
+    }
+
+    public createLocalUser_result deepCopy() {
+      return new createLocalUser_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.sec = null;
+    }
+
+    public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public createLocalUser_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SEC:
+        return getSec();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SEC:
+        return isSetSec();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof createLocalUser_result)
+        return this.equals((createLocalUser_result)that);
+      return false;
+    }
+
+    public boolean equals(createLocalUser_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(createLocalUser_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      createLocalUser_result typedOther = (createLocalUser_result)other;
+
+      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("createLocalUser_result(");
+      boolean first = true;
+
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class createLocalUser_resultStandardSchemeFactory implements SchemeFactory {
+      public createLocalUser_resultStandardScheme getScheme() {
+        return new createLocalUser_resultStandardScheme();
+      }
+    }
+
+    private static class createLocalUser_resultStandardScheme extends StandardScheme<createLocalUser_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, createLocalUser_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, createLocalUser_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class createLocalUser_resultTupleSchemeFactory implements SchemeFactory {
+      public createLocalUser_resultTupleScheme getScheme() {
+        return new createLocalUser_resultTupleScheme();
+      }
+    }
+
+    private static class createLocalUser_resultTupleScheme extends TupleScheme<createLocalUser_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, createLocalUser_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetSec()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, createLocalUser_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class dropLocalUser_args implements org.apache.thrift.TBase<dropLocalUser_args, dropLocalUser_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("dropLocalUser_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)4);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new dropLocalUser_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new dropLocalUser_argsTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public String principal; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)3, "tinfo"),
+      CREDENTIALS((short)4, "credentials"),
+      PRINCIPAL((short)2, "principal");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 3: // TINFO
+            return TINFO;
+          case 4: // CREDENTIALS
+            return CREDENTIALS;
+          case 2: // PRINCIPAL
+            return PRINCIPAL;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(dropLocalUser_args.class, metaDataMap);
+    }
+
+    public dropLocalUser_args() {
+    }
+
+    public dropLocalUser_args(
+      org.apache.accumulo.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
+      String principal)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.principal = principal;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public dropLocalUser_args(dropLocalUser_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetPrincipal()) {
+        this.principal = other.principal;
+      }
+    }
+
+    public dropLocalUser_args deepCopy() {
+      return new dropLocalUser_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.principal = null;
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public dropLocalUser_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public dropLocalUser_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public String getPrincipal() {
+      return this.principal;
+    }
+
+    public dropLocalUser_args setPrincipal(String principal) {
+      this.principal = principal;
+      return this;
+    }
+
+    public void unsetPrincipal() {
+      this.principal = null;
+    }
+
+    /** Returns true if field principal is set (has been assigned a value) and false otherwise */
+    public boolean isSetPrincipal() {
+      return this.principal != null;
+    }
+
+    public void setPrincipalIsSet(boolean value) {
+      if (!value) {
+        this.principal = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
+      case PRINCIPAL:
+        if (value == null) {
+          unsetPrincipal();
+        } else {
+          setPrincipal((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case PRINCIPAL:
+        return getPrincipal();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case PRINCIPAL:
+        return isSetPrincipal();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof dropLocalUser_args)
+        return this.equals((dropLocalUser_args)that);
+      return false;
+    }
+
+    public boolean equals(dropLocalUser_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_principal = true && this.isSetPrincipal();
+      boolean that_present_principal = true && that.isSetPrincipal();
+      if (this_present_principal || that_present_principal) {
+        if (!(this_present_principal && that_present_principal))
+          return false;
+        if (!this.principal.equals(that.principal))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(dropLocalUser_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      dropLocalUser_args typedOther = (dropLocalUser_args)other;
+
+      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetPrincipal()).compareTo(typedOther.isSetPrincipal());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetPrincipal()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principal, typedOther.principal);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("dropLocalUser_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("principal:");
+      if (this.principal == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.principal);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class dropLocalUser_argsStandardSchemeFactory implements SchemeFactory {
+      public dropLocalUser_argsStandardScheme getScheme() {
+        return new dropLocalUser_argsStandardScheme();
+      }
+    }
+
+    private static class dropLocalUser_argsStandardScheme extends StandardScheme<dropLocalUser_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, dropLocalUser_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 3: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 4: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // PRINCIPAL
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.principal = iprot.readString();
+                struct.setPrincipalIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, dropLocalUser_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.principal != null) {
+          oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
+          oprot.writeString(struct.principal);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class dropLocalUser_argsTupleSchemeFactory implements SchemeFactory {
+      public dropLocalUser_argsTupleScheme getScheme() {
+        return new dropLocalUser_argsTupleScheme();
+      }
+    }
+
+    private static class dropLocalUser_argsTupleScheme extends TupleScheme<dropLocalUser_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, dropLocalUser_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetPrincipal()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetPrincipal()) {
+          oprot.writeString(struct.principal);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, dropLocalUser_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(3);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.principal = iprot.readString();
+          struct.setPrincipalIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class dropLocalUser_result implements org.apache.thrift.TBase<dropLocalUser_result, dropLocalUser_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("dropLocalUser_result");
+
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new dropLocalUser_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new dropLocalUser_resultTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SEC((short)1, "sec");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SEC
+            return SEC;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(dropLocalUser_result.class, metaDataMap);
+    }
+
+    public dropLocalUser_result() {
+    }
+
+    public dropLocalUser_result(
+      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
+    {
+      this();
+      this.sec = sec;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public dropLocalUser_result(dropLocalUser_result other) {
+      if (other.isSetSec()) {
+        this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
+      }
+    }
+
+    public dropLocalUser_result deepCopy() {
+      return new dropLocalUser_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.sec = null;
+    }
+
+    public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public dropLocalUser_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SEC:
+        return getSec();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SEC:
+        return isSetSec();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof dropLocalUser_result)
+        return this.equals((dropLocalUser_result)that);
+      return false;
+    }
+
+    public boolean equals(dropLocalUser_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(dropLocalUser_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      dropLocalUser_result typedOther = (dropLocalUser_result)other;
+
+      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("dropLocalUser_result(");
+      boolean first = true;
+
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class dropLocalUser_resultStandardSchemeFactory implements SchemeFactory {
+      public dropLocalUser_resultStandardScheme getScheme() {
+        return new dropLocalUser_resultStandardScheme();
+      }
+    }
+
+    private static class dropLocalUser_resultStandardScheme extends StandardScheme<dropLocalUser_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, dropLocalUser_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, dropLocalUser_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class dropLocalUser_resultTupleSchemeFactory implements SchemeFactory {
+      public dropLocalUser_resultTupleScheme getScheme() {
+        return new dropLocalUser_resultTupleScheme();
+      }
+    }
+
+    private static class dropLocalUser_resultTupleScheme extends TupleScheme<dropLocalUser_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, dropLocalUser_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetSec()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, dropLocalUser_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class changeLocalUserPassword_args implements org.apache.thrift.TBase<changeLocalUserPassword_args, changeLocalUserPassword_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("changeLocalUserPassword_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)5);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField PASSWORD_FIELD_DESC = new org.apache.thrift.protocol.TField("password", org.apache.thrift.protocol.TType.STRING, (short)3);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new changeLocalUserPassword_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new changeLocalUserPassword_argsTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public String principal; // required
+    public ByteBuffer password; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)4, "tinfo"),
+      CREDENTIALS((short)5, "credentials"),
+      PRINCIPAL((short)2, "principal"),
+      PASSWORD((short)3, "password");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 4: // TINFO
+            return TINFO;
+          case 5: // CREDENTIALS
+            return CREDENTIALS;
+          case 2: // PRINCIPAL
+            return PRINCIPAL;
+          case 3: // PASSWORD
+            return PASSWORD;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.PASSWORD, new org.apache.thrift.meta_data.FieldMetaData("password", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(changeLocalUserPassword_args.class, metaDataMap);
+    }
+
+    public changeLocalUserPassword_args() {
+    }
+
+    public changeLocalUserPassword_args(
+      org.apache.accumulo.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
+      String principal,
+      ByteBuffer password)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.principal = principal;
+      this.password = password;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public changeLocalUserPassword_args(changeLocalUserPassword_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetPrincipal()) {
+        this.principal = other.principal;
+      }
+      if (other.isSetPassword()) {
+        this.password = org.apache.thrift.TBaseHelper.copyBinary(other.password);
+;
+      }
+    }
+
+    public changeLocalUserPassword_args deepCopy() {
+      return new changeLocalUserPassword_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.principal = null;
+      this.password = null;
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public changeLocalUserPassword_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public changeLocalUserPassword_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public String getPrincipal() {
+      return this.principal;
+    }
+
+    public changeLocalUserPassword_args setPrincipal(String principal) {
+      this.principal = principal;
+      return this;
+    }
+
+    public void unsetPrincipal() {
+      this.principal = null;
+    }
+
+    /** Returns true if field principal is set (has been assigned a value) and false otherwise */
+    public boolean isSetPrincipal() {
+      return this.principal != null;
+    }
+
+    public void setPrincipalIsSet(boolean value) {
+      if (!value) {
+        this.principal = null;
+      }
+    }
+
+    public byte[] getPassword() {
+      setPassword(org.apache.thrift.TBaseHelper.rightSize(password));
+      return password == null ? null : password.array();
+    }
+
+    public ByteBuffer bufferForPassword() {
+      return password;
+    }
+
+    public changeLocalUserPassword_args setPassword(byte[] password) {
+      setPassword(password == null ? (ByteBuffer)null : ByteBuffer.wrap(password));
+      return this;
+    }
+
+    public changeLocalUserPassword_args setPassword(ByteBuffer password) {
+      this.password = password;
+      return this;
+    }
+
+    public void unsetPassword() {
+      this.password = null;
+    }
+
+    /** Returns true if field password is set (has been assigned a value) and false otherwise */
+    public boolean isSetPassword() {
+      return this.password != null;
+    }
+
+    public void setPasswordIsSet(boolean value) {
+      if (!value) {
+        this.password = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
+      case PRINCIPAL:
+        if (value == null) {
+          unsetPrincipal();
+        } else {
+          setPrincipal((String)value);
+        }
+        break;
+
+      case PASSWORD:
+        if (value == null) {
+          unsetPassword();
+        } else {
+          setPassword((ByteBuffer)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case PRINCIPAL:
+        return getPrincipal();
+
+      case PASSWORD:
+        return getPassword();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case PRINCIPAL:
+        return isSetPrincipal();
+      case PASSWORD:
+        return isSetPassword();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof changeLocalUserPassword_args)
+        return this.equals((changeLocalUserPassword_args)that);
+      return false;
+    }
+
+    public boolean equals(changeLocalUserPassword_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_principal = true && this.isSetPrincipal();
+      boolean that_present_principal = true && that.isSetPrincipal();
+      if (this_present_principal || that_present_principal) {
+        if (!(this_present_principal && that_present_principal))
+          return false;
+        if (!this.principal.equals(that.principal))
+          return false;
+      }
+
+      boolean this_present_password = true && this.isSetPassword();
+      boolean that_present_password = true && that.isSetPassword();
+      if (this_present_password || that_present_password) {
+        if (!(this_present_password && that_present_password))
+          return false;
+        if (!this.password.equals(that.password))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(changeLocalUserPassword_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      changeLocalUserPassword_args typedOther = (changeLocalUserPassword_args)other;
+
+      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetPrincipal()).compareTo(typedOther.isSetPrincipal());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetPrincipal()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principal, typedOther.principal);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetPassword()).compareTo(typedOther.isSetPassword());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetPassword()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.password, typedOther.password);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("changeLocalUserPassword_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("principal:");
+      if (this.principal == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.principal);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("password:");
+      if (this.password == null) {
+        sb.append("null");
+      } else {
+        org.apache.thrift.TBaseHelper.toString(this.password, sb);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class changeLocalUserPassword_argsStandardSchemeFactory implements SchemeFactory {
+      public changeLocalUserPassword_argsStandardScheme getScheme() {
+        return new changeLocalUserPassword_argsStandardScheme();
+      }
+    }
+
+    private static class changeLocalUserPassword_argsStandardScheme extends StandardScheme<changeLocalUserPassword_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, changeLocalUserPassword_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 4: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 5: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // PRINCIPAL
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.principal = iprot.readString();
+                struct.setPrincipalIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // PASSWORD
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.password = iprot.readBinary();
+                struct.setPasswordIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, changeLocalUserPassword_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.principal != null) {
+          oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
+          oprot.writeString(struct.principal);
+          oprot.writeFieldEnd();
+        }
+        if (struct.password != null) {
+          oprot.writeFieldBegin(PASSWORD_FIELD_DESC);
+          oprot.writeBinary(struct.password);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class changeLocalUserPassword_argsTupleSchemeFactory implements SchemeFactory {
+      public changeLocalUserPassword_argsTupleScheme getScheme() {
+        return new changeLocalUserPassword_argsTupleScheme();
+      }
+    }
+
+    private static class changeLocalUserPassword_argsTupleScheme extends TupleScheme<changeLocalUserPassword_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, changeLocalUserPassword_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetPrincipal()) {
+          optionals.set(2);
+        }
+        if (struct.isSetPassword()) {
+          optionals.set(3);
+        }
+        oprot.writeBitSet(optionals, 4);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetPrincipal()) {
+          oprot.writeString(struct.principal);
+        }
+        if (struct.isSetPassword()) {
+          oprot.writeBinary(struct.password);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, changeLocalUserPassword_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(4);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.principal = iprot.readString();
+          struct.setPrincipalIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.password = iprot.readBinary();
+          struct.setPasswordIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class changeLocalUserPassword_result implements org.apache.thrift.TBase<changeLocalUserPassword_result, changeLocalUserPassword_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("changeLocalUserPassword_result");
+
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new changeLocalUserPassword_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new changeLocalUserPassword_resultTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SEC((short)1, "sec");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SEC
+            return SEC;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(changeLocalUserPassword_result.class, metaDataMap);
+    }
+
+    public changeLocalUserPassword_result() {
+    }
+
+    public changeLocalUserPassword_result(
+      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
+    {
+      this();
+      this.sec = sec;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public changeLocalUserPassword_result(changeLocalUserPassword_result other) {
+      if (other.isSetSec()) {
+        this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
+      }
+    }
+
+    public changeLocalUserPassword_result deepCopy() {
+      return new changeLocalUserPassword_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.sec = null;
+    }
+
+    public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public changeLocalUserPassword_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SEC:
+        return getSec();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SEC:
+        return isSetSec();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof changeLocalUserPassword_result)
+        return this.equals((changeLocalUserPassword_result)that);
+      return false;
+    }
+
+    public boolean equals(changeLocalUserPassword_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(changeLocalUserPassword_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      changeLocalUserPassword_result typedOther = (changeLocalUserPassword_result)other;
+
+      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("changeLocalUserPassword_result(");
+      boolean first = true;
+
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class changeLocalUserPassword_resultStandardSchemeFactory implements SchemeFactory {
+      public changeLocalUserPassword_resultStandardScheme getScheme() {
+        return new changeLocalUserPassword_resultStandardScheme();
+      }
+    }
+
+    private static class changeLocalUserPassword_resultStandardScheme extends StandardScheme<changeLocalUserPassword_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, changeLocalUserPassword_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, changeLocalUserPassword_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class changeLocalUserPassword_resultTupleSchemeFactory implements SchemeFactory {
+      public changeLocalUserPassword_resultTupleScheme getScheme() {
+        return new changeLocalUserPassword_resultTupleScheme();
+      }
+    }
+
+    private static class changeLocalUserPassword_resultTupleScheme extends TupleScheme<changeLocalUserPassword_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, changeLocalUserPassword_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetSec()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, changeLocalUserPassword_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class authenticate_args implements org.apache.thrift.TBase<authenticate_args, authenticate_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("authenticate_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new authenticate_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new authenticate_argsTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(authenticate_args.class, metaDataMap);
+    }
+
+    public authenticate_args() {
+    }
+
+    public authenticate_args(
+      org.apache.accumulo.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public authenticate_args(authenticate_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
+    }
+
+    public authenticate_args deepCopy() {
+      return new authenticate_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public authenticate_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public authenticate_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof authenticate_args)
+        return this.equals((authenticate_args)that);
+      return false;
+    }
+
+    public boolean equals(authenticate_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(authenticate_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      authenticate_args typedOther = (authenticate_args)other;
+
+      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("authenticate_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class authenticate_argsStandardSchemeFactory implements SchemeFactory {
+      public authenticate_argsStandardScheme getScheme() {
+        return new authenticate_argsStandardScheme();
+      }
+    }
+
+    private static class authenticate_argsStandardScheme extends StandardScheme<authenticate_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, authenticate_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, authenticate_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class authenticate_argsTupleSchemeFactory implements SchemeFactory {
+      public authenticate_argsTupleScheme getScheme() {
+        return new authenticate_argsTupleScheme();
+      }
+    }
+
+    private static class authenticate_argsTupleScheme extends TupleScheme<authenticate_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, authenticate_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, authenticate_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class authenticate_result implements org.apache.thrift.TBase<authenticate_result, authenticate_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("authenticate_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.BOOL, (short)0);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new authenticate_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new authenticate_resultTupleSchemeFactory());
+    }
+
+    public boolean success; // required
+    public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      SEC((short)1, "sec");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // SEC
+            return SEC;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    private static final int __SUCCESS_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(authenticate_result.class, metaDataMap);
+    }
+
+    public authenticate_result() {
+    }
+
+    public authenticate_result(
+      boolean success,
+      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
+    {
+      this();
+      this.success = success;
+      setSuccessIsSet(true);
+      this.sec = sec;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public authenticate_result(authenticate_result other) {
+      __isset_bitfield = other.__isset_bitfield;
+      this.success = other.success;
+      if (other.isSetSec()) {
+        this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
+      }
+    }
+
+    public authenticate_result deepCopy() {
+      return new authenticate_result(this);
+    }
+
+    @Override
+    public void clear() {
+      setSuccessIsSet(false);
+      this.success = false;
+      this.sec = null;
+    }
+
+    public boolean isSuccess() {
+      return this.success;
+    }
+
+    public authenticate_result setSuccess(boolean success) {
+      this.success = success;
+      setSuccessIsSet(true);
+      return this;
+    }
+
+    public void unsetSuccess() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __SUCCESS_ISSET_ID);
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return EncodingUtils.testBit(__isset_bitfield, __SUCCESS_ISSET_ID);
+    }
+
+    public void setSuccessIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SUCCESS_ISSET_ID, value);
+    }
+
+    public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public authenticate_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unsetSuccess();
+        } else {
+          setSuccess((Boolean)value);
+        }
+        break;
+
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return Boolean.valueOf(isSuccess());
+
+      case SEC:
+        return getSec();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return isSetSuccess();
+      case SEC:
+        return isSetSec();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof authenticate_result)
+        return this.equals((authenticate_result)that);
+      return false;
+    }
+
+    public boolean equals(authenticate_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true;
+      boolean that_present_success = true;
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (this.success != that.success)
+          return false;
+      }
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(authenticate_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      authenticate_result typedOther = (authenticate_result)other;
+
+      lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("authenticate_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      sb.append(this.success);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class authenticate_resultStandardSchemeFactory implements SchemeFactory {
+      public authenticate_resultStandardScheme getScheme() {
+        return new authenticate_resultStandardScheme();
+      }
+    }
+
+    private static class authenticate_resultStandardScheme extends StandardScheme<authenticate_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, authenticate_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                struct.success = iprot.readBool();
+                struct.setSuccessIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, authenticate_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.isSetSuccess()) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          oprot.writeBool(struct.success);
+          oprot.writeFieldEnd();
+        }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class authenticate_resultTupleSchemeFactory implements SchemeFactory {
+      public authenticate_resultTupleScheme getScheme() {
+        return new authenticate_resultTupleScheme();
+      }
+    }
+
+    private static class authenticate_resultTupleScheme extends TupleScheme<authenticate_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, authenticate_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetSuccess()) {
+          optionals.set(0);
+        }
+        if (struct.isSetSec()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetSuccess()) {
+          oprot.writeBool(struct.success);
+        }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, authenticate_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.success = iprot.readBool();
+          struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class authenticateUser_args implements org.apache.thrift.TBase<authenticateUser_args, authenticateUser_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("authenticateUser_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TO_AUTH_FIELD_DESC = new org.apache.thrift.protocol.TField("toAuth", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new authenticateUser_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new authenticateUser_argsTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials toAuth; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      TO_AUTH((short)3, "toAuth");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          case 3: // TO_AUTH
+            return TO_AUTH;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.TO_AUTH, new org.apache.thrift.meta_data.FieldMetaData("toAuth", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(authenticateUser_args.class, metaDataMap);
     }
@@ -7214,13 +12184,13 @@ import org.slf4j.LoggerFactory;
 
     public authenticateUser_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
-      org.apache.accumulo.core.security.thrift.Credential toAuthenticate)
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
+      org.apache.accumulo.core.security.thrift.TCredentials toAuth)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
-      this.toAuthenticate = toAuthenticate;
+      this.credentials = credentials;
+      this.toAuth = toAuth;
     }
 
     /**
@@ -7230,11 +12200,11 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
-      if (other.isSetToAuthenticate()) {
-        this.toAuthenticate = new org.apache.accumulo.core.security.thrift.Credential(other.toAuthenticate);
+      if (other.isSetToAuth()) {
+        this.toAuth = new org.apache.accumulo.core.security.thrift.TCredentials(other.toAuth);
       }
     }
 
@@ -7245,8 +12215,8 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
-      this.toAuthenticate = null;
+      this.credentials = null;
+      this.toAuth = null;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
@@ -7273,51 +12243,51 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public authenticateUser_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public authenticateUser_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getToAuthenticate() {
-      return this.toAuthenticate;
+    public org.apache.accumulo.core.security.thrift.TCredentials getToAuth() {
+      return this.toAuth;
     }
 
-    public authenticateUser_args setToAuthenticate(org.apache.accumulo.core.security.thrift.Credential toAuthenticate) {
-      this.toAuthenticate = toAuthenticate;
+    public authenticateUser_args setToAuth(org.apache.accumulo.core.security.thrift.TCredentials toAuth) {
+      this.toAuth = toAuth;
       return this;
     }
 
-    public void unsetToAuthenticate() {
-      this.toAuthenticate = null;
+    public void unsetToAuth() {
+      this.toAuth = null;
     }
 
-    /** Returns true if field toAuthenticate is set (has been assigned a value) and false otherwise */
-    public boolean isSetToAuthenticate() {
-      return this.toAuthenticate != null;
+    /** Returns true if field toAuth is set (has been assigned a value) and false otherwise */
+    public boolean isSetToAuth() {
+      return this.toAuth != null;
     }
 
-    public void setToAuthenticateIsSet(boolean value) {
+    public void setToAuthIsSet(boolean value) {
       if (!value) {
-        this.toAuthenticate = null;
+        this.toAuth = null;
       }
     }
 
@@ -7331,19 +12301,19 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
-      case TO_AUTHENTICATE:
+      case TO_AUTH:
         if (value == null) {
-          unsetToAuthenticate();
+          unsetToAuth();
         } else {
-          setToAuthenticate((org.apache.accumulo.core.security.thrift.Credential)value);
+          setToAuth((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -7355,11 +12325,11 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
-      case TO_AUTHENTICATE:
-        return getToAuthenticate();
+      case TO_AUTH:
+        return getToAuth();
 
       }
       throw new IllegalStateException();
@@ -7374,10 +12344,10 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
-      case TO_AUTHENTICATE:
-        return isSetToAuthenticate();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case TO_AUTH:
+        return isSetToAuth();
       }
       throw new IllegalStateException();
     }
@@ -7404,21 +12374,21 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
-      boolean this_present_toAuthenticate = true && this.isSetToAuthenticate();
-      boolean that_present_toAuthenticate = true && that.isSetToAuthenticate();
-      if (this_present_toAuthenticate || that_present_toAuthenticate) {
-        if (!(this_present_toAuthenticate && that_present_toAuthenticate))
+      boolean this_present_toAuth = true && this.isSetToAuth();
+      boolean that_present_toAuth = true && that.isSetToAuth();
+      if (this_present_toAuth || that_present_toAuth) {
+        if (!(this_present_toAuth && that_present_toAuth))
           return false;
-        if (!this.toAuthenticate.equals(that.toAuthenticate))
+        if (!this.toAuth.equals(that.toAuth))
           return false;
       }
 
@@ -7448,22 +12418,22 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetToAuthenticate()).compareTo(typedOther.isSetToAuthenticate());
+      lastComparison = Boolean.valueOf(isSetToAuth()).compareTo(typedOther.isSetToAuth());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetToAuthenticate()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.toAuthenticate, typedOther.toAuthenticate);
+      if (isSetToAuth()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.toAuth, typedOther.toAuth);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -7496,19 +12466,19 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("toAuthenticate:");
-      if (this.toAuthenticate == null) {
+      sb.append("toAuth:");
+      if (this.toAuth == null) {
         sb.append("null");
       } else {
-        sb.append(this.toAuthenticate);
+        sb.append(this.toAuth);
       }
       first = false;
       sb.append(")");
@@ -7521,11 +12491,11 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
-      if (toAuthenticate != null) {
-        toAuthenticate.validate();
+      if (toAuth != null) {
+        toAuth.validate();
       }
     }
 
@@ -7563,7 +12533,7 @@ import org.slf4j.LoggerFactory;
             break;
           }
           switch (schemeField.id) {
-            case 4: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -7572,20 +12542,20 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIAL
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TO_AUTHENTICATE
+            case 3: // TO_AUTH
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.toAuthenticate = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.toAuthenticate.read(iprot);
-                struct.setToAuthenticateIsSet(true);
+                struct.toAuth = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.toAuth.read(iprot);
+                struct.setToAuthIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -7605,19 +12575,19 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.toAuthenticate != null) {
-          oprot.writeFieldBegin(TO_AUTHENTICATE_FIELD_DESC);
-          struct.toAuthenticate.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.toAuth != null) {
+          oprot.writeFieldBegin(TO_AUTH_FIELD_DESC);
+          struct.toAuth.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -7641,21 +12611,21 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
-        if (struct.isSetToAuthenticate()) {
+        if (struct.isSetToAuth()) {
           optionals.set(2);
         }
         oprot.writeBitSet(optionals, 3);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
-        if (struct.isSetToAuthenticate()) {
-          struct.toAuthenticate.write(oprot);
+        if (struct.isSetToAuth()) {
+          struct.toAuth.write(oprot);
         }
       }
 
@@ -7669,14 +12639,14 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.toAuthenticate = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.toAuthenticate.read(iprot);
-          struct.setToAuthenticateIsSet(true);
+          struct.toAuth = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.toAuth.read(iprot);
+          struct.setToAuthIsSet(true);
         }
       }
     }
@@ -8139,3907 +13109,11 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class listUsers_args implements org.apache.thrift.TBase<listUsers_args, listUsers_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("listUsers_args");
-
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-
-    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
-    static {
-      schemes.put(StandardScheme.class, new listUsers_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new listUsers_argsTupleSchemeFactory());
-    }
-
-    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      CREDENTIAL((short)1, "credential");
-
-      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
-
-      static {
-        for (_Fields field : EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 2: // TINFO
-            return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final String _fieldName;
-
-      _Fields(short thriftId, String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
-      metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(listUsers_args.class, metaDataMap);
-    }
-
-    public listUsers_args() {
-    }
-
-    public listUsers_args(
-      org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential)
-    {
-      this();
-      this.tinfo = tinfo;
-      this.credential = credential;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public listUsers_args(listUsers_args other) {
-      if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
-      }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
-      }
-    }
-
-    public listUsers_args deepCopy() {
-      return new listUsers_args(this);
-    }
-
-    @Override
-    public void clear() {
-      this.tinfo = null;
-      this.credential = null;
-    }
-
-    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
-      return this.tinfo;
-    }
-
-    public listUsers_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
-      this.tinfo = tinfo;
-      return this;
-    }
-
-    public void unsetTinfo() {
-      this.tinfo = null;
-    }
-
-    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
-    public boolean isSetTinfo() {
-      return this.tinfo != null;
-    }
-
-    public void setTinfoIsSet(boolean value) {
-      if (!value) {
-        this.tinfo = null;
-      }
-    }
-
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
-    }
-
-    public listUsers_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
-      return this;
-    }
-
-    public void unsetCredential() {
-      this.credential = null;
-    }
-
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
-    }
-
-    public void setCredentialIsSet(boolean value) {
-      if (!value) {
-        this.credential = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, Object value) {
-      switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIAL:
-        if (value == null) {
-          unsetCredential();
-        } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
-        }
-        break;
-
-      }
-    }
-
-    public Object getFieldValue(_Fields field) {
-      switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIAL:
-        return getCredential();
-
-      }
-      throw new IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new IllegalArgumentException();
-      }
-
-      switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
-      }
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof listUsers_args)
-        return this.equals((listUsers_args)that);
-      return false;
-    }
-
-    public boolean equals(listUsers_args that) {
-      if (that == null)
-        return false;
-
-      boolean this_present_tinfo = true && this.isSetTinfo();
-      boolean that_present_tinfo = true && that.isSetTinfo();
-      if (this_present_tinfo || that_present_tinfo) {
-        if (!(this_present_tinfo && that_present_tinfo))
-          return false;
-        if (!this.tinfo.equals(that.tinfo))
-          return false;
-      }
-
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
-          return false;
-        if (!this.credential.equals(that.credential))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      return 0;
-    }
-
-    public int compareTo(listUsers_args other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-      listUsers_args typedOther = (listUsers_args)other;
-
-      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTinfo()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
-    }
-
-    @Override
-    public String toString() {
-      StringBuilder sb = new StringBuilder("listUsers_args(");
-      boolean first = true;
-
-      sb.append("tinfo:");
-      if (this.tinfo == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tinfo);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.credential);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-      if (tinfo != null) {
-        tinfo.validate();
-      }
-      if (credential != null) {
-        credential.validate();
-      }
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class listUsers_argsStandardSchemeFactory implements SchemeFactory {
-      public listUsers_argsStandardScheme getScheme() {
-        return new listUsers_argsStandardScheme();
-      }
-    }
-
-    private static class listUsers_argsStandardScheme extends StandardScheme<listUsers_args> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, listUsers_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 2: // TINFO
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
-                struct.tinfo.read(iprot);
-                struct.setTinfoIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 1: // CREDENTIAL
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, listUsers_args struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class listUsers_argsTupleSchemeFactory implements SchemeFactory {
-      public listUsers_argsTupleScheme getScheme() {
-        return new listUsers_argsTupleScheme();
-      }
-    }
-
-    private static class listUsers_argsTupleScheme extends TupleScheme<listUsers_args> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, listUsers_args struct) throws org.apache.thrift.TException {
-        TTupleProtocol oprot = (TTupleProtocol) prot;
-        BitSet optionals = new BitSet();
-        if (struct.isSetTinfo()) {
-          optionals.set(0);
-        }
-        if (struct.isSetCredential()) {
-          optionals.set(1);
-        }
-        oprot.writeBitSet(optionals, 2);
-        if (struct.isSetTinfo()) {
-          struct.tinfo.write(oprot);
-        }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, listUsers_args struct) throws org.apache.thrift.TException {
-        TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(2);
-        if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
-          struct.tinfo.read(iprot);
-          struct.setTinfoIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
-        }
-      }
-    }
-
-  }
-
-  public static class listUsers_result implements org.apache.thrift.TBase<listUsers_result, listUsers_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("listUsers_result");
-
-    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.SET, (short)0);
-    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-
-    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
-    static {
-      schemes.put(StandardScheme.class, new listUsers_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new listUsers_resultTupleSchemeFactory());
-    }
-
-    public Set<String> success; // required
-    public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
-
-      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
-
-      static {
-        for (_Fields field : EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 0: // SUCCESS
-            return SUCCESS;
-          case 1: // SEC
-            return SEC;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final String _fieldName;
-
-      _Fields(short thriftId, String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
-              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
-      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
-      metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(listUsers_result.class, metaDataMap);
-    }
-
-    public listUsers_result() {
-    }
-
-    public listUsers_result(
-      Set<String> success,
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
-      this();
-      this.success = success;
-      this.sec = sec;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public listUsers_result(listUsers_result other) {
-      if (other.isSetSuccess()) {
-        Set<String> __this__success = new HashSet<String>();
-        for (String other_element : other.success) {
-          __this__success.add(other_element);
-        }
-        this.success = __this__success;
-      }
-      if (other.isSetSec()) {
-        this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
-      }
-    }
-
-    public listUsers_result deepCopy() {
-      return new listUsers_result(this);
-    }
-
-    @Override
-    public void clear() {
-      this.success = null;
-      this.sec = null;
-    }
-
-    public int getSuccessSize() {
-      return (this.success == null) ? 0 : this.success.size();
-    }
-
-    public java.util.Iterator<String> getSuccessIterator() {
-      return (this.success == null) ? null : this.success.iterator();
-    }
-
-    public void addToSuccess(String elem) {
-      if (this.success == null) {
-        this.success = new HashSet<String>();
-      }
-      this.success.add(elem);
-    }
-
-    public Set<String> getSuccess() {
-      return this.success;
-    }
-
-    public listUsers_result setSuccess(Set<String> success) {
-      this.success = success;
-      return this;
-    }
-
-    public void unsetSuccess() {
-      this.success = null;
-    }
-
-    /** Returns true if field success is set (has been assigned a value) and false otherwise */
-    public boolean isSetSuccess() {
-      return this.success != null;
-    }
-
-    public void setSuccessIsSet(boolean value) {
-      if (!value) {
-        this.success = null;
-      }
-    }
-
-    public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
-      return this.sec;
-    }
-
-    public listUsers_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
-      this.sec = sec;
-      return this;
-    }
-
-    public void unsetSec() {
-      this.sec = null;
-    }
-
-    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
-    public boolean isSetSec() {
-      return this.sec != null;
-    }
-
-    public void setSecIsSet(boolean value) {
-      if (!value) {
-        this.sec = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, Object value) {
-      switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((Set<String>)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      }
-    }
-
-    public Object getFieldValue(_Fields field) {
-      switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case SEC:
-        return getSec();
-
-      }
-      throw new IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new IllegalArgumentException();
-      }
-
-      switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
-      }
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof listUsers_result)
-        return this.equals((listUsers_result)that);
-      return false;
-    }
-
-    public boolean equals(listUsers_result that) {
-      if (that == null)
-        return false;
-
-      boolean this_present_success = true && this.isSetSuccess();
-      boolean that_present_success = true && that.isSetSuccess();
-      if (this_present_success || that_present_success) {
-        if (!(this_present_success && that_present_success))
-          return false;
-        if (!this.success.equals(that.success))
-          return false;
-      }
-
-      boolean this_present_sec = true && this.isSetSec();
-      boolean that_present_sec = true && that.isSetSec();
-      if (this_present_sec || that_present_sec) {
-        if (!(this_present_sec && that_present_sec))
-          return false;
-        if (!this.sec.equals(that.sec))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      return 0;
-    }
-
-    public int compareTo(listUsers_result other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-      listUsers_result typedOther = (listUsers_result)other;
-
-      lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSuccess()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSec()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
-      }
-
-    @Override
-    public String toString() {
-      StringBuilder sb = new StringBuilder("listUsers_result(");
-      boolean first = true;
-
-      sb.append("success:");
-      if (this.success == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.success);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("sec:");
-      if (this.sec == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.sec);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class listUsers_resultStandardSchemeFactory implements SchemeFactory {
-      public listUsers_resultStandardScheme getScheme() {
-        return new listUsers_resultStandardScheme();
-      }
-    }
-
-    private static class listUsers_resultStandardScheme extends StandardScheme<listUsers_result> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, listUsers_result struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 0: // SUCCESS
-              if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
-                {
-                  org.apache.thrift.protocol.TSet _set16 = iprot.readSetBegin();
-                  struct.success = new HashSet<String>(2*_set16.size);
-                  for (int _i17 = 0; _i17 < _set16.size; ++_i17)
-                  {
-                    String _elem18; // required
-                    _elem18 = iprot.readString();
-                    struct.success.add(_elem18);
-                  }
-                  iprot.readSetEnd();
-                }
-                struct.setSuccessIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 1: // SEC
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
-                struct.sec.read(iprot);
-                struct.setSecIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, listUsers_result struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.success != null) {
-          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
-          {
-            oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (String _iter19 : struct.success)
-            {
-              oprot.writeString(_iter19);
-            }
-            oprot.writeSetEnd();
-          }
-          oprot.writeFieldEnd();
-        }
-        if (struct.sec != null) {
-          oprot.writeFieldBegin(SEC_FIELD_DESC);
-          struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class listUsers_resultTupleSchemeFactory implements SchemeFactory {
-      public listUsers_resultTupleScheme getScheme() {
-        return new listUsers_resultTupleScheme();
-      }
-    }
-
-    private static class listUsers_resultTupleScheme extends TupleScheme<listUsers_result> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, listUsers_result struct) throws org.apache.thrift.TException {
-        TTupleProtocol oprot = (TTupleProtocol) prot;
-        BitSet optionals = new BitSet();
-        if (struct.isSetSuccess()) {
-          optionals.set(0);
-        }
-        if (struct.isSetSec()) {
-          optionals.set(1);
-        }
-        oprot.writeBitSet(optionals, 2);
-        if (struct.isSetSuccess()) {
-          {
-            oprot.writeI32(struct.success.size());
-            for (String _iter20 : struct.success)
-            {
-              oprot.writeString(_iter20);
-            }
-          }
-        }
-        if (struct.isSetSec()) {
-          struct.sec.write(oprot);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, listUsers_result struct) throws org.apache.thrift.TException {
-        TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(2);
-        if (incoming.get(0)) {
-          {
-            org.apache.thrift.protocol.TSet _set21 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new HashSet<String>(2*_set21.size);
-            for (int _i22 = 0; _i22 < _set21.size; ++_i22)
-            {
-              String _elem23; // required
-              _elem23 = iprot.readString();
-              struct.success.add(_elem23);
-            }
-          }
-          struct.setSuccessIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
-          struct.sec.read(iprot);
-          struct.setSecIsSet(true);
-        }
-      }
-    }
-
-  }
-
-  public static class createUser_args implements org.apache.thrift.TBase<createUser_args, createUser_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("createUser_args");
-
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TO_CREATE_FIELD_DESC = new org.apache.thrift.protocol.TField("toCreate", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)4);
-
-    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
-    static {
-      schemes.put(StandardScheme.class, new createUser_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new createUser_argsTupleSchemeFactory());
-    }
-
-    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
-    public org.apache.accumulo.core.security.thrift.Credential toCreate; // required
-    public List<ByteBuffer> authorizations; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)5, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
-      TO_CREATE((short)2, "toCreate"),
-      AUTHORIZATIONS((short)4, "authorizations");
-
-      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
-
-      static {
-        for (_Fields field : EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 5: // TINFO
-            return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
-          case 2: // TO_CREATE
-            return TO_CREATE;
-          case 4: // AUTHORIZATIONS
-            return AUTHORIZATIONS;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final String _fieldName;
-
-      _Fields(short thriftId, String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
-      tmpMap.put(_Fields.TO_CREATE, new org.apache.thrift.meta_data.FieldMetaData("toCreate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
-      tmpMap.put(_Fields.AUTHORIZATIONS, new org.apache.thrift.meta_data.FieldMetaData("authorizations", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING              , true))));
-      metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(createUser_args.class, metaDataMap);
-    }
-
-    public createUser_args() {
-    }
-
-    public createUser_args(
-      org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
-      org.apache.accumulo.core.security.thrift.Credential toCreate,
-      List<ByteBuffer> authorizations)
-    {
-      this();
-      this.tinfo = tinfo;
-      this.credential = credential;
-      this.toCreate = toCreate;
-      this.authorizations = authorizations;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public createUser_args(createUser_args other) {
-      if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
-      }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
-      }
-      if (other.isSetToCreate()) {
-        this.toCreate = new org.apache.accumulo.core.security.thrift.Credential(other.toCreate);
-      }
-      if (other.isSetAuthorizations()) {
-        List<ByteBuffer> __this__authorizations = new ArrayList<ByteBuffer>();
-        for (ByteBuffer other_element : other.authorizations) {
-          ByteBuffer temp_binary_element = org.apache.thrift.TBaseHelper.copyBinary(other_element);
-;
-          __this__authorizations.add(temp_binary_element);
-        }
-        this.authorizations = __this__authorizations;
-      }
-    }
-
-    public createUser_args deepCopy() {
-      return new createUser_args(this);
-    }
-
-    @Override
-    public void clear() {
-      this.tinfo = null;
-      this.credential = null;
-      this.toCreate = null;
-      this.authorizations = null;
-    }
-
-    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
-      return this.tinfo;
-    }
-
-    public createUser_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
-      this.tinfo = tinfo;
-      return this;
-    }
-
-    public void unsetTinfo() {
-      this.tinfo = null;
-    }
-
-    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
-    public boolean isSetTinfo() {
-      return this.tinfo != null;
-    }
-
-    public void setTinfoIsSet(boolean value) {
-      if (!value) {
-        this.tinfo = null;
-      }
-    }
-
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
-    }
-
-    public createUser_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
-      return this;
-    }
-
-    public void unsetCredential() {
-      this.credential = null;
-    }
-
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
-    }
-
-    public void setCredentialIsSet(boolean value) {
-      if (!value) {
-        this.credential = null;
-      }
-    }
-
-    public org.apache.accumulo.core.security.thrift.Credential getToCreate() {
-      return this.toCreate;
-    }
-
-    public createUser_args setToCreate(org.apache.accumulo.core.security.thrift.Credential toCreate) {
-      this.toCreate = toCreate;
-      return this;
-    }
-
-    public void unsetToCreate() {
-      this.toCreate = null;
-    }
-
-    /** Returns true if field toCreate is set (has been assigned a value) and false otherwise */
-    public boolean isSetToCreate() {
-      return this.toCreate != null;
-    }
-
-    public void setToCreateIsSet(boolean value) {
-      if (!value) {
-        this.toCreate = null;
-      }
-    }
-
-    public int getAuthorizationsSize() {
-      return (this.authorizations == null) ? 0 : this.authorizations.size();
-    }
-
-    public java.util.Iterator<ByteBuffer> getAuthorizationsIterator() {
-      return (this.authorizations == null) ? null : this.authorizations.iterator();
-    }
-
-    public void addToAuthorizations(ByteBuffer elem) {
-      if (this.authorizations == null) {
-        this.authorizations = new ArrayList<ByteBuffer>();
-      }
-      this.authorizations.add(elem);
-    }
-
-    public List<ByteBuffer> getAuthorizations() {
-      return this.authorizations;
-    }
-
-    public createUser_args setAuthorizations(List<ByteBuffer> authorizations) {
-      this.authorizations = authorizations;
-      return this;
-    }
-
-    public void unsetAuthorizations() {
-      this.authorizations = null;
-    }
-
-    /** Returns true if field authorizations is set (has been assigned a value) and false otherwise */
-    public boolean isSetAuthorizations() {
-      return this.authorizations != null;
-    }
-
-    public void setAuthorizationsIsSet(boolean value) {
-      if (!value) {
-        this.authorizations = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, Object value) {
-      switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIAL:
-        if (value == null) {
-          unsetCredential();
-        } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
-        }
-        break;
-
-      case TO_CREATE:
-        if (value == null) {
-          unsetToCreate();
-        } else {
-          setToCreate((org.apache.accumulo.core.security.thrift.Credential)value);
-        }
-        break;
-
-      case AUTHORIZATIONS:
-        if (value == null) {
-          unsetAuthorizations();
-        } else {
-          setAuthorizations((List<ByteBuffer>)value);
-        }
-        break;
-
-      }
-    }
-
-    public Object getFieldValue(_Fields field) {
-      switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIAL:
-        return getCredential();
-
-      case TO_CREATE:
-        return getToCreate();
-
-      case AUTHORIZATIONS:
-        return getAuthorizations();
-
-      }
-      throw new IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new IllegalArgumentException();
-      }
-
-      switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
-      case TO_CREATE:
-        return isSetToCreate();
-      case AUTHORIZATIONS:
-        return isSetAuthorizations();
-      }
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof createUser_args)
-        return this.equals((createUser_args)that);
-      return false;
-    }
-
-    public boolean equals(createUser_args that) {
-      if (that == null)
-        return false;
-
-      boolean this_present_tinfo = true && this.isSetTinfo();
-      boolean that_present_tinfo = true && that.isSetTinfo();
-      if (this_present_tinfo || that_present_tinfo) {
-        if (!(this_present_tinfo && that_present_tinfo))
-          return false;
-        if (!this.tinfo.equals(that.tinfo))
-          return false;
-      }
-
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
-          return false;
-        if (!this.credential.equals(that.credential))
-          return false;
-      }
-
-      boolean this_present_toCreate = true && this.isSetToCreate();
-      boolean that_present_toCreate = true && that.isSetToCreate();
-      if (this_present_toCreate || that_present_toCreate) {
-        if (!(this_present_toCreate && that_present_toCreate))
-          return false;
-        if (!this.toCreate.equals(that.toCreate))
-          return false;
-      }
-
-      boolean this_present_authorizations = true && this.isSetAuthorizations();
-      boolean that_present_authorizations = true && that.isSetAuthorizations();
-      if (this_present_authorizations || that_present_authorizations) {
-        if (!(this_present_authorizations && that_present_authorizations))
-          return false;
-        if (!this.authorizations.equals(that.authorizations))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      return 0;
-    }
-
-    public int compareTo(createUser_args other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-      createUser_args typedOther = (createUser_args)other;
-
-      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTinfo()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetToCreate()).compareTo(typedOther.isSetToCreate());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetToCreate()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.toCreate, typedOther.toCreate);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetAuthorizations()).compareTo(typedOther.isSetAuthorizations());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetAuthorizations()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.authorizations, typedOther.authorizations);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
-    }
-
-    @Override
-    public String toString() {
-      StringBuilder sb = new StringBuilder("createUser_args(");
-      boolean first = true;
-
-      sb.append("tinfo:");
-      if (this.tinfo == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tinfo);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.credential);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("toCreate:");
-      if (this.toCreate == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.toCreate);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("authorizations:");
-      if (this.authorizations == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.authorizations);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-      if (tinfo != null) {
-        tinfo.validate();
-      }
-      if (credential != null) {
-        credential.validate();
-      }
-      if (toCreate != null) {
-        toCreate.validate();
-      }
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class createUser_argsStandardSchemeFactory implements SchemeFactory {
-      public createUser_argsStandardScheme getScheme() {
-        return new createUser_argsStandardScheme();
-      }
-    }
-
-    private static class createUser_argsStandardScheme extends StandardScheme<createUser_args> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, createUser_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 5: // TINFO
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
-                struct.tinfo.read(iprot);
-                struct.setTinfoIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 1: // CREDENTIAL
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 2: // TO_CREATE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.toCreate = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.toCreate.read(iprot);
-                struct.setToCreateIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 4: // AUTHORIZATIONS
-              if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
-                {
-                  org.apache.thrift.protocol.TList _list24 = iprot.readListBegin();
-                  struct.authorizations = new ArrayList<ByteBuffer>(_list24.size);
-                  for (int _i25 = 0; _i25 < _list24.size; ++_i25)
-                  {
-                    ByteBuffer _elem26; // required
-                    _elem26 = iprot.readBinary();
-                    struct.authorizations.add(_elem26);
-                  }
-                  iprot.readListEnd();
-                }
-                struct.setAuthorizationsIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, createUser_args struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.toCreate != null) {
-          oprot.writeFieldBegin(TO_CREATE_FIELD_DESC);
-          struct.toCreate.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.authorizations != null) {
-          oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
-          {
-            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.authorizations.size()));
-            for (ByteBuffer _iter27 : struct.authorizations)
-            {
-              oprot.writeBinary(_iter27);
-            }
-            oprot.writeListEnd();
-          }
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class createUser_argsTupleSchemeFactory implements SchemeFactory {
-      public createUser_argsTupleScheme getScheme() {
-        return new createUser_argsTupleScheme();
-      }
-    }
-
-    private static class createUser_argsTupleScheme extends TupleScheme<createUser_args> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, createUser_args struct) throws org.apache.thrift.TException {
-        TTupleProtocol oprot = (TTupleProtocol) prot;
-        BitSet optionals = new BitSet();
-        if (struct.isSetTinfo()) {
-          optionals.set(0);
-        }
-        if (struct.isSetCredential()) {
-          optionals.set(1);
-        }
-        if (struct.isSetToCreate()) {
-          optionals.set(2);
-        }
-        if (struct.isSetAuthorizations()) {
-          optionals.set(3);
-        }
-        oprot.writeBitSet(optionals, 4);
-        if (struct.isSetTinfo()) {
-          struct.tinfo.write(oprot);
-        }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
-        }
-        if (struct.isSetToCreate()) {
-          struct.toCreate.write(oprot);
-        }
-        if (struct.isSetAuthorizations()) {
-          {
-            oprot.writeI32(struct.authorizations.size());
-            for (ByteBuffer _iter28 : struct.authorizations)
-            {
-              oprot.writeBinary(_iter28);
-            }
-          }
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, createUser_args struct) throws org.apache.thrift.TException {
-        TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(4);
-        if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
-          struct.tinfo.read(iprot);
-          struct.setTinfoIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.toCreate = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.toCreate.read(iprot);
-          struct.setToCreateIsSet(true);
-        }
-        if (incoming.get(3)) {
-          {
-            org.apache.thrift.protocol.TList _list29 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.authorizations = new ArrayList<ByteBuffer>(_list29.size);
-            for (int _i30 = 0; _i30 < _list29.size; ++_i30)
-            {
-              ByteBuffer _elem31; // required
-              _elem31 = iprot.readBinary();
-              struct.authorizations.add(_elem31);
-            }
-          }
-          struct.setAuthorizationsIsSet(true);
-        }
-      }
-    }
-
-  }
-
-  public static class createUser_result implements org.apache.thrift.TBase<createUser_result, createUser_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("createUser_result");
-
-    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-
-    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
-    static {
-      schemes.put(StandardScheme.class, new createUser_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new createUser_resultTupleSchemeFactory());
-    }
-
-    public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec");
-
-      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
-
-      static {
-        for (_Fields field : EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 1: // SEC
-            return SEC;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final String _fieldName;
-
-      _Fields(short thriftId, String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
-      metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(createUser_result.class, metaDataMap);
-    }
-
-    public createUser_result() {
-    }
-
-    public createUser_result(
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
-      this();
-      this.sec = sec;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public createUser_result(createUser_result other) {
-      if (other.isSetSec()) {
-        this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
-      }
-    }
-
-    public createUser_result deepCopy() {
-      return new createUser_result(this);
-    }
-
-    @Override
-    public void clear() {
-      this.sec = null;
-    }
-
-    public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
-      return this.sec;
-    }
-
-    public createUser_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
-      this.sec = sec;
-      return this;
-    }
-
-    public void unsetSec() {
-      this.sec = null;
-    }
-
-    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
-    public boolean isSetSec() {
-      return this.sec != null;
-    }
-
-    public void setSecIsSet(boolean value) {
-      if (!value) {
-        this.sec = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, Object value) {
-      switch (field) {
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      }
-    }
-
-    public Object getFieldValue(_Fields field) {
-      switch (field) {
-      case SEC:
-        return getSec();
-
-      }
-      throw new IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new IllegalArgumentException();
-      }
-
-      switch (field) {
-      case SEC:
-        return isSetSec();
-      }
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof createUser_result)
-        return this.equals((createUser_result)that);
-      return false;
-    }
-
-    public boolean equals(createUser_result that) {
-      if (that == null)
-        return false;
-
-      boolean this_present_sec = true && this.isSetSec();
-      boolean that_present_sec = true && that.isSetSec();
-      if (this_present_sec || that_present_sec) {
-        if (!(this_present_sec && that_present_sec))
-          return false;
-        if (!this.sec.equals(that.sec))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      return 0;
-    }
-
-    public int compareTo(createUser_result other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-      createUser_result typedOther = (createUser_result)other;
-
-      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSec()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
-      }
-
-    @Override
-    public String toString() {
-      StringBuilder sb = new StringBuilder("createUser_result(");
-      boolean first = true;
-
-      sb.append("sec:");
-      if (this.sec == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.sec);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class createUser_resultStandardSchemeFactory implements SchemeFactory {
-      public createUser_resultStandardScheme getScheme() {
-        return new createUser_resultStandardScheme();
-      }
-    }
-
-    private static class createUser_resultStandardScheme extends StandardScheme<createUser_result> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, createUser_result struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 1: // SEC
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
-                struct.sec.read(iprot);
-                struct.setSecIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, createUser_result struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.sec != null) {
-          oprot.writeFieldBegin(SEC_FIELD_DESC);
-          struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class createUser_resultTupleSchemeFactory implements SchemeFactory {
-      public createUser_resultTupleScheme getScheme() {
-        return new createUser_resultTupleScheme();
-      }
-    }
-
-    private static class createUser_resultTupleScheme extends TupleScheme<createUser_result> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, createUser_result struct) throws org.apache.thrift.TException {
-        TTupleProtocol oprot = (TTupleProtocol) prot;
-        BitSet optionals = new BitSet();
-        if (struct.isSetSec()) {
-          optionals.set(0);
-        }
-        oprot.writeBitSet(optionals, 1);
-        if (struct.isSetSec()) {
-          struct.sec.write(oprot);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, createUser_result struct) throws org.apache.thrift.TException {
-        TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(1);
-        if (incoming.get(0)) {
-          struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
-          struct.sec.read(iprot);
-          struct.setSecIsSet(true);
-        }
-      }
-    }
-
-  }
-
-  public static class dropUser_args implements org.apache.thrift.TBase<dropUser_args, dropUser_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("dropUser_args");
-
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
-
-    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
-    static {
-      schemes.put(StandardScheme.class, new dropUser_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new dropUser_argsTupleSchemeFactory());
-    }
-
-    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
-    public String principal; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
-      PRINCIPAL((short)2, "principal");
-
-      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
-
-      static {
-        for (_Fields field : EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 3: // TINFO
-            return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
-          case 2: // PRINCIPAL
-            return PRINCIPAL;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final String _fieldName;
-
-      _Fields(short thriftId, String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
-      tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(dropUser_args.class, metaDataMap);
-    }
-
-    public dropUser_args() {
-    }
-
-    public dropUser_args(
-      org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
-      String principal)
-    {
-      this();
-      this.tinfo = tinfo;
-      this.credential = credential;
-      this.principal = principal;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public dropUser_args(dropUser_args other) {
-      if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
-      }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
-      }
-      if (other.isSetPrincipal()) {
-        this.principal = other.principal;
-      }
-    }
-
-    public dropUser_args deepCopy() {
-      return new dropUser_args(this);
-    }
-
-    @Override
-    public void clear() {
-      this.tinfo = null;
-      this.credential = null;
-      this.principal = null;
-    }
-
-    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
-      return this.tinfo;
-    }
-
-    public dropUser_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
-      this.tinfo = tinfo;
-      return this;
-    }
-
-    public void unsetTinfo() {
-      this.tinfo = null;
-    }
-
-    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
-    public boolean isSetTinfo() {
-      return this.tinfo != null;
-    }
-
-    public void setTinfoIsSet(boolean value) {
-      if (!value) {
-        this.tinfo = null;
-      }
-    }
-
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
-    }
-
-    public dropUser_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
-      return this;
-    }
-
-    public void unsetCredential() {
-      this.credential = null;
-    }
-
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
-    }
-
-    public void setCredentialIsSet(boolean value) {
-      if (!value) {
-        this.credential = null;
-      }
-    }
-
-    public String getPrincipal() {
-      return this.principal;
-    }
-
-    public dropUser_args setPrincipal(String principal) {
-      this.principal = principal;
-      return this;
-    }
-
-    public void unsetPrincipal() {
-      this.principal = null;
-    }
-
-    /** Returns true if field principal is set (has been assigned a value) and false otherwise */
-    public boolean isSetPrincipal() {
-      return this.principal != null;
-    }
-
-    public void setPrincipalIsSet(boolean value) {
-      if (!value) {
-        this.principal = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, Object value) {
-      switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIAL:
-        if (value == null) {
-          unsetCredential();
-        } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
-        }
-        break;
-
-      case PRINCIPAL:
-        if (value == null) {
-          unsetPrincipal();
-        } else {
-          setPrincipal((String)value);
-        }
-        break;
-
-      }
-    }
-
-    public Object getFieldValue(_Fields field) {
-      switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIAL:
-        return getCredential();
-
-      case PRINCIPAL:
-        return getPrincipal();
-
-      }
-      throw new IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new IllegalArgumentException();
-      }
-
-      switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
-      case PRINCIPAL:
-        return isSetPrincipal();
-      }
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof dropUser_args)
-        return this.equals((dropUser_args)that);
-      return false;
-    }
-
-    public boolean equals(dropUser_args that) {
-      if (that == null)
-        return false;
-
-      boolean this_present_tinfo = true && this.isSetTinfo();
-      boolean that_present_tinfo = true && that.isSetTinfo();
-      if (this_present_tinfo || that_present_tinfo) {
-        if (!(this_present_tinfo && that_present_tinfo))
-          return false;
-        if (!this.tinfo.equals(that.tinfo))
-          return false;
-      }
-
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
-          return false;
-        if (!this.credential.equals(that.credential))
-          return false;
-      }
-
-      boolean this_present_principal = true && this.isSetPrincipal();
-      boolean that_present_principal = true && that.isSetPrincipal();
-      if (this_present_principal || that_present_principal) {
-        if (!(this_present_principal && that_present_principal))
-          return false;
-        if (!this.principal.equals(that.principal))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      return 0;
-    }
-
-    public int compareTo(dropUser_args other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-      dropUser_args typedOther = (dropUser_args)other;
-
-      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTinfo()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetPrincipal()).compareTo(typedOther.isSetPrincipal());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetPrincipal()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principal, typedOther.principal);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
-    }
-
-    @Override
-    public String toString() {
-      StringBuilder sb = new StringBuilder("dropUser_args(");
-      boolean first = true;
-
-      sb.append("tinfo:");
-      if (this.tinfo == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tinfo);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.credential);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("principal:");
-      if (this.principal == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.principal);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-      if (tinfo != null) {
-        tinfo.validate();
-      }
-      if (credential != null) {
-        credential.validate();
-      }
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class dropUser_argsStandardSchemeFactory implements SchemeFactory {
-      public dropUser_argsStandardScheme getScheme() {
-        return new dropUser_argsStandardScheme();
-      }
-    }
-
-    private static class dropUser_argsStandardScheme extends StandardScheme<dropUser_args> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, dropUser_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 3: // TINFO
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
-                struct.tinfo.read(iprot);
-                struct.setTinfoIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 1: // CREDENTIAL
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 2: // PRINCIPAL
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.principal = iprot.readString();
-                struct.setPrincipalIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, dropUser_args struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.principal != null) {
-          oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
-          oprot.writeString(struct.principal);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class dropUser_argsTupleSchemeFactory implements SchemeFactory {
-      public dropUser_argsTupleScheme getScheme() {
-        return new dropUser_argsTupleScheme();
-      }
-    }
-
-    private static class dropUser_argsTupleScheme extends TupleScheme<dropUser_args> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, dropUser_args struct) throws org.apache.thrift.TException {
-        TTupleProtocol oprot = (TTupleProtocol) prot;
-        BitSet optionals = new BitSet();
-        if (struct.isSetTinfo()) {
-          optionals.set(0);
-        }
-        if (struct.isSetCredential()) {
-          optionals.set(1);
-        }
-        if (struct.isSetPrincipal()) {
-          optionals.set(2);
-        }
-        oprot.writeBitSet(optionals, 3);
-        if (struct.isSetTinfo()) {
-          struct.tinfo.write(oprot);
-        }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
-        }
-        if (struct.isSetPrincipal()) {
-          oprot.writeString(struct.principal);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, dropUser_args struct) throws org.apache.thrift.TException {
-        TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(3);
-        if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
-          struct.tinfo.read(iprot);
-          struct.setTinfoIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.principal = iprot.readString();
-          struct.setPrincipalIsSet(true);
-        }
-      }
-    }
-
-  }
-
-  public static class dropUser_result implements org.apache.thrift.TBase<dropUser_result, dropUser_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("dropUser_result");
-
-    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-
-    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
-    static {
-      schemes.put(StandardScheme.class, new dropUser_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new dropUser_resultTupleSchemeFactory());
-    }
-
-    public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec");
-
-      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
-
-      static {
-        for (_Fields field : EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 1: // SEC
-            return SEC;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final String _fieldName;
-
-      _Fields(short thriftId, String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
-      metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(dropUser_result.class, metaDataMap);
-    }
-
-    public dropUser_result() {
-    }
-
-    public dropUser_result(
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
-      this();
-      this.sec = sec;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public dropUser_result(dropUser_result other) {
-      if (other.isSetSec()) {
-        this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
-      }
-    }
-
-    public dropUser_result deepCopy() {
-      return new dropUser_result(this);
-    }
-
-    @Override
-    public void clear() {
-      this.sec = null;
-    }
-
-    public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
-      return this.sec;
-    }
-
-    public dropUser_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
-      this.sec = sec;
-      return this;
-    }
-
-    public void unsetSec() {
-      this.sec = null;
-    }
-
-    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
-    public boolean isSetSec() {
-      return this.sec != null;
-    }
-
-    public void setSecIsSet(boolean value) {
-      if (!value) {
-        this.sec = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, Object value) {
-      switch (field) {
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      }
-    }
-
-    public Object getFieldValue(_Fields field) {
-      switch (field) {
-      case SEC:
-        return getSec();
-
-      }
-      throw new IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new IllegalArgumentException();
-      }
-
-      switch (field) {
-      case SEC:
-        return isSetSec();
-      }
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof dropUser_result)
-        return this.equals((dropUser_result)that);
-      return false;
-    }
-
-    public boolean equals(dropUser_result that) {
-      if (that == null)
-        return false;
-
-      boolean this_present_sec = true && this.isSetSec();
-      boolean that_present_sec = true && that.isSetSec();
-      if (this_present_sec || that_present_sec) {
-        if (!(this_present_sec && that_present_sec))
-          return false;
-        if (!this.sec.equals(that.sec))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      return 0;
-    }
-
-    public int compareTo(dropUser_result other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-      dropUser_result typedOther = (dropUser_result)other;
-
-      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSec()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
-      }
-
-    @Override
-    public String toString() {
-      StringBuilder sb = new StringBuilder("dropUser_result(");
-      boolean first = true;
-
-      sb.append("sec:");
-      if (this.sec == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.sec);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class dropUser_resultStandardSchemeFactory implements SchemeFactory {
-      public dropUser_resultStandardScheme getScheme() {
-        return new dropUser_resultStandardScheme();
-      }
-    }
-
-    private static class dropUser_resultStandardScheme extends StandardScheme<dropUser_result> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, dropUser_result struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 1: // SEC
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
-                struct.sec.read(iprot);
-                struct.setSecIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, dropUser_result struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.sec != null) {
-          oprot.writeFieldBegin(SEC_FIELD_DESC);
-          struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class dropUser_resultTupleSchemeFactory implements SchemeFactory {
-      public dropUser_resultTupleScheme getScheme() {
-        return new dropUser_resultTupleScheme();
-      }
-    }
-
-    private static class dropUser_resultTupleScheme extends TupleScheme<dropUser_result> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, dropUser_result struct) throws org.apache.thrift.TException {
-        TTupleProtocol oprot = (TTupleProtocol) prot;
-        BitSet optionals = new BitSet();
-        if (struct.isSetSec()) {
-          optionals.set(0);
-        }
-        oprot.writeBitSet(optionals, 1);
-        if (struct.isSetSec()) {
-          struct.sec.write(oprot);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, dropUser_result struct) throws org.apache.thrift.TException {
-        TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(1);
-        if (incoming.get(0)) {
-          struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
-          struct.sec.read(iprot);
-          struct.setSecIsSet(true);
-        }
-      }
-    }
-
-  }
-
-  public static class changePassword_args implements org.apache.thrift.TBase<changePassword_args, changePassword_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("changePassword_args");
-
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TO_CHANGE_FIELD_DESC = new org.apache.thrift.protocol.TField("toChange", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-
-    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
-    static {
-      schemes.put(StandardScheme.class, new changePassword_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new changePassword_argsTupleSchemeFactory());
-    }
-
-    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
-    public org.apache.accumulo.core.security.thrift.Credential toChange; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)4, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
-      TO_CHANGE((short)2, "toChange");
-
-      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
-
-      static {
-        for (_Fields field : EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 4: // TINFO
-            return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
-          case 2: // TO_CHANGE
-            return TO_CHANGE;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final String _fieldName;
-
-      _Fields(short thriftId, String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
-      tmpMap.put(_Fields.TO_CHANGE, new org.apache.thrift.meta_data.FieldMetaData("toChange", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
-      metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(changePassword_args.class, metaDataMap);
-    }
-
-    public changePassword_args() {
-    }
-
-    public changePassword_args(
-      org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
-      org.apache.accumulo.core.security.thrift.Credential toChange)
-    {
-      this();
-      this.tinfo = tinfo;
-      this.credential = credential;
-      this.toChange = toChange;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public changePassword_args(changePassword_args other) {
-      if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
-      }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
-      }
-      if (other.isSetToChange()) {
-        this.toChange = new org.apache.accumulo.core.security.thrift.Credential(other.toChange);
-      }
-    }
-
-    public changePassword_args deepCopy() {
-      return new changePassword_args(this);
-    }
-
-    @Override
-    public void clear() {
-      this.tinfo = null;
-      this.credential = null;
-      this.toChange = null;
-    }
-
-    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
-      return this.tinfo;
-    }
-
-    public changePassword_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
-      this.tinfo = tinfo;
-      return this;
-    }
-
-    public void unsetTinfo() {
-      this.tinfo = null;
-    }
-
-    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
-    public boolean isSetTinfo() {
-      return this.tinfo != null;
-    }
-
-    public void setTinfoIsSet(boolean value) {
-      if (!value) {
-        this.tinfo = null;
-      }
-    }
-
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
-    }
-
-    public changePassword_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
-      return this;
-    }
-
-    public void unsetCredential() {
-      this.credential = null;
-    }
-
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
-    }
-
-    public void setCredentialIsSet(boolean value) {
-      if (!value) {
-        this.credential = null;
-      }
-    }
-
-    public org.apache.accumulo.core.security.thrift.Credential getToChange() {
-      return this.toChange;
-    }
-
-    public changePassword_args setToChange(org.apache.accumulo.core.security.thrift.Credential toChange) {
-      this.toChange = toChange;
-      return this;
-    }
-
-    public void unsetToChange() {
-      this.toChange = null;
-    }
-
-    /** Returns true if field toChange is set (has been assigned a value) and false otherwise */
-    public boolean isSetToChange() {
-      return this.toChange != null;
-    }
-
-    public void setToChangeIsSet(boolean value) {
-      if (!value) {
-        this.toChange = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, Object value) {
-      switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIAL:
-        if (value == null) {
-          unsetCredential();
-        } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
-        }
-        break;
-
-      case TO_CHANGE:
-        if (value == null) {
-          unsetToChange();
-        } else {
-          setToChange((org.apache.accumulo.core.security.thrift.Credential)value);
-        }
-        break;
-
-      }
-    }
-
-    public Object getFieldValue(_Fields field) {
-      switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIAL:
-        return getCredential();
-
-      case TO_CHANGE:
-        return getToChange();
-
-      }
-      throw new IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new IllegalArgumentException();
-      }
-
-      switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
-      case TO_CHANGE:
-        return isSetToChange();
-      }
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof changePassword_args)
-        return this.equals((changePassword_args)that);
-      return false;
-    }
-
-    public boolean equals(changePassword_args that) {
-      if (that == null)
-        return false;
-
-      boolean this_present_tinfo = true && this.isSetTinfo();
-      boolean that_present_tinfo = true && that.isSetTinfo();
-      if (this_present_tinfo || that_present_tinfo) {
-        if (!(this_present_tinfo && that_present_tinfo))
-          return false;
-        if (!this.tinfo.equals(that.tinfo))
-          return false;
-      }
-
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
-          return false;
-        if (!this.credential.equals(that.credential))
-          return false;
-      }
-
-      boolean this_present_toChange = true && this.isSetToChange();
-      boolean that_present_toChange = true && that.isSetToChange();
-      if (this_present_toChange || that_present_toChange) {
-        if (!(this_present_toChange && that_present_toChange))
-          return false;
-        if (!this.toChange.equals(that.toChange))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      return 0;
-    }
-
-    public int compareTo(changePassword_args other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-      changePassword_args typedOther = (changePassword_args)other;
-
-      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTinfo()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = Boolean.valueOf(isSetToChange()).compareTo(typedOther.isSetToChange());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetToChange()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.toChange, typedOther.toChange);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
-    }
-
-    @Override
-    public String toString() {
-      StringBuilder sb = new StringBuilder("changePassword_args(");
-      boolean first = true;
-
-      sb.append("tinfo:");
-      if (this.tinfo == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tinfo);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.credential);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("toChange:");
-      if (this.toChange == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.toChange);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-      if (tinfo != null) {
-        tinfo.validate();
-      }
-      if (credential != null) {
-        credential.validate();
-      }
-      if (toChange != null) {
-        toChange.validate();
-      }
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class changePassword_argsStandardSchemeFactory implements SchemeFactory {
-      public changePassword_argsStandardScheme getScheme() {
-        return new changePassword_argsStandardScheme();
-      }
-    }
-
-    private static class changePassword_argsStandardScheme extends StandardScheme<changePassword_args> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, changePassword_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 4: // TINFO
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
-                struct.tinfo.read(iprot);
-                struct.setTinfoIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 1: // CREDENTIAL
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 2: // TO_CHANGE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.toChange = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.toChange.read(iprot);
-                struct.setToChangeIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, changePassword_args struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.toChange != null) {
-          oprot.writeFieldBegin(TO_CHANGE_FIELD_DESC);
-          struct.toChange.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class changePassword_argsTupleSchemeFactory implements SchemeFactory {
-      public changePassword_argsTupleScheme getScheme() {
-        return new changePassword_argsTupleScheme();
-      }
-    }
-
-    private static class changePassword_argsTupleScheme extends TupleScheme<changePassword_args> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, changePassword_args struct) throws org.apache.thrift.TException {
-        TTupleProtocol oprot = (TTupleProtocol) prot;
-        BitSet optionals = new BitSet();
-        if (struct.isSetTinfo()) {
-          optionals.set(0);
-        }
-        if (struct.isSetCredential()) {
-          optionals.set(1);
-        }
-        if (struct.isSetToChange()) {
-          optionals.set(2);
-        }
-        oprot.writeBitSet(optionals, 3);
-        if (struct.isSetTinfo()) {
-          struct.tinfo.write(oprot);
-        }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
-        }
-        if (struct.isSetToChange()) {
-          struct.toChange.write(oprot);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, changePassword_args struct) throws org.apache.thrift.TException {
-        TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(3);
-        if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
-          struct.tinfo.read(iprot);
-          struct.setTinfoIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.toChange = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.toChange.read(iprot);
-          struct.setToChangeIsSet(true);
-        }
-      }
-    }
-
-  }
-
-  public static class changePassword_result implements org.apache.thrift.TBase<changePassword_result, changePassword_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("changePassword_result");
-
-    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-
-    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
-    static {
-      schemes.put(StandardScheme.class, new changePassword_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new changePassword_resultTupleSchemeFactory());
-    }
-
-    public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec");
-
-      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
-
-      static {
-        for (_Fields field : EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 1: // SEC
-            return SEC;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final String _fieldName;
-
-      _Fields(short thriftId, String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
-      metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(changePassword_result.class, metaDataMap);
-    }
-
-    public changePassword_result() {
-    }
-
-    public changePassword_result(
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
-      this();
-      this.sec = sec;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public changePassword_result(changePassword_result other) {
-      if (other.isSetSec()) {
-        this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
-      }
-    }
-
-    public changePassword_result deepCopy() {
-      return new changePassword_result(this);
-    }
-
-    @Override
-    public void clear() {
-      this.sec = null;
-    }
-
-    public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
-      return this.sec;
-    }
-
-    public changePassword_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
-      this.sec = sec;
-      return this;
-    }
-
-    public void unsetSec() {
-      this.sec = null;
-    }
-
-    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
-    public boolean isSetSec() {
-      return this.sec != null;
-    }
-
-    public void setSecIsSet(boolean value) {
-      if (!value) {
-        this.sec = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, Object value) {
-      switch (field) {
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      }
-    }
-
-    public Object getFieldValue(_Fields field) {
-      switch (field) {
-      case SEC:
-        return getSec();
-
-      }
-      throw new IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new IllegalArgumentException();
-      }
-
-      switch (field) {
-      case SEC:
-        return isSetSec();
-      }
-      throw new IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof changePassword_result)
-        return this.equals((changePassword_result)that);
-      return false;
-    }
-
-    public boolean equals(changePassword_result that) {
-      if (that == null)
-        return false;
-
-      boolean this_present_sec = true && this.isSetSec();
-      boolean that_present_sec = true && that.isSetSec();
-      if (this_present_sec || that_present_sec) {
-        if (!(this_present_sec && that_present_sec))
-          return false;
-        if (!this.sec.equals(that.sec))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      return 0;
-    }
-
-    public int compareTo(changePassword_result other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-      changePassword_result typedOther = (changePassword_result)other;
-
-      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSec()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
-      }
-
-    @Override
-    public String toString() {
-      StringBuilder sb = new StringBuilder("changePassword_result(");
-      boolean first = true;
-
-      sb.append("sec:");
-      if (this.sec == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.sec);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class changePassword_resultStandardSchemeFactory implements SchemeFactory {
-      public changePassword_resultStandardScheme getScheme() {
-        return new changePassword_resultStandardScheme();
-      }
-    }
-
-    private static class changePassword_resultStandardScheme extends StandardScheme<changePassword_result> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, changePassword_result struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 1: // SEC
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
-                struct.sec.read(iprot);
-                struct.setSecIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, changePassword_result struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.sec != null) {
-          oprot.writeFieldBegin(SEC_FIELD_DESC);
-          struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class changePassword_resultTupleSchemeFactory implements SchemeFactory {
-      public changePassword_resultTupleScheme getScheme() {
-        return new changePassword_resultTupleScheme();
-      }
-    }
-
-    private static class changePassword_resultTupleScheme extends TupleScheme<changePassword_result> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, changePassword_result struct) throws org.apache.thrift.TException {
-        TTupleProtocol oprot = (TTupleProtocol) prot;
-        BitSet optionals = new BitSet();
-        if (struct.isSetSec()) {
-          optionals.set(0);
-        }
-        oprot.writeBitSet(optionals, 1);
-        if (struct.isSetSec()) {
-          struct.sec.write(oprot);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, changePassword_result struct) throws org.apache.thrift.TException {
-        TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(1);
-        if (incoming.get(0)) {
-          struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
-          struct.sec.read(iprot);
-          struct.setSecIsSet(true);
-        }
-      }
-    }
-
-  }
-
   public static class changeAuthorizations_args implements org.apache.thrift.TBase<changeAuthorizations_args, changeAuthorizations_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("changeAuthorizations_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)5);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)3);
 
@@ -12050,14 +13124,14 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
     public List<ByteBuffer> authorizations; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)4, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
+      CREDENTIALS((short)5, "credentials"),
       PRINCIPAL((short)2, "principal"),
       AUTHORIZATIONS((short)3, "authorizations");
 
@@ -12076,8 +13150,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 4: // TINFO
             return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
+          case 5: // CREDENTIALS
+            return CREDENTIALS;
           case 2: // PRINCIPAL
             return PRINCIPAL;
           case 3: // AUTHORIZATIONS
@@ -12127,8 +13201,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.AUTHORIZATIONS, new org.apache.thrift.meta_data.FieldMetaData("authorizations", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -12143,13 +13217,13 @@ import org.slf4j.LoggerFactory;
 
     public changeAuthorizations_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal,
       List<ByteBuffer> authorizations)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.principal = principal;
       this.authorizations = authorizations;
     }
@@ -12161,8 +13235,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -12185,7 +13259,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.principal = null;
       this.authorizations = null;
     }
@@ -12214,27 +13288,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public changeAuthorizations_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public changeAuthorizations_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -12311,11 +13385,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -12343,8 +13417,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case PRINCIPAL:
         return getPrincipal();
@@ -12365,8 +13439,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
       case AUTHORIZATIONS:
@@ -12397,12 +13471,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -12450,12 +13524,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -12508,11 +13582,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -12541,8 +13615,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -12589,11 +13663,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIAL
+            case 5: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -12609,13 +13683,13 @@ import org.slf4j.LoggerFactory;
             case 3: // AUTHORIZATIONS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list32 = iprot.readListBegin();
-                  struct.authorizations = new ArrayList<ByteBuffer>(_list32.size);
-                  for (int _i33 = 0; _i33 < _list32.size; ++_i33)
+                  org.apache.thrift.protocol.TList _list24 = iprot.readListBegin();
+                  struct.authorizations = new ArrayList<ByteBuffer>(_list24.size);
+                  for (int _i25 = 0; _i25 < _list24.size; ++_i25)
                   {
-                    ByteBuffer _elem34; // required
-                    _elem34 = iprot.readBinary();
-                    struct.authorizations.add(_elem34);
+                    ByteBuffer _elem26; // required
+                    _elem26 = iprot.readBinary();
+                    struct.authorizations.add(_elem26);
                   }
                   iprot.readListEnd();
                 }
@@ -12639,11 +13713,6 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.principal != null) {
           oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
           oprot.writeString(struct.principal);
@@ -12653,9 +13722,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.authorizations.size()));
-            for (ByteBuffer _iter35 : struct.authorizations)
+            for (ByteBuffer _iter27 : struct.authorizations)
             {
-              oprot.writeBinary(_iter35);
+              oprot.writeBinary(_iter27);
             }
             oprot.writeListEnd();
           }
@@ -12664,6 +13733,11 @@ import org.slf4j.LoggerFactory;
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -12687,7 +13761,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetPrincipal()) {
@@ -12700,8 +13774,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -12709,9 +13783,9 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetAuthorizations()) {
           {
             oprot.writeI32(struct.authorizations.size());
-            for (ByteBuffer _iter36 : struct.authorizations)
+            for (ByteBuffer _iter28 : struct.authorizations)
             {
-              oprot.writeBinary(_iter36);
+              oprot.writeBinary(_iter28);
             }
           }
         }
@@ -12727,9 +13801,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.principal = iprot.readString();
@@ -12737,13 +13811,13 @@ import org.slf4j.LoggerFactory;
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TList _list37 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.authorizations = new ArrayList<ByteBuffer>(_list37.size);
-            for (int _i38 = 0; _i38 < _list37.size; ++_i38)
+            org.apache.thrift.protocol.TList _list29 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.authorizations = new ArrayList<ByteBuffer>(_list29.size);
+            for (int _i30 = 0; _i30 < _list29.size; ++_i30)
             {
-              ByteBuffer _elem39; // required
-              _elem39 = iprot.readBinary();
-              struct.authorizations.add(_elem39);
+              ByteBuffer _elem31; // required
+              _elem31 = iprot.readBinary();
+              struct.authorizations.add(_elem31);
             }
           }
           struct.setAuthorizationsIsSet(true);
@@ -13113,7 +14187,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getUserAuthorizations_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)4);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -13123,13 +14197,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)3, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
+      CREDENTIALS((short)4, "credentials"),
       PRINCIPAL((short)2, "principal");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -13147,8 +14221,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 3: // TINFO
             return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
+          case 4: // CREDENTIALS
+            return CREDENTIALS;
           case 2: // PRINCIPAL
             return PRINCIPAL;
           default:
@@ -13196,8 +14270,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -13209,12 +14283,12 @@ import org.slf4j.LoggerFactory;
 
     public getUserAuthorizations_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.principal = principal;
     }
 
@@ -13225,8 +14299,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -13240,7 +14314,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.principal = null;
     }
 
@@ -13268,27 +14342,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public getUserAuthorizations_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public getUserAuthorizations_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -13326,11 +14400,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -13350,8 +14424,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case PRINCIPAL:
         return getPrincipal();
@@ -13369,8 +14443,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
       }
@@ -13399,12 +14473,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -13443,12 +14517,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -13491,11 +14565,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -13516,8 +14590,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -13564,11 +14638,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIAL
+            case 4: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -13596,11 +14670,6 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.principal != null) {
           oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
           oprot.writeString(struct.principal);
@@ -13609,6 +14678,11 @@ import org.slf4j.LoggerFactory;
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -13632,7 +14706,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetPrincipal()) {
@@ -13642,8 +14716,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -13660,9 +14734,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.principal = iprot.readString();
@@ -14061,13 +15135,13 @@ import org.slf4j.LoggerFactory;
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list40 = iprot.readListBegin();
-                  struct.success = new ArrayList<ByteBuffer>(_list40.size);
-                  for (int _i41 = 0; _i41 < _list40.size; ++_i41)
+                  org.apache.thrift.protocol.TList _list32 = iprot.readListBegin();
+                  struct.success = new ArrayList<ByteBuffer>(_list32.size);
+                  for (int _i33 = 0; _i33 < _list32.size; ++_i33)
                   {
-                    ByteBuffer _elem42; // required
-                    _elem42 = iprot.readBinary();
-                    struct.success.add(_elem42);
+                    ByteBuffer _elem34; // required
+                    _elem34 = iprot.readBinary();
+                    struct.success.add(_elem34);
                   }
                   iprot.readListEnd();
                 }
@@ -14104,9 +15178,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (ByteBuffer _iter43 : struct.success)
+            for (ByteBuffer _iter35 : struct.success)
             {
-              oprot.writeBinary(_iter43);
+              oprot.writeBinary(_iter35);
             }
             oprot.writeListEnd();
           }
@@ -14145,9 +15219,9 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (ByteBuffer _iter44 : struct.success)
+            for (ByteBuffer _iter36 : struct.success)
             {
-              oprot.writeBinary(_iter44);
+              oprot.writeBinary(_iter36);
             }
           }
         }
@@ -14162,13 +15236,13 @@ import org.slf4j.LoggerFactory;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list45 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new ArrayList<ByteBuffer>(_list45.size);
-            for (int _i46 = 0; _i46 < _list45.size; ++_i46)
+            org.apache.thrift.protocol.TList _list37 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new ArrayList<ByteBuffer>(_list37.size);
+            for (int _i38 = 0; _i38 < _list37.size; ++_i38)
             {
-              ByteBuffer _elem47; // required
-              _elem47 = iprot.readBinary();
-              struct.success.add(_elem47);
+              ByteBuffer _elem39; // required
+              _elem39 = iprot.readBinary();
+              struct.success.add(_elem39);
             }
           }
           struct.setSuccessIsSet(true);
@@ -14187,7 +15261,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("hasSystemPermission_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)5);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField SYS_PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("sysPerm", org.apache.thrift.protocol.TType.BYTE, (short)3);
 
@@ -14198,14 +15272,14 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
     public byte sysPerm; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)4, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
+      CREDENTIALS((short)5, "credentials"),
       PRINCIPAL((short)2, "principal"),
       SYS_PERM((short)3, "sysPerm");
 
@@ -14224,8 +15298,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 4: // TINFO
             return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
+          case 5: // CREDENTIALS
+            return CREDENTIALS;
           case 2: // PRINCIPAL
             return PRINCIPAL;
           case 3: // SYS_PERM
@@ -14277,8 +15351,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.SYS_PERM, new org.apache.thrift.meta_data.FieldMetaData("sysPerm", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -14292,13 +15366,13 @@ import org.slf4j.LoggerFactory;
 
     public hasSystemPermission_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal,
       byte sysPerm)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.principal = principal;
       this.sysPerm = sysPerm;
       setSysPermIsSet(true);
@@ -14312,8 +15386,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -14328,7 +15402,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.principal = null;
       setSysPermIsSet(false);
       this.sysPerm = 0;
@@ -14358,27 +15432,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public hasSystemPermission_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public hasSystemPermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -14439,11 +15513,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -14471,8 +15545,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case PRINCIPAL:
         return getPrincipal();
@@ -14493,8 +15567,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
       case SYS_PERM:
@@ -14525,12 +15599,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -14578,12 +15652,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -14636,11 +15710,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -14665,8 +15739,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -14715,11 +15789,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIAL
+            case 5: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -14755,11 +15829,6 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.principal != null) {
           oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
           oprot.writeString(struct.principal);
@@ -14771,6 +15840,11 @@ import org.slf4j.LoggerFactory;
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -14794,7 +15868,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetPrincipal()) {
@@ -14807,8 +15881,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -14828,9 +15902,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.principal = iprot.readString();
@@ -15305,7 +16379,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("hasTablePermission_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)6);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField TBL_PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("tblPerm", org.apache.thrift.protocol.TType.BYTE, (short)4);
@@ -15317,7 +16391,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
     public String tableName; // required
     public byte tblPerm; // required
@@ -15325,7 +16399,7 @@ import org.slf4j.LoggerFactory;
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)5, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
+      CREDENTIALS((short)6, "credentials"),
       PRINCIPAL((short)2, "principal"),
       TABLE_NAME((short)3, "tableName"),
       TBL_PERM((short)4, "tblPerm");
@@ -15345,8 +16419,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 5: // TINFO
             return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
+          case 6: // CREDENTIALS
+            return CREDENTIALS;
           case 2: // PRINCIPAL
             return PRINCIPAL;
           case 3: // TABLE_NAME
@@ -15400,8 +16474,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -15417,14 +16491,14 @@ import org.slf4j.LoggerFactory;
 
     public hasTablePermission_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal,
       String tableName,
       byte tblPerm)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.principal = principal;
       this.tableName = tableName;
       this.tblPerm = tblPerm;
@@ -15439,8 +16513,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -15458,7 +16532,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.principal = null;
       this.tableName = null;
       setTblPermIsSet(false);
@@ -15489,27 +16563,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public hasTablePermission_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public hasTablePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -15594,11 +16668,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -15634,8 +16708,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case PRINCIPAL:
         return getPrincipal();
@@ -15659,8 +16733,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
       case TABLE_NAME:
@@ -15693,12 +16767,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -15755,12 +16829,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -15823,11 +16897,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -15860,8 +16934,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -15910,11 +16984,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIAL
+            case 6: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -15958,11 +17032,6 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.principal != null) {
           oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
           oprot.writeString(struct.principal);
@@ -15979,6 +17048,11 @@ import org.slf4j.LoggerFactory;
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -16002,7 +17076,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetPrincipal()) {
@@ -16018,8 +17092,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -16042,9 +17116,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.principal = iprot.readString();
@@ -16625,7 +17699,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantSystemPermission_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)5);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField PERMISSION_FIELD_DESC = new org.apache.thrift.protocol.TField("permission", org.apache.thrift.protocol.TType.BYTE, (short)3);
 
@@ -16636,14 +17710,14 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
     public byte permission; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)4, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
+      CREDENTIALS((short)5, "credentials"),
       PRINCIPAL((short)2, "principal"),
       PERMISSION((short)3, "permission");
 
@@ -16662,8 +17736,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 4: // TINFO
             return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
+          case 5: // CREDENTIALS
+            return CREDENTIALS;
           case 2: // PRINCIPAL
             return PRINCIPAL;
           case 3: // PERMISSION
@@ -16715,8 +17789,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.PERMISSION, new org.apache.thrift.meta_data.FieldMetaData("permission", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -16730,13 +17804,13 @@ import org.slf4j.LoggerFactory;
 
     public grantSystemPermission_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal,
       byte permission)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.principal = principal;
       this.permission = permission;
       setPermissionIsSet(true);
@@ -16750,8 +17824,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -16766,7 +17840,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.principal = null;
       setPermissionIsSet(false);
       this.permission = 0;
@@ -16796,27 +17870,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public grantSystemPermission_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public grantSystemPermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -16877,11 +17951,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -16909,8 +17983,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case PRINCIPAL:
         return getPrincipal();
@@ -16931,8 +18005,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
       case PERMISSION:
@@ -16963,12 +18037,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -17016,12 +18090,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -17074,11 +18148,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -17103,8 +18177,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -17153,11 +18227,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIAL
+            case 5: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -17193,11 +18267,6 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.principal != null) {
           oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
           oprot.writeString(struct.principal);
@@ -17209,6 +18278,11 @@ import org.slf4j.LoggerFactory;
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -17232,7 +18306,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetPrincipal()) {
@@ -17245,8 +18319,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -17266,9 +18340,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.principal = iprot.readString();
@@ -17643,7 +18717,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("revokeSystemPermission_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)5);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField PERMISSION_FIELD_DESC = new org.apache.thrift.protocol.TField("permission", org.apache.thrift.protocol.TType.BYTE, (short)3);
 
@@ -17654,14 +18728,14 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
     public byte permission; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)4, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
+      CREDENTIALS((short)5, "credentials"),
       PRINCIPAL((short)2, "principal"),
       PERMISSION((short)3, "permission");
 
@@ -17680,8 +18754,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 4: // TINFO
             return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
+          case 5: // CREDENTIALS
+            return CREDENTIALS;
           case 2: // PRINCIPAL
             return PRINCIPAL;
           case 3: // PERMISSION
@@ -17733,8 +18807,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.PERMISSION, new org.apache.thrift.meta_data.FieldMetaData("permission", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -17748,13 +18822,13 @@ import org.slf4j.LoggerFactory;
 
     public revokeSystemPermission_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal,
       byte permission)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.principal = principal;
       this.permission = permission;
       setPermissionIsSet(true);
@@ -17768,8 +18842,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -17784,7 +18858,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.principal = null;
       setPermissionIsSet(false);
       this.permission = 0;
@@ -17814,27 +18888,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public revokeSystemPermission_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public revokeSystemPermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -17895,11 +18969,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -17927,8 +19001,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case PRINCIPAL:
         return getPrincipal();
@@ -17949,8 +19023,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
       case PERMISSION:
@@ -17981,12 +19055,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -18034,12 +19108,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -18092,11 +19166,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -18121,8 +19195,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -18171,11 +19245,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIAL
+            case 5: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -18211,11 +19285,6 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.principal != null) {
           oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
           oprot.writeString(struct.principal);
@@ -18227,6 +19296,11 @@ import org.slf4j.LoggerFactory;
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -18250,7 +19324,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetPrincipal()) {
@@ -18263,8 +19337,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -18284,9 +19358,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.principal = iprot.readString();
@@ -18661,7 +19735,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantTablePermission_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)6);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField PERMISSION_FIELD_DESC = new org.apache.thrift.protocol.TField("permission", org.apache.thrift.protocol.TType.BYTE, (short)4);
@@ -18673,7 +19747,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
     public String tableName; // required
     public byte permission; // required
@@ -18681,7 +19755,7 @@ import org.slf4j.LoggerFactory;
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)5, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
+      CREDENTIALS((short)6, "credentials"),
       PRINCIPAL((short)2, "principal"),
       TABLE_NAME((short)3, "tableName"),
       PERMISSION((short)4, "permission");
@@ -18701,8 +19775,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 5: // TINFO
             return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
+          case 6: // CREDENTIALS
+            return CREDENTIALS;
           case 2: // PRINCIPAL
             return PRINCIPAL;
           case 3: // TABLE_NAME
@@ -18756,8 +19830,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -18773,14 +19847,14 @@ import org.slf4j.LoggerFactory;
 
     public grantTablePermission_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal,
       String tableName,
       byte permission)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.principal = principal;
       this.tableName = tableName;
       this.permission = permission;
@@ -18795,8 +19869,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -18814,7 +19888,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.principal = null;
       this.tableName = null;
       setPermissionIsSet(false);
@@ -18845,27 +19919,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public grantTablePermission_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public grantTablePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -18950,11 +20024,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -18990,8 +20064,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case PRINCIPAL:
         return getPrincipal();
@@ -19015,8 +20089,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
       case TABLE_NAME:
@@ -19049,12 +20123,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -19111,12 +20185,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -19179,11 +20253,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -19216,8 +20290,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -19266,11 +20340,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIAL
+            case 6: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -19314,11 +20388,6 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.principal != null) {
           oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
           oprot.writeString(struct.principal);
@@ -19335,6 +20404,11 @@ import org.slf4j.LoggerFactory;
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -19358,7 +20432,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetPrincipal()) {
@@ -19374,8 +20448,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -19398,9 +20472,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.principal = iprot.readString();
@@ -19881,7 +20955,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("revokeTablePermission_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)6);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField PERMISSION_FIELD_DESC = new org.apache.thrift.protocol.TField("permission", org.apache.thrift.protocol.TType.BYTE, (short)4);
@@ -19893,7 +20967,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
     public String tableName; // required
     public byte permission; // required
@@ -19901,7 +20975,7 @@ import org.slf4j.LoggerFactory;
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)5, "tinfo"),
-      CREDENTIAL((short)1, "credential"),
+      CREDENTIALS((short)6, "credentials"),
       PRINCIPAL((short)2, "principal"),
       TABLE_NAME((short)3, "tableName"),
       PERMISSION((short)4, "permission");
@@ -19921,8 +20995,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 5: // TINFO
             return TINFO;
-          case 1: // CREDENTIAL
-            return CREDENTIAL;
+          case 6: // CREDENTIALS
+            return CREDENTIALS;
           case 2: // PRINCIPAL
             return PRINCIPAL;
           case 3: // TABLE_NAME
@@ -19976,8 +21050,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -19993,14 +21067,14 @@ import org.slf4j.LoggerFactory;
 
     public revokeTablePermission_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal,
       String tableName,
       byte permission)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.principal = principal;
       this.tableName = tableName;
       this.permission = permission;
@@ -20015,8 +21089,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
@@ -20034,7 +21108,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.principal = null;
       this.tableName = null;
       setPermissionIsSet(false);
@@ -20065,27 +21139,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public revokeTablePermission_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public revokeTablePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -20170,11 +21244,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -20210,8 +21284,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case PRINCIPAL:
         return getPrincipal();
@@ -20235,8 +21309,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
       case TABLE_NAME:
@@ -20269,12 +21343,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -20331,12 +21405,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -20399,11 +21473,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -20436,8 +21510,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -20486,11 +21560,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIAL
+            case 6: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -20534,11 +21608,6 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.principal != null) {
           oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
           oprot.writeString(struct.principal);
@@ -20555,6 +21624,11 @@ import org.slf4j.LoggerFactory;
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -20578,7 +21652,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetPrincipal()) {
@@ -20594,8 +21668,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
@@ -20618,9 +21692,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.principal = iprot.readString();
@@ -21101,7 +22175,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getConfiguration_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)3);
     private static final org.apache.thrift.protocol.TField TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("type", org.apache.thrift.protocol.TType.I32, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -21111,7 +22185,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     /**
      * 
      * @see ConfigurationType
@@ -21121,7 +22195,7 @@ import org.slf4j.LoggerFactory;
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
-      CREDENTIAL((short)3, "credential"),
+      CREDENTIALS((short)3, "credentials"),
       /**
        * 
        * @see ConfigurationType
@@ -21143,8 +22217,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 2: // TINFO
             return TINFO;
-          case 3: // CREDENTIAL
-            return CREDENTIAL;
+          case 3: // CREDENTIALS
+            return CREDENTIALS;
           case 1: // TYPE
             return TYPE;
           default:
@@ -21192,8 +22266,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.TYPE, new org.apache.thrift.meta_data.FieldMetaData("type", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, ConfigurationType.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -21205,12 +22279,12 @@ import org.slf4j.LoggerFactory;
 
     public getConfiguration_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       ConfigurationType type)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.type = type;
     }
 
@@ -21221,8 +22295,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetType()) {
         this.type = other.type;
@@ -21236,7 +22310,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.type = null;
     }
 
@@ -21264,27 +22338,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public getConfiguration_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public getConfiguration_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -21330,11 +22404,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -21354,8 +22428,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case TYPE:
         return getType();
@@ -21373,8 +22447,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case TYPE:
         return isSetType();
       }
@@ -21403,12 +22477,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -21447,12 +22521,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -21495,11 +22569,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -21520,8 +22594,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -21568,11 +22642,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // CREDENTIAL
+            case 3: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -21610,9 +22684,9 @@ import org.slf4j.LoggerFactory;
           struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -21636,7 +22710,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetType()) {
@@ -21646,8 +22720,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetType()) {
           oprot.writeI32(struct.type.getValue());
@@ -21664,9 +22738,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.type = ConfigurationType.findByValue(iprot.readI32());
@@ -21991,15 +23065,15 @@ import org.slf4j.LoggerFactory;
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map48 = iprot.readMapBegin();
-                  struct.success = new HashMap<String,String>(2*_map48.size);
-                  for (int _i49 = 0; _i49 < _map48.size; ++_i49)
+                  org.apache.thrift.protocol.TMap _map40 = iprot.readMapBegin();
+                  struct.success = new HashMap<String,String>(2*_map40.size);
+                  for (int _i41 = 0; _i41 < _map40.size; ++_i41)
                   {
-                    String _key50; // required
-                    String _val51; // required
-                    _key50 = iprot.readString();
-                    _val51 = iprot.readString();
-                    struct.success.put(_key50, _val51);
+                    String _key42; // required
+                    String _val43; // required
+                    _key42 = iprot.readString();
+                    _val43 = iprot.readString();
+                    struct.success.put(_key42, _val43);
                   }
                   iprot.readMapEnd();
                 }
@@ -22027,10 +23101,10 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (Map.Entry<String, String> _iter52 : struct.success.entrySet())
+            for (Map.Entry<String, String> _iter44 : struct.success.entrySet())
             {
-              oprot.writeString(_iter52.getKey());
-              oprot.writeString(_iter52.getValue());
+              oprot.writeString(_iter44.getKey());
+              oprot.writeString(_iter44.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -22061,10 +23135,10 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (Map.Entry<String, String> _iter53 : struct.success.entrySet())
+            for (Map.Entry<String, String> _iter45 : struct.success.entrySet())
             {
-              oprot.writeString(_iter53.getKey());
-              oprot.writeString(_iter53.getValue());
+              oprot.writeString(_iter45.getKey());
+              oprot.writeString(_iter45.getValue());
             }
           }
         }
@@ -22076,15 +23150,15 @@ import org.slf4j.LoggerFactory;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map54 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new HashMap<String,String>(2*_map54.size);
-            for (int _i55 = 0; _i55 < _map54.size; ++_i55)
+            org.apache.thrift.protocol.TMap _map46 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new HashMap<String,String>(2*_map46.size);
+            for (int _i47 = 0; _i47 < _map46.size; ++_i47)
             {
-              String _key56; // required
-              String _val57; // required
-              _key56 = iprot.readString();
-              _val57 = iprot.readString();
-              struct.success.put(_key56, _val57);
+              String _key48; // required
+              String _val49; // required
+              _key48 = iprot.readString();
+              _val49 = iprot.readString();
+              struct.success.put(_key48, _val49);
             }
           }
           struct.setSuccessIsSet(true);
@@ -22098,7 +23172,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTableConfiguration_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)3);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -22108,13 +23182,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String tableName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
-      CREDENTIAL((short)3, "credential"),
+      CREDENTIALS((short)3, "credentials"),
       TABLE_NAME((short)2, "tableName");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -22132,8 +23206,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 1: // TINFO
             return TINFO;
-          case 3: // CREDENTIAL
-            return CREDENTIAL;
+          case 3: // CREDENTIALS
+            return CREDENTIALS;
           case 2: // TABLE_NAME
             return TABLE_NAME;
           default:
@@ -22181,8 +23255,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -22194,12 +23268,12 @@ import org.slf4j.LoggerFactory;
 
     public getTableConfiguration_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String tableName)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.tableName = tableName;
     }
 
@@ -22210,8 +23284,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
@@ -22225,7 +23299,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.tableName = null;
     }
 
@@ -22253,27 +23327,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public getTableConfiguration_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public getTableConfiguration_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -22311,11 +23385,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -22335,8 +23409,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case TABLE_NAME:
         return getTableName();
@@ -22354,8 +23428,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case TABLE_NAME:
         return isSetTableName();
       }
@@ -22384,12 +23458,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -22428,12 +23502,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -22476,11 +23550,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -22501,8 +23575,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -22549,11 +23623,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // CREDENTIAL
+            case 3: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -22591,9 +23665,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeString(struct.tableName);
           oprot.writeFieldEnd();
         }
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -22617,7 +23691,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetTableName()) {
@@ -22627,8 +23701,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
@@ -22645,9 +23719,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.tableName = iprot.readString();
@@ -23049,15 +24123,15 @@ import org.slf4j.LoggerFactory;
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map58 = iprot.readMapBegin();
-                  struct.success = new HashMap<String,String>(2*_map58.size);
-                  for (int _i59 = 0; _i59 < _map58.size; ++_i59)
+                  org.apache.thrift.protocol.TMap _map50 = iprot.readMapBegin();
+                  struct.success = new HashMap<String,String>(2*_map50.size);
+                  for (int _i51 = 0; _i51 < _map50.size; ++_i51)
                   {
-                    String _key60; // required
-                    String _val61; // required
-                    _key60 = iprot.readString();
-                    _val61 = iprot.readString();
-                    struct.success.put(_key60, _val61);
+                    String _key52; // required
+                    String _val53; // required
+                    _key52 = iprot.readString();
+                    _val53 = iprot.readString();
+                    struct.success.put(_key52, _val53);
                   }
                   iprot.readMapEnd();
                 }
@@ -23094,10 +24168,10 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (Map.Entry<String, String> _iter62 : struct.success.entrySet())
+            for (Map.Entry<String, String> _iter54 : struct.success.entrySet())
             {
-              oprot.writeString(_iter62.getKey());
-              oprot.writeString(_iter62.getValue());
+              oprot.writeString(_iter54.getKey());
+              oprot.writeString(_iter54.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -23136,10 +24210,10 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (Map.Entry<String, String> _iter63 : struct.success.entrySet())
+            for (Map.Entry<String, String> _iter55 : struct.success.entrySet())
             {
-              oprot.writeString(_iter63.getKey());
-              oprot.writeString(_iter63.getValue());
+              oprot.writeString(_iter55.getKey());
+              oprot.writeString(_iter55.getValue());
             }
           }
         }
@@ -23154,15 +24228,15 @@ import org.slf4j.LoggerFactory;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map64 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new HashMap<String,String>(2*_map64.size);
-            for (int _i65 = 0; _i65 < _map64.size; ++_i65)
+            org.apache.thrift.protocol.TMap _map56 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new HashMap<String,String>(2*_map56.size);
+            for (int _i57 = 0; _i57 < _map56.size; ++_i57)
             {
-              String _key66; // required
-              String _val67; // required
-              _key66 = iprot.readString();
-              _val67 = iprot.readString();
-              struct.success.put(_key66, _val67);
+              String _key58; // required
+              String _val59; // required
+              _key58 = iprot.readString();
+              _val59 = iprot.readString();
+              struct.success.put(_key58, _val59);
             }
           }
           struct.setSuccessIsSet(true);
@@ -23181,7 +24255,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("checkClass_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField CREDENTIAL_FIELD_DESC = new org.apache.thrift.protocol.TField("credential", org.apache.thrift.protocol.TType.STRUCT, (short)4);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)4);
     private static final org.apache.thrift.protocol.TField CLASS_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("className", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField INTERFACE_MATCH_FIELD_DESC = new org.apache.thrift.protocol.TField("interfaceMatch", org.apache.thrift.protocol.TType.STRING, (short)3);
 
@@ -23192,14 +24266,14 @@ import org.slf4j.LoggerFactory;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.Credential credential; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String className; // required
     public String interfaceMatch; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
-      CREDENTIAL((short)4, "credential"),
+      CREDENTIALS((short)4, "credentials"),
       CLASS_NAME((short)2, "className"),
       INTERFACE_MATCH((short)3, "interfaceMatch");
 
@@ -23218,8 +24292,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 1: // TINFO
             return TINFO;
-          case 4: // CREDENTIAL
-            return CREDENTIAL;
+          case 4: // CREDENTIALS
+            return CREDENTIALS;
           case 2: // CLASS_NAME
             return CLASS_NAME;
           case 3: // INTERFACE_MATCH
@@ -23269,8 +24343,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIAL, new org.apache.thrift.meta_data.FieldMetaData("credential", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.Credential.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.CLASS_NAME, new org.apache.thrift.meta_data.FieldMetaData("className", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.INTERFACE_MATCH, new org.apache.thrift.meta_data.FieldMetaData("interfaceMatch", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -23284,13 +24358,13 @@ import org.slf4j.LoggerFactory;
 
     public checkClass_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.Credential credential,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String className,
       String interfaceMatch)
     {
       this();
       this.tinfo = tinfo;
-      this.credential = credential;
+      this.credentials = credentials;
       this.className = className;
       this.interfaceMatch = interfaceMatch;
     }
@@ -23302,8 +24376,8 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredential()) {
-        this.credential = new org.apache.accumulo.core.security.thrift.Credential(other.credential);
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
       if (other.isSetClassName()) {
         this.className = other.className;
@@ -23320,7 +24394,7 @@ import org.slf4j.LoggerFactory;
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credential = null;
+      this.credentials = null;
       this.className = null;
       this.interfaceMatch = null;
     }
@@ -23349,27 +24423,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.Credential getCredential() {
-      return this.credential;
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
     }
 
-    public checkClass_args setCredential(org.apache.accumulo.core.security.thrift.Credential credential) {
-      this.credential = credential;
+    public checkClass_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
       return this;
     }
 
-    public void unsetCredential() {
-      this.credential = null;
+    public void unsetCredentials() {
+      this.credentials = null;
     }
 
-    /** Returns true if field credential is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredential() {
-      return this.credential != null;
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
     }
 
-    public void setCredentialIsSet(boolean value) {
+    public void setCredentialsIsSet(boolean value) {
       if (!value) {
-        this.credential = null;
+        this.credentials = null;
       }
     }
 
@@ -23431,11 +24505,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case CREDENTIAL:
+      case CREDENTIALS:
         if (value == null) {
-          unsetCredential();
+          unsetCredentials();
         } else {
-          setCredential((org.apache.accumulo.core.security.thrift.Credential)value);
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
         }
         break;
 
@@ -23463,8 +24537,8 @@ import org.slf4j.LoggerFactory;
       case TINFO:
         return getTinfo();
 
-      case CREDENTIAL:
-        return getCredential();
+      case CREDENTIALS:
+        return getCredentials();
 
       case CLASS_NAME:
         return getClassName();
@@ -23485,8 +24559,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIAL:
-        return isSetCredential();
+      case CREDENTIALS:
+        return isSetCredentials();
       case CLASS_NAME:
         return isSetClassName();
       case INTERFACE_MATCH:
@@ -23517,12 +24591,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_credential = true && this.isSetCredential();
-      boolean that_present_credential = true && that.isSetCredential();
-      if (this_present_credential || that_present_credential) {
-        if (!(this_present_credential && that_present_credential))
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
           return false;
-        if (!this.credential.equals(that.credential))
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -23570,12 +24644,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetCredential()).compareTo(typedOther.isSetCredential());
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredential()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credential, typedOther.credential);
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -23628,11 +24702,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credential:");
-      if (this.credential == null) {
+      sb.append("credentials:");
+      if (this.credentials == null) {
         sb.append("null");
       } else {
-        sb.append(this.credential);
+        sb.append(this.credentials);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -23661,8 +24735,8 @@ import org.slf4j.LoggerFactory;
       if (tinfo != null) {
         tinfo.validate();
       }
-      if (credential != null) {
-        credential.validate();
+      if (credentials != null) {
+        credentials.validate();
       }
     }
 
@@ -23709,11 +24783,11 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // CREDENTIAL
+            case 4: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-                struct.credential.read(iprot);
-                struct.setCredentialIsSet(true);
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -23764,9 +24838,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeString(struct.interfaceMatch);
           oprot.writeFieldEnd();
         }
-        if (struct.credential != null) {
-          oprot.writeFieldBegin(CREDENTIAL_FIELD_DESC);
-          struct.credential.write(oprot);
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -23790,7 +24864,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredential()) {
+        if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         if (struct.isSetClassName()) {
@@ -23803,8 +24877,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredential()) {
-          struct.credential.write(oprot);
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
         if (struct.isSetClassName()) {
           oprot.writeString(struct.className);
@@ -23824,9 +24898,9 @@ import org.slf4j.LoggerFactory;
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credential = new org.apache.accumulo.core.security.thrift.Credential();
-          struct.credential.read(iprot);
-          struct.setCredentialIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
           struct.className = iprot.readString();

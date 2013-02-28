@@ -34,8 +34,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
-import org.apache.accumulo.core.security.crypto.CryptoModule;
-import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -104,7 +102,7 @@ public class LogSorter {
       String formerThreadName = Thread.currentThread().getName();
       int part = 0;
       try {
-
+        
         // the following call does not throw an exception if the file/dir does not exist
         fs.delete(new Path(destPath), true);
         
@@ -137,7 +135,8 @@ public class LogSorter {
           }
           
           @SuppressWarnings("deprecation")
-          CryptoModule cryptoOps = CryptoModuleFactory.getCryptoModule(cryptoModuleName);
+          org.apache.accumulo.core.security.crypto.CryptoModule cryptoOps = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+              .getCryptoModule(cryptoModuleName);
           @SuppressWarnings("deprecation")
           InputStream decryptingInputStream = cryptoOps.getDecryptingInputStream(input, cryptoOpts);
           
@@ -232,7 +231,7 @@ public class LogSorter {
   }
   
   ThreadPoolExecutor threadPool;
-  private Instance instance;
+  private final Instance instance;
   
   public LogSorter(Instance instance, FileSystem fs, AccumuloConfiguration conf) {
     this.instance = instance;

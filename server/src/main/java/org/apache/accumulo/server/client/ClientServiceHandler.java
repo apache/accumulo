@@ -36,11 +36,13 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
@@ -89,13 +91,23 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   @Override
-  public void ping(Credential credentials) {
+  public void ping(TCredentials credentials) {
     // anybody can call this; no authentication check
     log.info("Master reports: I just got pinged!");
   }
   
   @Override
-  public boolean authenticateUser(TInfo tinfo, Credential credentials, Credential toAuth) throws ThriftSecurityException {
+  public boolean authenticate(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException {
+    try {
+      return security.authenticateUser(credentials, credentials);
+    } catch (ThriftSecurityException e) {
+      log.error(e);
+      throw e;
+    }
+  }
+  
+  @Override
+  public boolean authenticateUser(TInfo tinfo, TCredentials credentials, TCredentials toAuth) throws ThriftSecurityException {
     try {
       return security.authenticateUser(credentials, toAuth);
     } catch (ThriftSecurityException e) {
@@ -105,75 +117,78 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   @Override
-  public void changeAuthorizations(TInfo tinfo, Credential credentials, String user, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+  public void changeAuthorizations(TInfo tinfo, TCredentials credentials, String user, List<ByteBuffer> authorizations) throws ThriftSecurityException {
     security.changeAuthorizations(credentials, user, new Authorizations(authorizations));
   }
   
   @Override
-  public void changePassword(TInfo tinfo, Credential credentials, Credential toChange) throws ThriftSecurityException {
+  public void changeLocalUserPassword(TInfo tinfo, TCredentials credentials, String principal, ByteBuffer password) throws ThriftSecurityException {
+    PasswordToken token = new PasswordToken(password);
+    TCredentials toChange = CredentialHelper.createSquelchError(principal, token, credentials.instanceId);
     security.changePassword(credentials, toChange);
   }
   
   @Override
-  public void createUser(TInfo tinfo, Credential credentials, Credential newUser, List<ByteBuffer> authorizations)
-      throws ThriftSecurityException {
-    security.createUser(credentials, newUser, new Authorizations(authorizations));
+  public void createLocalUser(TInfo tinfo, TCredentials credentials, String principal, ByteBuffer password) throws ThriftSecurityException {
+    PasswordToken token = new PasswordToken(password);
+    TCredentials newUser = CredentialHelper.createSquelchError(principal, token, credentials.instanceId);
+    security.createUser(credentials, newUser, new Authorizations());
   }
   
   @Override
-  public void dropUser(TInfo tinfo, Credential credentials, String user) throws ThriftSecurityException {
+  public void dropLocalUser(TInfo tinfo, TCredentials credentials, String user) throws ThriftSecurityException {
     security.dropUser(credentials, user);
   }
   
   @Override
-  public List<ByteBuffer> getUserAuthorizations(TInfo tinfo, Credential credentials, String user) throws ThriftSecurityException {
+  public List<ByteBuffer> getUserAuthorizations(TInfo tinfo, TCredentials credentials, String user) throws ThriftSecurityException {
     return security.getUserAuthorizations(credentials, user).getAuthorizationsBB();
   }
   
   @Override
-  public void grantSystemPermission(TInfo tinfo, Credential credentials, String user, byte permission) throws ThriftSecurityException {
+  public void grantSystemPermission(TInfo tinfo, TCredentials credentials, String user, byte permission) throws ThriftSecurityException {
     security.grantSystemPermission(credentials, user, SystemPermission.getPermissionById(permission));
   }
   
   @Override
-  public void grantTablePermission(TInfo tinfo, Credential credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
+  public void grantTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
     security.grantTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission));
   }
   
   @Override
-  public void revokeSystemPermission(TInfo tinfo, Credential credentials, String user, byte permission) throws ThriftSecurityException {
+  public void revokeSystemPermission(TInfo tinfo, TCredentials credentials, String user, byte permission) throws ThriftSecurityException {
     security.revokeSystemPermission(credentials, user, SystemPermission.getPermissionById(permission));
   }
   
   @Override
-  public void revokeTablePermission(TInfo tinfo, Credential credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
+  public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
     security.revokeTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission));
   }
   
   @Override
-  public boolean hasSystemPermission(TInfo tinfo, Credential credentials, String user, byte sysPerm) throws ThriftSecurityException {
+  public boolean hasSystemPermission(TInfo tinfo, TCredentials credentials, String user, byte sysPerm) throws ThriftSecurityException {
     return security.hasSystemPermission(credentials, user, SystemPermission.getPermissionById(sysPerm));
   }
   
   @Override
-  public boolean hasTablePermission(TInfo tinfo, Credential credentials, String user, String tableName, byte tblPerm) throws ThriftSecurityException,
+  public boolean hasTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte tblPerm) throws ThriftSecurityException,
       ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
     return security.hasTablePermission(credentials, user, tableId, TablePermission.getPermissionById(tblPerm));
   }
   
   @Override
-  public Set<String> listUsers(TInfo tinfo, Credential credentials) throws ThriftSecurityException {
+  public Set<String> listLocalUsers(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException {
     return security.listUsers(credentials);
   }
   
-  static private Map<String,String> conf(Credential credentials, AccumuloConfiguration conf) throws TException {
+  static private Map<String,String> conf(TCredentials credentials, AccumuloConfiguration conf) throws TException {
     security.authenticateUser(credentials, credentials);
-
+    
     Map<String,String> result = new HashMap<String,String>();
     for (Entry<String,String> entry : conf) {
       // TODO: do we need to send any instance information?
@@ -187,7 +202,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   @Override
-  public Map<String,String> getConfiguration(TInfo tinfo, Credential credentials, ConfigurationType type) throws TException {
+  public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials, ConfigurationType type) throws TException {
     switch (type) {
       case CURRENT:
         return conf(credentials, new ServerConfiguration(instance).getConfiguration());
@@ -200,16 +215,16 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   @Override
-  public Map<String,String> getTableConfiguration(TInfo tinfo, Credential credentials, String tableName) throws TException, ThriftTableOperationException {
+  public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials, String tableName) throws TException, ThriftTableOperationException {
     String tableId = checkTableId(tableName, null);
     return conf(credentials, new ServerConfiguration(instance).getTableConfiguration(tableId));
   }
   
   @Override
-  public List<String> bulkImportFiles(TInfo tinfo, final Credential tikw, final long tid, final String tableId, final List<String> files,
+  public List<String> bulkImportFiles(TInfo tinfo, final TCredentials tikw, final long tid, final String tableId, final List<String> files,
       final String errorDir, final boolean setTime) throws ThriftSecurityException, ThriftTableOperationException, TException {
     try {
-      final Credential credentials = new Credential(tikw);
+      final TCredentials credentials = new TCredentials(tikw);
       if (!security.hasSystemPermission(credentials, credentials.getPrincipal(), SystemPermission.SYSTEM))
         throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
@@ -232,7 +247,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
-  public boolean checkClass(TInfo tinfo, Credential credentials, String className, String interfaceMatch) throws TException {
+  public boolean checkClass(TInfo tinfo, TCredentials credentials, String className, String interfaceMatch) throws TException {
     ClassLoader loader = getClass().getClassLoader();
     Class shouldMatch;
     try {

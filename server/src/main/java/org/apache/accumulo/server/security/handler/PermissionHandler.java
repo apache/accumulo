@@ -20,7 +20,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 
 /**
@@ -42,7 +42,7 @@ public interface PermissionHandler {
   /**
    * Used to initialize security for the root user
    */
-  public void initializeSecurity(Credential credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException;
+  public void initializeSecurity(TCredentials credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException;
   
   /**
    * Used to get the system permission for the user

@@ -84,7 +84,7 @@ public class MockConnectorTest {
   @Test
   public void testChangeAuths() throws Exception {
     Connector c = new MockConnector("root", new MockInstance());
-    c.securityOperations().createUser("greg", new PasswordToken().setPassword(new byte[0]));
+    c.securityOperations().createLocalUser("greg", new PasswordToken(new byte[0]));
     assertTrue(c.securityOperations().getUserAuthorizations("greg").isEmpty());
     c.securityOperations().changeUserAuthorizations("greg", new Authorizations("A".getBytes()));
     assertTrue(c.securityOperations().getUserAuthorizations("greg").contains("A".getBytes()));
@@ -314,7 +314,7 @@ public class MockConnectorTest {
       count++;
     }
     assertEquals(1, count);
-
+    
   }
   
   @Test
@@ -336,16 +336,15 @@ public class MockConnectorTest {
     Entry<Key,Value> entry = scanner.iterator().next();
     
     assertEquals("9", entry.getValue().toString());
-
+    
   }
   
   @Test
-  public void testMockConnectorReturnsCorrectInstance() throws AccumuloException, 
-      AccumuloSecurityException{
+  public void testMockConnectorReturnsCorrectInstance() throws AccumuloException, AccumuloSecurityException {
     String name = "an-interesting-instance-name";
     Instance mockInstance = new MockInstance(name);
     assertEquals(mockInstance, mockInstance.getConnector("foo", "bar").getInstance());
-    assertEquals(name, mockInstance.getConnector("foo","bar").getInstance().getInstanceName());
+    assertEquals(name, mockInstance.getConnector("foo", "bar").getInstance().getInstanceName());
   }
-
+  
 }

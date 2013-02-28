@@ -24,9 +24,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.Credential;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.log4j.Logger;
@@ -37,30 +37,16 @@ import org.apache.thrift.TSerializer;
 public class CredentialHelper {
   static Logger log = Logger.getLogger(CredentialHelper.class);
   
-  /**
-   * @param principal
-   * @param token
-   * @param instanceID
-   * @return A proper Credential object which can be deserialized by the server
-   */
-  public static Credential create(String principal, SecurityToken token, String instanceID) throws AccumuloSecurityException {
-    String className = token.getClass().getCanonicalName();
-    return new Credential(principal, className, ByteBuffer.wrap(toBytes(token)), instanceID);
+  public static TCredentials create(String principal, AuthenticationToken token, String instanceID) throws AccumuloSecurityException {
+    String className = token.getClass().getName();
+    return new TCredentials(principal, className, ByteBuffer.wrap(toBytes(token)), instanceID);
   }
   
-  /**
-   * @param cred
-   * @return A serialized Credential as a Base64 encoded String
-   */
-  public static String asBase64String(Credential cred) throws AccumuloSecurityException {
+  public static String asBase64String(TCredentials cred) throws AccumuloSecurityException {
     return new String(Base64.encodeBase64(asByteArray(cred)), Charset.forName("UTF-8"));
   }
   
-  /**
-   * @param cred
-   * @return a serialized Credential
-   */
-  public static byte[] asByteArray(Credential cred) throws AccumuloSecurityException {
+  public static byte[] asByteArray(TCredentials cred) throws AccumuloSecurityException {
     TSerializer ts = new TSerializer();
     try {
       return ts.serialize(cred);
@@ -71,22 +57,14 @@ public class CredentialHelper {
     }
   }
   
-  /**
-   * @param string
-   * @return
-   */
-  public static Credential fromBase64String(String string) throws AccumuloSecurityException {
+  public static TCredentials fromBase64String(String string) throws AccumuloSecurityException {
     return fromByteArray(Base64.decodeBase64(string.getBytes(Charset.forName("UTF-8"))));
   }
   
-  /**
-   * @param decodeBase64
-   * @return
-   */
-  private static Credential fromByteArray(byte[] decodeBase64) throws AccumuloSecurityException {
+  private static TCredentials fromByteArray(byte[] decodeBase64) throws AccumuloSecurityException {
     TDeserializer td = new TDeserializer();
     try {
-      Credential toRet = new Credential();
+      TCredentials toRet = new TCredentials();
       td.deserialize(toRet, decodeBase64);
       return toRet;
     } catch (TException e) {
@@ -96,23 +74,11 @@ public class CredentialHelper {
     }
   }
   
-  /**
-   * @param toAuth
-   * @return
-   * @throws AccumuloSecurityException
-   */
-  public static SecurityToken extractToken(Credential toAuth) throws AccumuloSecurityException {
-    return extractToken(toAuth.tokenClass, toAuth.getToken());
+  public static AuthenticationToken extractToken(TCredentials toAuth) throws AccumuloSecurityException {
+    return extractToken(toAuth.tokenClassName, toAuth.getToken());
   }
   
-  /**
-   * @param systemPrincipal
-   * @param systemToken
-   * @param instanceID
-   * @param b
-   * @return
-   */
-  public static Credential createSquelchError(String principal, SecurityToken token, String instanceID) {
+  public static TCredentials createSquelchError(String principal, AuthenticationToken token, String instanceID) {
     try {
       return create(principal, token, instanceID);
     } catch (AccumuloSecurityException e) {
@@ -121,21 +87,11 @@ public class CredentialHelper {
     }
   }
   
-  /**
-   * @param token
-   * @return
-   * @throws AccumuloSecurityException 
-   */
-  public static String tokenAsBase64(SecurityToken token) throws AccumuloSecurityException {
+  public static String tokenAsBase64(AuthenticationToken token) throws AccumuloSecurityException {
     return new String(Base64.encodeBase64(toBytes(token)), Charset.forName("UTF-8"));
   }
   
-  /**
-   * @param token
-   * @return
-   * @throws AccumuloSecurityException 
-   */
-  private static byte[] toBytes(SecurityToken token) throws AccumuloSecurityException {
+  private static byte[] toBytes(AuthenticationToken token) throws AccumuloSecurityException {
     try {
       ByteArrayOutputStream bais = new ByteArrayOutputStream();
       token.write(new DataOutputStream(bais));
@@ -148,18 +104,12 @@ public class CredentialHelper {
     }
     
   }
-
-  /**
-   * @param tokenClass
-   * @param token
-   * @return
-   * @throws AccumuloSecurityException 
-   */
-  public static SecurityToken extractToken(String tokenClass, byte[] token) throws AccumuloSecurityException {
+  
+  public static AuthenticationToken extractToken(String tokenClass, byte[] token) throws AccumuloSecurityException {
     try {
       Object obj = Class.forName(tokenClass).newInstance();
-      if (obj instanceof SecurityToken) {
-        SecurityToken toRet = (SecurityToken) obj;
+      if (obj instanceof AuthenticationToken) {
+        AuthenticationToken toRet = (AuthenticationToken) obj;
         toRet.readFields(new DataInputStream(new ByteArrayInputStream(token)));
         return toRet;
       }

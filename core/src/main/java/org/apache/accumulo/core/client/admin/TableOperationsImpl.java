@@ -75,7 +75,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.TableOperation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -106,7 +106,7 @@ import org.apache.thrift.transport.TTransportException;
  */
 public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
-  private Credential credentials;
+  private TCredentials credentials;
   
   private static final Logger log = Logger.getLogger(TableOperations.class);
   
@@ -116,7 +116,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @param credentials
    *          the username/password for this connection
    */
-  public TableOperationsImpl(Instance instance, Credential credentials) {
+  public TableOperationsImpl(Instance instance, TCredentials credentials) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;

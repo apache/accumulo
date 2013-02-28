@@ -25,7 +25,7 @@ import javax.security.auth.DestroyFailedException;
 /**
  * 
  */
-public class NullToken implements SecurityToken {
+public class NullToken implements AuthenticationToken {
   
   @Override
   public void readFields(DataInput arg0) throws IOException {

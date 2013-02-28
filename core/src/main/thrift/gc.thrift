@@ -38,5 +38,5 @@ struct GCStatus {
 
 
 service GCMonitorService {
-   GCStatus getStatus(2:trace.TInfo tinfo, 1:security.Credential credential) throws (1:security.ThriftSecurityException sec);
+   GCStatus getStatus(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:security.ThriftSecurityException sec);
 }

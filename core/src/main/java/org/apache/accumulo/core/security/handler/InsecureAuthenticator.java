@@ -20,7 +20,7 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.tokens.NullToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 
 /**
  * 
@@ -28,7 +28,7 @@ import org.apache.accumulo.core.security.tokens.SecurityToken;
 public class InsecureAuthenticator implements Authenticator {
   
   @Override
-  public SecurityToken login(Properties properties) throws AccumuloSecurityException {
+  public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
     return new NullToken();
   }
   

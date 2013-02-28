@@ -46,29 +46,29 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class Credential implements org.apache.thrift.TBase<Credential, Credential._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("Credential");
+@SuppressWarnings("all") public class TCredentials implements org.apache.thrift.TBase<TCredentials, TCredentials._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TCredentials");
 
   private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.thrift.protocol.TField TOKEN_CLASS_FIELD_DESC = new org.apache.thrift.protocol.TField("tokenClass", org.apache.thrift.protocol.TType.STRING, (short)2);
+  private static final org.apache.thrift.protocol.TField TOKEN_CLASS_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tokenClassName", org.apache.thrift.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift.protocol.TField TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("token", org.apache.thrift.protocol.TType.STRING, (short)3);
   private static final org.apache.thrift.protocol.TField INSTANCE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("instanceId", org.apache.thrift.protocol.TType.STRING, (short)4);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new CredentialStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new CredentialTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new TCredentialsStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new TCredentialsTupleSchemeFactory());
   }
 
   public String principal; // required
-  public String tokenClass; // required
+  public String tokenClassName; // required
   public ByteBuffer token; // required
   public String instanceId; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     PRINCIPAL((short)1, "principal"),
-    TOKEN_CLASS((short)2, "tokenClass"),
+    TOKEN_CLASS_NAME((short)2, "tokenClassName"),
     TOKEN((short)3, "token"),
     INSTANCE_ID((short)4, "instanceId");
 
@@ -87,8 +87,8 @@ import org.slf4j.LoggerFactory;
       switch(fieldId) {
         case 1: // PRINCIPAL
           return PRINCIPAL;
-        case 2: // TOKEN_CLASS
-          return TOKEN_CLASS;
+        case 2: // TOKEN_CLASS_NAME
+          return TOKEN_CLASS_NAME;
         case 3: // TOKEN
           return TOKEN;
         case 4: // INSTANCE_ID
@@ -138,28 +138,28 @@ import org.slf4j.LoggerFactory;
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.TOKEN_CLASS, new org.apache.thrift.meta_data.FieldMetaData("tokenClass", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.TOKEN_CLASS_NAME, new org.apache.thrift.meta_data.FieldMetaData("tokenClassName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.TOKEN, new org.apache.thrift.meta_data.FieldMetaData("token", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     tmpMap.put(_Fields.INSTANCE_ID, new org.apache.thrift.meta_data.FieldMetaData("instanceId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(Credential.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TCredentials.class, metaDataMap);
   }
 
-  public Credential() {
+  public TCredentials() {
   }
 
-  public Credential(
+  public TCredentials(
     String principal,
-    String tokenClass,
+    String tokenClassName,
     ByteBuffer token,
     String instanceId)
   {
     this();
     this.principal = principal;
-    this.tokenClass = tokenClass;
+    this.tokenClassName = tokenClassName;
     this.token = token;
     this.instanceId = instanceId;
   }
@@ -167,12 +167,12 @@ import org.slf4j.LoggerFactory;
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public Credential(Credential other) {
+  public TCredentials(TCredentials other) {
     if (other.isSetPrincipal()) {
       this.principal = other.principal;
     }
-    if (other.isSetTokenClass()) {
-      this.tokenClass = other.tokenClass;
+    if (other.isSetTokenClassName()) {
+      this.tokenClassName = other.tokenClassName;
     }
     if (other.isSetToken()) {
       this.token = org.apache.thrift.TBaseHelper.copyBinary(other.token);
@@ -183,14 +183,14 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  public Credential deepCopy() {
-    return new Credential(this);
+  public TCredentials deepCopy() {
+    return new TCredentials(this);
   }
 
   @Override
   public void clear() {
     this.principal = null;
-    this.tokenClass = null;
+    this.tokenClassName = null;
     this.token = null;
     this.instanceId = null;
   }
@@ -199,7 +199,7 @@ import org.slf4j.LoggerFactory;
     return this.principal;
   }
 
-  public Credential setPrincipal(String principal) {
+  public TCredentials setPrincipal(String principal) {
     this.principal = principal;
     return this;
   }
@@ -219,27 +219,27 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  public String getTokenClass() {
-    return this.tokenClass;
+  public String getTokenClassName() {
+    return this.tokenClassName;
   }
 
-  public Credential setTokenClass(String tokenClass) {
-    this.tokenClass = tokenClass;
+  public TCredentials setTokenClassName(String tokenClassName) {
+    this.tokenClassName = tokenClassName;
     return this;
   }
 
-  public void unsetTokenClass() {
-    this.tokenClass = null;
+  public void unsetTokenClassName() {
+    this.tokenClassName = null;
   }
 
-  /** Returns true if field tokenClass is set (has been assigned a value) and false otherwise */
-  public boolean isSetTokenClass() {
-    return this.tokenClass != null;
+  /** Returns true if field tokenClassName is set (has been assigned a value) and false otherwise */
+  public boolean isSetTokenClassName() {
+    return this.tokenClassName != null;
   }
 
-  public void setTokenClassIsSet(boolean value) {
+  public void setTokenClassNameIsSet(boolean value) {
     if (!value) {
-      this.tokenClass = null;
+      this.tokenClassName = null;
     }
   }
 
@@ -252,12 +252,12 @@ import org.slf4j.LoggerFactory;
     return token;
   }
 
-  public Credential setToken(byte[] token) {
+  public TCredentials setToken(byte[] token) {
     setToken(token == null ? (ByteBuffer)null : ByteBuffer.wrap(token));
     return this;
   }
 
-  public Credential setToken(ByteBuffer token) {
+  public TCredentials setToken(ByteBuffer token) {
     this.token = token;
     return this;
   }
@@ -281,7 +281,7 @@ import org.slf4j.LoggerFactory;
     return this.instanceId;
   }
 
-  public Credential setInstanceId(String instanceId) {
+  public TCredentials setInstanceId(String instanceId) {
     this.instanceId = instanceId;
     return this;
   }
@@ -311,11 +311,11 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
-    case TOKEN_CLASS:
+    case TOKEN_CLASS_NAME:
       if (value == null) {
-        unsetTokenClass();
+        unsetTokenClassName();
       } else {
-        setTokenClass((String)value);
+        setTokenClassName((String)value);
       }
       break;
 
@@ -343,8 +343,8 @@ import org.slf4j.LoggerFactory;
     case PRINCIPAL:
       return getPrincipal();
 
-    case TOKEN_CLASS:
-      return getTokenClass();
+    case TOKEN_CLASS_NAME:
+      return getTokenClassName();
 
     case TOKEN:
       return getToken();
@@ -365,8 +365,8 @@ import org.slf4j.LoggerFactory;
     switch (field) {
     case PRINCIPAL:
       return isSetPrincipal();
-    case TOKEN_CLASS:
-      return isSetTokenClass();
+    case TOKEN_CLASS_NAME:
+      return isSetTokenClassName();
     case TOKEN:
       return isSetToken();
     case INSTANCE_ID:
@@ -379,12 +379,12 @@ import org.slf4j.LoggerFactory;
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof Credential)
-      return this.equals((Credential)that);
+    if (that instanceof TCredentials)
+      return this.equals((TCredentials)that);
     return false;
   }
 
-  public boolean equals(Credential that) {
+  public boolean equals(TCredentials that) {
     if (that == null)
       return false;
 
@@ -397,12 +397,12 @@ import org.slf4j.LoggerFactory;
         return false;
     }
 
-    boolean this_present_tokenClass = true && this.isSetTokenClass();
-    boolean that_present_tokenClass = true && that.isSetTokenClass();
-    if (this_present_tokenClass || that_present_tokenClass) {
-      if (!(this_present_tokenClass && that_present_tokenClass))
+    boolean this_present_tokenClassName = true && this.isSetTokenClassName();
+    boolean that_present_tokenClassName = true && that.isSetTokenClassName();
+    if (this_present_tokenClassName || that_present_tokenClassName) {
+      if (!(this_present_tokenClassName && that_present_tokenClassName))
         return false;
-      if (!this.tokenClass.equals(that.tokenClass))
+      if (!this.tokenClassName.equals(that.tokenClassName))
         return false;
     }
 
@@ -432,13 +432,13 @@ import org.slf4j.LoggerFactory;
     return 0;
   }
 
-  public int compareTo(Credential other) {
+  public int compareTo(TCredentials other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    Credential typedOther = (Credential)other;
+    TCredentials typedOther = (TCredentials)other;
 
     lastComparison = Boolean.valueOf(isSetPrincipal()).compareTo(typedOther.isSetPrincipal());
     if (lastComparison != 0) {
@@ -450,12 +450,12 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetTokenClass()).compareTo(typedOther.isSetTokenClass());
+    lastComparison = Boolean.valueOf(isSetTokenClassName()).compareTo(typedOther.isSetTokenClassName());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTokenClass()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tokenClass, typedOther.tokenClass);
+    if (isSetTokenClassName()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tokenClassName, typedOther.tokenClassName);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -497,7 +497,7 @@ import org.slf4j.LoggerFactory;
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("Credential(");
+    StringBuilder sb = new StringBuilder("TCredentials(");
     boolean first = true;
 
     sb.append("principal:");
@@ -508,11 +508,11 @@ import org.slf4j.LoggerFactory;
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("tokenClass:");
-    if (this.tokenClass == null) {
+    sb.append("tokenClassName:");
+    if (this.tokenClassName == null) {
       sb.append("null");
     } else {
-      sb.append(this.tokenClass);
+      sb.append(this.tokenClassName);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -556,15 +556,15 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  private static class CredentialStandardSchemeFactory implements SchemeFactory {
-    public CredentialStandardScheme getScheme() {
-      return new CredentialStandardScheme();
+  private static class TCredentialsStandardSchemeFactory implements SchemeFactory {
+    public TCredentialsStandardScheme getScheme() {
+      return new TCredentialsStandardScheme();
     }
   }
 
-  private static class CredentialStandardScheme extends StandardScheme<Credential> {
+  private static class TCredentialsStandardScheme extends StandardScheme<TCredentials> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, Credential struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, TCredentials struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -582,10 +582,10 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // TOKEN_CLASS
+          case 2: // TOKEN_CLASS_NAME
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.tokenClass = iprot.readString();
-              struct.setTokenClassIsSet(true);
+              struct.tokenClassName = iprot.readString();
+              struct.setTokenClassNameIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -617,7 +617,7 @@ import org.slf4j.LoggerFactory;
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, Credential struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, TCredentials struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -626,9 +626,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeString(struct.principal);
         oprot.writeFieldEnd();
       }
-      if (struct.tokenClass != null) {
-        oprot.writeFieldBegin(TOKEN_CLASS_FIELD_DESC);
-        oprot.writeString(struct.tokenClass);
+      if (struct.tokenClassName != null) {
+        oprot.writeFieldBegin(TOKEN_CLASS_NAME_FIELD_DESC);
+        oprot.writeString(struct.tokenClassName);
         oprot.writeFieldEnd();
       }
       if (struct.token != null) {
@@ -647,22 +647,22 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  private static class CredentialTupleSchemeFactory implements SchemeFactory {
-    public CredentialTupleScheme getScheme() {
-      return new CredentialTupleScheme();
+  private static class TCredentialsTupleSchemeFactory implements SchemeFactory {
+    public TCredentialsTupleScheme getScheme() {
+      return new TCredentialsTupleScheme();
     }
   }
 
-  private static class CredentialTupleScheme extends TupleScheme<Credential> {
+  private static class TCredentialsTupleScheme extends TupleScheme<TCredentials> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, Credential struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, TCredentials struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
       if (struct.isSetPrincipal()) {
         optionals.set(0);
       }
-      if (struct.isSetTokenClass()) {
+      if (struct.isSetTokenClassName()) {
         optionals.set(1);
       }
       if (struct.isSetToken()) {
@@ -675,8 +675,8 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetPrincipal()) {
         oprot.writeString(struct.principal);
       }
-      if (struct.isSetTokenClass()) {
-        oprot.writeString(struct.tokenClass);
+      if (struct.isSetTokenClassName()) {
+        oprot.writeString(struct.tokenClassName);
       }
       if (struct.isSetToken()) {
         oprot.writeBinary(struct.token);
@@ -687,7 +687,7 @@ import org.slf4j.LoggerFactory;
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, Credential struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, TCredentials struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(4);
       if (incoming.get(0)) {
@@ -695,8 +695,8 @@ import org.slf4j.LoggerFactory;
         struct.setPrincipalIsSet(true);
       }
       if (incoming.get(1)) {
-        struct.tokenClass = iprot.readString();
-        struct.setTokenClassIsSet(true);
+        struct.tokenClassName = iprot.readString();
+        struct.setTokenClassNameIsSet(true);
       }
       if (incoming.get(2)) {
         struct.token = iprot.readBinary();

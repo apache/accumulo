@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.log4j.Logger;
 
@@ -77,7 +77,7 @@ public class State {
     return stateMap.get(key);
   }
   
-  public HashMap<String, Object> getMap() {
+  public HashMap<String,Object> getMap() {
     return stateMap;
   }
   
@@ -95,17 +95,17 @@ public class State {
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (connector == null) {
-      connector = getInstance().getConnector(getCredentials());
+      connector = getInstance().getConnector(getCredentials().getPrincipal(), getCredentials().getToken());
     }
     return connector;
   }
   
-  public Credential getCredentials() {
+  public TCredentials getCredentials() {
     String username = props.getProperty("USERNAME");
     String password = props.getProperty("PASSWORD");
-    return CredentialHelper.createSquelchError(username, new PasswordToken().setPassword(password.getBytes()), getInstance().getInstanceID());
+    return CredentialHelper.createSquelchError(username, new PasswordToken(password), getInstance().getInstanceID());
   }
-
+  
   public Instance getInstance() {
     if (instance == null) {
       String instance = props.getProperty("INSTANCE");
@@ -154,8 +154,8 @@ public class State {
     files = libdir.list();
     for (int i = 0; i < files.length; i++) {
       String f = files[i];
-      if (f.matches("^accumulo-core-.+jar$") || f.matches("^accumulo-server-.+jar$") || f.matches("^accumulo-fate-.+jar$") || f.matches("^accumulo-trace-.+jar$")
-          || f.matches("^libthrift-.+jar$")) {
+      if (f.matches("^accumulo-core-.+jar$") || f.matches("^accumulo-server-.+jar$") || f.matches("^accumulo-fate-.+jar$")
+          || f.matches("^accumulo-trace-.+jar$") || f.matches("^libthrift-.+jar$")) {
         if (retval == null) {
           retval = String.format("%s/%s", libdir.getAbsolutePath(), f);
         } else {

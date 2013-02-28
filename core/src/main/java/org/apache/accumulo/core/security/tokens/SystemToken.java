@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.security.handler;
+package org.apache.accumulo.core.security.tokens;
 
-import java.util.Properties;
-
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.tokens.AuthenticationToken;
-
-public interface Authenticator {
-  public AuthenticationToken login(Properties properties) throws AccumuloSecurityException;
+/**
+ * 
+ */
+public class SystemToken extends PasswordToken {
+  
+  public SystemToken(byte[] systemPassword) {
+    super(systemPassword);
+  }
 }

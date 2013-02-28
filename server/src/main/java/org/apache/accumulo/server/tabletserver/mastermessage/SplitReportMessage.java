@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -45,7 +45,7 @@ public class SplitReportMessage implements MasterMessage {
     extents.put(ne2, np2);
   }
   
-  public void send(Credential credentials, String serverName, MasterClientService.Iface client) throws TException, ThriftSecurityException {
+  public void send(TCredentials credentials, String serverName, MasterClientService.Iface client) throws TException, ThriftSecurityException {
     TabletSplit split = new TabletSplit();
     split.oldTablet = old_extent.toThrift();
     split.newTablets = Translator.translate(extents.keySet(), Translator.KET);

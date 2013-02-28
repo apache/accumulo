@@ -36,7 +36,7 @@ public class DropUser extends Test {
     boolean hasPermission = WalkingSecurity.get(state).canDropUser(WalkingSecurity.get(state).getSysCredentials(), tableUserName);
     
     try {
-      conn.securityOperations().dropUser(tableUserName);
+      conn.securityOperations().dropLocalUser(tableUserName);
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:
@@ -44,7 +44,7 @@ public class DropUser extends Test {
             throw new AccumuloException("Got a security exception when I should have had permission.", ae);
           else {
             if (exists) {
-              state.getConnector().securityOperations().dropUser(tableUserName);
+              state.getConnector().securityOperations().dropLocalUser(tableUserName);
               WalkingSecurity.get(state).dropUser(tableUserName);
             }
             return;

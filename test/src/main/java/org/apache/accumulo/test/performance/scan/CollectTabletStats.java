@@ -63,7 +63,7 @@ import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.MetadataTable;
@@ -339,7 +339,7 @@ public class CollectTabletStats {
     
   }
   
-  private static List<KeyExtent> findTablets(boolean selectLocalTablets, Credential credentials, String table, Instance zki,
+  private static List<KeyExtent> findTablets(boolean selectLocalTablets, TCredentials credentials, String table, Instance zki,
       Map<KeyExtent,String> locations) throws Exception {
     SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
     
@@ -374,7 +374,7 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
   
-  private static List<String> getTabletFiles(Credential token, Instance zki, String tableId, KeyExtent ke) {
+  private static List<String> getTabletFiles(TCredentials token, Instance zki, String tableId, KeyExtent ke) {
     List<String> files = new ArrayList<String>();
     
     SortedMap<Key,Value> tkv = new TreeMap<Key,Value>();

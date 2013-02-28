@@ -40,7 +40,7 @@ public class CreateUser extends Test {
     
     try {
       log.debug("Creating user " + userName);
-      conn.securityOperations().createUser(userName, new PasswordToken().setPassword((userName + "pass").getBytes()));
+      conn.securityOperations().createLocalUser(userName, new PasswordToken(userName + "pass"));
     } catch (AccumuloSecurityException ex) {
       log.debug("Create user failed " + ex.getCause());
     }

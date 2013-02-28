@@ -19,9 +19,9 @@ package org.apache.accumulo.server.security.handler;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 
 /**
  * This interface is used for the system which will be used for authenticating a user. If the implementation does not support configuration through Accumulo, it
@@ -34,17 +34,17 @@ public interface Authenticator extends org.apache.accumulo.core.security.handler
   
   public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
   
-  public void initializeSecurity(Credential credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException;
+  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException;
   
-  public boolean authenticateUser(String principal, SecurityToken token) throws AccumuloSecurityException;
+  public boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
   
   public Set<String> listUsers() throws AccumuloSecurityException;
   
-  public void createUser(String principal, SecurityToken token) throws AccumuloSecurityException;
+  public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
   
   public void dropUser(String user) throws AccumuloSecurityException;
   
-  public void changePassword(String principal, SecurityToken token) throws AccumuloSecurityException;
+  public void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException;
   
   public boolean userExists(String user) throws AccumuloSecurityException;
   

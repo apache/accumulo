@@ -130,7 +130,7 @@ struct IteratorConfig {
 service TabletClientService extends client.ClientService {
   // scan a range of keys
   data.InitialScan startScan(11:trace.TInfo tinfo,
-                             1:security.Credential credential,
+                             1:security.TCredentials credentials,
                              2:data.TKeyExtent extent,
                              3:data.TRange range,
                              4:list<data.TColumn> columns,
@@ -146,7 +146,7 @@ service TabletClientService extends client.ClientService {
 
   // scan over a series of ranges
   data.InitialMultiScan startMultiScan(8:trace.TInfo tinfo,
-                                  1:security.Credential credential,
+                                  1:security.TCredentials credentials,
                                   2:data.ScanBatch batch,
                                   3:list<data.TColumn> columns,
                                   4:list<data.IterInfo> ssiList,
@@ -157,37 +157,37 @@ service TabletClientService extends client.ClientService {
   void closeMultiScan(2:trace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi),
   
   //the following calls support a batch update to multiple tablets on a tablet server
-  data.UpdateID startUpdate(2:trace.TInfo tinfo, 1:security.Credential credential) throws (1:security.ThriftSecurityException sec),
+  data.UpdateID startUpdate(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:security.ThriftSecurityException sec),
   oneway void applyUpdates(1:trace.TInfo tinfo, 2:data.UpdateID updateID, 3:data.TKeyExtent keyExtent, 4:list<data.TMutation> mutations),
   data.UpdateErrors closeUpdate(2:trace.TInfo tinfo, 1:data.UpdateID updateID) throws (1:NoSuchScanIDException nssi),
   
   //the following call supports making a single update to a tablet
-  void update(4:trace.TInfo tinfo, 1:security.Credential credential, 2:data.TKeyExtent keyExtent, 3:data.TMutation mutation)
+  void update(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:data.TKeyExtent keyExtent, 3:data.TMutation mutation)
     throws (1:security.ThriftSecurityException sec, 
             2:NotServingTabletException nste, 
             3:ConstraintViolationException cve),
   
   // on success, returns an empty list
-  list<data.TKeyExtent> bulkImport(3:trace.TInfo tinfo, 1:security.Credential credential, 4:i64 tid, 2:data.TabletFiles files, 5:bool setTime) throws (1:security.ThriftSecurityException sec),
+  list<data.TKeyExtent> bulkImport(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 4:i64 tid, 2:data.TabletFiles files, 5:bool setTime) throws (1:security.ThriftSecurityException sec),
 
-  void splitTablet(4:trace.TInfo tinfo, 1:security.Credential credential, 2:data.TKeyExtent extent, 3:binary splitPoint) throws (1:security.ThriftSecurityException sec, 2:NotServingTabletException nste)
+  void splitTablet(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:data.TKeyExtent extent, 3:binary splitPoint) throws (1:security.ThriftSecurityException sec, 2:NotServingTabletException nste)
  
-  oneway void loadTablet(5:trace.TInfo tinfo, 1:security.Credential credential, 4:string lock, 2:data.TKeyExtent extent),
-  oneway void unloadTablet(5:trace.TInfo tinfo, 1:security.Credential credential, 4:string lock, 2:data.TKeyExtent extent, 3:bool save),
-  oneway void flush(4:trace.TInfo tinfo, 1:security.Credential credential, 3:string lock, 2:string tableId, 5:binary startRow, 6:binary endRow),
-  oneway void flushTablet(1:trace.TInfo tinfo, 2:security.Credential credential, 3:string lock, 4:data.TKeyExtent extent),
-  oneway void chop(1:trace.TInfo tinfo, 2:security.Credential credential, 3:string lock, 4:data.TKeyExtent extent),
-  oneway void compact(1:trace.TInfo tinfo, 2:security.Credential credential, 3:string lock, 4:string tableId, 5:binary startRow, 6:binary endRow),
+  oneway void loadTablet(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 4:string lock, 2:data.TKeyExtent extent),
+  oneway void unloadTablet(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 4:string lock, 2:data.TKeyExtent extent, 3:bool save),
+  oneway void flush(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 3:string lock, 2:string tableId, 5:binary startRow, 6:binary endRow),
+  oneway void flushTablet(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string lock, 4:data.TKeyExtent extent),
+  oneway void chop(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string lock, 4:data.TKeyExtent extent),
+  oneway void compact(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string lock, 4:string tableId, 5:binary startRow, 6:binary endRow),
   
-  master.TabletServerStatus getTabletServerStatus(3:trace.TInfo tinfo, 1:security.Credential credential) throws (1:security.ThriftSecurityException sec)
-  list<TabletStats> getTabletStats(3:trace.TInfo tinfo, 1:security.Credential credential, 2:string tableId) throws (1:security.ThriftSecurityException sec)
-  TabletStats getHistoricalStats(2:trace.TInfo tinfo, 1:security.Credential credential) throws (1:security.ThriftSecurityException sec)
-  void halt(3:trace.TInfo tinfo, 1:security.Credential credential, 2:string lock) throws (1:security.ThriftSecurityException sec)
-  oneway void fastHalt(3:trace.TInfo tinfo, 1:security.Credential credential, 2:string lock);
+  master.TabletServerStatus getTabletServerStatus(3:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:security.ThriftSecurityException sec)
+  list<TabletStats> getTabletStats(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableId) throws (1:security.ThriftSecurityException sec)
+  TabletStats getHistoricalStats(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:security.ThriftSecurityException sec)
+  void halt(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string lock) throws (1:security.ThriftSecurityException sec)
+  oneway void fastHalt(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string lock);
   
-  list<ActiveScan> getActiveScans(2:trace.TInfo tinfo, 1:security.Credential credential) throws (1:security.ThriftSecurityException sec)
-  list<ActiveCompaction> getActiveCompactions(2:trace.TInfo tinfo, 1:security.Credential credential) throws (1:security.ThriftSecurityException sec)
-  oneway void removeLogs(1:trace.TInfo tinfo, 2:security.Credential credential, 3:list<string> filenames)
+  list<ActiveScan> getActiveScans(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:security.ThriftSecurityException sec)
+  list<ActiveCompaction> getActiveCompactions(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:security.ThriftSecurityException sec)
+  oneway void removeLogs(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:list<string> filenames)
 }
 
 typedef i32 TabletID

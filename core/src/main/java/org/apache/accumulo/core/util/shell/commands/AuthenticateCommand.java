@@ -22,6 +22,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.Token;
@@ -37,7 +38,7 @@ public class AuthenticateCommand extends Command {
       return 0;
     } // user canceled
     final byte[] password = p.getBytes();
-    final boolean valid = shellState.getConnector().securityOperations().authenticateUser(user, password);
+    final boolean valid = shellState.getConnector().securityOperations().authenticateUser(user, new PasswordToken(password));
     shellState.getReader().printString((valid ? "V" : "Not v") + "alid\n");
     return 0;
   }

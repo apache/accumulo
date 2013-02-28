@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -95,10 +95,11 @@ public class ConfiguratorBase {
    *          a valid Accumulo user name
    * @param token
    *          the user's password
-   * @throws AccumuloSecurityException 
+   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, SecurityToken token) throws AccumuloSecurityException {
+  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, AuthenticationToken token)
+      throws AccumuloSecurityException {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
     
@@ -113,14 +114,15 @@ public class ConfiguratorBase {
    * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
    * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
    * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link TokenHelper#asBase64String(AccumuloToken)}.
+   * {@link CredentialHelper#asBase64String(org.apache.accumulo.core.security.thrift.TCredentials)}.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
    * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AccumuloToken} with the user's authentication
+   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AuthenticationToken} with the user's
+   *          authentication
    * @since 1.5.0
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, Path path) {
@@ -144,7 +146,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return true if the connector info has already been set, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, byte[])
+   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static Boolean isConnectorInfoSet(Class<?> implementingClass, Configuration conf) {
@@ -160,13 +162,13 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return the principal
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, SecurityToken)
+   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
     return conf.get(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL));
   }
-
+  
   /**
    * Gets the serialized token class from the configuration.
    * 
@@ -176,7 +178,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return the principal
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, SecurityToken)
+   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static String getTokenClass(Class<?> implementingClass, Configuration conf) {
@@ -193,7 +195,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return the decoded principal's authentication token
    * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, byte[])
+   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
   public static byte[] getToken(Class<?> implementingClass, Configuration conf) {
     return Base64.decodeBase64(conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), "").getBytes(Charset.forName("UTF-8")));

@@ -187,7 +187,7 @@ public class MockTableOperationsTest {
   public void testImport() throws Throwable {
     ImportTestFilesAndData dataAndFiles = prepareTestFiles();
     Instance instance = new MockInstance("foo");
-    Connector connector = instance.getConnector(CredentialHelper.create("user", new PasswordToken().setPassword(new byte[0]), "foo"));
+    Connector connector = instance.getConnector(CredentialHelper.create("user", new PasswordToken(new byte[0]), "foo"));
     TableOperations tableOperations = connector.tableOperations();
     tableOperations.create("a_table");
     tableOperations.importDirectory("a_table", dataAndFiles.importPath.toString(), dataAndFiles.failurePath.toString(), false);
@@ -234,7 +234,7 @@ public class MockTableOperationsTest {
   @Test(expected = TableNotFoundException.class)
   public void testFailsWithNoTable() throws Throwable {
     Instance instance = new MockInstance("foo");
-    Connector connector = instance.getConnector(CredentialHelper.create("user", new PasswordToken().setPassword(new byte[0]), "foo"));
+    Connector connector = instance.getConnector(CredentialHelper.create("user", new PasswordToken(new byte[0]), "foo"));
     TableOperations tableOperations = connector.tableOperations();
     ImportTestFilesAndData testFiles = prepareTestFiles();
     tableOperations.importDirectory("doesnt_exist_table", testFiles.importPath.toString(), testFiles.failurePath.toString(), false);
@@ -243,7 +243,7 @@ public class MockTableOperationsTest {
   @Test(expected = IOException.class)
   public void testFailsWithNonEmptyFailureDirectory() throws Throwable {
     Instance instance = new MockInstance("foo");
-    Connector connector = instance.getConnector(CredentialHelper.create("user", new PasswordToken().setPassword(new byte[0]), "foo"));
+    Connector connector = instance.getConnector(CredentialHelper.create("user", new PasswordToken(new byte[0]), "foo"));
     TableOperations tableOperations = connector.tableOperations();
     ImportTestFilesAndData testFiles = prepareTestFiles();
     FileSystem fs = testFiles.failurePath.getFileSystem(new Configuration());

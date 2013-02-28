@@ -30,11 +30,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.tokens.SecurityToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -73,11 +72,11 @@ public class ZooKeeperInstance implements Instance {
   private String instanceId = null;
   private String instanceName = null;
   
-  private ZooCache zooCache;
+  private final ZooCache zooCache;
   
-  private String zooKeepers;
+  private final String zooKeepers;
   
-  private int zooKeepersSessionTimeOut;
+  private final int zooKeepersSessionTimeOut;
   
   /**
    * 
@@ -221,20 +220,20 @@ public class ZooKeeperInstance implements Instance {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
   
-  // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
   @Override
-  public Connector getConnector(String principal, SecurityToken token) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
   }
   
-  @SuppressWarnings("deprecation")
-  public Connector getConnector(Credential credential) throws AccumuloException, AccumuloSecurityException {
+  @Override
+  @Deprecated
+  public Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, credential);
   }
   
   @Override
   public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(principal, new PasswordToken().setPassword(pass));
+    return getConnector(principal, new PasswordToken(pass));
   }
   
   private AccumuloConfiguration conf = null;
@@ -278,7 +277,9 @@ public class ZooKeeperInstance implements Instance {
     return null;
   }
   
-  // To be moved to server code. Only lives here to support the Accumulo Shell
+  /**
+   * To be moved to server code. Only lives here to support certain client side utilities to minimize command-line options.
+   */
   @Deprecated
   public static String getInstanceIDFromHdfs(Path instanceDirectory) {
     try {
@@ -300,8 +301,9 @@ public class ZooKeeperInstance implements Instance {
     }
   }
   
+  @Deprecated
   @Override
-  public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
     return getConnector(auth.user, auth.password);
   }
   

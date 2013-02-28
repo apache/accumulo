@@ -18,7 +18,7 @@ package org.apache.accumulo.server.security.handler;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 
 /**
@@ -40,7 +40,7 @@ public interface Authorizor {
   /**
    * Used to initialize security for the root user
    */
-  public void initializeSecurity(Credential credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException;
+  public void initializeSecurity(TCredentials credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException;
   
   /**
    * Used to change the authorizations for the user

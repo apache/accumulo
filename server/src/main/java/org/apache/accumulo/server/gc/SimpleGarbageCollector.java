@@ -60,7 +60,7 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SecurityUtil;
-import org.apache.accumulo.core.security.thrift.Credential;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ServerServices;
@@ -120,7 +120,7 @@ public class SimpleGarbageCollector implements Iface {
   
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
     
-  private Credential credentials;
+  private TCredentials credentials;
   private long gcStartDelay;
   private boolean checkForBulkProcessingFiles;
   private FileSystem fs;
@@ -180,7 +180,7 @@ public class SimpleGarbageCollector implements Iface {
     this.address = address;
   }
 
-  public void init(FileSystem fs, Instance instance, Credential credentials, boolean noTrash) throws IOException {
+  public void init(FileSystem fs, Instance instance, TCredentials credentials, boolean noTrash) throws IOException {
     this.fs = TraceFileSystem.wrap(fs);
     this.credentials = credentials;
     this.instance = instance;
@@ -700,7 +700,7 @@ public class SimpleGarbageCollector implements Iface {
   }
   
   @Override
-  public GCStatus getStatus(TInfo info, Credential credentials) {
+  public GCStatus getStatus(TInfo info, TCredentials credentials) {
     return status;
   }
 }

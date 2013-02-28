@@ -47,7 +47,7 @@ public class PasswdCommand extends Command {
       return 0;
     } // user canceled
     
-    if (!shellState.getConnector().securityOperations().authenticateUser(currentUser, oldPassword.getBytes()))
+    if (!shellState.getConnector().securityOperations().authenticateUser(currentUser, new PasswordToken(oldPassword)))
       throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
     
     password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
@@ -65,11 +65,11 @@ public class PasswdCommand extends Command {
       throw new IllegalArgumentException("Passwords do not match");
     }
     byte[] pass = password.getBytes();
-    shellState.getConnector().securityOperations().changeUserPassword(user, pass);
+    shellState.getConnector().securityOperations().changeLocalUserPassword(user, new PasswordToken(pass));
     // update the current credentials if the password changed was for
     // the current user
     if (shellState.getConnector().whoami().equals(user)) {
-      shellState.updateUser(CredentialHelper.create(user, new PasswordToken().setPassword(pass), shellState.getConnector().getInstance().getInstanceID()));
+      shellState.updateUser(CredentialHelper.create(user, new PasswordToken(pass), shellState.getConnector().getInstance().getInstanceID()));
     }
     Shell.log.debug("Changed password for user " + user);
     return 0;
