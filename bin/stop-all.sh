@@ -21,7 +21,7 @@ bin=`cd "$bin"; pwd`
 
 . "$bin"/config.sh
 
-${bin}/accumulo admin stopAll "$@"
+${bin}/accumulo admin "$@" stopAll
 
 if [ $? -ne 0 ]; then
 echo 'Invalid password or unable to connect to the master'
