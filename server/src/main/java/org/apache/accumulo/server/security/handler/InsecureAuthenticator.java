@@ -20,9 +20,9 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.security.tokens.NullToken;
-import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 
 /**
  * This is an Authenticator implementation that doesn't actually do any security. Use at your own risk.

@@ -17,27 +17,6 @@
 namespace java org.apache.accumulo.core.security.thrift
 namespace cpp org.apache.accumulo.core.security.thrift
 
-enum SecurityErrorCode {
-    DEFAULT_SECURITY_ERROR = 0,
-    BAD_CREDENTIALS = 1,
-    PERMISSION_DENIED = 2,
-    USER_DOESNT_EXIST = 3,
-    CONNECTION_ERROR = 4,
-    USER_EXISTS = 5,
-    GRANT_INVALID = 6,
-    BAD_AUTHORIZATIONS = 7,
-    INVALID_INSTANCEID = 8,
-    TABLE_DOESNT_EXIST = 9,
-    UNSUPPORTED_OPERATION = 10,
-    INVALID_TOKEN = 11,
-    AUTHENTICATOR_FAILED = 12,
-    AUTHORIZOR_FAILED = 13,
-    PERMISSIONHANDLER_FAILED = 14,
-    TOKEN_EXPIRED = 15
-    SERIALIZATION_ERROR = 16;
-    INSUFFICIENT_PROPERTIES = 17;
-}
-
 /**
  @deprecated since 1.5
 */
@@ -52,9 +31,4 @@ struct TCredentials {
     2:string tokenClassName,
     3:binary token,
     4:string instanceId
-}
-
-exception ThriftSecurityException {
-    1:string user,
-    2:SecurityErrorCode code
 }

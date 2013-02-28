@@ -19,8 +19,8 @@ package org.apache.accumulo.core.security.handler;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.tokens.NullToken;
-import org.apache.accumulo.core.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.NullToken;
 
 /**
  * 
