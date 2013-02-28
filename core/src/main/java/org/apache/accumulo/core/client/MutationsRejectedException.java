@@ -23,9 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 
 /**
  * Communicate the failed mutations of a BatchWriter back to the client.

@@ -20,16 +20,13 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.security.thrift;
+package org.apache.accumulo.core.client.impl.thrift;
 
 
 import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-/**
- * @deprecated since 1.5, see org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode
- */
 @SuppressWarnings("all") public enum SecurityErrorCode implements org.apache.thrift.TEnum {
   DEFAULT_SECURITY_ERROR(0),
   BAD_CREDENTIALS(1),

@@ -14,22 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.security.handler;
-
-import java.util.Properties;
-
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.NullToken;
+package org.apache.accumulo.core.client.security.tokens;
 
 /**
  * 
  */
-public class InsecureAuthenticator implements Authenticator {
-  static NullToken nt = new NullToken();
-  @Override
-  public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
-    return nt;
-  }
+public class SystemToken extends PasswordToken {
   
+  public SystemToken(byte[] systemPassword) {
+    super(systemPassword);
+  }
 }

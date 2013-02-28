@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
   public interface Iface {
 
-    public GCStatus getStatus(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public GCStatus getStatus(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
   }
 
@@ -80,7 +80,7 @@ import org.slf4j.LoggerFactory;
       super(iprot, oprot);
     }
 
-    public GCStatus getStatus(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public GCStatus getStatus(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getStatus(tinfo, credentials);
       return recv_getStatus();
@@ -94,7 +94,7 @@ import org.slf4j.LoggerFactory;
       sendBase("getStatus", args);
     }
 
-    public GCStatus recv_getStatus() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public GCStatus recv_getStatus() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       getStatus_result result = new getStatus_result();
       receiveBase(result, "getStatus");
@@ -150,7 +150,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageEnd();
       }
 
-      public GCStatus getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
+      public GCStatus getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -194,7 +194,7 @@ import org.slf4j.LoggerFactory;
         getStatus_result result = new getStatus_result();
         try {
           result.success = iface.getStatus(args.tinfo, args.credentials);
-        } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+        } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
         return result;
@@ -680,7 +680,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public GCStatus success; // required
-    public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec; // required
+    public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -760,7 +760,7 @@ import org.slf4j.LoggerFactory;
 
     public getStatus_result(
       GCStatus success,
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
+      org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec)
     {
       this();
       this.success = success;
@@ -775,7 +775,7 @@ import org.slf4j.LoggerFactory;
         this.success = new GCStatus(other.success);
       }
       if (other.isSetSec()) {
-        this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
+        this.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException(other.sec);
       }
     }
 
@@ -813,11 +813,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
+    public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
 
-    public getStatus_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
+    public getStatus_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -851,7 +851,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetSec();
         } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
+          setSec((org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException)value);
         }
         break;
 
@@ -1044,7 +1044,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // SEC
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+                struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
                 struct.sec.read(iprot);
                 struct.setSecIsSet(true);
               } else { 
@@ -1119,7 +1119,7 @@ import org.slf4j.LoggerFactory;
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
+          struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
         }

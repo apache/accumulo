@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 
   public Map<TKeyExtent,Long> failedExtents; // required
   public List<TConstraintViolationSummary> violationSummaries; // required
-  public Map<TKeyExtent,org.apache.accumulo.core.security.thrift.SecurityErrorCode> authorizationFailures; // required
+  public Map<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> authorizationFailures; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -141,7 +141,7 @@ import org.slf4j.LoggerFactory;
     tmpMap.put(_Fields.AUTHORIZATION_FAILURES, new org.apache.thrift.meta_data.FieldMetaData("authorizationFailures", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TKeyExtent.class), 
-            new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, org.apache.accumulo.core.security.thrift.SecurityErrorCode.class))));
+            new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(UpdateErrors.class, metaDataMap);
   }
@@ -152,7 +152,7 @@ import org.slf4j.LoggerFactory;
   public UpdateErrors(
     Map<TKeyExtent,Long> failedExtents,
     List<TConstraintViolationSummary> violationSummaries,
-    Map<TKeyExtent,org.apache.accumulo.core.security.thrift.SecurityErrorCode> authorizationFailures)
+    Map<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> authorizationFailures)
   {
     this();
     this.failedExtents = failedExtents;
@@ -187,15 +187,15 @@ import org.slf4j.LoggerFactory;
       this.violationSummaries = __this__violationSummaries;
     }
     if (other.isSetAuthorizationFailures()) {
-      Map<TKeyExtent,org.apache.accumulo.core.security.thrift.SecurityErrorCode> __this__authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.security.thrift.SecurityErrorCode>();
-      for (Map.Entry<TKeyExtent, org.apache.accumulo.core.security.thrift.SecurityErrorCode> other_element : other.authorizationFailures.entrySet()) {
+      Map<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> __this__authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode>();
+      for (Map.Entry<TKeyExtent, org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> other_element : other.authorizationFailures.entrySet()) {
 
         TKeyExtent other_element_key = other_element.getKey();
-        org.apache.accumulo.core.security.thrift.SecurityErrorCode other_element_value = other_element.getValue();
+        org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode other_element_value = other_element.getValue();
 
         TKeyExtent __this__authorizationFailures_copy_key = new TKeyExtent(other_element_key);
 
-        org.apache.accumulo.core.security.thrift.SecurityErrorCode __this__authorizationFailures_copy_value = other_element_value;
+        org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode __this__authorizationFailures_copy_value = other_element_value;
 
         __this__authorizationFailures.put(__this__authorizationFailures_copy_key, __this__authorizationFailures_copy_value);
       }
@@ -292,18 +292,18 @@ import org.slf4j.LoggerFactory;
     return (this.authorizationFailures == null) ? 0 : this.authorizationFailures.size();
   }
 
-  public void putToAuthorizationFailures(TKeyExtent key, org.apache.accumulo.core.security.thrift.SecurityErrorCode val) {
+  public void putToAuthorizationFailures(TKeyExtent key, org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode val) {
     if (this.authorizationFailures == null) {
-      this.authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.security.thrift.SecurityErrorCode>();
+      this.authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode>();
     }
     this.authorizationFailures.put(key, val);
   }
 
-  public Map<TKeyExtent,org.apache.accumulo.core.security.thrift.SecurityErrorCode> getAuthorizationFailures() {
+  public Map<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> getAuthorizationFailures() {
     return this.authorizationFailures;
   }
 
-  public UpdateErrors setAuthorizationFailures(Map<TKeyExtent,org.apache.accumulo.core.security.thrift.SecurityErrorCode> authorizationFailures) {
+  public UpdateErrors setAuthorizationFailures(Map<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> authorizationFailures) {
     this.authorizationFailures = authorizationFailures;
     return this;
   }
@@ -345,7 +345,7 @@ import org.slf4j.LoggerFactory;
       if (value == null) {
         unsetAuthorizationFailures();
       } else {
-        setAuthorizationFailures((Map<TKeyExtent,org.apache.accumulo.core.security.thrift.SecurityErrorCode>)value);
+        setAuthorizationFailures((Map<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode>)value);
       }
       break;
 
@@ -600,14 +600,14 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map57 = iprot.readMapBegin();
-                struct.authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.security.thrift.SecurityErrorCode>(2*_map57.size);
+                struct.authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode>(2*_map57.size);
                 for (int _i58 = 0; _i58 < _map57.size; ++_i58)
                 {
                   TKeyExtent _key59; // required
-                  org.apache.accumulo.core.security.thrift.SecurityErrorCode _val60; // required
+                  org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode _val60; // required
                   _key59 = new TKeyExtent();
                   _key59.read(iprot);
-                  _val60 = org.apache.accumulo.core.security.thrift.SecurityErrorCode.findByValue(iprot.readI32());
+                  _val60 = org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.findByValue(iprot.readI32());
                   struct.authorizationFailures.put(_key59, _val60);
                 }
                 iprot.readMapEnd();
@@ -661,7 +661,7 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(AUTHORIZATION_FAILURES_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.I32, struct.authorizationFailures.size()));
-          for (Map.Entry<TKeyExtent, org.apache.accumulo.core.security.thrift.SecurityErrorCode> _iter63 : struct.authorizationFailures.entrySet())
+          for (Map.Entry<TKeyExtent, org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> _iter63 : struct.authorizationFailures.entrySet())
           {
             _iter63.getKey().write(oprot);
             oprot.writeI32(_iter63.getValue().getValue());
@@ -720,7 +720,7 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetAuthorizationFailures()) {
         {
           oprot.writeI32(struct.authorizationFailures.size());
-          for (Map.Entry<TKeyExtent, org.apache.accumulo.core.security.thrift.SecurityErrorCode> _iter66 : struct.authorizationFailures.entrySet())
+          for (Map.Entry<TKeyExtent, org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> _iter66 : struct.authorizationFailures.entrySet())
           {
             _iter66.getKey().write(oprot);
             oprot.writeI32(_iter66.getValue().getValue());
@@ -766,14 +766,14 @@ import org.slf4j.LoggerFactory;
       if (incoming.get(2)) {
         {
           org.apache.thrift.protocol.TMap _map74 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.I32, iprot.readI32());
-          struct.authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.security.thrift.SecurityErrorCode>(2*_map74.size);
+          struct.authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode>(2*_map74.size);
           for (int _i75 = 0; _i75 < _map74.size; ++_i75)
           {
             TKeyExtent _key76; // required
-            org.apache.accumulo.core.security.thrift.SecurityErrorCode _val77; // required
+            org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode _val77; // required
             _key76 = new TKeyExtent();
             _key76.read(iprot);
-            _val77 = org.apache.accumulo.core.security.thrift.SecurityErrorCode.findByValue(iprot.readI32());
+            _val77 = org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.findByValue(iprot.readI32());
             struct.authorizationFailures.put(_key76, _val77);
           }
         }

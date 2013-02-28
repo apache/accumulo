@@ -14,22 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.security.handler;
+package org.apache.accumulo.core.client.security.tokens;
 
-import java.util.Properties;
+import javax.security.auth.Destroyable;
 
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.NullToken;
+import org.apache.hadoop.io.Writable;
 
-/**
- * 
- */
-public class InsecureAuthenticator implements Authenticator {
-  static NullToken nt = new NullToken();
-  @Override
-  public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
-    return nt;
-  }
-  
+public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
+  public AuthenticationToken clone();
 }
