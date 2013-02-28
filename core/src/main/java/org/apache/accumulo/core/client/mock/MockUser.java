@@ -18,9 +18,9 @@ package org.apache.accumulo.core.client.mock;
 
 import java.util.EnumSet;
 
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
 
 public class MockUser {
   final EnumSet<SystemPermission> permissions;

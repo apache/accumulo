@@ -19,9 +19,9 @@ package org.apache.accumulo.core.security.handler;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.security.tokens.PasswordToken;
 
 /**
  * 

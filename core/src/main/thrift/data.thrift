@@ -18,7 +18,6 @@ namespace java org.apache.accumulo.core.data.thrift
 namespace cpp org.apache.accumulo.core.data.thrift
 
 include "security.thrift"
-include "client.thrift"
 
 typedef i64 ScanID
 typedef i64 UpdateID
@@ -107,7 +106,7 @@ struct TConstraintViolationSummary {
 struct UpdateErrors {
 	1:map<TKeyExtent, i64> failedExtents,
 	2:list<TConstraintViolationSummary> violationSummaries,
-	3:map<TKeyExtent, client.SecurityErrorCode> authorizationFailures
+	3:map<TKeyExtent, security.SecurityErrorCode> authorizationFailures
 }
 
 struct MapFileInfo {

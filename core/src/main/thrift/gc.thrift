@@ -19,7 +19,6 @@ namespace cpp org.apache.accumulo.core.gc.thrift
 
 include "security.thrift"
 include "trace.thrift"
-include "client.thrift"
 
 struct GcCycleStats {
    1:i64 started;
@@ -39,5 +38,5 @@ struct GCStatus {
 
 
 service GCMonitorService {
-   GCStatus getStatus(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec);
+   GCStatus getStatus(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:security.ThriftSecurityException sec);
 }
