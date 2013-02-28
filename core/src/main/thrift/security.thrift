@@ -39,8 +39,8 @@ enum SecurityErrorCode {
 }
 
 /**
- * @Deprecated since 1.5
-**/
+ @deprecated since 1.5
+*/
 struct AuthInfo {
     1:string user,
     2:binary password,
