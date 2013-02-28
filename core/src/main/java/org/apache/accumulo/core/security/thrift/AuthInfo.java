@@ -46,6 +46,10 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ *  * @Deprecated since 1.5
+ * *
+ */
 @SuppressWarnings("all") public class AuthInfo implements org.apache.thrift.TBase<AuthInfo, AuthInfo._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("AuthInfo");
 

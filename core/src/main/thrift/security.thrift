@@ -38,6 +38,9 @@ enum SecurityErrorCode {
     INSUFFICIENT_PROPERTIES = 17;
 }
 
+/**
+ * @Deprecated since 1.5
+**/
 struct AuthInfo {
     1:string user,
     2:binary password,
