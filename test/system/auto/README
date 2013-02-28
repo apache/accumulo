@@ -34,11 +34,11 @@ If the test suite hangs, and you would like to re-run the tests starting with th
  
  $ ./test/system/auto/run.py -s start.over.test
  
-The full test suite can take nearly an hour.  If you have a larger hadoop cluster at your disposal, you can 
+The full test suite can take over an hour.  If you have a larger hadoop cluster at your disposal, you can 
 run the tests as a map-reduce job:
 
  $ python test/system/auto/run.py -l > tests
  $ hadoop fs -put tests /user/hadoop/tests
- $ ./bin/accumulo org.apache.accumulo.test.functional.RunTests /user/hadoop/tests /user/hadoop/results
+ $ ./bin/accumulo org.apache.accumulo.test.functional.RunTests --tests /user/hadoop/tests --output /user/hadoop/results
 
  

@@ -406,7 +406,7 @@ public class Tablet {
   private KeyExtent extent;
   
   private TabletResourceManager tabletResources;
-  private DatafileManager datafileManager;
+  final private DatafileManager datafileManager;
   private volatile boolean majorCompactionInProgress = false;
   private volatile boolean majorCompactionWaitingToStart = false;
   private Set<MajorCompactionReason> majorCompactionQueued = Collections.synchronizedSet(EnumSet.noneOf(MajorCompactionReason.class));
@@ -508,11 +508,10 @@ public class Tablet {
   }
   
   class DatafileManager {
-    private TreeMap<Path,DataFileValue> datafileSizes;
+    // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
+    final private Map<Path,DataFileValue> datafileSizes = Collections.synchronizedMap(new TreeMap<Path,DataFileValue>());
     
     DatafileManager(SortedMap<String,DataFileValue> datafileSizes) {
-      this.datafileSizes = new TreeMap<Path,DataFileValue>();
-      
       for (Entry<String,DataFileValue> datafiles : datafileSizes.entrySet())
         this.datafileSizes.put(new Path(rel2abs(datafiles.getKey(), extent)), datafiles.getValue());
     }
@@ -2890,10 +2889,14 @@ public class Tablet {
       }
     }
     
+    // We used to synchronize on the Tablet before fetching this information, 
+    // but this method is called by the compaction queue thread to re-order the compactions.
+    // The compaction queue holds a lock during this sort.
+    // A tablet lock can be held while putting itself on the queue, so we can't lock the tablet
+    // while pulling information used to sort the tablets in the queue, or we may get deadlocked.
+    // See ACCUMULO-1110.
     private int getNumFiles() {
-      synchronized (Tablet.this) {
-        return datafileManager.datafileSizes.size();
-      }
+      return datafileManager.datafileSizes.size();
     }
     
     @Override
