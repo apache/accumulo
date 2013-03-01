@@ -2144,6 +2144,17 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       public void lostLock(LockLossReason reason) {
         Halt.halt("Master lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
       }
+      
+      @Override
+      public void unableToMonitorLockNode(final Throwable e) {
+        Halt.halt(-1, new Runnable() {
+          @Override
+          public void run() {
+            log.fatal("No longer able to monitor master lock node", e);
+          }
+        });
+        
+      }
     };
     long current = System.currentTimeMillis();
     final long waitTime = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);

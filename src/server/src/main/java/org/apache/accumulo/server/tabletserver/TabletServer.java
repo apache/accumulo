@@ -2652,6 +2652,17 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             }
           });
         }
+        
+        @Override
+        public void unableToMonitorLockNode(final Throwable e) {
+          Halt.halt(0, new Runnable() {
+            @Override
+            public void run() {
+              log.fatal("Lost ability to monitor tablet server lock, exiting.", e);
+            }
+          });
+          
+        }
       };
       
       byte[] lockContent = new ServerServices(getClientAddressString(), Service.TSERV_CLIENT).toString().getBytes();

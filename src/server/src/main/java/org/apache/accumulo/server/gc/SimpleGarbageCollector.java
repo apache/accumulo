@@ -369,6 +369,18 @@ public class SimpleGarbageCollector implements Iface {
       public void lostLock(LockLossReason reason) {
         Halt.halt("GC lock in zookeeper lost (reason = " + reason + "), exiting!");
       }
+      
+      @Override
+      public void unableToMonitorLockNode(final Throwable e) {
+        Halt.halt(-1, new Runnable() {
+          
+          @Override
+          public void run() {
+            log.fatal("No longer able to monitor lock node ", e);
+          }
+        });
+        
+      }
     };
     
     while (true) {
