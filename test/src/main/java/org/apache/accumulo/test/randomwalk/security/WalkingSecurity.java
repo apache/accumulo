@@ -122,7 +122,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     return (Authorizations) state.get(user + "_auths");
   }
   
-  public boolean ambiguousAuthorizations() {
+  public boolean ambiguousAuthorizations(String userName) {
     Long setTime = state.getLong("Auths-" + userName + '-' + "time");
     if (setTime == null)
       throw new RuntimeException("WTF? Auths-" + userName + '-' + "time is null");

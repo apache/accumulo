@@ -72,7 +72,7 @@ public class TableOp extends Test {
         boolean canRead = WalkingSecurity.get(state).canScan(WalkingSecurity.get(state).getTabCredentials(), tableName);
         Authorizations auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabCredentials());
         boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
-        boolean ambiguousAuths = WalkingSecurity.get(state).ambiguousAuthorizations();
+        boolean ambiguousAuths = WalkingSecurity.get(state).ambiguousAuthorizations(conn.whoami());
         
         try {
           Scanner scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(conn.whoami()));
