@@ -25,22 +25,50 @@ done
 bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # Stop: Resolve Script Directory
 
-. "$bin"/config.sh
+#
+# Resolve accumulo home for bootstrapping
+#
+ACCUMULO_HOME=$( cd -P ${bin}/.. && pwd )
 
-SLAVES=$ACCUMULO_HOME/conf/slaves
+SIZE=""
+TYPE=""
+if [ -n "$1" ]; then
+   SIZE=$1
+   TYPE="standalone"
+fi
 
-echo -n "Starting tablet servers ..."
+if [ "$2" = "native" ]; then
+   TYPE="native-standalone"
+fi
 
-count=1
-for server in `egrep -v '(^#|^\s*$)' "${SLAVES}"`; do
-   echo -n "."
-   ${bin}/start-server.sh $server tserver "tablet server" &
-   let count++
-   if [ $(( ${count} % 72 )) -eq 0 ] ;
-   then
+if [ -z "${SIZE}" ]; then
+   echo "Choose the heap configuration:"
+   select DIRNAME in $(cd ${ACCUMULO_HOME}/conf/examples && ls -d */standalone/.. | sed -e 's/\/.*//'); do
+      echo "Using '${DIRNAME}' configuration"
+      SIZE=${DIRNAME}
+      break
+   done
+fi
+
+if [ -z "${TYPE}" ]; then
+   echo
+   echo "Choose the hadoop library type:"
+   select TYPENAME in Java Native; do
+      if [ "${TYPENAME}" = "native" ]; then
+         TYPE="native-standalone"
+      else
+         TYPE="standalone"
+      fi
+      echo "Using '${TYPE}' configuration"
       echo
-      wait
-   fi
-done
+      break
+   done
+fi
 
-echo " done"
+CONF_DIR="${ACCUMULO_HOME}/conf/examples/${SIZE}/${TYPE}"
+
+echo "Initializing default configuration from '${CONF_DIR}'"
+#
+# Perform a copy with update here to not overwrite existing files
+#
+cp -vu ${CONF_DIR}/* ${ACCUMULO_HOME}/conf

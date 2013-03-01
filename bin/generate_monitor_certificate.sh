@@ -15,45 +15,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-bin=`dirname "$0"`
-bin=`cd "$bin"; pwd`
+# Start: Resolve Script Directory
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+   SOURCE="$(readlink "$SOURCE")"
+   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+# Stop: Resolve Script Directory
 
 . "$bin"/config.sh
 
 ALIAS="default"
-KEYPASS=`cat /dev/random | head -c33 | uuencode -m foo | head -2 | tail +2`
-STOREPASS=`cat /dev/random | head -c33 | uuencode -m foo | head -2 | tail +2`
+KEYPASS=$(cat /dev/random | head -c33 | uuencode -m foo | head -2 | tail +2)
+STOREPASS=$(cat /dev/random | head -c33 | uuencode -m foo | head -2 | tail +2)
 KEYSTOREPATH="$ACCUMULO_HOME/conf/keystore.jks"
 TRUSTSTOREPATH="$ACCUMULO_HOME/conf/cacerts.jks"
 CERTPATH="$ACCUMULO_HOME/conf/server.cer"
 
-if [ -e "$KEYSTOREPATH" ] ; then
-  rm -i $KEYSTOREPATH
-  if [ -e "$KEYSTOREPATH" ] ; then
-    echo "keystore already exists, exiting"
-    exit 1
+if [ -e "$KEYSTOREPATH" ]; then
+   rm -i $KEYSTOREPATH
+   if [ -e "$KEYSTOREPATH" ]; then
+      echo "KeyStore already exists, exiting"
+      exit 1
+   fi
+fi
+
+if [ -e "$TRUSTSTOREPATH" ]; then
+   rm -i $TRUSTSTOREPATH
+   if [ -e "$TRUSTSTOREPATH" ]; then
+      echo "TrustStore already exists, exiting"
+      exit 2
+   fi
+fi
+
+if [ -e "$CERTPATH" ]; then
+   rm -i $CERTPATH
+   if [ -e "$CERTPATH" ]; then
+      echo "Certificate already exists, exiting"
+      exit 3
   fi
 fi
 
-if [ -e "$TRUSTSTOREPATH" ] ; then
-  rm -i $TRUSTSTOREPATH
-  if [ -e "$TRUSTSTOREPATH" ] ; then
-    echo "truststore already exists, exiting"
-    exit 2
-  fi
-fi
-
-if [ -e "$CERTPATH" ] ; then
-  rm -i $CERTPATH
-  if [ -e "$CERTPATH" ] ; then
-    echo "cert already exists, exiting"
-    exit 3
-  fi
-fi
-
-keytool -genkey -alias $ALIAS -keyalg RSA -keypass $KEYPASS -storepass $STOREPASS -keystore $KEYSTOREPATH
-keytool -export -alias $ALIAS -storepass $STOREPASS -file $CERTPATH -keystore $KEYSTOREPATH
-echo "yes" | keytool -import -v -trustcacerts -alias $ALIAS -file $CERTPATH -keystore $TRUSTSTOREPATH -keypass $KEYPASS -storepass $STOREPASS
+${JAVA_HOME}/bin/keytool -genkey -alias $ALIAS -keyalg RSA -keypass $KEYPASS -storepass $STOREPASS -keystore $KEYSTOREPATH
+${JAVA_HOME}/bin/keytool -export -alias $ALIAS -storepass $STOREPASS -file $CERTPATH -keystore $KEYSTOREPATH
+echo "yes" | ${JAVA_HOME}/bin/keytool -import -v -trustcacerts -alias $ALIAS -file $CERTPATH -keystore $TRUSTSTOREPATH -keypass $KEYPASS -storepass $STOREPASS
 
 echo
 echo "keystore and truststore generated.  now add the following to accumulo-site.xml:"

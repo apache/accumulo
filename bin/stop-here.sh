@@ -19,34 +19,36 @@
 # This script safely stops all the accumulo services on this host
 #
 
-bin=`dirname "$0"`
-bin=`cd "$bin"; pwd`
+# Start: Resolve Script Directory
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+   SOURCE="$(readlink "$SOURCE")"
+   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+# Stop: Resolve Script Directory
 
 . "$bin"/config.sh
 
 ACCUMULO="$ACCUMULO_HOME/.*/accumulo-start.*.jar"
 
-if egrep -q localhost\|127.0.0.1 $ACCUMULO_HOME/conf/slaves
-then
-    $bin/accumulo admin stop localhost
+if egrep -q localhost\|127.0.0.1 $ACCUMULO_HOME/conf/slaves; then
+   $bin/accumulo admin stop localhost
 else
-    for host in `hostname -a`
-    do
-       if grep -q $host $ACCUMULO_HOME/conf/slaves
-       then
-          $bin/accumulo admin stop $host
-       fi
-    done
+   for host in `hostname -a`; do
+      if grep -q ${host} $ACCUMULO_HOME/conf/slaves; then
+         ${bin}/accumulo admin stop $host
+      fi
+   done
 fi
 
-for signal in TERM KILL
-do
-    for svc in tserver gc master monitor logger tracer
-    do
-	PID=`ps -ef | egrep ${ACCUMULO} | grep "Main $svc" | grep -v grep | grep -v stop-here.sh | awk {'print \$2'} | head -1`
-	if [ ! -z $PID ]; then
-	    echo "stopping $svc on `hostname -a | head -1` with signal $signal"
-	    kill -s ${signal} ${PID}
-	fi
-    done
+for signal in TERM KILL; do
+   for svc in tserver gc master monitor logger tracer; do
+      PID=$(ps -ef | egrep ${ACCUMULO} | grep "Main $svc" | grep -v grep | grep -v stop-here.sh | awk '{print $2}' | head -1)
+      if [ ! -z $PID ]; then
+         echo "Stopping ${svc} on `hostname -a | head -1` with signal ${signal}"
+         kill -s ${signal} ${PID}
+      fi
+   done
 done

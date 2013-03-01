@@ -33,6 +33,18 @@
 #
 #	LogForwarder.sh -h 127.0.0.1 -p 4448 -f tserver* -s 2010010100001 -e 20100101235959 -l INFO -m .*scan.*
 #
-. accumulo-config.sh
 
-java -cp $ACCUMULO_HOME/lib org.apache.accumulo.server.util.SendLogToChainsaw -d $ACCUMULO_LOG_DIR "$@"
+# Start: Resolve Script Directory
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+   SOURCE="$(readlink "$SOURCE")"
+   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+script=$( basename "$SOURCE" )
+# Stop: Resolve Script Directory
+
+. "$bin"/config.sh
+
+${JAVA_HOME}/bin/java -cp $ACCUMULO_HOME/lib org.apache.accumulo.server.util.SendLogToChainsaw -d $ACCUMULO_LOG_DIR "$@"

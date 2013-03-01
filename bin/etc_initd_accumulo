@@ -32,20 +32,20 @@ ACCUMULO_HOME=`cd $pwd/.. ; pwd -P`
 RETVAL=0
 case "$1" in
    start)
-        $ACCUMULO_HOME/bin/start-here.sh
-        RETVAL=$?
+      $ACCUMULO_HOME/bin/start-here.sh
+      RETVAL=$?
    ;;
    stop)
-        $ACCUMULO_HOME/bin/stop-here.sh
-        RETVAL=$?
+      $ACCUMULO_HOME/bin/stop-here.sh
+      RETVAL=$?
    ;;
    status)
-        COUNT=`pgrep -f "$ACCUMULO_HOME.*org.apache.accumulo.start" | wc -l`
-        echo "There are $COUNT accumulo processes on this machine"
+      COUNT=$(pgrep -f "$ACCUMULO_HOME.*org.apache.accumulo.start" | wc -l)
+      echo "There are $COUNT accumulo processes on this machine"
    ;;
    restart)
-        $0 stop
-        $0 start
+      $0 stop
+      $0 start
    ;;
    *)
       echo "Usage: $0 {start|stop|status|restart}"
