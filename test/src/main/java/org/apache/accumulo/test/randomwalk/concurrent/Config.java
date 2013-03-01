@@ -19,6 +19,9 @@ package org.apache.accumulo.test.randomwalk.concurrent;
 import java.util.Properties;
 import java.util.SortedSet;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -140,7 +143,16 @@ public class Config extends Test {
     long newValue = random.nextLong(setting.min, setting.max);
     state.getMap().put(LAST_TABLE_SETTING, table + "," + choice);
     log.debug("Setting " + setting.property.getKey() + " on table " + table + " to " + newValue);
-    state.getConnector().tableOperations().setProperty(table, setting.property.getKey(), "" + newValue);
+    try {
+      state.getConnector().tableOperations().setProperty(table, setting.property.getKey(), "" + newValue);
+    } catch (AccumuloException ex) {
+      if (ex.getCause() instanceof ThriftTableOperationException) {
+        ThriftTableOperationException ttoe = (ThriftTableOperationException)ex.getCause();
+        if (ttoe.type == TableOperationExceptionType.NOTFOUND)
+          return;
+      }
+      throw ex;
+    }
   }
   
   private void changeSetting(RandomData random, State state, Properties props) throws Exception {
