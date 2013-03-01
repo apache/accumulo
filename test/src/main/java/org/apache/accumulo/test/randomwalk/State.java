@@ -95,7 +95,7 @@ public class State {
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (connector == null) {
-      connector = getInstance().getConnector(getCredentials().getPrincipal(), getCredentials().getToken());
+      connector = getInstance().getConnector(getCredentials());
     }
     return connector;
   }
