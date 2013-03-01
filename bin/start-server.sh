@@ -28,7 +28,7 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 . "$bin"/config.sh
 
 HOST="$1"
-host "$1" >/dev/null 2>/dev/null"
+host "$1" >/dev/null 2>/dev/null
 if [ $? -ne 0 ]; then
    LOGHOST="$1"
 else
