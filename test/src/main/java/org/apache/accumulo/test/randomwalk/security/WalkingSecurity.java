@@ -115,6 +115,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   @Override
   public void changeAuthorizations(String user, Authorizations authorizations) throws AccumuloSecurityException {
     state.set(user + "_auths", authorizations);
+    state.set("Auths-" + user + '-' + "time", System.currentTimeMillis());
   }
   
   @Override
