@@ -176,7 +176,8 @@ public class VisServlet extends BasicServlet {
         .append(">80</option></select></span>\n");
     // motion select box
     sb.append("&nbsp;&nbsp<span class='viscontrol'>Motion: <select id='motion' onchange='setMotion(this)'>");
-    addOptions(sb, cfg.motion);
+    sb.append("<option selected='true'></option>");
+    addOptions(sb, null);
     sb.append("</select></span>\n");
     // color select box
     sb.append("&nbsp;&nbsp<span class='viscontrol'>Color: <select id='color' onchange='setColor(this)'>");
