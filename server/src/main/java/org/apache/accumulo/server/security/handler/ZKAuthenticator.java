@@ -200,7 +200,7 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
   
   @Override
   public String getTokenLoginClass() {
-    return this.getClass().getCanonicalName();
+    return super.getClass().getCanonicalName();
   }
 
   @Override

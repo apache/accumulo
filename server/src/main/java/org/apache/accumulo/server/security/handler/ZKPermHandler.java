@@ -69,7 +69,9 @@ public class ZKPermHandler implements PermissionHandler {
   public boolean hasTablePermission(String user, String table, TablePermission permission) {
     byte[] serializedPerms;
     try {
-      serializedPerms = ZooReaderWriter.getRetryingInstance().getData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, null);
+      String path = ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table;
+      ZooReaderWriter.getRetryingInstance().sync(path);
+      serializedPerms = ZooReaderWriter.getRetryingInstance().getData(path, null);
     } catch (KeeperException e) {
       if (e.code() == Code.NONODE) {
         return false;
@@ -306,7 +308,9 @@ public class ZKPermHandler implements PermissionHandler {
   public boolean hasSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     byte[] perms;
     try {
-      perms = ZooReaderWriter.getRetryingInstance().getData(ZKUserPath + "/" + user + ZKUserSysPerms, null);
+      String path = ZKUserPath + "/" + user + ZKUserSysPerms;
+      ZooReaderWriter.getRetryingInstance().sync(path);
+      perms = ZooReaderWriter.getRetryingInstance().getData(path, null);
     } catch (KeeperException e) {
       if (e.code() == Code.NONODE) {
         return false;
