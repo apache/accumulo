@@ -15,27 +15,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-bin=`dirname "$0"`
-bin=`cd "$bin"; pwd`
+# Start: Resolve Script Directory
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+   SOURCE="$(readlink "$SOURCE")"
+   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+# Stop: Resolve Script Directory
 
 . "$bin"/config.sh
 
 #
 # Find the system context directory in HDFS
 #
-SYSTEM_CONTEXT_HDFS_DIR=`grep -A1 "general.vfs.classpaths" "$ACCUMULO_HOME/conf/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; print $ARGV[1]'`
+SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$ACCUMULO_HOME/conf/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; print $ARGV[1]')
 
-if [ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]; then
-
-  echo "Your accumulo-site.xml file is not set up for the HDFS Classloader. Please add the following to your accumulo-site.xml file:"
-  echo ""
-  echo "<property>"
-  echo "   <name>general.vfs.classpaths</name>"
-  echo "   <value>hdfs://host:port/dir</value>"
-  echo "   <description>location of the jars for the default (system) context</description>"
-  echo "</property>"
-  exit
+if [ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]
+then
+   echo "Your accumulo-site.xml file is not set up for the HDFS Classloader. Please add the following to your accumulo-site.xml file:"
+   echo ""
+   echo "<property>"
+   echo "   <name>general.vfs.classpaths</name>"
+   echo "   <value>hdfs://host:port/dir</value>"
+   echo "   <description>location of the jars for the default (system) context</description>"
+   echo "</property>"
+   exit 1
 fi
 
 #
@@ -43,28 +49,27 @@ fi
 #
 "$HADOOP_PREFIX/bin/hadoop" fs -ls "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 if [ $? -ne 0 ]; then
-  "$HADOOP_PREFIX/bin/hadoop" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
+   "$HADOOP_PREFIX/bin/hadoop" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 fi
 
 #
 # Replicate to all slaves to avoid network contention on startup
 #
-NUM_SLAVES=`wc -l $ACCUMULO_HOME/conf/slaves | grep -P '^\d+(?= )' -o`
+SLAVES="$ACCUMULO_HOME/conf/slaves"
+NUM_SLAVES=$(egrep -v '(^#|^\s*$)' "$SLAVES" | wc -l)
 
 #let each datanode service around 50 clients
 let "REP=$NUM_SLAVES/50"
 
 if [ $REP -lt 3 ]; then
-  REP=3
+   REP=3
 fi
 
 #
 # Copy all jars in lib to the system context directory
 #
 "$HADOOP_PREFIX/bin/hadoop" fs -moveFromLocal "$ACCUMULO_HOME"/lib/*.jar "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
-
 "$HADOOP_PREFIX/bin/hadoop" fs -setrep -R $REP "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
-
 
 #
 # We need two of the jars in lib, copy them back out and remove them from the system context dir

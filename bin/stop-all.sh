@@ -16,29 +16,35 @@
 # limitations under the License.
 
 
-bin=`dirname "$0"`
-bin=`cd "$bin"; pwd`
+# Start: Resolve Script Directory
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+   SOURCE="$(readlink "$SOURCE")"
+   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+# Stop: Resolve Script Directory
 
 . "$bin"/config.sh
 
+echo "Stopping accumulo services..."
 ${bin}/accumulo admin "$@" stopAll
 
 if [ $? -ne 0 ]; then
-echo 'Invalid password or unable to connect to the master'
-echo 'Press Ctrl-C to cancel now, or force shutdown in 15 seconds'
-sleep 10
+   echo "Invalid password or unable to connect to the master"
+   echo "Press Ctrl-C to cancel now, or force shutdown in 15 seconds"
+   sleep 10
 else
-echo 'Accumulo shut down cleanly'
+   echo "Accumulo shut down cleanly"
 fi
 
-echo 'Utilities and unresponsive servers will be shut down in 5 seconds'
+echo "Utilities and unresponsive servers will be shut down in 5 seconds"
 sleep 5
 
 #look for master and gc processes not killed by 'admin stopAll'
-for signal in TERM KILL
-do
-   for master in `grep -v '^#' "$ACCUMULO_HOME/conf/masters"`
-   do
+for signal in TERM KILL ; do
+   for master in `grep -v '^#' "$ACCUMULO_HOME/conf/masters"`; do
       ${bin}/stop-server.sh $master "$ACCUMULO_HOME/.*/accumulo-start.*.jar" master $signal
    done
 
@@ -46,16 +52,14 @@ do
 
    ${bin}/stop-server.sh "$MONITOR" "$ACCUMULO_HOME/.*/accumulo-start.*.jar" monitor $signal
 
-   for tracer in `grep -v '^#' "$ACCUMULO_HOME/conf/tracers"`
-   do
+   for tracer in `egrep -v '(^#|^\s*$)' "$ACCUMULO_HOME/conf/tracers"`; do
       ${bin}/stop-server.sh $tracer "$ACCUMULO_HOME/.*/accumulo-start.*.jar" tracer $signal
    done
 done
 
-
 # stop tserver still running
 ${bin}/tdown.sh
 
-echo 'Cleaning all server entries in zookeeper'
+echo "Cleaning all server entries in ZooKeeper"
 $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
 

@@ -15,29 +15,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-bin=`dirname "$0"`
-bin=`cd "$bin"; pwd`
+# Start: Resolve Script Directory
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+   SOURCE="$(readlink "$SOURCE")"
+   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+# Stop: Resolve Script Directory
 
 . "$bin"/config.sh
 
-HADOOP_CMD=$HADOOP_LOCATION/bin/hadoop
-
+HADOOP_CMD=$HADOOP_PREFIX/bin/hadoop
 SLAVES=$ACCUMULO_HOME/conf/slaves
+SLAVE_HOSTS=$(egrep -v '(^#|^\s*$)' "${SLAVES}")
 
-echo 'stopping unresponsive tablet servers (if any) ...'
-for server in `cat $SLAVES | grep -v '^#' `; do
-        # only start if there's not one already running
-        $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/.*/accumulo-start.*.jar" tserver TERM & 
+echo "Stopping unresponsive tablet servers (if any)..."
+for server in ${SLAVE_HOSTS}; do
+   # only start if there's not one already running
+   $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/.*/accumulo-start.*.jar" tserver TERM & 
 done
 
 sleep 10
 
-echo 'stopping unresponsive tablet servers hard (if any) ...'
-for server in `cat $SLAVES | grep -v '^#' `; do
-        # only start if there's not one already running
-        $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/.*/accumulo-start.*.jar" tserver KILL & 
+echo "Stopping unresponsive tablet servers hard (if any)..."
+for server in ${SLAVE_HOSTS}; do
+   # only start if there's not one already running
+   $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/.*/accumulo-start.*.jar" tserver KILL & 
 done
 
-echo 'Cleaning tablet server entries from zookeeper'
+echo "Cleaning tablet server entries from zookeeper"
 $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.util.ZooZap -tservers

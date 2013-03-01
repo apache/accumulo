@@ -15,116 +15,107 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-_readlink ()
-{
-  result=`readlink -f $1 2>/dev/null`
-  if [ $? -eq 0 ];
-  then
-    echo $result
-    return 0
-  fi
-
-  oldPath=$1
-  if [ -n `echo $oldPath | egrep "^[.]"` ]; then
-    oldPath=`echo $1 | sed -e 's#[.]/##'`
-  fi
-  if [ -z `echo $oldPath | egrep '^/'` ]; then
-    oldPath="`pwd`/$oldPath"
-  fi
-  newPath=$oldPath
-  while [ "$newPath" ];
-  do
-    oldPath=$newPath  
-    newPath=`readlink $newPath`
-  done
-
-  echo $oldPath
-  return 0
-}
-
-bin=`_readlink $0`
-bin=`dirname "$bin"`
-bin=`cd "$bin"; pwd`
+# Start: Resolve Script Directory
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+   SOURCE="$(readlink "$SOURCE")"
+   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+script=$( basename "$SOURCE" )
+# Stop: Resolve Script Directory
 
 . "$bin"/config.sh
 
 START_JAR=$ACCUMULO_HOME/lib/accumulo-start-$ACCUMULO_VERSION.jar:$ACCUMULO_HOME/lib/log4j-1.2.16.jar
 
+#
+# Resolve a program to its installation directory
+#
 locationByProgram() 
 {
-   # find the program
-   RESULT=`which $1 2>/dev/null`
-   if test ! -z "$RESULT"
-   then
-      # strip the program name from the path
-      RESULT=`dirname ${RESULT}`
-      # strip /bin from the path
-      RESULT=`dirname ${RESULT}`
-      echo ${RESULT}
+   RESULT=$( which "$1" )
+   if [[ "$?" != 0 && -z "$RESULT" ]]; then
+      echo "Cannot find '$1' and '$2' is not set in conf/accumulo-env.sh"
+      exit 1
    fi
+   while [ -h "$RESULT" ]; do # resolve $RESULT until the file is no longer a symlink
+      DIR="$( cd -P "$( dirname "$RESULT" )" && pwd )"
+      RESULT="$(readlink "$RESULT")"
+      [[ $RESULT != /* ]] && RESULT="$DIR/$RESULT" # if $RESULT was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+   done
+   # find the relative home directory
+   RESULT=$(dirname ${RESULT})
+   echo "Auto-set ${2} to '${RESULT}'.  To suppress this message, set ${2} in conf/accumulo-env.sh"
+   eval "${2}=${RESULT}"
 }
 
-test -n "$JAVA_HOME"      || export JAVA_HOME=`locationByProgram java`
-test -n "$HADOOP_PREFIX"    || export HADOOP_PREFIX=`locationByProgram hadoop`
-test -n "$ZOOKEEPER_HOME" || export ZOOKEEPER_HOME=`locationByProgram zkCli.sh`
-
+test -z "$JAVA_HOME"      && locationByProgram java JAVA_HOME
+test -z "$HADOOP_PREFIX"  && locationByProgram hadoop HADOOP_PREFIX
+test -z "$ZOOKEEPER_HOME" && locationByProgram zkCli.sh ZOOKEEPER_HOME
 
 DEFAULT_GENERAL_JAVA_OPTS=""
 
+#
 # ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
+#
 if [ "$1" = "-add" ] ; then
-	export ACCUMULO_XTRAJARS=$2
-	shift 2
+    export ACCUMULO_XTRAJARS=$2
+    shift 2
 else
-	export ACCUMULO_XTRAJARS=""
+    export ACCUMULO_XTRAJARS=""
 fi
 
-if [ "$1" = "master" ] ; then
-	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MASTER_OPTS}"
-elif [ "$1" = "gc" ] ; then
-	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_GC_OPTS}"
-elif [ "$1" = "tserver" ] ; then
-	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_TSERVER_OPTS}"
-elif [ "$1" = "monitor" ] ; then
-	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MONITOR_OPTS}"
-elif [ "$1" = "logger" ] ; then
-	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_LOGGER_OPTS}"
-else
-	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_OTHER_OPTS}"
-fi
+#
+# Add appropriate options for process type
+#
+case "$1" in
+master)  export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MASTER_OPTS}" ;;
+gc)      export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_GC_OPTS}" ;;
+tserver) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_TSERVER_OPTS}" ;;
+monitor) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MONITOR_OPTS}" ;;
+logger)  export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_LOGGER_OPTS}" ;;
+*)       export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_OTHER_OPTS}" ;;
+esac
 
 XML_FILES=${ACCUMULO_HOME}/conf
 CLASSPATH=${XML_FILES}:${START_JAR}
 
-if [ -z $JAVA_HOME -o ! -d $JAVA_HOME ]; then
-  echo "JAVA_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-  exit 1
+if [ -z "$JAVA_HOME" -o ! -d "$JAVA_HOME" ]; then
+   echo "JAVA_HOME is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
+   exit 1
 fi
-if [ -z $HADOOP_PREFIX -o ! -d $HADOOP_PREFIX ]; then
-  echo "HADOOP_PREFIX is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-  exit 1
+if [ -z "$HADOOP_PREFIX" -o ! -d "$HADOOP_PREFIX" ]; then
+   echo "HADOOP_PREFIX is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
+   exit 1
 fi
-if [ -z $ZOOKEEPER_HOME -o ! -d $ZOOKEEPER_HOME ]; then
-  echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-  exit 1
+if [ -z "$ZOOKEEPER_HOME" -o ! -d "$ZOOKEEPER_HOME" ]; then
+   echo "ZOOKEEPER_HOME is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
+   exit 1
 fi
-if [ -z $ACCUMULO_LOG_DIR ]; then
-  echo "ACCUMULO_LOG_DIR is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-  exit 1
+if [ -z "$ACCUMULO_LOG_DIR" ]; then
+   echo "ACCUMULO_LOG_DIR is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+   exit 1
 fi
 
 if [ ! -d "$ACCUMULO_LOG_DIR" ]; then
-  mkdir -p $ACCUMULO_LOG_DIR;
+   mkdir -p "$ACCUMULO_LOG_DIR"
 fi
 
-#Export the variables just in case they are not exported
-#This makes them available to java
-export JAVA_HOME=$JAVA_HOME
-export HADOOP_PREFIX=$HADOOP_PREFIX
-export ZOOKEEPER_HOME=$ZOOKEEPER_HOME
+# Export the variables just in case they are not exported
+# This makes them available to java
+export JAVA_HOME HADOOP_PREFIX ZOOKEEPER_HOME
 
-JAVA=$JAVA_HOME/bin/java
-PLATFORM="`$JAVA -cp $CLASSPATH org.apache.accumulo.start.Platform`"
-
+JAVA="$JAVA_HOME/bin/java"
+PLATFORM=$( $JAVA -cp $CLASSPATH org.apache.accumulo.start.Platform )
+#
 # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
-exec $JAVA "-Dapp=$1" $ACCUMULO_OPTS -classpath $CLASSPATH -XX:OnOutOfMemoryError="kill -9 %p" -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl -Djava.library.path="$HADOOP_PREFIX/lib/native/$PLATFORM" -Dorg.apache.accumulo.core.home.dir="$ACCUMULO_HOME" -Dhadoop.home.dir="$HADOOP_PREFIX" -Dzookeeper.home.dir="$ZOOKEEPER_HOME" org.apache.accumulo.start.Main "$@"
+exec $JAVA "-Dapp=$1" $ACCUMULO_OPTS -classpath $CLASSPATH -XX:OnOutOfMemoryError="kill -9 %p" \
+   -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl \
+   -Djava.library.path="$HADOOP_PREFIX/lib/native/$PLATFORM" \
+   -Dorg.apache.accumulo.core.home.dir="$ACCUMULO_HOME" \
+   -Dhadoop.home.dir="$HADOOP_PREFIX" \
+   -Dzookeeper.home.dir="$ZOOKEEPER_HOME" \
+   org.apache.accumulo.start.Main \
+   "$@"
