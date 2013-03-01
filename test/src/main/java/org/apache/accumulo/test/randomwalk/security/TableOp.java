@@ -72,6 +72,7 @@ public class TableOp extends Test {
         boolean canRead = WalkingSecurity.get(state).canScan(WalkingSecurity.get(state).getTabCredentials(), tableName);
         Authorizations auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabCredentials());
         boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
+        boolean ambiguousAuths = WalkingSecurity.get(state).ambiguousAuthorizations(conn.whoami());
         
         try {
           Scanner scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(conn.whoami()));
@@ -81,7 +82,7 @@ public class TableOp extends Test {
             Entry<Key,Value> entry = iter.next();
             Key k = entry.getKey();
             seen++;
-            if (!auths.contains(k.getColumnVisibilityData()))
+            if (!auths.contains(k.getColumnVisibilityData()) && !ambiguousAuths)
               throw new AccumuloException("Got data I should not be capable of seeing: " + k + " table " + tableName);
           }
           if (!canRead && !ambiguousZone)
@@ -90,7 +91,7 @@ public class TableOp extends Test {
             if (auths.contains(entry.getKey().getBytes()))
               seen = seen - entry.getValue();
           }
-          if (seen != 0)
+          if (seen != 0 && !ambiguousAuths)
             throw new AccumuloException("Got mismatched amounts of data");
         } catch (TableNotFoundException tnfe) {
           if (tableExists)
@@ -103,6 +104,12 @@ public class TableOp extends Test {
             else
               return;
           }
+          if (ae.getErrorCode().equals(SecurityErrorCode.BAD_AUTHORIZATIONS)) {
+            if (ambiguousAuths)
+              return;
+            else
+              throw new AccumuloException("Mismatched authorizations! ", ae);
+          }
           throw new AccumuloException("Unexpected exception!", ae);
         } catch (RuntimeException re) {
           if (re.getCause() instanceof AccumuloSecurityException
@@ -112,6 +119,14 @@ public class TableOp extends Test {
             else
               return;
           }
+          if (re.getCause() instanceof AccumuloSecurityException
+              && ((AccumuloSecurityException) re.getCause()).getErrorCode().equals(SecurityErrorCode.BAD_AUTHORIZATIONS)) {
+            if (ambiguousAuths)
+              return;
+            else
+              throw new AccumuloException("Mismatched authorizations! ", re.getCause());
+          }
+          
           throw new AccumuloException("Unexpected exception!", re);
         }
         

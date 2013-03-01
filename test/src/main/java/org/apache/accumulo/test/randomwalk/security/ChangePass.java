@@ -81,6 +81,8 @@ public class ChangePass extends Test {
       }
     }
     WalkingSecurity.get(state).changePassword(target, newPass);
+    // Waiting 1 second for password to propogate through Zk
+    Thread.sleep(1000);
     if (!hasPerm)
       throw new AccumuloException("Password change succeeded when it should have failed for " + source + " changing the password for " + target + ".");
   }
