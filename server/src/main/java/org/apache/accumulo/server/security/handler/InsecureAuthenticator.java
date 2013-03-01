@@ -77,7 +77,7 @@ public class InsecureAuthenticator extends org.apache.accumulo.core.security.han
   
   @Override
   public String getTokenLoginClass() {
-    return org.apache.accumulo.core.security.handler.InsecureAuthenticator.class.getName();
+    return super.getClass().getName();
   }
   
   @Override
