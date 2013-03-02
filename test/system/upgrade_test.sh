@@ -32,7 +32,7 @@ ONE_FOUR_DIR=../../../accumulo-1.4
 ONE_FIVE_DIR=../../
 
 pkill -f accumulo.start
-hadoop fs -rmr /accumulo
+hadoop fs -rmr /accumulo-1.4
 hadoop fs -rmr /testmf
 hadoop fs -rmr /testmfFail
 
@@ -52,23 +52,23 @@ echo "==== Starting 1.5 ==="
 
 
 $ONE_FIVE_DIR/bin/start-all.sh
-$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1 
+$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1 -u root -p secret
 echo "compact -t test_ingest -w" | $ONE_FIVE_DIR/bin/accumulo shell -u root -p secret
-$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1
+$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 200000 --start 0 --cols 1 -u root -p secret
 
 #test overwriting data writting in 1.4
-$ONE_FIVE_DIR/bin/accumulo org.apache.accumulo.test.TestIngest --timestamp 2 --size 50 --random 57 --rows 300000 --start 0 --cols 1 -cv "L1&L2&G1&GROUP2"
-$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
+$ONE_FIVE_DIR/bin/accumulo org.apache.accumulo.test.TestIngest --timestamp 2 --size 50 --random 57 --rows 300000 --start 0 --cols 1 -cv "L1&L2&G1&GROUP2" -u root -p secret
+$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1 -u root -p secret
 echo "compact -t test_ingest -w" | $ONE_FIVE_DIR/bin/accumulo shell -u root -p secret
-$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
+$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1 -u root -p secret
 
 $ONE_FIVE_DIR/bin/stop-all.sh
 $ONE_FIVE_DIR/bin/start-all.sh
 
-$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
+$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1 -u root -p secret
 
 pkill -9 -f accumulo.start
 $ONE_FIVE_DIR/bin/start-all.sh
 
-$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1
+$ONE_FIVE_DIR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 300000 --start 0 --cols 1 -u root -p secret
 
