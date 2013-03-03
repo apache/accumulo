@@ -117,7 +117,7 @@ change to an existing constraint class requires Accumulo to be restarted.
 
 An example of constraints can be found in\\
 \texttt{accumulo/docs/examples/README.constraints} with corresponding code under\\
-\texttt{accumulo/src/examples/simple/main/java/accumulo/examples/simple/constraints} .
+\texttt{accumulo/examples/simple/main/java/accumulo/examples/simple/constraints} .
 
 \section{Bloom Filters}
 As mutations are applied to an Accumulo table, several files are created per tablet. If
@@ -142,8 +142,17 @@ TabletServers when scanning or compacting data. This allows users to efficiently
 summarize, filter, and aggregate data. In fact, the built-in features of cell-level
 security and column fetching are implemented using Iterators.
 Some useful Iterators are provided with Accumulo and can be found in the org.apache.accumulo.core.iterators.user package.
+In each case, any custom Iterators must be included in Accumulo's classpath,
+typically by including a jar in \texttt{\$ACCUMULO\_HOME/lib} or
+\texttt{\$ACCUMULO\_HOME/lib/ext}, although the VFS classloader allows for
+classpath manipulation using a variety of schemes including URLs and HDFS URIs.
 
 \subsection{Setting Iterators via the Shell}
+
+Iterators can be configured on a table at scan, minor compaction and/or major
+compaction scopes. If the Iterator implements the OptionDescriber interface, the
+setiter command can be used which will interactively prompt the user to provide
+values for the given necessary options. 
 
 \small
 \begin{verbatim}
@@ -151,7 +160,17 @@ usage: setiter [-?] -ageoff | -agg | -class <name> | -regex |
 -reqvis | -vers   [-majc] [-minc] [-n <itername>] -p <pri>   
 [-scan] [-t <table>]
 
-user@myinstance mytable> setiter -t mytable -scan -p 10 -n myiter
+user@myinstance mytable> setiter -t mytable -scan -p 15 -n myiter -class com.company.MyIterator
+\end{verbatim}
+\normalsize
+
+The config command can always be used to manually configure iterators which is useful 
+in cases where the Iterator does not implement the OptionDescriber interface.
+
+\small
+\begin{verbatim}
+config -t mytable -s table.iterator.{scan|minc|majc}.myiter=15,com.company.MyIterator
+config -t mytable -s table.iteartor.{scan|minc|majc}.myiter.opt.myoptionname=myoptionvalue
 \end{verbatim}
 \normalsize
 
@@ -351,7 +370,7 @@ Additional Combiners can be added by creating a Java class that extends\\
 class to Accumulo's lib/ext directory.
 
 An example of a Combiner can be found under\\
-accumulo/src/examples/simple/main/java/org/apache/accumulo/examples/simple/combiner/StatsCombiner.java
+accumulo/examples/simple/main/java/org/apache/accumulo/examples/simple/combiner/StatsCombiner.java
 
 
 \section{Block Cache}
