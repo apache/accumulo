@@ -52,7 +52,7 @@ fi
 
 if [ -z "${TYPE}" ]; then
    echo
-   echo "Choose the hadoop library type:"
+   echo "Choose the Accumulo memory-map type:"
    select TYPENAME in Java Native; do
       if [ "${TYPENAME}" = "native" ]; then
          TYPE="native-standalone"
