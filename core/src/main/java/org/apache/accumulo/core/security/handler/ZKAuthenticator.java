@@ -16,7 +16,11 @@
  */
 package org.apache.accumulo.core.security.handler;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -33,5 +37,14 @@ public class ZKAuthenticator implements Authenticator {
     if (properties.containsKey("password"))
       return new PasswordToken(properties.getProperty("password"));
     throw new AccumuloSecurityException(properties.getProperty("user"), SecurityErrorCode.INSUFFICIENT_PROPERTIES);
+  }
+
+  @Override
+  public List<Set<AuthProperty>> getProperties() {
+    List<Set<AuthProperty>> toRet = new LinkedList<Set<AuthProperty>>();
+    Set<AuthProperty> internal = new TreeSet<AuthProperty>();
+    internal.add(new AuthProperty("password", "the password for the principal"));
+    toRet.add(internal);
+    return toRet;
   }
 }

@@ -19,6 +19,7 @@ package org.apache.accumulo.server.client;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -36,6 +37,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.handler.Authenticator;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
@@ -223,5 +225,28 @@ public class HdfsZooInstance implements Instance {
         ThriftUtil.returnClient(client);
       }
     }
+  }
+  
+  @Override
+  public Authenticator getAuthenticator() throws AccumuloException {
+    String authenticatorName = getAuthenticatorClassName();
+    try {
+      Class<?> clazz = Class.forName(authenticatorName);
+      Class<? extends Authenticator> authClass = clazz.asSubclass(Authenticator.class);
+      Authenticator authenticator = authClass.newInstance();
+      return authenticator;
+    } catch (ClassNotFoundException e) {
+      throw new AccumuloException(e);
+    } catch (InstantiationException e) {
+      throw new AccumuloException(e);
+    } catch (IllegalAccessException e) {
+      throw new AccumuloException(e);
+    }
+  }
+  
+  public Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException {
+    Authenticator authenticator = getAuthenticator();
+    AuthenticationToken authToken = authenticator.login(props);
+    return getConnector(principal, authToken);
   }
 }

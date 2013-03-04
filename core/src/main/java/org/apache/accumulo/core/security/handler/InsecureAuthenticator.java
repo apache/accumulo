@@ -16,7 +16,11 @@
  */
 package org.apache.accumulo.core.security.handler;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -27,9 +31,17 @@ import org.apache.accumulo.core.client.security.tokens.NullToken;
  */
 public class InsecureAuthenticator implements Authenticator {
   static NullToken nt = new NullToken();
+  
   @Override
   public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
     return nt;
   }
   
+  @Override
+  public List<Set<AuthProperty>> getProperties() {
+    Set<AuthProperty> internal = new TreeSet<AuthProperty>();
+    List<Set<AuthProperty>> toRet = new LinkedList<Set<AuthProperty>>();
+    toRet.add(internal);
+    return toRet;
+  }
 }
