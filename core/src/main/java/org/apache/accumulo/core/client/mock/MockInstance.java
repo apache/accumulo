@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.handler.Authenticator;
 import org.apache.accumulo.core.security.handler.ZKAuthenticator;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -116,16 +118,19 @@ public class MockInstance implements Instance {
   }
   
   @Override
+  @Deprecated
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, new PasswordToken(pass));
   }
   
   @Override
+  @Deprecated
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
   
   @Override
+  @Deprecated
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
@@ -168,5 +173,15 @@ public class MockInstance implements Instance {
   @Override
   public Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
     return getConnector(credential.principal, CredentialHelper.extractToken(credential));
+  }
+
+  @Override
+  public Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(principal, getAuthenticator().login(props));
+  }
+
+  @Override
+  public Authenticator getAuthenticator() throws AccumuloException, AccumuloSecurityException {
+    return new ZKAuthenticator();
   }
 }

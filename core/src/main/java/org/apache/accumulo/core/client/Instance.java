@@ -84,7 +84,9 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
+   * @deprecated since 1.5, use {@link #getConnector(Properties)}
    */
+  @Deprecated
   public abstract Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException;
   
   /**
@@ -114,7 +116,9 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
+   * @deprecated since 1.5, use {@link #getConnector(Properties)}
    */
+  @Deprecated
   public abstract Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException;
   
   /**
@@ -129,7 +133,9 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
+   * @deprecated since 1.5, use {@link #getConnector(Properties)}
    */
+  @Deprecated
   public abstract Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException;
   
   /**
@@ -169,4 +175,23 @@ public interface Instance {
    * @throws AccumuloSecurityException
    */
   Connector getConnector(TCredentials auth) throws AccumuloException, AccumuloSecurityException;
+  
+  /**
+   * @param principal
+   *          The principal the authentication token corresponds to
+   * @param props
+   *          The properties necessary to construct an AuthenticationToken in the current security configuration
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException;
+  
+  /**
+   * 
+   * @return Returns the corresponding Authenticator class, which can be used to create a token ({@link Authenticator#login(Properties)} or get a list of
+   *         required properties {@link Authenticator#getProperties()}
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  Authenticator getAuthenticator() throws AccumuloException, AccumuloSecurityException;
 }

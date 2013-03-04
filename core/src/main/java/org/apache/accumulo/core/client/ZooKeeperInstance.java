@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.handler.Authenticator;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -211,11 +213,13 @@ public class ZooKeeperInstance implements Instance {
   }
   
   @Override
+  @Deprecated
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
   
   @Override
+  @Deprecated
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
@@ -231,7 +235,14 @@ public class ZooKeeperInstance implements Instance {
     return new ConnectorImpl(this, credential);
   }
   
+  public Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException {
+    Authenticator authenticator = getAuthenticator();
+    AuthenticationToken authToken = authenticator.login(props);
+    return getConnector(principal, authToken);
+  }
+  
   @Override
+  @Deprecated
   public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(principal, new PasswordToken(pass));
   }
@@ -326,4 +337,20 @@ public class ZooKeeperInstance implements Instance {
     }
   }
   
+  @Override
+  public Authenticator getAuthenticator() throws AccumuloException {
+    String authenticatorName = getAuthenticatorClassName();
+    try {
+      Class<?> clazz = Class.forName(authenticatorName);
+      Class<? extends Authenticator> authClass = clazz.asSubclass(Authenticator.class);
+      Authenticator authenticator = authClass.newInstance();
+      return authenticator;
+    } catch (ClassNotFoundException e) {
+      throw new AccumuloException(e);
+    } catch (InstantiationException e) {
+      throw new AccumuloException(e);
+    } catch (IllegalAccessException e) {
+      throw new AccumuloException(e);
+    }
+  }
 }

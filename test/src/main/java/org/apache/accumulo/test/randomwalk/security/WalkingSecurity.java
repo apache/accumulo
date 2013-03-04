@@ -18,6 +18,8 @@ package org.apache.accumulo.test.randomwalk.security;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -398,5 +400,14 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   @Override
   public boolean validTokenClass(String tokenClass) {
     return tokenClass.equals(PasswordToken.class.getCanonicalName());
+  }
+
+  @Override
+  public List<Set<AuthProperty>> getProperties() {
+    List<Set<AuthProperty>> toRet = new LinkedList<Set<AuthProperty>>();
+    Set<AuthProperty> internal = new TreeSet<AuthProperty>();
+    internal.add(new AuthProperty("password", "the password for the principal"));
+    toRet.add(internal);
+    return toRet;
   }
 }

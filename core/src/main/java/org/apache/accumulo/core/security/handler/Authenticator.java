@@ -16,11 +16,36 @@
  */
 package org.apache.accumulo.core.security.handler;
 
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 public interface Authenticator {
   public AuthenticationToken login(Properties properties) throws AccumuloSecurityException;
+  
+  public List<Set<AuthProperty>> getProperties();
+  
+  public class AuthProperty {
+    private String key, description;
+    
+    public AuthProperty(String name, String description) {
+      this.key = name;
+      this.description = description;
+    }
+
+    public String toString() {
+      return this.key + " - " + description;
+    }
+    
+    public String getKey() {
+      return this.key;
+    }
+    
+    public String getDescription() {
+      return this.description;
+    }
+  }
 }
