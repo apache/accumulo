@@ -55,6 +55,7 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -135,7 +136,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<SortedKeyValueIterator<Key,Value>>();
     
     try {
-      conn = instance.getConnector(credentials);
+      conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
       nextTablet();
       
       while (iter != null && !iter.hasTop())

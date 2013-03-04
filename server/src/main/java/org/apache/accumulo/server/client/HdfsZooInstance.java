@@ -157,9 +157,8 @@ public class HdfsZooInstance implements Instance {
     return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
   }
   
-  @Override
-  @Deprecated
-  public Connector getConnector(TCredentials cred) throws AccumuloException, AccumuloSecurityException {
+  @SuppressWarnings("deprecation")
+  private Connector getConnector(TCredentials cred) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, cred);
   }
   

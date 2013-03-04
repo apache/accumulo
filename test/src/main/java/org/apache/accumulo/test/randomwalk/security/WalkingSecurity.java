@@ -283,11 +283,19 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   public TCredentials getSysCredentials() {
-    return CredentialHelper.createSquelchError(getSysUserName(), new PasswordToken(getSysPassword()), state.getInstance().getInstanceID());
+    return CredentialHelper.createSquelchError(getSysUserName(), getSysToken(), state.getInstance().getInstanceID());
   }
   
   public TCredentials getTabCredentials() {
-    return CredentialHelper.createSquelchError(getTabUserName(), new PasswordToken(getTabPassword()), state.getInstance().getInstanceID());
+    return CredentialHelper.createSquelchError(getTabUserName(), getTabToken(), state.getInstance().getInstanceID());
+  }
+  
+  public AuthenticationToken getSysToken() {
+    return new PasswordToken(getSysPassword());
+  }
+  
+  public AuthenticationToken getTabToken() {
+    return new PasswordToken(getTabPassword());
   }
   
   public byte[] getUserPassword(String user) {

@@ -119,7 +119,7 @@ public class TableLoadBalancer extends TabletBalancer {
   protected TableOperations getTableOperations() {
     if (tops == null)
       try {
-        tops = configuration.getInstance().getConnector(SecurityConstants.getSystemCredentials()).tableOperations();
+        tops = configuration.getInstance().getConnector(SecurityConstants.getSystemPrincipal(), SecurityConstants.getSystemToken()).tableOperations();
       } catch (AccumuloException e) {
         log.error("Unable to access table operations from within table balancer", e);
       } catch (AccumuloSecurityException e) {

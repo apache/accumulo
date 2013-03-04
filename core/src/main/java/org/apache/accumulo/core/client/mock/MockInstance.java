@@ -32,10 +32,8 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.handler.Authenticator;
 import org.apache.accumulo.core.security.handler.ZKAuthenticator;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
@@ -171,15 +169,10 @@ public class MockInstance implements Instance {
   }
   
   @Override
-  public Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(credential.principal, CredentialHelper.extractToken(credential));
-  }
-
-  @Override
   public Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException {
     return getConnector(principal, getAuthenticator().login(props));
   }
-
+  
   @Override
   public Authenticator getAuthenticator() throws AccumuloException, AccumuloSecurityException {
     return new ZKAuthenticator();

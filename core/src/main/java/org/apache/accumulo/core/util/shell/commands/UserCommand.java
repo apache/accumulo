@@ -23,7 +23,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.Token;
@@ -45,7 +44,7 @@ public class UserCommand extends Command {
       return 0;
     } // user canceled
     pass = p.getBytes();
-    shellState.updateUser(CredentialHelper.create(user, new PasswordToken(pass), shellState.getConnector().getInstance().getInstanceID()));
+    shellState.updateUser(user, new PasswordToken(pass));
     return 0;
   }
   

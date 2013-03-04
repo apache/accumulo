@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -95,15 +96,23 @@ public class State {
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (connector == null) {
-      connector = getInstance().getConnector(getCredentials());
+      connector = getInstance().getConnector(getUserName(), getToken());
     }
     return connector;
   }
   
   public TCredentials getCredentials() {
-    String username = props.getProperty("USERNAME");
-    String password = props.getProperty("PASSWORD");
-    return CredentialHelper.createSquelchError(username, new PasswordToken(password), getInstance().getInstanceID());
+    String username = getUserName();
+    AuthenticationToken password = getToken();
+    return CredentialHelper.createSquelchError(username, password, getInstance().getInstanceID());
+  }
+  
+  public String getUserName() {
+    return props.getProperty("USERNAME");
+  }
+  
+  public AuthenticationToken getToken() {
+    return new PasswordToken(props.getProperty("PASSWORD"));
   }
   
   public Instance getInstance() {

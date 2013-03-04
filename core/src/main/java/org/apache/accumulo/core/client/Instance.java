@@ -23,7 +23,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.handler.Authenticator;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 
 /**
  * This class represents the information a client needs to know to connect to an instance of accumulo.
@@ -168,13 +167,6 @@ public interface Instance {
    * @throws AccumuloSecurityException
    */
   Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
-  
-  /**
-   * @param auth
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
-   */
-  Connector getConnector(TCredentials auth) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * @param principal

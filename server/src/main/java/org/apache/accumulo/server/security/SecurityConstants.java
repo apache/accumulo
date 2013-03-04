@@ -57,6 +57,10 @@ public class SecurityConstants {
     return systemCredentials;
   }
   
+  public static String getSystemPrincipal() {
+    return SYSTEM_PRINCIPAL;
+  }
+  
   private static AuthenticationToken makeSystemPassword() {
     int wireVersion = Constants.WIRE_VERSION;
     byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8);

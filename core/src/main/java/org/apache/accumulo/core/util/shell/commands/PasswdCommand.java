@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -69,7 +68,7 @@ public class PasswdCommand extends Command {
     // update the current credentials if the password changed was for
     // the current user
     if (shellState.getConnector().whoami().equals(user)) {
-      shellState.updateUser(CredentialHelper.create(user, new PasswordToken(pass), shellState.getConnector().getInstance().getInstanceID()));
+      shellState.updateUser(user, new PasswordToken(pass));
     }
     Shell.log.debug("Changed password for user " + user);
     return 0;

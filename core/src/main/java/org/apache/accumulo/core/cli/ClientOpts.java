@@ -39,8 +39,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -204,13 +202,9 @@ public class ClientOpts extends Help {
   }
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getInstance().getConnector(getCredentials());
-  }
-  
-  public TCredentials getCredentials() throws AccumuloSecurityException {
     if (this.principal == null || this.getToken() == null)
       throw new AccumuloSecurityException("You must provide a user (-u) and password (-p)", SecurityErrorCode.BAD_CREDENTIALS);
-    return CredentialHelper.create(principal, getToken(), getInstance().getInstanceID());
+    return getInstance().getConnector(principal, getToken());
   }
   
   public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {

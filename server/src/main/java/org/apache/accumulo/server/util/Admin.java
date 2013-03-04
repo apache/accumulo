@@ -25,8 +25,10 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -81,18 +83,21 @@ public class Admin {
     Instance instance = opts.getInstance();
       
     try {
-      TCredentials creds;
+      String principal;
+      AuthenticationToken token;
       if (opts.getToken() == null) {
-        creds = SecurityConstants.getSystemCredentials();
+        principal = SecurityConstants.getSystemPrincipal();
+        token = SecurityConstants.getSystemToken();
       } else {
-        creds = opts.getCredentials();
+        principal = opts.principal;
+        token = opts.getToken();
       }
 
       if (cl.getParsedCommand().equals("stop")) {
-        stopTabletServer(instance, creds, stopOpts.args, opts.force);
+        stopTabletServer(instance, CredentialHelper.create(principal, token, instance.getInstanceID()), stopOpts.args, opts.force);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
-        stopServer(instance, creds, everything);
+        stopServer(instance, CredentialHelper.create(principal, token, instance.getInstanceID()), everything);
       }
     } catch (AccumuloException e) {
       log.error(e,e);

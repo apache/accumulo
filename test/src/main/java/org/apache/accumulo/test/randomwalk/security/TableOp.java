@@ -53,7 +53,7 @@ public class TableOp extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getTabCredentials());
+    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getTabUserName(), WalkingSecurity.get(state).getTabToken());
     
     String action = props.getProperty("action", "_random");
     TablePermission tp;

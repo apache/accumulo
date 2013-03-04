@@ -24,7 +24,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -37,18 +38,21 @@ public class DropTable extends Test {
   
   public static void dropTable(State state, Properties props) throws Exception {
     String sourceUser = props.getProperty("source", "system");
-    TCredentials auth;
+    String principal;
+    AuthenticationToken token;
     if (sourceUser.equals("table")) {
-      auth = WalkingSecurity.get(state).getTabCredentials();
+      principal = WalkingSecurity.get(state).getTabUserName();
+      token = WalkingSecurity.get(state).getTabToken();
     } else {
-      auth = WalkingSecurity.get(state).getSysCredentials();
+      principal = WalkingSecurity.get(state).getSysUserName();
+      token = WalkingSecurity.get(state).getSysToken();
     }
-    Connector conn = state.getInstance().getConnector(auth);
+    Connector conn = state.getInstance().getConnector(principal, token);
     
     String tableName = WalkingSecurity.get(state).getTableName();
     
     boolean exists = WalkingSecurity.get(state).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state).canDeleteTable(auth, tableName);
+    boolean hasPermission = WalkingSecurity.get(state).canDeleteTable(CredentialHelper.create(principal, token, state.getInstance().getInstanceID()), tableName);
     
     try {
       conn.tableOperations().delete(tableName);

@@ -50,7 +50,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.handler.Authenticator;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -448,11 +447,6 @@ public class TabletLocatorImplTest extends TestCase {
     @Deprecated
     public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public Connector getConnector(TCredentials auth) throws AccumuloException, AccumuloSecurityException {
-      return getConnector(auth.getPrincipal(), auth.getToken());
     }
     
     @Deprecated

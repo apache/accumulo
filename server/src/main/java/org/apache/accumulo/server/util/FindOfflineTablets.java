@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
@@ -43,9 +44,9 @@ public class FindOfflineTablets {
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
-    final AtomicBoolean scanning = new AtomicBoolean(false); 
+    final AtomicBoolean scanning = new AtomicBoolean(false);
     Instance instance = opts.getInstance();
-    MetaDataTableScanner scanner = new MetaDataTableScanner(instance, opts.getCredentials(), new Range());
+    MetaDataTableScanner scanner = new MetaDataTableScanner(instance, CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), new Range());
     LiveTServerSet tservers = new LiveTServerSet(instance, DefaultConfiguration.getDefaultConfiguration(), new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {

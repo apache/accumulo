@@ -37,7 +37,7 @@ public class TraceCommand extends DebugCommand {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
-        Trace.on("shell:" + shellState.getCredentials().getPrincipal());
+        Trace.on("shell:" + shellState.getPrincipal());
       } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
         if (Trace.isTracing()) {
           final long trace = Trace.currentTrace().traceId();
