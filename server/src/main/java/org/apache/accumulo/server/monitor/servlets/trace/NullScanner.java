@@ -101,4 +101,6 @@ public class NullScanner implements Scanner {
     return 0;
   }
   
+  @Override
+  public void close() {}
 }
