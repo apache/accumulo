@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -203,10 +204,12 @@ public class ClientOpts extends Help {
   }
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getInstance().getConnector(this.principal, this.getToken());
+    return getInstance().getConnector(getCredentials());
   }
   
   public TCredentials getCredentials() throws AccumuloSecurityException {
+    if (this.principal == null || this.getToken() == null)
+      throw new AccumuloSecurityException("You must provide a user (-u) and password (-p)", SecurityErrorCode.BAD_CREDENTIALS);
     return CredentialHelper.create(principal, getToken(), getInstance().getInstanceID());
   }
   
