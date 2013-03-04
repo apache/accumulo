@@ -44,9 +44,9 @@
   <edge id="ct.ChangePermissions" weight="1000"/>
   <edge id="ct.CheckPermission" weight="1000"/>
   <edge id="ct.CheckBalance" weight="1000"/>
-  <edge id="ct.StopTabletServer" weight="1000"/>
+  <edge id="ct.StopTabletServer" weight="100"/>
   <edge id="ct.StartAll" weight="1000"/>
-  <edge id="ct.Shutdown" weight="100"/>
+  <edge id="ct.Shutdown" weight="10"/>
   <edge id="ct.Config" weight="1000"/>
   <edge id="END" weight="1"/>
 </node>
