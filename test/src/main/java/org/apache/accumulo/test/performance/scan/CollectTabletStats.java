@@ -63,6 +63,7 @@ import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -119,7 +120,7 @@ public class CollectTabletStats {
     }
     
     Map<KeyExtent,String> locations = new HashMap<KeyExtent,String>();
-    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, opts.getCredentials(), opts.tableName, instance, locations);
+    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), opts.tableName, instance, locations);
     
     if (candidates.size() < opts.numThreads) {
       System.err.println("ERROR : Unable to find " + opts.numThreads + " " + (opts.selectFarTablets ? "far" : "local") + " tablets");
@@ -131,7 +132,7 @@ public class CollectTabletStats {
     Map<KeyExtent,List<String>> tabletFiles = new HashMap<KeyExtent,List<String>>();
     
     for (KeyExtent ke : tabletsToTest) {
-      List<String> files = getTabletFiles(opts.getCredentials(), opts.getInstance(), tableId, ke);
+      List<String> files = getTabletFiles(CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), opts.getInstance(), tableId, ke);
       tabletFiles.put(ke, files);
     }
     

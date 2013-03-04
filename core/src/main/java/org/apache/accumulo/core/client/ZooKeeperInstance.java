@@ -229,9 +229,8 @@ public class ZooKeeperInstance implements Instance {
     return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
   }
   
-  @Override
-  @Deprecated
-  public Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
+  @SuppressWarnings("deprecation")
+  private Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, credential);
   }
   

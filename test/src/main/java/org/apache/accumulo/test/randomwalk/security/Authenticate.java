@@ -22,8 +22,9 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -31,14 +32,14 @@ public class Authenticate extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    authenticate(WalkingSecurity.get(state).getSysCredentials(), state, props);
+    authenticate(WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getSysToken(), state, props);
   }
   
-  public static void authenticate(TCredentials auth, State state, Properties props) throws Exception {
+  public static void authenticate(String principal, AuthenticationToken token, State state, Properties props) throws Exception {
     String targetProp = props.getProperty("target");
     boolean success = Boolean.parseBoolean(props.getProperty("valid"));
     
-    Connector conn = state.getInstance().getConnector(auth);
+    Connector conn = state.getInstance().getConnector(principal, token);
     
     String target;
     
@@ -50,7 +51,7 @@ public class Authenticate extends Test {
     boolean exists = WalkingSecurity.get(state).userExists(target);
     // Copy so if failed it doesn't mess with the password stored in state
     byte[] password = Arrays.copyOf(WalkingSecurity.get(state).getUserPassword(target), WalkingSecurity.get(state).getUserPassword(target).length);
-    boolean hasPermission = WalkingSecurity.get(state).canAskAboutUser(auth, target);
+    boolean hasPermission = WalkingSecurity.get(state).canAskAboutUser(CredentialHelper.create(principal, token, state.getInstance().getInstanceID()), target);
     
     if (!success)
       for (int i = 0; i < password.length; i++)

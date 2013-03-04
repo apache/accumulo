@@ -152,7 +152,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
       return;
     }
     
-    Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemCredentials());
+    Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemPrincipal(), SecurityConstants.getSystemToken());
     Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     scanner.addScanIterator(new IteratorSetting(1, "keys-only", SortedKeyIterator.class));
     
@@ -207,7 +207,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
           if (iter2 == null) {
             try {
               if ((table == null || !table.equals(Constants.METADATA_TABLE_ID)) && iter1Count == 0) {
-                Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemCredentials());
+                Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemPrincipal(), SecurityConstants.getSystemToken());
                 Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
                 
                 scanner.setTimeout(3, TimeUnit.SECONDS);

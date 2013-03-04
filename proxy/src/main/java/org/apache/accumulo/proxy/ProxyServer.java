@@ -154,7 +154,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     TCredentials user = tokenCache.getIfPresent(login);
     if (user == null)
       throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException("unknown user");
-    Connector connector = instance.getConnector(user);
+    Connector connector = instance.getConnector(user.getPrincipal(), CredentialHelper.extractToken(user));
     return connector;
   }
   

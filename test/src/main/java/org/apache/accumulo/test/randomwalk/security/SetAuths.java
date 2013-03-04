@@ -22,32 +22,35 @@ import java.util.Random;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class SetAuths extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    TCredentials auth;
-    
+  public void visit(State state, Properties props) throws Exception {    
     String authsString = props.getProperty("auths", "_random");
     
     String targetUser = props.getProperty("system");
     String target;
+    String authPrincipal;
+    AuthenticationToken authToken;
     if ("table".equals(targetUser)) {
       target = WalkingSecurity.get(state).getTabUserName();
-      auth = WalkingSecurity.get(state).getSysCredentials();
+      authPrincipal = WalkingSecurity.get(state).getSysUserName();
+      authToken = WalkingSecurity.get(state).getSysToken();
     } else {
       target = WalkingSecurity.get(state).getSysUserName();
-      auth = state.getCredentials();
+      authPrincipal = state.getUserName();
+      authToken = state.getToken();
     }
-    Connector conn = state.getInstance().getConnector(auth);
+    Connector conn = state.getInstance().getConnector(authPrincipal, authToken);
     
     boolean exists = WalkingSecurity.get(state).userExists(target);
-    boolean hasPermission = WalkingSecurity.get(state).canChangeAuthorizations(auth, target);
+    boolean hasPermission = WalkingSecurity.get(state).canChangeAuthorizations(CredentialHelper.create(authPrincipal, authToken, state.getInstance().getInstanceID()), target);
     
     Authorizations auths;
     if (authsString.equals("_random")) {

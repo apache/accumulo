@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -53,8 +54,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.security.AuditLevel;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -169,7 +168,8 @@ public class Shell extends ShellOptions {
   protected Instance instance;
   private Connector connector;
   protected ConsoleReader reader;
-  private TCredentials credentials;
+  private String principal;
+  private AuthenticationToken token;
   private final Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private final Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
@@ -277,8 +277,9 @@ public class Shell extends ShellOptions {
       
       pass = passw.getBytes();
       this.setTableName("");
-      connector = instance.getConnector(user, pass);
-      this.credentials = CredentialHelper.create(user, new PasswordToken(pass), connector.getInstance().getInstanceID());
+      this.principal = user;
+      this.token = new PasswordToken(pass);
+      connector = instance.getConnector(principal, token);
       
     } catch (Exception e) {
       printException(e);
@@ -941,14 +942,20 @@ public class Shell extends ShellOptions {
     return reader;
   }
   
-  public void updateUser(TCredentials authInfo) throws AccumuloException, AccumuloSecurityException {
-    connector = instance.getConnector(authInfo);
-    credentials = authInfo;
+  public void updateUser(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+    connector = instance.getConnector(principal, token);
+    this.principal = principal;
+    this.token = token;
   }
   
-  public TCredentials getCredentials() {
-    return credentials;
+  public String getPrincipal() {
+    return principal;
   }
+  
+  public AuthenticationToken getToken() {
+    return token;
+  }
+  
   
   /**
    * Return the formatter for the current table.

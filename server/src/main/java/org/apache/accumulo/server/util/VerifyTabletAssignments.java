@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.thrift.MultiScanResult;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TRange;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -89,7 +90,7 @@ public class VerifyTabletAssignments {
     
     Connector conn = opts.getConnector();
     Instance inst = conn.getInstance();
-    MetadataTable.getEntries(conn.getInstance(), opts.getCredentials(), tableName, false,
+    MetadataTable.getEntries(conn.getInstance(), CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), tableName, false,
         locations, tablets);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
@@ -121,7 +122,7 @@ public class VerifyTabletAssignments {
         @Override
         public void run() {
           try {
-            checkTabletServer(conf.getConfiguration(), opts.getCredentials(), entry, failures);
+            checkTabletServer(conf.getConfiguration(), CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), entry, failures);
           } catch (Exception e) {
             System.err.println("Failure on ts " + entry.getKey() + " " + e.getMessage());
             e.printStackTrace();

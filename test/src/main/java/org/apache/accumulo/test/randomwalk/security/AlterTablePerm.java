@@ -22,9 +22,10 @@ import java.util.Random;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -38,7 +39,7 @@ public class AlterTablePerm extends Test {
   public static void alter(State state, Properties props) throws Exception {    
     String action = props.getProperty("task", "toggle");
     String perm = props.getProperty("perm", "random");
-    String sourceUser = props.getProperty("source", "system");
+    String sourceUserProp = props.getProperty("source", "system");
     String targetUser = props.getProperty("target", "table");
     boolean tabExists = WalkingSecurity.get(state).getTableExists();
     
@@ -61,17 +62,21 @@ public class AlterTablePerm extends Test {
     String tableName = WalkingSecurity.get(state).getTableName();
     boolean hasPerm = WalkingSecurity.get(state).hasTablePermission(target, tableName, tabPerm);
     boolean canGive;
-    TCredentials source;
-    if ("system".equals(sourceUser)) {
-      source = WalkingSecurity.get(state).getSysCredentials();
-    } else if ("table".equals(sourceUser)) {
-      source = WalkingSecurity.get(state).getTabCredentials();
+    String sourceUser;
+    AuthenticationToken sourceToken;
+    if ("system".equals(sourceUserProp)) {
+      sourceUser = WalkingSecurity.get(state).getSysUserName();
+      sourceToken = WalkingSecurity.get(state).getSysToken();
+    } else if ("table".equals(sourceUserProp)) {
+      sourceUser = WalkingSecurity.get(state).getTabUserName();
+      sourceToken = WalkingSecurity.get(state).getTabToken();
     } else {
-      source = state.getCredentials();
+      sourceUser = state.getUserName();
+      sourceToken = state.getToken();
     }
-    Connector conn = state.getInstance().getConnector(source);
+    Connector conn = state.getInstance().getConnector(sourceUser, sourceToken);
     
-    canGive = WalkingSecurity.get(state).canGrantTable(source, target, WalkingSecurity.get(state).getTableName());
+    canGive = WalkingSecurity.get(state).canGrantTable(CredentialHelper.create(sourceUser, sourceToken, state.getInstance().getInstanceID()), target, WalkingSecurity.get(state).getTableName());
 
     // toggle
     if (!"take".equals(action) && !"give".equals(action)) {

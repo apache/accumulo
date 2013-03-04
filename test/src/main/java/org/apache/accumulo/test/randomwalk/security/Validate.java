@@ -52,9 +52,9 @@ public class Validate extends Test {
     
     Properties props = new Properties();
     props.setProperty("target", "system");
-    Authenticate.authenticate(state.getCredentials(), state, props);
+    Authenticate.authenticate(state.getUserName(), state.getToken(), state, props);
     props.setProperty("target", "table");
-    Authenticate.authenticate(state.getCredentials(), state, props);
+    Authenticate.authenticate(state.getUserName(), state.getToken(), state, props);
     
     for (String user : new String[] {WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getTabUserName()}) {
       for (SystemPermission sp : SystemPermission.values()) {
