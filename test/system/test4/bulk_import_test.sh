@@ -16,6 +16,9 @@
 # limitations under the License.
 
 hadoop dfs -rmr /testmf
+USERPASS='-u root -p secret'
+../../../bin/accumulo shell $USERPASS -e 'deletetable -f test_ingest'
+../../../bin/accumulo org.apache.accumulo.test.TestIngest $USERPASS --rows 0 --createTable --splits 100
 
 echo "creating first set of map files"
 
@@ -30,15 +33,15 @@ wait
 echo "bulk importing"
 
 hadoop dfs -rmr /testmfFail
-../../../bin/accumulo org.apache.accumulo.test.BulkImportDirectory -u root -p secret -t test_ingest -s /testmf -f /testmfFail
+../../../bin/accumulo org.apache.accumulo.test.BulkImportDirectory $USERPASS -t test_ingest -s /testmf -f /testmfFail
 
 echo "verifying"
 
-../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 0 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 1000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 2000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 3000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 4000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest $USERPASS --size 50 --timestamp 1 --random 56 --rows 1000000 --start 0 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest $USERPASS --size 50 --timestamp 1 --random 56 --rows 1000000 --start 1000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest $USERPASS --size 50 --timestamp 1 --random 56 --rows 1000000 --start 2000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest $USERPASS --size 50 --timestamp 1 --random 56 --rows 1000000 --start 3000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest $USERPASS --size 50 --timestamp 1 --random 56 --rows 1000000 --start 4000000 --cols 1 &
 
 wait
 
@@ -57,13 +60,13 @@ wait
 echo "bulk importing"
 
 hadoop dfs -rmr /testmfFail
-../../../bin/accumulo org.apache.accumulo.test.BulkImportDirectory -u root -p secret -t test_ingest -s /testmf -f /testmfFail
+../../../bin/accumulo org.apache.accumulo.test.BulkImportDirectory $USERPASS -t test_ingest -s /testmf -f /testmfFail
 
 echo "creating second set of map files"
 
-../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 0 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 1000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 2000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 3000000 --cols 1 &
-../../../bin/accumulo org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 1000000 --start 4000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest $USERPASS --size 50 --timestamp 2 --random 57 --rows 1000000 --start 0 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest $USERPASS --size 50 --timestamp 2 --random 57 --rows 1000000 --start 1000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest $USERPASS --size 50 --timestamp 2 --random 57 --rows 1000000 --start 2000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest $USERPASS --size 50 --timestamp 2 --random 57 --rows 1000000 --start 3000000 --cols 1 &
+../../../bin/accumulo org.apache.accumulo.test.VerifyIngest $USERPASS --size 50 --timestamp 2 --random 57 --rows 1000000 --start 4000000 --cols 1 &
 

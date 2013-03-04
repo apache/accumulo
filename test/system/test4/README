@@ -3,4 +3,4 @@ Test bulk importing data
 Can run this test with pre-existing splits... use the following command to create the table with
 100 pre-existing splits 
 
-hadoop jar ../../../lib/accumulo.jar 'org.apache.accumulo.test.TestIngest$CreateTable' 0 5000000 100
+../../../bin/accumulo org.apache.accumulo.test.TestIngest -u root -p secret --createTable --rows 0 --splits 100

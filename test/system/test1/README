@@ -1,9 +1,9 @@
-Command to run from command line
+# Command to run from command line
 
 #Can run this test with pre-existing splits... use the following command to create the table with
 #100 pre-existing splits 
 
-#../../../bin/accumulo 'org.apache.accumulo.test.TestIngest$CreateTable' 0 5000000 100
+../../../bin/accumulo org.apache.accumulo.test.TestIngest --createTable -u root -p secret --splits 100 --rows 0
 
 #could try running verify commands after stopping and restarting accumulo
 

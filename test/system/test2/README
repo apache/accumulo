@@ -1,6 +1,7 @@
-this test concurrently reads and writes data to accumulo...
+# this test concurrently reads and writes data to accumulo...
 
-Can run this test with pre-existing splits... use the following command to create the table with
-100 pre-existing splits 
+# Can run this test with pre-existing splits... use the following command to create the table with
+# 100 pre-existing splits 
 
-hadoop jar ../../../lib/accumulo.jar 'org.apache.accumulo.test.TestIngest$CreateTable' 0 5000000 100
+../../../bin/accumulo org.apache.accumulo.test.TestIngest -u root -p secret --rows 0 --createTable --splits 100
+. concurrent.sh
