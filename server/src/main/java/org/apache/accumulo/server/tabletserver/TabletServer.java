@@ -2095,9 +2095,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             Path sourcePath = new Path(source);
             if (!trash.moveToTrash(sourcePath) && !fs.delete(sourcePath, true))
               log.warn("Failed to delete walog " + source);
-            Path recoveryPath = new Path(Constants.getRecoveryDir(acuConf), filename); 
-            if (trash.moveToTrash(recoveryPath) || fs.delete(recoveryPath, true))
-              log.info("Deleted any recovery log " + filename);
+            Path recoveryPath = new Path(Constants.getRecoveryDir(acuConf), filename);
+            try {
+              if (trash.moveToTrash(recoveryPath) || fs.delete(recoveryPath, true))
+                log.info("Deleted any recovery log " + filename);
+            } catch (FileNotFoundException ex) {
+              // ignore
+            }
             
           }
         } catch (IOException e) {
