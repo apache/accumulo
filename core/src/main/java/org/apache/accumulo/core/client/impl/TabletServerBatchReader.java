@@ -68,6 +68,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     ranges = null;
   }
   
+  @Override
   public void close() {
     queryThreadPool.shutdownNow();
   }

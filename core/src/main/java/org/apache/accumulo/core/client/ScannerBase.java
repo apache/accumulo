@@ -119,4 +119,9 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @return the timeout configured for this scanner
    */
   public long getTimeout(TimeUnit timeUnit);
+
+  /**
+   * Closes any underlying connections on the scanner
+   */
+  public void close();
 }
