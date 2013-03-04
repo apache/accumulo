@@ -133,9 +133,9 @@ public class MasterServlet extends BasicServlet {
       
       Table masterStatus = new Table("masterStatus", "Master&nbsp;Status");
       masterStatus.addSortableColumn("Master");
-      masterStatus.addSortableColumn("#&nbsp;Online<br />Tablet&nbsp;Servers", new NumberType<Integer>((int) (slaves.size() * 0.8 + 1.0), slaves.size(),
+      masterStatus.addSortableColumn("#&nbsp;Online<br />Tablet&nbsp;Servers", new PreciseNumberType((int) (slaves.size() * 0.8 + 1.0), slaves.size(),
           (int) (slaves.size() * 0.6 + 1.0), slaves.size()), "Number of tablet servers currently available");
-      masterStatus.addSortableColumn("#&nbsp;Total<br />Tablet&nbsp;Servers", new NumberType<Integer>(), "The total number of tablet servers configured");
+      masterStatus.addSortableColumn("#&nbsp;Total<br />Tablet&nbsp;Servers", new PreciseNumberType(), "The total number of tablet servers configured");
       masterStatus.addSortableColumn("Last&nbsp;GC", null, "The last time files were cleaned-up from HDFS.");
       masterStatus.addSortableColumn("#&nbsp;Tablets", new NumberType<Integer>(0, Integer.MAX_VALUE, 2, Integer.MAX_VALUE), null);
       masterStatus.addSortableColumn("#&nbsp;Unassigned<br />Tablets", new NumberType<Integer>(0, 0), null);
