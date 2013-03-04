@@ -231,7 +231,7 @@ public class TestIngest {
         Mutation m = new Mutation(row);
         for (int j = 0; j < opts.cols; j++) {
           Text colf = new Text(opts.columnFamily);
-          Text colq = new Text(FastFormat.toZeroPaddedString(j, 5, 10, COL_PREFIX));
+          Text colq = new Text(FastFormat.toZeroPaddedString(j, 7, 10, COL_PREFIX));
           
           if (writer != null) {
             Key key = new Key(row, colf, colq, labBA);

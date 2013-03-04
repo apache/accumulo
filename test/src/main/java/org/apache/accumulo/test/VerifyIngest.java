@@ -94,7 +94,7 @@ public class VerifyIngest {
         if (opts.useGet) {
           Text rowKey = new Text("row_" + String.format("%010d", expectedRow + opts.startRow));
           Text colf = new Text(opts.columnFamily);
-          Text colq = new Text("col_" + String.format("%05d", expectedCol));
+          Text colq = new Text("col_" + String.format("%07d", expectedCol));
           
           Scanner scanner = connector.createScanner("test_ingest", labelAuths);
           scanner.setBatchSize(1);
@@ -144,7 +144,7 @@ public class VerifyIngest {
           scanner.setBatchSize(scanOpts.scanBatchSize);
           scanner.setRange(new Range(startKey, endKey));
           for (int j = 0; j < opts.cols; j++) {
-            scanner.fetchColumn(new Text(opts.columnFamily), new Text("col_" + String.format("%05d", j)));
+            scanner.fetchColumn(new Text(opts.columnFamily), new Text("col_" + String.format("%07d", j)));
           }
           
           int recsReadBefore = recsRead;
