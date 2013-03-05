@@ -88,7 +88,6 @@ import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
-import org.mortbay.log.Log;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
