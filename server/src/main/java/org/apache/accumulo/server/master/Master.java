@@ -228,14 +228,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   static final boolean X = true;
   static final boolean _ = false;
   static final boolean transitionOK[][] = {
-      // INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-      /* INITIAL */{X, X, _, _, _, _, X},
-      /* HAVE_LOCK */{_, X, X, X, _, _, X},
-      /* SAFE_MODE */{_, _, X, X, X, _, X},
-      /* NORMAL */{_, _, X, X, X, _, X},
-      /* UNLOAD_METADATA_TABLETS */{_, _, X, X, X, X, X},
-      /* UNLOAD_ROOT_TABLET */{_, _, _, X, _, X, X},
-      /* STOP */{_, _, _, _, _, _, X}};
+      //                              INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
+      /* INITIAL */                   {X,     X,        _,        _,      _,         _,          X},
+      /* HAVE_LOCK */                 {_,     X,        X,        X,      _,         _,          X},
+      /* SAFE_MODE */                 {_,     _,        X,        X,      X,         _,          X},
+      /* NORMAL */                    {_,     _,        X,        X,      X,         _,          X},
+      /* UNLOAD_METADATA_TABLETS */   {_,     _,        X,        X,      X,         X,          X},
+      /* UNLOAD_ROOT_TABLET */        {_,     _,        _,        X,      _,         X,          X},
+      /* STOP */                      {_,     _,        _,        _,      _,         _,          X}};
   
   synchronized private void setMasterState(MasterState newState) {
     if (state.equals(newState))
@@ -1932,6 +1932,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.debug("not balancing because there are unhosted tablets");
       } else if (getMasterGoalState() == MasterGoalState.CLEAN_STOP) {
         log.debug("not balancing because the master is attempting to stop cleanly");
+      } else if (!serversToShutdown.isEmpty()) {
+        log.debug("not balancing while shutting down servers " + serversToShutdown);
       } else {
         return balanceTablets();
       }
@@ -2218,16 +2220,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     badServers.keySet().removeAll(deleted);
     // clear out any bad server with the same host/port as a new server
     synchronized (badServers) {
-      Iterator<Entry<TServerInstance,AtomicInteger>> badIter = badServers.entrySet().iterator();
-      while (badIter.hasNext()) {
-        Entry<TServerInstance,AtomicInteger> bad = badIter.next();
-        for (TServerInstance add : added) {
-          if (bad.getKey().hostPort().equals(add.hostPort())) {
-            badIter.remove();
-            break;
-          }
-        }
-      }
+      cleanListByHostAndPort(badServers.keySet(), deleted, added);
+    }
+    synchronized (serversToShutdown) {
+      cleanListByHostAndPort(serversToShutdown, deleted, added);
     }
     
     synchronized (migrations) {
@@ -2242,6 +2238,26 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     nextEvent.event("There are now %d tablet servers", current.size());
   }
+
+  private static void cleanListByHostAndPort(Collection<TServerInstance> badServers, Set<TServerInstance> deleted, Set<TServerInstance> added) {
+    Iterator<TServerInstance> badIter = badServers.iterator();
+    while (badIter.hasNext()) {
+      TServerInstance bad = badIter.next();
+      for (TServerInstance add : added) {
+        if (bad.hostPort().equals(add.hostPort())) {
+          badIter.remove();
+          break;
+        }
+      }
+      for (TServerInstance del : deleted) {
+        if (bad.hostPort().equals(del.hostPort())) {
+          badIter.remove();
+          break;
+        }
+      }
+    }
+  }
+
   
   @Override
   public void stateChanged(String tableId, TableState state) {
