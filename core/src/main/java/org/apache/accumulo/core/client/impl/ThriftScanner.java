@@ -245,7 +245,7 @@ public class ThriftScanner {
           
           Span locateSpan = Trace.start("scan:locateTablet");
           try {
-            loc = TabletLocator.getInstance(instance, credentials, scanState.tableName).locateTablet(scanState.startRow, scanState.skipStartRow, false);
+            loc = TabletLocator.getInstance(instance, scanState.tableName).locateTablet(scanState.startRow, scanState.skipStartRow, false, credentials);
             if (loc == null) {
               if (!Tables.exists(instance, scanState.tableName.toString()))
                 throw new TableDeletedException(scanState.tableName.toString());
@@ -311,7 +311,7 @@ public class ThriftScanner {
             log.trace(error);
           lastError = error;
           
-          TabletLocator.getInstance(instance, credentials, scanState.tableName).invalidateCache(loc.tablet_extent);
+          TabletLocator.getInstance(instance, scanState.tableName).invalidateCache(loc.tablet_extent);
           loc = null;
           
           // no need to try the current scan id somewhere else
@@ -357,7 +357,7 @@ public class ThriftScanner {
           
           UtilWaitThread.sleep(100);
         } catch (TException e) {
-          TabletLocator.getInstance(instance, credentials, scanState.tableName).invalidateCache(loc.tablet_location);
+          TabletLocator.getInstance(instance, scanState.tableName).invalidateCache(loc.tablet_location);
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage() + " " + loc;
           if (!error.equals(lastError))
             log.debug(error);

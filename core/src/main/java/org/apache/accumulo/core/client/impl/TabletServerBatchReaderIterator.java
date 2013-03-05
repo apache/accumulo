@@ -145,7 +145,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<List<Entry<Key,Value>>>(numThreads);
     
-    this.locator = new TimeoutTabletLocator(TabletLocator.getInstance(instance, credentials, new Text(table)), timeout);
+    this.locator = new TimeoutTabletLocator(TabletLocator.getInstance(instance, new Text(table)), timeout);
     
     timeoutTrackers = Collections.synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
     timedoutServers = Collections.synchronizedSet(new HashSet<String>());
@@ -255,7 +255,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     while (true) {
       
       binnedRanges.clear();
-      List<Range> failures = tabletLocator.binRanges(ranges, binnedRanges);
+      List<Range> failures = tabletLocator.binRanges(ranges, binnedRanges, credentials);
       
       if (failures.size() > 0) {
         // tried to only do table state checks when failures.size() == ranges.size(), however this did

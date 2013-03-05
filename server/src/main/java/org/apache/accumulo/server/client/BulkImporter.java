@@ -132,7 +132,7 @@ public class BulkImporter {
     }
     
     ClientService.Client client = null;
-    final TabletLocator locator = TabletLocator.getInstance(instance, credentials, new Text(tableId));
+    final TabletLocator locator = TabletLocator.getInstance(instance, new Text(tableId));
     
     try {
       final Map<Path,List<TabletLocation>> assignments = Collections.synchronizedSortedMap(new TreeMap<Path,List<TabletLocation>>());
@@ -146,7 +146,7 @@ public class BulkImporter {
           public void run() {
             List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
             try {
-              tabletsToAssignMapFileTo = findOverlappingTablets(instance.getConfiguration(), fs, locator, mapFile);
+              tabletsToAssignMapFileTo = findOverlappingTablets(instance.getConfiguration(), fs, locator, mapFile, credentials);
             } catch (Exception ex) {
               log.warn("Unable to find tablets that overlap file " + mapFile.toString());
             }
@@ -207,7 +207,7 @@ public class BulkImporter {
             
             try {
               timer.start(Timers.QUERY_METADATA);
-              tabletsToAssignMapFileTo.addAll(findOverlappingTablets(instance.getConfiguration(), fs, locator, entry.getKey(), ke));
+              tabletsToAssignMapFileTo.addAll(findOverlappingTablets(instance.getConfiguration(), fs, locator, entry.getKey(), ke, credentials));
               timer.stop(Timers.QUERY_METADATA);
               keListIter.remove();
             } catch (Exception ex) {
@@ -607,23 +607,23 @@ public class BulkImporter {
     }
   }
   
-  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file) throws Exception {
-    return findOverlappingTablets(acuConf, fs, locator, file, null, null);
+  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, TCredentials credentials) throws Exception {
+    return findOverlappingTablets(acuConf, fs, locator, file, null, null, credentials);
   }
   
-  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, KeyExtent failed)
+  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, KeyExtent failed, TCredentials credentials)
       throws Exception {
     locator.invalidateCache(failed);
     Text start = failed.getPrevEndRow();
     if (start != null)
       start = Range.followingPrefix(start);
-    return findOverlappingTablets(acuConf, fs, locator, file, start, failed.getEndRow());
+    return findOverlappingTablets(acuConf, fs, locator, file, start, failed.getEndRow(), credentials);
   }
   
   final static byte[] byte0 = {0};
 
   public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, Text startRow,
-      Text endRow) throws Exception {
+      Text endRow, TCredentials credentials) throws Exception {
     List<TabletLocation> result = new ArrayList<TabletLocation>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     String filename = file.toString();
@@ -641,7 +641,7 @@ public class BulkImporter {
           break;
         }
         row = reader.getTopKey().getRow();
-        TabletLocation tabletLocation = locator.locateTablet(row, false, true);
+        TabletLocation tabletLocation = locator.locateTablet(row, false, true, credentials);
         // log.debug(filename + " found row " + row + " at location " + tabletLocation);
         result.add(tabletLocation);
         row = tabletLocation.tablet_extent.getEndRow();

@@ -424,7 +424,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   
   private void addSplits(String tableName, SortedSet<Text> partitionKeys, String tableId) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, AccumuloServerException {
-    TabletLocator tabLocator = TabletLocator.getInstance(instance, credentials, new Text(tableId));
+    TabletLocator tabLocator = TabletLocator.getInstance(instance, new Text(tableId));
     
     for (Text split : partitionKeys) {
       boolean successful = false;
@@ -437,7 +437,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         
         attempt++;
         
-        TabletLocation tl = tabLocator.locateTablet(split, false, false);
+        TabletLocation tl = tabLocator.locateTablet(split, false, false, credentials);
         
         if (tl == null) {
           if (!Tables.exists(instance, tableId))
@@ -995,10 +995,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     String tableId = Tables.getTableId(instance, tableName);
-    TabletLocator tl = TabletLocator.getInstance(instance, credentials, new Text(tableId));
+    TabletLocator tl = TabletLocator.getInstance(instance, new Text(tableId));
     // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
     tl.invalidateCache();
-    while (!tl.binRanges(Collections.singletonList(range), binnedRanges).isEmpty()) {
+    while (!tl.binRanges(Collections.singletonList(range), binnedRanges, credentials).isEmpty()) {
       if (!Tables.exists(instance, tableId))
         throw new TableDeletedException(tableId);
       if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
@@ -1136,7 +1136,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName);
-    TabletLocator tabLocator = TabletLocator.getInstance(instance, credentials, new Text(Tables.getTableId(instance, tableName)));
+    TabletLocator tabLocator = TabletLocator.getInstance(instance, new Text(Tables.getTableId(instance, tableName)));
     tabLocator.invalidateCache();
   }
   

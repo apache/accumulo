@@ -146,7 +146,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
    * @see #setConnectorInfo(JobConf, Path)
    */
-  protected static String getUsername(JobConf job) {
+  protected static String getPrincipal(JobConf job) {
     return InputConfigurator.getPrincipal(CLASS, job);
   }
   
@@ -174,7 +174,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @since 1.5.0
    * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
    */
-  protected static byte[] getPassword(JobConf job) {
+  protected static byte[] getToken(JobConf job) {
     return InputConfigurator.getToken(CLASS, job);
   }
   
@@ -583,9 +583,9 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
       Instance instance = getInstance(job);
-      String user = getUsername(job);
+      String user = getPrincipal(job);
       String tokenClass = getTokenClass(job);
-      byte[] password = getPassword(job);
+      byte[] password = getToken(job);
       Authorizations authorizations = getScanAuthorizations(job);
       
       try {
@@ -656,7 +656,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     
     Instance instance = getInstance(job);
-    Connector conn = instance.getConnector(getUsername(job), getPassword(job));
+    Connector conn = instance.getConnector(getPrincipal(job), getToken(job));
     String tableId = Tables.getTableId(instance, tableName);
     
     if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
@@ -784,7 +784,8 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
         tl = getTabletLocator(job);
         // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
         tl.invalidateCache();
-        while (!tl.binRanges(ranges, binnedRanges).isEmpty()) {
+        while (!tl.binRanges(ranges, binnedRanges,
+            new TCredentials(getPrincipal(job), getTokenClass(job), ByteBuffer.wrap(getToken(job)), getInstance(job).getInstanceID())).isEmpty()) {
           if (!(instance instanceof MockInstance)) {
             if (tableId == null)
               tableId = Tables.getTableId(instance, tableName);

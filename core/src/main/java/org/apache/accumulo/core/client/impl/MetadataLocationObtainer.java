@@ -53,15 +53,13 @@ import org.apache.log4j.Logger;
 
 public class MetadataLocationObtainer implements TabletLocationObtainer {
   private static final Logger log = Logger.getLogger(MetadataLocationObtainer.class);
-  private TCredentials credentials;
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
   private Instance instance;
   
-  MetadataLocationObtainer(TCredentials credentials, Instance instance) {
+  MetadataLocationObtainer(Instance instance) {
     
     this.instance = instance;
-    this.credentials = credentials;
     
     locCols = new TreeSet<Column>();
     locCols.add(new Column(TextUtil.getBytes(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY), null, null));
@@ -70,7 +68,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
   
   @Override
-  public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent) throws AccumuloSecurityException,
+  public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials) throws AccumuloSecurityException,
       AccumuloException {
 
     try {
@@ -126,7 +124,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
   
   @Override
-  public List<TabletLocation> lookupTablets(String tserver, Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent) throws AccumuloSecurityException,
+  public List<TabletLocation> lookupTablets(String tserver, Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent, TCredentials credentials) throws AccumuloSecurityException,
       AccumuloException {
     
     final TreeMap<Key,Value> results = new TreeMap<Key,Value>();
