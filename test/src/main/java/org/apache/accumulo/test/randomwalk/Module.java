@@ -33,6 +33,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.log4j.Level;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -252,14 +253,31 @@ public class Module extends Node {
         if (test)
           stopTimer(nextNode);
       } catch (Exception e) {
+        log.debug("Connector belongs to user: " + state.getConnector().whoami());
         log.debug("Properties for node: " + nextNodeId);
         for (Entry<Object,Object> entry : nodeProps.entrySet()) {
           log.debug("  " + entry.getKey() + ": " + entry.getValue());
         }
-        log.debug("State information: ");
+        log.debug("Overall Properties");
+        for (Entry<Object,Object> entry : state.getProperties().entrySet()) {
+          log.debug("  " + entry.getKey() + ": " + entry.getValue());
+        }
+        log.debug("State information");
         for (String key : new TreeSet<String>(state.getMap().keySet()))  {
           Object value = state.getMap().get(key);
-          log.debug("  " + key + ": " + value + ' ' + (value != null && ! (value instanceof String)? ((value.getClass().equals(byte[].class))? new String((byte[]) value):value.getClass() + " - " + value):""));
+          String logMsg = "  " + key + ": " + value + ' ';
+          if (value == null)
+            logMsg += "null";
+          else if (value instanceof String)
+            logMsg += value;
+          else if (value instanceof byte[])
+            logMsg += new String((byte[])value);
+          else if (value instanceof PasswordToken)
+            logMsg += new String(((PasswordToken) value).getPassword());
+          else
+            logMsg += value.getClass()+ " - " + value;
+          
+          log.debug(logMsg);
         }
         throw new Exception("Error running node " + nextNodeId, e);
       }
