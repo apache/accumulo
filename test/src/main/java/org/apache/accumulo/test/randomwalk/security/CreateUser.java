@@ -62,6 +62,7 @@ public class CreateUser extends Test {
       }
     }
     WalkingSecurity.get(state).createUser(tableUserName, tabUserPass);
+    Thread.sleep(1000);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }
