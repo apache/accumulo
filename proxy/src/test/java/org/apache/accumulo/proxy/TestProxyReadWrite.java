@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.proxy.thrift.BatchScanOptions;
@@ -37,7 +38,6 @@ import org.apache.accumulo.proxy.thrift.Range;
 import org.apache.accumulo.proxy.thrift.ScanOptions;
 import org.apache.accumulo.proxy.thrift.ScanResult;
 import org.apache.accumulo.proxy.thrift.TimeType;
-import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
 import org.junit.After;
@@ -54,6 +54,7 @@ public class TestProxyReadWrite {
   protected static final int port = 10194;
   protected static final String testtable = "testtable";
   
+  @SuppressWarnings("serial")
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
@@ -69,7 +70,7 @@ public class TestProxyReadWrite {
     };
     thread.start();
     tpc = new TestProxyClient("localhost", port);
-    userpass = tpc.proxy().login(new UserPass("root", ByteBuffer.wrap("".getBytes())));
+    userpass = tpc.proxy().login("root", new TreeMap<String, String>() {{put("password",""); }});
   }
   
   @AfterClass

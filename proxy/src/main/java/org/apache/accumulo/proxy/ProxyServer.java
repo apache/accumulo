@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -52,6 +51,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -84,11 +84,11 @@ import org.apache.accumulo.proxy.thrift.ScanState;
 import org.apache.accumulo.proxy.thrift.ScanType;
 import org.apache.accumulo.proxy.thrift.UnknownScanner;
 import org.apache.accumulo.proxy.thrift.UnknownWriter;
-import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+import org.mortbay.log.Log;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -133,8 +133,6 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   protected Cache<UUID,ScannerPlusIterator> scannerCache;
   protected Cache<UUID,BatchWriter> writerCache;
-  protected Cache<ByteBuffer,TCredentials> tokenCache;
-  private Random random = new Random();
   
   public ProxyServer(Properties props) {
     String useMock = props.getProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance");
@@ -147,11 +145,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
     scannerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseScanner()).build();
     
     writerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseWriter()).build();
-    tokenCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).build();
   }
   
   protected Connector getConnector(ByteBuffer login) throws Exception {
-    TCredentials user = tokenCache.getIfPresent(login);
+    TCredentials user = CredentialHelper.fromByteArray(ByteBufferUtil.toBytes(login));
     if (user == null)
       throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException("unknown user");
     Connector connector = instance.getConnector(user.getPrincipal(), CredentialHelper.extractToken(user));
@@ -162,12 +159,16 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       throw ex;
     } catch (AccumuloException e) {
+      logger.debug(e,e);
       return new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
     } catch (AccumuloSecurityException e) {
+      logger.debug(e,e);
       return new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
     } catch (TableNotFoundException e) {
+      logger.debug(e,e);
       return new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
     } catch (TableExistsException e) {
+      logger.debug(e,e);
       return new org.apache.accumulo.proxy.thrift.TableExistsException(e.toString());
     } catch (RuntimeException e) {
       if (e.getCause() != null) {
@@ -318,8 +319,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       if (auths != null) {
         auth = getAuthorizations(auths);
       } else {
-        TCredentials token = tokenCache.getIfPresent(login);
-        auth = connector.securityOperations().getUserAuthorizations(token.getPrincipal());
+        auth = connector.securityOperations().getUserAuthorizations(connector.whoami());
       }
       Text max = connector.tableOperations().getMaxRow(tableName, auth, startText, startinclusive, endText, endinclusive);
       return TextUtil.getByteBuffer(max);
@@ -608,9 +608,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public boolean authenticateUser(ByteBuffer login, String user, ByteBuffer password) throws TException {
+  public boolean authenticateUser(ByteBuffer login, String user, Map<String, String> properties) throws TException {
     try {
-      return getConnector(login).securityOperations().authenticateUser(user, new PasswordToken(password));
+      return getConnector(login).securityOperations().authenticateUser(user, getToken(properties));
     } catch (Exception e) {
       throw translateException(e);
     }
@@ -630,7 +630,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void changeUserPassword(ByteBuffer login, String user, ByteBuffer password) throws TException {
+  public void changeLocalUserPassword(ByteBuffer login, String user, ByteBuffer password) throws TException {
     try {
       getConnector(login).securityOperations().changeLocalUserPassword(user, new PasswordToken(password));
     } catch (Exception e) {
@@ -639,17 +639,16 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void createUser(ByteBuffer login, String user, ByteBuffer password) throws TException {
+  public void createLocalUser(ByteBuffer login, String user, ByteBuffer password) throws TException {
     try {
-      PasswordToken st = new PasswordToken(password);
-      getConnector(login).securityOperations().createLocalUser(user, st);
+      getConnector(login).securityOperations().createLocalUser(user, new PasswordToken(password));
     } catch (Exception e) {
       throw translateException(e);
     }
   }
   
   @Override
-  public void dropUser(ByteBuffer login, String user) throws TException {
+  public void dropLocalUser(ByteBuffer login, String user) throws TException {
     try {
       getConnector(login).securityOperations().dropLocalUser(user);
     } catch (Exception e) {
@@ -703,7 +702,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public Set<String> listUsers(ByteBuffer login) throws TException {
+  public Set<String> listLocalUsers(ByteBuffer login) throws TException {
     try {
       return getConnector(login).securityOperations().listLocalUsers();
     } catch (Exception e) {
@@ -746,8 +745,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       if (opts != null && opts.isSetAuthorizations()) {
         auth = getAuthorizations(opts.authorizations);
       } else {
-        TCredentials token = tokenCache.getIfPresent(login);
-        auth = connector.securityOperations().getUserAuthorizations(token.getPrincipal());
+        auth = connector.securityOperations().getUserAuthorizations(connector.whoami());
       }
       Scanner scanner = connector.createScanner(tableName, auth);
       
@@ -795,8 +793,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       if (opts != null && opts.isSetAuthorizations()) {
         auth = getAuthorizations(opts.authorizations);
       } else {
-        TCredentials token = tokenCache.getIfPresent(login);
-        auth = connector.securityOperations().getUserAuthorizations(token.getPrincipal());
+        auth = connector.securityOperations().getUserAuthorizations(connector.whoami());
       }
       if (opts != null && opts.threads > 0)
         threads = opts.threads;
@@ -1183,10 +1180,19 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public ByteBuffer login(UserPass login) throws TException {
-    ByteBuffer result = ByteBuffer.wrap(Long.toHexString(random.nextLong()).getBytes());
-    TCredentials credential = CredentialHelper.createSquelchError(login.getUsername(), new PasswordToken(login.getPassword()), instance.getInstanceID());
-    tokenCache.put(result, credential);
-    return result;
+  public ByteBuffer login(String principal, Map<String,String> loginProperties) throws TException {
+    try {
+      AuthenticationToken token = getToken(loginProperties);
+      TCredentials credential = CredentialHelper.create(principal, token, instance.getInstanceID());
+      return ByteBuffer.wrap(CredentialHelper.asByteArray(credential));
+    } catch (Exception e) {
+      throw translateException(e);
+    }
+  }
+  
+  private AuthenticationToken getToken(Map<String, String> properties) throws AccumuloSecurityException, AccumuloException {
+    Properties props = new Properties();
+    props.putAll(properties);
+    return instance.getAuthenticator().login(props);
   }
 }

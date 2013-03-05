@@ -22,8 +22,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.util.Properties;
+import java.util.TreeMap;
 
-import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
@@ -38,6 +38,7 @@ public class TestProxyInstanceOperations {
   protected static ByteBuffer userpass;
   protected static final int port = 10197;
   
+  @SuppressWarnings("serial")
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
@@ -53,7 +54,7 @@ public class TestProxyInstanceOperations {
     };
     thread.start();
     tpc = new TestProxyClient("localhost", port);
-    userpass = tpc.proxy.login(new UserPass("root", ByteBuffer.wrap("".getBytes())));
+    userpass = tpc.proxy.login("root", new TreeMap<String, String>() {{ put("password",""); }});
   }
   
   @AfterClass
