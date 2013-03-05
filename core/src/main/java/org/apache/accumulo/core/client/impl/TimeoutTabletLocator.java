@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -56,10 +57,10 @@ public class TimeoutTabletLocator extends TabletLocator {
   }
 
   @Override
-  public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
     try {
-      TabletLocation ret = locator.locateTablet(row, skipRow, retry);
+      TabletLocation ret = locator.locateTablet(row, skipRow, retry, credentials);
       
       if (ret == null)
         failed();
@@ -74,10 +75,10 @@ public class TimeoutTabletLocator extends TabletLocator {
   }
   
   @Override
-  public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures) throws AccumuloException,
+  public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     try {
-      locator.binMutations(mutations, binnedMutations, failures);
+      locator.binMutations(mutations, binnedMutations, failures, credentials);
 
       if (failures.size() == mutations.size())
         failed();
@@ -95,11 +96,11 @@ public class TimeoutTabletLocator extends TabletLocator {
    */
 
   @Override
-  public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException, AccumuloSecurityException,
+  public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     
     try {
-      List<Range> ret = locator.binRanges(ranges, binnedRanges);
+      List<Range> ret = locator.binRanges(ranges, binnedRanges, credentials);
       
       if (ranges.size() == ret.size())
         failed();

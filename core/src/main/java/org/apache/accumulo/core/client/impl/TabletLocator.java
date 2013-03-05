@@ -38,14 +38,14 @@ import org.apache.hadoop.io.Text;
 
 public abstract class TabletLocator {
   
-  public abstract TabletLocation locateTablet(Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException;
-  
-  public abstract void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-  
-  public abstract List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+  public abstract TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException;
+  
+  public abstract void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures,
+      TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  
+  public abstract List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   
   public abstract void invalidateCache(KeyExtent failedExtent);
   
@@ -92,31 +92,31 @@ public abstract class TabletLocator {
   
   private static final Text ROOT_TABLET_MDE = KeyExtent.getMetadataEntry(new Text(Constants.METADATA_TABLE_ID), null);
   
-  public static synchronized TabletLocator getInstance(Instance instance, TCredentials credentials, Text tableId) {
+  public static synchronized TabletLocator getInstance(Instance instance, Text tableId) {
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
     
     TabletLocator tl = locators.get(key);
     
     if (tl == null) {
-      MetadataLocationObtainer mlo = new MetadataLocationObtainer(credentials, instance);
+      MetadataLocationObtainer mlo = new MetadataLocationObtainer(instance);
       
       if (tableId.toString().equals(Constants.METADATA_TABLE_ID)) {
         RootTabletLocator rootTabletLocator = new RootTabletLocator(instance);
         tl = new TabletLocatorImpl(new Text(Constants.METADATA_TABLE_ID), rootTabletLocator, mlo) {
-          public TabletLocation _locateTablet(Text row, boolean skipRow, boolean retry, boolean lock) throws AccumuloException, AccumuloSecurityException,
+          public TabletLocation _locateTablet(Text row, boolean skipRow, boolean retry, boolean lock, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
               TableNotFoundException {
             // add a special case for the root tablet itself to the cache of information in the root tablet
             int comparison_result = row.compareTo(ROOT_TABLET_MDE);
             
             if ((skipRow && comparison_result < 0) || (!skipRow && comparison_result <= 0)) {
-              return parent.locateTablet(row, skipRow, retry);
+              return parent.locateTablet(row, skipRow, retry, credentials);
             }
             
-            return super._locateTablet(row, skipRow, retry, lock);
+            return super._locateTablet(row, skipRow, retry, lock, credentials);
           }
         };
       } else {
-        TabletLocator rootTabletCache = getInstance(instance, credentials, new Text(Constants.METADATA_TABLE_ID));
+        TabletLocator rootTabletCache = getInstance(instance, new Text(Constants.METADATA_TABLE_ID));
         tl = new TabletLocatorImpl(tableId, rootTabletCache, mlo);
       }
       
@@ -144,7 +144,7 @@ public abstract class TabletLocator {
       return locationless;
     }
   }
-
+  
   public static class TabletLocation implements Comparable<TabletLocation> {
     private static final WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<String,WeakReference<String>>();
     
