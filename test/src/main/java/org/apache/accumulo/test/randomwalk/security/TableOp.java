@@ -74,8 +74,9 @@ public class TableOp extends Test {
         boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
         boolean ambiguousAuths = WalkingSecurity.get(state).ambiguousAuthorizations(conn.whoami());
         
+        Scanner scan = null;
         try {
-          Scanner scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(conn.whoami()));
+          scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(conn.whoami()));
           int seen = 0;
           Iterator<Entry<Key,Value>> iter = scan.iterator();
           while (iter.hasNext()) {
@@ -128,6 +129,12 @@ public class TableOp extends Test {
           }
           
           throw new AccumuloException("Unexpected exception!", re);
+        } finally {
+          if (scan != null) {
+            scan.close();
+            scan = null;
+          }
+          
         }
         
         break;
@@ -141,38 +148,46 @@ public class TableOp extends Test {
         for (String s : WalkingSecurity.get(state).getAuthsArray()) {
           m.put(new Text(), new Text(), new ColumnVisibility(s), new Value("value".getBytes()));
         }
-        BatchWriter writer;
+        BatchWriter writer = null;
         try {
-          writer = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(9000l).setMaxWriteThreads(1));
-        } catch (TableNotFoundException tnfe) {
-          if (tableExists)
-            throw new AccumuloException("Table didn't exist when it should have: " + tableName);
-          return;
-        }
-        boolean works = true;
-        try {
-          writer.addMutation(m);
-          writer.close();
-        } catch (MutationsRejectedException mre) {
-          // Currently no method for detecting reason for mre. Waiting on ACCUMULO-670
-          // For now, just wait a second and go again if they can write!
-          if (!canWrite)
+          try {
+            writer = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(9000l).setMaxWriteThreads(1));
+          } catch (TableNotFoundException tnfe) {
+            if (tableExists)
+              throw new AccumuloException("Table didn't exist when it should have: " + tableName);
             return;
-          
-          if (ambiguousZone) {
-            Thread.sleep(1000);
-            try {
-              writer = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxWriteThreads(1));
-              writer.addMutation(m);
-              writer.close();
-            } catch (MutationsRejectedException mre2) {
-              throw new AccumuloException("Mutation exception!", mre2);
+          }
+          boolean works = true;
+          try {
+            writer.addMutation(m);
+            writer.close();
+          } catch (MutationsRejectedException mre) {
+            // Currently no method for detecting reason for mre. Waiting on ACCUMULO-670
+            // For now, just wait a second and go again if they can write!
+            if (!canWrite)
+              return;
+            
+            if (ambiguousZone) {
+              Thread.sleep(1000);
+              try {
+                writer = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxWriteThreads(1));
+                writer.addMutation(m);
+                writer.close();
+                writer = null;
+              } catch (MutationsRejectedException mre2) {
+                throw new AccumuloException("Mutation exception!", mre2);
+              }
             }
           }
+          if (works)
+            for (String s : WalkingSecurity.get(state).getAuthsArray())
+              WalkingSecurity.get(state).increaseAuthMap(s, 1);
+        } finally {
+          if (writer != null) {
+            writer.close();
+            writer = null;
+          }
         }
-        if (works)
-          for (String s : WalkingSecurity.get(state).getAuthsArray())
-            WalkingSecurity.get(state).increaseAuthMap(s, 1);
         break;
       case BULK_IMPORT:
         key = WalkingSecurity.get(state).getLastKey() + "1";
