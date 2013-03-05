@@ -18,8 +18,10 @@ package org.apache.accumulo.test.randomwalk;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
@@ -265,10 +267,10 @@ public class Module extends Node {
         log.debug("State information");
         for (String key : new TreeSet<String>(state.getMap().keySet()))  {
           Object value = state.getMap().get(key);
-          String logMsg = "  " + key + ": " + value + ' ';
+          String logMsg = "  " + key + ": ";
           if (value == null)
             logMsg += "null";
-          else if (value instanceof String)
+          else if (value instanceof String || value instanceof Map || value instanceof Collection || value instanceof Number)
             logMsg += value;
           else if (value instanceof byte[])
             logMsg += new String((byte[])value);
