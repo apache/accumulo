@@ -256,6 +256,7 @@ public class Module extends Node {
           stopTimer(nextNode);
       } catch (Exception e) {
         log.debug("Connector belongs to user: " + state.getConnector().whoami());
+        log.debug("Exception occured at: " + System.currentTimeMillis());
         log.debug("Properties for node: " + nextNodeId);
         for (Entry<Object,Object> entry : nodeProps.entrySet()) {
           log.debug("  " + entry.getKey() + ": " + entry.getValue());
