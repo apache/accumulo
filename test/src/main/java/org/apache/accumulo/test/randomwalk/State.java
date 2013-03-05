@@ -82,6 +82,14 @@ public class State {
     return stateMap;
   }
   
+  /**
+   * 
+   * @return a copy of Properties, so accidental changes don't affect the framework
+   */
+  public Properties getProperties() {
+    return new Properties(props);
+  }
+  
   public String getString(String key) {
     return (String) stateMap.get(key);
   }
