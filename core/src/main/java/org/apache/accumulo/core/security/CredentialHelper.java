@@ -61,11 +61,13 @@ public class CredentialHelper {
     return fromByteArray(Base64.decodeBase64(string.getBytes(Charset.forName("UTF-8"))));
   }
   
-  private static TCredentials fromByteArray(byte[] decodeBase64) throws AccumuloSecurityException {
+  public static TCredentials fromByteArray(byte[] serializedCredential) throws AccumuloSecurityException {
+    if (serializedCredential == null)
+      return null;
     TDeserializer td = new TDeserializer();
     try {
       TCredentials toRet = new TCredentials();
-      td.deserialize(toRet, decodeBase64);
+      td.deserialize(toRet, serializedCredential);
       return toRet;
     } catch (TException e) {
       // This really shouldn't happen

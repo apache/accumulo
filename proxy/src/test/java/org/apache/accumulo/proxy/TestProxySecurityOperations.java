@@ -23,12 +23,14 @@ import static org.junit.Assert.assertTrue;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.proxy.thrift.SystemPermission;
 import org.apache.accumulo.proxy.thrift.TablePermission;
 import org.apache.accumulo.proxy.thrift.TimeType;
-import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
@@ -48,6 +50,7 @@ public class TestProxySecurityOperations {
   protected static final String testuser = "VonJines";
   protected static final ByteBuffer testpw = ByteBuffer.wrap("fiveones".getBytes());
   
+  @SuppressWarnings("serial")
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
@@ -64,7 +67,7 @@ public class TestProxySecurityOperations {
     thread.start();
     
     tpc = new TestProxyClient("localhost", port);
-    userpass = tpc.proxy().login(new UserPass("root", ByteBuffer.wrap("".getBytes())));
+    userpass = tpc.proxy().login("root", new TreeMap<String, String>() {{put("password",""); }});
   }
   
   @AfterClass
@@ -76,31 +79,31 @@ public class TestProxySecurityOperations {
   @Before
   public void makeTestTableAndUser() throws Exception {
     tpc.proxy().createTable(userpass, testtable, true, TimeType.MILLIS);
-    tpc.proxy().createUser(userpass, testuser, testpw);
+    tpc.proxy().createLocalUser(userpass, testuser, testpw);
   }
   
   @After
   public void deleteTestTable() throws Exception {
     tpc.proxy().deleteTable(userpass, testtable);
-    tpc.proxy().dropUser(userpass, testuser);
+    tpc.proxy().dropLocalUser(userpass, testuser);
   }
   
   @Test
   public void create() throws TException {
-    tpc.proxy().createUser(userpass, testuser + "2", testpw);
-    assertTrue(tpc.proxy().listUsers(userpass).contains(testuser + "2"));
-    tpc.proxy().dropUser(userpass, testuser + "2");
-    assertTrue(!tpc.proxy().listUsers(userpass).contains(testuser + "2"));
+    tpc.proxy().createLocalUser(userpass, testuser + "2", testpw);
+    assertTrue(tpc.proxy().listLocalUsers(userpass).contains(testuser + "2"));
+    tpc.proxy().dropLocalUser(userpass, testuser + "2");
+    assertTrue(!tpc.proxy().listLocalUsers(userpass).contains(testuser + "2"));
   }
   
   @Test
   public void authenticate() throws TException {
-    assertTrue(tpc.proxy().authenticateUser(userpass, testuser, testpw));
-    assertFalse(tpc.proxy().authenticateUser(userpass, "EvilUser", testpw));
+    assertTrue(tpc.proxy().authenticateUser(userpass, testuser, bb2pp(testpw)));
+    assertFalse(tpc.proxy().authenticateUser(userpass, "EvilUser", bb2pp(testpw)));
     
-    tpc.proxy().changeUserPassword(userpass, testuser, ByteBuffer.wrap("newpass".getBytes()));
-    assertFalse(tpc.proxy().authenticateUser(userpass, testuser, testpw));
-    assertTrue(tpc.proxy().authenticateUser(userpass, testuser, ByteBuffer.wrap("newpass".getBytes())));
+    tpc.proxy().changeLocalUserPassword(userpass, testuser, ByteBuffer.wrap("newpass".getBytes()));
+    assertFalse(tpc.proxy().authenticateUser(userpass, testuser, bb2pp(testpw)));
+    assertTrue(tpc.proxy().authenticateUser(userpass, testuser, bb2pp(ByteBuffer.wrap("newpass".getBytes()))));
     
   }
   
@@ -138,4 +141,10 @@ public class TestProxySecurityOperations {
     }
   }
   
+  private Map<String, String> bb2pp(ByteBuffer cf) {
+    Map<String, String> toRet = new TreeMap<String, String>();
+    toRet.put("password", ByteBufferUtil.toString(cf));
+    return toRet;
+  }
+
 }

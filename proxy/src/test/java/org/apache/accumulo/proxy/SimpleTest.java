@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -67,7 +68,6 @@ import org.apache.accumulo.proxy.thrift.ScanType;
 import org.apache.accumulo.proxy.thrift.SystemPermission;
 import org.apache.accumulo.proxy.thrift.TablePermission;
 import org.apache.accumulo.proxy.thrift.TimeType;
-import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
@@ -98,7 +98,9 @@ public class SimpleTest {
   private static Thread thread;
   private static int proxyPort;
   private static org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
-  private static UserPass userpass = new UserPass("root", ByteBuffer.wrap(secret.getBytes()));
+  private static String principal = "root";
+  @SuppressWarnings("serial")
+  private static Map<String, String> properties = new TreeMap<String, String>() {{ put("password",secret);}}; 
   private static ByteBuffer creds = null;
 
   private static Class<? extends TProtocolFactory> protocolClass;
@@ -140,7 +142,7 @@ public class SimpleTest {
     while (!proxyServer.isServing())
       UtilWaitThread.sleep(100);
     client = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
-    creds = client.login(userpass);
+    creds = client.login(principal, properties);
   }
 
   @Test(timeout = 10000)
@@ -260,13 +262,13 @@ public class SimpleTest {
   @Test
   public void testSecurityOperations() throws Exception {
     // check password
-    assertTrue(client.authenticateUser(creds, "root", s2bb(secret)));
-    assertFalse(client.authenticateUser(creds, "root", s2bb("")));
+    assertTrue(client.authenticateUser(creds, "root", s2pp(secret)));
+    assertFalse(client.authenticateUser(creds, "root", s2pp("")));
 
     // create a user
-    client.createUser(creds, "stooge", s2bb("password"));
+    client.createLocalUser(creds, "stooge", s2bb("password"));
     // change auths
-    Set<String> users = client.listUsers(creds);
+    Set<String> users = client.listLocalUsers(creds);
     assertEquals(new HashSet<String>(Arrays.asList("root", "stooge")), users);
     HashSet<ByteBuffer> auths = new HashSet<ByteBuffer>(Arrays.asList(s2bb("A"),s2bb("B")));
     client.changeUserAuthorizations(creds, "stooge", auths);
@@ -274,11 +276,12 @@ public class SimpleTest {
     assertEquals(auths, new HashSet<ByteBuffer>(update));
     
     // change password
-    client.changeUserPassword(creds, "stooge", s2bb(""));
-    assertTrue(client.authenticateUser(creds, "stooge", s2bb("")));
+    client.changeLocalUserPassword(creds, "stooge", s2bb(""));
+    assertTrue(client.authenticateUser(creds, "stooge", s2pp("")));
     
     // check permission failure
-    ByteBuffer stooge = client.login(new UserPass("stooge", s2bb("")));
+    @SuppressWarnings("serial")
+    ByteBuffer stooge = client.login("stooge", new TreeMap<String,String>() {{put("password",""); }});
     
     try {
       client.createTable(stooge, "fail", true, TimeType.MILLIS);
@@ -329,8 +332,8 @@ public class SimpleTest {
     }
     
     // delete user
-    client.dropUser(creds, "stooge");
-    users = client.listUsers(creds);
+    client.dropLocalUser(creds, "stooge");
+    users = client.listLocalUsers(creds);
     assertEquals(1, users.size());
     
   }
@@ -506,6 +509,12 @@ public class SimpleTest {
 
   private ByteBuffer s2bb(String cf) {
     return ByteBuffer.wrap(cf.getBytes());
+  }
+
+  private Map<String, String> s2pp(String cf) {
+    Map<String, String> toRet = new TreeMap<String, String>();
+    toRet.put("password", cf);
+    return toRet;
   }
 
   @AfterClass

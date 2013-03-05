@@ -65,11 +65,6 @@ struct ScanColumn {
   2:optional binary colQualifier
 }
 
-struct UserPass {
-  1:string username,
-  2:binary password
-}
-
 struct IteratorSetting {
   1: i32 priority,
   2: string name,
@@ -231,8 +226,8 @@ exception TableExistsException {
 
 service AccumuloProxy
 {
-  // get an identity token
-  binary login(1:UserPass login);
+  // get an authentication token
+  binary login(1:string principal, 2:map<string, string> loginProperties)                               throws (1:AccumuloSecurityException ouch2);
 
   // table operations
   i32 addConstraint (1:binary login, 2:string tableName, 3:string constraintClassName)                 throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
@@ -301,17 +296,17 @@ service AccumuloProxy
   bool testClassLoad (1:binary login, 2:string className, 3:string asTypeName)                       throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
 
   // security operations
-  bool authenticateUser (1:binary login, 2:string user, 3:binary password)                           throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  bool authenticateUser (1:binary login, 2:string user, 3:map<string, string> properties)            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void changeUserAuthorizations (1:binary login, 2:string user, 3:set<binary> authorizations)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void changeUserPassword (1:binary login, 2:string user, 3:binary password)                         throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void createUser (1:binary login, 2:string user, 3:binary password)                                 throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void dropUser (1:binary login, 2:string user)                                                      throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void changeLocalUserPassword (1:binary login, 2:string user, 3:binary password)                    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void createLocalUser (1:binary login, 2:string user, 3:binary password)                            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void dropLocalUser (1:binary login, 2:string user)                                                      throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   list<binary> getUserAuthorizations (1:binary login, 2:string user)                                 throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void grantSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)                throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void grantTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm)  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   bool hasSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)                  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   bool hasTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm)    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  set<string> listUsers (1:binary login)                                                             throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  set<string> listLocalUsers (1:binary login)                                                             throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void revokeSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void revokeTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
 

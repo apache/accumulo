@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
@@ -30,7 +31,6 @@ import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.Key;
 import org.apache.accumulo.proxy.thrift.ScanResult;
 import org.apache.accumulo.proxy.thrift.TimeType;
-import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
@@ -64,16 +64,18 @@ public class TestProxyClient {
   public static void main(String[] args) throws Exception {
     
     TestProxyClient tpc = new TestProxyClient("localhost", 42424);
-    UserPass userPass = new UserPass("root", ByteBuffer.wrap("secret".getBytes()));
+    String principal = "root";
+    Map<String, String> props = new TreeMap<String, String>();
+    props.put("password", "secret");
     
     System.out.println("Logging in");
-    ByteBuffer login = tpc.proxy.login(userPass);
+    ByteBuffer login = tpc.proxy.login(principal, props);
     
     System.out.println("Creating user: ");
-    if (!tpc.proxy().listUsers(login).contains("testuser")) {
-      tpc.proxy().createUser(login, "testuser", ByteBuffer.wrap("testpass".getBytes()));
+    if (!tpc.proxy().listLocalUsers(login).contains("testuser")) {
+      tpc.proxy().createLocalUser(login, "testuser", ByteBuffer.wrap("testpass".getBytes()));
     }
-    System.out.println("UserList: " + tpc.proxy().listUsers(login));
+    System.out.println("UserList: " + tpc.proxy().listLocalUsers(login));
     
     System.out.println("Listing: " + tpc.proxy().listTables(login));
     
