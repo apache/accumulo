@@ -656,7 +656,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     
     Instance instance = getInstance(job);
-    Connector conn = instance.getConnector(getPrincipal(job), getToken(job));
+    Connector conn = instance.getConnector(getPrincipal(job), CredentialHelper.extractToken(getTokenClass(job), getToken(job)));
     String tableId = Tables.getTableId(instance, tableName);
     
     if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
