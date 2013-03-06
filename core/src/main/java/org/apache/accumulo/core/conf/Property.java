@@ -224,9 +224,14 @@ public enum Property {
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of distributed tracing."),
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT, "The listening port for the trace server"),
   TRACE_TABLE("trace.table", "trace", PropertyType.STRING, "The name of the table to store distributed traces"),
+  @Deprecated
   TRACE_USER("trace.user", "root", PropertyType.STRING, "The name of the user to store distributed traces"),
+  TRACE_PRINCIPAL("trace.principal", "root", PropertyType.STRING, "The principal to store distributed traces"),
+  @Deprecated
   TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING, "The password for the user used to store distributed traces"),
-
+  TRACE_LOGIN_PROPERTIES("trace.login", null, PropertyType.PREFIX, "The login credentials prefix for the principal used to store distributed traces"),
+  
+>>>>>>> .merge-right.r1453623
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX, "Properties in this category affect tablet server treatment of tablets, but can be configured "
       + "on a per-table basis. Setting these properties in the site file will override the default globally "

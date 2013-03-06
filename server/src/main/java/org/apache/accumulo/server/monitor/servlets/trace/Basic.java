@@ -17,6 +17,8 @@
 package org.apache.accumulo.server.monitor.servlets.trace;
 
 import java.util.Date;
+import java.util.Map;
+import java.util.Properties;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -25,6 +27,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.TraceFormatter;
@@ -61,17 +65,28 @@ abstract class Basic extends BasicServlet {
     return TraceFormatter.formatDate(new Date(millis));
   }
 
-  protected Scanner getScanner(StringBuilder sb) throws AccumuloException {
+  protected Scanner getScanner(StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
     AccumuloConfiguration conf = Monitor.getSystemConfiguration();
-    String user = conf.get(Property.TRACE_USER);
-    byte[] passwd = conf.get(Property.TRACE_PASSWORD).getBytes();
+    String principal = conf.get(Property.TRACE_PRINCIPAL);
+    if (principal == null)
+      principal = conf.get(Property.TRACE_USER);
+    AuthenticationToken at;
+    Map<String, String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_LOGIN_PROPERTIES);
+    if (loginMap == null)
+      at = new PasswordToken(conf.get(Property.TRACE_PASSWORD).getBytes());
+    else{
+      Properties props = new Properties();
+      props.putAll(loginMap);
+      at = HdfsZooInstance.getInstance().getAuthenticator().login(props);
+    }
+    
     String table = conf.get(Property.TRACE_TABLE);
     try {
-      Connector conn = HdfsZooInstance.getInstance().getConnector(user, passwd);
+      Connector conn = HdfsZooInstance.getInstance().getConnector(principal, at);
       if (!conn.tableOperations().exists(table)) {
         return new NullScanner();
       }
-      Scanner scanner = conn.createScanner(table, conn.securityOperations().getUserAuthorizations(user));
+      Scanner scanner = conn.createScanner(table, conn.securityOperations().getUserAuthorizations(principal));
       return scanner;
     } catch (AccumuloSecurityException ex) {
       sb.append("<h2>Unable to read trace table: check trace username and password configuration.</h2>\n");
