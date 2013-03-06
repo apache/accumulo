@@ -157,6 +157,4 @@ service MasterClientService {
    void executeTableOperation(7:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid, 3:TableOperation op, 4:list<binary> arguments, 5:map<string, string> options, 6:bool autoClean)throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
    string waitForTableOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
    void finishTableOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec)
-   string getAuthenticatorClassName() throws (1:client.ThriftSecurityException tse);
-
 }

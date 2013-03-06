@@ -153,17 +153,17 @@ import org.slf4j.LoggerFactory;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.STARTED, new org.apache.thrift.meta_data.FieldMetaData("started", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.STARTED, new org.apache.thrift.meta_data.FieldMetaData("started", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.FINISHED, new org.apache.thrift.meta_data.FieldMetaData("finished", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.FINISHED, new org.apache.thrift.meta_data.FieldMetaData("finished", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.CANDIDATES, new org.apache.thrift.meta_data.FieldMetaData("candidates", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.CANDIDATES, new org.apache.thrift.meta_data.FieldMetaData("candidates", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.IN_USE, new org.apache.thrift.meta_data.FieldMetaData("inUse", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.IN_USE, new org.apache.thrift.meta_data.FieldMetaData("inUse", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.DELETED, new org.apache.thrift.meta_data.FieldMetaData("deleted", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.DELETED, new org.apache.thrift.meta_data.FieldMetaData("deleted", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.ERRORS, new org.apache.thrift.meta_data.FieldMetaData("errors", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.ERRORS, new org.apache.thrift.meta_data.FieldMetaData("errors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(GcCycleStats.class, metaDataMap);
@@ -693,7 +693,7 @@ import org.slf4j.LoggerFactory;
       while (true)
       {
         schemeField = iprot.readFieldBegin();
-        if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
+        if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (schemeField.id) {
@@ -701,7 +701,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.started = iprot.readI64();
               struct.setStartedIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -709,7 +709,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.finished = iprot.readI64();
               struct.setFinishedIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -717,7 +717,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.candidates = iprot.readI64();
               struct.setCandidatesIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -725,7 +725,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.inUse = iprot.readI64();
               struct.setInUseIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -733,7 +733,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.deleted = iprot.readI64();
               struct.setDeletedIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -741,7 +741,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.errors = iprot.readI64();
               struct.setErrorsIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;

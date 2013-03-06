@@ -52,7 +52,7 @@ import org.apache.thrift.TEnum;
    * Find a the enum type by its integer value, as defined in the Thrift IDL.
    * @return null if the value is not found.
    */
-  public static TablePermission findByValue(int value) {
+  public static TablePermission findByValue(int value) { 
     switch (value) {
       case 2:
         return READ;

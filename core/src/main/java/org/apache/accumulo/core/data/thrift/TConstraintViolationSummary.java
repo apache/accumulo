@@ -139,13 +139,13 @@ import org.slf4j.LoggerFactory;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.CONSTRAIN_CLASS, new org.apache.thrift.meta_data.FieldMetaData("constrainClass", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.CONSTRAIN_CLASS, new org.apache.thrift.meta_data.FieldMetaData("constrainClass", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.VIOLATION_CODE, new org.apache.thrift.meta_data.FieldMetaData("violationCode", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.VIOLATION_CODE, new org.apache.thrift.meta_data.FieldMetaData("violationCode", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I16)));
-    tmpMap.put(_Fields.VIOLATION_DESCRIPTION, new org.apache.thrift.meta_data.FieldMetaData("violationDescription", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.VIOLATION_DESCRIPTION, new org.apache.thrift.meta_data.FieldMetaData("violationDescription", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.NUMBER_OF_VIOLATING_MUTATIONS, new org.apache.thrift.meta_data.FieldMetaData("numberOfViolatingMutations", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.NUMBER_OF_VIOLATING_MUTATIONS, new org.apache.thrift.meta_data.FieldMetaData("numberOfViolatingMutations", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TConstraintViolationSummary.class, metaDataMap);
@@ -555,7 +555,7 @@ import org.slf4j.LoggerFactory;
       while (true)
       {
         schemeField = iprot.readFieldBegin();
-        if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
+        if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (schemeField.id) {
@@ -563,7 +563,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
               struct.constrainClass = iprot.readString();
               struct.setConstrainClassIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -571,7 +571,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I16) {
               struct.violationCode = iprot.readI16();
               struct.setViolationCodeIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -579,7 +579,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
               struct.violationDescription = iprot.readString();
               struct.setViolationDescriptionIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -587,7 +587,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.numberOfViolatingMutations = iprot.readI64();
               struct.setNumberOfViolatingMutationsIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;

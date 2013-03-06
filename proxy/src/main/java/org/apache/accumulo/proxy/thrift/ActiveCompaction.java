@@ -71,12 +71,12 @@ import org.slf4j.LoggerFactory;
   public List<String> inputFiles; // required
   public String outputFile; // required
   /**
-   *
+   * 
    * @see CompactionType
    */
   public CompactionType type; // required
   /**
-   *
+   * 
    * @see CompactionReason
    */
   public CompactionReason reason; // required
@@ -92,12 +92,12 @@ import org.slf4j.LoggerFactory;
     INPUT_FILES((short)3, "inputFiles"),
     OUTPUT_FILE((short)4, "outputFile"),
     /**
-     *
+     * 
      * @see CompactionType
      */
     TYPE((short)5, "type"),
     /**
-     *
+     * 
      * @see CompactionReason
      */
     REASON((short)6, "reason"),
@@ -186,27 +186,27 @@ import org.slf4j.LoggerFactory;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, KeyExtent.class)));
-    tmpMap.put(_Fields.AGE, new org.apache.thrift.meta_data.FieldMetaData("age", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.AGE, new org.apache.thrift.meta_data.FieldMetaData("age", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.INPUT_FILES, new org.apache.thrift.meta_data.FieldMetaData("inputFiles", org.apache.thrift.TFieldRequirementType.DEFAULT,
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST,
+    tmpMap.put(_Fields.INPUT_FILES, new org.apache.thrift.meta_data.FieldMetaData("inputFiles", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
-    tmpMap.put(_Fields.OUTPUT_FILE, new org.apache.thrift.meta_data.FieldMetaData("outputFile", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.OUTPUT_FILE, new org.apache.thrift.meta_data.FieldMetaData("outputFile", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.TYPE, new org.apache.thrift.meta_data.FieldMetaData("type", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.TYPE, new org.apache.thrift.meta_data.FieldMetaData("type", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, CompactionType.class)));
-    tmpMap.put(_Fields.REASON, new org.apache.thrift.meta_data.FieldMetaData("reason", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.REASON, new org.apache.thrift.meta_data.FieldMetaData("reason", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, CompactionReason.class)));
-    tmpMap.put(_Fields.LOCALITY_GROUP, new org.apache.thrift.meta_data.FieldMetaData("localityGroup", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.LOCALITY_GROUP, new org.apache.thrift.meta_data.FieldMetaData("localityGroup", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.ENTRIES_READ, new org.apache.thrift.meta_data.FieldMetaData("entriesRead", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.ENTRIES_READ, new org.apache.thrift.meta_data.FieldMetaData("entriesRead", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.ENTRIES_WRITTEN, new org.apache.thrift.meta_data.FieldMetaData("entriesWritten", org.apache.thrift.TFieldRequirementType.DEFAULT,
+    tmpMap.put(_Fields.ENTRIES_WRITTEN, new org.apache.thrift.meta_data.FieldMetaData("entriesWritten", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.ITERATORS, new org.apache.thrift.meta_data.FieldMetaData("iterators", org.apache.thrift.TFieldRequirementType.DEFAULT,
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST,
+    tmpMap.put(_Fields.ITERATORS, new org.apache.thrift.meta_data.FieldMetaData("iterators", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, IteratorSetting.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ActiveCompaction.class, metaDataMap);
@@ -414,7 +414,7 @@ import org.slf4j.LoggerFactory;
   }
 
   /**
-   *
+   * 
    * @see CompactionType
    */
   public CompactionType getType() {
@@ -422,7 +422,7 @@ import org.slf4j.LoggerFactory;
   }
 
   /**
-   *
+   * 
    * @see CompactionType
    */
   public ActiveCompaction setType(CompactionType type) {
@@ -446,7 +446,7 @@ import org.slf4j.LoggerFactory;
   }
 
   /**
-   *
+   * 
    * @see CompactionReason
    */
   public CompactionReason getReason() {
@@ -454,7 +454,7 @@ import org.slf4j.LoggerFactory;
   }
 
   /**
-   *
+   * 
    * @see CompactionReason
    */
   public ActiveCompaction setReason(CompactionReason reason) {
@@ -1088,7 +1088,7 @@ import org.slf4j.LoggerFactory;
       while (true)
       {
         schemeField = iprot.readFieldBegin();
-        if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
+        if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
           break;
         }
         switch (schemeField.id) {
@@ -1097,7 +1097,7 @@ import org.slf4j.LoggerFactory;
               struct.extent = new KeyExtent();
               struct.extent.read(iprot);
               struct.setExtentIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -1105,7 +1105,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.age = iprot.readI64();
               struct.setAgeIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -1123,7 +1123,7 @@ import org.slf4j.LoggerFactory;
                 iprot.readListEnd();
               }
               struct.setInputFilesIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -1131,7 +1131,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
               struct.outputFile = iprot.readString();
               struct.setOutputFileIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -1139,7 +1139,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
               struct.type = CompactionType.findByValue(iprot.readI32());
               struct.setTypeIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -1147,7 +1147,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
               struct.reason = CompactionReason.findByValue(iprot.readI32());
               struct.setReasonIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -1155,7 +1155,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
               struct.localityGroup = iprot.readString();
               struct.setLocalityGroupIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -1163,7 +1163,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.entriesRead = iprot.readI64();
               struct.setEntriesReadIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -1171,7 +1171,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.entriesWritten = iprot.readI64();
               struct.setEntriesWrittenIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -1190,7 +1190,7 @@ import org.slf4j.LoggerFactory;
                 iprot.readListEnd();
               }
               struct.setIteratorsIsSet(true);
-            } else {
+            } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;

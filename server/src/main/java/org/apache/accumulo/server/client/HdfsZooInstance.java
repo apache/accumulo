@@ -28,14 +28,14 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
-import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.impl.ServerClient;
+import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.handler.Authenticator;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -43,7 +43,6 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerConstants;
@@ -52,8 +51,6 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 
 /**
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet location.
@@ -208,26 +205,17 @@ public class HdfsZooInstance implements Instance {
   }
 
   @Override
-  public String getAuthenticatorClassName() throws AccumuloException {
-    Client client = null;
-    try {
-      client = MasterClient.getConnectionWithRetry(this);
-      return client.getAuthenticatorClassName();
-    } catch (TTransportException e) {
-      throw new AccumuloException(e);
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloException(e);
-    } catch (TException e) {
-      throw new AccumuloException(e);
-    } finally {
-      if (client != null) {
-        ThriftUtil.returnClient(client);
+  public String getAuthenticatorClassName() throws AccumuloException, AccumuloSecurityException {
+    return ServerClient.execute(this, new ClientExecReturn<String,ClientService.Client>() {
+      @Override
+      public String execute(ClientService.Client iface) throws Exception {
+        return iface.getAuthenticatorClassName();
       }
-    }
+    });
   }
 
   @Override
-  public Authenticator getAuthenticator() throws AccumuloException {
+  public Authenticator getAuthenticator() throws AccumuloException, AccumuloSecurityException {
     String authenticatorName = getAuthenticatorClassName();
     try {
       Class<?> clazz = Class.forName(authenticatorName);

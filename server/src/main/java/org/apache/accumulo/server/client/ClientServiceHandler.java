@@ -270,4 +270,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     }
   }
 
+  @Override
+  public String getAuthenticatorClassName() throws TException {
+    return security.getTokenLoginClass();
+  }
 }
