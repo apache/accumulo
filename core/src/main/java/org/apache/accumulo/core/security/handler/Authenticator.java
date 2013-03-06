@@ -30,10 +30,12 @@ public interface Authenticator {
 
   public class AuthProperty {
     private String key, description;
-
-    public AuthProperty(String name, String description) {
+    private boolean masked;
+    
+    public AuthProperty(String name, String description, boolean mask) {
       this.key = name;
       this.description = description;
+      this.masked = mask;
     }
 
     public String toString() {
@@ -46,6 +48,10 @@ public interface Authenticator {
 
     public String getDescription() {
       return this.description;
+    }
+    
+    public boolean getMask() {
+      return this.masked;
     }
   }
 }

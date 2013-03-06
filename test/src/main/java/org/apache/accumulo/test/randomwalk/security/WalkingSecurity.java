@@ -414,7 +414,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public List<Set<AuthProperty>> getProperties() {
     List<Set<AuthProperty>> toRet = new LinkedList<Set<AuthProperty>>();
     Set<AuthProperty> internal = new TreeSet<AuthProperty>();
-    internal.add(new AuthProperty("password", "the password for the principal"));
+    internal.add(new AuthProperty("password", "the password for the principal", true));
     toRet.add(internal);
     return toRet;
   }

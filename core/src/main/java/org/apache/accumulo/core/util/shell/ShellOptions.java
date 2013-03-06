@@ -33,8 +33,13 @@ public abstract class ShellOptions {
   public static final String helpLongOption = "help";
 
   final Options opts = new Options();
+  @Deprecated // since 1.5
   final Option usernameOption = new Option("u", "user", true, "username (defaults to your OS user)");
+  final Option principalOption = new Option("pr", "principal", true, "principal (defaults to your OS user)");
+  @Deprecated // since 1.5
   final Option passwOption = new Option("p", "password", true, "password (prompt for password if this option is missing)");
+  final Option loginOption = new Option("l", "login property", true, "login properties in the format key=value. Reuse -l for each property and/or comma seperate (prompt for properties if this option is missing");
+  
   final Option tabCompleteOption = new Option(null, "disable-tab-completion", false, "disables tab completion (for less overhead when scripting)");
   final Option debugOption = new Option(null, "debug", false, "enables client debugging");
   final Option fakeOption = new Option(null, "fake", false, "fake a connection to accumulo");
@@ -54,10 +59,12 @@ public abstract class ShellOptions {
   public ShellOptions() {
     usernameOption.setArgName("user");
     opts.addOption(usernameOption);
-
+    opts.addOption(principalOption);
+    
     passwOption.setArgName("pass");
     opts.addOption(passwOption);
-
+    opts.addOption(loginOption);
+    
     opts.addOption(tabCompleteOption);
 
     opts.addOption(debugOption);
