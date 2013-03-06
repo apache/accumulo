@@ -362,10 +362,7 @@ public class Shell extends ShellOptions {
     }
   }
 
-  /**
-   * @deprecated Not for client use
-   */
-  @Deprecated
+  @SuppressWarnings("deprecation")
   private static Instance getDefaultInstance(AccumuloConfiguration conf) {
     String keepers = conf.get(Property.INSTANCE_ZK_HOST);
     Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
