@@ -18,7 +18,10 @@ package org.apache.accumulo.core.cli;
 
 import java.nio.charset.Charset;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -46,6 +49,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
@@ -108,13 +112,33 @@ public class ClientOpts extends Help {
   @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
   public Password securePassword = null;
   
+  @DynamicParameter(names = "-l",
+      description = "login properties in the format key=value. Reuse -l for each property (prompt for properties if this option is missing")
+  public Map<String,String> loginProps = new LinkedHashMap<String,String>();
+  
   public AuthenticationToken getToken() {
-    if (securePassword == null) {
-      if (password == null)
-        return null;
-      return new PasswordToken(password.value);
+    if (!loginProps.isEmpty()) {
+      Properties props = new Properties();
+      for (Entry<String,String> loginOption : loginProps.entrySet())
+        props.put(loginOption.getKey(), loginOption.getValue());
+      
+      try {
+        System.out.println(props);
+        return getInstance().getAuthenticator().login(props);
+      } catch (AccumuloSecurityException e) {
+        throw new RuntimeException(e);
+      } catch (AccumuloException e) {
+        throw new RuntimeException(e);
+      }
     }
-    return new PasswordToken(securePassword.value);
+    
+    if (securePassword != null)
+      return new PasswordToken(securePassword.value);
+    
+    if (password != null)
+      return new PasswordToken(password.value);
+    
+    return null;
   }
   
   @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
