@@ -55,7 +55,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
    * @param instance
    *          the connection information for this instance
    * @param credentials
-   *          the username/password for this connection
+   *          the Credential, containing principal and Authentication Token
    */
   public InstanceOperationsImpl(Instance instance, TCredentials credentials) {
     ArgumentChecker.notNull(instance, credentials);

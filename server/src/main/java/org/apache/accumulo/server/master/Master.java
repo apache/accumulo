@@ -1037,11 +1037,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       authenticate(credentials);
       fate.delete(opid);
     }
-    
-    @Override
-    public String getAuthenticatorClassName() throws TException {
-      return security.getTokenLoginClass();
-    }
   }
   
   public MergeInfo getMergeInfo(Text tableId) {

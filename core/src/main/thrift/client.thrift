@@ -110,6 +110,7 @@ service ClientService {
     void changeLocalUserPassword(4:trace.TInfo tinfo, 5:security.TCredentials credentials, 2:string principal, 3:binary password) throws (1:ThriftSecurityException sec)
 
     // authentication-related methods
+    string getAuthenticatorClassName() throws (1:ThriftSecurityException tse);
     bool authenticate(1:trace.TInfo tinfo, 2:security.TCredentials credentials) throws (1:ThriftSecurityException sec)
     bool authenticateUser(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:security.TCredentials toAuth) throws (1:ThriftSecurityException sec)
 

@@ -155,8 +155,9 @@ public interface Instance {
   /**
    * @return the canonical name of the helper class for the security token from the authenticator, if one exists.
    * @throws AccumuloException
+   * @throws AccumuloSecurityException 
    */
-  public abstract String getAuthenticatorClassName() throws AccumuloException;
+  public abstract String getAuthenticatorClassName() throws AccumuloException, AccumuloSecurityException;
   
   /**
    * @param principal

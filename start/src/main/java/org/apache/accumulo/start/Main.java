@@ -35,13 +35,13 @@ public class Main {
       System.arraycopy(args, 1, argsToPass, 0, args.length - 1);
       
       Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
-
+      
       Class<?> vfsClassLoader = AccumuloClassLoader.getClassLoader().loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
-
+      
       ClassLoader cl = (ClassLoader) vfsClassLoader.getMethod("getClassLoader", new Class[] {}).invoke(null, new Object[] {});
       
       Class<?> runTMP = null;
-
+      
       Thread.currentThread().setContextClassLoader(cl);
       
       if (args[0].equals("master")) {
@@ -69,8 +69,10 @@ public class Main {
         runTMP = cl.loadClass("org.apache.accumulo.core.Constants");
         System.out.println(runTMP.getField("VERSION").get(null));
         return;
-      } else if (args[0].equals("rfile-info") ) {
+      } else if (args[0].equals("rfile-info")) {
         runTMP = cl.loadClass("org.apache.accumulo.core.file.rfile.PrintInfo");
+      } else if (args[0].equals("login-info")) {
+        runTMP = cl.loadClass("org.apache.accumulo.core.util.LoginProperties");
       } else {
         try {
           runTMP = cl.loadClass(args[0]);
