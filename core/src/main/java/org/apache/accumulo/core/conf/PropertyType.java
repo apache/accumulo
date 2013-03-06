@@ -57,7 +57,7 @@ public enum PropertyType {
       return new Path(value).isAbsolute();
     }
   },
-
+  
   CLASSNAME("java class", "[\\w$.]*", "A fully qualified java class name representing a class on the classpath.<br />"
       + "An example is 'java.lang.String', rather than 'String'"),
   

@@ -59,13 +59,13 @@
   </property>
 
   <property>
-    <name>trace.password</name>
+    <name>trace.login.password</name>
     <!-- change this to the root user's password, and/or change the user below -->
-    <value>secret</value>
+    <value>password=secret</value>
   </property>
 
   <property>
-    <name>trace.user</name>
+    <name>trace.principal</name>
     <value>root</value>
   </property>
 
