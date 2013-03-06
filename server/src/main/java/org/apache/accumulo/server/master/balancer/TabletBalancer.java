@@ -39,9 +39,9 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
 public abstract class TabletBalancer {
-  
+
   private static final Logger log = Logger.getLogger(TabletBalancer.class);
-  
+
   protected ServerConfiguration configuration;
 
   /**
@@ -50,10 +50,10 @@ public abstract class TabletBalancer {
   public void init(ServerConfiguration conf) {
     configuration = conf;
   }
-  
+
   /**
    * Assign tablets to tablet servers. This method is called whenever the master finds tablets that are unassigned.
-   * 
+   *
    * @param current
    *          The current table-summary state of all the online tablet servers. Read-only. The TabletServerStatus for each server may be null if the tablet
    *          server has not yet responded to a recent request for status.
@@ -64,10 +64,10 @@ public abstract class TabletBalancer {
    */
   abstract public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
       Map<KeyExtent,TServerInstance> assignments);
-  
+
   /**
    * Ask the balancer if any migrations are necessary.
-   * 
+   *
    * @param current
    *          The current table-summary state of all the online tablet servers. Read-only.
    * @param migrations
@@ -75,15 +75,15 @@ public abstract class TabletBalancer {
    * @param migrationsOut
    *          new migrations to perform; should not contain tablets in the current set of migrations. Write-only.
    * @return the time, in milliseconds, to wait before re-balancing.
-   * 
+   *
    *         This method will not be called when there are unassigned tablets.
    */
   public abstract long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut);
-  
+
   /**
    * Fetch the tablets for the given table by asking the tablet server. Useful if your balance strategy needs details at the tablet level to decide what tablets
    * to move.
-   * 
+   *
    * @param tserver
    *          The tablet server to ask.
    * @param tableId
@@ -107,14 +107,14 @@ public abstract class TabletBalancer {
     }
     return null;
   }
-  
+
   /**
    * Utility to ensure that the migrations from balance() are consistent:
    * <ul>
    * <li>Tablet objects are not null
    * <li>Source and destination tablet servers are not null and current
    * </ul>
-   * 
+   *
    * @param current
    * @param migrations
    * @return A list of TabletMigration object that passed sanity checks.
@@ -146,5 +146,5 @@ public abstract class TabletBalancer {
     }
     return result;
   }
-  
+
 }

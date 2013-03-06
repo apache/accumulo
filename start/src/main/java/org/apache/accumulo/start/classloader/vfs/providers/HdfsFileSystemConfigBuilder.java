@@ -21,7 +21,7 @@ import org.apache.commons.vfs2.FileSystemConfigBuilder;
 
 /**
  * Configuration settings for the HdfsFileSystem.
- * 
+ *
  * @since 2.1
  */
 public class HdfsFileSystemConfigBuilder extends FileSystemConfigBuilder

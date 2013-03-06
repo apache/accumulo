@@ -23,19 +23,19 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
 
 public abstract class SkippingIterator extends WrappingIterator {
-  
+
   @Override
   public void next() throws IOException {
     super.next();
     consume();
   }
-  
+
   protected abstract void consume() throws IOException;
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     super.seek(range, columnFamilies, inclusive);
     consume();
   }
-  
+
 }

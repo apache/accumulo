@@ -49,7 +49,7 @@ public class Ingest {
   public static final String LASTMOD_CQ = "lastmod";
   public static final String HASH_CQ = "md5";
   public static final Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
-  
+
   public static Mutation buildMutation(ColumnVisibility cv, String path, boolean isDir, boolean isHidden, boolean canExec, long length, long lastmod,
       String hash) {
     if (path.equals("/"))
@@ -68,7 +68,7 @@ public class Ingest {
       m.put(colf, new Text(HASH_CQ), cv, new Value(hash.getBytes()));
     return m;
   }
-  
+
   private static void ingest(File src, ColumnVisibility cv, BatchWriter dirBW, BatchWriter indexBW, FileDataIngest fdi, BatchWriter data) throws Exception {
     // build main table entry
     String path = null;
@@ -78,7 +78,7 @@ public class Ingest {
       path = src.getAbsolutePath();
     }
     System.out.println(path);
-    
+
     String hash = null;
     if (!src.isDirectory()) {
       try {
@@ -88,9 +88,9 @@ public class Ingest {
         return;
       }
     }
-    
+
     dirBW.addMutation(buildMutation(cv, path, src.isDirectory(), src.isHidden(), src.canExecute(), src.length(), src.lastModified(), hash));
-    
+
     // build index table entries
     Text row = QueryUtil.getForwardIndex(path);
     if (row != null) {
@@ -98,14 +98,14 @@ public class Ingest {
       Mutation m = new Mutation(row);
       m.put(QueryUtil.INDEX_COLF, p, cv, nullValue);
       indexBW.addMutation(m);
-      
+
       row = QueryUtil.getReverseIndex(path);
       m = new Mutation(row);
       m.put(QueryUtil.INDEX_COLF, p, cv, nullValue);
       indexBW.addMutation(m);
     }
   }
-  
+
   private static void recurse(File src, ColumnVisibility cv, BatchWriter dirBW, BatchWriter indexBW, FileDataIngest fdi, BatchWriter data) throws Exception {
     // ingest this File
     ingest(src, cv, dirBW, indexBW, fdi, data);
@@ -119,7 +119,7 @@ public class Ingest {
       }
     }
   }
-  
+
   static class Opts extends ClientOpts {
     @Parameter(names="--dirTable", description="a table to hold the directory information")
     String nameTable = "dirTable";
@@ -134,13 +134,13 @@ public class Ingest {
     @Parameter(description="<dir> { <dir> ... }")
     List<String> directories = new ArrayList<String>();
   }
-  
-  
+
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(Ingest.class.getName(), args, bwOpts);
-    
+
     Connector conn = opts.getConnector();
     if (!conn.tableOperations().exists(opts.nameTable))
       conn.tableOperations().create(opts.nameTable);
@@ -150,14 +150,14 @@ public class Ingest {
       conn.tableOperations().create(opts.dataTable);
       conn.tableOperations().attachIterator(opts.dataTable, new IteratorSetting(1, ChunkCombiner.class));
     }
-    
+
     BatchWriter dirBW = conn.createBatchWriter(opts.nameTable, bwOpts.getBatchWriterConfig());
     BatchWriter indexBW = conn.createBatchWriter(opts.indexTable, bwOpts.getBatchWriterConfig());
     BatchWriter dataBW = conn.createBatchWriter(opts.dataTable, bwOpts.getBatchWriterConfig());
     FileDataIngest fdi = new FileDataIngest(opts.chunkSize, opts.visibility);
     for (String dir : opts.directories) {
       recurse(new File(dir), opts.visibility, dirBW, indexBW, fdi, dataBW);
-      
+
       // fill in parent directory info
       int slashIndex = -1;
       while ((slashIndex = dir.lastIndexOf("/")) > 0) {

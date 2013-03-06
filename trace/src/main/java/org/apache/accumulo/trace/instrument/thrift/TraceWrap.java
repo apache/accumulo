@@ -30,7 +30,7 @@ import org.apache.accumulo.trace.thrift.TInfo;
 /**
  * To move trace data from client to server, the RPC call must be annotated to take a TInfo object as its first argument. The user can simply pass null, so long
  * as they wrap their Client and Service objects with these functions.
- * 
+ *
  * <pre>
  * Trace.on(&quot;remoteMethod&quot;);
  * Iface c = new Client();
@@ -38,14 +38,14 @@ import org.apache.accumulo.trace.thrift.TInfo;
  * c.remoteMethod(null, arg2, arg3);
  * Trace.off();
  * </pre>
- * 
+ *
  * The wrapper will see the annotated method and send or re-establish the trace information.
- * 
+ *
  * Note that the result of these calls is a Proxy object that conforms to the basic interfaces, but is not your concrete instance.
- * 
+ *
  */
 public class TraceWrap {
-  
+
   @SuppressWarnings("unchecked")
   public static <T> T service(final T instance) {
     InvocationHandler handler = new InvocationHandler() {
@@ -70,7 +70,7 @@ public class TraceWrap {
     };
     return (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
   }
-  
+
   @SuppressWarnings("unchecked")
   public static <T> T client(final T instance) {
     InvocationHandler handler = new InvocationHandler() {
@@ -95,5 +95,5 @@ public class TraceWrap {
     };
     return (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
   }
-  
+
 }

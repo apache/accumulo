@@ -37,22 +37,22 @@ public class TableCommand extends Command {
     shellState.setTableName(tableName);
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "switches to the specified table";
   }
-  
+
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForTables(root, special);
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <tableName>";
   }
-  
+
   @Override
   public int numArgs() {
     return 1;

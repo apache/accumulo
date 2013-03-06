@@ -29,23 +29,23 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
 
 public class ZooStore implements DistributedStore {
-  
+
   private static final Logger log = Logger.getLogger(ZooStore.class);
-  
+
   String basePath;
-  
+
   ZooCache cache = new ZooCache();
-  
+
   public ZooStore(String basePath) throws IOException {
     if (basePath.endsWith("/"))
       basePath = basePath.substring(0, basePath.length() - 1);
     this.basePath = basePath;
   }
-  
+
   public ZooStore() throws IOException {
     this(ZooUtil.getRoot(HdfsZooInstance.getInstance().getInstanceID()));
   }
-  
+
   @Override
   public byte[] get(String path) throws DistributedStoreException {
     try {
@@ -54,11 +54,11 @@ public class ZooStore implements DistributedStore {
       throw new DistributedStoreException(ex);
     }
   }
-  
+
   private String relative(String path) {
     return basePath + path;
   }
-  
+
   @Override
   public List<String> getChildren(String path) throws DistributedStoreException {
     try {
@@ -67,7 +67,7 @@ public class ZooStore implements DistributedStore {
       throw new DistributedStoreException(ex);
     }
   }
-  
+
   @Override
   public void put(String path, byte[] bs) throws DistributedStoreException {
     try {
@@ -79,7 +79,7 @@ public class ZooStore implements DistributedStore {
       throw new DistributedStoreException(ex);
     }
   }
-  
+
   @Override
   public void remove(String path) throws DistributedStoreException {
     try {

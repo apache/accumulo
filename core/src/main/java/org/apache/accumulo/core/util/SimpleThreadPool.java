@@ -25,10 +25,10 @@ import java.util.concurrent.TimeUnit;
  * Create a simple thread pool using common parameters.
  */
 public class SimpleThreadPool extends ThreadPoolExecutor {
-  
+
   public SimpleThreadPool(int max, final String name) {
     super(max, max, 4l, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name));
     allowCoreThreadTimeOut(true);
   }
-  
+
 }

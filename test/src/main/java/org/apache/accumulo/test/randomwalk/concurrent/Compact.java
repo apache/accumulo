@@ -29,24 +29,24 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class Compact extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    
+
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-    
+
     // TODO need to sometimes do null start and end ranges
-    
+
     TreeSet<Text> range = new TreeSet<Text>();
     range.add(new Text(String.format("%016x", Math.abs(rand.nextLong()))));
     range.add(new Text(String.format("%016x", Math.abs(rand.nextLong()))));
-    
+
     try {
       boolean wait = rand.nextBoolean();
       conn.tableOperations().compact(tableName, range.first(), range.last(), false, wait);
@@ -56,6 +56,6 @@ public class Compact extends Test {
     } catch (TableOfflineException toe) {
       log.debug("compact " + tableName + " failed, offline");
     }
-    
+
   }
 }

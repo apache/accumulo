@@ -28,12 +28,12 @@ import org.apache.hadoop.fs.FileSystem;
 import com.beust.jcommander.Parameter;
 
 public class TableDiskUsage {
-  
+
   static class Opts extends ClientOpts {
     @Parameter(description=" <table> { <table> ... } ")
     List<String> tables = new ArrayList<String>();
   }
-  
+
   /**
    * @param args
    */
@@ -44,5 +44,5 @@ public class TableDiskUsage {
     Connector conn = opts.getConnector();
     org.apache.accumulo.core.util.TableDiskUsage.printDiskUsage(DefaultConfiguration.getInstance(), opts.tables, fs, conn);
   }
-  
+
 }

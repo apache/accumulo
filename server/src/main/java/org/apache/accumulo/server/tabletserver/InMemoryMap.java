@@ -65,11 +65,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 class MemKeyComparator implements Comparator<Key> {
-  
+
   @Override
   public int compare(Key k1, Key k2) {
     int cmp = k1.compareTo(k2);
-    
+
     if (cmp == 0) {
       if (k1 instanceof MemKey)
         if (k2 instanceof MemKey)
@@ -79,36 +79,36 @@ class MemKeyComparator implements Comparator<Key> {
       else if (k2 instanceof MemKey)
         cmp = -1;
     }
-    
+
     return cmp;
   }
 }
 
 class PartialMutationSkippingIterator extends SkippingIterator implements InterruptibleIterator {
-  
+
   int kvCount;
-  
+
   public PartialMutationSkippingIterator(SortedKeyValueIterator<Key,Value> source, int maxKVCount) {
     setSource(source);
     this.kvCount = maxKVCount;
   }
-  
+
   @Override
   protected void consume() throws IOException {
     while (getSource().hasTop() && ((MemKey) getSource().getTopKey()).kvCount > kvCount)
       getSource().next();
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     return new PartialMutationSkippingIterator(getSource().deepCopy(env), kvCount);
   }
-  
+
   @Override
   public void setInterruptFlag(AtomicBoolean flag) {
     ((InterruptibleIterator) getSource()).setInterruptFlag(flag);
   }
-  
+
 }
 
 class MemKeyConversionIterator extends WrappingIterator implements InterruptibleIterator {
@@ -134,17 +134,17 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     return new MemKeyConversionIterator(getSource().deepCopy(env), currKey);
   }
-  
+
   @Override
   public Key getTopKey() {
     return currKey;
   }
-  
+
   @Override
   public Value getTopValue() {
     return currVal;
   }
-  
+
   private void getTopKeyVal() {
     Key k = super.getTopKey();
     Value v = super.getTopValue();
@@ -158,7 +158,7 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
     currKey = new MemKey(k, mc);
 
   }
-  
+
   public void next() throws IOException {
     super.next();
     if (hasTop())
@@ -186,14 +186,14 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
 
 public class InMemoryMap {
   MutationLog mutationLog;
-  
+
   private SimpleMap map = null;
-  
+
   private static final Logger log = Logger.getLogger(InMemoryMap.class);
-  
+
   private volatile String memDumpFile = null;
   private final String memDumpDir;
-  
+
   public InMemoryMap(boolean useNativeMap, String memDumpDir) {
     this.memDumpDir = memDumpDir;
     if (useNativeMap && NativeMap.loadedNativeLibraries()) {
@@ -203,37 +203,37 @@ public class InMemoryMap {
         log.error("Failed to create native map", t);
       }
     }
-    
+
     if (map == null) {
       map = new DefaultMap();
     }
   }
-  
+
   public InMemoryMap(AccumuloConfiguration config) {
     this(config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED), config.get(Property.TSERV_MEMDUMP_DIR));
   }
-  
+
   private interface SimpleMap {
     public Value get(Key key);
-    
+
     public Iterator<Entry<Key,Value>> iterator(Key startKey);
-    
+
     public int size();
-    
+
     public InterruptibleIterator skvIterator();
-    
+
     public void delete();
-    
+
     public long getMemoryUsed();
-    
+
     public void mutate(List<Mutation> mutations, int kvCount);
   }
-  
+
   private static class DefaultMap implements SimpleMap {
     private ConcurrentSkipListMap<Key,Value> map = new ConcurrentSkipListMap<Key,Value>(new MemKeyComparator());
     private AtomicLong bytesInMemory = new AtomicLong();
     private AtomicInteger size = new AtomicInteger();
-    
+
     public void put(Key key, Value value) {
       // Always a MemKey, so account for the kvCount int
       bytesInMemory.addAndGet(key.getLength() + 4);
@@ -241,42 +241,42 @@ public class InMemoryMap {
       if (map.put(key, value) == null)
         size.incrementAndGet();
     }
-    
+
     public Value get(Key key) {
       return map.get(key);
     }
-    
+
     public Iterator<Entry<Key,Value>> iterator(Key startKey) {
       Key lk = new Key(startKey);
       SortedMap<Key,Value> tm = map.tailMap(lk);
       return tm.entrySet().iterator();
     }
-    
+
     public int size() {
       return size.get();
     }
-    
+
     public synchronized InterruptibleIterator skvIterator() {
       if (map == null)
         throw new IllegalStateException();
-      
+
       return new SortedMapIterator(map);
     }
-    
+
     public synchronized void delete() {
       map = null;
     }
-    
+
     public long getOverheadPerEntry() {
       // all of the java objects that are used to hold the
       // data and make it searchable have overhead... this
       // overhead is estimated using test.EstimateInMemMapOverhead
       // and is in bytes.. the estimates were obtained by running
       // java 6_16 in 64 bit server mode
-      
+
       return 200;
     }
-    
+
     @Override
     public void mutate(List<Mutation> mutations, int kvCount) {
       for (Mutation m : mutations) {
@@ -288,64 +288,64 @@ public class InMemoryMap {
         }
       }
     }
-    
+
     @Override
     public long getMemoryUsed() {
       return bytesInMemory.get() + (size() * getOverheadPerEntry());
     }
   }
-  
+
   private static class NativeMapWrapper implements SimpleMap {
     private NativeMap nativeMap;
-    
+
     NativeMapWrapper() {
       nativeMap = new NativeMap();
     }
-    
+
     public Value get(Key key) {
       return nativeMap.get(key);
     }
-    
+
     public Iterator<Entry<Key,Value>> iterator(Key startKey) {
       return nativeMap.iterator(startKey);
     }
-    
+
     public int size() {
       return nativeMap.size();
     }
-    
+
     public InterruptibleIterator skvIterator() {
       return (InterruptibleIterator) nativeMap.skvIterator();
     }
-    
+
     public void delete() {
       nativeMap.delete();
     }
-    
+
     public long getMemoryUsed() {
       return nativeMap.getMemoryUsed();
     }
-    
+
     @Override
     public void mutate(List<Mutation> mutations, int kvCount) {
       nativeMap.mutate(mutations, kvCount);
     }
   }
-  
+
   private AtomicInteger nextKVCount = new AtomicInteger(1);
   private AtomicInteger kvCount = new AtomicInteger(0);
 
   private Object writeSerializer = new Object();
-  
+
   /**
    * Applies changes to a row in the InMemoryMap
-   * 
+   *
    */
   public void mutate(List<Mutation> mutations) {
     int numKVs = 0;
     for (int i = 0; i < mutations.size(); i++)
       numKVs += mutations.get(i).size();
-    
+
     // Can not update mutationCount while writes that started before
     // are in progress, this would cause partial mutations to be seen.
     // Also, can not continue until mutation count is updated, because
@@ -362,43 +362,43 @@ public class InMemoryMap {
       }
     }
   }
-  
+
   /**
    * Returns a long representing the size of the InMemoryMap
-   * 
+   *
    * @return bytesInMemory
    */
   public synchronized long estimatedSizeInBytes() {
     if (map == null)
       return 0;
-    
+
     return map.getMemoryUsed();
   }
-  
+
   Iterator<Map.Entry<Key,Value>> iterator(Key startKey) {
     return map.iterator(startKey);
   }
-  
+
   public long getNumEntries() {
     return map.size();
   }
-  
+
   private final Set<MemoryIterator> activeIters = Collections.synchronizedSet(new HashSet<MemoryIterator>());
-  
+
   class MemoryDataSource implements DataSource {
-    
+
     boolean switched = false;
     private InterruptibleIterator iter;
     private List<FileSKVIterator> readers;
-    
+
     MemoryDataSource() {
       this(new ArrayList<FileSKVIterator>());
     }
-    
+
     public MemoryDataSource(List<FileSKVIterator> readers) {
       this.readers = readers;
     }
-    
+
     @Override
     public boolean isCurrent() {
       if (switched)
@@ -406,77 +406,77 @@ public class InMemoryMap {
       else
         return memDumpFile == null;
     }
-    
+
     @Override
     public DataSource getNewDataSource() {
       if (switched)
         throw new IllegalStateException();
-      
+
       if (!isCurrent()) {
         switched = true;
         iter = null;
       }
-      
+
       return this;
     }
-    
+
     @Override
     public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
       if (iter == null)
         if (!switched)
           iter = map.skvIterator();
         else {
-          
+
           Configuration conf = CachedConfiguration.getInstance();
           FileSystem fs = TraceFileSystem.wrap(FileSystem.getLocal(conf));
-          
+
           FileSKVIterator reader = new RFileOperations().openReader(memDumpFile, true, fs, conf, ServerConfiguration.getSiteConfiguration());
 
           readers.add(reader);
-          
+
           iter = new MemKeyConversionIterator(reader);
         }
-      
+
       return iter;
     }
-    
+
     @Override
     public DataSource getDeepCopyDataSource(IteratorEnvironment env) {
       return new MemoryDataSource(readers);
     }
-    
+
   }
-  
+
   class MemoryIterator extends WrappingIterator implements InterruptibleIterator {
-    
+
     private AtomicBoolean closed;
     private SourceSwitchingIterator ssi;
     private MemoryDataSource mds;
-    
+
     protected SortedKeyValueIterator<Key,Value> getSource() {
       if (closed.get())
         throw new IllegalStateException("Memory iterator is closed");
       return super.getSource();
     }
-    
+
     private MemoryIterator(InterruptibleIterator source) {
       this(source, new AtomicBoolean(false));
     }
-    
+
     private MemoryIterator(SortedKeyValueIterator<Key,Value> source, AtomicBoolean closed) {
       setSource(source);
       this.closed = closed;
     }
-    
+
     public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
       return new MemoryIterator(getSource().deepCopy(env), closed);
     }
-    
+
     public void close() {
-      
+
       synchronized (this) {
         if (closed.compareAndSet(false, true)) {
-          
+
           for (FileSKVIterator reader : mds.readers)
             try {
               reader.close();
@@ -485,41 +485,41 @@ public class InMemoryMap {
             }
         }
       }
-      
+
       // remove outside of sync to avoid deadlock
       activeIters.remove(this);
     }
-    
+
     private synchronized boolean switchNow() throws IOException {
       if (closed.get())
         return false;
-      
+
       ssi.switchNow();
       return true;
     }
-    
+
     @Override
     public void setInterruptFlag(AtomicBoolean flag) {
       ((InterruptibleIterator) getSource()).setInterruptFlag(flag);
     }
-    
+
     private void setSSI(SourceSwitchingIterator ssi) {
       this.ssi = ssi;
     }
-    
+
     public void setMDS(MemoryDataSource mds) {
       this.mds = mds;
     }
-    
+
   }
-  
+
   public synchronized MemoryIterator skvIterator() {
     if (map == null)
       throw new NullPointerException();
-    
+
     if (deleted)
       throw new IllegalStateException("Can not obtain iterator after map deleted");
-    
+
     int mc = kvCount.get();
     MemoryDataSource mds = new MemoryDataSource();
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(new MemoryDataSource());
@@ -529,49 +529,49 @@ public class InMemoryMap {
     activeIters.add(mi);
     return mi;
   }
-  
+
   public SortedKeyValueIterator<Key,Value> compactionIterator() {
-    
+
     if (nextKVCount.get() - 1 != kvCount.get())
       throw new IllegalStateException("Memory map in unexpected state : nextKVCount = " + nextKVCount.get() + " kvCount = "
           + kvCount.get());
-    
+
     return map.skvIterator();
   }
-  
+
   private boolean deleted = false;
-  
+
   public void delete(long waitTime) {
-    
+
     synchronized (this) {
       if (deleted)
         throw new IllegalStateException("Double delete");
-      
+
       deleted = true;
     }
-    
+
     long t1 = System.currentTimeMillis();
-    
+
     while (activeIters.size() > 0 && System.currentTimeMillis() - t1 < waitTime) {
       UtilWaitThread.sleep(50);
     }
-    
+
     if (activeIters.size() > 0) {
       // dump memmap exactly as is to a tmp file on disk, and switch scans to that temp file
       try {
         Configuration conf = CachedConfiguration.getInstance();
         FileSystem fs = TraceFileSystem.wrap(FileSystem.getLocal(conf));
-        
+
         String tmpFile = memDumpDir + "/memDump" + UUID.randomUUID() + "." + RFile.EXTENSION;
-        
+
         Configuration newConf = new Configuration(conf);
         newConf.setInt("io.seqfile.compress.blocksize", 100000);
-        
+
         FileSKVWriter out = new RFileOperations().openWriter(tmpFile, fs, newConf, ServerConfiguration.getSiteConfiguration());
         out.startDefaultLocalityGroup();
         InterruptibleIterator iter = map.skvIterator();
         iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
-        
+
         while (iter.hasTop() && activeIters.size() > 0) {
           // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
           // There is no need to change the MemKey to a normal key because the kvCount info gets lost when it is written
@@ -579,39 +579,39 @@ public class InMemoryMap {
           out.append(iter.getTopKey(), newValue);
           iter.next();
         }
-        
+
         out.close();
-        
+
         log.debug("Created mem dump file " + tmpFile);
-        
+
         memDumpFile = tmpFile;
-        
+
         synchronized (activeIters) {
           for (MemoryIterator mi : activeIters) {
             mi.switchNow();
           }
         }
-        
+
         // rely on unix behavior that file will be deleted when last
         // reader closes it
         fs.delete(new Path(memDumpFile), true);
-        
+
       } catch (IOException ioe) {
         log.error("Failed to create mem dump file ", ioe);
-        
+
         while (activeIters.size() > 0) {
           UtilWaitThread.sleep(100);
         }
       }
-      
+
     }
-    
+
     SimpleMap tmpMap = map;
-    
+
     synchronized (this) {
       map = null;
     }
-    
+
     tmpMap.delete();
   }
 }

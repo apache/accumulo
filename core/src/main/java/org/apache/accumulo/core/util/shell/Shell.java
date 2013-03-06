@@ -157,12 +157,12 @@ import org.apache.log4j.Logger;
 public class Shell extends ShellOptions {
   public static final Logger log = Logger.getLogger(Shell.class);
   private static final Logger audit = Logger.getLogger(Shell.class.getName() + ".audit");
-  
+
   public static final String CHARSET = "ISO-8859-1";
   public static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
   private static final String SHELL_DESCRIPTION = "Shell - Apache Accumulo Interactive Shell";
   private static final String DEFAULT_AUTH_TIMEOUT = "60"; // in minutes
-  
+
   protected int exitCode = 0;
   private String tableName;
   protected Instance instance;
@@ -174,21 +174,21 @@ public class Shell extends ShellOptions {
   private final Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
   public Map<String,List<IteratorSetting>> iteratorProfiles = new HashMap<String,List<IteratorSetting>>();
-  
+
   private Token rootToken;
   public final Map<String,Command> commandFactory = new TreeMap<String,Command>();
   public final Map<String,Command[]> commandGrouping = new TreeMap<String,Command[]>();
   protected boolean configError = false;
-  
+
   // exit if true
   private boolean exit = false;
-  
+
   // file to execute commands from
   protected String execFile = null;
   // single command to execute from the command line
   protected String execCommand = null;
   protected boolean verbose = true;
-  
+
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
   private long authTimeout;
@@ -196,62 +196,62 @@ public class Shell extends ShellOptions {
   private boolean logErrorsToConsole = false;
   private PrintWriter writer = null;
   private boolean masking = false;
-  
+
   public Shell() throws IOException {
     this(new ConsoleReader());
   }
-  
+
   public Shell(ConsoleReader reader) {
     super();
     this.reader = reader;
   }
-  
+
   public Shell(ConsoleReader reader, PrintWriter writer) {
     this(reader);
     this.writer = writer;
   }
-  
+
   // Not for client use
   public boolean config(String... args) {
-    
+
     CommandLine cl;
     try {
       cl = new BasicParser().parse(opts, args);
       if (cl.getArgs().length > 0)
         throw new ParseException("Unrecognized arguments: " + cl.getArgList());
-      
+
       if (cl.hasOption(helpOpt.getOpt())) {
         configError = true;
         printHelp("shell", SHELL_DESCRIPTION, opts);
         return true;
       }
-      
+
       setDebugging(cl.hasOption(debugOption.getLongOpt()));
       authTimeout = Integer.parseInt(cl.getOptionValue(authTimeoutOpt.getLongOpt(), DEFAULT_AUTH_TIMEOUT)) * 60 * 1000;
       disableAuthTimeout = cl.hasOption(disableAuthTimeoutOpt.getLongOpt());
-      
+
       if (cl.hasOption(zooKeeperInstance.getOpt()) && cl.getOptionValues(zooKeeperInstance.getOpt()).length != 2)
         throw new MissingArgumentException(zooKeeperInstance);
-      
+
     } catch (Exception e) {
       configError = true;
       printException(e);
       printHelp("shell", SHELL_DESCRIPTION, opts);
       return true;
     }
-    
+
     // get the options that were parsed
     String sysUser = System.getProperty("user.name");
     if (sysUser == null)
       sysUser = "root";
     String user = cl.getOptionValue(usernameOption.getOpt(), sysUser);
-    
+
     String passw = cl.getOptionValue(passwOption.getOpt(), null);
     tabCompletion = !cl.hasOption(tabCompleteOption.getLongOpt());
-    
+
     // Use a fake (Mock), ZK, or HdfsZK Accumulo instance
     setInstance(cl);
-    
+
     // process default parameters if unspecified
     byte[] pass;
     try {
@@ -259,14 +259,14 @@ public class Shell extends ShellOptions {
         DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), "shell", InetAddress.getLocalHost()
             .getHostName());
       }
-      
+
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void start() {
           reader.getTerminal().enableEcho();
         }
       });
-      
+
       if (passw == null)
         passw = readMaskedLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
       if (passw == null) {
@@ -274,18 +274,18 @@ public class Shell extends ShellOptions {
         configError = true;
         return true;
       } // user canceled
-      
+
       pass = passw.getBytes();
       this.setTableName("");
       this.principal = user;
       this.token = new PasswordToken(pass);
       connector = instance.getConnector(principal, token);
-      
+
     } catch (Exception e) {
       printException(e);
       configError = true;
     }
-    
+
     // decide whether to execute commands from a file and quit
     if (cl.hasOption(execfileOption.getOpt())) {
       execFile = cl.getOptionValue(execfileOption.getOpt());
@@ -297,9 +297,9 @@ public class Shell extends ShellOptions {
       execCommand = cl.getOptionValue(execCommandOpt.getOpt());
       verbose = false;
     }
-    
+
     rootToken = new Token();
-    
+
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(), new EGrepCommand(), new FormatterCommand(),
         new InterpreterCommand(), new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
@@ -332,7 +332,7 @@ public class Shell extends ShellOptions {
     commandGrouping.put("-- Table Administration Commands --------", tableCommands);
     commandGrouping.put("-- Table Control Commands ---------------", tableControlCommands);
     commandGrouping.put("-- User Administration Commands ---------", userCommands);
-    
+
     for (Command[] cmds : commandGrouping.values()) {
       for (Command cmd : cmds)
         commandFactory.put(cmd.getName(), cmd);
@@ -342,7 +342,7 @@ public class Shell extends ShellOptions {
     }
     return configError;
   }
-  
+
   protected void setInstance(CommandLine cl) {
     // should only be one instance option set
     instance = null;
@@ -361,7 +361,7 @@ public class Shell extends ShellOptions {
       instance = getDefaultInstance(deprecatedSiteConfiguration);
     }
   }
-  
+
   /**
    * @deprecated Not for client use
    */
@@ -371,26 +371,26 @@ public class Shell extends ShellOptions {
     Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
     return new ZooKeeperInstance(UUID.fromString(ZooKeeperInstance.getInstanceIDFromHdfs(instanceDir)), keepers);
   }
-  
+
   public Connector getConnector() {
     return connector;
   }
-  
+
   public static void main(String args[]) throws IOException {
     Shell shell = new Shell();
     shell.config(args);
-    
+
     System.exit(shell.start());
   }
-  
+
   public int start() throws IOException {
     if (configError)
       return 1;
-    
+
     String input;
     if (isVerbose())
       printInfo();
-    
+
     String configDir = System.getenv("HOME") + "/.accumulo";
     String historyPath = configDir + "/shell_history.txt";
     File accumuloDir = new File(configDir);
@@ -403,9 +403,9 @@ public class Shell extends ShellOptions {
     } catch (IOException e) {
       log.warn("Unable to load history file at " + historyPath);
     }
-    
+
     ShellCompletor userCompletor = null;
-    
+
     if (execFile != null) {
       java.util.Scanner scanner = new java.util.Scanner(new File(execFile));
       while (scanner.hasNextLine())
@@ -416,38 +416,38 @@ public class Shell extends ShellOptions {
       }
       return exitCode;
     }
-    
+
     while (true) {
       if (hasExited())
         return exitCode;
-      
+
       // If tab completion is true we need to reset
       if (tabCompletion) {
         if (userCompletor != null)
           reader.removeCompletor(userCompletor);
-        
+
         userCompletor = setupCompletion();
         reader.addCompletor(userCompletor);
       }
-      
+
       reader.setDefaultPrompt(getDefaultPrompt());
       input = reader.readLine();
       if (input == null) {
         reader.printNewline();
         return exitCode;
       } // user canceled
-      
+
       execCommand(input, disableAuthTimeout, false);
     }
   }
-  
+
   public void printInfo() throws IOException {
     reader.printString("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n" + "- instance name: "
         + connector.getInstance().getInstanceName() + "\n" + "- instance id: " + connector.getInstance().getInstanceID() + "\n" + "- \n"
         + "- type 'help' for a list of available commands\n" + "- \n");
     reader.flushConsole();
   }
-  
+
   public void printVerboseInfo() throws IOException {
     StringBuilder sb = new StringBuilder("-\n");
     sb.append("- Current user: ").append(connector.whoami()).append("\n");
@@ -474,11 +474,11 @@ public class Shell extends ShellOptions {
     sb.append("-\n");
     reader.printString(sb.toString());
   }
-  
+
   public String getDefaultPrompt() {
     return connector.whoami() + "@" + connector.getInstance().getInstanceName() + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
-  
+
   public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt) throws IOException {
     audit.log(AuditLevel.AUDIT, getDefaultPrompt() + input);
     if (echoPrompt) {
@@ -486,7 +486,7 @@ public class Shell extends ShellOptions {
       reader.printString(input);
       reader.printNewline();
     }
-    
+
     String fields[];
     try {
       fields = new QuotedStringTokenizer(input).getTokens();
@@ -497,10 +497,10 @@ public class Shell extends ShellOptions {
     }
     if (fields.length == 0)
       return;
-    
+
     String command = fields[0];
     fields = fields.length > 1 ? Arrays.copyOfRange(fields, 1, fields.length) : new String[] {};
-    
+
     Command sc = null;
     if (command.length() > 0) {
       try {
@@ -511,7 +511,7 @@ public class Shell extends ShellOptions {
           reader.flushConsole();
           return;
         }
-        
+
         if (!(sc instanceof ExitCommand) && !ignoreAuthTimeout && System.currentTimeMillis() - lastUserActivity > authTimeout) {
           reader.printString("Shell has been idle for too long. Please re-authenticate.\n");
           boolean authFailed = true;
@@ -521,26 +521,26 @@ public class Shell extends ShellOptions {
               reader.printNewline();
               return;
             } // user canceled
-            
+
             try {
               authFailed = !connector.securityOperations().authenticateUser(connector.whoami(), new PasswordToken(pwd));
             } catch (Exception e) {
               ++exitCode;
               printException(e);
             }
-            
+
             if (authFailed)
               reader.printString("Invalid password. ");
           } while (authFailed);
           lastUserActivity = System.currentTimeMillis();
         }
-        
+
         // Get the options from the command on how to parse the string
         Options parseOpts = sc.getOptionsWithHelp();
-        
+
         // Parse the string using the given options
         CommandLine cl = new BasicParser().parse(parseOpts, fields);
-        
+
         int actualArgLen = cl.getArgs().length;
         int expectedArgLen = sc.numArgs();
         if (cl.hasOption(helpOption)) {
@@ -559,7 +559,7 @@ public class Shell extends ShellOptions {
           exitCode += tmpCode;
           reader.flushConsole();
         }
-        
+
       } catch (ConstraintViolationException e) {
         ++exitCode;
         printConstraintViolationException(e);
@@ -587,14 +587,14 @@ public class Shell extends ShellOptions {
     }
     reader.flushConsole();
   }
-  
+
   /**
    * The command tree is built in reverse so that the references are more easily linked up. There is some code in token to allow forward building of the command
    * tree.
    */
   private ShellCompletor setupCompletion() {
     rootToken = new Token();
-    
+
     Set<String> tableNames = null;
     try {
       tableNames = connector.tableOperations().list();
@@ -602,7 +602,7 @@ public class Shell extends ShellOptions {
       log.debug("Unable to obtain list of tables", e);
       tableNames = Collections.emptySet();
     }
-    
+
     Set<String> userlist = null;
     try {
       userlist = connector.securityOperations().listLocalUsers();
@@ -610,25 +610,25 @@ public class Shell extends ShellOptions {
       log.debug("Unable to obtain list of users", e);
       userlist = Collections.emptySet();
     }
-    
+
     Map<Command.CompletionSet,Set<String>> options = new HashMap<Command.CompletionSet,Set<String>>();
-    
+
     Set<String> commands = new HashSet<String>();
     for (String a : commandFactory.keySet())
       commands.add(a);
-    
+
     Set<String> modifiedUserlist = new HashSet<String>();
     Set<String> modifiedTablenames = new HashSet<String>();
-    
+
     for (String a : tableNames)
       modifiedTablenames.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
     for (String a : userlist)
       modifiedUserlist.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
-    
+
     options.put(Command.CompletionSet.USERNAMES, modifiedUserlist);
     options.put(Command.CompletionSet.TABLENAMES, modifiedTablenames);
     options.put(Command.CompletionSet.COMMANDS, commands);
-    
+
     for (Command[] cmdGroup : commandGrouping.values()) {
       for (Command c : cmdGroup) {
         c.getOptionsWithHelp(); // prep the options for the command
@@ -639,7 +639,7 @@ public class Shell extends ShellOptions {
     }
     return new ShellCompletor(rootToken, options);
   }
-  
+
   /**
    * The Command class represents a command to be run in the shell. It contains the methods to execute along with some methods to help tab completion, and
    * return the command name, help, and usage.
@@ -649,54 +649,54 @@ public class Shell extends ShellOptions {
     public enum CompletionSet {
       TABLENAMES, USERNAMES, COMMANDS
     }
-    
+
     static Set<String> getCommandNames(Map<CompletionSet,Set<String>> objects) {
       return objects.get(CompletionSet.COMMANDS);
     }
-    
+
     static Set<String> getTableNames(Map<CompletionSet,Set<String>> objects) {
       return objects.get(CompletionSet.TABLENAMES);
     }
-    
+
     static Set<String> getUserNames(Map<CompletionSet,Set<String>> objects) {
       return objects.get(CompletionSet.USERNAMES);
     }
-    
+
     public void registerCompletionGeneral(Token root, Set<String> args, boolean caseSens) {
       Token t = new Token(args);
       t.setCaseSensitive(caseSens);
-      
+
       Token command = new Token(getName());
       command.addSubcommand(t);
-      
+
       root.addSubcommand(command);
     }
-    
+
     public void registerCompletionForTables(Token root, Map<CompletionSet,Set<String>> completionSet) {
       registerCompletionGeneral(root, completionSet.get(CompletionSet.TABLENAMES), true);
     }
-    
+
     public void registerCompletionForUsers(Token root, Map<CompletionSet,Set<String>> completionSet) {
       registerCompletionGeneral(root, completionSet.get(CompletionSet.USERNAMES), true);
     }
-    
+
     public void registerCompletionForCommands(Token root, Map<CompletionSet,Set<String>> completionSet) {
       registerCompletionGeneral(root, completionSet.get(CompletionSet.COMMANDS), false);
     }
-    
+
     // abstract methods to override
     public abstract int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception;
-    
+
     public abstract String description();
-    
+
     /**
      * If the number of arguments is not always zero (not including those arguments handled through Options), make sure to override the {@link #usage()} method.
      * Otherwise, {@link #usage()} does need to be overridden.
      */
     public abstract int numArgs();
-    
+
     // OPTIONAL methods to override:
-    
+
     // the general version of getname uses reflection to get the class name
     // and then cuts off the suffix -Command to get the name of the command
     public String getName() {
@@ -705,54 +705,54 @@ public class Shell extends ShellOptions {
       int i = s.indexOf("Command");
       return i > 0 ? s.substring(st + 1, i).toLowerCase(Locale.ENGLISH) : null;
     }
-    
+
     // The general version of this method adds the name
     // of the command to the completion tree
     public void registerCompletion(Token root, Map<CompletionSet,Set<String>> completion_set) {
       root.addSubcommand(new Token(getName()));
     }
-    
+
     // The general version of this method uses the HelpFormatter
     // that comes with the apache Options package to print out the help
     public final void printHelp(Shell shellState) {
       shellState.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp());
     }
-    
+
     public final void printHelp(Shell shellState, int width) {
       shellState.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp(), width);
     }
-    
+
     // Get options with help
     public final Options getOptionsWithHelp() {
       Options opts = getOptions();
       opts.addOption(new Option(helpOption, helpLongOption, false, "display this help"));
       return opts;
     }
-    
+
     // General usage is just the command
     public String usage() {
       return getName();
     }
-    
+
     // General Options are empty
     public Options getOptions() {
       return new Options();
     }
   }
-  
+
   public interface PrintLine {
     public void print(String s);
-    
+
     public void close();
   }
-  
+
   public static class PrintShell implements PrintLine {
     ConsoleReader reader;
-    
+
     public PrintShell(ConsoleReader reader) {
       this.reader = reader;
     }
-    
+
     @Override
     public void print(String s) {
       try {
@@ -761,40 +761,40 @@ public class Shell extends ShellOptions {
         throw new RuntimeException(ex);
       }
     }
-    
+
     @Override
     public void close() {}
   };
-  
+
   public static class PrintFile implements PrintLine {
     PrintWriter writer;
-    
+
     public PrintFile(String filename) throws FileNotFoundException {
       writer = new PrintWriter(filename);
     }
-    
+
     @Override
     public void print(String s) {
       writer.println(s);
     }
-    
+
     @Override
     public void close() {
       writer.close();
     }
   };
-  
+
   public final void printLines(Iterator<String> lines, boolean paginate) throws IOException {
     printLines(lines, paginate, null);
   }
-  
+
   public final void printLines(Iterator<String> lines, boolean paginate, PrintLine out) throws IOException {
     int linesPrinted = 0;
     String prompt = "-- hit any key to continue or 'q' to quit --";
     int lastPromptLength = prompt.length();
     int termWidth = reader.getTermwidth();
     int maxLines = reader.getTermheight();
-    
+
     String peek = null;
     while (lines.hasNext()) {
       String nextLine = lines.next();
@@ -807,7 +807,7 @@ public class Shell extends ShellOptions {
             reader.printNewline();
             if (paginate) {
               linesPrinted += peek.length() == 0 ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
-              
+
               // check if displaying the next line would result in
               // scrolling off the screen
               if (linesPrinted + Math.ceil(lastPromptLength * 1.0 / termWidth) + Math.ceil(prompt.length() * 1.0 / termWidth)
@@ -839,38 +839,38 @@ public class Shell extends ShellOptions {
       reader.printNewline();
     }
   }
-  
+
   public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass,
       PrintLine outFile) throws IOException {
     printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate, outFile);
   }
-  
+
   public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass)
       throws IOException {
     printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate);
   }
-  
+
   public final void printBinaryRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, PrintLine outFile) throws IOException {
     printLines(FormatterFactory.getFormatter(binaryFormatterClass, scanner, printTimestamps), paginate, outFile);
   }
-  
+
   public final void printBinaryRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate) throws IOException {
     printLines(FormatterFactory.getFormatter(binaryFormatterClass, scanner, printTimestamps), paginate);
   }
-  
+
   public static String repeat(String s, int c) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < c; i++)
       sb.append(s);
     return sb.toString();
   }
-  
+
   public void checkTableState() {
     if (getTableName().isEmpty())
       throw new IllegalStateException(
           "Not in a table context. Please use 'table <tableName>' to switch to a table, or use '-t' to specify a table if option is available.");
   }
-  
+
   private final void printConstraintViolationException(ConstraintViolationException cve) {
     printException(cve, "");
     int COL1 = 50, COL2 = 14;
@@ -882,28 +882,28 @@ public class Shell extends ShellOptions {
       logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s%n", cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
   }
-  
+
   public final void printException(Exception e) {
     printException(e, e.getMessage());
   }
-  
+
   private final void printException(Exception e, String msg) {
     logError(e.getClass().getName() + (msg != null ? ": " + msg : ""));
     log.debug(e.getClass().getName() + (msg != null ? ": " + msg : ""), e);
   }
-  
+
   public static final void setDebugging(boolean debuggingEnabled) {
     Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(debuggingEnabled ? Level.TRACE : Level.INFO);
   }
-  
+
   public static final boolean isDebuggingEnabled() {
     return Logger.getLogger(Constants.CORE_PACKAGE_NAME).isTraceEnabled();
   }
-  
+
   private final void printHelp(String usage, String description, Options opts) {
     printHelp(usage, description, opts, Integer.MAX_VALUE);
   }
-  
+
   private final void printHelp(String usage, String description, Options opts, int width) {
     PrintWriter pw = new PrintWriter(System.err);
     new HelpFormatter().printHelp(pw, width, usage, description, opts, 2, 5, null, true);
@@ -913,69 +913,69 @@ public class Shell extends ShellOptions {
       writer.flush();
     }
   }
-  
+
   public int getExitCode() {
     return exitCode;
   }
-  
+
   public void resetExitCode() {
     exitCode = 0;
   }
-  
+
   public void setExit(boolean exit) {
     this.exit = exit;
   }
-  
+
   public boolean isVerbose() {
     return verbose;
   }
-  
+
   public void setTableName(String tableName) {
     this.tableName = tableName;
   }
-  
+
   public String getTableName() {
     return tableName;
   }
-  
+
   public ConsoleReader getReader() {
     return reader;
   }
-  
+
   public void updateUser(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     connector = instance.getConnector(principal, token);
     this.principal = principal;
     this.token = token;
   }
-  
+
   public String getPrincipal() {
     return principal;
   }
-  
+
   public AuthenticationToken getToken() {
     return token;
   }
-  
-  
+
+
   /**
    * Return the formatter for the current table.
-   * 
+   *
    * @return the formatter class for the current table
    */
   public Class<? extends Formatter> getFormatter() {
     return getFormatter(this.tableName);
   }
-  
+
   /**
    * Return the formatter for the given table.
-   * 
+   *
    * @param tableName
    *          the table name
    * @return the formatter class for the given table
    */
   public Class<? extends Formatter> getFormatter(String tableName) {
     Class<? extends Formatter> formatter = FormatterCommand.getCurrentFormatter(tableName, this);
-    
+
     if (null == formatter) {
       logError("Could not load the specified formatter. Using the DefaultFormatter");
       return this.defaultFormatterClass;
@@ -983,11 +983,11 @@ public class Shell extends ShellOptions {
       return formatter;
     }
   }
-  
+
   public void setLogErrorsToConsole() {
     this.logErrorsToConsole = true;
   }
-  
+
   private void logError(String s) {
     log.error(s);
     if (logErrorsToConsole) {
@@ -997,18 +997,18 @@ public class Shell extends ShellOptions {
       } catch (IOException e) {}
     }
   }
-  
+
   public String readMaskedLine(String prompt, Character mask) throws IOException {
     this.masking = true;
     String s = reader.readLine(prompt, mask);
     this.masking = false;
     return s;
   }
-  
+
   public boolean isMasking() {
     return masking;
   }
-  
+
   public boolean hasExited() {
     return exit;
   }

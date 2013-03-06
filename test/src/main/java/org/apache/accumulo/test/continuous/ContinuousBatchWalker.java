@@ -48,75 +48,75 @@ public class ContinuousBatchWalker {
   }
 
   public static void main(String[] args) throws Exception {
-    
+
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();
     opts.parseArgs(ContinuousBatchWalker.class.getName(), args, scanOpts, bsOpts);
-    
+
     Random r = new Random();
     Authorizations auths = opts.randomAuths.getAuths(r);
 
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.getTableName(), auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
-    
+
     BatchScanner bs = conn.createBatchScanner(opts.getTableName(), auths, bsOpts.scanThreads);
     bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
 
     while (true) {
       Set<Text> batch = getBatch(scanner, opts.min, opts.max, scanOpts.scanBatchSize, r);
       List<Range> ranges = new ArrayList<Range>(batch.size());
-      
+
       for (Text row : batch) {
         ranges.add(new Range(row));
       }
-      
+
       runBatchScan(scanOpts.scanBatchSize, bs, batch, ranges);
-      
+
       UtilWaitThread.sleep(opts.sleepTime);
     }
-    
+
   }
-  
+
   /*
    * private static void runSequentialScan(Scanner scanner, List<Range> ranges) { Set<Text> srowsSeen = new HashSet<Text>(); long st1 =
    * System.currentTimeMillis(); int scount = 0; for (Range range : ranges) { scanner.setRange(range);
-   * 
+   *
    * for (Entry<Key,Value> entry : scanner) { srowsSeen.add(entry.getKey().getRow()); scount++; } }
-   * 
-   * 
+   *
+   *
    * long st2 = System.currentTimeMillis(); System.out.println("SRQ "+(st2 - st1)+" "+srowsSeen.size() +" "+scount); }
    */
-  
+
   private static void runBatchScan(int batchSize, BatchScanner bs, Set<Text> batch, List<Range> ranges) {
     bs.setRanges(ranges);
-    
+
     Set<Text> rowsSeen = new HashSet<Text>();
-    
+
     int count = 0;
-    
+
     long t1 = System.currentTimeMillis();
-    
+
     for (Entry<Key,Value> entry : bs) {
       ContinuousWalk.validate(entry.getKey(), entry.getValue());
-      
+
       rowsSeen.add(entry.getKey().getRow());
-      
+
       addRow(batchSize, entry.getValue());
-      
+
       count++;
     }
-    
+
     long t2 = System.currentTimeMillis();
-    
+
     if (!rowsSeen.equals(batch)) {
       HashSet<Text> copy1 = new HashSet<Text>(rowsSeen);
       HashSet<Text> copy2 = new HashSet<Text>(batch);
-      
+
       copy1.removeAll(batch);
       copy2.removeAll(rowsSeen);
-      
+
       System.out.printf("DIF %d %d %d%n", t1, copy1.size(), copy2.size());
       System.err.printf("DIF %d %d %d%n", t1, copy1.size(), copy2.size());
       System.err.println("Extra seen : " + copy1);
@@ -124,12 +124,12 @@ public class ContinuousBatchWalker {
     } else {
       System.out.printf("BRQ %d %d %d %d %d%n", t1, (t2 - t1), rowsSeen.size(), count, (int) (rowsSeen.size() / ((t2 - t1) / 1000.0)));
     }
-    
+
   }
-  
+
   private static void addRow(int batchSize, Value v) {
     byte[] val = v.get();
-    
+
     int offset = ContinuousWalk.getPrevRowOffset(val);
     if (offset > 1) {
       Text prevRow = new Text();
@@ -139,19 +139,19 @@ public class ContinuousBatchWalker {
       }
     }
   }
-  
+
   private static HashSet<Text> rowsToQuery = new HashSet<Text>();
-  
+
   private static Set<Text> getBatch(Scanner scanner, long min, long max, int batchSize, Random r) {
-    
+
     while (rowsToQuery.size() < batchSize) {
       byte[] scanStart = ContinuousIngest.genRow(min, max, r);
       scanner.setRange(new Range(new Text(scanStart), null));
-      
+
       int count = 0;
-      
+
       long t1 = System.currentTimeMillis();
-      
+
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
       while (iter.hasNext() && rowsToQuery.size() < 3 * batchSize) {
         Entry<Key,Value> entry = iter.next();
@@ -159,24 +159,24 @@ public class ContinuousBatchWalker {
         addRow(batchSize, entry.getValue());
         count++;
       }
-      
+
       long t2 = System.currentTimeMillis();
-      
+
       System.out.println("FSB " + t1 + " " + (t2 - t1) + " " + count);
-      
+
       UtilWaitThread.sleep(100);
     }
-    
+
     HashSet<Text> ret = new HashSet<Text>();
-    
+
     Iterator<Text> iter = rowsToQuery.iterator();
-    
+
     for (int i = 0; i < batchSize; i++) {
       ret.add(iter.next());
       iter.remove();
     }
-    
+
     return ret;
   }
-  
+
 }

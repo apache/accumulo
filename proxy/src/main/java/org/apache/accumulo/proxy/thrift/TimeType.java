@@ -48,7 +48,7 @@ import org.apache.thrift.TEnum;
    * Find a the enum type by its integer value, as defined in the Thrift IDL.
    * @return null if the value is not found.
    */
-  public static TimeType findByValue(int value) { 
+  public static TimeType findByValue(int value) {
     switch (value) {
       case 0:
         return LOGICAL;

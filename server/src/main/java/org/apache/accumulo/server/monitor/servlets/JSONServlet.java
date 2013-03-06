@@ -35,19 +35,19 @@ import com.google.gson.Gson;
 
 public class JSONServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;
-  
+
   private Gson gson = new Gson();
-  
+
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "JSON Report";
   }
-  
+
   @Override
   protected void pageStart(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
     resp.setContentType("application/json");
   }
-  
+
   private static Map<String,Object> addServer(String ip, String hostname, double osload, double ingest, double query, double ingestMB, double queryMB,
       int scans, double scansessions, long holdtime) {
 	Map<String,Object> map = new HashMap<String,Object>();
@@ -63,41 +63,41 @@ public class JSONServlet extends BasicServlet {
 	map.put("holdtime", holdtime);
 	return map;
   }
-  
+
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
     if (Monitor.getMmi() == null || Monitor.getMmi().tableMap == null) {
       return;
     }
-    
+
     Map<String,Object> results = new HashMap<String,Object>();
     List<Map<String,Object>> servers = new ArrayList<Map<String,Object>>();
-    
+
     for (TabletServerStatus status : Monitor.getMmi().tServerInfo) {
       TableInfo summary = Monitor.summarizeTableStats(status);
       servers.add(addServer(status.name, TServerLinkType.displayName(status.name), status.osLoad, summary.ingestRate, summary.queryRate,
           summary.ingestByteRate / 1000000.0, summary.queryByteRate / 1000000.0, summary.scans.running + summary.scans.queued, Monitor.getLookupRate(),
           status.holdTime));
     }
-    
+
     for (Entry<String,Byte> entry : Monitor.getMmi().badTServers.entrySet()) {
       Map<String,Object> badServer = new HashMap<String,Object>();
       badServer.put("ip", entry.getKey());
       badServer.put("bad", true);
       servers.add(badServer);
     }
-    
+
     for (DeadServer dead : Monitor.getMmi().deadTabletServers) {
         Map<String,Object> deadServer = new HashMap<String,Object>();
         deadServer.put("ip", dead.server);
         deadServer.put("dead", true);
         servers.add(deadServer);
     }
-    
+
     results.put("servers", servers);
     sb.append(gson.toJson(results));
   }
-  
+
   @Override
   protected void pageEnd(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {}
 }

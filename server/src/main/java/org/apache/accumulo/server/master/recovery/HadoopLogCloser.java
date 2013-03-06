@@ -9,12 +9,12 @@ import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.log4j.Logger;
 
 public class HadoopLogCloser implements LogCloser {
-  
+
   private static Logger log = Logger.getLogger(HadoopLogCloser.class);
 
   @Override
   public long close(FileSystem fs, Path source) throws IOException {
-    
+
     if (fs instanceof DistributedFileSystem) {
       DistributedFileSystem dfs = (DistributedFileSystem) fs;
       try {
@@ -36,5 +36,5 @@ public class HadoopLogCloser implements LogCloser {
     log.info("Recovered lease on " + source.toString() + " using append");
     return 0;
   }
-  
+
 }

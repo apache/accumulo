@@ -33,20 +33,20 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class GrepCommand extends ScanCommand {
-  
+
   private Option numThreadsOpt;
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    
+
     final String tableName = OptUtil.getTableOpt(cl, shellState);
-    
+
     if (cl.getArgList().isEmpty()) {
       throw new MissingArgumentException("No terms specified");
     }
     final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
     final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
-    
+
     // handle first argument, if present, the authorizations list to
     // scan with
     int numThreads = 20;
@@ -56,25 +56,25 @@ public class GrepCommand extends ScanCommand {
     final Authorizations auths = getAuths(cl, shellState);
     final BatchScanner scanner = shellState.getConnector().createBatchScanner(tableName, auths, numThreads);
     scanner.setRanges(Collections.singletonList(getRange(cl, interpeter)));
-    
+
     scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
-    
+
     for (int i = 0; i < cl.getArgs().length; i++) {
       setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i], scanner, cl);
     }
     try {
       // handle columns
       fetchColumns(cl, scanner, interpeter);
-      
+
       // output the records
       printRecords(cl, shellState, scanner, formatter);
     } finally {
       scanner.close();
     }
-    
+
     return 0;
   }
-  
+
   protected void setUpIterator(final int prio, final String name, final String term, final BatchScanner scanner, CommandLine cl) throws IOException {
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
@@ -83,12 +83,12 @@ public class GrepCommand extends ScanCommand {
     GrepIterator.setTerm(grep, term);
     scanner.addScanIterator(grep);
   }
-  
+
   @Override
   public String description() {
     return "searches each row, column family, column qualifier and value in a table for a substring (not a regular expression), in parallel, on the server side";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options opts = super.getOptions();
@@ -96,12 +96,12 @@ public class GrepCommand extends ScanCommand {
     opts.addOption(numThreadsOpt);
     return opts;
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <term>{ <term>}";
   }
-  
+
   @Override
   public int numArgs() {
     return Shell.NO_FIXED_ARG_LENGTH_CHECK;

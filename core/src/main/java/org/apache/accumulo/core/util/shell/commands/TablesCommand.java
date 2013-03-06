@@ -29,7 +29,7 @@ import org.apache.commons.cli.Options;
 
 public class TablesCommand extends Command {
   private Option tableIdOption;
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     if (cl.hasOption(tableIdOption.getOpt())) {
@@ -44,12 +44,12 @@ public class TablesCommand extends Command {
     }
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "displays a list of all existing tables";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
@@ -57,7 +57,7 @@ public class TablesCommand extends Command {
     o.addOption(tableIdOption);
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

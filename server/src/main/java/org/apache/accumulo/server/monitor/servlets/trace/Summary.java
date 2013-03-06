@@ -38,25 +38,25 @@ import org.apache.hadoop.io.Text;
 
 
 public class Summary extends Basic {
-  
+
   private static final long serialVersionUID = 1L;
   public static final int DEFAULT_MINUTES = 10;
-  
+
   int getMinutes(HttpServletRequest req) {
     return getIntParameter(req, "minutes", DEFAULT_MINUTES);
   }
-  
+
   public String getTitle(HttpServletRequest req) {
     return "Traces for the last " + getMinutes(req) + " minutes";
   }
-  
+
   static private class Stats {
     int count;
     long min = Long.MAX_VALUE;
     long max = Long.MIN_VALUE;
     long total = 0l;
     long histogram[] = new long[] {0, 0, 0, 0, 0, 0};
-    
+
     void addSpan(RemoteSpan span) {
       count++;
       long ms = span.stop - span.start;
@@ -70,20 +70,20 @@ public class Summary extends Basic {
       }
       histogram[index]++;
     }
-    
+
     long average() {
       return total / count;
     }
   }
-  
+
   private static class ShowTypeLink extends StringType<String> {
-    
+
     int minutes;
-    
+
     public ShowTypeLink(int minutes) {
       this.minutes = minutes;
     }
-    
+
     public String format(Object obj) {
       if (obj == null)
         return "-";
@@ -92,7 +92,7 @@ public class Summary extends Basic {
       return String.format("<a href='/trace/listType?type=%s&minutes=%d'>%s</a>", encodedType, minutes, type);
     }
   }
-  
+
   static private class HistogramType extends StringType<Stats> {
     public String format(Object obj) {
       Stats stat = (Stats) obj;
@@ -108,7 +108,7 @@ public class Summary extends Basic {
       sb.append("</tr></table>");
       return sb.toString();
     }
-    
+
     @Override
     public int compare(Stats o1, Stats o2) {
       for (int i = 0; i < o1.histogram.length; i++) {
@@ -121,13 +121,13 @@ public class Summary extends Basic {
       return 0;
     }
   }
-  
+
   @Override
   public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
     int minutes = getMinutes(req);
     long endTime = System.currentTimeMillis();
     long startTime = endTime - minutes * 60 * 1000;
-    
+
     Scanner scanner = getScanner(sb);
     if (scanner == null) {
       return;
@@ -154,7 +154,7 @@ public class Summary extends Basic {
             "Histogram",
             new HistogramType(),
             "Counts of spans of different duration. Columns start at milliseconds, and each column is ten times longer: tens of milliseconds, seconds, tens of seconds, etc.");
-    
+
     for (Entry<String,Stats> entry : summary.entrySet()) {
       Stats stat = entry.getValue();
       trace.addRow(entry.getKey(), stat.count, stat.min, stat.max, stat.average(), stat);

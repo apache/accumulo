@@ -26,19 +26,19 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
  * important, so that the authentication token carried in a {@link Connector} can be destroyed, invalidating future RPC operations from that {@link Connector}.
  */
 public class Credentials {
-  
+
   private Instance instance;
   private String principal;
   private AuthenticationToken token;
-  
+
   public Credentials(Instance instance, String principal, AuthenticationToken token) {
     this.instance = instance;
     this.principal = principal;
     this.token = token;
   }
-  
+
   public TCredentials toThrift() {
     return CredentialHelper.createSquelchError(principal, token, instance.getInstanceID());
   }
-  
+
 }

@@ -38,7 +38,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class LargeRowTest extends FunctionalTest {
-  
+
   private static final int SEED = 42;
   private static final String REG_TABLE_NAME = "lr";
   private static final String PRE_SPLIT_TABLE_NAME = "lrps";
@@ -46,124 +46,124 @@ public class LargeRowTest extends FunctionalTest {
   private static final int ROW_SIZE = 1 << 17;
   private static final int SPLIT_THRESH = ROW_SIZE * NUM_ROWS / 5;
   private static final int NUM_PRE_SPLITS = 9;
-  
+
   @Override
   public void cleanup() {}
-  
+
   @Override
   public Map<String,String> getInitialConfig() {
     return parseConfig(Property.TSERV_MAJC_DELAY + "=10ms");
   }
-  
+
   @Override
   public List<TableSetup> getTablesToCreate() {
-    
+
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];
     r.setSeed(SEED + 1);
-    
+
     TreeSet<Text> splitPoints = new TreeSet<Text>();
-    
+
     for (int i = 0; i < NUM_PRE_SPLITS; i++) {
       r.nextBytes(rowData);
       TestIngest.toPrintableChars(rowData);
       splitPoints.add(new Text(rowData));
     }
-    
+
     ArrayList<TableSetup> tables = new ArrayList<TableSetup>();
-    
+
     tables.add(new TableSetup(REG_TABLE_NAME));
     tables.add(new TableSetup(PRE_SPLIT_TABLE_NAME, splitPoints));
-    
+
     return tables;
     // return Collections.singletonList(new TableSetup(TABLE_NAME));
   }
-  
+
   @Override
   public void run() throws Exception {
-    
+
     // Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
     // logger.setLevel(Level.TRACE);
-    
+
     test1();
     test2();
   }
-  
+
   private void test1() throws Exception {
-    
+
     basicTest(REG_TABLE_NAME, 0);
-    
+
     getConnector().tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "" + SPLIT_THRESH);
-    
+
     UtilWaitThread.sleep(12000);
     Logger.getLogger(LargeRowTest.class).warn("checking splits");
     checkSplits(REG_TABLE_NAME, 1, 9);
-    
+
     verify(REG_TABLE_NAME);
   }
-  
+
   private void test2() throws Exception {
     basicTest(PRE_SPLIT_TABLE_NAME, NUM_PRE_SPLITS);
   }
-  
+
   private void basicTest(String table, int expectedSplits) throws Exception {
     BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
-    
+
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];
-    
+
     r.setSeed(SEED);
-    
+
     for (int i = 0; i < NUM_ROWS; i++) {
-      
+
       r.nextBytes(rowData);
       TestIngest.toPrintableChars(rowData);
-      
+
       Mutation mut = new Mutation(new Text(rowData));
       mut.put(new Text(""), new Text(""), new Value(("" + i).getBytes()));
       bw.addMutation(mut);
     }
-    
+
     bw.close();
-    
+
     checkSplits(table, expectedSplits, expectedSplits);
-    
+
     verify(table);
-    
+
     checkSplits(table, expectedSplits, expectedSplits);
-    
+
     getConnector().tableOperations().flush(table, null, null, false);
-    
+
     // verify while table flush is running
     verify(table);
-    
+
     // give split time to complete
     getConnector().tableOperations().flush(table, null, null, true);
-    
+
     checkSplits(table, expectedSplits, expectedSplits);
-    
+
     verify(table);
-    
+
     checkSplits(table, expectedSplits, expectedSplits);
   }
-  
+
   private void verify(String table) throws Exception {
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];
-    
+
     r.setSeed(SEED);
-    
+
     Scanner scanner = getConnector().createScanner(table, Constants.NO_AUTHS);
-    
+
     for (int i = 0; i < NUM_ROWS; i++) {
-      
+
       r.nextBytes(rowData);
       TestIngest.toPrintableChars(rowData);
-      
+
       scanner.setRange(new Range(new Text(rowData)));
-      
+
       int count = 0;
-      
+
       for (Entry<Key,Value> entry : scanner) {
         if (!entry.getKey().getRow().equals(new Text(rowData))) {
           throw new Exception("verification failed, unexpected row i =" + i);
@@ -173,13 +173,13 @@ public class LargeRowTest extends FunctionalTest {
         }
         count++;
       }
-      
+
       if (count != 1) {
         throw new Exception("verification failed, unexpected count i =" + i + " count=" + count);
       }
-      
+
     }
-    
+
   }
-  
+
 }

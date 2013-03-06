@@ -45,22 +45,22 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 
 public class GetSplitsCommand extends Command {
-  
+
   private Option outputFileOpt, maxSplitsOpt, base64Opt, verboseOpt;
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
-    
+
     final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
     final String m = cl.getOptionValue(maxSplitsOpt.getOpt());
     final int maxSplits = m == null ? 0 : Integer.parseInt(m);
     final boolean encode = cl.hasOption(base64Opt.getOpt());
     final boolean verbose = cl.hasOption(verboseOpt.getOpt());
-    
+
     final PrintLine p = outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile);
-    
+
     try {
       if (!verbose) {
         for (Text row : maxSplits > 0 ? shellState.getConnector().tableOperations().getSplits(tableName, maxSplits) : shellState.getConnector()
@@ -86,14 +86,14 @@ public class GetSplitsCommand extends Command {
           }
         }
       }
-      
+
     } finally {
       p.close();
     }
-    
+
     return 0;
   }
-  
+
   private static String encode(final boolean encode, final Text text) {
     if (text == null) {
       return null;
@@ -101,7 +101,7 @@ public class GetSplitsCommand extends Command {
     BinaryFormatter.getlength(text.getLength());
     return encode ? new String(Base64.encodeBase64(TextUtil.getBytes(text))) : BinaryFormatter.appendText(new StringBuilder(), text).toString();
   }
-  
+
   private static String obscuredTabletName(final KeyExtent extent) {
     MessageDigest digester;
     try {
@@ -114,37 +114,37 @@ public class GetSplitsCommand extends Command {
     }
     return new String(Base64.encodeBase64(digester.digest()));
   }
-  
+
   @Override
   public String description() {
     return "retrieves the current split points for tablets in the current table";
   }
-  
+
   @Override
   public int numArgs() {
     return 0;
   }
-  
+
   @Override
   public Options getOptions() {
     final Options opts = new Options();
-    
+
     outputFileOpt = new Option("o", "output", true, "local file to write the splits to");
     outputFileOpt.setArgName("file");
-    
+
     maxSplitsOpt = new Option("m", "max", true, "maximum number of splits to return (evenly spaced)");
     maxSplitsOpt.setArgName("num");
-    
+
     base64Opt = new Option("b64", "base64encoded", false, "encode the split points");
-    
+
     verboseOpt = new Option("v", "verbose", false, "print out the tablet information with start/end rows");
-    
+
     opts.addOption(outputFileOpt);
     opts.addOption(maxSplitsOpt);
     opts.addOption(base64Opt);
     opts.addOption(verboseOpt);
     opts.addOption(OptUtil.tableOpt("table to get splits for"));
-    
+
     return opts;
   }
 }

@@ -22,7 +22,7 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public abstract class BulkTest extends Test {
-  
+
   @Override
   public void visit(final State state, Properties props) throws Exception {
     Setup.run(state, new Runnable() {
@@ -34,10 +34,10 @@ public abstract class BulkTest extends Test {
           log.error(ex, ex);
         }
       }
-      
+
     });
   }
-  
+
   abstract protected void runLater(State state) throws Exception;
-  
+
 }

@@ -30,12 +30,12 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class DropTable extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     dropTable(state, props);
   }
-  
+
   public static void dropTable(State state, Properties props) throws Exception {
     String sourceUser = props.getProperty("source", "system");
     String principal;
@@ -48,12 +48,12 @@ public class DropTable extends Test {
       token = WalkingSecurity.get(state).getSysToken();
     }
     Connector conn = state.getInstance().getConnector(principal, token);
-    
+
     String tableName = WalkingSecurity.get(state).getTableName();
-    
+
     boolean exists = WalkingSecurity.get(state).getTableExists();
     boolean hasPermission = WalkingSecurity.get(state).canDeleteTable(CredentialHelper.create(principal, token, state.getInstance().getInstanceID()), tableName);
-    
+
     try {
       conn.tableOperations().delete(tableName);
     } catch (AccumuloSecurityException ae) {

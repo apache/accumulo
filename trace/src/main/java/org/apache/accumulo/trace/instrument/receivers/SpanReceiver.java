@@ -23,6 +23,6 @@ import java.util.Map;
  */
 public interface SpanReceiver {
   void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data);
-  
+
   void flush();
 }

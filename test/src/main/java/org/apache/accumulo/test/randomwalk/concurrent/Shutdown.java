@@ -30,16 +30,16 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.accumulo.trace.instrument.Tracer;
 
 public class Shutdown extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception  {
     log.debug("shutting down");
     SetGoalState.main(new String[]{MasterGoalState.CLEAN_STOP.name()});
-    
+
     while (!state.getConnector().instanceOperations().getTabletServers().isEmpty()) {
       UtilWaitThread.sleep(1000);
     }
-    
+
     while (true) {
         try {
           Client client = MasterClient.getConnection(HdfsZooInstance.getInstance());
@@ -53,5 +53,5 @@ public class Shutdown extends Test {
 
     log.debug("tablet servers stopped");
   }
-  
+
 }

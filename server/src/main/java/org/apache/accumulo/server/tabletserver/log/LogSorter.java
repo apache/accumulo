@@ -49,104 +49,104 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 /**
- * 
+ *
  */
 public class LogSorter {
-  
+
   private static final Logger log = Logger.getLogger(LogSorter.class);
   FileSystem fs;
   AccumuloConfiguration conf;
-  
+
   private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<String,LogProcessor>());
-  
+
   class LogProcessor implements Processor {
-    
+
     private FSDataInputStream input;
     private DataInputStream decryptingInput;
     private long bytesCopied = -1;
     private long sortStart = 0;
     private long sortStop = -1;
-    
+
     @Override
     public Processor newProcessor() {
       return new LogProcessor();
     }
-    
+
     @Override
     public void process(String child, byte[] data) {
       String dest = Constants.getRecoveryDir(conf) + "/" + child;
       String src = new String(data);
       String name = new Path(src).getName();
-      
+
       synchronized (currentWork) {
         if (currentWork.containsKey(name))
           return;
         currentWork.put(name, this);
       }
-      
+
       try {
         log.info("Copying " + src + " to " + dest);
         sort(name, new Path(src), dest);
       } finally {
         currentWork.remove(name);
       }
-      
+
     }
-    
+
     public void sort(String name, Path srcPath, String destPath) {
-      
+
       synchronized (this) {
         sortStart = System.currentTimeMillis();
       }
-      
+
       String formerThreadName = Thread.currentThread().getName();
       int part = 0;
       try {
-        
+
         // the following call does not throw an exception if the file/dir does not exist
         fs.delete(new Path(destPath), true);
-        
+
         FSDataInputStream tmpInput = fs.open(srcPath);
         DataInputStream tmpDecryptingInput = tmpInput;
-        
+
         Map<String,String> cryptoOpts = new HashMap<String,String>();
         tmpInput = DfsLogger.readHeader(fs, srcPath, cryptoOpts);
-        
+
         if (!cryptoOpts.containsKey(Property.CRYPTO_MODULE_CLASS.getKey())) {
-          
+
           log.debug("Log file " + name + " not encrypted");
-          
+
           synchronized (this) {
             this.input = tmpInput;
             this.decryptingInput = tmpInput;
           }
-          
+
         } else {
-          
+
           String cryptoModuleName = cryptoOpts.get(Property.CRYPTO_MODULE_CLASS.getKey());
           if (cryptoModuleName == null) {
             // If for whatever reason we didn't get a configured crypto module (old log file version, for instance)
             // default to using the default configuration entry (usually NullCipher).
             cryptoModuleName = AccumuloConfiguration.getDefaultConfiguration().get(Property.CRYPTO_MODULE_CLASS);
           }
-          
+
           synchronized (this) {
             this.input = tmpInput;
           }
-          
+
           @SuppressWarnings("deprecation")
           org.apache.accumulo.core.security.crypto.CryptoModule cryptoOps = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
               .getCryptoModule(cryptoModuleName);
           @SuppressWarnings("deprecation")
           InputStream decryptingInputStream = cryptoOps.getDecryptingInputStream(input, cryptoOpts);
-          
+
           tmpDecryptingInput = new DataInputStream(decryptingInputStream);
-          
+
           synchronized (this) {
             this.decryptingInput = tmpDecryptingInput;
           }
         }
-        
+
         final long bufferSize = conf.getMemoryInBytes(Property.TSERV_SORT_BUFFER_SIZE);
         Thread.currentThread().setName("Sorting " + name + " for recovery");
         while (true) {
@@ -190,7 +190,7 @@ public class LogSorter {
         }
       }
     }
-    
+
     private void writeBuffer(String destPath, ArrayList<Pair<LogFileKey,LogFileValue>> buffer, int part) throws IOException {
       String path = destPath + String.format("/part-r-%05d", part++);
       MapFile.Writer output = new MapFile.Writer(fs.getConf(), fs, path, LogFileKey.class, LogFileValue.class);
@@ -208,14 +208,14 @@ public class LogSorter {
         output.close();
       }
     }
-    
+
     synchronized void close() throws IOException {
       bytesCopied = input.getPos();
       input.close();
       decryptingInput.close();
       input = null;
     }
-    
+
     public synchronized long getSortTime() {
       if (sortStart > 0) {
         if (sortStop > 0)
@@ -224,15 +224,15 @@ public class LogSorter {
       }
       return 0;
     }
-    
+
     synchronized long getBytesCopied() throws IOException {
       return input == null ? bytesCopied : input.getPos();
     }
   }
-  
+
   ThreadPoolExecutor threadPool;
   private final Instance instance;
-  
+
   public LogSorter(Instance instance, FileSystem fs, AccumuloConfiguration conf) {
     this.instance = instance;
     this.fs = fs;
@@ -240,12 +240,12 @@ public class LogSorter {
     int threadPoolSize = conf.getCount(Property.TSERV_RECOVERY_MAX_CONCURRENT);
     this.threadPool = new SimpleThreadPool(threadPoolSize, this.getClass().getName());
   }
-  
+
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool) throws KeeperException, InterruptedException {
     this.threadPool = distWorkQThreadPool;
     new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZRECOVERY).startProcessing(new LogProcessor(), this.threadPool);
   }
-  
+
   public List<RecoveryStatus> getLogSorts() {
     List<RecoveryStatus> result = new ArrayList<RecoveryStatus>();
     synchronized (currentWork) {

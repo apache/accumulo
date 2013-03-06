@@ -41,47 +41,47 @@ import com.beust.jcommander.Parameter;
 
 /**
  * Runs the functional tests via map-reduce.
- * 
+ *
  * First, be sure everything is compiled.
- * 
+ *
  * Second, get a list of the tests you want to run:
- * 
+ *
  * <pre>
  *  $ python test/system/auto/run.py -l > tests
  * </pre>
- * 
+ *
  * Put the list of tests into HDFS:
- * 
+ *
  * <pre>
  *  $ hadoop fs -put tests /user/hadoop/tests
  * </pre>
- * 
+ *
  * Run the map-reduce job:
- * 
+ *
  * <pre>
  *  $ ./bin/accumulo accumulo.test.functional.RunTests --tests /user/hadoop/tests --output /user/hadoop/results
  * </pre>
- * 
+ *
  * Note that you will need to have some configuration in conf/accumulo-site.xml (to locate zookeeper). The map-reduce jobs will not use your local accumulo
  * instance.
- * 
+ *
  */
 public class RunTests extends Configured implements Tool {
-  
+
   static final public String JOB_NAME = "Functional Test Runner";
   private static final Logger log = Logger.getLogger(RunTests.class);
-  
+
   private Job job = null;
-  
+
   static class Opts extends Help {
     @Parameter(names="--tests", description="newline separated list of tests to run", required=true)
     String testFile;
     @Parameter(names="--output", description="destination for the results of tests in HDFS", required=true)
     String outputPath;
   }
-  
+
   static public class TestMapper extends Mapper<LongWritable,Text,Text,Text> {
-    
+
     @Override
     protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
       List<String> cmd = Arrays.asList("/usr/bin/python", "test/system/auto/run.py", "-t", value.toString());
@@ -106,27 +106,27 @@ public class RunTests extends Configured implements Tool {
       p.waitFor();
       context.write(value, result);
     }
-    
+
   }
-  
+
   @Override
   public int run(String[] args) throws Exception {
     job = new Job(getConf(), JOB_NAME);
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();
     opts.parseArgs(RunTests.class.getName(), args);
-    
+
     // this is like 1-2 tests per mapper
     Configuration conf = job.getConfiguration();
     conf.setInt("mapred.max.split.size", 40);
     conf.set("accumulo.home", System.getenv("ACCUMULO_HOME"));
     conf.setInt("mapred.task.timeout", 8 * 60 * 1000);
     conf.setBoolean("mapred.map.tasks.speculative.execution", false);
-    
+
     // set input
     job.setInputFormatClass(TextInputFormat.class);
     TextInputFormat.setInputPaths(job, new Path(opts.testFile));
-    
+
     // set output
     job.setOutputFormatClass(TextOutputFormat.class);
     FileSystem fs = FileSystem.get(conf);
@@ -136,23 +136,23 @@ public class RunTests extends Configured implements Tool {
       fs.delete(destination, true);
     }
     TextOutputFormat.setOutputPath(job, destination);
-    
+
     // configure default reducer: put the results into one file
     job.setNumReduceTasks(1);
-    
+
     // set mapper
     job.setMapperClass(TestMapper.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Text.class);
-    
+
     // don't do anything with the results (yet) a summary would be nice
     job.setNumReduceTasks(0);
-    
+
     // submit the job
     log.info("Starting tests");
     return 0;
   }
-  
+
   /**
    * @param args
    * @throws Exception
@@ -164,5 +164,5 @@ public class RunTests extends Configured implements Tool {
     if (!tests.job.isSuccessful())
       System.exit(1);
   }
-  
+
 }

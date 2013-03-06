@@ -22,10 +22,10 @@ import java.lang.reflect.Modifier;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
 public class Main {
-  
+
   public static void main(String[] args) throws Exception {
     Runnable r = null;
-    
+
     try {
       if (args.length == 0) {
         printUsage();
@@ -33,17 +33,17 @@ public class Main {
       }
       final String argsToPass[] = new String[args.length - 1];
       System.arraycopy(args, 1, argsToPass, 0, args.length - 1);
-      
+
       Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
 
       Class<?> vfsClassLoader = AccumuloClassLoader.getClassLoader().loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
 
       ClassLoader cl = (ClassLoader) vfsClassLoader.getMethod("getClassLoader", new Class[] {}).invoke(null, new Object[] {});
-      
+
       Class<?> runTMP = null;
 
       Thread.currentThread().setContextClassLoader(cl);
-      
+
       if (args[0].equals("master")) {
         runTMP = cl.loadClass("org.apache.accumulo.server.master.Master");
       } else if (args[0].equals("tserver")) {
@@ -102,7 +102,7 @@ public class Main {
           }
         }
       };
-      
+
       Thread t = new Thread(r, args[0]);
       t.setContextClassLoader(cl);
       t.start();
@@ -111,7 +111,7 @@ public class Main {
       t.printStackTrace(System.err);
     }
   }
-  
+
   private static void printUsage() {
     System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | tracer | proxy | <accumulo class> args");
   }

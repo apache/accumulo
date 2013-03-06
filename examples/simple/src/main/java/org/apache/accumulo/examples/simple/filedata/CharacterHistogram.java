@@ -45,14 +45,14 @@ import com.beust.jcommander.Parameter;
  */
 public class CharacterHistogram extends Configured implements Tool {
   public static final String VIS = "vis";
-  
+
   public static void main(String[] args) throws Exception {
     System.exit(ToolRunner.run(CachedConfiguration.getInstance(), new CharacterHistogram(), args));
   }
-  
+
   public static class HistMapper extends Mapper<List<Entry<Key,Value>>,InputStream,Text,Mutation> {
     private ColumnVisibility cv;
-    
+
     public void map(List<Entry<Key,Value>> k, InputStream v, Context context) throws IOException, InterruptedException {
       Long[] hist = new Long[256];
       for (int i = 0; i < hist.length; i++)
@@ -67,19 +67,19 @@ public class CharacterHistogram extends Configured implements Tool {
       m.put("info", "hist", cv, new Value(SummingArrayCombiner.STRING_ARRAY_ENCODER.encode(Arrays.asList(hist))));
       context.write(new Text(), m);
     }
-    
+
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
       cv = new ColumnVisibility(context.getConfiguration().get(VIS, ""));
     }
   }
-  
+
   static class Opts extends ClientOnRequiredTable {
     @Parameter(names="--vis")
     String visibilities = "";
   }
-  
-  
+
+
   @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), this.getClass().getSimpleName());
@@ -91,15 +91,15 @@ public class CharacterHistogram extends Configured implements Tool {
     job.setInputFormatClass(ChunkInputFormat.class);
     opts.setAccumuloConfigs(job);
     job.getConfiguration().set(VIS, opts.visibilities.toString());
-    
+
     job.setMapperClass(HistMapper.class);
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(Mutation.class);
-    
+
     job.setNumReduceTasks(0);
-    
+
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    
+
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }

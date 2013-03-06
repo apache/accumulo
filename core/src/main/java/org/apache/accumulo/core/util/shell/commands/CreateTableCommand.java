@@ -52,27 +52,27 @@ public class CreateTableCommand extends Command {
   private Option base64Opt;
   private Option createTableOptFormatter;
   public static String testTable;
-  
+
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException, IOException, ClassNotFoundException {
-    
+
     final String testTableName = cl.getArgs()[0];
-    
+
     if (!testTableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
       shellState.getReader().printString("Only letters, numbers and underscores are allowed for use in table names. \n");
       throw new IllegalArgumentException();
     }
-    
+
     final String tableName = cl.getArgs()[0];
     if (shellState.getConnector().tableOperations().exists(tableName)) {
       throw new TableExistsException(null, tableName, null);
     }
     final SortedSet<Text> partitions = new TreeSet<Text>();
     final boolean decode = cl.hasOption(base64Opt.getOpt());
-    
+
     if (cl.hasOption(createTableOptSplit.getOpt())) {
       final String f = cl.getOptionValue(createTableOptSplit.getOpt());
-      
+
       String line;
       Scanner file = new Scanner(new File(f));
       while (file.hasNextLine()) {
@@ -88,19 +88,19 @@ public class CreateTableCommand extends Command {
       }
       partitions.addAll(shellState.getConnector().tableOperations().getSplits(oldTable));
     }
-    
+
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
       if (!shellState.getConnector().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
     }
-    
+
     TimeType timeType = TimeType.MILLIS;
     if (cl.hasOption(createTableOptTimeLogical.getOpt())) {
       timeType = TimeType.LOGICAL;
     }
-    
+
     // create table
     shellState.getConnector().tableOperations().create(tableName, true, timeType);
     if (partitions.size() > 0) {
@@ -108,13 +108,13 @@ public class CreateTableCommand extends Command {
     }
     shellState.setTableName(tableName); // switch shell to new table
     // context
-    
+
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
       for (String key : IteratorUtil.generateInitialTableProperties(true).keySet()) {
         shellState.getConnector().tableOperations().removeProperty(tableName, key);
       }
     }
-    
+
     // Copy options if flag was set
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       if (shellState.getConnector().tableOperations().exists(tableName)) {
@@ -127,7 +127,7 @@ public class CreateTableCommand extends Command {
         }
       }
     }
-    
+
     if (cl.hasOption(createTableOptEVC.getOpt())) {
       try {
         shellState.getConnector().tableOperations().addConstraint(tableName, VisibilityConstraint.class.getName());
@@ -135,31 +135,31 @@ public class CreateTableCommand extends Command {
         Shell.log.warn(e.getMessage() + " while setting visibility constraint, but table was created");
       }
     }
-    
+
     // Load custom formatter if set
     if (cl.hasOption(createTableOptFormatter.getOpt())) {
       final String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
-      
+
       shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
     }
-    
+
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "creates a new table, with optional aggregators and optionally pre-split";
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <tableName>";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     createTableOptCopyConfig = new Option("cc", "copy-config", true, "table to copy configuration from");
     createTableOptCopySplits = new Option("cs", "copy-splits", true, "table to copy current splits from");
     createTableOptSplit = new Option("sf", "splits-file", true, "file with a newline-separated list of rows to split the table with");
@@ -169,25 +169,25 @@ public class CreateTableCommand extends Command {
     createTableOptEVC = new Option("evc", "enable-visibility-constraint", false,
         "prevent users from writing data they cannot read.  When enabling this, consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
-    
+
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
     createTableOptFormatter.setArgName("className");
-    
+
     // Splits and CopySplits are put in an optionsgroup to make them
     // mutually exclusive
     final OptionGroup splitOrCopySplit = new OptionGroup();
     splitOrCopySplit.addOption(createTableOptSplit);
     splitOrCopySplit.addOption(createTableOptCopySplits);
-    
+
     final OptionGroup timeGroup = new OptionGroup();
     timeGroup.addOption(createTableOptTimeLogical);
     timeGroup.addOption(createTableOptTimeMillis);
-    
+
     base64Opt = new Option("b64", "base64encoded", false, "decode encoded split points");
     o.addOption(base64Opt);
-    
+
     o.addOptionGroup(splitOrCopySplit);
     o.addOptionGroup(timeGroup);
     o.addOption(createTableOptSplit);
@@ -195,10 +195,10 @@ public class CreateTableCommand extends Command {
     o.addOption(createTableNoDefaultIters);
     o.addOption(createTableOptEVC);
     o.addOption(createTableOptFormatter);
-    
+
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 1;

@@ -31,22 +31,22 @@ import org.apache.log4j.Logger;
 // A ReadWriteLock that can be implemented in ZooKeeper.  Features the ability to store data
 // with the lock, and recover the lock using that data to find the lock.
 public class DistributedReadWriteLock implements java.util.concurrent.locks.ReadWriteLock {
-  
+
   static enum LockType {
     READ, WRITE,
   };
-  
+
   // serializer for lock type and user data
   static class ParsedLock {
     public ParsedLock(LockType type, byte[] userData) {
       this.type = type;
       this.userData = Arrays.copyOf(userData, userData.length);
     }
-    
+
     public ParsedLock(byte[] lockData) {
       if (lockData == null || lockData.length < 1)
         throw new IllegalArgumentException();
-      
+
       int split = -1;
       for (int i = 0; i < lockData.length; i++) {
         if (lockData[i] == ':') {
@@ -54,22 +54,22 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           break;
         }
       }
-      
+
       if (split == -1)
         throw new IllegalArgumentException();
-      
+
       this.type = LockType.valueOf(new String(lockData, 0, split));
       this.userData = Arrays.copyOfRange(lockData, split + 1, lockData.length);
     }
-    
+
     public LockType getType() {
       return type;
     }
-    
+
     public byte[] getUserData() {
       return userData;
     }
-    
+
     public byte[] getLockData() {
       byte typeBytes[] = type.name().getBytes();
       byte[] result = new byte[userData.length + 1 + typeBytes.length];
@@ -78,47 +78,47 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       System.arraycopy(userData, 0, result, typeBytes.length + 1, userData.length);
       return result;
     }
-    
+
     private LockType type;
     private byte[] userData;
   }
-  
+
   // This kind of lock can be easily implemented by ZooKeeper
   // You make an entry at the bottom of the queue, readers run when there are no writers ahead of them,
   // a writer only runs when they are at the top of the queue.
   public interface QueueLock {
     SortedMap<Long,byte[]> getEarlierEntries(long entry);
-    
+
     void removeEntry(long entry);
-    
+
     long addEntry(byte[] data);
   }
-  
+
   public static final Logger log = Logger.getLogger(DistributedReadWriteLock.class);
-  
+
   static class ReadLock implements Lock {
-    
+
     QueueLock qlock;
     byte[] userData;
     long entry = -1;
     long lastRead = -1;
-    
+
     ReadLock(QueueLock qlock, byte[] userData) {
       this.qlock = qlock;
       this.userData = userData;
     }
-    
+
     // for recovery
     ReadLock(QueueLock qlock, byte[] userData, long entry) {
       this.qlock = qlock;
       this.userData = userData;
       this.entry = entry;
     }
-    
+
     protected LockType lockType() {
       return LockType.READ;
     }
-    
+
     @Override
     public void lock() {
       while (true) {
@@ -130,7 +130,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         }
       }
     }
-    
+
     @Override
     public void lockInterruptibly() throws InterruptedException {
       while (!Thread.currentThread().isInterrupted()) {
@@ -138,7 +138,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           return;
       }
     }
-    
+
     @Override
     public boolean tryLock() {
       if (entry == -1) {
@@ -156,7 +156,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry + " userData " + new String(this.userData) + " lockType "
           + lockType());
     }
-    
+
     @Override
     public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
       long now = System.currentTimeMillis();
@@ -170,7 +170,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       }
       return false;
     }
-    
+
     @Override
     public void unlock() {
       if (entry == -1)
@@ -179,28 +179,28 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       qlock.removeEntry(entry);
       entry = -1;
     }
-    
+
     @Override
     public Condition newCondition() {
       throw new NotImplementedException();
     }
   }
-  
+
   static class WriteLock extends ReadLock {
-    
+
     WriteLock(QueueLock qlock, byte[] userData) {
       super(qlock, userData);
     }
-    
+
     WriteLock(QueueLock qlock, byte[] userData, long entry) {
       super(qlock, userData, entry);
     }
-    
+
     @Override
     protected LockType lockType() {
       return LockType.WRITE;
     }
-    
+
     @Override
     public boolean tryLock() {
       if (entry == -1) {
@@ -217,15 +217,15 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       return false;
     }
   }
-  
+
   private QueueLock qlock;
   private byte[] data;
-  
+
   public DistributedReadWriteLock(QueueLock qlock, byte[] data) {
     this.qlock = qlock;
     this.data = Arrays.copyOf(data, data.length);
   }
-  
+
   static public Lock recoverLock(QueueLock qlock, byte[] data) {
     SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(Long.MAX_VALUE);
     for (Entry<Long,byte[]> entry : entries.entrySet()) {
@@ -241,12 +241,12 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     }
     return null;
   }
-  
+
   @Override
   public Lock readLock() {
     return new ReadLock(qlock, data);
   }
-  
+
   @Override
   public Lock writeLock() {
     return new WriteLock(qlock, data);

@@ -47,7 +47,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class BulkImporterTest {
-  
+
   static final SortedSet<KeyExtent> fakeMetaData = new TreeSet<KeyExtent>();
   static final Text tableId = new Text("1");
   static {
@@ -57,48 +57,48 @@ public class BulkImporterTest {
     }
     fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().getEndRow()));
   }
-  
+
   class MockTabletLocator extends TabletLocator {
     int invalidated = 0;
-    
+
     @Override
     public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(), "localhost");
     }
-    
+
     @Override
     public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials) throws AccumuloException,
         AccumuloSecurityException, TableNotFoundException {
       throw new NotImplementedException();
     }
-    
+
     @Override
     public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
         TableNotFoundException {
       throw new NotImplementedException();
     }
-    
+
     @Override
     public void invalidateCache(KeyExtent failedExtent) {
       invalidated++;
     }
-    
+
     @Override
     public void invalidateCache(Collection<KeyExtent> keySet) {
       throw new NotImplementedException();
     }
-    
+
     @Override
     public void invalidateCache() {
       throw new NotImplementedException();
     }
-    
+
     @Override
     public void invalidateCache(String server) {
       throw new NotImplementedException();
     }
   }
-  
+
   @Test
   public void testFindOverlappingTablets() throws Exception {
     TCredentials credentials = null;
@@ -139,7 +139,7 @@ public class BulkImporterTest {
     Assert.assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")), overlaps.get(2).tablet_extent);
     Assert.assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")), overlaps.get(3).tablet_extent);
     Assert.assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
-    
+
     List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(acuConf, fs, locator, new Path(file), new KeyExtent(tableId, new Text("h"), new Text(
         "b")), credentials);
     Assert.assertEquals(3, overlaps2.size());
@@ -148,5 +148,5 @@ public class BulkImporterTest {
     Assert.assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")), overlaps2.get(2).tablet_extent);
     Assert.assertEquals(locator.invalidated, 1);
   }
-  
+
 }

@@ -52,46 +52,46 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 class CleanUp extends MasterRepo {
-  
+
   final private static Logger log = Logger.getLogger(CleanUp.class);
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   private String tableId;
-  
+
   private long creationTime;
-  
+
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
-    
+
     /*
      * handle the case where we start executing on a new machine where the current time is in the past relative to the previous machine
-     * 
+     *
      * if the new machine has time in the future, that will work ok w/ hasCycled
      */
     if (System.currentTimeMillis() < creationTime) {
       creationTime = System.currentTimeMillis();
     }
-    
+
   }
-  
+
   public CleanUp(String tableId) {
     this.tableId = tableId;
     creationTime = System.currentTimeMillis();
   }
-  
+
   @Override
   public long isReady(long tid, Master master) throws Exception {
     if (!master.hasCycled(creationTime)) {
       return 50;
     }
-    
+
     boolean done = true;
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
     Scanner scanner = master.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     MetaDataTableScanner.configureScanner(scanner, master);
     scanner.setRange(tableRange);
-    
+
     KeyExtent prevExtent = null;
     for (Entry<Key,Value> entry : scanner) {
       TabletLocationState locationState = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
@@ -101,7 +101,7 @@ class CleanUp extends MasterRepo {
         break;
       }
       prevExtent = locationState.extent;
-      
+
       TabletState state = locationState.getState(master.onlineTabletServers());
       if (state.equals(TabletState.ASSIGNED) || state.equals(TabletState.HOSTED)) {
         log.debug("Still waiting for table to be deleted: " + tableId + " locationState: " + locationState);
@@ -112,17 +112,17 @@ class CleanUp extends MasterRepo {
 
     if (!done)
       return 50;
-    
+
     return 0;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    
+
     master.clearMigrations(tableId);
-    
+
     int refCount = 0;
-    
+
     try {
       // look for other tables that references this tables files
       Connector conn = master.getConnector();
@@ -133,7 +133,7 @@ class CleanUp extends MasterRepo {
         IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
         GrepIterator.setTerm(cfg, "../" + tableId + "/");
         bs.addScanIterator(cfg);
-        
+
         for (Entry<Key,Value> entry : bs) {
           if (entry.getKey().getColumnQualifier().toString().startsWith("../" + tableId + "/")) {
             refCount++;
@@ -142,12 +142,12 @@ class CleanUp extends MasterRepo {
       } finally {
         bs.close();
       }
-      
+
     } catch (Exception e) {
       refCount = -1;
       log.error("Failed to scan !METADATA looking for references to deleted table " + tableId, e);
     }
-    
+
     // remove metadata table entries
     try {
       // Intentionally do not pass master lock. If master loses lock, this operation may complete before master can kill itself.
@@ -157,14 +157,14 @@ class CleanUp extends MasterRepo {
     } catch (Exception e) {
       log.error("error deleting " + tableId + " from metadata table", e);
     }
-    
+
     // remove any problem reports the table may have
     try {
       ProblemReports.getInstance().deleteProblemReports(tableId);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table " + tableId, e);
     }
-    
+
     if (refCount == 0) {
       // delete the map files
       try {
@@ -174,7 +174,7 @@ class CleanUp extends MasterRepo {
         log.error("Unable to remove deleted table directory", e);
       }
     }
-    
+
     // remove table from zookeeper
     try {
       TableManager.getInstance().removeTable(tableId);
@@ -182,53 +182,53 @@ class CleanUp extends MasterRepo {
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);
     }
-    
+
     // remove any permissions associated with this table
     try {
       AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableId);
     } catch (ThriftSecurityException e) {
       log.error(e.getMessage(), e);
     }
-    
+
     Utils.unreserveTable(tableId, tid, true);
-    
+
     Logger.getLogger(CleanUp.class).debug("Deleted table " + tableId);
-    
+
     return null;
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
     // nothing to do
   }
-  
+
 }
 
 public class DeleteTable extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   private String tableId;
-  
+
   public DeleteTable(String tableId) {
     this.tableId = tableId;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
     environment.getEventCoordinator().event("deleting table %s ", tableId);
     return new CleanUp(tableId);
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
     Utils.unreserveTable(tableId, tid, true);
   }
-  
+
 }

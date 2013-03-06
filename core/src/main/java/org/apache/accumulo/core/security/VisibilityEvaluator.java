@@ -23,23 +23,23 @@ import org.apache.accumulo.core.security.ColumnVisibility.Node;
 
 public class VisibilityEvaluator {
   private Authorizations auths;
-  
+
   static Authorizations escape(Authorizations auths) {
     ArrayList<byte[]> retAuths = new ArrayList<byte[]>(auths.getAuthorizations().size());
-    
+
     for (byte[] auth : auths.getAuthorizations())
       retAuths.add(escape(auth, false));
-    
+
     return new Authorizations(retAuths);
   }
-  
+
   public static byte[] escape(byte[] auth, boolean quote) {
     int escapeCount = 0;
-    
+
     for (int i = 0; i < auth.length; i++)
       if (auth[i] == '"' || auth[i] == '\\')
         escapeCount++;
-    
+
     if (escapeCount > 0 || quote) {
       byte[] escapedAuth = new byte[auth.length + escapeCount + (quote ? 2 : 0)];
       int index = quote ? 1 : 0;
@@ -48,7 +48,7 @@ public class VisibilityEvaluator {
           escapedAuth[index++] = '\\';
         escapedAuth[index++] = auth[i];
       }
-      
+
       if (quote) {
         escapedAuth[0] = '"';
         escapedAuth[escapedAuth.length - 1] = '"';
@@ -62,22 +62,22 @@ public class VisibilityEvaluator {
   VisibilityEvaluator(Collection<byte[]> authorizations) {
     this(new Authorizations(authorizations));
   }
-  
+
   /**
    * The VisibilityEvaluator computes a trie from the given Authorizations, that ColumnVisibility expressions can be evaluated against.
    */
   public VisibilityEvaluator(Authorizations authorizations) {
     this.auths = escape(authorizations);
   }
-  
+
   public Authorizations getAuthorizations() {
     return new Authorizations(auths.getAuthorizations());
   }
-  
+
   public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
     return evaluate(visibility.getExpression(), visibility.getParseTree());
   }
-  
+
   private final boolean evaluate(final byte[] expression, final Node root) throws VisibilityParseException {
     switch (root.type) {
       case TERM:

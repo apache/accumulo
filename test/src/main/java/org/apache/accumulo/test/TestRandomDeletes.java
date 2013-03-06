@@ -40,30 +40,30 @@ import org.apache.log4j.Logger;
 public class TestRandomDeletes {
   private static final Logger log = Logger.getLogger(TestRandomDeletes.class);
   private static Authorizations auths = new Authorizations("L1", "L2", "G1", "GROUP2");
-  
+
   static private class RowColumn implements Comparable<RowColumn> {
     Text row;
     Column column;
     long timestamp;
-    
+
     public RowColumn(Text row, Column column, long timestamp) {
       this.row = row;
       this.column = column;
       this.timestamp = timestamp;
     }
-    
+
     public int compareTo(RowColumn other) {
       int result = row.compareTo(other.row);
       if (result != 0)
         return result;
       return column.compareTo(other.column);
     }
-    
+
     public String toString() {
       return row.toString() + ":" + column.toString();
     }
   }
-  
+
   private static TreeSet<RowColumn> scanAll(ClientOpts opts, ScannerOpts scanOpts, Text t) throws Exception {
     TreeSet<RowColumn> result = new TreeSet<RowColumn>();
     Connector conn = opts.getConnector();
@@ -77,15 +77,15 @@ public class TestRandomDeletes {
     }
     return result;
   }
-  
+
   private static long scrambleDeleteHalfAndCheck(ClientOpts opts, ScannerOpts scanOpts, BatchWriterOpts bwOpts, Text t, Set<RowColumn> rows) throws Exception {
     int result = 0;
     ArrayList<RowColumn> entries = new ArrayList<RowColumn>(rows);
     java.util.Collections.shuffle(entries);
-    
+
     Connector connector = opts.getConnector();
     BatchWriter mutations = connector.createBatchWriter(t.toString(), bwOpts.getBatchWriterConfig());
-    
+
     for (int i = 0; i < (entries.size() + 1) / 2; i++) {
       RowColumn rc = entries.get(i);
       Mutation m = new Mutation(rc.row);
@@ -94,9 +94,9 @@ public class TestRandomDeletes {
       rows.remove(rc);
       result++;
     }
-    
+
     mutations.close();
-    
+
     Set<RowColumn> current = scanAll(opts, scanOpts, t);
     current.removeAll(rows);
     if (current.size() > 0) {
@@ -104,22 +104,22 @@ public class TestRandomDeletes {
     }
     return result;
   }
-  
+
   static public void main(String[] args) {
-    
+
     ClientOpts opts = new ClientOpts();
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(TestRandomDeletes.class.getName(), args, scanOpts, bwOpts);
-    
+
     try {
       long deleted = 0;
-      
+
       Text t = new Text("test_ingest");
-      
+
       TreeSet<RowColumn> doomed = scanAll(opts, scanOpts, t);
       log.info("Got " + doomed.size() + " rows");
-      
+
       long startTime = System.currentTimeMillis();
       while (true) {
         long half = scrambleDeleteHalfAndCheck(opts, scanOpts, bwOpts, t, doomed);
@@ -128,7 +128,7 @@ public class TestRandomDeletes {
           break;
       }
       long stopTime = System.currentTimeMillis();
-      
+
       long elapsed = (stopTime - startTime) / 1000;
       log.info("deleted " + deleted + " values in " + elapsed + " seconds");
     } catch (Exception e) {

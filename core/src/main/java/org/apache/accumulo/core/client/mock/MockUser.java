@@ -27,7 +27,7 @@ public class MockUser {
   final String name;
   AuthenticationToken token;
   Authorizations authorizations;
-  
+
   MockUser(String principal, AuthenticationToken token, Authorizations auths) {
     this.name = principal;
     this.token = token.clone();

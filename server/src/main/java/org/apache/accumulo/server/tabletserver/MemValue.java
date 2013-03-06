@@ -22,12 +22,12 @@ import java.io.IOException;
 import org.apache.accumulo.core.data.Value;
 
 /**
- * 
+ *
  */
 public class MemValue extends Value {
   int kvCount;
   boolean merged = false;
-  
+
   /**
    * @param value
    *          Value
@@ -38,17 +38,17 @@ public class MemValue extends Value {
     super(value);
     this.kvCount = kv;
   }
-  
+
   public MemValue() {
     super();
     this.kvCount = Integer.MAX_VALUE;
   }
-  
+
   public MemValue(Value value, int kv) {
     super(value);
     this.kvCount = kv;
   }
-  
+
   // Override
   public void write(final DataOutput out) throws IOException {
     if (!merged) {
@@ -63,7 +63,7 @@ public class MemValue extends Value {
     }
     super.write(out);
   }
-  
+
   public void set(final byte[] b) {
     super.set(b);
     merged = false;
@@ -73,17 +73,17 @@ public class MemValue extends Value {
     super.copy(b);
     merged = false;
   }
-  
+
   /**
    * Takes a Value and will take out the embedded kvCount, and then return that value while replacing the Value with the original unembedded version
-   * 
+   *
    * @param v
    * @return The kvCount embedded in v.
    */
   public static int splitKVCount(Value v) {
     if (v instanceof MemValue)
       return ((MemValue) v).kvCount;
-    
+
     byte[] originalBytes = new byte[v.getSize() - 4];
     byte[] combined = v.get();
     System.arraycopy(combined, 4, originalBytes, 0, originalBytes.length);

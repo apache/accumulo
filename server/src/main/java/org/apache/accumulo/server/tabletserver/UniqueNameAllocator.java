@@ -26,9 +26,9 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 /**
  * Allocates unique names for an accumulo instance. The names are unique for the lifetime of the instance.
- * 
+ *
  * This is useful for filenames because it makes caching easy.
- * 
+ *
  */
 
 public class UniqueNameAllocator {
@@ -36,17 +36,17 @@ public class UniqueNameAllocator {
   private long maxAllocated = 0;
   private String nextNamePath;
   private Random rand;
-  
+
   private UniqueNameAllocator() {
     nextNamePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZNEXT_FILE;
     rand = new Random();
   }
-  
+
   public synchronized String getNextName() {
-    
+
     while (next >= maxAllocated) {
       final int allocate = 100 + rand.nextInt(100);
-      
+
       try {
         byte[] max = ZooReaderWriter.getRetryingInstance().mutate(nextNamePath, null, ZooUtil.PRIVATE, new ZooReaderWriter.Mutator() {
           public byte[] mutate(byte[] currentValue) throws Exception {
@@ -55,25 +55,25 @@ public class UniqueNameAllocator {
             return Long.toString(l, Character.MAX_RADIX).getBytes();
           }
         });
-        
+
         maxAllocated = Long.parseLong(new String(max), Character.MAX_RADIX);
         next = maxAllocated - allocate;
-        
+
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
     }
-    
+
     return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]));
   }
-  
+
   private static UniqueNameAllocator instance = null;
-  
+
   public static synchronized UniqueNameAllocator getInstance() {
     if (instance == null)
       instance = new UniqueNameAllocator();
-    
+
     return instance;
   }
-  
+
 }

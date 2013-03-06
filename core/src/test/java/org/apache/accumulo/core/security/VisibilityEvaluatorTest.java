@@ -30,31 +30,31 @@ import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.Test;
 
 public class VisibilityEvaluatorTest {
-  
+
   @Test
   public void testVisibilityEvaluator() throws VisibilityParseException {
     VisibilityEvaluator ct = new VisibilityEvaluator(ByteArraySet.fromStrings("one", "two", "three", "four"));
-    
+
     // test for and
     assertTrue("'and' test", ct.evaluate(new ColumnVisibility("one&two")));
-    
+
     // test for or
     assertTrue("'or' test", ct.evaluate(new ColumnVisibility("foor|four")));
-    
+
     // test for and and or
     assertTrue("'and' and 'or' test", ct.evaluate(new ColumnVisibility("(one&two)|(foo&bar)")));
-    
+
     // test for false negatives
     for (String marking : new String[] {"one", "one|five", "five|one", "(one)", "(one&two)|(foo&bar)", "(one|foo)&three", "one|foo|bar", "(one|foo)|bar",
         "((one|foo)|bar)&two"}) {
       assertTrue(marking, ct.evaluate(new ColumnVisibility(marking)));
     }
-    
+
     // test for false positives
     for (String marking : new String[] {"five", "one&five", "five&one", "((one|foo)|bar)&goober"}) {
       assertFalse(marking, ct.evaluate(new ColumnVisibility(marking)));
     }
-    
+
     // test missing separators; these should throw an exception
     for (String marking : new String[] {"one(five)", "(five)one", "(one)(two)", "a|(b(c))"}) {
       try {
@@ -64,7 +64,7 @@ public class VisibilityEvaluatorTest {
         // all is good
       }
     }
-    
+
     // test unexpected separator
     for (String marking : new String[] {"&(five)", "|(five)", "(five)&", "five|", "a|(b)&", "(&five)", "(five|)"}) {
       try {
@@ -74,7 +74,7 @@ public class VisibilityEvaluatorTest {
         // all is good
       }
     }
-    
+
     // test mismatched parentheses
     for (String marking : new String[] {"(", ")", "(a&b", "b|a)"}) {
       try {
@@ -85,23 +85,23 @@ public class VisibilityEvaluatorTest {
       }
     }
   }
-  
+
   @Test
   public void testQuotedExpressions() throws VisibilityParseException {
     VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations("A#C", "A\"C", "A\\C", "AC"));
-    
+
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A#C") + "|" + quote("A?C"))));
     assertTrue(ct.evaluate(new ColumnVisibility(new ColumnVisibility(quote("A#C") + "|" + quote("A?C")).flatten())));
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C"))));
     assertTrue(ct.evaluate(new ColumnVisibility(new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C")).flatten())));
     assertTrue(ct.evaluate(new ColumnVisibility("(" + quote("A\"C") + "|B)&(" + quote("A#C") + "|D)")));
-    
+
     assertFalse(ct.evaluate(new ColumnVisibility(quote("A#C") + "&B")));
-    
+
     assertTrue(ct.evaluate(new ColumnVisibility(quote("A#C"))));
     assertTrue(ct.evaluate(new ColumnVisibility("(" + quote("A#C") + ")")));
   }
-  
+
   @Test
   public void testQuote() {
     assertEquals("\"A#C\"", quote("A#C"));
@@ -111,11 +111,11 @@ public class VisibilityEvaluatorTest {
     assertEquals("\"九\"", quote("九"));
     assertEquals("\"五十\"", quote("五十"));
   }
-  
+
   @Test
   public void testNonAscii() throws VisibilityParseException, UnsupportedEncodingException {
     VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations(Charset.forName("UTF-8"), "五", "六", "八", "九", "五十"));
-    
+
     assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "|" + quote("四"), "UTF-8")));
     assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&" + quote("四"), "UTF-8")));
     assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("九") + ")", "UTF-8")));

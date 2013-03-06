@@ -39,7 +39,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class BulkPlusOne extends BulkTest {
-  
+
   public static final int LOTS = 100000;
   public static final int COLS = 10;
   public static final int HEX_SIZE = (int) Math.ceil(Math.log(LOTS) / Math.log(16));
@@ -54,7 +54,7 @@ public class BulkPlusOne extends BulkTest {
   }
   public static final Text MARKER_CF = new Text("marker");
   static final AtomicLong counter = new AtomicLong();
-  
+
   private static final Value ONE = new Value("1".getBytes());
 
   static void bulkLoadLots(Logger log, State state, Value value) throws Exception {
@@ -65,22 +65,22 @@ public class BulkPlusOne extends BulkTest {
     final FileSystem fs = (FileSystem) state.get("fs");
     fs.mkdirs(fail);
     final int parts = rand.nextInt(10) + 1;
-    
+
     TreeSet<Integer> startRows = new TreeSet<Integer>();
     startRows.add(0);
     while (startRows.size() < parts)
       startRows.add(rand.nextInt(LOTS));
-    
+
     List<String> printRows = new ArrayList<String>(startRows.size());
     for (Integer row : startRows)
       printRows.add(String.format(FMT, row));
-    
+
     String markerColumnQualifier = String.format("%07d", counter.incrementAndGet());
     log.debug("preparing bulk files with start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
-    
+
     List<Integer> rows = new ArrayList<Integer>(startRows);
     rows.add(LOTS);
-    
+
     for (int i = 0; i < parts; i++) {
       String fileName = dir + "/" + String.format("part_%d.", i) + RFile.EXTENSION;
       FileSKVWriter f = FileOperations.getInstance().openWriter(fileName, fs, fs.getConf(), defaultConfiguration);
@@ -105,11 +105,11 @@ public class BulkPlusOne extends BulkTest {
     fs.delete(fail, true);
     log.debug("Finished bulk import, start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
   }
-  
+
   @Override
   protected void runLater(State state) throws Exception {
     log.info("Incrementing");
     bulkLoadLots(log, state, one);
   }
-  
+
 }

@@ -26,43 +26,43 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.hadoop.io.Text;
 
 public abstract class ScaleTest {
-  
+
   private Connector conn;
   private Properties scaleProps;
   private Properties testProps;
   private int numTabletServers;
   private long startTime;
-  
+
   public void init(Properties scaleProps, Properties testProps, int numTabletServers) throws AccumuloException, AccumuloSecurityException {
-    
+
     this.scaleProps = scaleProps;
     this.testProps = testProps;
     this.numTabletServers = numTabletServers;
-    
+
     // get properties to create connector
     String instanceName = this.scaleProps.getProperty("INSTANCE_NAME");
     String zookeepers = this.scaleProps.getProperty("ZOOKEEPERS");
     String user = this.scaleProps.getProperty("USER");
     String password = this.scaleProps.getProperty("PASSWORD");
-    
+
     conn = new ZooKeeperInstance(instanceName, zookeepers).getConnector(user, password.getBytes());
   }
-  
+
   protected void startTimer() {
     startTime = System.currentTimeMillis();
   }
-  
+
   protected void stopTimer(long numEntries, long numBytes) {
     long endTime = System.currentTimeMillis();
     System.out.printf("ELAPSEDMS %d %d %d%n", (endTime - startTime), numEntries, numBytes);
   }
-  
+
   public abstract void setup();
-  
+
   public abstract void client();
-  
+
   public abstract void teardown();
-  
+
   public TreeSet<Text> calculateSplits() {
     int numSplits = numTabletServers - 1;
     long distance = (Long.MAX_VALUE / numTabletServers) + 1;
@@ -74,11 +74,11 @@ public abstract class ScaleTest {
     }
     return keys;
   }
-  
+
   public Connector getConnector() {
     return conn;
   }
-  
+
   public String getTestProperty(String key) {
     return testProps.getProperty(key);
   }

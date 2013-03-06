@@ -31,7 +31,7 @@ import org.apache.hadoop.io.WritableUtils;
  */
 public class ServerMutation extends Mutation {
   private long systemTime = 0l;
-  
+
   public ServerMutation(TMutation tmutation) {
     super(tmutation);
   }
@@ -54,7 +54,7 @@ public class ServerMutation extends Mutation {
     if (getSerializedFormat() == SERIALIZED_FORMAT.VERSION2)
       systemTime = WritableUtils.readVLong(in);
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     super.write(out);
@@ -64,7 +64,7 @@ public class ServerMutation extends Mutation {
   public void setSystemTimestamp(long v) {
     this.systemTime = v;
   }
-  
+
   public long getSystemTimestamp() {
     return this.systemTime;
   }

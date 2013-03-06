@@ -24,23 +24,23 @@ import org.apache.accumulo.fate.Repo;
 
 
 /**
- * 
+ *
  */
 public class TraceRepo<T> implements Repo<T> {
-  
+
   private static final long serialVersionUID = 1L;
 
   TInfo tinfo;
   Repo<T> repo;
-  
+
   public TraceRepo(Repo<T> repo) {
     this.repo = repo;
     tinfo = Tracer.traceInfo();
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.server.fate.Repo#isReady(long, java.lang.Object)
    */
   @Override
@@ -52,10 +52,10 @@ public class TraceRepo<T> implements Repo<T> {
       span.stop();
     }
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.server.fate.Repo#call(long, java.lang.Object)
    */
   @Override
@@ -70,10 +70,10 @@ public class TraceRepo<T> implements Repo<T> {
       span.stop();
     }
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.server.fate.Repo#undo(long, java.lang.Object)
    */
   @Override
@@ -85,20 +85,20 @@ public class TraceRepo<T> implements Repo<T> {
       span.stop();
     }
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.server.fate.Repo#getDescription()
    */
   @Override
   public String getDescription() {
     return repo.getDescription();
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.server.fate.Repo#getReturn()
    */
   @Override

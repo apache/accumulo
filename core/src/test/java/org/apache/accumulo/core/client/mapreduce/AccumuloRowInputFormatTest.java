@@ -52,7 +52,7 @@ public class AccumuloRowInputFormatTest {
   private static final String PREFIX = AccumuloRowInputFormatTest.class.getSimpleName();
   private static final String INSTANCE_NAME = PREFIX + "_mapreduce_instance";
   private static final String TEST_TABLE_1 = PREFIX + "_mapreduce_table_1";
-  
+
   private static final String ROW1 = "row1";
   private static final String ROW2 = "row2";
   private static final String ROW3 = "row3";
@@ -62,7 +62,7 @@ public class AccumuloRowInputFormatTest {
   private static List<Entry<Key,Value>> row3;
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
-  
+
   public AccumuloRowInputFormatTest() {
     row1 = new ArrayList<Entry<Key,Value>>();
     row1.add(new KeyValue(new Key(ROW1, COLF1, "colq1"), "v1".getBytes()));
@@ -73,7 +73,7 @@ public class AccumuloRowInputFormatTest {
     row3 = new ArrayList<Entry<Key,Value>>();
     row3.add(new KeyValue(new Key(ROW3, COLF1, "colq5"), "v5".getBytes()));
   }
-  
+
   public static void checkLists(final List<Entry<Key,Value>> first, final List<Entry<Key,Value>> second) {
     assertEquals("Sizes should be the same.", first.size(), second.size());
     for (int i = 0; i < first.size(); i++) {
@@ -81,7 +81,7 @@ public class AccumuloRowInputFormatTest {
       assertEquals("Values should be equal.", first.get(i).getValue(), second.get(i).getValue());
     }
   }
-  
+
   public static void checkLists(final List<Entry<Key,Value>> first, final Iterator<Entry<Key,Value>> second) {
     int entryIndex = 0;
     while (second.hasNext()) {
@@ -91,7 +91,7 @@ public class AccumuloRowInputFormatTest {
       entryIndex++;
     }
   }
-  
+
   public static void insertList(final BatchWriter writer, final List<Entry<Key,Value>> list) throws MutationsRejectedException {
     for (Entry<Key,Value> e : list) {
       final Key key = e.getKey();
@@ -101,11 +101,11 @@ public class AccumuloRowInputFormatTest {
       writer.addMutation(mutation);
     }
   }
-  
+
   private static class MRTester extends Configured implements Tool {
     private static class TestMapper extends Mapper<Text,PeekingIterator<Entry<Key,Value>>,Key,Value> {
       int count = 0;
-      
+
       @Override
       protected void map(Text k, PeekingIterator<Entry<Key,Value>> v, Context context) throws IOException, InterruptedException {
         try {
@@ -130,7 +130,7 @@ public class AccumuloRowInputFormatTest {
         }
         count++;
       }
-      
+
       @Override
       protected void cleanup(Context context) throws IOException, InterruptedException {
         try {
@@ -140,44 +140,44 @@ public class AccumuloRowInputFormatTest {
         }
       }
     }
-    
+
     @Override
     public int run(String[] args) throws Exception {
-      
+
       if (args.length != 3) {
         throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table>");
       }
-      
+
       String user = args[0];
       String pass = args[1];
       String table = args[2];
-      
+
       Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
-      
+
       job.setInputFormatClass(AccumuloRowInputFormat.class);
-      
+
       AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloRowInputFormat.setMockInstance(job, INSTANCE_NAME);
-      
+
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
       job.setOutputFormatClass(NullOutputFormat.class);
-      
+
       job.setNumReduceTasks(0);
-      
+
       job.waitForCompletion(true);
-      
+
       return job.isSuccessful() ? 0 : 1;
     }
-    
+
     public static void main(String[] args) throws Exception {
       assertEquals(0, ToolRunner.run(CachedConfiguration.getInstance(), new MRTester(), args));
     }
   }
-  
+
   @Test
   public void test() throws Exception {
     final MockInstance instance = new MockInstance(INSTANCE_NAME);

@@ -37,43 +37,43 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
 public class ServerSideErrorTest extends FunctionalTest {
-  
+
   @Override
   public void cleanup() throws Exception {}
-  
+
   @Override
   public Map<String,String> getInitialConfig() {
     return Collections.emptyMap();
   }
-  
+
   @Override
   public List<TableSetup> getTablesToCreate() {
     return Collections.emptyList();
   }
-  
+
   @Override
   public void run() throws Exception {
-    
+
     // Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
     // logger.setLevel(Level.TRACE);
-    
+
     getConnector().tableOperations().create("tt");
     IteratorSetting is = new IteratorSetting(5, "Bad Aggregator", BadCombiner.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("acf")));
     getConnector().tableOperations().attachIterator("tt", is);
-    
+
     BatchWriter bw = getConnector().createBatchWriter("tt", new BatchWriterConfig());
-    
+
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
-    
+
     bw.addMutation(m);
-    
+
     bw.close();
-    
+
     // try to scan table
     Scanner scanner = getConnector().createScanner("tt", Constants.NO_AUTHS);
-    
+
     boolean caught = false;
     try {
       for (Entry<Key,Value> entry : scanner) {
@@ -82,14 +82,14 @@ public class ServerSideErrorTest extends FunctionalTest {
     } catch (Exception e) {
       caught = true;
     }
-    
+
     if (!caught)
       throw new Exception("Scan did not fail");
-    
+
     // try to batch scan the table
     BatchScanner bs = getConnector().createBatchScanner("tt", Constants.NO_AUTHS, 2);
     bs.setRanges(Collections.singleton(new Range()));
-    
+
     caught = false;
     try {
       for (Entry<Key,Value> entry : bs) {
@@ -100,24 +100,24 @@ public class ServerSideErrorTest extends FunctionalTest {
     }
     if (!caught)
       throw new Exception("batch scan did not fail");
-    
+
     // remove the bad agg so accumulo can shutdown
     TableOperations to = getConnector().tableOperations();
     for (Entry<String,String> e : to.getProperties("tt")) {
       to.removeProperty("tt", e.getKey());
     }
-    
+
     UtilWaitThread.sleep(500);
-    
+
     // should be able to scan now
     scanner = getConnector().createScanner("tt", Constants.NO_AUTHS);
     for (Entry<Key,Value> entry : scanner) {
       entry.getKey();
     }
-    
+
     // set a non existant iterator, should cause scan to fail on server side
     scanner.addScanIterator(new IteratorSetting(100, "bogus", "com.bogus.iterator"));
-    
+
     caught = false;
     try {
       for (Entry<Key,Value> entry : scanner) {
@@ -127,7 +127,7 @@ public class ServerSideErrorTest extends FunctionalTest {
     } catch (Exception e) {
       caught = true;
     }
-    
+
     if (!caught)
       throw new Exception("Scan did not fail");
   }

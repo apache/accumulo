@@ -49,35 +49,35 @@ import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.io.Text;
 
 public class TablesServlet extends BasicServlet {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "Table Status";
   }
-  
+
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws Exception {
     Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
     String tableId = req.getParameter("t");
-    
+
     doProblemsBanner(sb);
-    
+
     if (tableId == null || tableId.isEmpty() || tidToNameMap.containsKey(tableId) == false) {
       doTableList(req, sb, tidToNameMap);
       return;
     }
-    
+
     doTableDetails(req, sb, tidToNameMap, tableId);
   }
-  
+
   static void doProblemsBanner(StringBuilder sb) {
     int numProblems = Monitor.getProblemSummary().entrySet().size();
     if (numProblems > 0)
       banner(sb, "error", String.format("<a href='/problems'>Table Problems: %d Total</a>", numProblems));
   }
-  
+
   static void doTableList(HttpServletRequest req, StringBuilder sb, Map<String,String> tidToNameMap) {
     Table tableList = new Table("tableList", "Table&nbsp;List");
     tableList.addSortableColumn("Table&nbsp;Name", new TableLinkType(), null);
@@ -106,14 +106,14 @@ public class TablesServlet extends BasicServlet {
             + "Major Compactions are performed as a consequence of new files created from Minor Compactions and Bulk Load operations.  "
             + "They reduce the number of files used during queries.");
     SortedMap<String,TableInfo> tableStats = new TreeMap<String,TableInfo>();
-    
+
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
       for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
         tableStats.put(Tables.getPrintableTableNameFromId(tidToNameMap, te.getKey()), te.getValue());
-    
+
     Map<String,Double> compactingByTable = Monitor.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = TableManager.getInstance();
-    
+
     for (Entry<String,String> tableName_tableId : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
       String tableName = tableName_tableId.getKey();
       String tableId = tableName_tableId.getValue();
@@ -137,10 +137,10 @@ public class TablesServlet extends BasicServlet {
       row.add(tableInfo);
       tableList.addRow(row);
     }
-    
+
     tableList.generate(req, sb);
   }
-  
+
   private void doTableDetails(HttpServletRequest req, StringBuilder sb, Map<String,String> tidToNameMap, String tableId) {
     String displayName = Tables.getPrintableTableNameFromId(tidToNameMap, tableId);
     Instance instance = HdfsZooInstance.getInstance();
@@ -148,7 +148,7 @@ public class TablesServlet extends BasicServlet {
         tableId), new Text()),
         KeyExtent.getMetadataEntry(
         new Text(tableId), null)));
-    
+
     TreeSet<String> locs = new TreeSet<String>();
     while (scanner.hasNext()) {
       TabletLocationState state = scanner.next();
@@ -162,7 +162,7 @@ public class TablesServlet extends BasicServlet {
     }
     scanner.close();
     log.debug("Locs: " + locs);
-    
+
     List<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
     if (Monitor.getMmi() != null) {
       for (TabletServerStatus tss : Monitor.getMmi().tServerInfo) {
@@ -175,7 +175,7 @@ public class TablesServlet extends BasicServlet {
         }
       }
     }
-    
+
     Table tableDetails = new Table("participatingTServers", "Participating&nbsp;Tablet&nbsp;Servers");
     tableDetails.setSubCaption(displayName);
     TServersServlet.doTserverList(req, sb, tservers, tableId, tableDetails);

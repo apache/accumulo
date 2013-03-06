@@ -22,14 +22,14 @@ import org.apache.hadoop.io.Text;
  * A simple interface for creating shell plugins that translate the range and column arguments for the shell's scan command.
  */
 public interface ScanInterpreter {
-  
+
   public Text interpretRow(Text row);
 
   public Text interpretBeginRow(Text row);
-  
+
   public Text interpretEndRow(Text row);
-  
+
   public Text interpretColumnFamily(Text cf);
-  
+
   public Text interpretColumnQualifier(Text cq);
 }

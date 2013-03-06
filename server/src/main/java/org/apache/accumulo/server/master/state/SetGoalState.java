@@ -30,7 +30,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileSystem;
 
 public class SetGoalState {
-  
+
   /**
    * Utility program that will change the goal state for the master from the command line.
    */
@@ -46,5 +46,5 @@ public class SetGoalState {
     ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(),
         NodeExistsPolicy.OVERWRITE);
   }
-  
+
 }

@@ -41,11 +41,11 @@ import org.apache.log4j.Logger;
 
 /**
  * Extract Mutations for a tablet from a set of logs that have been sorted by operation and tablet.
- * 
+ *
  */
 public class SortedLogRecovery {
   private static final Logger log = Logger.getLogger(SortedLogRecovery.class);
-  
+
   static class EmptyMapFileException extends Exception {
     private static final long serialVersionUID = 1L;
 
@@ -59,28 +59,28 @@ public class SortedLogRecovery {
   }
 
   public SortedLogRecovery() {}
-  
+
   private enum Status {
     INITIAL, LOOKING_FOR_FINISH, COMPLETE
   };
-  
+
   private static class LastStartToFinish {
     long lastStart = -1;
     long seq = -1;
     long lastFinish = -1;
     Status compactionStatus = Status.INITIAL;
     String tserverSession = "";
-    
+
     private void update(long newFinish) {
       this.seq = this.lastStart;
       if (newFinish != -1)
         lastFinish = newFinish;
     }
-    
+
     private void update(int newStartFile, long newStart) {
       this.lastStart = newStart;
     }
-    
+
     private void update(String newSession) {
       this.lastStart = -1;
       this.lastFinish = -1;
@@ -88,7 +88,7 @@ public class SortedLogRecovery {
       this.tserverSession = newSession;
     }
   }
-  
+
   public void recover(KeyExtent extent, List<String> recoveryLogs, Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
@@ -115,12 +115,12 @@ public class SortedLogRecovery {
           log.warn("Ignoring error closing file");
         }
       }
-      
+
     }
-    
+
     if (lastStartToFinish.compactionStatus == Status.LOOKING_FOR_FINISH)
       throw new RuntimeException("COMPACTION_FINISH (without preceding COMPACTION_START) not followed by successful minor compaction");
-    
+
     for (int i = 0; i < recoveryLogs.size(); i++) {
       String logfile = recoveryLogs.get(i);
       MultiReader reader = new MultiReader(fs, conf, logfile);
@@ -136,7 +136,7 @@ public class SortedLogRecovery {
       log.info("Recovery complete for " + logfile);
     }
   }
-  
+
   int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent, Set<String> tabletFiles, LastStartToFinish lastStartToFinish) throws IOException, EmptyMapFileException, UnusedException {
     // Scan for tableId for this extent (should always be in the log)
     LogFileKey key = new LogFileKey();
@@ -146,15 +146,15 @@ public class SortedLogRecovery {
       throw new EmptyMapFileException();
     if (key.event != OPEN)
       throw new RuntimeException("First log entry value is not OPEN");
-    
+
     if (key.tserverSession.compareTo(lastStartToFinish.tserverSession) != 0) {
       if (lastStartToFinish.compactionStatus == Status.LOOKING_FOR_FINISH)
         throw new RuntimeException("COMPACTION_FINISH (without preceding COMPACTION_START) is not followed by a successful minor compaction.");
       lastStartToFinish.update(key.tserverSession);
     }
-    
+
     LogFileKey defineKey = null;
-    
+
     // find the maximum tablet id... because a tablet may leave a tserver and then come back, in which case it would have a different tablet id
     // for the maximum tablet id, find the minimum sequence #... may be ok to find the max seq, but just want to make the code behave like it used to
     while (reader.next(key, value)) {
@@ -172,9 +172,9 @@ public class SortedLogRecovery {
     if (tid < 0) {
       throw new UnusedException();
     }
-    
+
     log.debug("Found tid, seq " + tid + " " + defineKey.seq);
-    
+
     // Scan start/stop events for this tablet
     key = defineKey;
     key.event = COMPACTION_START;
@@ -189,7 +189,7 @@ public class SortedLogRecovery {
         if (key.seq <= lastStartToFinish.lastStart)
           throw new RuntimeException("Sequence numbers are not increasing for start/stop events.");
         lastStartToFinish.update(fileno, key.seq);
-        
+
         // Tablet server finished the minor compaction, but didn't remove the entry from the METADATA table.
         if (tabletFiles.contains(key.filename))
           lastStartToFinish.update(-1);
@@ -208,11 +208,11 @@ public class SortedLogRecovery {
     }
     return tid;
   }
-  
+
   private void playbackMutations(MultiReader reader, int tid, LastStartToFinish lastStartToFinish, MutationReceiver mr) throws IOException {
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
-    
+
     // Playback mutations after the last stop to finish
     log.info("Scanning for mutations starting at sequence number " + lastStartToFinish.seq + " for tid " + tid);
     key.event = MUTATION;

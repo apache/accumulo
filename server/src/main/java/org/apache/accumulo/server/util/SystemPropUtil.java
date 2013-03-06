@@ -30,14 +30,14 @@ public class SystemPropUtil {
     Property p = Property.getPropertyByKey(property);
     if ((p != null && !p.getType().isValidFormat(value)) || !Property.isValidZooPropertyKey(property))
       return false;
-    
+
     // create the zk node for this property and set it's data to the specified value
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;
     ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(), NodeExistsPolicy.OVERWRITE);
-    
+
     return true;
   }
-  
+
   public static void removeSystemProperty(String property) throws InterruptedException, KeeperException {
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;
     ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.FAIL);

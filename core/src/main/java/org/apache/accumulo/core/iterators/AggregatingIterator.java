@@ -34,59 +34,59 @@ import org.apache.log4j.Logger;
 
 /**
  * This iterator wraps another iterator. It automatically aggregates.
- * 
+ *
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.Combiner}
  */
 
 @Deprecated
 public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
-  
+
   private SortedKeyValueIterator<Key,Value> iterator;
   private ColumnToClassMapping<Aggregator> aggregators;
-  
+
   private Key workKey = new Key();
-  
+
   private Key aggrKey;
   private Value aggrValue;
   // private boolean propogateDeletes;
   private static final Logger log = Logger.getLogger(AggregatingIterator.class);
-  
+
   public AggregatingIterator deepCopy(IteratorEnvironment env) {
     return new AggregatingIterator(this, env);
   }
-  
+
   private AggregatingIterator(AggregatingIterator other, IteratorEnvironment env) {
     iterator = other.iterator.deepCopy(env);
     aggregators = other.aggregators;
   }
-  
+
   public AggregatingIterator() {}
-  
+
   private void aggregateRowColumn(Aggregator aggr) throws IOException {
     // this function assumes that first value is not delete
-    
+
     if (iterator.getTopKey().isDeleted())
       return;
-    
+
     workKey.set(iterator.getTopKey());
-    
+
     Key keyToAggregate = workKey;
-    
+
     aggr.reset();
-    
+
     aggr.collect(iterator.getTopValue());
     iterator.next();
-    
+
     while (iterator.hasTop() && !iterator.getTopKey().isDeleted() && iterator.getTopKey().equals(keyToAggregate, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
       aggr.collect(iterator.getTopValue());
       iterator.next();
     }
-    
+
     aggrKey = workKey;
     aggrValue = aggr.aggregate();
-    
+
   }
-  
+
   private void findTop() throws IOException {
     // check if aggregation is needed
     if (iterator.hasTop()) {
@@ -96,12 +96,12 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
       }
     }
   }
-  
+
   public AggregatingIterator(SortedKeyValueIterator<Key,Value> iterator, ColumnToClassMapping<Aggregator> aggregators) throws IOException {
     this.iterator = iterator;
     this.aggregators = aggregators;
   }
-  
+
   @Override
   public Key getTopKey() {
     if (aggrKey != null) {
@@ -109,7 +109,7 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
     }
     return iterator.getTopKey();
   }
-  
+
   @Override
   public Value getTopValue() {
     if (aggrKey != null) {
@@ -117,12 +117,12 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
     }
     return iterator.getTopValue();
   }
-  
+
   @Override
   public boolean hasTop() {
     return aggrKey != null || iterator.hasTop();
   }
-  
+
   @Override
   public void next() throws IOException {
     if (aggrKey != null) {
@@ -131,20 +131,20 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
     } else {
       iterator.next();
     }
-    
+
     findTop();
   }
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     // do not want to seek to the middle of a value that should be
     // aggregated...
-    
+
     Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
-    
+
     iterator.seek(seekRange, columnFamilies, inclusive);
     findTop();
-    
+
     if (range.getStartKey() != null) {
       while (hasTop() && getTopKey().equals(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS)
           && getTopKey().getTimestamp() > range.getStartKey().getTimestamp()) {
@@ -153,19 +153,19 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
         // log.debug("skipping "+getTopKey());
         next();
       }
-      
+
       while (hasTop() && range.beforeStartKey(getTopKey())) {
         next();
       }
     }
-    
+
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-    
+
     this.iterator = source;
-    
+
     try {
       this.aggregators = new ColumnToClassMapping<Aggregator>(options, Aggregator.class);
     } catch (ClassNotFoundException e) {
@@ -179,13 +179,13 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
       throw new IllegalArgumentException(e);
     }
   }
-  
+
   @Override
   public IteratorOptions describeOptions() {
     return new IteratorOptions("agg", "Aggregators apply aggregating functions to values with identical keys", null,
         Collections.singletonList("<columnName> <aggregatorClass>"));
   }
-  
+
   @Override
   public boolean validateOptions(Map<String,String> options) {
     for (Entry<String,String> entry : options.entrySet()) {

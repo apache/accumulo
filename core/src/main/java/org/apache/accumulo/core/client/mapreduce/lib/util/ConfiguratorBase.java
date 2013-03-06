@@ -38,37 +38,37 @@ import org.apache.log4j.Logger;
  * @since 1.5.0
  */
 public class ConfiguratorBase {
-  
+
   /**
    * Configuration keys for {@link Instance#getConnector(String, byte[])}.
-   * 
+   *
    * @since 1.5.0
    */
   public static enum ConnectorInfo {
     IS_CONFIGURED, PRINCIPAL, TOKEN, CREDENTIALS_IN_CACHE_FILE, TOKEN_CLASS
   }
-  
+
   /**
    * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and {@link MockInstance}.
-   * 
+   *
    * @since 1.5.0
    */
   protected static enum InstanceOpts {
     TYPE, NAME, ZOO_KEEPERS;
   }
-  
+
   /**
    * Configuration keys for general configuration options.
-   * 
+   *
    * @since 1.5.0
    */
   protected static enum GeneralOpts {
     LOG_LEVEL
   }
-  
+
   /**
    * Provides a configuration key for a given feature enum, prefixed by the implementingClass
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param e
@@ -79,14 +79,14 @@ public class ConfiguratorBase {
   protected static String enumToConfKey(Class<?> implementingClass, Enum<?> e) {
     return implementingClass.getSimpleName() + "." + e.getDeclaringClass().getSimpleName() + "." + StringUtils.camelize(e.name().toLowerCase());
   }
-  
+
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
-   * 
+   *
    * <p>
    * <b>WARNING:</b> The serialized token is stored in the configuration and shared with all MapReduce tasks. It is BASE64 encoded to provide a charset safe
    * conversion to a string, and is not intended to be secure.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -102,20 +102,20 @@ public class ConfiguratorBase {
       throws AccumuloSecurityException {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
-    
+
     ArgumentChecker.notNull(principal, token);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS), token.getClass().getCanonicalName());
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), CredentialHelper.tokenAsBase64(token));
   }
-  
+
   /**
    * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
    * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
    * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
    * {@link CredentialHelper#asBase64String(org.apache.accumulo.core.security.thrift.TCredentials)}.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -128,7 +128,7 @@ public class ConfiguratorBase {
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, Path path) {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
-    
+
     ArgumentChecker.notNull(path);
     URI uri = path.toUri();
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
@@ -136,10 +136,10 @@ public class ConfiguratorBase {
     DistributedCache.addCacheFile(uri, conf);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), uri.getPath());
   }
-  
+
   /**
    * Determines if the connector info has already been set for this instance.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -152,10 +152,10 @@ public class ConfiguratorBase {
   public static Boolean isConnectorInfoSet(Class<?> implementingClass, Configuration conf) {
     return conf.getBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), false);
   }
-  
+
   /**
    * Gets the user name from the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -168,10 +168,10 @@ public class ConfiguratorBase {
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
     return conf.get(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL));
   }
-  
+
   /**
    * Gets the serialized token class from the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -184,11 +184,11 @@ public class ConfiguratorBase {
   public static String getTokenClass(Class<?> implementingClass, Configuration conf) {
     return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS));
   }
-  
+
   /**
    * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
    * provide a charset safe conversion to a string, and is not intended to be secure.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -200,10 +200,10 @@ public class ConfiguratorBase {
   public static byte[] getToken(Class<?> implementingClass, Configuration conf) {
     return Base64.decodeBase64(conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), "").getBytes(Charset.forName("UTF-8")));
   }
-  
+
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -219,15 +219,15 @@ public class ConfiguratorBase {
     if (!conf.get(key, "").isEmpty())
       throw new IllegalStateException("Instance info can only be set once per job; it has already been configured with " + conf.get(key));
     conf.set(key, "ZooKeeperInstance");
-    
+
     ArgumentChecker.notNull(instanceName, zooKeepers);
     conf.set(enumToConfKey(implementingClass, InstanceOpts.NAME), instanceName);
     conf.set(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS), zooKeepers);
   }
-  
+
   /**
    * Configures a {@link MockInstance} for this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -241,14 +241,14 @@ public class ConfiguratorBase {
     if (!conf.get(key, "").isEmpty())
       throw new IllegalStateException("Instance info can only be set once per job; it has already been configured with " + conf.get(key));
     conf.set(key, "MockInstance");
-    
+
     ArgumentChecker.notNull(instanceName);
     conf.set(enumToConfKey(implementingClass, InstanceOpts.NAME), instanceName);
   }
-  
+
   /**
    * Initializes an Accumulo {@link Instance} based on the configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -270,10 +270,10 @@ public class ConfiguratorBase {
     else
       throw new IllegalStateException("Unrecognized instance type " + instanceType);
   }
-  
+
   /**
    * Sets the log level for this job.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -287,10 +287,10 @@ public class ConfiguratorBase {
     Logger.getLogger(implementingClass).setLevel(level);
     conf.setInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), level.toInt());
   }
-  
+
   /**
    * Gets the log level from this configuration.
-   * 
+   *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
@@ -302,5 +302,5 @@ public class ConfiguratorBase {
   public static Level getLogLevel(Class<?> implementingClass, Configuration conf) {
     return Level.toLevel(conf.getInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), Level.INFO.toInt()));
   }
-  
+
 }

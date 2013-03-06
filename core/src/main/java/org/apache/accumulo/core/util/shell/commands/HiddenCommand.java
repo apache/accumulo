@@ -28,12 +28,12 @@ import org.apache.commons.codec.binary.Base64;
 
 public class HiddenCommand extends Command {
   private static Random rand = new SecureRandom();
-  
+
   @Override
   public String description() {
     return "The first rule of Accumulo is: \"You don't talk about Accumulo.\"";
   }
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     if (rand.nextInt(10) == 0) {
@@ -49,12 +49,12 @@ public class HiddenCommand extends Command {
     }
     return 0;
   }
-  
+
   @Override
   public int numArgs() {
     return Shell.NO_FIXED_ARG_LENGTH_CHECK;
   }
-  
+
   @Override
   public String getName() {
     return "accvmvlo";

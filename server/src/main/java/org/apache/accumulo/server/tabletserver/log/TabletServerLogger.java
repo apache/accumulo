@@ -43,23 +43,23 @@ import org.apache.log4j.Logger;
 
 /**
  * Central logging facility for the TServerInfo.
- * 
+ *
  * Forwards in-memory updates to remote logs, carefully writing the same data to every log, while maintaining the maximum thread parallelism for greater
  * performance. As new logs are used and minor compactions are performed, the metadata table is kept up-to-date.
- * 
+ *
  */
 public class TabletServerLogger {
-  
+
   private static final Logger log = Logger.getLogger(TabletServerLogger.class);
-  
+
   private final AtomicLong logSizeEstimate = new AtomicLong();
   private final long maxSize;
-  
+
   private final TabletServer tserver;
-  
+
   // The current log set: always updated to a new set with every change of loggers
   private final List<DfsLogger> loggers = new ArrayList<DfsLogger>();
-  
+
   // The current generation of logSet.
   // Because multiple threads can be using a log set at one time, a log
   // failure is likely to affect multiple threads, who will all attempt to
@@ -68,29 +68,29 @@ public class TabletServerLogger {
   // We'll use this generational counter to determine if another thread has
   // already fetched a new logSet.
   private AtomicInteger logSetId = new AtomicInteger();
-  
+
   // Use a ReadWriteLock to allow multiple threads to use the log set, but obtain a write lock to change them
   private final ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
-  
+
   private final AtomicInteger seqGen = new AtomicInteger();
-  
+
   private static boolean enabled(Tablet tablet) {
     return tablet.getTableConfiguration().getBoolean(Property.TABLE_WALOG_ENABLED);
   }
-  
+
   private static boolean enabled(CommitSession commitSession) {
     return enabled(commitSession.getTablet());
   }
-  
+
   static private abstract class TestCallWithWriteLock {
     abstract boolean test();
-    
+
     abstract void withWriteLock() throws IOException;
   }
-  
+
   /**
    * Pattern taken from the documentation for ReentrantReadWriteLock
-   * 
+   *
    * @param rwlock
    *          lock to use
    * @param code
@@ -125,12 +125,12 @@ public class TabletServerLogger {
       rwlock.readLock().unlock();
     }
   }
-  
+
   public TabletServerLogger(TabletServer tserver, long maxSize) {
     this.tserver = tserver;
     this.maxSize = maxSize;
   }
-  
+
   private int initializeLoggers(final List<DfsLogger> copy) throws IOException {
     final int[] result = {-1};
     testLockAndRun(logSetLock, new TestCallWithWriteLock() {
@@ -141,7 +141,7 @@ public class TabletServerLogger {
           result[0] = logSetId.get();
         return loggers.isEmpty();
       }
-      
+
       void withWriteLock() throws IOException {
         try {
           createLoggers();
@@ -158,7 +158,7 @@ public class TabletServerLogger {
     });
     return result[0];
   }
-  
+
   public void getLoggers(Set<String> loggersOut) {
     logSetLock.readLock().lock();
     try {
@@ -169,16 +169,16 @@ public class TabletServerLogger {
       logSetLock.readLock().unlock();
     }
   }
-  
+
   synchronized private void createLoggers() throws IOException {
     if (!logSetLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("createLoggers should be called with write lock held!");
     }
-    
+
     if (loggers.size() != 0) {
       throw new IllegalStateException("createLoggers should not be called when loggers.size() is " + loggers.size());
     }
-    
+
     try {
       DfsLogger alog = new DfsLogger(tserver.getServerConfig());
       alog.open(tserver.getClientAddressString());
@@ -189,7 +189,7 @@ public class TabletServerLogger {
       throw new RuntimeException(t);
     }
   }
-  
+
   public void resetLoggers() throws IOException {
     logSetLock.writeLock().lock();
     try {
@@ -198,7 +198,7 @@ public class TabletServerLogger {
       logSetLock.writeLock().unlock();
     }
   }
-  
+
   synchronized private void close() throws IOException {
     if (!logSetLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("close should be called with write lock held!");
@@ -219,22 +219,22 @@ public class TabletServerLogger {
       throw new IOException(t);
     }
   }
-  
+
   interface Writer {
     LoggerOperation write(DfsLogger logger, int seq) throws Exception;
   }
-  
+
   private int write(CommitSession commitSession, boolean mincFinish, Writer writer) throws IOException {
     List<CommitSession> sessions = Collections.singletonList(commitSession);
     return write(sessions, mincFinish, writer);
   }
-  
+
   private int write(Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
     // Work very hard not to lock this during calls to the outside world
     int currentLogSet = logSetId.get();
-    
+
     int seq = -1;
-    
+
     int attempt = 0;
     boolean success = false;
     while (!success) {
@@ -242,10 +242,10 @@ public class TabletServerLogger {
         // get a reference to the loggers that no other thread can touch
         ArrayList<DfsLogger> copy = new ArrayList<DfsLogger>();
         currentLogSet = initializeLoggers(copy);
-        
+
         // add the logger to the log set for the memory in the tablet,
         // update the metadata table if we've never used this tablet
-        
+
         if (currentLogSet == logSetId.get()) {
           for (CommitSession commitSession : sessions) {
             if (commitSession.beginUpdatingLogsUsed(copy, mincFinish)) {
@@ -260,10 +260,10 @@ public class TabletServerLogger {
             }
           }
         }
-        
+
         // Make sure that the logs haven't changed out from underneath our copy
         if (currentLogSet == logSetId.get()) {
-          
+
           // write the mutation to the logs
           seq = seqGen.incrementAndGet();
           if (seq < 0)
@@ -274,11 +274,11 @@ public class TabletServerLogger {
             if (lop != null)
               queuedOperations.add(lop);
           }
-          
+
           for (LoggerOperation lop : queuedOperations) {
             lop.await();
           }
-          
+
           // double-check: did the log set change?
           success = (currentLogSet == logSetId.get());
         }
@@ -296,12 +296,12 @@ public class TabletServerLogger {
       final int finalCurrent = currentLogSet;
       if (!success) {
         testLockAndRun(logSetLock, new TestCallWithWriteLock() {
-          
+
           @Override
           boolean test() {
             return finalCurrent == logSetId.get();
           }
-          
+
           @Override
           void withWriteLock() throws IOException {
             close();
@@ -315,14 +315,14 @@ public class TabletServerLogger {
       boolean test() {
         return logSizeEstimate.get() > maxSize;
       }
-      
+
       void withWriteLock() throws IOException {
         close();
       }
     });
     return seq;
   }
-  
+
   public int defineTablet(final CommitSession commitSession) throws IOException {
     // scribble this into the metadata tablet, too.
     if (!enabled(commitSession))
@@ -335,7 +335,7 @@ public class TabletServerLogger {
       }
     });
   }
-  
+
   public int log(final CommitSession commitSession, final int tabletSeq, final Mutation m) throws IOException {
     if (!enabled(commitSession))
       return -1;
@@ -348,9 +348,9 @@ public class TabletServerLogger {
     logSizeEstimate.addAndGet(m.numBytes());
     return seq;
   }
-  
+
   public int logManyTablets(Map<CommitSession,List<Mutation>> mutations) throws IOException {
-    
+
     final Map<CommitSession,List<Mutation>> loggables = new HashMap<CommitSession,List<Mutation>>(mutations);
     for (CommitSession t : mutations.keySet()) {
       if (!enabled(t))
@@ -358,7 +358,7 @@ public class TabletServerLogger {
     }
     if (loggables.size() == 0)
       return -1;
-    
+
     int seq = write(loggables.keySet(), false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
@@ -379,14 +379,14 @@ public class TabletServerLogger {
     }
     return seq;
   }
-  
+
   public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final int walogSeq) throws IOException {
-    
+
     if (!enabled(commitSession))
       return;
-    
+
     long t1 = System.currentTimeMillis();
-    
+
     int seq = write(commitSession, true, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
@@ -394,12 +394,12 @@ public class TabletServerLogger {
         return null;
       }
     });
-    
+
     long t2 = System.currentTimeMillis();
-    
+
     log.debug(" wrote MinC finish  " + seq + ": writeTime:" + (t2 - t1) + "ms ");
   }
-  
+
   public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName) throws IOException {
     if (!enabled(commitSession))
       return -1;
@@ -412,7 +412,7 @@ public class TabletServerLogger {
     });
     return seq;
   }
-  
+
   public void recover(Tablet tablet, List<String> logs, Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     if (!enabled(tablet))
       return;
@@ -424,5 +424,5 @@ public class TabletServerLogger {
       throw new IOException(e);
     }
   }
-  
+
 }

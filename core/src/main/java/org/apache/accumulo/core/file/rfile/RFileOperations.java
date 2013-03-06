@@ -38,20 +38,20 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class RFileOperations extends FileOperations {
-  
+
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
-  
+
   @Override
   public long getFileSize(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     return fs.getFileStatus(new Path(file)).getLen();
   }
-  
+
   @Override
   public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    
+
     return openIndex(file, fs, conf, acuconf, null, null);
   }
-  
+
   @Override
   public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf, BlockCache dataCache, BlockCache indexCache)
       throws IOException {
@@ -61,30 +61,30 @@ public class RFileOperations extends FileOperations {
     // Reader reader = new RFile.Reader(in, len , conf);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, dataCache, indexCache);
     final Reader reader = new RFile.Reader(_cbr);
-    
+
     return reader.getIndex();
   }
-  
+
   @Override
   public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     return openReader(file, seekToBeginning, fs, conf, acuconf, null, null);
   }
-  
+
   @Override
   public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf,
       BlockCache dataCache, BlockCache indexCache) throws IOException {
     Path path = new Path(file);
-    
+
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, dataCache, indexCache);
     Reader iter = new RFile.Reader(_cbr);
-    
+
     if (seekToBeginning) {
       iter.seek(new Range((Key) null, null), EMPTY_CF_SET, false);
     }
-    
+
     return iter;
   }
-  
+
   @Override
   public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
       AccumuloConfiguration tableConf) throws IOException {
@@ -92,7 +92,7 @@ public class RFileOperations extends FileOperations {
     iter.seek(range, columnFamilies, inclusive);
     return iter;
   }
-  
+
   @Override
   public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
       AccumuloConfiguration tableConf, BlockCache dataCache, BlockCache indexCache) throws IOException {
@@ -100,7 +100,7 @@ public class RFileOperations extends FileOperations {
     iter.seek(range, columnFamilies, inclusive);
     return iter;
   }
-  
+
   @Override
   public FileSKVWriter openWriter(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     int hrep = conf.getInt("dfs.replication", -1);
@@ -115,12 +115,12 @@ public class RFileOperations extends FileOperations {
     if (tblock > 0)
       block = tblock;
     int bufferSize = conf.getInt("io.file.buffer.size", 4096);
-    
+
     long blockSize = acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
     long indexBlockSize = acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
-    
+
     String compression = acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE);
-    
+
     CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(fs.create(new Path(file), false, bufferSize, (short) rep, block), compression, conf);
     Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize);
     return writer;

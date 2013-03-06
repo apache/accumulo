@@ -31,26 +31,26 @@ import org.apache.hadoop.util.StringUtils;
  * This object holds configuration settings used to instantiate a {@link BatchWriter}
  */
 public class BatchWriterConfig implements Writable {
-  
+
   private static final Long DEFAULT_MAX_MEMORY = 50 * 1024 * 1024l;
   private Long maxMemory = null;
-  
+
   private static final Long DEFAULT_MAX_LATENCY = 2 * 60 * 1000l;
   private Long maxLatency = null;
-  
+
   private static final Long DEFAULT_TIMEOUT = Long.MAX_VALUE;
   private Long timeout = null;
-  
+
   private static final Integer DEFAULT_MAX_WRITE_THREADS = 3;
   private Integer maxWriteThreads = null;
-  
+
   /**
    * Sets the maximum memory to batch before writing. The smaller this value, the more frequently the {@link BatchWriter} will write.<br />
    * If set to a value smaller than a single mutation, then it will {@link BatchWriter#flush()} after each added mutation. Must be non-negative.
-   * 
+   *
    * <p>
    * <b>Default:</b> 50M
-   * 
+   *
    * @param maxMemory
    *          max size in bytes
    * @throws IllegalArgumentException
@@ -63,19 +63,19 @@ public class BatchWriterConfig implements Writable {
     this.maxMemory = maxMemory;
     return this;
   }
-  
+
   /**
    * Sets the maximum amount of time to hold the data in memory before flushing it to servers.<br />
    * For no maximum, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
-   * 
+   *
    * <p>
    * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br />
    * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
    * be used.
-   * 
+   *
    * <p>
    * <b>Default:</b> 120 seconds
-   * 
+   *
    * @param maxLatency
    *          the maximum latency, in the unit specified by the value of {@code timeUnit}
    * @param timeUnit
@@ -87,7 +87,7 @@ public class BatchWriterConfig implements Writable {
   public BatchWriterConfig setMaxLatency(long maxLatency, TimeUnit timeUnit) {
     if (maxLatency < 0)
       throw new IllegalArgumentException("Negative max latency not allowed " + maxLatency);
-    
+
     if (maxLatency == 0)
       this.maxLatency = Long.MAX_VALUE;
     else
@@ -95,19 +95,19 @@ public class BatchWriterConfig implements Writable {
       this.maxLatency = Math.max(1, timeUnit.toMillis(maxLatency));
     return this;
   }
-  
+
   /**
    * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is exceeded, the {@link BatchWriter} should throw an exception.<br />
    * For no timeout, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
-   * 
+   *
    * <p>
    * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br />
    * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
    * be used.
-   * 
+   *
    * <p>
    * <b>Default:</b> {@link Long#MAX_VALUE} (no timeout)
-   * 
+   *
    * @param timeout
    *          the timeout, in the unit specified by the value of {@code timeUnit}
    * @param timeUnit
@@ -119,7 +119,7 @@ public class BatchWriterConfig implements Writable {
   public BatchWriterConfig setTimeout(long timeout, TimeUnit timeUnit) {
     if (timeout < 0)
       throw new IllegalArgumentException("Negative timeout not allowed " + timeout);
-    
+
     if (timeout == 0)
       timeout = Long.MAX_VALUE;
     else
@@ -127,13 +127,13 @@ public class BatchWriterConfig implements Writable {
       this.timeout = Math.max(1, timeUnit.toMillis(timeout));
     return this;
   }
-  
+
   /**
    * Sets the maximum number of threads to use for writing data to the tablet servers.
-   * 
+   *
    * <p>
    * <b>Default:</b> 3
-   * 
+   *
    * @param maxWriteThreads
    *          the maximum threads to use
    * @throws IllegalArgumentException
@@ -143,27 +143,27 @@ public class BatchWriterConfig implements Writable {
   public BatchWriterConfig setMaxWriteThreads(int maxWriteThreads) {
     if (maxWriteThreads <= 0)
       throw new IllegalArgumentException("Max threads must be positive " + maxWriteThreads);
-    
+
     this.maxWriteThreads = maxWriteThreads;
     return this;
   }
-  
+
   public long getMaxMemory() {
     return maxMemory != null ? maxMemory : DEFAULT_MAX_MEMORY;
   }
-  
+
   public long getMaxLatency(TimeUnit timeUnit) {
     return timeUnit.convert(maxLatency != null ? maxLatency : DEFAULT_MAX_LATENCY, TimeUnit.MILLISECONDS);
   }
-  
+
   public long getTimeout(TimeUnit timeUnit) {
     return timeUnit.convert(timeout != null ? timeout : DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
   }
-  
+
   public int getMaxWriteThreads() {
     return maxWriteThreads != null ? maxWriteThreads : DEFAULT_MAX_WRITE_THREADS;
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     // write this out in a human-readable way
@@ -177,7 +177,7 @@ public class BatchWriterConfig implements Writable {
     if (timeout != null)
       addField(fields, "timeout", timeout);
     String output = StringUtils.join(",", fields);
-    
+
     byte[] bytes = output.getBytes(Charset.forName("UTF-8"));
     byte[] len = String.format("%6s#", Integer.toString(bytes.length, 36)).getBytes("UTF-8");
     if (len.length != 7)
@@ -185,13 +185,13 @@ public class BatchWriterConfig implements Writable {
     out.write(len);
     out.write(bytes);
   }
-  
+
   private void addField(List<String> fields, String name, Object value) {
     String key = StringUtils.escapeString(name, '\\', new char[] {',', '='});
     String val = StringUtils.escapeString(String.valueOf(value), '\\', new char[] {',', '='});
     fields.add(key + '=' + val);
   }
-  
+
   @Override
   public void readFields(DataInput in) throws IOException {
     byte[] len = new byte[7];
@@ -201,7 +201,7 @@ public class BatchWriterConfig implements Writable {
       throw new IllegalStateException("length was not encoded correctly");
     byte[] bytes = new byte[Integer.parseInt(strLen.substring(strLen.lastIndexOf(' ') + 1, strLen.length() - 1), 36)];
     in.readFully(bytes);
-    
+
     String strFields = new String(bytes, Charset.forName("UTF-8"));
     String[] fields = StringUtils.split(strFields, '\\', ',');
     for (String field : fields) {

@@ -31,19 +31,19 @@ import org.apache.zookeeper.ZooKeeper.States;
 
 /**
  * Find a Span collector via zookeeper and push spans there via Thrift RPC
- * 
+ *
  */
 public class ZooSpanClient extends SendSpansViaThrift {
-  
+
   private static final Logger log = Logger.getLogger(ZooSpanClient.class);
   private static final int TOTAL_TIME_WAIT_CONNECT_MS = 10 * 1000;
   private static final int TIME_WAIT_CONNECT_CHECK_MS = 100;
-  
+
   ZooKeeper zoo = null;
   final String path;
   final Random random = new Random();
   final List<String> hosts = new ArrayList<String>();
-  
+
   public ZooSpanClient(String keepers, final String path, String host, String service, long millis) throws IOException, KeeperException, InterruptedException {
     super(host, service, millis);
     this.path = path;
@@ -70,10 +70,10 @@ public class ZooSpanClient extends SendSpansViaThrift {
     }
     zoo.getChildren(path, true);
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see trace.instrument.receivers.AsyncSpanReceiver#flush()
    */
   @Override
@@ -81,10 +81,10 @@ public class ZooSpanClient extends SendSpansViaThrift {
     if (!hosts.isEmpty())
       super.flush();
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see trace.instrument.receivers.AsyncSpanReceiver#sendSpans()
    */
   @Override
@@ -117,7 +117,7 @@ public class ZooSpanClient extends SendSpansViaThrift {
       log.error("unable to get destination hosts in zookeeper", ex);
     }
   }
-  
+
   @Override
   synchronized protected String getSpanKey(Map<String,String> data) {
     if (hosts.size() > 0) {

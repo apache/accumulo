@@ -30,14 +30,14 @@ import org.apache.commons.lang.NotImplementedException;
 import org.apache.log4j.Logger;
 
 public class ZooTabletStateStore extends TabletStateStore {
-  
+
   private static final Logger log = Logger.getLogger(ZooTabletStateStore.class);
   final private DistributedStore store;
-  
+
   public ZooTabletStateStore(DistributedStore store) {
     this.store = store;
   }
-  
+
   public ZooTabletStateStore() throws DistributedStoreException {
     try {
       store = new ZooStore();
@@ -45,17 +45,17 @@ public class ZooTabletStateStore extends TabletStateStore {
       throw new DistributedStoreException(ex);
     }
   }
-  
+
   @Override
   public Iterator<TabletLocationState> iterator() {
     return new Iterator<TabletLocationState>() {
       boolean finished = false;
-      
+
       @Override
       public boolean hasNext() {
         return !finished;
       }
-      
+
       @Override
       public TabletLocationState next() {
         finished = true;
@@ -63,17 +63,17 @@ public class ZooTabletStateStore extends TabletStateStore {
           byte[] future = store.get(Constants.ZROOT_TABLET_FUTURE_LOCATION);
           byte[] current = store.get(Constants.ZROOT_TABLET_LOCATION);
           byte[] last = store.get(Constants.ZROOT_TABLET_LAST_LOCATION);
-          
+
           TServerInstance currentSession = null;
           TServerInstance futureSession = null;
           TServerInstance lastSession = null;
-          
+
           if (future != null)
             futureSession = parse(future);
-          
+
           if (last != null)
             lastSession = parse(last);
-          
+
           if (current != null) {
             currentSession = parse(current);
             futureSession = null;
@@ -95,14 +95,14 @@ public class ZooTabletStateStore extends TabletStateStore {
           throw new RuntimeException(ex);
         }
       }
-      
+
       @Override
       public void remove() {
         throw new NotImplementedException();
       }
     };
   }
-  
+
   protected TServerInstance parse(byte[] current) {
     String str = new String(current);
     String[] parts = str.split("[|]", 2);
@@ -114,7 +114,7 @@ public class ZooTabletStateStore extends TabletStateStore {
       return null;
     }
   }
-  
+
   @Override
   public void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     if (assignments.size() != 1)
@@ -125,7 +125,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
     store.put(Constants.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes());
   }
-  
+
   @Override
   public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     if (assignments.size() != 1)
@@ -139,7 +139,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     store.remove(Constants.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("Put down root tablet location");
   }
-  
+
   @Override
   public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException {
     if (tablets.size() != 1)
@@ -151,10 +151,10 @@ public class ZooTabletStateStore extends TabletStateStore {
     store.remove(Constants.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("unassign root tablet location");
   }
-  
+
   @Override
   public String name() {
     return "Root Tablet";
   }
-  
+
 }

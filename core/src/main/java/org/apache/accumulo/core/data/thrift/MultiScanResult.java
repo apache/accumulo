@@ -154,21 +154,21 @@ import org.slf4j.LoggerFactory;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.RESULTS, new org.apache.thrift.meta_data.FieldMetaData("results", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+    tmpMap.put(_Fields.RESULTS, new org.apache.thrift.meta_data.FieldMetaData("results", org.apache.thrift.TFieldRequirementType.DEFAULT,
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST,
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TKeyValue.class))));
-    tmpMap.put(_Fields.FAILURES, new org.apache.thrift.meta_data.FieldMetaData("failures", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.FAILURES, new org.apache.thrift.meta_data.FieldMetaData("failures", org.apache.thrift.TFieldRequirementType.DEFAULT,
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.MAP        , "ScanBatch")));
-    tmpMap.put(_Fields.FULL_SCANS, new org.apache.thrift.meta_data.FieldMetaData("fullScans", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+    tmpMap.put(_Fields.FULL_SCANS, new org.apache.thrift.meta_data.FieldMetaData("fullScans", org.apache.thrift.TFieldRequirementType.DEFAULT,
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST,
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TKeyExtent.class))));
-    tmpMap.put(_Fields.PART_SCAN, new org.apache.thrift.meta_data.FieldMetaData("partScan", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.PART_SCAN, new org.apache.thrift.meta_data.FieldMetaData("partScan", org.apache.thrift.TFieldRequirementType.DEFAULT,
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TKeyExtent.class)));
-    tmpMap.put(_Fields.PART_NEXT_KEY, new org.apache.thrift.meta_data.FieldMetaData("partNextKey", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.PART_NEXT_KEY, new org.apache.thrift.meta_data.FieldMetaData("partNextKey", org.apache.thrift.TFieldRequirementType.DEFAULT,
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TKey.class)));
-    tmpMap.put(_Fields.PART_NEXT_KEY_INCLUSIVE, new org.apache.thrift.meta_data.FieldMetaData("partNextKeyInclusive", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.PART_NEXT_KEY_INCLUSIVE, new org.apache.thrift.meta_data.FieldMetaData("partNextKeyInclusive", org.apache.thrift.TFieldRequirementType.DEFAULT,
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
-    tmpMap.put(_Fields.MORE, new org.apache.thrift.meta_data.FieldMetaData("more", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.MORE, new org.apache.thrift.meta_data.FieldMetaData("more", org.apache.thrift.TFieldRequirementType.DEFAULT,
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(MultiScanResult.class, metaDataMap);
@@ -843,7 +843,7 @@ import org.slf4j.LoggerFactory;
       while (true)
       {
         schemeField = iprot.readFieldBegin();
-        if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+        if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
           break;
         }
         switch (schemeField.id) {
@@ -862,7 +862,7 @@ import org.slf4j.LoggerFactory;
                 iprot.readListEnd();
               }
               struct.setResultsIsSet(true);
-            } else { 
+            } else {
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -894,7 +894,7 @@ import org.slf4j.LoggerFactory;
                 iprot.readMapEnd();
               }
               struct.setFailuresIsSet(true);
-            } else { 
+            } else {
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -913,7 +913,7 @@ import org.slf4j.LoggerFactory;
                 iprot.readListEnd();
               }
               struct.setFullScansIsSet(true);
-            } else { 
+            } else {
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -922,7 +922,7 @@ import org.slf4j.LoggerFactory;
               struct.partScan = new TKeyExtent();
               struct.partScan.read(iprot);
               struct.setPartScanIsSet(true);
-            } else { 
+            } else {
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -931,7 +931,7 @@ import org.slf4j.LoggerFactory;
               struct.partNextKey = new TKey();
               struct.partNextKey.read(iprot);
               struct.setPartNextKeyIsSet(true);
-            } else { 
+            } else {
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -939,7 +939,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
               struct.partNextKeyInclusive = iprot.readBool();
               struct.setPartNextKeyInclusiveIsSet(true);
-            } else { 
+            } else {
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
@@ -947,7 +947,7 @@ import org.slf4j.LoggerFactory;
             if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
               struct.more = iprot.readBool();
               struct.setMoreIsSet(true);
-            } else { 
+            } else {
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;

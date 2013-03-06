@@ -54,37 +54,37 @@ import org.apache.log4j.Logger;
 public class PermissionsTest {
   private static final String TEST_USER = "test_user";
   private static final PasswordToken TEST_PASS = new PasswordToken("test_password");
-  
+
   public static class SystemPermissionsTest extends FunctionalTest {
     private static final Logger log = Logger.getLogger(SystemPermissionsTest.class);
-    
+
     @Override
     public void cleanup() throws Exception {}
-    
+
     @Override
     public Map<String,String> getInitialConfig() {
       return Collections.emptyMap();
     }
-    
+
     @Override
     public List<TableSetup> getTablesToCreate() {
       return Collections.emptyList();
     }
-    
+
     @Override
     public void run() throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException {
       // verify that the test is being run by root
       verifyHasOnlyTheseSystemPermissions(getConnector(), getConnector().whoami(), SystemPermission.values());
-      
+
       // create the test user
       getConnector().securityOperations().createLocalUser(TEST_USER, TEST_PASS);
       Connector test_user_conn = getInstance().getConnector(TEST_USER, TEST_PASS);
       verifyHasNoSystemPermissions(getConnector(), TEST_USER, SystemPermission.values());
-      
+
       // test each permission
       for (SystemPermission perm : SystemPermission.values()) {
         log.debug("Verifying the " + perm + " permission");
-        
+
         // verify GRANT can't be granted
         if (perm.equals(SystemPermission.GRANT)) {
           try {
@@ -95,7 +95,7 @@ public class PermissionsTest {
           }
           throw new IllegalStateException("Should NOT be able to grant GRANT");
         }
-        
+
         // test permission before and after granting it
         testMissingSystemPermission(getConnector(), test_user_conn, perm);
         getConnector().securityOperations().grantSystemPermission(TEST_USER, perm);
@@ -105,12 +105,12 @@ public class PermissionsTest {
         verifyHasNoSystemPermissions(getConnector(), TEST_USER, perm);
       }
     }
-    
+
     private static void testMissingSystemPermission(Connector root_conn, Connector test_user_conn, SystemPermission perm) throws AccumuloException,
         TableExistsException, AccumuloSecurityException, TableNotFoundException {
       String tableName, tableId, user, password = "password";
       log.debug("Confirming that the lack of the " + perm + " permission properly restricts the user");
-      
+
       // test permission prior to granting it
       switch (perm) {
         case CREATE_TABLE:
@@ -204,12 +204,12 @@ public class PermissionsTest {
           throw new IllegalArgumentException("Unrecognized System Permission: " + perm);
       }
     }
-    
+
     private static void testGrantedSystemPermission(Connector root_conn, Connector test_user_conn, SystemPermission perm) throws AccumuloException,
         AccumuloSecurityException, TableNotFoundException, TableExistsException {
       String tableName, tableId, user, password = "password";
       log.debug("Confirming that the presence of the " + perm + " permission properly permits the user");
-      
+
       // test permission after granting it
       switch (perm) {
         case CREATE_TABLE:
@@ -268,7 +268,7 @@ public class PermissionsTest {
           throw new IllegalArgumentException("Unrecognized System Permission: " + perm);
       }
     }
-    
+
     private static void verifyHasOnlyTheseSystemPermissions(Connector root_conn, String user, SystemPermission... perms) throws AccumuloException,
         AccumuloSecurityException {
       List<SystemPermission> permList = Arrays.asList(perms);
@@ -284,7 +284,7 @@ public class PermissionsTest {
         }
       }
     }
-    
+
     private static void verifyHasNoSystemPermissions(Connector root_conn, String user, SystemPermission... perms) throws AccumuloException,
         AccumuloSecurityException {
       for (SystemPermission p : perms)
@@ -292,52 +292,52 @@ public class PermissionsTest {
           throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
     }
   }
-  
+
   public static class TablePermissionsTest extends FunctionalTest {
     private static final Logger log = Logger.getLogger(SystemPermissionsTest.class);
     private static final String TEST_TABLE = "__TABLE_PERMISSION_TEST__";
-    
+
     @Override
     public void cleanup() throws Exception {}
-    
+
     @Override
     public Map<String,String> getInitialConfig() {
       return Collections.emptyMap();
     }
-    
+
     @Override
     public List<TableSetup> getTablesToCreate() {
       return Collections.emptyList();
     }
-    
+
     @Override
     public void run() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, MutationsRejectedException {
       // create the test user
       getConnector().securityOperations().createLocalUser(TEST_USER, TEST_PASS);
       Connector test_user_conn = getInstance().getConnector(TEST_USER, TEST_PASS);
-      
+
       // check for read-only access to metadata table
       verifyHasOnlyTheseTablePermissions(getConnector(), getConnector().whoami(), Constants.METADATA_TABLE_NAME, TablePermission.READ,
           TablePermission.ALTER_TABLE);
       verifyHasOnlyTheseTablePermissions(getConnector(), TEST_USER, Constants.METADATA_TABLE_NAME, TablePermission.READ);
-      
+
       // test each permission
       for (TablePermission perm : TablePermission.values()) {
         log.debug("Verifying the " + perm + " permission");
-        
+
         // test permission before and after granting it
         createTestTable();
         testMissingTablePermission(getConnector(), test_user_conn, perm);
         getConnector().securityOperations().grantTablePermission(TEST_USER, TEST_TABLE, perm);
         verifyHasOnlyTheseTablePermissions(getConnector(), TEST_USER, TEST_TABLE, perm);
         testGrantedTablePermission(getConnector(), test_user_conn, perm);
-        
+
         createTestTable();
         getConnector().securityOperations().revokeTablePermission(TEST_USER, TEST_TABLE, perm);
         verifyHasNoTablePermissions(getConnector(), TEST_USER, TEST_TABLE, perm);
       }
     }
-    
+
     private void createTestTable() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
         MutationsRejectedException {
       if (!getConnector().tableOperations().exists(TEST_TABLE)) {
@@ -349,21 +349,21 @@ public class PermissionsTest {
         m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes()));
         writer.addMutation(m);
         writer.close();
-        
+
         // verify proper permissions for creator and test user
         verifyHasOnlyTheseTablePermissions(getConnector(), getConnector().whoami(), TEST_TABLE, TablePermission.values());
         verifyHasNoTablePermissions(getConnector(), TEST_USER, TEST_TABLE, TablePermission.values());
-        
+
       }
     }
-    
+
     private static void testMissingTablePermission(Connector root_conn, Connector test_user_conn, TablePermission perm) throws AccumuloException,
         AccumuloSecurityException, TableNotFoundException {
       Scanner scanner;
       BatchWriter writer;
       Mutation m;
       log.debug("Confirming that the lack of the " + perm + " permission properly restricts the user");
-      
+
       // test permission prior to granting it
       switch (perm) {
         case READ:
@@ -434,14 +434,14 @@ public class PermissionsTest {
           throw new IllegalArgumentException("Unrecognized table Permission: " + perm);
       }
     }
-    
+
     private static void testGrantedTablePermission(Connector root_conn, Connector test_user_conn, TablePermission perm) throws AccumuloException,
         TableExistsException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
       Scanner scanner;
       BatchWriter writer;
       Mutation m;
       log.debug("Confirming that the presence of the " + perm + " permission properly permits the user");
-      
+
       // test permission after granting it
       switch (perm) {
         case READ:
@@ -474,7 +474,7 @@ public class PermissionsTest {
           throw new IllegalArgumentException("Unrecognized table Permission: " + perm);
       }
     }
-    
+
     private static void verifyHasOnlyTheseTablePermissions(Connector root_conn, String user, String table, TablePermission... perms) throws AccumuloException,
         AccumuloSecurityException {
       List<TablePermission> permList = Arrays.asList(perms);
@@ -490,7 +490,7 @@ public class PermissionsTest {
         }
       }
     }
-    
+
     private static void verifyHasNoTablePermissions(Connector root_conn, String user, String table, TablePermission... perms) throws AccumuloException,
         AccumuloSecurityException {
       for (TablePermission p : perms)

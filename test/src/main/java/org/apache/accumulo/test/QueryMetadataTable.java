@@ -45,31 +45,31 @@ import com.beust.jcommander.Parameter;
 public class QueryMetadataTable {
   private static String principal;
   private static AuthenticationToken token;
-  
+
   static String location;
-  
+
   static class MDTQuery implements Runnable {
     private Text row;
-    
+
     MDTQuery(Text row) {
       this.row = row;
     }
-    
+
     public void run() {
       try {
         KeyExtent extent = new KeyExtent(row, (Text) null);
-        
+
         Connector connector = HdfsZooInstance.getInstance().getConnector(principal, token);
         Scanner mdScanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         Text row = extent.getMetadataEntry();
-        
+
         mdScanner.setRange(new Range(row));
-        
+
         for (Entry<Key,Value> entry : mdScanner) {
           if (!entry.getKey().getRow().equals(row))
             break;
         }
-        
+
       } catch (TableNotFoundException e) {
         e.printStackTrace();
         throw new RuntimeException(e);
@@ -82,28 +82,28 @@ public class QueryMetadataTable {
       }
     }
   }
-  
+
   static class Opts extends ClientOpts {
     @Parameter(names="--numQueries", description="number of queries to run")
     int numQueries = 1;
     @Parameter(names="--numThreads", description="number of threads used to run the queries")
     int numThreads = 1;
   }
-  
+
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(QueryMetadataTable.class.getName(), args, scanOpts);
-    
+
     Connector connector = opts.getConnector();
     Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, opts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
     Text mdrow = new Text(KeyExtent.getMetadataEntry(new Text(Constants.METADATA_TABLE_ID), null));
-    
+
     HashSet<Text> rowSet = new HashSet<Text>();
-    
+
     int count = 0;
-    
+
     for (Entry<Key,Value> entry : scanner) {
       System.out.print(".");
       if (count % 72 == 0) {
@@ -113,37 +113,37 @@ public class QueryMetadataTable {
         System.out.println(entry.getKey() + " " + entry.getValue());
         location = entry.getValue().toString();
       }
-      
+
       if (!entry.getKey().getRow().toString().startsWith(Constants.METADATA_TABLE_ID))
         rowSet.add(entry.getKey().getRow());
       count++;
     }
-    
+
     System.out.printf(" %,d%n", count);
-    
+
     ArrayList<Text> rows = new ArrayList<Text>(rowSet);
-    
+
     Random r = new Random();
-    
+
     ExecutorService tp = Executors.newFixedThreadPool(opts.numThreads);
-    
+
     long t1 = System.currentTimeMillis();
-    
+
     for (int i = 0; i < opts.numQueries; i++) {
       int index = r.nextInt(rows.size());
       MDTQuery mdtq = new MDTQuery(rows.get(index));
       tp.submit(mdtq);
     }
-    
+
     tp.shutdown();
-    
+
     try {
       tp.awaitTermination(1, TimeUnit.HOURS);
     } catch (InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    
+
     long t2 = System.currentTimeMillis();
     double delta = (t2 - t1) / 1000.0;
     System.out.println("time : " + delta + "  queries per sec : " + (opts.numQueries / delta));

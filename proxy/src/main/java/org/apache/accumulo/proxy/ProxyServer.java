@@ -95,15 +95,15 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
 public class ProxyServer implements AccumuloProxy.Iface {
-  
+
   public static final Logger logger = Logger.getLogger(ProxyServer.class);
   protected Instance instance;
-  
+
   static protected class ScannerPlusIterator {
     public ScannerBase scanner;
     public Iterator<Map.Entry<Key,Value>> iterator;
   }
-  
+
   static class CloseWriter implements RemovalListener<UUID,BatchWriter> {
     @Override
     public void onRemoval(RemovalNotification<UUID,BatchWriter> notification) {
@@ -113,10 +113,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
         logger.warn(e, e);
       }
     }
-    
+
     public CloseWriter() {}
   }
-  
+
   static class CloseScanner implements RemovalListener<UUID,ScannerPlusIterator> {
     @Override
     public void onRemoval(RemovalNotification<UUID,ScannerPlusIterator> notification) {
@@ -126,13 +126,13 @@ public class ProxyServer implements AccumuloProxy.Iface {
         scanner.close();
       }
     }
-    
+
     public CloseScanner() {}
   }
-  
+
   protected Cache<UUID,ScannerPlusIterator> scannerCache;
   protected Cache<UUID,BatchWriter> writerCache;
-  
+
   public ProxyServer(Properties props) {
     String useMock = props.getProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance");
     if (useMock != null && Boolean.parseBoolean(useMock))
@@ -140,12 +140,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
     else
       instance = new ZooKeeperInstance(props.getProperty("org.apache.accumulo.proxy.ProxyServer.instancename"),
           props.getProperty("org.apache.accumulo.proxy.ProxyServer.zookeepers"));
-    
+
     scannerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseScanner()).build();
-    
+
     writerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseWriter()).build();
   }
-  
+
   protected Connector getConnector(ByteBuffer login) throws Exception {
     TCredentials user = CredentialHelper.fromByteArray(ByteBufferUtil.toBytes(login));
     if (user == null)
@@ -153,7 +153,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     Connector connector = instance.getConnector(user.getPrincipal(), CredentialHelper.extractToken(user));
     return connector;
   }
-  
+
   private TException translateException(Exception ex) {
     try {
       throw ex;
@@ -179,7 +179,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       return new TException(ex);
     }
   }
-  
+
   @Override
   public int addConstraint(ByteBuffer login, String tableName, String constraintClassName) throws TException {
     try {
@@ -188,7 +188,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void addSplits(ByteBuffer login, String tableName, Set<ByteBuffer> splits) throws TException {
     try {
@@ -201,7 +201,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void clearLocatorCache(ByteBuffer login, String tableName) throws TException {
     try {
@@ -210,7 +210,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void compactTable(ByteBuffer login, String tableName, ByteBuffer start, ByteBuffer end,
       List<org.apache.accumulo.proxy.thrift.IteratorSetting> iterators, boolean flush, boolean wait) throws TException {
@@ -221,7 +221,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void cancelCompaction(ByteBuffer login, String tableName) throws org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, org.apache.accumulo.proxy.thrift.AccumuloException, TException {
@@ -231,7 +231,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   private List<IteratorSetting> getIteratorSettings(List<org.apache.accumulo.proxy.thrift.IteratorSetting> iterators) {
     List<IteratorSetting> result = new ArrayList<IteratorSetting>();
     if (iterators != null) {
@@ -241,19 +241,19 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
     return result;
   }
-  
+
   @Override
   public void createTable(ByteBuffer login, String tableName, boolean versioningIter, org.apache.accumulo.proxy.thrift.TimeType timeType) throws TException {
     try {
       if (timeType == null)
         timeType = org.apache.accumulo.proxy.thrift.TimeType.MILLIS;
-      
+
       getConnector(login).tableOperations().create(tableName, versioningIter, TimeType.valueOf(timeType.toString()));
     } catch (Exception e) {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void deleteTable(ByteBuffer login, String tableName) throws TException {
     try {
@@ -262,7 +262,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void deleteRows(ByteBuffer login, String tableName, ByteBuffer start, ByteBuffer end) throws TException {
     try {
@@ -271,7 +271,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public boolean tableExists(ByteBuffer login, String tableName) throws TException {
     try {
@@ -280,7 +280,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void flushTable(ByteBuffer login, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait) throws TException {
     try {
@@ -289,7 +289,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public Map<String,Set<String>> getLocalityGroups(ByteBuffer login, String tableName) throws TException {
     try {
@@ -306,7 +306,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public ByteBuffer getMaxRow(ByteBuffer login, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startinclusive, ByteBuffer endRow,
       boolean endinclusive) throws TException {
@@ -326,12 +326,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public Map<String,String> getTableProperties(ByteBuffer login, String tableName) throws TException {
     try {
       Map<String,String> ret = new HashMap<String,String>();
-      
+
       for (Map.Entry<String,String> entry : getConnector(login).tableOperations().getProperties(tableName)) {
         ret.put(entry.getKey(), entry.getValue());
       }
@@ -340,7 +340,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public List<ByteBuffer> getSplits(ByteBuffer login, String tableName, int maxSplits) throws TException {
     try {
@@ -354,7 +354,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public Set<String> listTables(ByteBuffer login) throws TException {
     try {
@@ -363,7 +363,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public Map<String,Integer> listConstraints(ByteBuffer login, String arg2) throws TException {
     try {
@@ -372,7 +372,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void mergeTablets(ByteBuffer login, String tableName, ByteBuffer start, ByteBuffer end) throws TException {
     try {
@@ -381,7 +381,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void offlineTable(ByteBuffer login, String tableName) throws TException {
     try {
@@ -390,7 +390,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void onlineTable(ByteBuffer login, String tableName) throws TException {
     try {
@@ -399,7 +399,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void removeConstraint(ByteBuffer login, String tableName, int number) throws TException {
     try {
@@ -408,7 +408,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void removeTableProperty(ByteBuffer login, String tableName, String property) throws TException {
     try {
@@ -417,7 +417,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void renameTable(ByteBuffer login, String oldTableName, String newTableName) throws TException {
     try {
@@ -426,7 +426,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void setLocalityGroups(ByteBuffer login, String tableName, Map<String,Set<String>> groupStrings) throws TException {
     try {
@@ -442,7 +442,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void setTableProperty(ByteBuffer login, String tableName, String property, String value) throws TException {
     try {
@@ -451,7 +451,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public Map<String,String> tableIdMap(ByteBuffer login) throws TException {
     try {
@@ -460,7 +460,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public Map<String,String> getSiteConfiguration(ByteBuffer login) throws TException {
     try {
@@ -469,7 +469,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public Map<String,String> getSystemConfiguration(ByteBuffer login) throws TException {
     try {
@@ -478,7 +478,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public List<String> getTabletServers(ByteBuffer login) throws TException {
     try {
@@ -487,7 +487,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public List<org.apache.accumulo.proxy.thrift.ActiveScan> getActiveScans(ByteBuffer login, String tserver) throws TException {
     List<org.apache.accumulo.proxy.thrift.ActiveScan> result = new ArrayList<org.apache.accumulo.proxy.thrift.ActiveScan>();
@@ -540,7 +540,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public List<org.apache.accumulo.proxy.thrift.ActiveCompaction> getActiveCompactions(ByteBuffer login, String tserver) throws TException {
     try {
@@ -562,7 +562,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         pcomp.outputFile = comp.getOutputFile();
         pcomp.reason = CompactionReason.valueOf(comp.getReason().toString());
         pcomp.type = CompactionType.valueOf(comp.getType().toString());
-        
+
         pcomp.iterators = new ArrayList<org.apache.accumulo.proxy.thrift.IteratorSetting>();
         if (comp.getIterators() != null) {
           for (IteratorSetting setting : comp.getIterators()) {
@@ -578,7 +578,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void removeProperty(ByteBuffer login, String property) throws TException {
     try {
@@ -587,7 +587,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void setProperty(ByteBuffer login, String property, String value) throws TException {
     try {
@@ -596,7 +596,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public boolean testClassLoad(ByteBuffer login, String className, String asTypeName) throws TException {
     try {
@@ -605,7 +605,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public boolean authenticateUser(ByteBuffer login, String user, Map<String, String> properties) throws TException {
     try {
@@ -614,7 +614,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void changeUserAuthorizations(ByteBuffer login, String user, Set<ByteBuffer> authorizations) throws TException {
     try {
@@ -627,7 +627,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void changeLocalUserPassword(ByteBuffer login, String user, ByteBuffer password) throws TException {
     try {
@@ -636,7 +636,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void createLocalUser(ByteBuffer login, String user, ByteBuffer password) throws TException {
     try {
@@ -645,7 +645,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void dropLocalUser(ByteBuffer login, String user) throws TException {
     try {
@@ -654,7 +654,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public List<ByteBuffer> getUserAuthorizations(ByteBuffer login, String user) throws TException {
     try {
@@ -663,7 +663,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void grantSystemPermission(ByteBuffer login, String user, org.apache.accumulo.proxy.thrift.SystemPermission perm) throws TException {
     try {
@@ -672,7 +672,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void grantTablePermission(ByteBuffer login, String user, String table, org.apache.accumulo.proxy.thrift.TablePermission perm) throws TException {
     try {
@@ -681,7 +681,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public boolean hasSystemPermission(ByteBuffer login, String user, org.apache.accumulo.proxy.thrift.SystemPermission perm) throws TException {
     try {
@@ -690,7 +690,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public boolean hasTablePermission(ByteBuffer login, String user, String table, org.apache.accumulo.proxy.thrift.TablePermission perm) throws TException {
     try {
@@ -699,7 +699,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public Set<String> listLocalUsers(ByteBuffer login) throws TException {
     try {
@@ -708,7 +708,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void revokeSystemPermission(ByteBuffer login, String user, org.apache.accumulo.proxy.thrift.SystemPermission perm) throws TException {
     try {
@@ -717,7 +717,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void revokeTablePermission(ByteBuffer login, String user, String table, org.apache.accumulo.proxy.thrift.TablePermission perm) throws TException {
     try {
@@ -726,7 +726,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   private Authorizations getAuthorizations(Set<ByteBuffer> authorizations) {
     List<String> auths = new ArrayList<String>();
     for (ByteBuffer bbauth : authorizations) {
@@ -734,12 +734,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
     return new Authorizations(auths.toArray(new String[0]));
   }
-  
+
   @Override
   public String createScanner(ByteBuffer login, String tableName, ScanOptions opts) throws TException {
     try {
       Connector connector = getConnector(login);
-      
+
       Authorizations auth;
       if (opts != null && opts.isSetAuthorizations()) {
         auth = getAuthorizations(opts.authorizations);
@@ -747,7 +747,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         auth = connector.securityOperations().getUserAuthorizations(connector.whoami());
       }
       Scanner scanner = connector.createScanner(tableName, auth);
-      
+
       if (opts != null) {
         if (opts.iterators != null) {
           for (org.apache.accumulo.proxy.thrift.IteratorSetting iter : opts.iterators) {
@@ -769,9 +769,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
           }
         }
       }
-      
+
       UUID uuid = UUID.randomUUID();
-      
+
       ScannerPlusIterator spi = new ScannerPlusIterator();
       spi.scanner = scanner;
       spi.iterator = scanner.iterator();
@@ -781,12 +781,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public String createBatchScanner(ByteBuffer login, String tableName, BatchScanOptions opts) throws TException {
     try {
       Connector connector = getConnector(login);
-      
+
       int threads = 10;
       Authorizations auth;
       if (opts != null && opts.isSetAuthorizations()) {
@@ -796,9 +796,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
       }
       if (opts != null && opts.threads > 0)
         threads = opts.threads;
-      
+
       BatchScanner scanner = connector.createBatchScanner(tableName, auth, threads);
-      
+
       if (opts != null) {
         if (opts.iterators != null) {
           for (org.apache.accumulo.proxy.thrift.IteratorSetting iter : opts.iterators) {
@@ -806,9 +806,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
             scanner.addScanIterator(is);
           }
         }
-        
+
         ArrayList<Range> ranges = new ArrayList<Range>();
-        
+
         if (opts.ranges == null) {
           ranges.add(new Range());
         } else {
@@ -821,7 +821,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         scanner.setRanges(ranges);
       }
       UUID uuid = UUID.randomUUID();
-      
+
       ScannerPlusIterator spi = new ScannerPlusIterator();
       spi.scanner = scanner;
       spi.iterator = scanner.iterator();
@@ -831,32 +831,32 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public boolean hasNext(String scanner) throws TException {
     ScannerPlusIterator spi = scannerCache.getIfPresent(UUID.fromString(scanner));
     if (spi == null) {
       throw new TException("Scanner never existed or no longer exists");
     }
-    
+
     return (spi.iterator.hasNext());
   }
-  
+
   @Override
   public KeyValueAndPeek nextEntry(String scanner) throws TException {
-    
+
     ScanResult scanResult = nextK(scanner, 1);
     if (scanResult.results.size() > 0) {
       return new KeyValueAndPeek(scanResult.results.get(0), scanResult.isMore());
     } else {
       throw new NoMoreEntriesException();
     }
-    
+
   }
-  
+
   @Override
   public ScanResult nextK(String scanner, int k) throws TException {
-    
+
     // fetch the scanner
     ScannerPlusIterator spi = scannerCache.getIfPresent(UUID.fromString(scanner));
     if (spi == null) {
@@ -882,12 +882,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
       return ret;
     }
   }
-  
+
   @Override
   public void closeScanner(String uuid) throws TException {
     scannerCache.invalidate(uuid);
   }
-  
+
   @Override
   public void updateAndFlush(ByteBuffer login, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws TException {
     try {
@@ -899,15 +899,15 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
-  
+
   private void addCellsToWriter(Map<ByteBuffer,List<ColumnUpdate>> cells, BatchWriter writer) throws MutationsRejectedException {
     HashMap<Text,ColumnVisibility> vizMap = new HashMap<Text,ColumnVisibility>();
-    
+
     for (Entry<ByteBuffer,List<ColumnUpdate>> entry : cells.entrySet()) {
       Mutation m = new Mutation(ByteBufferUtil.toBytes(entry.getKey()));
-      
+
       for (ColumnUpdate update : entry.getValue()) {
         ColumnVisibility viz = EMPTY_VIS;
         if (update.isSetColVisibility()) {
@@ -937,7 +937,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       writer.addMutation(m);
     }
   }
-  
+
   @Override
   public String createWriter(ByteBuffer login, String tableName, WriterOptions opts) throws TException {
     try {
@@ -949,7 +949,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void update(String writer, Map<ByteBuffer,List<ColumnUpdate>> cells) throws TException {
     try {
@@ -962,7 +962,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void flush(String writer) throws TException {
     try {
@@ -975,7 +975,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void closeWriter(String writer) throws TException {
     try {
@@ -989,7 +989,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   private BatchWriter getWriter(ByteBuffer login, String tableName, WriterOptions opts) throws Exception {
     BatchWriterConfig cfg = new BatchWriterConfig();
     if (opts != null) {
@@ -1004,15 +1004,15 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
     return getConnector(login).createBatchWriter(tableName, cfg);
   }
-  
+
   private IteratorSetting getIteratorSetting(org.apache.accumulo.proxy.thrift.IteratorSetting setting) {
     return new IteratorSetting(setting.priority, setting.name, setting.iteratorClass, setting.getProperties());
   }
-  
+
   private IteratorScope getIteratorScope(org.apache.accumulo.proxy.thrift.IteratorScope scope) {
     return IteratorScope.valueOf(scope.toString().toLowerCase());
   }
-  
+
   private EnumSet<IteratorScope> getIteratorScopes(Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes) {
     EnumSet<IteratorScope> scopes_ = EnumSet.noneOf(IteratorScope.class);
     for (org.apache.accumulo.proxy.thrift.IteratorScope scope : scopes) {
@@ -1020,7 +1020,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
     return scopes_;
   }
-  
+
   private EnumSet<org.apache.accumulo.proxy.thrift.IteratorScope> getProxyIteratorScopes(Set<IteratorScope> scopes) {
     EnumSet<org.apache.accumulo.proxy.thrift.IteratorScope> scopes_ = EnumSet.noneOf(org.apache.accumulo.proxy.thrift.IteratorScope.class);
     for (IteratorScope scope : scopes) {
@@ -1028,7 +1028,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
     return scopes_;
   }
-  
+
   @Override
   public void attachIterator(ByteBuffer login, String tableName, org.apache.accumulo.proxy.thrift.IteratorSetting setting,
       Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes) throws TException {
@@ -1038,7 +1038,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void checkIteratorConflicts(ByteBuffer login, String tableName, org.apache.accumulo.proxy.thrift.IteratorSetting setting,
       Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes) throws TException {
@@ -1048,7 +1048,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void cloneTable(ByteBuffer login, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet,
       Set<String> propertiesToExclude) throws TException {
@@ -1058,7 +1058,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void exportTable(ByteBuffer login, String tableName, String exportDir) throws TException {
     try {
@@ -1067,7 +1067,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void importTable(ByteBuffer login, String tableName, String importDir) throws TException {
     try {
@@ -1076,7 +1076,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public org.apache.accumulo.proxy.thrift.IteratorSetting getIteratorSetting(ByteBuffer login, String tableName, String iteratorName,
       org.apache.accumulo.proxy.thrift.IteratorScope scope) throws TException {
@@ -1087,7 +1087,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public Map<String,Set<org.apache.accumulo.proxy.thrift.IteratorScope>> listIterators(ByteBuffer login, String tableName) throws TException {
     try {
@@ -1101,7 +1101,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public void removeIterator(ByteBuffer login, String tableName, String iterName, Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes) throws TException {
     try {
@@ -1110,7 +1110,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public Set<org.apache.accumulo.proxy.thrift.Range> splitRangeByTablets(ByteBuffer login, String tableName, org.apache.accumulo.proxy.thrift.Range range,
       int maxSplits) throws TException {
@@ -1125,11 +1125,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   private org.apache.accumulo.proxy.thrift.Range getRange(Range r) {
     return new org.apache.accumulo.proxy.thrift.Range(getProxyKey(r.getStartKey()), r.isStartKeyInclusive(), getProxyKey(r.getEndKey()), r.isEndKeyInclusive());
   }
-  
+
   private org.apache.accumulo.proxy.thrift.Key getProxyKey(Key k) {
     if (k == null)
       return null;
@@ -1137,11 +1137,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
         .getColumnFamily()), TextUtil.getByteBuffer(k.getColumnQualifier()), TextUtil.getByteBuffer(k.getColumnVisibility()));
     return result;
   }
-  
+
   private Range getRange(org.apache.accumulo.proxy.thrift.Range range) {
     return new Range(Util.fromThrift(range.start), Util.fromThrift(range.stop));
   }
-  
+
   @Override
   public void importDirectory(ByteBuffer login, String tableName, String importDir, String failureDir, boolean setTime) throws TException {
     try {
@@ -1149,17 +1149,17 @@ public class ProxyServer implements AccumuloProxy.Iface {
     } catch (Exception e) {
       throw translateException(e);
     }
-    
+
   }
-  
+
   static private final ByteBuffer EMPTY = ByteBuffer.wrap(new byte[] {});
-  
+
   @Override
   public org.apache.accumulo.proxy.thrift.Range getRowRange(ByteBuffer row) throws TException {
     return new org.apache.accumulo.proxy.thrift.Range(new org.apache.accumulo.proxy.thrift.Key(row, EMPTY, EMPTY, EMPTY), true,
         new org.apache.accumulo.proxy.thrift.Key(row, EMPTY, EMPTY, EMPTY), true);
   }
-  
+
   @Override
   public org.apache.accumulo.proxy.thrift.Key getFollowing(org.apache.accumulo.proxy.thrift.Key key, org.apache.accumulo.proxy.thrift.PartialKey part)
       throws TException {
@@ -1168,7 +1168,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     Key followingKey = key_.followingKey(part_);
     return getProxyKey(followingKey);
   }
-  
+
   @Override
   public void pingTabletServer(ByteBuffer login, String tserver) throws TException {
     try {
@@ -1177,7 +1177,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   @Override
   public ByteBuffer login(String principal, Map<String,String> loginProperties) throws TException {
     try {
@@ -1188,7 +1188,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw translateException(e);
     }
   }
-  
+
   private AuthenticationToken getToken(Map<String, String> properties) throws AccumuloSecurityException, AccumuloException {
     Properties props = new Properties();
     props.putAll(properties);

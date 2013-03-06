@@ -42,9 +42,9 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
   private static final String PREFIX = RangePartitioner.class.getName();
   private static final String CUTFILE_KEY = PREFIX + ".cutFile";
   private static final String NUM_SUBBINS = PREFIX + ".subBins";
-  
+
   private Configuration conf;
-  
+
   @Override
   public int getPartition(Text key, Writable value, int numPartitions) {
     try {
@@ -53,21 +53,21 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
       throw new RuntimeException(e);
     }
   }
-  
+
   int findPartition(Text key, Text[] array, int numSubBins) {
     // find the bin for the range, and guarantee it is positive
     int index = Arrays.binarySearch(array, key);
     index = index < 0 ? (index + 1) * -1 : index;
-    
+
     // both conditions work with numSubBins == 1, but this check is to avoid
     // hashing, when we don't need to, for speed
     if (numSubBins < 2)
       return index;
     return (key.toString().hashCode() & Integer.MAX_VALUE) % numSubBins + index * numSubBins;
   }
-  
+
   private int _numSubBins = 0;
-  
+
   private synchronized int getNumSubBins() {
     if (_numSubBins < 1) {
       // get number of sub-bins and guarantee it is positive
@@ -75,14 +75,14 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
     }
     return _numSubBins;
   }
-  
+
   private Text cutPointArray[] = null;
-  
+
   private synchronized Text[] getCutPoints() throws IOException {
     if (cutPointArray == null) {
       String cutFileName = conf.get(CUTFILE_KEY);
       Path[] cf = DistributedCache.getLocalCacheFiles(conf);
-      
+
       if (cf != null) {
         for (Path path : cf) {
           if (path.toUri().getPath().endsWith(cutFileName.substring(cutFileName.lastIndexOf('/')))) {
@@ -104,17 +104,17 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
     }
     return cutPointArray;
   }
-  
+
   @Override
   public Configuration getConf() {
     return conf;
   }
-  
+
   @Override
   public void setConf(Configuration conf) {
     this.conf = conf;
   }
-  
+
   /**
    * Sets the hdfs file name to use, containing a newline separated list of Base64 encoded split points that represent ranges for partitioning
    */
@@ -123,7 +123,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
     DistributedCache.addCacheFile(uri, job.getConfiguration());
     job.getConfiguration().set(CUTFILE_KEY, uri.getPath());
   }
-  
+
   /**
    * Sets the number of random sub-bins per range
    */

@@ -27,18 +27,18 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class IteratorAdapter implements Iterator<Entry<Key,Value>> {
-  
+
   SortedKeyValueIterator<Key,Value> inner;
-  
+
   public IteratorAdapter(SortedKeyValueIterator<Key,Value> inner) {
     this.inner = inner;
   }
-  
+
   @Override
   public boolean hasNext() {
     return inner.hasTop();
   }
-  
+
   @Override
   public Entry<Key,Value> next() {
     try {
@@ -49,7 +49,7 @@ public class IteratorAdapter implements Iterator<Entry<Key,Value>> {
       throw new NoSuchElementException();
     }
   }
-  
+
   @Override
   public void remove() {
     throw new UnsupportedOperationException();

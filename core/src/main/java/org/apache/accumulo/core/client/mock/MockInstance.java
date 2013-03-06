@@ -44,25 +44,25 @@ import org.apache.hadoop.io.Text;
  * Mock Accumulo provides an in memory implementation of the Accumulo client API. It is possible that the behavior of this implementation may differ subtly from
  * the behavior of Accumulo. This could result in unit tests that pass on Mock Accumulo and fail on Accumulo or visa-versa. Documenting the differences would be
  * difficult and is not done.
- * 
+ *
  * <p>
  * An alternative to Mock Accumulo called MiniAccumuloCluster was introduced in Accumulo 1.5. MiniAccumuloCluster spins up actual Accumulo server processes, can
  * be used for unit testing, and its behavior should match Accumulo. The drawback of MiniAccumuloCluster is that it starts more slowly than Mock Accumulo.
- * 
+ *
  */
 
 public class MockInstance implements Instance {
-  
+
   static final String genericAddress = "localhost:1234";
   static final Map<String,MockAccumulo> instances = new HashMap<String,MockAccumulo>();
   MockAccumulo acu;
   String instanceName;
-  
+
   public MockInstance() {
     acu = new MockAccumulo(getDefaultFileSystem());
     instanceName = "mock-instance";
   }
-  
+
   static FileSystem getDefaultFileSystem() {
     try {
       return FileSystem.get(CachedConfiguration.getInstance());
@@ -70,11 +70,11 @@ public class MockInstance implements Instance {
       throw new RuntimeException(ex);
     }
   }
-  
+
   public MockInstance(String instanceName) {
     this(instanceName, getDefaultFileSystem());
   }
-  
+
   public MockInstance(String instanceName, FileSystem fs) {
     synchronized (instances) {
       if (instances.containsKey(instanceName))
@@ -84,80 +84,80 @@ public class MockInstance implements Instance {
     }
     this.instanceName = instanceName;
   }
-  
+
   @Override
   public String getRootTabletLocation() {
     return genericAddress;
   }
-  
+
   @Override
   public List<String> getMasterLocations() {
     return Collections.singletonList(genericAddress);
   }
-  
+
   @Override
   public String getInstanceID() {
     return "mock-instance-id";
   }
-  
+
   @Override
   public String getInstanceName() {
     return instanceName;
   }
-  
+
   @Override
   public String getZooKeepers() {
     return "localhost";
   }
-  
+
   @Override
   public int getZooKeepersSessionTimeOut() {
     return 30 * 1000;
   }
-  
+
   @Override
   @Deprecated
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, new PasswordToken(pass));
   }
-  
+
   @Override
   @Deprecated
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
-  
+
   @Override
   @Deprecated
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
-  
+
   AccumuloConfiguration conf = null;
-  
+
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (conf == null)
       conf = AccumuloConfiguration.getDefaultConfiguration();
     return conf;
   }
-  
+
   @Override
   public void setConfiguration(AccumuloConfiguration conf) {
     this.conf = conf;
   }
-  
+
   @Deprecated
   @Override
   public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
     return getConnector(auth.user, auth.password);
   }
-  
+
   @Override
   public String getAuthenticatorClassName() throws AccumuloException {
     return ZKAuthenticator.class.getCanonicalName();
   }
-  
+
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     Connector conn = new MockConnector(principal, acu, this);
@@ -167,12 +167,12 @@ public class MockInstance implements Instance {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.BAD_CREDENTIALS);
     return conn;
   }
-  
+
   @Override
   public Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException {
     return getConnector(principal, getAuthenticator().login(props));
   }
-  
+
   @Override
   public Authenticator getAuthenticator() throws AccumuloException, AccumuloSecurityException {
     return new ZKAuthenticator();

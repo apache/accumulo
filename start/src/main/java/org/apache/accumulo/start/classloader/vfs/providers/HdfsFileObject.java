@@ -35,7 +35,7 @@ import org.apache.hadoop.fs.Path;
 
 /**
  * A VFS representation of an HDFS file.
- * 
+ *
  * @since 2.1
  */
 public class HdfsFileObject extends AbstractFileObject
@@ -47,7 +47,7 @@ public class HdfsFileObject extends AbstractFileObject
 
     /**
      * Constructs a new HDFS FileObject
-     * 
+     *
      * @param name
      *            FileName
      * @param fs

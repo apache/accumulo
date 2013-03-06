@@ -52,15 +52,15 @@ public class AccumuloFileOutputFormatTest {
   private static final String BAD_TABLE = PREFIX + "_mapreduce_bad_table";
   private static final String TEST_TABLE = PREFIX + "_mapreduce_test_table";
   private static final String EMPTY_TABLE = PREFIX + "_mapreduce_empty_table";
-  
+
   public static TemporaryFolder folder = new TemporaryFolder();
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
-  
+
   @BeforeClass
   public static void setup() throws Exception {
     folder.create();
-    
+
     MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
     Connector c = mockInstance.getConnector("root", new byte[] {});
     c.tableOperations().create(EMPTY_TABLE);
@@ -79,26 +79,26 @@ public class AccumuloFileOutputFormatTest {
     bw.addMutation(m);
     bw.close();
   }
-  
+
   @AfterClass
   public static void teardown() throws IOException {
     folder.delete();
   }
-  
+
   @Test
   public void testEmptyWrite() throws Exception {
     handleWriteTests(false);
   }
-  
+
   @Test
   public void testRealWrite() throws Exception {
     handleWriteTests(true);
   }
-  
+
   private static class MRTester extends Configured implements Tool {
     private static class BadKeyMapper extends Mapper<Key,Value,Key,Value> {
       int index = 0;
-      
+
       @Override
       protected void map(Key key, Value value, Context context) throws IOException, InterruptedException {
         try {
@@ -114,7 +114,7 @@ public class AccumuloFileOutputFormatTest {
         }
         index++;
       }
-      
+
       @Override
       protected void cleanup(Context context) throws IOException, InterruptedException {
         try {
@@ -124,50 +124,50 @@ public class AccumuloFileOutputFormatTest {
         }
       }
     }
-    
+
     @Override
     public int run(String[] args) throws Exception {
-      
+
       if (args.length != 4) {
         throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table> <outputfile>");
       }
-      
+
       String user = args[0];
       String pass = args[1];
       String table = args[2];
-      
+
       Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
-      
+
       job.setInputFormatClass(AccumuloInputFormat.class);
-      
+
       AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
       AccumuloFileOutputFormat.setOutputPath(job, new Path(args[3]));
-      
+
       job.setMapperClass(BAD_TABLE.equals(table) ? BadKeyMapper.class : Mapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
       job.setOutputFormatClass(AccumuloFileOutputFormat.class);
-      
+
       job.setNumReduceTasks(0);
-      
+
       job.waitForCompletion(true);
-      
+
       return job.isSuccessful() ? 0 : 1;
     }
-    
+
     public static void main(String[] args) throws Exception {
       assertEquals(0, ToolRunner.run(CachedConfiguration.getInstance(), new MRTester(), args));
     }
   }
-  
+
   public void handleWriteTests(boolean content) throws Exception {
     File f = folder.newFile();
     f.delete();
     MRTester.main(new String[] {"root", "", content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
-    
+
     assertTrue(f.exists());
     File[] files = f.listFiles(new FileFilter() {
       @Override
@@ -182,7 +182,7 @@ public class AccumuloFileOutputFormatTest {
       assertEquals(0, files.length);
     }
   }
-  
+
   @Test
   public void writeBadVisibility() throws Exception {
     File f = folder.newFile();
@@ -191,51 +191,51 @@ public class AccumuloFileOutputFormatTest {
     assertNull(e1);
     assertNull(e2);
   }
-  
+
   @Test
   public void validateConfiguration() throws IOException, InterruptedException {
-    
+
     int a = 7;
     long b = 300l;
     long c = 50l;
     long d = 10l;
     String e = "snappy";
-    
+
     Job job = new Job();
     AccumuloFileOutputFormat.setReplication(job, a);
     AccumuloFileOutputFormat.setFileBlockSize(job, b);
     AccumuloFileOutputFormat.setDataBlockSize(job, c);
     AccumuloFileOutputFormat.setIndexBlockSize(job, d);
     AccumuloFileOutputFormat.setCompressionType(job, e);
-    
+
     AccumuloConfiguration acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job);
-    
+
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
     assertEquals(50l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     assertEquals(10l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("snappy", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    
+
     a = 17;
     b = 1300l;
     c = 150l;
     d = 110l;
     e = "lzo";
-    
+
     job = new Job();
     AccumuloFileOutputFormat.setReplication(job, a);
     AccumuloFileOutputFormat.setFileBlockSize(job, b);
     AccumuloFileOutputFormat.setDataBlockSize(job, c);
     AccumuloFileOutputFormat.setIndexBlockSize(job, d);
     AccumuloFileOutputFormat.setCompressionType(job, e);
-    
+
     acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job);
-    
+
     assertEquals(17, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(1300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
     assertEquals(150l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     assertEquals(110l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("lzo", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    
+
   }
 }

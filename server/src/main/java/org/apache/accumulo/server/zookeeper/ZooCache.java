@@ -24,11 +24,11 @@ public class ZooCache extends org.apache.accumulo.fate.zookeeper.ZooCache {
   public ZooCache() {
     this(null);
   }
-  
+
   public ZooCache(Watcher watcher) {
     super(ZooReaderWriter.getInstance(), watcher);
   }
-  
+
   public ZooCache(AccumuloConfiguration conf, Watcher watcher) {
     super(conf.get(Property.INSTANCE_ZK_HOST), (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), watcher);
   }

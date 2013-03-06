@@ -35,11 +35,11 @@ public class GCLotsOfCandidatesTest {
     ClientOpts opts = new ClientOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(GCLotsOfCandidatesTest.class.getName(), args, bwOpts);
-    
+
     Connector conn = opts.getConnector();
     conn.securityOperations().grantTablePermission(conn.whoami(), Constants.METADATA_TABLE_NAME, TablePermission.WRITE);
     BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, bwOpts.getBatchWriterConfig());
-    
+
     for (int i = 0; i < 100000; ++i) {
       final Text emptyText = new Text("");
       Text row = new Text(String.format("%s%s%020d%s", Constants.METADATA_DELETE_FLAG_PREFIX, "/", i,

@@ -27,12 +27,12 @@ import org.apache.commons.cli.Options;
 
 public class ExecfileCommand extends Command {
   private Option verboseOption;
-  
+
   @Override
   public String description() {
     return "specifies a file containing accumulo commands to execute";
   }
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     Scanner scanner = new Scanner(new File(cl.getArgs()[0]));
@@ -41,17 +41,17 @@ public class ExecfileCommand extends Command {
     }
     return 0;
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <fileName>";
   }
-  
+
   @Override
   public int numArgs() {
     return 1;
   }
-  
+
   @Override
   public Options getOptions() {
     final Options opts = new Options();

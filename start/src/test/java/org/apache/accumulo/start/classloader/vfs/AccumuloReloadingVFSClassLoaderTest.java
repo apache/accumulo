@@ -41,11 +41,11 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Logger.getRootLogger().setLevel(Level.ERROR);
 
     vfs = ContextManagerTest.getVFS();
-    
+
     folder1.create();
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
   }
-  
+
   FileObject[] createFileSystems(FileObject[] fos) throws FileSystemException {
     FileObject[] rfos = new FileObject[fos.length];
     for (int i = 0; i < fos.length; i++) {
@@ -54,7 +54,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
       else
         rfos[i] = fos[i];
     }
-    
+
     return rfos;
   }
 
@@ -62,34 +62,34 @@ public class AccumuloReloadingVFSClassLoaderTest {
   public void testConstructor() throws Exception {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
-    
+
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folder1.getRoot().toURI().toString(), vfs, new ReloadingClassLoader() {
       @Override
       public ClassLoader getClassLoader() {
         return ClassLoader.getSystemClassLoader();
       }
     }, true);
-    
+
     VFSClassLoader cl = (VFSClassLoader) arvcl.getClassLoader();
-    
+
     FileObject[] files = cl.getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);
-    
+
     arvcl.close();
   }
-  
+
   @Test
   public void testReloading() throws Exception {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
-    
+
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folder1.getRoot().toURI().toString(), vfs, new ReloadingClassLoader() {
       @Override
       public ClassLoader getClassLoader() {
         return ClassLoader.getSystemClassLoader();
       }
     }, 1000, true);
-    
+
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);
 
@@ -100,7 +100,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     //Check that the class is the same before the update
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Assert.assertEquals(clazz1, clazz1_5);
-    
+
     new File(folder1.getRoot(), "HelloWorld.jar").delete();
 
     // Update the class
@@ -108,18 +108,18 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
     //Wait for the monitor to notice
     Thread.sleep(2000);
-    
+
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
     Assert.assertEquals("Hello World!", o2.toString());
-    
+
     //This is false because they are loaded by a different classloader
     Assert.assertFalse(clazz1.equals(clazz2));
     Assert.assertFalse(o1.equals(o2));
-    
+
     arvcl.close();
   }
-  
+
   @After
   public void tearDown() throws Exception {
     folder1.delete();

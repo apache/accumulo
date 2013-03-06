@@ -26,20 +26,20 @@ import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
 
 public class SequentialFixture extends Fixture {
-  
+
   String seqTableName;
-  
+
   @Override
   public void setUp(State state) throws Exception {
-    
+
     Connector conn = state.getConnector();
     Instance instance = state.getInstance();
-    
+
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
-    
+
     seqTableName = String.format("sequential_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis());
     state.set("seqTableName", seqTableName);
-    
+
     try {
       conn.tableOperations().create(seqTableName);
       log.debug("Created table " + seqTableName + " (id:" + Tables.getNameToIdMap(instance).get(seqTableName) + ")");
@@ -48,18 +48,18 @@ public class SequentialFixture extends Fixture {
       throw e;
     }
     conn.tableOperations().setProperty(seqTableName, "table.scan.max.memory", "1K");
-    
+
     state.set("numWrites", new Long(0));
     state.set("totalWrites", new Long(0));
   }
-  
+
   @Override
   public void tearDown(State state) throws Exception {
-    
+
     log.debug("Dropping tables: " + seqTableName);
-    
+
     Connector conn = state.getConnector();
-    
+
     conn.tableOperations().delete(seqTableName);
   }
 }

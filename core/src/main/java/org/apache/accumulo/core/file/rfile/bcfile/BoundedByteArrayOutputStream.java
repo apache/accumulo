@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -29,11 +29,11 @@ class BoundedByteArrayOutputStream extends OutputStream {
   private final byte[] buffer;
   private int limit;
   private int count;
-  
+
   public BoundedByteArrayOutputStream(int capacity) {
     this(capacity, capacity);
   }
-  
+
   public BoundedByteArrayOutputStream(int capacity, int limit) {
     if ((capacity < limit) || (capacity | limit) < 0) {
       throw new IllegalArgumentException("Invalid capacity/limit");
@@ -42,7 +42,7 @@ class BoundedByteArrayOutputStream extends OutputStream {
     this.limit = limit;
     this.count = 0;
   }
-  
+
   @Override
   public void write(int b) throws IOException {
     if (count >= limit) {
@@ -50,7 +50,7 @@ class BoundedByteArrayOutputStream extends OutputStream {
     }
     buffer[count++] = (byte) b;
   }
-  
+
   @Override
   public void write(byte b[], int off, int len) throws IOException {
     if ((off < 0) || (off > b.length) || (len < 0) || ((off + len) > b.length) || ((off + len) < 0)) {
@@ -58,15 +58,15 @@ class BoundedByteArrayOutputStream extends OutputStream {
     } else if (len == 0) {
       return;
     }
-    
+
     if (count + len > limit) {
       throw new EOFException("Reach the limit of the buffer");
     }
-    
+
     System.arraycopy(b, off, buffer, count, len);
     count += len;
   }
-  
+
   public void reset(int newlim) {
     if (newlim > buffer.length) {
       throw new IndexOutOfBoundsException("Limit exceeds buffer size");
@@ -74,20 +74,20 @@ class BoundedByteArrayOutputStream extends OutputStream {
     this.limit = newlim;
     this.count = 0;
   }
-  
+
   public void reset() {
     this.limit = buffer.length;
     this.count = 0;
   }
-  
+
   public int getLimit() {
     return limit;
   }
-  
+
   public byte[] getBuffer() {
     return buffer;
   }
-  
+
   public int size() {
     return count;
   }

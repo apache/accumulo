@@ -56,30 +56,30 @@ import org.apache.accumulo.server.tabletserver.TabletStatsKeeper;
 import org.apache.commons.codec.binary.Base64;
 
 public class TServersServlet extends BasicServlet {
-  
+
   private static final long serialVersionUID = 1L;
   private static final TabletServerStatus NO_STATUS = new TabletServerStatus();
-  
+
   static class SecondType extends NumberType<Double> {
-    
+
     @Override
     public String format(Object obj) {
       if (obj == null)
         return "&mdash;";
       return Duration.format((long) (1000.0 * (Double) obj));
     }
-    
+
   }
-  
+
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "Tablet Server Status";
   }
-  
+
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws Exception {
     String tserverAddress = req.getParameter("s");
-    
+
     // Check to make sure tserver is a known address
     boolean tserverExists = false;
     if (tserverAddress != null && tserverAddress.isEmpty() == false) {
@@ -90,23 +90,23 @@ public class TServersServlet extends BasicServlet {
         }
       }
     }
-    
+
     if (tserverAddress == null || tserverAddress.isEmpty() || tserverExists == false) {
       doBadTserverList(req, sb);
-      
+
       doDeadTserverList(req, sb);
-      
+
       ArrayList<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
       if (Monitor.getMmi() != null)
         tservers.addAll(Monitor.getMmi().tServerInfo);
-      
+
       Table tServerList = new Table("tservers", "Tablet&nbsp;Servers");
       tServerList.setSubCaption("Click on the <span style='color: #0000ff;'>server address</span> to view detailed performance statistics for that server.");
-      
+
       doTserverList(req, sb, tservers, null, tServerList);
       return;
     }
-    
+
     double totalElapsedForAll = 0;
     double splitStdDev = 0;
     double minorStdDev = 0;
@@ -118,7 +118,7 @@ public class TServersServlet extends BasicServlet {
     double currentMinorStdDev = 0;
     double currentMajorStdDev = 0;
     TabletStats total = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
-    
+
     InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
     TabletStats historical = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<TabletStats>();
@@ -137,7 +137,7 @@ public class TServersServlet extends BasicServlet {
       log.error(e, e);
       return;
     }
-    
+
     Table perTabletResults = new Table("perTabletResults", "Detailed&nbsp;Current&nbsp;Operations");
     perTabletResults.setSubCaption("Per-tablet&nbsp;Details");
     perTabletResults.addSortableColumn("Table", new TableLinkType(), null);
@@ -151,7 +151,7 @@ public class TServersServlet extends BasicServlet {
     perTabletResults.addSortableColumn("Major&nbsp;Avg", new SecondType(), null);
     perTabletResults.addSortableColumn("Major&nbsp;Std&nbsp;Dev", new SecondType(), null);
     perTabletResults.addSortableColumn("Major&nbsp;Avg&nbsp;e/s", new NumberType<Double>(), null);
-    
+
     for (TabletStats info : tsStats) {
       if (info.extent == null) {
         historical = info;
@@ -160,7 +160,7 @@ public class TServersServlet extends BasicServlet {
       total.numEntries += info.numEntries;
       TabletStatsKeeper.update(total.minors, info.minors);
       TabletStatsKeeper.update(total.majors, info.majors);
-      
+
       KeyExtent extent = new KeyExtent(info.extent);
       String tableId = extent.getTableId().toString();
       MessageDigest digester = MessageDigest.getInstance("MD5");
@@ -169,7 +169,7 @@ public class TServersServlet extends BasicServlet {
       }
       String obscuredExtent = new String(Base64.encodeBase64(digester.digest()));
       String displayExtent = String.format("<code>[%s]</code>", obscuredExtent);
-      
+
       TableRow row = perTabletResults.prepareRow();
       row.add(tableId);
       row.add(displayExtent);
@@ -184,7 +184,7 @@ public class TServersServlet extends BasicServlet {
       row.add(info.majors.elapsed != 0 ? info.majors.count / info.majors.elapsed : null);
       perTabletResults.addRow(row);
     }
-    
+
     // Calculate current averages oldServer adding in historical data
     if (total.minors.num != 0)
       currentMinorAvg = (long) (total.minors.elapsed / total.minors.num);
@@ -194,25 +194,25 @@ public class TServersServlet extends BasicServlet {
       currentMajorAvg = total.majors.elapsed / total.majors.num;
     if (total.majors.elapsed != 0 && total.majors.num != 0 && total.majors.elapsed > total.majors.num)
       currentMajorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
-    
+
     // After these += operations, these variables are now total for current
     // tablets and historical tablets
     TabletStatsKeeper.update(total.minors, historical.minors);
     TabletStatsKeeper.update(total.majors, historical.majors);
     totalElapsedForAll += total.majors.elapsed + historical.splits.elapsed + total.minors.elapsed;
-    
+
     minorStdDev = stddev(total.minors.elapsed, total.minors.num, total.minors.sumDev);
     minorQueueStdDev = stddev(total.minors.queueTime, total.minors.num, total.minors.queueSumDev);
     majorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
     majorQueueStdDev = stddev(total.majors.queueTime, total.majors.num, total.majors.queueSumDev);
     splitStdDev = stddev(historical.splits.num, historical.splits.elapsed, historical.splits.sumDev);
-    
+
     doDetailTable(req, sb, address, tsStats.size(), total, historical);
     doAllTimeTable(req, sb, total, historical, majorQueueStdDev, minorQueueStdDev, totalElapsedForAll, splitStdDev, majorStdDev, minorStdDev);
     doCurrentTabletOps(req, sb, currentMinorAvg, currentMinorStdDev, currentMajorAvg, currentMajorStdDev);
     perTabletResults.generate(req, sb);
   }
-  
+
   private void doCurrentTabletOps(HttpServletRequest req, StringBuilder sb, double currentMinorAvg, double currentMinorStdDev, double currentMajorAvg,
       double currentMajorStdDev) {
     Table currentTabletOps = new Table("currentTabletOps", "Current&nbsp;Tablet&nbsp;Operation&nbsp;Results");
@@ -223,10 +223,10 @@ public class TServersServlet extends BasicServlet {
     currentTabletOps.addRow(currentMinorAvg, currentMinorStdDev, currentMajorAvg, currentMajorStdDev);
     currentTabletOps.generate(req, sb);
   }
-  
+
   private void doAllTimeTable(HttpServletRequest req, StringBuilder sb, TabletStats total, TabletStats historical, double majorQueueStdDev,
       double minorQueueStdDev, double totalElapsedForAll, double splitStdDev, double majorStdDev, double minorStdDev) {
-    
+
     Table opHistoryDetails = new Table("opHistoryDetails", "All-Time&nbsp;Tablet&nbsp;Operation&nbsp;Results");
     opHistoryDetails.addSortableColumn("Operation");
     opHistoryDetails.addSortableColumn("Success", new NumberType<Integer>(), null);
@@ -236,7 +236,7 @@ public class TServersServlet extends BasicServlet {
     opHistoryDetails.addSortableColumn("Average<br />Time", new SecondType(), null);
     opHistoryDetails.addSortableColumn("Std.&nbsp;Dev.<br />Time", new SecondType(), null);
     opHistoryDetails.addSortableColumn("Percentage&nbsp;Time&nbsp;Spent", new ProgressChartType(totalElapsedForAll), null);
-    
+
     opHistoryDetails.addRow("Split", historical.splits.num, historical.splits.fail, null, null,
         historical.splits.num != 0 ? (historical.splits.elapsed / historical.splits.num) : null, splitStdDev, historical.splits.elapsed);
     opHistoryDetails.addRow("Major&nbsp;Compaction", total.majors.num, total.majors.fail,
@@ -247,7 +247,7 @@ public class TServersServlet extends BasicServlet {
         total.minors.num != 0 ? (total.minors.elapsed / total.minors.num) : null, minorStdDev, total.minors.elapsed);
     opHistoryDetails.generate(req, sb);
   }
-  
+
   private void doDetailTable(HttpServletRequest req, StringBuilder sb, InetSocketAddress address, int numTablets, TabletStats total, TabletStats historical) {
     Table detailTable = new Table("tServerDetail", "Details");
     detailTable.setSubCaption(address.getHostName() + ":" + address.getPort());
@@ -259,7 +259,7 @@ public class TServersServlet extends BasicServlet {
     detailTable.addRow(numTablets, total.numEntries, total.minors.status, total.majors.status, historical.splits.status);
     detailTable.generate(req, sb);
   }
-  
+
   /*
    * omg there's so much undocumented stuff going on here. First, sumDev is a partial standard deviation computation. It is the (clue 1) sum of the squares of
    * (clue 2) seconds of elapsed time.
@@ -271,7 +271,7 @@ public class TServersServlet extends BasicServlet {
     }
     return 0;
   }
-  
+
   private void doBadTserverList(HttpServletRequest req, StringBuilder sb) {
     if (Monitor.getMmi() != null && !Monitor.getMmi().badTServers.isEmpty()) {
       Table badTServerList = new Table("badtservers", "Non-Functioning&nbsp;Tablet&nbsp;Servers", "error");
@@ -283,7 +283,7 @@ public class TServersServlet extends BasicServlet {
       badTServerList.generate(req, sb);
     }
   }
-  
+
   private void doDeadTserverList(HttpServletRequest req, StringBuilder sb) {
     MasterMonitorInfo mmi = Monitor.getMmi();
     if (mmi != null) {
@@ -293,7 +293,7 @@ public class TServersServlet extends BasicServlet {
       doDeadServerTable(req, sb, deadTServerList, obit);
     }
   }
-  
+
   public static void doDeadServerTable(HttpServletRequest req, StringBuilder sb, Table deadTServerList, List<DeadServer> obit) {
     if (obit != null && !obit.isEmpty()) {
       deadTServerList.addSortableColumn("Server");
@@ -306,11 +306,11 @@ public class TServersServlet extends BasicServlet {
       deadTServerList.generate(req, sb);
     }
   }
-  
+
   static void doTserverList(HttpServletRequest req, StringBuilder sb, List<TabletServerStatus> tservers, String tableId, Table tServerList) {
     int guessHighLoad = ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors();
     long now = System.currentTimeMillis();
-    
+
     double avgLastContact = 0.;
     for (TabletServerStatus status : tservers) {
       avgLastContact += (now - status.lastContact);
@@ -336,7 +336,7 @@ public class TServersServlet extends BasicServlet {
     tServerList.addSortableColumn("Data Cache<br />Hit Rate", new PercentageType(), "The recent data cache hit rate.");
     tServerList.addSortableColumn("OS&nbsp;Load", new NumberType<Double>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
         "The Unix one minute load average. The average number of processes in the run queue over a one minute interval.");
-    
+
     log.debug("tableId: " + tableId);
     for (TabletServerStatus status : tservers) {
       if (status == null)
@@ -366,5 +366,5 @@ public class TServersServlet extends BasicServlet {
     }
     tServerList.generate(req, sb);
   }
-  
+
 }

@@ -30,10 +30,10 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class LocalityGroupUtilTest {
-  
+
   @Test
   public void testColumnFamilySet() {
-    
+
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set("table.group.lg1", "cf1,cf2");
     conf.set("table.groups.enabled", "lg1");
@@ -53,7 +53,7 @@ public class LocalityGroupUtilTest {
       fail();
     } catch (LocalityGroupConfigurationError err) {}
   }
-  
+
   @Test
   public void testEncoding() throws Exception {
     byte test1[] = new byte[256];
@@ -62,18 +62,18 @@ public class LocalityGroupUtilTest {
       test1[i] = (byte) (0xff & i);
       test2[i] = (byte) (0xff & (255 - i));
     }
-    
+
     ArrayByteSequence bs1 = new ArrayByteSequence(test1);
-    
+
     String ecf = LocalityGroupUtil.encodeColumnFamily(bs1);
-    
+
     // System.out.println(ecf);
-    
+
     ByteSequence bs2 = LocalityGroupUtil.decodeColumnFamily(ecf);
-    
+
     assertEquals(bs1, bs2);
     assertEquals(ecf, LocalityGroupUtil.encodeColumnFamily(bs2));
-    
+
     // test encoding multiple column fams containing binary data
     HashSet<Text> in = new HashSet<Text>();
     HashSet<ByteSequence> in2 = new HashSet<ByteSequence>();
@@ -82,8 +82,8 @@ public class LocalityGroupUtilTest {
     in.add(new Text(test2));
     in2.add(new ArrayByteSequence(test2));
     Set<ByteSequence> out = LocalityGroupUtil.decodeColumnFamilies(LocalityGroupUtil.encodeColumnFamilies(in));
-    
+
     assertEquals(in2, out);
   }
-  
+
 }

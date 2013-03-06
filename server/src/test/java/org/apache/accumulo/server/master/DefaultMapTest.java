@@ -22,7 +22,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class DefaultMapTest {
-  
+
   @Test
   public void testDefaultMap() {
     DefaultMap<String,String> map = new DefaultMap<String,String>("");
@@ -32,5 +32,5 @@ public class DefaultMapTest {
     assertEquals(empty, "");
     assertTrue(empty == map.get("otherKey"));
   }
-  
+
 }

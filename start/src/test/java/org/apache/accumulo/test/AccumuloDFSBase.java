@@ -41,11 +41,11 @@ public class AccumuloDFSBase {
   static {
     System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
   }
-  
+
   protected static Configuration conf = null;
   protected static DefaultFileSystemManager vfs = null;
   protected static MiniDFSCluster cluster = null;
-  
+
   // Choose an IANA unassigned port
   // http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
   // TODO Given that the URI for the NameNode is statically declared in config files
@@ -53,18 +53,18 @@ public class AccumuloDFSBase {
   // MiniDFSCluster find a free port to use and then update the URI to be used in the VFS tests
   protected static final Integer HDFS_PORT = 8620;
   protected static final URI HDFS_URI;
-  
-  
+
+
   static {
     Logger.getRootLogger().setLevel(Level.ERROR);
-    
+
     //Put the MiniDFSCluster directory in the target directory
     System.setProperty("test.build.data", "target/build/test/data");
-    
+
     //Setup HDFS
     conf = new Configuration();
     conf.set("hadoop.security.token.service.use_ip", "true");
-    
+
     // MiniDFSCluster will check the permissions on the data directories, but does not
     // do a good job of setting them properly. We need to get the users umask and set
     // the appropriate Hadoop property so that the data directories will be created
@@ -85,9 +85,9 @@ public class AccumuloDFSBase {
     } catch (Exception e) {
 	throw new RuntimeException("Error getting umask from O/S", e);
     }
-    
+
     conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 100); //100K blocksize
-    
+
     try {
       cluster = new MiniDFSCluster(HDFS_PORT, conf, 1, true, true, true, null, null, null, null);
       cluster.waitActive();
@@ -97,7 +97,7 @@ public class AccumuloDFSBase {
     } catch (IOException e) {
       throw new RuntimeException("Error setting up mini cluster", e);
     }
-    
+
     //Set up the VFS
     vfs = new DefaultFileSystemManager();
     try {
@@ -143,5 +143,5 @@ public class AccumuloDFSBase {
     }
 
   }
-  
+
 }

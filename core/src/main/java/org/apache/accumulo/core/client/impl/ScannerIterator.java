@@ -45,50 +45,50 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class ScannerIterator implements Iterator<Entry<Key,Value>> {
-  
+
   private static final Logger log = Logger.getLogger(ScannerIterator.class);
-  
+
   // scanner options
   private Text tableName;
   private int timeOut;
-  
+
   // scanner state
   private Iterator<KeyValue> iter;
   private ScanState scanState;
   private TCredentials credentials;
   private Instance instance;
-  
+
   private ScannerOptions options;
-  
+
   private ArrayBlockingQueue<Object> synchQ;
-  
+
   private boolean finished = false;
-  
+
   private boolean readaheadInProgress;
   private long batchCount = 0;
-  
+
   private static final List<KeyValue> EMPTY_LIST = Collections.emptyList();
-  
+
   private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3l, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(),
       new NamingThreadFactory("Accumulo scanner read ahead thread"));
 
   private class Reader implements Runnable {
-    
+
     @Override
     public void run() {
-      
+
       try {
         while (true) {
           List<KeyValue> currentBatch = ThriftScanner.scan(instance, credentials, scanState, timeOut, instance.getConfiguration());
-          
+
           if (currentBatch == null) {
             synchQ.add(EMPTY_LIST);
             return;
           }
-          
+
           if (currentBatch.size() == 0)
             continue;
-          
+
           synchQ.add(currentBatch);
           return;
         }
@@ -118,54 +118,54 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
         synchQ.add(e);
       }
     }
-    
+
   }
-  
+
   ScannerIterator(Instance instance, TCredentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
       ScannerOptions options, boolean isolated) {
     this.instance = instance;
     this.tableName = new Text(table);
     this.timeOut = timeOut;
     this.credentials = credentials;
-    
+
     this.options = new ScannerOptions(options);
-    
+
     synchQ = new ArrayBlockingQueue<Object>(1);
-    
+
     if (this.options.fetchedColumns.size() > 0) {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
-    
+
     scanState = new ScanState(credentials, tableName, authorizations, new Range(range), options.fetchedColumns, size, options.serverSideIteratorList,
         options.serverSideIteratorOptions, isolated);
     readaheadInProgress = false;
     iter = null;
   }
-  
+
   private void initiateReadAhead() {
     readaheadInProgress = true;
     readaheadPool.execute(new Reader());
   }
-  
+
   @SuppressWarnings("unchecked")
   public boolean hasNext() {
     if (finished)
       return false;
-    
+
     if (iter != null && iter.hasNext()) {
       return true;
     }
-    
+
     // this is done in order to find see if there is another batch to get
-    
+
     try {
       if (!readaheadInProgress) {
         // no read ahead run, fetch the next batch right now
         new Reader().run();
       }
-      
+
       Object obj = synchQ.take();
-      
+
       if (obj instanceof Exception) {
         finished = true;
         if (obj instanceof RuntimeException)
@@ -173,9 +173,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
         else
           throw new RuntimeException((Exception) obj);
       }
-      
+
       List<KeyValue> currentBatch = (List<KeyValue>) obj;
-      
+
       if (currentBatch.size() == 0) {
         currentBatch = null;
         finished = true;
@@ -183,29 +183,29 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       }
       iter = currentBatch.iterator();
       batchCount++;
-      
+
       if (batchCount > 3) {
         // start a thread to read the next batch
         initiateReadAhead();
       }
-      
+
     } catch (InterruptedException e1) {
       throw new RuntimeException(e1);
     }
-    
+
     return true;
   }
-  
+
   public Entry<Key,Value> next() {
     if (hasNext())
       return iter.next();
     throw new NoSuchElementException();
   }
-  
+
   // just here to satisfy the interface
   // could make this actually delete things from the database
   public void remove() {
     throw new UnsupportedOperationException("remove is not supported in Scanner");
   }
-  
+
 }

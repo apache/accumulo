@@ -24,7 +24,7 @@ import java.util.List;
 import org.junit.Test;
 
 public class TestStringUtil {
-  
+
   static List<String> parts(Object... parts) {
     List<String> result = new ArrayList<String>();
     for (Object obj : parts) {
@@ -32,7 +32,7 @@ public class TestStringUtil {
     }
     return result;
   }
-  
+
   @Test
   public void testJoin() {
     assertEquals(StringUtil.join(parts(), ","), "");
@@ -40,5 +40,5 @@ public class TestStringUtil {
     assertEquals(StringUtil.join(parts("a"), ","), "a");
     assertEquals(StringUtil.join(parts("a", "a"), ","), "a,a");
   }
-  
+
 }

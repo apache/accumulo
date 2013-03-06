@@ -29,21 +29,21 @@ import org.apache.hadoop.io.Text;
 public class ColumnSet {
   private Set<ColFamHashKey> objectsCF;
   private Set<ColHashKey> objectsCol;
-  
+
   private ColHashKey lookupCol = new ColHashKey();
   private ColFamHashKey lookupCF = new ColFamHashKey();
-  
+
   public ColumnSet() {
     objectsCF = new HashSet<ColFamHashKey>();
     objectsCol = new HashSet<ColHashKey>();
   }
-  
+
   public ColumnSet(Collection<String> objectStrings) {
     this();
-    
+
     for (String column : objectStrings) {
       Pair<Text,Text> pcic = ColumnSet.decodeColumns(column);
-      
+
       if (pcic.getSecond() == null) {
         add(pcic.getFirst());
       } else {
@@ -51,15 +51,15 @@ public class ColumnSet {
       }
     }
   }
-  
+
   protected void add(Text colf) {
     objectsCF.add(new ColFamHashKey(new Text(colf)));
   }
-  
+
   protected void add(Text colf, Text colq) {
     objectsCol.add(new ColHashKey(colf, colq));
   }
-  
+
   public boolean contains(Key key) {
     // lookup column family and column qualifier
     if (objectsCol.size() > 0) {
@@ -67,36 +67,36 @@ public class ColumnSet {
       if (objectsCol.contains(lookupCol))
         return true;
     }
-    
+
     // lookup just column family
     if (objectsCF.size() > 0) {
       lookupCF.set(key);
       return objectsCF.contains(lookupCF);
     }
-    
+
     return false;
   }
-  
+
   public boolean isEmpty() {
     return objectsCol.size() == 0 && objectsCF.size() == 0;
   }
 
   public static String encodeColumns(Text columnFamily, Text columnQualifier) {
     StringBuilder sb = new StringBuilder();
-    
+
     encode(sb, columnFamily);
     if (columnQualifier != null) {
       sb.append(':');
       encode(sb, columnQualifier);
     }
-    
+
     return sb.toString();
   }
-  
+
   static void encode(StringBuilder sb, Text t) {
     for (int i = 0; i < t.getLength(); i++) {
       int b = (0xff & t.getBytes()[i]);
-      
+
       // very inefficient code
       if ((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_' || b == '-') {
         sb.append((char) b);
@@ -113,16 +113,16 @@ public class ColumnSet {
       if (!validChar)
         return false;
     }
-    
+
     return true;
   }
 
   public static Pair<Text,Text> decodeColumns(String columns) {
     if (!isValidEncoding(columns))
       throw new IllegalArgumentException("Invalid encoding " + columns);
-  
+
     String[] cols = columns.split(":");
-    
+
     if (cols.length == 1) {
       return new Pair<Text,Text>(decode(cols[0]), null);
     } else if (cols.length == 2) {
@@ -134,9 +134,9 @@ public class ColumnSet {
 
   static Text decode(String s) {
     Text t = new Text();
-    
+
     byte[] sb = s.getBytes();
-    
+
     // very inefficient code
     for (int i = 0; i < sb.length; i++) {
       if (sb[i] != '%') {
@@ -148,7 +148,7 @@ public class ColumnSet {
         t.append(new byte[] {(byte) b}, 0, 1);
       }
     }
-    
+
     return t;
   }
 }

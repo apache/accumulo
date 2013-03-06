@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.Value;
 import org.junit.Test;
 
 public class TestBatchScanner821 {
-  
+
   @Test
   public void test() throws Exception {
     MockInstance inst = new MockInstance();
@@ -60,5 +60,5 @@ public class TestBatchScanner821 {
     }
     assertEquals("a,b,c,d", sb.toString());
   }
-  
+
 }

@@ -39,24 +39,24 @@ import com.beust.jcommander.Parameters;
  * A utility to administer FATE operations
  */
 public class Admin {
-  
+
   static class TxOpts {
     @Parameter(description="<txid>", required=true)
     List<String> args = new ArrayList<String>();
   }
-  
+
   @Parameters(commandDescription="Stop an existing FATE by transaction id")
   static class FailOpts extends TxOpts {
   }
-  
+
   @Parameters(commandDescription="Delete an existing FATE by transaction id")
   static class DeleteOpts extends TxOpts {
   }
-  
+
   @Parameters(commandDescription="List the existing FATE transactions")
   static class PrintOpts {
   }
-  
+
   public static void main(String[] args) throws Exception {
     Help opts = new Help();
     JCommander jc = new JCommander(opts);
@@ -69,15 +69,15 @@ public class Admin {
       jc.usage();
       System.exit(-1);
     }
-    
+
     AdminUtil<Master> admin = new AdminUtil<Master>();
-    
+
     Instance instance = HdfsZooInstance.getInstance();
     String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
     String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
     IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
     ZooStore<Master> zs = new ZooStore<Master>(path, zk);
-    
+
     if (jc.getParsedCommand().equals("fail")) {
       admin.prepFail(zs, zk, masterPath, args[1]);
     } else if (jc.getParsedCommand().equals("delete")) {

@@ -25,13 +25,13 @@ import org.apache.commons.cli.Options;
  */
 public abstract class ShellOptions {
   protected static final String DEFAULT_AUTH_TIMEOUT = "60"; // in minutes
-  
+
   // Global options flags
   public static final String userOption = "u";
   public static final String tableOption = "t";
   public static final String helpOption = "?";
   public static final String helpLongOption = "help";
-  
+
   final Options opts = new Options();
   final Option usernameOption = new Option("u", "user", true, "username (defaults to your OS user)");
   final Option passwOption = new Option("p", "password", true, "password (prompt for password if this option is missing)");
@@ -54,43 +54,43 @@ public abstract class ShellOptions {
   public ShellOptions() {
     usernameOption.setArgName("user");
     opts.addOption(usernameOption);
-    
+
     passwOption.setArgName("pass");
     opts.addOption(passwOption);
-    
+
     opts.addOption(tabCompleteOption);
-    
+
     opts.addOption(debugOption);
-    
+
     opts.addOption(fakeOption);
-    
+
     opts.addOption(helpOpt);
-    
+
     opts.addOption(execCommandOpt);
-    
-    
+
+
     execfileOption.setArgName("file");
     execFileGroup.addOption(execfileOption);
-    
+
     execfileVerboseOption.setArgName("file");
     execFileGroup.addOption(execfileVerboseOption);
-    
+
     opts.addOptionGroup(execFileGroup);
-    
-    
+
+
     instanceOptions.addOption(hdfsZooInstance);
-    
+
     zooKeeperInstance.setArgName("name hosts");
     zooKeeperInstance.setArgs(2);
     instanceOptions.addOption(zooKeeperInstance);
-    
+
     opts.addOptionGroup(instanceOptions);
-    
+
     authTimeoutOpt.setArgName("minutes");
     authTimeoutOptions.addOption(authTimeoutOpt);
-    
+
     authTimeoutOptions.addOption(disableAuthTimeoutOpt);
-    
+
     opts.addOptionGroup(authTimeoutOptions);
   }
 }

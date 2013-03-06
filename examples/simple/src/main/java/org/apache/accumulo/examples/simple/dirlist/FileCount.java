@@ -38,21 +38,21 @@ import com.beust.jcommander.Parameter;
  * Computes recursive counts over file system information and stores them back into the same Accumulo table. See docs/examples/README.dirlist for instructions.
  */
 public class FileCount {
-  
+
   private int entriesScanned;
   private int inserts;
-  
+
   private Opts opts;
   private ScannerOpts scanOpts;
   private BatchWriterOpts bwOpts;
-  
-  
+
+
   private static class CountValue {
     int dirCount = 0;
     int fileCount = 0;
     int recursiveDirCount = 0;
     int recusiveFileCount = 0;
-    
+
     void set(Value val) {
       String sa[] = val.toString().split(",");
       dirCount = Integer.parseInt(sa[0]);
@@ -60,46 +60,46 @@ public class FileCount {
       recursiveDirCount = Integer.parseInt(sa[2]);
       recusiveFileCount = Integer.parseInt(sa[3]);
     }
-    
+
     Value toValue() {
       return new Value((dirCount + "," + fileCount + "," + recursiveDirCount + "," + recusiveFileCount).getBytes());
     }
-    
+
     void incrementFiles() {
       fileCount++;
       recusiveFileCount++;
     }
-    
+
     void incrementDirs() {
       dirCount++;
       recursiveDirCount++;
     }
-    
+
     public void clear() {
       dirCount = 0;
       fileCount = 0;
       recursiveDirCount = 0;
       recusiveFileCount = 0;
     }
-    
+
     public void incrementRecursive(CountValue other) {
       recursiveDirCount += other.recursiveDirCount;
       recusiveFileCount += other.recusiveFileCount;
     }
   }
-  
+
   private int findMaxDepth(Scanner scanner, int min, int max) {
     int mid = min + (max - min) / 2;
     return findMaxDepth(scanner, min, mid, max);
   }
-  
+
   private int findMaxDepth(Scanner scanner, int min, int mid, int max) {
     // check to see if the mid point exist
     if (max < min)
       return -1;
-    
+
     scanner.setRange(new Range(String.format("%03d", mid), true, String.format("%03d", mid + 1), false));
-    
+
     if (scanner.iterator().hasNext()) {
       // this depth exist, check to see if a larger depth exist
       int ret = findMaxDepth(scanner, mid + 1, max);
@@ -111,9 +111,9 @@ public class FileCount {
       // this depth does not exist, look lower
       return findMaxDepth(scanner, min, mid - 1);
     }
-    
+
   }
-  
+
   private int findMaxDepth(Scanner scanner) {
     // do binary search to find max depth
     int origBatchSize = scanner.getBatchSize();
@@ -122,81 +122,81 @@ public class FileCount {
     scanner.setBatchSize(origBatchSize);
     return depth;
   }
-  
+
   // find the count column and consume a row
   private Entry<Key,Value> findCount(Entry<Key,Value> entry, Iterator<Entry<Key,Value>> iterator, CountValue cv) {
-    
+
     Key key = entry.getKey();
     Text currentRow = key.getRow();
-    
+
     if (key.compareColumnQualifier(QueryUtil.COUNTS_COLQ) == 0)
       cv.set(entry.getValue());
-    
+
     while (iterator.hasNext()) {
       entry = iterator.next();
       entriesScanned++;
       key = entry.getKey();
-      
+
       if (key.compareRow(currentRow) != 0)
         return entry;
-      
+
       if (key.compareColumnFamily(QueryUtil.DIR_COLF) == 0 && key.compareColumnQualifier(QueryUtil.COUNTS_COLQ) == 0) {
         cv.set(entry.getValue());
       }
-      
+
     }
-    
+
     return null;
   }
-  
+
   private Entry<Key,Value> consumeRow(Entry<Key,Value> entry, Iterator<Entry<Key,Value>> iterator) {
     Key key = entry.getKey();
     Text currentRow = key.getRow();
-    
+
     while (iterator.hasNext()) {
       entry = iterator.next();
       entriesScanned++;
       key = entry.getKey();
-      
+
       if (key.compareRow(currentRow) != 0)
         return entry;
     }
-    
+
     return null;
   }
-  
+
   private String extractDir(Key key) {
     String row = key.getRowData().toString();
     return row.substring(3, row.lastIndexOf('/'));
   }
-  
+
   private Mutation createMutation(int depth, String dir, CountValue countVal) {
     Mutation m = new Mutation(String.format("%03d%s", depth, dir));
     m.put(QueryUtil.DIR_COLF, QueryUtil.COUNTS_COLQ, opts.visibility, countVal.toValue());
     return m;
   }
-  
+
   private void calculateCounts(Scanner scanner, int depth, BatchWriter batchWriter) throws Exception {
-    
+
     scanner.setRange(new Range(String.format("%03d", depth), true, String.format("%03d", depth + 1), false));
-    
+
     CountValue countVal = new CountValue();
-    
+
     Iterator<Entry<Key,Value>> iterator = scanner.iterator();
-    
+
     String currentDir = null;
-    
+
     Entry<Key,Value> entry = null;
     if (iterator.hasNext()) {
       entry = iterator.next();
       entriesScanned++;
     }
-    
+
     while (entry != null) {
       Key key = entry.getKey();
-      
+
       String dir = extractDir(key);
-      
+
       if (currentDir == null) {
         currentDir = dir;
       } else if (!currentDir.equals(dir)) {
@@ -205,12 +205,12 @@ public class FileCount {
         currentDir = dir;
         countVal.clear();
       }
-      
+
       // process a whole row
       if (key.compareColumnFamily(QueryUtil.DIR_COLF) == 0) {
         CountValue tmpCount = new CountValue();
         entry = findCount(entry, iterator, tmpCount);
-        
+
         if (tmpCount.dirCount == 0 && tmpCount.fileCount == 0) {
           // in this case the higher depth will not insert anything if the
           // dir has no children, so insert something here
@@ -219,7 +219,7 @@ public class FileCount {
           batchWriter.addMutation(m);
           inserts++;
         }
-        
+
         countVal.incrementRecursive(tmpCount);
         countVal.incrementDirs();
       } else {
@@ -227,57 +227,57 @@ public class FileCount {
         countVal.incrementFiles();
       }
     }
-    
+
     if (currentDir != null) {
       batchWriter.addMutation(createMutation(depth - 1, currentDir, countVal));
       inserts++;
     }
   }
-  
+
   FileCount(Opts opts, ScannerOpts scanOpts, BatchWriterOpts bwOpts) throws Exception {
     this.opts = opts;
     this.scanOpts = scanOpts;
     this.bwOpts = bwOpts;
   }
-  
+
   public void run() throws Exception {
-    
+
     entriesScanned = 0;
     inserts = 0;
-    
+
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.tableName, opts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
     BatchWriter bw = conn.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());
-    
+
     long t1 = System.currentTimeMillis();
-    
+
     int depth = findMaxDepth(scanner);
-    
+
     long t2 = System.currentTimeMillis();
-    
+
     for (int d = depth; d > 0; d--) {
       calculateCounts(scanner, d, bw);
       // must flush so next depth can read what prev depth wrote
       bw.flush();
     }
-    
+
     bw.close();
-    
+
     long t3 = System.currentTimeMillis();
-    
+
     System.out.printf("Max depth              : %d%n", depth);
     System.out.printf("Time to find max depth : %,d ms%n", (t2 - t1));
     System.out.printf("Time to compute counts : %,d ms%n", (t3 - t2));
     System.out.printf("Entries scanned        : %,d %n", entriesScanned);
     System.out.printf("Counts inserted        : %,d %n", inserts);
   }
-  
+
   public static class Opts extends ClientOnRequiredTable {
     @Parameter(names="--vis", description="use a given visibility for the new counts", converter=VisibilityConverter.class)
     ColumnVisibility visibility = new ColumnVisibility();
   }
-  
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();

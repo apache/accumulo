@@ -51,47 +51,47 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class TestMergeState {
-  
+
   class MockCurrentState implements CurrentState {
-    
+
     TServerInstance someTServer = new TServerInstance(new InetSocketAddress("127.0.0.1", 1234), 0x123456);
     MergeInfo mergeInfo;
-    
+
     MockCurrentState(MergeInfo info) {
       this.mergeInfo = info;
     }
-    
+
     @Override
     public Set<String> onlineTables() {
       return Collections.singleton("t");
     }
-    
+
     @Override
     public Set<TServerInstance> onlineTabletServers() {
       return Collections.singleton(someTServer);
     }
-    
+
     @Override
     public Collection<MergeInfo> merges() {
       return Collections.singleton(mergeInfo);
     }
   }
-  
+
   private static void update(Connector c, Mutation m) throws TableNotFoundException, MutationsRejectedException {
     BatchWriter bw = c.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     bw.addMutation(m);
     bw.close();
   }
-  
+
   @Test
   public void test() throws Exception {
     Instance instance = new MockInstance();
     Connector connector = instance.getConnector("root", "");
     BatchWriter bw = connector.createBatchWriter("!METADATA", new BatchWriterConfig());
-    
+
     // Create a fake METADATA table with these splits
     String splits[] = {"a", "e", "j", "o", "t", "z"};
     // create metadata for a table "t" with the splits above
@@ -110,11 +110,11 @@ public class TestMergeState {
     defaultTablet.put(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY, new Text("123456"), new Value("127.0.0.1:1234".getBytes()));
     bw.addMutation(defaultTablet);
     bw.close();
-    
+
     // Read out the TabletLocationStates
     MockCurrentState state = new MockCurrentState(new MergeInfo(new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
     TCredentials auths = CredentialHelper.create("root", new PasswordToken(new byte[0]), "instance");
-    
+
     // Verify the tablet state: hosted, and count
     MetaDataStateStore metaDataStateStore = new MetaDataStateStore(instance, auths, state);
     int count = 0;
@@ -123,59 +123,59 @@ public class TestMergeState {
       count++;
     }
     Assert.assertEquals(splits.length + 1, count);
-    
+
     // Create the hole
     // Split the tablet at one end of the range
     Mutation m = new KeyExtent(tableId, new Text("t"), new Text("p")).getPrevRowUpdateMutation();
     Constants.METADATA_SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
     Constants.METADATA_OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(new Text("o")));
     update(connector, m);
-    
+
     // do the state check
     MergeStats stats = scan(state, metaDataStateStore);
     MergeState newState = stats.nextMergeState(connector, state);
     Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
-    
+
     // unassign the tablets
     BatchDeleter deleter = connector.createBatchDeleter("!METADATA", Constants.NO_AUTHS, 1000, new BatchWriterConfig());
     deleter.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     deleter.setRanges(Collections.singletonList(new Range()));
     deleter.delete();
-    
+
     // now we should be ready to merge but, we have an inconsistent !METADATA table
     stats = scan(state, metaDataStateStore);
     Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
-    
+
     // finish the split
     KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
     m = tablet.getPrevRowUpdateMutation();
     Constants.METADATA_SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
     update(connector, m);
     metaDataStateStore.setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
-    
+
     // onos... there's a new tablet online
     stats = scan(state, metaDataStateStore);
     Assert.assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(connector, state));
-    
+
     // chop it
     m = tablet.getPrevRowUpdateMutation();
     Constants.METADATA_CHOPPED_COLUMN.put(m, new Value("junk".getBytes()));
     update(connector, m);
-    
+
     stats = scan(state, metaDataStateStore);
     Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
-    
+
     // take it offline
     m = tablet.getPrevRowUpdateMutation();
     Collection<Collection<String>> walogs = Collections.emptyList();
     metaDataStateStore.unassign(Collections.singletonList(new TabletLocationState(tablet, null, state.someTServer, null, walogs, false)));
-    
+
     // now we can split
     stats = scan(state, metaDataStateStore);
     Assert.assertEquals(MergeState.MERGING, stats.nextMergeState(connector, state));
-    
+
   }
-  
+
   /**
    * @param state
    * @param metaDataStateStore

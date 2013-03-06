@@ -32,11 +32,11 @@ import org.junit.Test;
 import com.beust.jcommander.JCommander;
 
 public class TestClientOpts {
-  
+
   @Test
   public void test() {
     BatchWriterConfig cfg = new BatchWriterConfig();
-    
+
     // document the defaults
     ClientOpts args = new ClientOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
@@ -54,7 +54,7 @@ public class TestClientOpts {
     assertEquals(Constants.NO_AUTHS, args.auths);
     assertEquals("localhost:2181", args.zookeepers);
     assertFalse(args.help);
-    
+
     JCommander jc = new JCommander();
     jc.addObject(args);
     jc.addObject(bwOpts);
@@ -74,7 +74,7 @@ public class TestClientOpts {
     assertEquals(new Authorizations("G1", "G2", "G3"), args.auths);
     assertEquals("zoohost1,zoohost2", args.zookeepers);
     assertTrue(args.help);
-    
+
   }
-  
+
 }

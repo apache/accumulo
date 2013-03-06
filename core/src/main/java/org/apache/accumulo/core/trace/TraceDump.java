@@ -43,7 +43,7 @@ import com.beust.jcommander.Parameter;
 
 public class TraceDump {
   static final long DEFAULT_TIME_IN_MILLIS = 10 * 60 * 1000l;
-  
+
   static class Opts extends ClientOnDefaultTable {
     @Parameter(names={"-l", "--list"}, description="List recent traces")
     boolean list = false;
@@ -59,7 +59,7 @@ public class TraceDump {
     List<String> traceIds = new ArrayList<String>();
     Opts() { super("trace");}
   }
-  
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
@@ -73,7 +73,7 @@ public class TraceDump {
     }
     System.exit(code);
   }
-  
+
   public static List<RemoteSpan> sortByStart(Collection<RemoteSpan> spans) {
     List<RemoteSpan> spanList = new ArrayList<RemoteSpan>(spans);
     Collections.sort(spanList, new Comparator<RemoteSpan>() {
@@ -84,7 +84,7 @@ public class TraceDump {
     });
     return spanList;
   }
-  
+
   private static int listSpans(Opts opts, ScannerOpts scanOpts) throws Exception {
     PrintStream out = System.out;
     long endTime = System.currentTimeMillis();
@@ -101,15 +101,15 @@ public class TraceDump {
     }
     return 0;
   }
-  
+
   public interface Printer {
     void print(String line);
   }
-  
+
   private static int dumpTrace(Opts opts, ScannerOpts scanOpts) throws Exception {
     final PrintStream out = System.out;
     Connector conn = opts.getConnector();
-    
+
     int count = 0;
     for (String traceId : opts.traceIds) {
       Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
@@ -125,7 +125,7 @@ public class TraceDump {
     }
     return count > 0 ? 0 : 1;
   }
-  
+
   public static int printTrace(Scanner scanner, final Printer out) {
     int count = 0;
     SpanTree tree = new SpanTree();
@@ -139,7 +139,7 @@ public class TraceDump {
     }
     out.print(String.format("Trace started at %s", TraceFormatter.formatDate(new Date(start))));
     out.print("Time  Start  Service@Location       Name");
-    
+
     final long finalStart = start;
     Set<Long> visited = tree.visit(new SpanTreeVisitor() {
       @Override

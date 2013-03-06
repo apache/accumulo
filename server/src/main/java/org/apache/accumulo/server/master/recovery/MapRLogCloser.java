@@ -8,9 +8,9 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.log4j.Logger;
 
 public class MapRLogCloser implements LogCloser {
-  
+
   private static Logger log = Logger.getLogger(MapRLogCloser.class);
-  
+
   @Override
   public long close(FileSystem fs, Path path) throws IOException {
     log.info("Recovering file " + path.toString() + " by changing permission to readonly");
@@ -24,5 +24,5 @@ public class MapRLogCloser implements LogCloser {
       return 1000;
     }
   }
-  
+
 }

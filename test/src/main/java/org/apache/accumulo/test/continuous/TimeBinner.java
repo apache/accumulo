@@ -31,16 +31,16 @@ import org.apache.accumulo.core.cli.Help;
 import com.beust.jcommander.Parameter;
 
 public class TimeBinner {
-  
+
   enum Operation {
     AVG, SUM, MIN, MAX, COUNT, CUMULATIVE, AMM, // avg,min,max
     AMM_HACK1 // special case
   }
-  
+
   private static class DoubleWrapper {
     double d;
   }
-  
+
   private static DoubleWrapper get(long l, HashMap<Long,DoubleWrapper> m, double init) {
     DoubleWrapper dw = m.get(l);
     if (dw == null) {
@@ -50,7 +50,7 @@ public class TimeBinner {
     }
     return dw;
   }
-  
+
   static class Opts extends Help {
     @Parameter(names="--period", description="period", converter=TimeConverter.class, required=true)
     long period = 0;
@@ -63,36 +63,36 @@ public class TimeBinner {
     @Parameter(names="--dateFormat", description="a SimpleDataFormat string that describes the data format")
     String dateFormat = "MM/dd/yy-HH:mm:ss";
   }
-  
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(TimeBinner.class.getName(), args);
-    
+
     Operation operation = Operation.valueOf(opts.operation);
     SimpleDateFormat sdf = new SimpleDateFormat(opts.dateFormat);
-    
+
     BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-    
+
     String line = null;
-    
+
     HashMap<Long,DoubleWrapper> aggregation1 = new HashMap<Long,DoubleWrapper>();
     HashMap<Long,DoubleWrapper> aggregation2 = new HashMap<Long,DoubleWrapper>();
     HashMap<Long,DoubleWrapper> aggregation3 = new HashMap<Long,DoubleWrapper>();
     HashMap<Long,DoubleWrapper> aggregation4 = new HashMap<Long,DoubleWrapper>();
-    
+
     while ((line = in.readLine()) != null) {
-      
+
       try {
         String tokens[] = line.split("\\s+");
-        
+
         long time = (long) Double.parseDouble(tokens[opts.timeColumn]);
         double data = Double.parseDouble(tokens[opts.dataColumn]);
-        
+
         time = (time / opts.period) * opts.period;
-        
+
         double data_min = data;
         double data_max = data;
-        
+
         switch (operation) {
           case AMM_HACK1: {
             data_min = Double.parseDouble(tokens[opts.dataColumn - 2]);
@@ -103,20 +103,20 @@ public class TimeBinner {
             DoubleWrapper mindw = get(time, aggregation3, Double.POSITIVE_INFINITY);
             if (data < mindw.d)
               mindw.d = data_min;
-            
+
             DoubleWrapper maxdw = get(time, aggregation4, Double.NEGATIVE_INFINITY);
             if (data > maxdw.d)
               maxdw.d = data_max;
-            
+
             // fall through to AVG
           }
           case AVG: {
             DoubleWrapper sumdw = get(time, aggregation1, 0);
             DoubleWrapper countdw = get(time, aggregation2, 0);
-            
+
             sumdw.d += data;
             countdw.d++;
-            
+
             break;
           }
           case MAX: {
@@ -145,20 +145,20 @@ public class TimeBinner {
             break;
           }
         }
-        
+
       } catch (Exception e) {
         System.err.println("Failed to process line : " + line + "  " + e.getMessage());
       }
     }
-    
+
     TreeMap<Long,DoubleWrapper> sorted = new TreeMap<Long,DoubleWrapper>(aggregation1);
-    
+
     Set<Entry<Long,DoubleWrapper>> es = sorted.entrySet();
-    
+
     double cumulative = 0;
     for (Entry<Long,DoubleWrapper> entry : es) {
       String value;
-      
+
       switch (operation) {
         case AMM_HACK1:
         case AMM: {
@@ -179,9 +179,9 @@ public class TimeBinner {
         default:
           value = "" + entry.getValue().d;
       }
-      
+
       System.out.println(sdf.format(new Date(entry.getKey())) + " " + value);
     }
-    
+
   }
 }

@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -26,14 +26,14 @@ import java.io.OutputStream;
  * Several related classes to support chunk-encoded sub-streams on top of a regular stream.
  */
 final class Chunk {
-  
+
   /**
    * Prevent the instantiation of class.
    */
   private Chunk() {
     // nothing
   }
-  
+
   /**
    * Decoding a chain of chunks encoded through ChunkEncoder or SingleChunkEncoder.
    */
@@ -42,12 +42,12 @@ final class Chunk {
     private boolean lastChunk;
     private int remain = 0;
     private boolean closed;
-    
+
     public ChunkDecoder() {
       lastChunk = true;
       closed = true;
     }
-    
+
     public void reset(DataInputStream downStream) {
       // no need to wind forward the old input.
       in = downStream;
@@ -55,10 +55,10 @@ final class Chunk {
       remain = 0;
       closed = false;
     }
-    
+
     /**
      * Constructor
-     * 
+     *
      * @param in
      *          The source input stream which contains chunk-encoded data stream.
      */
@@ -67,10 +67,10 @@ final class Chunk {
       lastChunk = false;
       closed = false;
     }
-    
+
     /**
      * Have we reached the last chunk.
-     * 
+     *
      * @return true if we have reached the last chunk.
      * @throws java.io.IOException
      */
@@ -78,10 +78,10 @@ final class Chunk {
       checkEOF();
       return lastChunk;
     }
-    
+
     /**
      * How many bytes remain in the current chunk?
-     * 
+     *
      * @return remaining bytes left in the current chunk.
      * @throws java.io.IOException
      */
@@ -89,10 +89,10 @@ final class Chunk {
       checkEOF();
       return remain;
     }
-    
+
     /**
      * Reading the length of next chunk.
-     * 
+     *
      * @throws java.io.IOException
      *           when no more data is available.
      */
@@ -104,10 +104,10 @@ final class Chunk {
         remain = -remain;
       }
     }
-    
+
     /**
      * Check whether we reach the end of the stream.
-     * 
+     *
      * @return false if the chunk encoded stream has more data to read (in which case available() will be greater than 0); true otherwise.
      * @throws java.io.IOException
      *           on I/O errors.
@@ -123,7 +123,7 @@ final class Chunk {
         readLength();
       }
     }
-    
+
     @Override
     /*
      * This method never blocks the caller. Returning 0 does not mean we reach the end of the stream.
@@ -131,7 +131,7 @@ final class Chunk {
     public int available() {
       return remain;
     }
-    
+
     @Override
     public int read() throws IOException {
       if (checkEOF())
@@ -142,18 +142,18 @@ final class Chunk {
       --remain;
       return ret;
     }
-    
+
     @Override
     public int read(byte[] b) throws IOException {
       return read(b, 0, b.length);
     }
-    
+
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
       if ((off | len | (off + len) | (b.length - (off + len))) < 0) {
         throw new IndexOutOfBoundsException();
       }
-      
+
       if (!checkEOF()) {
         int n = Math.min(remain, len);
         int ret = in.read(b, off, n);
@@ -164,7 +164,7 @@ final class Chunk {
       }
       return -1;
     }
-    
+
     @Override
     public long skip(long n) throws IOException {
       if (!checkEOF()) {
@@ -174,16 +174,16 @@ final class Chunk {
       }
       return 0;
     }
-    
+
     @Override
     public boolean markSupported() {
       return false;
     }
-    
+
     public boolean isClosed() {
       return closed;
     }
-    
+
     @Override
     public void close() throws IOException {
       if (closed == false) {
@@ -197,7 +197,7 @@ final class Chunk {
       }
     }
   }
-  
+
   /**
    * Chunk Encoder. Encoding the output data into a chain of chunks in the following sequences: -len1, byte[len1], -len2, byte[len2], ... len_n, byte[len_n].
    * Where len1, len2, ..., len_n are the lengths of the data chunks. Non-terminal chunks have their lengths negated. Non-terminal chunks cannot have length 0.
@@ -208,21 +208,21 @@ final class Chunk {
      * The data output stream it connects to.
      */
     private DataOutputStream out;
-    
+
     /**
      * The internal buffer that is only used when we do not know the advertised size.
      */
     private byte buf[];
-    
+
     /**
      * The number of valid bytes in the buffer. This value is always in the range <tt>0</tt> through <tt>buf.length</tt>; elements <tt>buf[0]</tt> through
      * <tt>buf[count-1]</tt> contain valid byte data.
      */
     private int count;
-    
+
     /**
      * Constructor.
-     * 
+     *
      * @param out
      *          the underlying output stream.
      * @param buf
@@ -233,10 +233,10 @@ final class Chunk {
       this.buf = buf;
       this.count = 0;
     }
-    
+
     /**
      * Write out a chunk.
-     * 
+     *
      * @param chunk
      *          The chunk buffer.
      * @param offset
@@ -258,10 +258,10 @@ final class Chunk {
         }
       }
     }
-    
+
     /**
      * Write out a chunk that is a concatenation of the internal buffer plus user supplied data. This will never be the last block.
-     * 
+     *
      * @param data
      *          User supplied data buffer.
      * @param offset
@@ -277,12 +277,12 @@ final class Chunk {
         out.write(data, offset, len);
       }
     }
-    
+
     /**
      * Flush the internal buffer.
-     * 
+     *
      * Is this the last call to flushBuffer?
-     * 
+     *
      * @throws java.io.IOException
      */
     private void flushBuffer() throws IOException {
@@ -291,7 +291,7 @@ final class Chunk {
         count = 0;
       }
     }
-    
+
     @Override
     public void write(int b) throws IOException {
       if (count >= buf.length) {
@@ -299,12 +299,12 @@ final class Chunk {
       }
       buf[count++] = (byte) b;
     }
-    
+
     @Override
     public void write(byte b[]) throws IOException {
       write(b, 0, b.length);
     }
-    
+
     @Override
     public void write(byte b[], int off, int len) throws IOException {
       if ((len + count) >= buf.length) {
@@ -315,17 +315,17 @@ final class Chunk {
         writeBufData(b, off, len);
         return;
       }
-      
+
       System.arraycopy(b, off, buf, count, len);
       count += len;
     }
-    
+
     @Override
     public void flush() throws IOException {
       flushBuffer();
       out.flush();
     }
-    
+
     @Override
     public void close() throws IOException {
       if (buf != null) {
@@ -338,7 +338,7 @@ final class Chunk {
       }
     }
   }
-  
+
   /**
    * Encode the whole stream as a single chunk. Expecting to know the size of the chunk up-front.
    */
@@ -347,16 +347,16 @@ final class Chunk {
      * The data output stream it connects to.
      */
     private final DataOutputStream out;
-    
+
     /**
      * The remaining bytes to be written.
      */
     private int remain;
     private boolean closed = false;
-    
+
     /**
      * Constructor.
-     * 
+     *
      * @param out
      *          the underlying output stream.
      * @param size
@@ -369,7 +369,7 @@ final class Chunk {
       this.remain = size;
       Utils.writeVInt(out, size);
     }
-    
+
     @Override
     public void write(int b) throws IOException {
       if (remain > 0) {
@@ -379,12 +379,12 @@ final class Chunk {
         throw new IOException("Writing more bytes than advertised size.");
       }
     }
-    
+
     @Override
     public void write(byte b[]) throws IOException {
       write(b, 0, b.length);
     }
-    
+
     @Override
     public void write(byte b[], int off, int len) throws IOException {
       if (remain >= len) {
@@ -394,18 +394,18 @@ final class Chunk {
         throw new IOException("Writing more bytes than advertised size.");
       }
     }
-    
+
     @Override
     public void flush() throws IOException {
       out.flush();
     }
-    
+
     @Override
     public void close() throws IOException {
       if (closed == true) {
         return;
       }
-      
+
       try {
         if (remain > 0) {
           throw new IOException("Writing less bytes than advertised size.");

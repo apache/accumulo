@@ -31,28 +31,28 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class BlockIndexTest {
-  
+
   private static class MyCacheEntry implements CacheEntry {
     Object idx;
     byte[] data;
-    
+
     MyCacheEntry(byte[] d) {
       this.data = d;
     }
-    
+
     @Override
     public void setIndex(Object idx) {
       this.idx = idx;
     }
-    
+
     @Override
     public Object getIndex() {
       return idx;
     }
-    
+
     @Override
     public byte[] getBuffer() {
       return data;
@@ -63,43 +63,43 @@ public class BlockIndexTest {
   public void test1() throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(baos);
-    
+
     Key prevKey = null;
-    
+
     int num = 1000;
-    
+
     for (int i = 0; i < num; i++) {
       Key key = new Key(RFileTest.nf("", i), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
       new Value(new byte[0]).write(out);
       prevKey = key;
     }
-    
+
     out.close();
     final byte[] data = baos.toByteArray();
-    
+
     CacheEntry ce = new MyCacheEntry(data);
 
     ABlockReader cacheBlock = new CachableBlockFile.CachedBlockRead(ce, data);
     BlockIndex blockIndex = null;
-    
+
     for (int i = 0; i < 129; i++)
       blockIndex = BlockIndex.getIndex(cacheBlock, new IndexEntry(prevKey, num, 0, 0, 0));
-    
+
     BlockIndexEntry[] indexEntries = blockIndex.getIndexEntries();
-    
+
     for (int i = 0; i < indexEntries.length; i++) {
       int row = Integer.parseInt(indexEntries[i].getPrevKey().getRowData().toString());
-      
+
       BlockIndexEntry bie;
-      
+
 
       bie = blockIndex.seekBlock(new Key(RFileTest.nf("", row), "cf1", "cq1"), cacheBlock);
       if (i == 0)
         Assert.assertSame(null, bie);
       else
         Assert.assertSame(indexEntries[i - 1], bie);
-      
+
       Assert.assertSame(bie, blockIndex.seekBlock(new Key(RFileTest.nf("", row - 1), "cf1", "cq1"), cacheBlock));
 
       bie = blockIndex.seekBlock(new Key(RFileTest.nf("", row + 1), "cf1", "cq1"), cacheBlock);
@@ -108,7 +108,7 @@ public class BlockIndexTest {
       RelativeKey rk = new RelativeKey();
       rk.setPrevKey(bie.getPrevKey());
       rk.readFields(cacheBlock);
-      
+
       Assert.assertEquals(rk.getKey(), new Key(RFileTest.nf("", row + 1), "cf1", "cq1"));
 
     }
@@ -118,56 +118,56 @@ public class BlockIndexTest {
   public void testSame() throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(baos);
-    
+
     Key prevKey = null;
-    
+
     int num = 1000;
-    
+
     for (int i = 0; i < num; i++) {
       Key key = new Key(RFileTest.nf("", 1), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
       new Value(new byte[0]).write(out);
       prevKey = key;
     }
-    
+
     for (int i = 0; i < num; i++) {
       Key key = new Key(RFileTest.nf("", 3), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
       new Value(new byte[0]).write(out);
       prevKey = key;
     }
-    
+
     for (int i = 0; i < num; i++) {
       Key key = new Key(RFileTest.nf("", 5), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
       new Value(new byte[0]).write(out);
       prevKey = key;
     }
-    
+
     out.close();
     final byte[] data = baos.toByteArray();
-    
+
     CacheEntry ce = new MyCacheEntry(data);
 
     ABlockReader cacheBlock = new CachableBlockFile.CachedBlockRead(ce, data);
     BlockIndex blockIndex = null;
-    
+
     for (int i = 0; i < 257; i++)
       blockIndex = BlockIndex.getIndex(cacheBlock, new IndexEntry(prevKey, num, 0, 0, 0));
-    
+
     Assert.assertSame(null, blockIndex.seekBlock(new Key(RFileTest.nf("", 0), "cf1", "cq1"), cacheBlock));
     Assert.assertSame(null, blockIndex.seekBlock(new Key(RFileTest.nf("", 1), "cf1", "cq1"), cacheBlock));
-    
+
     for (int i = 2; i < 6; i++) {
       Key seekKey = new Key(RFileTest.nf("", i), "cf1", "cq1");
       BlockIndexEntry bie = blockIndex.seekBlock(seekKey, cacheBlock);
-      
+
       Assert.assertTrue(bie.getPrevKey().compareTo(seekKey) < 0);
 
       RelativeKey rk = new RelativeKey();
       rk.setPrevKey(bie.getPrevKey());
       rk.readFields(cacheBlock);
-      
+
       Assert.assertTrue(rk.getKey().compareTo(seekKey) <= 0);
     }
 

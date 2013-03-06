@@ -42,7 +42,7 @@ import com.beust.jcommander.Parameters;
 
 public class Admin {
   private static final Logger log = Logger.getLogger(Admin.class);
-  
+
   static class AdminOpts extends ClientOpts {
     @Parameter(names={"-f", "--force"}, description="force the given server to stop by removing its lock")
     boolean force = false;
@@ -53,7 +53,7 @@ public class Admin {
     @Parameter(description="<host> {<host> ... }")
     List<String> args = new ArrayList<String>();
   }
-  
+
   @Parameters(commandDescription="stop the master")
   static class StopMasterCommand {
   }
@@ -75,13 +75,13 @@ public class Admin {
     StopAllCommand stopAllOpts = new StopAllCommand();
     cl.addCommand("stopAll", stopAllOpts);
     cl.parse(args);
-    
+
     if (opts.help || cl.getParsedCommand() == null) {
       cl.usage();
       return;
     }
     Instance instance = opts.getInstance();
-      
+
     try {
       String principal;
       AuthenticationToken token;
@@ -107,7 +107,7 @@ public class Admin {
       System.exit(2);
     }
   }
-  
+
   private static void stopServer(Instance instance, final TCredentials credentials, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
     MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {
       @Override
@@ -116,7 +116,7 @@ public class Admin {
       }
     });
   }
-  
+
   private static void stopTabletServer(Instance instance, final TCredentials creds, List<String> servers, final boolean force) throws AccumuloException, AccumuloSecurityException {
     for (String server : servers) {
       InetSocketAddress address = AddressUtil.parseAddress(server, Property.TSERV_CLIENTPORT);

@@ -29,10 +29,10 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 
 
 /**
- * 
+ *
  */
 public class ActiveCompaction {
-  
+
   private org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
   private Instance instance;
 
@@ -59,7 +59,7 @@ public class ActiveCompaction {
      */
     FULL
   };
-  
+
   public static enum CompactionReason {
     /**
      * compaction initiated by user
@@ -82,17 +82,17 @@ public class ActiveCompaction {
      */
     CLOSE
   };
-  
+
   /**
-   * 
+   *
    * @return name of the table the compaction is running against
    * @throws TableNotFoundException
    */
-  
+
   public String getTable() throws TableNotFoundException {
     return Tables.getTableName(instance, getExtent().getTableId().toString());
   }
-  
+
   /**
    * @return tablet thats is compacting
    */
@@ -100,7 +100,7 @@ public class ActiveCompaction {
   public KeyExtent getExtent() {
     return new KeyExtent(tac.getExtent());
   }
-  
+
   /**
    * @return how long the compaction has been running in milliseconds
    */
@@ -108,7 +108,7 @@ public class ActiveCompaction {
   public long getAge() {
     return tac.getAge();
   }
-  
+
   /**
    * @return the files the compaction is reading from
    */
@@ -116,7 +116,7 @@ public class ActiveCompaction {
   public List<String> getInputFiles() {
     return tac.getInputFiles();
   }
-  
+
   /**
    * @return file compactions is writing too
    */
@@ -124,14 +124,14 @@ public class ActiveCompaction {
   public String getOutputFile() {
     return tac.getOutputFile();
   }
-  
+
   /**
    * @return the type of compaction
    */
   public CompactionType getType() {
     return CompactionType.valueOf(tac.getType().name());
   }
-  
+
   /**
    * @return the reason the compaction was started
    */
@@ -139,7 +139,7 @@ public class ActiveCompaction {
   public CompactionReason getReason() {
     return CompactionReason.valueOf(tac.getReason().name());
   }
-  
+
   /**
    * @return the locality group that is compacting
    */
@@ -147,7 +147,7 @@ public class ActiveCompaction {
   public String getLocalityGroup() {
     return tac.getLocalityGroup();
   }
-  
+
   /**
    * @return the number of key/values read by the compaction
    */
@@ -155,7 +155,7 @@ public class ActiveCompaction {
   public long getEntriesRead() {
     return tac.getEntriesRead();
   }
-  
+
   /**
    * @return the number of key/values written by the compaction
    */
@@ -163,22 +163,22 @@ public class ActiveCompaction {
   public long getEntriesWritten() {
     return tac.getEntriesWritten();
   }
-  
+
   /**
    * @return the per compaction iterators configured
    */
 
   public List<IteratorSetting> getIterators() {
     ArrayList<IteratorSetting> ret = new ArrayList<IteratorSetting>();
-    
+
     for (IterInfo ii : tac.getSsiList()) {
       IteratorSetting settings = new IteratorSetting(ii.getPriority(), ii.getIterName(), ii.getClassName());
       Map<String,String> options = tac.getSsio().get(ii.getIterName());
       settings.addOptions(options);
-      
+
       ret.add(settings);
     }
-    
+
     return ret;
   }
 }

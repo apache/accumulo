@@ -34,23 +34,23 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
 public class RootTabletLocator extends TabletLocator {
-  
+
   private Instance instance;
-  
+
   RootTabletLocator(Instance instance) {
     this.instance = instance;
   }
-  
+
   @Override
   public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    
+
     String rootTabletLocation = instance.getRootTabletLocation();
     if (rootTabletLocation != null) {
       for (Range range : ranges) {
@@ -59,19 +59,19 @@ public class RootTabletLocator extends TabletLocator {
     }
     return Collections.emptyList();
   }
-  
+
   @Override
   public void invalidateCache(KeyExtent failedExtent) {}
-  
+
   @Override
   public void invalidateCache(Collection<KeyExtent> keySet) {}
-  
+
   @Override
   public void invalidateCache(String server) {}
-  
+
   @Override
   public void invalidateCache() {}
-  
+
   @Override
   public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (skipRow) {
@@ -91,5 +91,5 @@ public class RootTabletLocator extends TabletLocator {
       return new TabletLocation(Constants.ROOT_TABLET_EXTENT, location);
     return null;
   }
-  
+
 }

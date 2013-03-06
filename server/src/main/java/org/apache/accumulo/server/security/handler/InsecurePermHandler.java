@@ -26,7 +26,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
  * This is a Permission Handler implementation that doesn't actually do any security. Use at your own risk.
  */
 public class InsecurePermHandler implements PermissionHandler {
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#initialize(java.lang.String)
    */
@@ -34,7 +34,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public void initialize(String instanceId, boolean initialize) {
     return;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#validSecurityHandlers(org.apache.accumulo.server.security.handler.Authenticator, org.apache.accumulo.server.security.handler.Authorizor)
    */
@@ -42,7 +42,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public boolean validSecurityHandlers(Authenticator authent, Authorizor author) {
     return true;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#initializeSecurity(java.lang.String)
    */
@@ -50,7 +50,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public void initializeSecurity(TCredentials token, String rootuser) throws AccumuloSecurityException {
     return;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#hasSystemPermission(java.lang.String, org.apache.accumulo.core.security.SystemPermission)
    */
@@ -58,7 +58,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public boolean hasSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     return true;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#hasCachedSystemPermission(java.lang.String, org.apache.accumulo.core.security.SystemPermission)
    */
@@ -66,7 +66,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public boolean hasCachedSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     return true;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#hasTablePermission(java.lang.String, java.lang.String, org.apache.accumulo.core.security.TablePermission)
    */
@@ -74,7 +74,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public boolean hasTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
     return true;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#hasCachedTablePermission(java.lang.String, java.lang.String, org.apache.accumulo.core.security.TablePermission)
    */
@@ -82,7 +82,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public boolean hasCachedTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
     return true;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#grantSystemPermission(java.lang.String, org.apache.accumulo.core.security.SystemPermission)
    */
@@ -90,7 +90,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public void grantSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     return;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#revokeSystemPermission(java.lang.String, org.apache.accumulo.core.security.SystemPermission)
    */
@@ -98,7 +98,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public void revokeSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     return;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#grantTablePermission(java.lang.String, java.lang.String, org.apache.accumulo.core.security.TablePermission)
    */
@@ -106,7 +106,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public void grantTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
     return;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#revokeTablePermission(java.lang.String, java.lang.String, org.apache.accumulo.core.security.TablePermission)
    */
@@ -114,7 +114,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public void revokeTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
     return;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#cleanTablePermissions(java.lang.String)
    */
@@ -122,7 +122,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public void cleanTablePermissions(String table) throws AccumuloSecurityException, TableNotFoundException {
     return;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#initUser(java.lang.String)
    */
@@ -130,7 +130,7 @@ public class InsecurePermHandler implements PermissionHandler {
   public void initUser(String user) throws AccumuloSecurityException {
     return;
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#dropUser(java.lang.String)
    */
@@ -142,5 +142,5 @@ public class InsecurePermHandler implements PermissionHandler {
   @Override
   public void initTable(String table) throws AccumuloSecurityException {
   }
-  
+
 }

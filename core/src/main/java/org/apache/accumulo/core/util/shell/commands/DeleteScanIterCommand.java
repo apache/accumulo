@@ -29,11 +29,11 @@ import org.apache.commons.cli.Options;
 
 public class DeleteScanIterCommand extends Command {
   private Option nameOpt, allOpt;
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
-    
+
     if (cl.hasOption(allOpt.getOpt())) {
       final List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.remove(tableName);
       if (tableScanIterators == null) {
@@ -65,36 +65,36 @@ public class DeleteScanIterCommand extends Command {
         Shell.log.info("No iterator named " + name + " found for table " + tableName);
       }
     }
-    
+
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "deletes a table-specific scan iterator so it is no longer used during this shell session";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     OptionGroup nameGroup = new OptionGroup();
-    
+
     nameOpt = new Option("n", "name", true, "iterator to delete");
     nameOpt.setArgName("itername");
-    
+
     allOpt = new Option("a", "all", false, "delete all scan iterators");
     allOpt.setArgName("all");
-    
+
     nameGroup.addOption(nameOpt);
     nameGroup.addOption(allOpt);
     nameGroup.setRequired(true);
     o.addOptionGroup(nameGroup);
     o.addOption(OptUtil.tableOpt("table to delete scan iterators from"));
-    
+
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

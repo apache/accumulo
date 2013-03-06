@@ -39,9 +39,9 @@ import org.apache.log4j.Logger;
 
 // attempt to reproduce ACCUMULO-315
 public class DeleteRowsSplitTest extends FunctionalTest {
-  
+
   private static final Logger log = Logger.getLogger(DeleteRowsSplitTest.class);
-  
+
   private static final String LETTERS = "abcdefghijklmnopqrstuvwxyz";
   static final SortedSet<Text> SPLITS = new TreeSet<Text>();
   static final List<String> ROWS = new ArrayList<String>();
@@ -54,17 +54,17 @@ public class DeleteRowsSplitTest extends FunctionalTest {
 
   @Override
   public void cleanup() throws Exception {}
-  
+
   @Override
   public Map<String,String> getInitialConfig() {
     return Collections.emptyMap();
   }
-  
+
   @Override
   public List<TableSetup> getTablesToCreate() {
     return Collections.emptyList();
   }
-  
+
   static final String TABLE;
   static {
     Random random = new Random();
@@ -75,7 +75,7 @@ public class DeleteRowsSplitTest extends FunctionalTest {
   public void run() throws Exception {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
-    
+
     // Eliminate whole tablets
     for (int test = 0; test < 50; test++) {
       // create a table
@@ -107,11 +107,11 @@ public class DeleteRowsSplitTest extends FunctionalTest {
         }
       };
       t.start();
-      
+
       UtilWaitThread.sleep(test * 2);
 
       getConnector().tableOperations().deleteRows(TABLE, start, end);
-      
+
       t.join();
       synchronized (fail) {
         assertTrue(!fail[0]);
@@ -123,12 +123,12 @@ public class DeleteRowsSplitTest extends FunctionalTest {
         Text row = entry.getKey().getRow();
         assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
       }
-      
+
       // delete the table
       getConnector().tableOperations().delete(TABLE);
     }
   }
-  
+
   private void generateRandomRange(Text start, Text end) {
     List<String> bunch = new ArrayList<String>(ROWS);
     Collections.shuffle(bunch);
@@ -141,7 +141,7 @@ public class DeleteRowsSplitTest extends FunctionalTest {
     }
 
   }
-  
+
   private void fillTable(String table) throws Exception {
     BatchWriter bw = getConnector().createBatchWriter(TABLE, new BatchWriterConfig());
     for (String row : ROWS) {
@@ -156,6 +156,6 @@ public class DeleteRowsSplitTest extends FunctionalTest {
     if (!b)
       throw new RuntimeException("test failed, false value");
   }
-  
+
 }
 

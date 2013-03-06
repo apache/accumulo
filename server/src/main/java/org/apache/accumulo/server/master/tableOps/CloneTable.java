@@ -37,70 +37,70 @@ import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.log4j.Logger;
 
 class CloneInfo implements Serializable {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   String srcTableId;
   String tableName;
   String tableId;
   Map<String,String> propertiesToSet;
   Set<String> propertiesToExclude;
-  
+
   public String user;
 }
 
 class FinishCloneTable extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
-  
+
   public FinishCloneTable(CloneInfo cloneInfo) {
     this.cloneInfo = cloneInfo;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return 0;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     // directories are intentionally not created.... this is done because directories should be unique
     // because they occupy a different namespace than normal tablet directories... also some clones
     // may never create files.. therefore there is no need to consume namenode space w/ directories
     // that are not used... tablet will create directories as needed
-    
+
     TableManager.getInstance().transitionTableState(cloneInfo.tableId, TableState.ONLINE);
-    
+
     Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
-    
+
     environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName, cloneInfo.srcTableId);
-    
+
     Logger.getLogger(FinishCloneTable.class).debug("Cloned table " + cloneInfo.srcTableId + " " + cloneInfo.tableId + " " + cloneInfo.tableName);
-    
+
     return null;
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {}
-  
+
 }
 
 class CloneMetadata extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
-  
+
   public CloneMetadata(CloneInfo cloneInfo) {
     this.cloneInfo = cloneInfo;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return 0;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     Logger.getLogger(CloneMetadata.class).info(
@@ -112,38 +112,38 @@ class CloneMetadata extends MasterRepo {
     MetadataTable.cloneTable(instance, cloneInfo.srcTableId, cloneInfo.tableId);
     return new FinishCloneTable(cloneInfo);
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
     MetadataTable.deleteTable(cloneInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
   }
-  
+
 }
 
 class CloneZookeeper extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   private CloneInfo cloneInfo;
-  
+
   public CloneZookeeper(CloneInfo cloneInfo) {
     this.cloneInfo = cloneInfo;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return Utils.reserveTable(cloneInfo.tableId, tid, true, false, TableOperation.CLONE);
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     Utils.tableNameLock.lock();
     try {
       // write tableName & tableId to zookeeper
       Instance instance = HdfsZooInstance.getInstance();
-      
+
       Utils.checkTableDoesNotExist(instance, cloneInfo.tableName, cloneInfo.tableId, TableOperation.CLONE);
-      
+
       TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId, cloneInfo.tableName, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
       Tables.clearCache(instance);
@@ -152,7 +152,7 @@ class CloneZookeeper extends MasterRepo {
       Utils.tableNameLock.unlock();
     }
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
     Instance instance = HdfsZooInstance.getInstance();
@@ -160,24 +160,24 @@ class CloneZookeeper extends MasterRepo {
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
     Tables.clearCache(instance);
   }
-  
+
 }
 
 class ClonePermissions extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   private CloneInfo cloneInfo;
-  
+
   public ClonePermissions(CloneInfo cloneInfo) {
     this.cloneInfo = cloneInfo;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return 0;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     // give all table permissions to the creator
@@ -189,13 +189,13 @@ class ClonePermissions extends MasterRepo {
         throw e;
       }
     }
-    
+
     // setup permissions in zookeeper before table info in zookeeper
     // this way concurrent users will not get a spurious pemission denied
     // error
     return new CloneZookeeper(cloneInfo);
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
     AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), cloneInfo.tableId);
@@ -203,10 +203,10 @@ class ClonePermissions extends MasterRepo {
 }
 
 public class CloneTable extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
-  
+
   public CloneTable(String user, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {
     cloneInfo = new CloneInfo();
     cloneInfo.user = user;
@@ -215,15 +215,15 @@ public class CloneTable extends MasterRepo {
     cloneInfo.propertiesToExclude = propertiesToExclude;
     cloneInfo.propertiesToSet = propertiesToSet;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return Utils.reserveTable(cloneInfo.srcTableId, tid, false, true, TableOperation.CLONE);
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    
+
     Utils.idLock.lock();
     try {
       Instance instance = HdfsZooInstance.getInstance();
@@ -233,10 +233,10 @@ public class CloneTable extends MasterRepo {
       Utils.idLock.unlock();
     }
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
     Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
   }
-  
+
 }

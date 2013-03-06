@@ -24,10 +24,10 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 public class TableExistsException extends Exception {
   /**
    * Exception to throw if an operation is attempted on a table that already exists.
-   * 
+   *
    */
   private static final long serialVersionUID = 1L;
-  
+
   /**
    * @param tableId
    *          the internal id of the table that exists
@@ -40,7 +40,7 @@ public class TableExistsException extends Exception {
     super("Table" + (tableName != null && !tableName.isEmpty() ? " " + tableName : "") + (tableId != null && !tableId.isEmpty() ? " (Id=" + tableId + ")" : "")
         + " exists" + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
   }
-  
+
   /**
    * @param tableId
    *          the internal id of the table that exists
@@ -55,7 +55,7 @@ public class TableExistsException extends Exception {
     this(tableId, tableName, description);
     super.initCause(cause);
   }
-  
+
   /**
    * @param e
    *          constructs an exception from a thrift exception

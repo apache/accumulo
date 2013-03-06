@@ -47,7 +47,7 @@ import com.beust.jcommander.Parameter;
 @SuppressWarnings("serial")
 public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansionListener {
   private static final Logger log = Logger.getLogger(Viewer.class);
-  
+
   JTree tree;
   DefaultTreeModel treeModel;
   QueryUtil q;
@@ -57,35 +57,35 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
   JTextArea text;
   JTextArea data;
   JScrollPane dataPane;
-  
+
   public static class NodeInfo {
     private String name;
     private Map<String,String> data;
-    
+
     public NodeInfo(String name, Map<String,String> data) {
       this.name = name;
       this.data = data;
     }
-    
+
     public String getName() {
       return name;
     }
-    
+
     public String getFullName() {
       String fn = data.get("fullname");
       if (fn == null)
         return name;
       return fn;
     }
-    
+
     public Map<String,String> getData() {
       return data;
     }
-    
+
     public String toString() {
       return getName();
     }
-    
+
     public String getHash() {
       for (String k : data.keySet()) {
         String[] parts = k.split(":");
@@ -96,7 +96,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
       return null;
     }
   }
-  
+
   public Viewer(Opts opts)
       throws Exception {
     super("File Viewer");
@@ -106,7 +106,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     fdq = new FileDataQuery(opts.instance, opts.zookeepers, opts.principal, opts.getToken(), opts.dataTable, opts.auths);
     this.topPath = opts.path;
   }
-  
+
   public void populate(DefaultMutableTreeNode node) throws TableNotFoundException {
     String path = ((NodeInfo) node.getUserObject()).getFullName();
     log.debug("listing " + path);
@@ -115,7 +115,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
       node.add(new DefaultMutableTreeNode(new NodeInfo(e.getKey(), e.getValue())));
     }
   }
-  
+
   public void populateChildren(DefaultMutableTreeNode node) throws TableNotFoundException {
     @SuppressWarnings("unchecked")
     Enumeration<DefaultMutableTreeNode> children = node.children();
@@ -123,12 +123,12 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
       populate(children.nextElement());
     }
   }
-  
+
   public void init() throws TableNotFoundException {
     DefaultMutableTreeNode root = new DefaultMutableTreeNode(new NodeInfo(topPath, q.getData(topPath)));
     populate(root);
     populateChildren(root);
-    
+
     treeModel = new DefaultTreeModel(root);
     tree = new JTree(treeModel);
     tree.addTreeExpansionListener(this);
@@ -144,11 +144,11 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     infoSplitPane.setDividerLocation(150);
     getContentPane().add(mainSplitPane, BorderLayout.CENTER);
   }
-  
+
   public static String getText(DefaultMutableTreeNode node) {
     return getText(((NodeInfo) node.getUserObject()).getData());
   }
-  
+
   public static String getText(Map<String,String> data) {
     StringBuilder sb = new StringBuilder();
     for (String name : data.keySet()) {
@@ -159,7 +159,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     }
     return sb.toString();
   }
-  
+
   @Override
   public void treeExpanded(TreeExpansionEvent event) {
     try {
@@ -169,7 +169,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
       e.printStackTrace();
     }
   }
-  
+
   @Override
   public void treeCollapsed(TreeExpansionEvent event) {
     DefaultMutableTreeNode node = (DefaultMutableTreeNode) event.getPath().getLastPathComponent();
@@ -181,7 +181,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
       child.removeAllChildren();
     }
   }
-  
+
   @Override
   public void valueChanged(TreeSelectionEvent e) {
     TreePath selected = e.getNewLeadSelectionPath();
@@ -200,16 +200,16 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
       e1.printStackTrace();
     }
   }
-  
+
   static class Opts extends QueryUtil.Opts {
     @Parameter(names="--dataTable")
     String dataTable = "dataTable";
   }
-  
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(Viewer.class.getName(), args);
-    
+
     Viewer v = new Viewer(opts);
     v.init();
     v.setVisible(true);

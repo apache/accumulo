@@ -23,19 +23,19 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.UtilWaitThread;
 
 /**
- * 
+ *
  */
 public class SlowConstraint implements Constraint {
-  
+
   @Override
   public String getViolationDescription(short violationCode) {
     return null;
   }
-  
+
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
     UtilWaitThread.sleep(20000);
     return null;
   }
-  
+
 }

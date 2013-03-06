@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -41,24 +41,24 @@ import org.apache.hadoop.util.ReflectionUtils;
  */
 final class Compression {
   static final Log LOG = LogFactory.getLog(Compression.class);
-  
+
   /**
    * Prevent the instantiation of class.
    */
   private Compression() {
     // nothing
   }
-  
+
   static class FinishOnFlushCompressionStream extends FilterOutputStream {
     public FinishOnFlushCompressionStream(CompressionOutputStream cout) {
       super(cout);
     }
-    
+
     @Override
     public void write(byte b[], int off, int len) throws IOException {
       out.write(b, off, len);
     }
-    
+
     @Override
     public void flush() throws IOException {
       CompressionOutputStream cout = (CompressionOutputStream) out;
@@ -67,7 +67,7 @@ final class Compression {
       cout.resetState();
     }
   }
-  
+
   /**
    * Compression algorithms.
    */
@@ -76,7 +76,7 @@ final class Compression {
       private transient boolean checked = false;
       private static final String defaultClazz = "org.apache.hadoop.io.compress.LzoCodec";
       private transient CompressionCodec codec = null;
-      
+
       @Override
       public synchronized boolean isSupported() {
         if (!checked) {
@@ -92,16 +92,16 @@ final class Compression {
         }
         return codec != null;
       }
-      
+
       @Override
       CompressionCodec getCodec() throws IOException {
         if (!isSupported()) {
           throw new IOException("LZO codec class not specified. Did you forget to set property " + CONF_LZO_CLASS + "?");
         }
-        
+
         return codec;
       }
-      
+
       @Override
       public synchronized InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
         if (!isSupported()) {
@@ -118,7 +118,7 @@ final class Compression {
         BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
         return bis2;
       }
-      
+
       @Override
       public synchronized OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
         if (!isSupported()) {
@@ -136,20 +136,20 @@ final class Compression {
         return bos2;
       }
     },
-    
+
     GZ(TFile.COMPRESSION_GZ) {
       private transient DefaultCodec codec;
-      
+
       @Override
       synchronized CompressionCodec getCodec() {
         if (codec == null) {
           codec = new DefaultCodec();
           codec.setConf(conf);
         }
-        
+
         return codec;
       }
-      
+
       @Override
       public synchronized InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
         // Set the internal buffer size to read from down stream.
@@ -160,7 +160,7 @@ final class Compression {
         BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
         return bis2;
       }
-      
+
       @Override
       public synchronized OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
         OutputStream bos1 = null;
@@ -174,19 +174,19 @@ final class Compression {
         BufferedOutputStream bos2 = new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
-      
+
       @Override
       public boolean isSupported() {
         return true;
       }
     },
-    
+
     NONE(TFile.COMPRESSION_NONE) {
       @Override
       CompressionCodec getCodec() {
         return null;
       }
-      
+
       @Override
       public synchronized InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
         if (downStreamBufferSize > 0) {
@@ -194,38 +194,38 @@ final class Compression {
         }
         return downStream;
       }
-      
+
       @Override
       public synchronized OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
         if (downStreamBufferSize > 0) {
           return new BufferedOutputStream(downStream, downStreamBufferSize);
         }
-        
+
         return downStream;
       }
-      
+
       @Override
       public boolean isSupported() {
         return true;
       }
     },
-    
+
     SNAPPY(TFile.COMPRESSION_SNAPPY) {
       // Use base type to avoid compile-time dependencies.
       private transient CompressionCodec snappyCodec = null;
       private transient boolean checked = false;
       private static final String defaultClazz = "org.apache.hadoop.io.compress.SnappyCodec";
-      
+
       public CompressionCodec getCodec() throws IOException {
         if (!isSupported()) {
           throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
         }
         return snappyCodec;
       }
-      
+
       @Override
       public synchronized OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
-        
+
         if (!isSupported()) {
           throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
         }
@@ -240,7 +240,7 @@ final class Compression {
         BufferedOutputStream bos2 = new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
-      
+
       @Override
       public synchronized InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
         if (!isSupported()) {
@@ -253,7 +253,7 @@ final class Compression {
         BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
         return bis2;
       }
-      
+
       @Override
       public synchronized boolean isSupported() {
         if (!checked) {
@@ -280,19 +280,19 @@ final class Compression {
     private static final int DATA_OBUF_SIZE = 4 * 1024;
     public static final String CONF_LZO_CLASS = "io.compression.codec.lzo.class";
     public static final String CONF_SNAPPY_CLASS = "io.compression.codec.snappy.class";
-    
+
     Algorithm(String name) {
       this.compressName = name;
     }
-    
+
     abstract CompressionCodec getCodec() throws IOException;
-    
+
     public abstract InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException;
-    
+
     public abstract OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException;
-    
+
     public abstract boolean isSupported();
-    
+
     public Compressor getCompressor() throws IOException {
       CompressionCodec codec = getCodec();
       if (codec != null) {
@@ -314,14 +314,14 @@ final class Compression {
       }
       return null;
     }
-    
+
     public void returnCompressor(Compressor compressor) {
       if (compressor != null) {
         LOG.debug("Return a compressor: " + compressor.hashCode());
         CodecPool.returnCompressor(compressor);
       }
     }
-    
+
     public Decompressor getDecompressor() throws IOException {
       CompressionCodec codec = getCodec();
       if (codec != null) {
@@ -341,37 +341,37 @@ final class Compression {
         }
         return decompressor;
       }
-      
+
       return null;
     }
-    
+
     public void returnDecompressor(Decompressor decompressor) {
       if (decompressor != null) {
         LOG.debug("Returned a decompressor: " + decompressor.hashCode());
         CodecPool.returnDecompressor(decompressor);
       }
     }
-    
+
     public String getName() {
       return compressName;
     }
   }
-  
+
   static Algorithm getCompressionAlgorithmByName(String compressName) {
     Algorithm[] algos = Algorithm.class.getEnumConstants();
-    
+
     for (Algorithm a : algos) {
       if (a.getName().equals(compressName)) {
         return a;
       }
     }
-    
+
     throw new IllegalArgumentException("Unsupported compression algorithm name: " + compressName);
   }
-  
+
   static String[] getSupportedAlgorithms() {
     Algorithm[] algos = Algorithm.class.getEnumConstants();
-    
+
     ArrayList<String> ret = new ArrayList<String>();
     for (Algorithm a : algos) {
       if (a.isSupported()) {

@@ -29,11 +29,11 @@ import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.hadoop.io.Writable;
 
 public class LogFileValue implements Writable {
-  
+
   private static final List<Mutation> empty = Collections.emptyList();
-  
+
   public List<Mutation> mutations = empty;
-  
+
   @Override
   public void readFields(DataInput in) throws IOException {
     int count = in.readInt();
@@ -44,7 +44,7 @@ public class LogFileValue implements Writable {
       mutations.add(mutation);
     }
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeInt(mutations.size());
@@ -52,18 +52,18 @@ public class LogFileValue implements Writable {
       m.write(out);
     }
   }
-  
+
   public static void print(LogFileValue value) {
     System.out.println(value.toString());
   }
-  
+
   private static String displayLabels(byte[] labels) {
     String s = new String(labels);
     s = s.replace("&", " & ");
     s = s.replace("|", " | ");
     return s;
   }
-  
+
   public static String format(LogFileValue lfv, int maxMutations) {
     if (lfv.mutations.size() == 0)
       return "";
@@ -85,10 +85,10 @@ public class LogFileValue implements Writable {
     }
     return builder.toString();
   }
-  
+
   @Override
   public String toString() {
     return format(this, 5);
   }
-  
+
 }

@@ -21,26 +21,26 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * 
+ *
  */
 public class TimedOutException extends RuntimeException {
-  
+
   private Set<String> timedoutServers;
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   private static String shorten(Set<String> set) {
     if (set.size() < 10) {
       return set.toString();
     }
-    
+
     return new ArrayList<String>(set).subList(0, 10).toString() + " ... " + (set.size() - 10) + " servers not shown";
   }
 
   public TimedOutException(Set<String> timedoutServers) {
     super("Servers timed out " + shorten(timedoutServers));
     this.timedoutServers = timedoutServers;
-    
+
   }
 
   public TimedOutException(String msg) {

@@ -17,7 +17,7 @@
 package org.apache.accumulo.server.tabletserver;
 
 public class TabletServerConstants {
-  
+
   public static final String IntermediateKeyName = "IntermediateKey";
   public static final String ColumnSetName = "ColumnSet";
   public static final String AuthorizationSetName = "AuthorizationSet";

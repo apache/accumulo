@@ -36,20 +36,20 @@ public class CompactCommand extends TableOperation {
   private Text startRow;
   private Text endRow;
   private List<IteratorSetting> iterators;
-  
+
   boolean override = false;
   private boolean wait;
-  
+
   private boolean cancel = false;
 
   @Override
   public String description() {
     return "sets all tablets for a table to major compact as soon as possible (based on current time)";
   }
-  
+
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
     // compact the tables
-    
+
     if (cancel) {
       try {
         shellState.getConnector().tableOperations().cancelCompaction(tableName);
@@ -62,22 +62,22 @@ public class CompactCommand extends TableOperation {
         if (wait) {
           Shell.log.info("Compacting table ...");
         }
-        
+
         shellState.getConnector().tableOperations().compact(tableName, startRow, endRow, iterators, flush, wait);
-        
+
         Shell.log.info("Compaction of table " + tableName + " " + (wait ? "completed" : "started") + " for given range");
       } catch (Exception ex) {
         throw new AccumuloException(ex);
       }
     }
   }
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    
+
     if (cl.hasOption(cancelOpt.getLongOpt())) {
       cancel = true;
-      
+
       if (cl.getOptions().length > 2) {
         throw new IllegalArgumentException("Can not specify other options with cancel");
       }
@@ -89,14 +89,14 @@ public class CompactCommand extends TableOperation {
     startRow = OptUtil.getStartRow(cl);
     endRow = OptUtil.getEndRow(cl);
     wait = cl.hasOption(waitOpt.getOpt());
-    
+
     if (cl.hasOption(profileOpt.getOpt())) {
       List<IteratorSetting> iterators = shellState.iteratorProfiles.get(cl.getOptionValue(profileOpt.getOpt()));
       if (iterators == null) {
         Shell.log.error("Profile " + cl.getOptionValue(profileOpt.getOpt()) + " does not exist");
         return -1;
       }
-      
+
       this.iterators = new ArrayList<IteratorSetting>(iterators);
     } else {
       this.iterators = Collections.emptyList();
@@ -105,18 +105,18 @@ public class CompactCommand extends TableOperation {
 
     return super.execute(fullCommand, cl, shellState);
   }
-  
+
   @Override
   public Options getOptions() {
     final Options opts = super.getOptions();
-    
+
     opts.addOption(OptUtil.startRowOpt());
     opts.addOption(OptUtil.endRowOpt());
     noFlushOption = new Option("nf", "noFlush", false, "do not flush table data in memory before compacting.");
     opts.addOption(noFlushOption);
     waitOpt = new Option("w", "wait", false, "wait for compact to finish");
     opts.addOption(waitOpt);
-    
+
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");
     opts.addOption(profileOpt);

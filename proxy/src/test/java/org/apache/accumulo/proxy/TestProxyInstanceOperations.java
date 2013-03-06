@@ -37,13 +37,13 @@ public class TestProxyInstanceOperations {
   protected static TestProxyClient tpc;
   protected static ByteBuffer userpass;
   protected static final int port = 10197;
-  
+
   @SuppressWarnings("serial")
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
     prop.setProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance", "true");
-    
+
     proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"), Class.forName("org.apache.accumulo.proxy.ProxyServer"),
         port, TCompactProtocol.Factory.class, prop);
     thread = new Thread() {
@@ -56,26 +56,26 @@ public class TestProxyInstanceOperations {
     tpc = new TestProxyClient("localhost", port);
     userpass = tpc.proxy.login("root", new TreeMap<String, String>() {{ put("password",""); }});
   }
-  
+
   @AfterClass
   public static void tearDown() throws InterruptedException {
     proxy.stop();
     thread.join();
   }
-  
+
   @Test
   public void properties() throws TException {
     tpc.proxy().setProperty(userpass, "test.systemprop", "whistletips");
-    
+
     assertEquals(tpc.proxy().getSystemConfiguration(userpass).get("test.systemprop"), "whistletips");
     tpc.proxy().removeProperty(userpass, "test.systemprop");
     assertNull(tpc.proxy().getSystemConfiguration(userpass).get("test.systemprop"));
-    
+
   }
-  
+
   @Test
   public void testClassLoad() throws TException {
     assertTrue(tpc.proxy().testClassLoad(userpass, "org.apache.accumulo.core.iterators.user.RegExFilter", "org.apache.accumulo.core.iterators.Filter"));
   }
-  
+
 }

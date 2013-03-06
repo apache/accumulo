@@ -28,14 +28,14 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class TabletOperations {
-  
+
   private static final Logger log = Logger.getLogger(TabletOperations.class);
-  
+
   public static String createTabletDirectory(FileSystem fs, String tableDir, Text endRow) {
     String lowDirectory;
-    
+
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
-    
+
     while (true) {
       try {
         if (endRow == null) {
@@ -55,13 +55,13 @@ public class TabletOperations {
       } catch (IOException e) {
         log.warn(e);
       }
-      
+
       log.warn("Failed to create dir for tablet in table " + tableDir + " will retry ...");
       UtilWaitThread.sleep(3000);
-      
+
     }
   }
-  
+
   public static String createTabletDirectory(String tableDir, Text endRow) {
     while (true) {
       try {

@@ -38,36 +38,36 @@ import org.apache.hadoop.io.Text;
  * docID. As with the IntersectingIterator, documents are grouped together and indexed into a single row of an Accumulo table. This allows a tablet server to
  * perform boolean AND operations on terms in the index. This iterator also stores the document contents in a separate column family in the same row so that the
  * full document can be returned with each query.
- * 
+ *
  * The table structure should have the following form:
- * 
+ *
  * row: shardID, colfam: docColf\0doctype, colqual: docID, value: doc
- * 
+ *
  * row: shardID, colfam: indexColf, colqual: term\0doctype\0docID\0info, value: (empty)
- * 
+ *
  * When you configure this iterator with a set of terms, it will return only the docIDs and docs that appear with all of the specified terms. The result will
  * have the following form:
- * 
+ *
  * row: shardID, colfam: indexColf, colqual: doctype\0docID\0info, value: doc
- * 
+ *
  * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the search over all shardIDs.
  */
 public class IndexedDocIterator extends IntersectingIterator {
   public static final Text DEFAULT_INDEX_COLF = new Text("i");
   public static final Text DEFAULT_DOC_COLF = new Text("e");
-  
+
   private static final String indexFamilyOptionName = "indexFamily";
   private static final String docFamilyOptionName = "docFamily";
-  
+
   private static Text indexColf = DEFAULT_INDEX_COLF;
   private static Text docColf = DEFAULT_DOC_COLF;
   private static Set<ByteSequence> indexColfSet;
   private static Set<ByteSequence> docColfSet;
-  
+
   private static final byte[] nullByte = {0};
-  
+
   public SortedKeyValueIterator<Key,Value> docSource;
-  
+
   @Override
   protected Key buildKey(Text partition, Text term, Text docID) {
     Text colq = new Text(term);
@@ -76,18 +76,18 @@ public class IndexedDocIterator extends IntersectingIterator {
     colq.append(nullByte, 0, 1);
     return new Key(partition, indexColf, colq);
   }
-  
+
   @Override
   protected Key buildKey(Text partition, Text term) {
     Text colq = new Text(term);
     return new Key(partition, indexColf, colq);
   }
-  
+
   @Override
   protected Text getDocID(Key key) {
     return parseDocID(key);
   }
-  
+
   public static Text parseDocID(Key key) {
     Text colq = key.getColumnQualifier();
     int firstZeroIndex = colq.find("\0");
@@ -110,7 +110,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     }
     return docID;
   }
-  
+
   @Override
   protected Text getTerm(Key key) {
     if (indexColf.compareTo(key.getColumnFamily().getBytes(), 0, indexColf.getLength()) < 0) {
@@ -124,7 +124,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     term.set(colq.getBytes(), 0, zeroIndex);
     return term;
   }
-  
+
   @Override
   synchronized public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
@@ -134,23 +134,23 @@ public class IndexedDocIterator extends IntersectingIterator {
       docColf = new Text(options.get(docFamilyOptionName));
     docSource = source.deepCopy(env);
     indexColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
-    
+
     for (TermSource ts : this.sources) {
       ts.seekColfams = indexColfSet;
     }
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive) throws IOException {
     super.seek(range, null, true);
-    
+
   }
-  
+
   @Override
   protected void advanceToIntersection() throws IOException {
     super.advanceToIntersection();
@@ -166,7 +166,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     }
     log.debug("got doc value: " + value.toString());
   }
-  
+
   protected Key buildDocKey() {
     if (log.isTraceEnabled())
       log.trace("building doc key for " + currentPartition + " " + currentDocID);
@@ -186,10 +186,10 @@ public class IndexedDocIterator extends IntersectingIterator {
       log.trace("built doc key for seek: " + k.toString());
     return k;
   }
-  
+
   /**
    * A convenience method for setting the index column family.
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param indexColf
@@ -198,10 +198,10 @@ public class IndexedDocIterator extends IntersectingIterator {
   public static void setIndexColf(IteratorSetting is, String indexColf) {
     is.addOption(indexFamilyOptionName, indexColf);
   }
-  
+
   /**
    * A convenience method for setting the document column family prefix.
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param docColfPrefix
@@ -210,10 +210,10 @@ public class IndexedDocIterator extends IntersectingIterator {
   public static void setDocColfPrefix(IteratorSetting is, String docColfPrefix) {
     is.addOption(docFamilyOptionName, docColfPrefix);
   }
-  
+
   /**
    * A convenience method for setting the index column family and document column family prefix.
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param indexColf

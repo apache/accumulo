@@ -42,14 +42,14 @@ import org.powermock.reflect.Whitebox;
 @PowerMockIgnore({"org.apache.log4j.*", "org.apache.hadoop.log.metrics", "org.apache.commons.logging.*", "org.xml.*", "javax.xml.*", "org.w3c.dom.*",
     "org.apache.hadoop.*"})
 public class AccumuloVFSClassLoaderTest {
-  
+
   private TemporaryFolder folder1 = new TemporaryFolder();
 
   @Before
   public void setup() throws IOException {
     folder1.create();
   }
-  
+
   @After
   public void tearDown() {
     folder1.delete();
@@ -84,19 +84,19 @@ public class AccumuloVFSClassLoaderTest {
     Assert.assertTrue((acl instanceof VFSClassLoader));
     Assert.assertTrue((acl.getParent() instanceof URLClassLoader));
   }
-  
+
   /*
    * Test with default context configured
    */
   @Test
   public void testDefaultContextConfigured() throws Exception {
-    
+
 
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
-    
+
     // Copy jar file to TEST_DIR
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
-    
+
     File conf = folder1.newFile("accumulo-site.xml");
     FileWriter out = new FileWriter(conf);
     out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -126,5 +126,5 @@ public class AccumuloVFSClassLoaderTest {
     Assert.assertEquals("Hello World!", o1.toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
   }
-  
+
 }

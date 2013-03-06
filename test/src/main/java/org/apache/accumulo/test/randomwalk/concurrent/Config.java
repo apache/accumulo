@@ -29,7 +29,7 @@ import org.apache.commons.math.random.RandomData;
 import org.apache.commons.math.random.RandomDataImpl;
 
 public class Config extends Test {
-  
+
   private static final String LAST_SETTING = "lastSetting";
 
   private static final String LAST_TABLE_SETTING = "lastTableSetting";
@@ -84,19 +84,19 @@ public class Config extends Test {
       s(Property.MASTER_THREADCHECK, 100, 10000),
       s(Property.MASTER_MINTHREADS, 1, 200),
   };
-  
+
   Setting[] tableSettings = {
       s(Property.TABLE_MAJC_RATIO, 1, 10),
       s(Property.TABLE_MAJC_COMPACTALL_IDLETIME, 100, 10*60*60*1000L),
       s(Property.TABLE_SPLIT_THRESHOLD, 10*1024, 10L*1024*1024*1024),
       s(Property.TABLE_MINC_COMPACT_IDLETIME, 100, 100*60*60*1000L),
       s(Property.TABLE_SCAN_MAXMEM, 10*1024, 10*1024*1024),
-      s(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, 10*1024, 10*1024*1024L), 
+      s(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, 10*1024, 10*1024*1024L),
       s(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, 10*1024, 10*1024*1024L),
       s(Property.TABLE_FILE_REPLICATION, 0, 5),
       s(Property.TABLE_FILE_MAX, 2, 50),
   };
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     // reset any previous setting
@@ -132,13 +132,13 @@ public class Config extends Test {
     // pick a random property
     int choice = random.nextInt(0, tableSettings.length - 1);
     Setting setting = tableSettings[choice];
-    
+
     // pick a random table
     SortedSet<String> tables = state.getConnector().tableOperations().list().tailSet("ctt").headSet("ctu");
     if (tables.isEmpty())
       return;
     String table = random.nextSample(tables, 1)[0].toString();
-    
+
     // generate a random value
     long newValue = random.nextLong(setting.min, setting.max);
     state.getMap().put(LAST_TABLE_SETTING, table + "," + choice);
@@ -154,7 +154,7 @@ public class Config extends Test {
       throw ex;
     }
   }
-  
+
   private void changeSetting(RandomData random, State state, Properties props) throws Exception {
     // pick a random property
     int choice = random.nextInt(0, settings.length - 1);
@@ -165,5 +165,5 @@ public class Config extends Test {
     log.debug("Setting " + setting.property.getKey() + " to " + newValue);
     state.getConnector().instanceOperations().setProperty(setting.property.getKey(), ""+newValue);
   }
-  
+
 }

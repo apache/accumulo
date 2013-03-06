@@ -37,24 +37,24 @@ public class ZooUtil {
   public enum NodeExistsPolicy {
     SKIP, OVERWRITE, FAIL
   }
-  
+
   public enum NodeMissingPolicy {
     SKIP, CREATE, FAIL
   }
-  
+
   public static class LockID {
     public long eid;
     public String path;
     public String node;
-    
+
     public LockID(String root, String serializedLID) {
       String sa[] = serializedLID.split("\\$");
       int lastSlash = sa[0].lastIndexOf('/');
-      
+
       if (sa.length != 2 || lastSlash < 0) {
         throw new IllegalArgumentException("Malformed serialized lock id " + serializedLID);
       }
-      
+
       if (lastSlash == 0)
         path = root;
       else
@@ -62,24 +62,24 @@ public class ZooUtil {
       node = sa[0].substring(lastSlash + 1);
       eid = new BigInteger(sa[1], 16).longValue();
     }
-    
+
     public LockID(String path, String node, long eid) {
       this.path = path;
       this.node = node;
       this.eid = eid;
     }
-    
+
     public String serialize(String root) {
-      
+
       return path.substring(root.length()) + "/" + node + "$" + Long.toHexString(eid);
     }
-    
+
     @Override
     public String toString() {
       return " path = " + path + " node = " + node + " eid = " + Long.toHexString(eid);
     }
   }
-  
+
   public static final List<ACL> PRIVATE;
   public static final List<ACL> PUBLIC;
   static {
@@ -89,10 +89,10 @@ public class ZooUtil {
     PUBLIC.addAll(PRIVATE);
     PUBLIC.add(new ACL(Perms.READ, Ids.ANYONE_ID_UNSAFE));
   }
-  
+
   /**
    * This method will delete a node and all its children from zookeeper
-   * 
+   *
    * @param zPath
    *          the path to delete
    */
@@ -102,7 +102,7 @@ public class ZooUtil {
     try {
       for (String child : zk.getChildren(zPath, false))
         recursiveDelete(zk, zPath + "/" + child, NodeMissingPolicy.SKIP);
-      
+
       Stat stat;
       if ((stat = zk.exists(zPath, null)) != null)
         zk.delete(zPath, stat.getVersion());
@@ -112,35 +112,35 @@ public class ZooUtil {
       throw e;
     }
   }
-  
+
   public static void recursiveDelete(ZooKeeper zk, String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
     recursiveDelete(zk, zPath, -1, policy);
   }
-  
+
   /**
    * Create a persistent node with the default ACL
-   * 
+   *
    * @return true if the node was created or altered; false if it was skipped
    */
   public static boolean putPersistentData(ZooKeeper zk, String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     return putData(zk, zPath, data, CreateMode.PERSISTENT, -1, policy, PUBLIC);
   }
-  
+
   public static boolean putPersistentData(ZooKeeper zk, String zPath, byte[] data, int version, NodeExistsPolicy policy) throws KeeperException,
       InterruptedException {
     return putData(zk, zPath, data, CreateMode.PERSISTENT, version, policy, PUBLIC);
   }
-  
+
   public static boolean putPersistentData(ZooKeeper zk, String zPath, byte[] data, int version, NodeExistsPolicy policy, List<ACL> acls)
       throws KeeperException, InterruptedException {
     return putData(zk, zPath, data, CreateMode.PERSISTENT, version, policy, acls);
   }
-  
+
   private static boolean putData(ZooKeeper zk, String zPath, byte[] data, CreateMode mode, int version, NodeExistsPolicy policy, List<ACL> acls)
       throws KeeperException, InterruptedException {
     if (policy == null)
       policy = NodeExistsPolicy.FAIL;
-    
+
     while (true) {
       try {
         zk.create(zPath, data, acls, mode);
@@ -163,19 +163,19 @@ public class ZooUtil {
       }
     }
   }
-  
+
   public static byte[] getData(ZooKeeper zk, String zPath, Stat stat) throws KeeperException, InterruptedException {
     return zk.getData(zPath, false, stat);
   }
-  
+
   public static Stat getStatus(ZooKeeper zk, String zPath) throws KeeperException, InterruptedException {
     return zk.exists(zPath, false);
   }
-  
+
   public static boolean exists(ZooKeeper zk, String zPath) throws KeeperException, InterruptedException {
     return getStatus(zk, zPath) != null;
   }
-  
+
   public static void recursiveCopyPersistent(ZooKeeper zk, String source, String destination, NodeExistsPolicy policy) throws KeeperException,
       InterruptedException {
     Stat stat = null;
@@ -192,7 +192,7 @@ public class ZooUtil {
           throw KeeperException.create(Code.NODEEXISTS, source);
       }
     }
-    
+
     stat = new Stat();
     byte[] data = zk.getData(source, false, stat);
     if (stat.getEphemeralOwner() == 0) {
@@ -204,15 +204,15 @@ public class ZooUtil {
           recursiveCopyPersistent(zk, source + "/" + child, destination + "/" + child, policy);
     }
   }
-  
+
   public static boolean putPrivatePersistentData(ZooKeeper zk, String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     return putData(zk, zPath, data, CreateMode.PERSISTENT, -1, policy, PRIVATE);
   }
-  
+
   public static String putPersistentSequential(ZooKeeper zk, String zPath, byte[] data) throws KeeperException, InterruptedException {
     return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.PERSISTENT_SEQUENTIAL);
   }
-  
+
   public static String putEphemeralData(ZooKeeper zk, String zPath, byte[] data) throws KeeperException, InterruptedException {
     return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL);
   }
@@ -220,39 +220,39 @@ public class ZooUtil {
   public static String putEphemeralSequential(ZooKeeper zk, String zPath, byte[] data) throws KeeperException, InterruptedException {
     return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
   }
-  
+
   public static byte[] getLockData(ZooCache zc, String path) {
-    
+
     List<String> children = zc.getChildren(path);
-    
+
     if (children == null || children.size() == 0) {
       return null;
     }
-    
+
     children = new ArrayList<String>(children);
     Collections.sort(children);
-    
+
     String lockNode = children.get(0);
-    
+
     return zc.get(path + "/" + lockNode);
   }
-  
+
   public static boolean isLockHeld(ZooKeeper zk, LockID lid) throws KeeperException, InterruptedException {
-    
+
     while (true) {
       try {
         List<String> children = zk.getChildren(lid.path, false);
-        
+
         if (children.size() == 0) {
           return false;
         }
-        
+
         Collections.sort(children);
-        
+
         String lockNode = children.get(0);
         if (!lid.node.equals(lockNode))
           return false;
-        
+
         Stat stat = zk.exists(lid.path + "/" + lid.node, false);
         return stat != null && stat.getEphemeralOwner() == lid.eid;
       } catch (KeeperException.ConnectionLossException ex) {
@@ -260,5 +260,5 @@ public class ZooUtil {
       }
     }
   }
-  
+
 }

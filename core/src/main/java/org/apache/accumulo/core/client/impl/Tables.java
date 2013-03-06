@@ -31,7 +31,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 
 public class Tables {
   private static SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
-  
+
   private static ZooCache getZooCache(Instance instance) {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
@@ -39,14 +39,14 @@ public class Tables {
     }
     return ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
   }
-  
+
   private static SortedMap<String,String> getMap(Instance instance, boolean nameAsKey) {
     ZooCache zc = getZooCache(instance);
-    
+
     List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
-    
+
     TreeMap<String,String> tableMap = new TreeMap<String,String>();
-    
+
     for (String tableId : tableIds) {
       byte[] tblPath = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
       if (tblPath != null) {
@@ -56,59 +56,59 @@ public class Tables {
           tableMap.put(tableId, new String(tblPath));
       }
     }
-    
+
     return tableMap;
   }
-  
+
   public static String getTableId(Instance instance, String tableName) throws TableNotFoundException {
     String tableId = getNameToIdMap(instance).get(tableName);
     if (tableId == null)
       throw new TableNotFoundException(tableId, tableName, null);
     return tableId;
   }
-  
+
   public static String getTableName(Instance instance, String tableId) throws TableNotFoundException {
     String tableName = getIdToNameMap(instance).get(tableId);
     if (tableName == null)
       throw new TableNotFoundException(tableId, tableName, null);
     return tableName;
   }
-  
+
   public static SortedMap<String,String> getNameToIdMap(Instance instance) {
     return getMap(instance, true);
   }
-  
+
   public static SortedMap<String,String> getIdToNameMap(Instance instance) {
     return getMap(instance, false);
   }
-  
+
   public static boolean exists(Instance instance, String tableId) {
     ZooCache zc = getZooCache(instance);
     List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
     return tableIds.contains(tableId);
   }
-  
+
   public static void clearCache(Instance instance) {
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZTABLES);
   }
-  
+
   public static String getPrintableTableNameFromId(Map<String,String> tidToNameMap, String tableId) {
     String tableName = tidToNameMap.get(tableId);
     return tableName == null ? "(ID:" + tableId + ")" : tableName;
   }
-  
+
   public static String getPrintableTableIdFromName(Map<String,String> nameToIdMap, String tableName) {
     String tableId = nameToIdMap.get(tableName);
     return tableId == null ? "(NAME:" + tableName + ")" : tableId;
   }
-  
+
   public static TableState getTableState(Instance instance, String tableId) {
     String statePath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
     ZooCache zc = getZooCache(instance);
     byte[] state = zc.get(statePath);
     if (state == null)
       return TableState.UNKNOWN;
-    
+
     return TableState.valueOf(new String(state));
   }
 }

@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -26,29 +26,29 @@ public final class ByteArray implements RawComparable {
   private final byte[] buffer;
   private final int offset;
   private final int len;
-  
+
   /**
    * Constructing a ByteArray from a {@link BytesWritable}.
-   * 
+   *
    * @param other
    */
   public ByteArray(BytesWritable other) {
     this(other.getBytes(), 0, other.getLength());
   }
-  
+
   /**
    * Wrap a whole byte array as a RawComparable.
-   * 
+   *
    * @param buffer
    *          the byte array buffer.
    */
   public ByteArray(byte[] buffer) {
     this(buffer, 0, buffer.length);
   }
-  
+
   /**
    * Wrap a partial byte array as a RawComparable.
-   * 
+   *
    * @param buffer
    *          the byte array buffer.
    * @param offset
@@ -64,7 +64,7 @@ public final class ByteArray implements RawComparable {
     this.offset = offset;
     this.len = len;
   }
-  
+
   /**
    * @return the underlying buffer.
    */
@@ -72,7 +72,7 @@ public final class ByteArray implements RawComparable {
   public byte[] buffer() {
     return buffer;
   }
-  
+
   /**
    * @return the offset in the buffer.
    */
@@ -80,7 +80,7 @@ public final class ByteArray implements RawComparable {
   public int offset() {
     return offset;
   }
-  
+
   /**
    * @return the size of the byte array.
    */

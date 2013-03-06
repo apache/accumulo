@@ -31,14 +31,14 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
 
 public class MockScanner extends MockScannerBase implements Scanner {
-  
+
   int batchSize = 0;
   Range range = new Range();
-  
+
   MockScanner(MockTable table, Authorizations auths) {
     super(table, auths);
   }
-  
+
   @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
@@ -47,7 +47,7 @@ public class MockScanner extends MockScannerBase implements Scanner {
     else
       setTimeout(timeOut, TimeUnit.SECONDS);
   }
-  
+
   @Deprecated
   @Override
   public int getTimeOut() {
@@ -56,47 +56,47 @@ public class MockScanner extends MockScannerBase implements Scanner {
       return Integer.MAX_VALUE;
     return (int) timeout;
   }
-  
+
   @Override
   public void setRange(Range range) {
     this.range = range;
   }
-  
+
   @Override
   public Range getRange() {
     return this.range;
   }
-  
+
   @Override
   public void setBatchSize(int size) {
     this.batchSize = size;
   }
-  
+
   @Override
   public int getBatchSize() {
     return this.batchSize;
   }
-  
+
   @Override
   public void enableIsolation() {}
-  
+
   @Override
   public void disableIsolation() {}
-  
+
   static class RangeFilter extends Filter {
     Range range;
-    
+
     RangeFilter(SortedKeyValueIterator<Key,Value> i, Range range) {
       setSource(i);
       this.range = range;
     }
-    
+
     @Override
     public boolean accept(Key k, Value v) {
       return range.contains(k);
     }
   }
-  
+
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
@@ -107,7 +107,7 @@ public class MockScanner extends MockScannerBase implements Scanner {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
+
   }
-  
+
 }

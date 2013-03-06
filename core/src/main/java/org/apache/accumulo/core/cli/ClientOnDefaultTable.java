@@ -25,20 +25,20 @@ import com.beust.jcommander.Parameter;
 
 public class ClientOnDefaultTable extends ClientOpts {
   private final String defaultTable;
-  
+
   public ClientOnDefaultTable(String table) {
     this.defaultTable = table;
   }
-  
+
   @Parameter(names = "--table", description = "table to use")
   String tableName;
-  
+
   public String getTableName() {
     if (tableName == null)
       return defaultTable;
     return tableName;
   }
-  
+
   @Override
   public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
     super.setAccumuloConfigs(job);
@@ -49,5 +49,5 @@ public class ClientOnDefaultTable extends ClientOpts {
     AccumuloOutputFormat.setCreateTables(job, true);
     AccumuloOutputFormat.setDefaultTableName(job, getTableName());
   }
-  
+
 }

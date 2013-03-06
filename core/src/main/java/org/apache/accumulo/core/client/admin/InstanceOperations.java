@@ -23,13 +23,13 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 
 /**
- * 
+ *
  */
 public interface InstanceOperations {
-  
+
   /**
    * Sets an instance property in zookeeper. Tablet servers will pull this setting and override the equivalent setting in accumulo-site.xml
-   * 
+   *
    * @param property
    *          the name of a per-table property
    * @param value
@@ -40,10 +40,10 @@ public interface InstanceOperations {
    *           if the user does not have permission
    */
   public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Removes a instance property from zookeeper
-   * 
+   *
    * @param property
    *          the name of a per-table property
    * @throws AccumuloException
@@ -52,60 +52,60 @@ public interface InstanceOperations {
    *           if the user does not have permission
    */
   public void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException;
-  
+
   public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException;
-  
+
   public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * List the currently active tablet servers participating in the accumulo instance
-   * 
+   *
    * @return A list of currently active tablet servers.
    */
-  
+
   public List<String> getTabletServers();
-  
+
   /**
    * List the active scans on tablet server.
-   * 
+   *
    * @param tserver
    *          The tablet server address should be of the form <ip address>:<port>
    * @return A list of active scans on tablet server.
    * @throws AccumuloException
    * @throws AccumuloSecurityException
    */
-  
+
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * List the active compaction running on a tablet server
-   * 
+   *
    * @param tserver
    *          The tablet server address should be of the form <ip address>:<port>
    * @return the list of active compactions
    * @throws AccumuloException
    * @throws AccumuloSecurityException
    */
-  
+
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Throws an exception if a tablet server can not be contacted.
-   * 
+   *
    * @param tserver
    *          The tablet server address should be of the form <ip address>:<port>
    * @throws AccumuloException
    */
   public void ping(String tserver) throws AccumuloException;
-  
+
   /**
    * Test to see if the instance can load the given class as the given type.
-   * 
+   *
    * @param className
    * @param asTypeName
    * @return true if the instance can load the given class as the given type, false otherwise
    * @throws AccumuloException
    */
   public boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException;
-  
+
 }

@@ -28,7 +28,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
  * A filter that ages off key/value pairs based on the Key's timestamp. It removes an entry if its timestamp is less than currentTime - threshold.
- * 
+ *
  * This filter requires a "ttl" option, in milliseconds, to determine the age off threshold.
  */
 public class AgeOffFilter extends Filter {
@@ -36,10 +36,10 @@ public class AgeOffFilter extends Filter {
   private static final String CURRENT_TIME = "currentTime";
   private long threshold;
   private long currentTime;
-  
+
   /**
    * Accepts entries whose timestamps are less than currentTime - threshold.
-   * 
+   *
    * @see org.apache.accumulo.core.iterators.Filter#accept(org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value)
    */
   @Override
@@ -48,29 +48,29 @@ public class AgeOffFilter extends Filter {
       return false;
     return true;
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     threshold = -1;
     if (options == null)
       throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
-    
+
     String ttl = options.get(TTL);
     if (ttl == null)
       throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
-    
+
     threshold = Long.parseLong(ttl);
-    
+
     String time = options.get(CURRENT_TIME);
     if (time != null)
       currentTime = Long.parseLong(time);
     else
       currentTime = System.currentTimeMillis();
-    
+
     // add sanity checks for threshold and currentTime?
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     AgeOffFilter copy = (AgeOffFilter) super.deepCopy(env);
@@ -78,7 +78,7 @@ public class AgeOffFilter extends Filter {
     copy.threshold = threshold;
     return copy;
   }
-  
+
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
@@ -88,7 +88,7 @@ public class AgeOffFilter extends Filter {
     io.setDescription("AgeOffFilter removes entries with timestamps more than <ttl> milliseconds old");
     return io;
   }
-  
+
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (super.validateOptions(options) == false)
@@ -100,10 +100,10 @@ public class AgeOffFilter extends Filter {
     }
     return true;
   }
-  
+
   /**
    * A convenience method for setting the age off threshold.
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param ttl
@@ -112,10 +112,10 @@ public class AgeOffFilter extends Filter {
   public static void setTTL(IteratorSetting is, Long ttl) {
     is.addOption(TTL, Long.toString(ttl));
   }
-  
+
   /**
    * A convenience method for setting the current time (from which to measure the age off threshold).
-   * 
+   *
    * @param is
    *          IteratorSetting object to configure.
    * @param currentTime

@@ -33,7 +33,7 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 public class CreateTestTable {
-  
+
   static class Opts extends ClientOnDefaultTable {
     @Parameter(names={"-readonly", "--readonly"}, description="read only")
     boolean readOnly = false;
@@ -41,7 +41,7 @@ public class CreateTestTable {
     int count = 10000;
     Opts() { super("mrtest1"); }
   }
-  
+
   private static void readBack(Connector conn, Opts opts, ScannerOpts scanOpts) throws Exception {
     Scanner scanner = conn.createScanner("mrtest1", opts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
@@ -53,28 +53,28 @@ public class CreateTestTable {
     }
     assert (opts.count == count);
   }
-  
+
   public static void main(String[] args) throws Exception {
     String program = CreateTestTable.class.getName();
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(program, args, bwOpts, scanOpts);
-    
+
     // create the test table within accumulo
     Connector connector = opts.getConnector();
-    
+
     if (!opts.readOnly) {
       TreeSet<Text> keys = new TreeSet<Text>();
       for (int i = 0; i < opts.count / 100; i++) {
         keys.add(new Text(String.format("%05d", i * 100)));
       }
-      
+
       // presplit
       connector.tableOperations().create(opts.getTableName());
       connector.tableOperations().addSplits(opts.getTableName(), keys);
       BatchWriter b = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
-      
+
       // populate
       for (int i = 0; i < opts.count; i++) {
         Mutation m = new Mutation(new Text(String.format("%05d", i)));
@@ -83,7 +83,7 @@ public class CreateTestTable {
       }
       b.close();
     }
-    
+
     readBack(connector, opts, scanOpts);
     opts.stopTracing();
   }

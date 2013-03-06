@@ -21,21 +21,21 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /*
- * Minimal interface to write a block to a 
+ * Minimal interface to write a block to a
  * block based file
- * 
+ *
  */
 
 public interface ABlockWriter extends DataOutput {
-  
+
   public long getCompressedSize() throws IOException;
-  
+
   public void close() throws IOException;
-  
+
   public long getRawSize() throws IOException;
-  
+
   public long getStartPos() throws IOException;
-  
+
   public DataOutputStream getStream() throws IOException;
-  
+
 }

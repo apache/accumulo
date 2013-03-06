@@ -46,22 +46,22 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.ToolRunner;
 
 public class BulkInsert extends Test {
-  
+
   class SeqfileBatchWriter implements BatchWriter {
-    
+
     SequenceFile.Writer writer;
-    
+
     SeqfileBatchWriter(Configuration conf, FileSystem fs, String file) throws IOException {
       writer = new SequenceFile.Writer(fs, conf, new Path(file), Key.class, Value.class);
     }
-    
+
     @Override
     public void addMutation(Mutation m) throws MutationsRejectedException {
       List<ColumnUpdate> updates = m.getUpdates();
       for (ColumnUpdate cu : updates) {
         Key key = new Key(m.getRow(), cu.getColumnFamily(), cu.getColumnQualifier(), cu.getColumnVisibility(), Long.MAX_VALUE, false, false);
         Value val = new Value(cu.getValue(), false);
-        
+
         try {
           writer.append(key, val);
         } catch (IOException e) {
@@ -69,16 +69,16 @@ public class BulkInsert extends Test {
         }
       }
     }
-    
+
     @Override
     public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
       for (Mutation mutation : iterable)
         addMutation(mutation);
     }
-    
+
     @Override
     public void flush() throws MutationsRejectedException {}
-    
+
     @Override
     public void close() throws MutationsRejectedException {
       try {
@@ -87,53 +87,53 @@ public class BulkInsert extends Test {
         throw new RuntimeException(e);
       }
     }
-    
+
   }
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
-    
+
     String indexTableName = (String) state.get("indexTableName");
     String dataTableName = (String) state.get("docTableName");
     int numPartitions = (Integer) state.get("numPartitions");
     Random rand = (Random) state.get("rand");
     long nextDocID = (Long) state.get("nextDocID");
-    
+
     int minInsert = Integer.parseInt(props.getProperty("minInsert"));
     int maxInsert = Integer.parseInt(props.getProperty("maxInsert"));
     int numToInsert = rand.nextInt((maxInsert - minInsert)) + minInsert;
-    
+
     int maxSplits = Integer.parseInt(props.getProperty("maxSplits"));
-    
+
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
-    
+
     String rootDir = "/tmp/shard_bulk/" + dataTableName;
-    
+
     fs.mkdirs(new Path(rootDir));
-    
+
     BatchWriter dataWriter = new SeqfileBatchWriter(conf, fs, rootDir + "/data.seq");
     BatchWriter indexWriter = new SeqfileBatchWriter(conf, fs, rootDir + "/index.seq");
-    
+
     for (int i = 0; i < numToInsert; i++) {
       String docID = Insert.insertRandomDocument(nextDocID++, dataWriter, indexWriter, indexTableName, dataTableName, numPartitions, rand);
       log.debug("Bulk inserting document " + docID);
     }
-    
+
     state.set("nextDocID", new Long(nextDocID));
-    
+
     dataWriter.close();
     indexWriter.close();
-    
+
     sort(state, fs, dataTableName, rootDir + "/data.seq", rootDir + "/data_bulk", rootDir + "/data_work", maxSplits);
     sort(state, fs, indexTableName, rootDir + "/index.seq", rootDir + "/index_bulk", rootDir + "/index_work", maxSplits);
-    
+
     bulkImport(fs, state, dataTableName, rootDir, "data");
     bulkImport(fs, state, indexTableName, rootDir, "index");
-    
+
     fs.delete(new Path(rootDir), true);
   }
-  
+
   private void bulkImport(FileSystem fs, State state, String tableName, String rootDir, String prefix) throws Exception {
     while (true) {
       String bulkDir = rootDir + "/" + prefix + "_bulk";
@@ -142,11 +142,11 @@ public class BulkInsert extends Test {
       fs.delete(failPath, true);
       fs.mkdirs(failPath);
       state.getConnector().tableOperations().importDirectory(tableName, bulkDir, failDir, true);
-      
+
       FileStatus[] failures = fs.listStatus(failPath);
       if (failures != null && failures.length > 0) {
         log.warn("Failed to bulk import some files, retrying ");
-        
+
         for (FileStatus failure : failures) {
           if (!failure.getPath().getName().endsWith(".seq"))
             fs.rename(failure.getPath(), new Path(new Path(bulkDir), failure.getPath().getName()));
@@ -158,28 +158,28 @@ public class BulkInsert extends Test {
         break;
     }
   }
-  
+
   private void sort(State state, FileSystem fs, String tableName, String seqFile, String outputDir, String workDir, int maxSplits) throws Exception {
-    
+
     PrintStream out = new PrintStream(new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))));
-    
+
     Connector conn = state.getConnector();
-    
+
     Collection<Text> splits = conn.tableOperations().getSplits(tableName, maxSplits);
     for (Text split : splits)
       out.println(new String(Base64.encodeBase64(TextUtil.getBytes(split))));
-    
+
     out.close();
-    
+
     SortTool sortTool = new SortTool(seqFile, outputDir, workDir + "/splits.txt", splits);
-    
+
     String[] args = new String[2];
     args[0] = "-libjars";
     args[1] = state.getMapReduceJars();
-    
+
     if (ToolRunner.run(CachedConfiguration.getInstance(), sortTool, args) != 0) {
       throw new Exception("Failed to run map/red verify");
     }
   }
-  
+
 }

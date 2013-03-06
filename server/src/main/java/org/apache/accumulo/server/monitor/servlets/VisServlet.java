@@ -29,9 +29,9 @@ import org.apache.accumulo.server.monitor.Monitor;
 
 public class VisServlet extends BasicServlet {
   private static final int concurrentScans = Monitor.getSystemConfiguration().getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   public enum StatType {
     osload(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true, 100, "OS Load"),
     ingest(1000, true, 1, "Ingest Entries"),
@@ -43,13 +43,13 @@ public class VisServlet extends BasicServlet {
     holdtime(60000, false, 1, "Hold Time"),
     allavg(1, false, 100, "Overall Avg", true),
     allmax(1, false, 100, "Overall Max", true);
-    
+
     private int max;
     private boolean adjustMax;
     private float significance;
     private String description;
     private boolean derived;
-    
+
     /**
      * @param max
      *          initial estimate of largest possible value for this stat
@@ -63,7 +63,7 @@ public class VisServlet extends BasicServlet {
     private StatType(int max, boolean adjustMax, float significance, String description) {
       this(max, adjustMax, significance, description, false);
     }
-    
+
     private StatType(int max, boolean adjustMax, float significance, String description, boolean derived) {
       this.max = max;
       this.adjustMax = adjustMax;
@@ -71,27 +71,27 @@ public class VisServlet extends BasicServlet {
       this.description = description;
       this.derived = derived;
     }
-    
+
     public int getMax() {
       return max;
     }
-    
+
     public boolean getAdjustMax() {
       return adjustMax;
     }
-    
+
     public float getSignificance() {
       return significance;
     }
-    
+
     public String getDescription() {
       return description;
     }
-    
+
     public boolean isDerived() {
       return derived;
     }
-    
+
     public static int numDerived() {
       int count = 0;
       for (StatType st : StatType.values())
@@ -108,38 +108,38 @@ public class VisServlet extends BasicServlet {
 	  int spacing = 40;
 	  String url;
   }
-  
+
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "Server Activity";
   }
-  
+
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
     StringBuffer urlsb = req.getRequestURL();
     urlsb.setLength(urlsb.lastIndexOf("/") + 1);
     VisualizationConfig cfg = new VisualizationConfig();
     cfg.url = urlsb.toString();
-    
+
     String s = req.getParameter("shape");
     if (s != null && (s.equals("square") || s.equals("squares"))) {
       cfg.useCircles = false;
     }
-    
+
     s = req.getParameter("motion");
     if (s != null) {
       try {
         cfg.motion = StatType.valueOf(s);
       } catch (Exception e) {}
     }
-    
+
     s = req.getParameter("color");
     if (s != null) {
       try {
         cfg.color = StatType.valueOf(s);
       } catch (Exception e) {}
     }
-    
+
     String size = req.getParameter("size");
     if (size != null) {
       if (size.equals("10"))
@@ -149,20 +149,20 @@ public class VisServlet extends BasicServlet {
       else if (size.equals("80"))
         cfg.spacing = 80;
     }
-    
+
     ArrayList<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
     if (Monitor.getMmi() != null)
       tservers.addAll(Monitor.getMmi().tServerInfo);
-    
+
     if (tservers.size() == 0)
       return;
-    
+
     int width = (int) Math.ceil(Math.sqrt(tservers.size())) * cfg.spacing;
     int height = (int) Math.ceil(tservers.size() / width) * cfg.spacing;
     doSettings(sb, cfg, width < 640 ? 640 : width, height < 640 ? 640 : height);
     doScript(sb, cfg, tservers);
   }
-  
+
   private void doSettings(StringBuilder sb, VisualizationConfig cfg, int width, int height) {
     sb.append("<div class='left'>\n");
     sb.append("<div id='parameters' class='nowrap'>\n");
@@ -193,13 +193,13 @@ public class VisServlet extends BasicServlet {
     sb.append("</div>\n");
     sb.append("</div>\n\n");
   }
-  
+
   private void addOptions(StringBuilder sb, StatType selectedStatType) {
     for (StatType st : StatType.values()) {
       sb.append("<option").append(st.equals(selectedStatType) ? " selected='true'>" : ">").append(st.getDescription()).append("</option>");
     }
   }
-  
+
   private void doScript(StringBuilder sb, VisualizationConfig cfg, ArrayList<TabletServerStatus> tservers) {
     // initialization of some javascript variables
     sb.append("<script type='text/javascript'>\n");
@@ -230,7 +230,7 @@ public class VisServlet extends BasicServlet {
     sb.append("}; // values will be converted by floor(this*value)/this\n");
     sb.append("var numNormalStats = ").append(StatType.values().length - StatType.numDerived()).append(";\n");
     sb.append("</script>\n");
-    
+
     sb.append("<script src='web/vis.js' type='text/javascript'></script>");
   }
 }

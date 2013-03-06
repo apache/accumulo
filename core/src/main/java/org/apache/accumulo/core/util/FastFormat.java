@@ -24,28 +24,28 @@ public class FastFormat {
       throw new RuntimeException(" Did not format to expected width " + num + " " + width + " " + radix + " " + new String(prefix));
     return ret;
   }
-  
+
   public static int toZeroPaddedString(byte output[], int outputOffset, long num, int width, int radix, byte[] prefix) {
     if (num < 0)
       throw new IllegalArgumentException();
-    
+
     String s = Long.toString(num, radix);
-    
+
     int index = outputOffset;
-    
+
     for (int i = 0; i < prefix.length; i++) {
       output[index++] = prefix[i];
     }
-    
+
     int end = width - s.length() + index;
-    
+
     while (index < end)
       output[index++] = '0';
-    
+
     for (int i = 0; i < s.length(); i++) {
       output[index++] = (byte) s.charAt(i);
     }
-    
+
     return index - outputOffset;
   }
 }

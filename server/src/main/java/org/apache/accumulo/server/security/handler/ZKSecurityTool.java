@@ -42,7 +42,7 @@ import org.apache.log4j.Logger;
 class ZKSecurityTool {
   private static final Logger log = Logger.getLogger(ZKSecurityTool.class);
   private static final int SALT_LENGTH = 8;
-  
+
   // Generates a byte array salt of length SALT_LENGTH
   private static byte[] generateSalt() {
     final SecureRandom random = new SecureRandom();
@@ -50,17 +50,17 @@ class ZKSecurityTool {
     random.nextBytes(salt);
     return salt;
   }
-  
+
   private static byte[] hash(byte[] raw) throws NoSuchAlgorithmException {
     MessageDigest md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
     md.update(raw);
     return md.digest();
   }
-  
+
   public static boolean checkPass(byte[] password, byte[] zkData) {
     if (zkData == null)
       return false;
-    
+
     byte[] salt = new byte[SALT_LENGTH];
     System.arraycopy(zkData, 0, salt, 0, SALT_LENGTH);
     byte[] passwordToCheck;
@@ -72,7 +72,7 @@ class ZKSecurityTool {
     }
     return java.util.Arrays.equals(passwordToCheck, zkData);
   }
-  
+
   public static byte[] createPass(byte[] password) throws AccumuloException {
     byte[] salt = generateSalt();
     try {
@@ -82,7 +82,7 @@ class ZKSecurityTool {
       throw new AccumuloException("Count not create hashed password", e);
     }
   }
-  
+
   private static byte[] convertPass(byte[] password, byte[] salt) throws NoSuchAlgorithmException {
     byte[] plainSalt = new byte[password.length + SALT_LENGTH];
     System.arraycopy(password, 0, plainSalt, 0, password.length);
@@ -93,15 +93,15 @@ class ZKSecurityTool {
     System.arraycopy(hashed, 0, saltedHash, SALT_LENGTH, hashed.length);
     return saltedHash; // contains salt+hash(password+salt)
   }
-  
+
   public static Authorizations convertAuthorizations(byte[] authorizations) {
     return new Authorizations(authorizations);
   }
-  
+
   public static byte[] convertAuthorizations(Authorizations authorizations) {
     return authorizations.getAuthorizationsArray();
   }
-  
+
   public static byte[] convertSystemPermissions(Set<SystemPermission> systempermissions) {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream(systempermissions.size());
     DataOutputStream out = new DataOutputStream(bytes);
@@ -114,7 +114,7 @@ class ZKSecurityTool {
     }
     return bytes.toByteArray();
   }
-  
+
   public static Set<SystemPermission> convertSystemPermissions(byte[] systempermissions) {
     ByteArrayInputStream bytes = new ByteArrayInputStream(systempermissions);
     DataInputStream in = new DataInputStream(bytes);
@@ -128,7 +128,7 @@ class ZKSecurityTool {
     }
     return toReturn;
   }
-  
+
   public static byte[] convertTablePermissions(Set<TablePermission> tablepermissions) {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream(tablepermissions.size());
     DataOutputStream out = new DataOutputStream(bytes);
@@ -141,14 +141,14 @@ class ZKSecurityTool {
     }
     return bytes.toByteArray();
   }
-  
+
   public static Set<TablePermission> convertTablePermissions(byte[] tablepermissions) {
     Set<TablePermission> toReturn = new HashSet<TablePermission>();
     for (byte b : tablepermissions)
       toReturn.add(TablePermission.getPermissionById(b));
     return toReturn;
   }
-  
+
   public static String getInstancePath(String instanceId) {
     return Constants.ZROOT + "/" + instanceId;
   }

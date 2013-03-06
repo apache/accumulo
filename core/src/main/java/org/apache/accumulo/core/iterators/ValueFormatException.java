@@ -20,7 +20,7 @@ package org.apache.accumulo.core.iterators;
  * Exception used for TypedValueCombiner and it's Encoders decode() function
  */
 public class ValueFormatException extends IllegalArgumentException {
-  
+
   /**
    * @param string
    */
@@ -36,5 +36,5 @@ public class ValueFormatException extends IllegalArgumentException {
   }
 
   private static final long serialVersionUID = 4170291568272971821L;
-  
+
 }

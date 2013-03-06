@@ -34,25 +34,25 @@ import org.apache.hadoop.mapred.Reporter;
 /**
  * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat} provides keys and values of type {@link Key} and
  * {@link Value} to the Map function.
- * 
+ *
  * The user must specify the following via static configurator methods:
- * 
+ *
  * <ul>
  * <li>{@link AccumuloInputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)} OR {@link AccumuloInputFormat#setConnectorInfo(JobConf, Path)}
  * <li>{@link AccumuloInputFormat#setInputTableName(JobConf, String)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, Authorizations)}
  * <li>{@link AccumuloInputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloInputFormat#setMockInstance(JobConf, String)}
  * </ul>
- * 
+ *
  * Other static methods are optional.
  */
 public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
-  
+
   @Override
   public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter) throws IOException {
     log.setLevel(getLogLevel(job));
     RecordReaderBase<Key,Value> recordReader = new RecordReaderBase<Key,Value>() {
-      
+
       @Override
       public boolean next(Key key, Value value) throws IOException {
         if (scannerIterator.hasNext()) {
@@ -66,17 +66,17 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
         }
         return false;
       }
-      
+
       @Override
       public Key createKey() {
         return new Key();
       }
-      
+
       @Override
       public Value createValue() {
         return new Value();
       }
-      
+
     };
     recordReader.initialize(split, job);
     return recordReader;

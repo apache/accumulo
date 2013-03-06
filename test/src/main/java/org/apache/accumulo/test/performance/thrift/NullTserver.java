@@ -75,141 +75,141 @@ import com.beust.jcommander.Parameter;
 /**
  * The purpose of this class is to server as fake tserver that is a data sink like /dev/null. NullTserver modifies the !METADATA location entries for a table to
  * point to it. This allows thrift performance to be measured by running any client code that writes to a table.
- * 
+ *
  */
 
 public class NullTserver {
-  
+
   public static class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
-    
+
     private long updateSession = 1;
-    
+
     public ThriftClientHandler(Instance instance, TransactionWatcher watcher) {
       super(instance, watcher);
     }
-    
+
     @Override
     public long startUpdate(TInfo tinfo, TCredentials credentials) {
       return updateSession++;
     }
-    
+
     @Override
     public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent keyExtent, List<TMutation> mutation) {}
-    
+
     @Override
     public UpdateErrors closeUpdate(TInfo tinfo, long updateID) {
       return new UpdateErrors(new HashMap<TKeyExtent,Long>(), new ArrayList<TConstraintViolationSummary>(), new HashMap<TKeyExtent, SecurityErrorCode>());
     }
-    
+
     @Override
     public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
       return null;
     }
-    
+
     @Override
     public void closeMultiScan(TInfo tinfo, long scanID) {}
-    
+
     @Override
     public void closeScan(TInfo tinfo, long scanID) {}
-    
+
     @Override
     public MultiScanResult continueMultiScan(TInfo tinfo, long scanID) {
       return null;
     }
-    
+
     @Override
     public ScanResult continueScan(TInfo tinfo, long scanID) {
       return null;
     }
-    
+
     @Override
     public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent extent, ByteBuffer splitPoint) {
-      
+
     }
-    
+
     @Override
     public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials, Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) {
       return null;
     }
-    
+
     @Override
     public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent extent, TRange range, List<TColumn> columns, int batchSize,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated) {
       return null;
     }
-    
+
     @Override
     public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent, TMutation mutation) {
-      
+
     }
-    
+
     @Override
     public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return null;
     }
-    
+
     @Override
     public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId) throws ThriftSecurityException, TException {
       return null;
     }
-    
+
     @Override
     public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return null;
     }
-    
+
     @Override
     public void halt(TInfo tinfo, TCredentials credentials, String lock) throws ThriftSecurityException, TException {}
-    
+
     @Override
     public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) {}
-    
+
     @Override
     public void loadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) throws TException {}
-    
+
     @Override
     public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent, boolean save) throws TException {}
-    
+
     @Override
     public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return new ArrayList<ActiveScan>();
     }
-    
+
     @Override
     public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) throws TException {}
-    
+
     @Override
     public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) throws TException {
-      
+
     }
-    
+
     @Override
     public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
-      
+
     }
-    
+
     @Override
     public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
-      
+
     }
-    
+
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface#removeLogs(org.apache.accumulo.trace.thrift.TInfo,
      * org.apache.accumulo.core.security.thrift.Credentials, java.util.List)
      */
     @Override
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
     }
-    
+
     @Override
     public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return new ArrayList<ActiveCompaction>();
     }
   }
-  
+
   static class Opts extends Help {
     @Parameter(names={"-i", "--instance"}, description="instance name", required=true)
     String iname = null;
@@ -220,22 +220,22 @@ public class NullTserver {
     @Parameter(names="--port", description="port number to use")
     int port = DefaultConfiguration.getInstance().getPort(Property.TSERV_CLIENTPORT);
   }
-  
+
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(NullTserver.class.getName(), args);
-    
+
     TransactionWatcher watcher = new TransactionWatcher();
     ThriftClientHandler tch = new ThriftClientHandler(HdfsZooInstance.getInstance(), watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
     TServerUtils.startTServer(opts.port, processor, "NullTServer", "null tserver", 2, 1000, 10*1024*1024);
-    
+
     InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), opts.port);
-    
+
     // modify !METADATA
     ZooKeeperInstance zki = new ZooKeeperInstance(opts.iname, opts.keepers);
     String tableId = Tables.getTableId(zki, opts.tableName);
-    
+
     // read the locations for the table
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
     MetaDataTableScanner s = new MetaDataTableScanner(zki, SecurityConstants.getSystemCredentials(), tableRange);
@@ -250,7 +250,7 @@ public class NullTserver {
     // point them to this server
     MetaDataStateStore store = new MetaDataStateStore();
     store.setLocations(assignments);
-    
+
     while (true) {
       UtilWaitThread.sleep(10000);
     }

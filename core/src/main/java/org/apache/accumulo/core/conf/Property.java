@@ -28,7 +28,7 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public enum Property {
-  
+
   // Crypto-related properties
   CRYPTO_PREFIX("crypto.", null, PropertyType.PREFIX, "Properties in this category related to the configuration of both default and custom crypto modules.",
       true),
@@ -54,7 +54,7 @@ public enum Property {
       "The URL Accumulo should use to connect to DFS. If this is blank, Accumulo will obtain this information from the Hadoop configuration", true),
   CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION("crypto.default.key.strategy.key.location", "/accumulo/crypto/secret/keyEncryptionKey", PropertyType.ABSOLUTEPATH,
       "The absolute path of where to store the key encryption key within HDFS.", true),
-  
+
   // instance properties (must be the same for every node in an instance)
   INSTANCE_PREFIX("instance.", null, PropertyType.PREFIX,
       "Properties in this category must be consistent throughout a cloud. This is enforced and servers won't be able to communicate if these differ."),
@@ -75,7 +75,7 @@ public enum Property {
       "The authorizor class that accumulo will use to determine what labels a user has privilege to see"),
   INSTANCE_SECURITY_PERMISSION_HANDLER("instance.security.permissionHandler", "org.apache.accumulo.server.security.handler.ZKPermHandler",
       PropertyType.CLASSNAME, "The permission handler class that accumulo will use to determine if a user has privilege to perform an action"),
-  
+
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but do not have to be consistent throughout a cloud."),
@@ -90,7 +90,7 @@ public enum Property {
   GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING, "Name of the kerberos principal to use. _HOST will automatically be "
       + "replaced by the machines hostname in the hostname portion of the principal. Leave blank if not using kerberoized hdfs"),
   GENERAL_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.MEMORY, "The maximum size of a message that can be sent to a tablet server."),
-  
+
   // properties that are specific to master server behavior
   MASTER_PREFIX("master.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the master server"),
   MASTER_CLIENTPORT("master.port.client", "9999", PropertyType.PORT, "The port used for handling client connections on the master"),
@@ -109,7 +109,7 @@ public enum Property {
       PropertyType.CLASSNAME, "A class that implements a mechansim to steal write access to a file"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run FAult-Tolerant Executions.  These are primarily table operations like merge."),
-  
+
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the tablet servers"),
   TSERV_CLIENT_TIMEOUT("tserver.client.timeout", "3s", PropertyType.TIMEDURATION, "Time to wait for clients to continue scans before closing a session."),
@@ -194,12 +194,12 @@ public enum Property {
   TSERV_ARCHIVE_WALOGS("tserver.archive.walogs", "false", PropertyType.BOOLEAN, "Keep copies of the WALOGs for debugging purposes"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed workq.  These threads are used for copying failed bulk files."),
-  
+
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
   LOGGER_DIR("logger.dir.walog", "walogs", PropertyType.PATH,
       "The directory used to store write-ahead logs on the local filesystem. It is possible to specify a comma-separated list of directories."),
-  
+
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the accumulo garbage collector."),
   GC_CYCLE_START("gc.cycle.start", "30s", PropertyType.TIMEDURATION, "Time to wait before attempting to garbage collect any old files."),
@@ -207,7 +207,7 @@ public enum Property {
       + "no longer in use are removed from the filesystem."),
   GC_PORT("gc.port.client", "50091", PropertyType.PORT, "The listening port for the garbage collector's monitor service"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT, "The number of threads used to delete files"),
-  
+
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the monitor web server."),
   MONITOR_PORT("monitor.port.client", "50095", PropertyType.PORT, "The listening port for the monitor's http service"),
@@ -220,13 +220,13 @@ public enum Property {
   MONITOR_SSL_KEYSTOREPASS("monitor.ssl.keyStorePassword", "", PropertyType.STRING, "The keystore password for enabling monitor SSL."),
   MONITOR_SSL_TRUSTSTORE("monitor.ssl.trustStore", "", PropertyType.PATH, "The truststore for enabling monitor SSL."),
   MONITOR_SSL_TRUSTSTOREPASS("monitor.ssl.trustStorePassword", "", PropertyType.STRING, "The truststore password for enabling monitor SSL."),
-  
+
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of distributed tracing."),
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT, "The listening port for the trace server"),
   TRACE_TABLE("trace.table", "trace", PropertyType.STRING, "The name of the table to store distributed traces"),
   TRACE_USER("trace.user", "root", PropertyType.STRING, "The name of the user to store distributed traces"),
   TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING, "The password for the user used to store distributed traces"),
-  
+
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX, "Properties in this category affect tablet server treatment of tablets, but can be configured "
       + "on a per-table basis. Setting these properties in the site file will override the default globally "
@@ -324,7 +324,7 @@ public enum Property {
   TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(), PropertyType.STRING,
       "The ScanInterpreter class to apply on scan arguments in the shell"),
   TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING, "Per table classpath context"),
-  
+
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
       "Configuration for a system level vfs classloader.  Accumulo jar can be configured here and loaded out of HDFS."),
@@ -344,11 +344,11 @@ public enum Property {
 	    PropertyType.ABSOLUTEPATH,
 	    "Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM. This should be on local disk on each node with sufficient space. It defaults to /tmp",
 	    false);
-  
+
   private String key, defaultValue, description;
   private PropertyType type;
   private boolean experimental;
-  
+
   private Property(String name, String defaultValue, PropertyType type, String description, boolean experimental) {
     this.key = name;
     this.defaultValue = defaultValue;
@@ -360,27 +360,27 @@ public enum Property {
   private Property(String name, String defaultValue, PropertyType type, String description) {
     this(name, defaultValue, type, description, false);
   }
-  
+
   public String toString() {
     return this.key;
   }
-  
+
   public String getKey() {
     return this.key;
   }
-  
+
   public String getDefaultValue() {
     return this.defaultValue;
   }
-  
+
   public PropertyType getType() {
     return this.type;
   }
-  
+
   public String getDescription() {
     return this.description;
   }
-  
+
   public boolean isExperimental() {
     return experimental;
   }
@@ -388,21 +388,21 @@ public enum Property {
   private static HashSet<String> validTableProperties = null;
   private static HashSet<String> validProperties = null;
   private static HashSet<String> validPrefixes = null;
-  
+
   private static boolean isKeyValidlyPrefixed(String key) {
     for (String prefix : validPrefixes) {
       if (key.startsWith(prefix))
         return true;
     }
-    
+
     return false;
   }
-  
+
   public synchronized static boolean isValidPropertyKey(String key) {
     if (validProperties == null) {
       validProperties = new HashSet<String>();
       validPrefixes = new HashSet<String>();
-      
+
       for (Property p : Property.values()) {
         if (p.getType().equals(PropertyType.PREFIX)) {
           validPrefixes.add(p.getKey());
@@ -411,10 +411,10 @@ public enum Property {
         }
       }
     }
-    
+
     return validProperties.contains(key) || isKeyValidlyPrefixed(key);
   }
-  
+
   // Is this method still needed?
   public synchronized static boolean isValidTablePropertyKey(String key) {
     if (validTableProperties == null) {
@@ -425,38 +425,38 @@ public enum Property {
         }
       }
     }
-    
+
     return validTableProperties.contains(key) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
         || key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey());
   }
-  
+
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
       Property.TSERV_SCAN_MAX_OPENFILES, Property.MASTER_CLIENTPORT, Property.GC_PORT);
-  
+
   public static boolean isFixedZooPropertyKey(Property key) {
     return fixedProperties.contains(key);
   }
-  
+
   public static Set<Property> getFixedProperties() {
     return fixedProperties;
   }
-  
+
   public static boolean isValidZooPropertyKey(String key) {
     // white list prefixes
     return key.startsWith(Property.TABLE_PREFIX.getKey()) || key.startsWith(Property.TSERV_PREFIX.getKey()) || key.startsWith(Property.LOGGER_PREFIX.getKey())
         || key.startsWith(Property.MASTER_PREFIX.getKey()) || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.") || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey());
   }
-  
+
   public static Property getPropertyByKey(String key) {
     for (Property prop : Property.values())
       if (prop.getKey().equals(key))
         return prop;
     return null;
   }
-  
+
   /**
-   * 
+   *
    * @param key
    * @return true if this is a property whose value is expected to be a java class
    */

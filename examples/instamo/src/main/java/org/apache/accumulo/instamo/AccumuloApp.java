@@ -30,28 +30,28 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 
 public class AccumuloApp {
-  
+
   public static void run(String instanceName, String zookeepers, String rootPassword, String args[]) throws Exception {
     // edit this method to play with Accumulo
 
     Instance instance = new ZooKeeperInstance(instanceName, zookeepers);
-    
+
     Connector conn = instance.getConnector("root", rootPassword);
-    
+
     conn.tableOperations().create("foo");
-    
+
     BatchWriter bw = conn.createBatchWriter("foo", new BatchWriterConfig());
     Mutation m = new Mutation("r1");
     m.put("cf1", "cq1", "v1");
     m.put("cf1", "cq2", "v3");
     bw.addMutation(m);
     bw.close();
-    
+
     Scanner scanner = conn.createScanner("foo", Constants.NO_AUTHS);
     for (Entry<Key,Value> entry : scanner) {
       System.out.println(entry.getKey() + " " + entry.getValue());
     }
-    
+
     conn.tableOperations().delete("foo");
   }
 }

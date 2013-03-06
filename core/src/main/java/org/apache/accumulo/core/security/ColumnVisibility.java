@@ -36,63 +36,63 @@ import org.apache.hadoop.io.WritableComparator;
  * definition of an expression.
  */
 public class ColumnVisibility {
-  
+
   Node node = null;
   private byte[] expression;
-  
+
   /**
    * Accessor for the underlying byte string.
-   * 
+   *
    * @return byte array representation of a visibility expression
    */
   public byte[] getExpression() {
     return expression;
   }
-  
+
   public static enum NodeType {
     TERM, OR, AND,
   }
-  
+
   public static class Node {
     public final static List<Node> EMPTY = Collections.emptyList();
     NodeType type;
     int start = 0;
     int end = 0;
     List<Node> children = EMPTY;
-    
+
     public Node(NodeType type) {
       this.type = type;
     }
-    
+
     public Node(int start, int end) {
       this.type = NodeType.TERM;
       this.start = start;
       this.end = end;
     }
-    
+
     public void add(Node child) {
       if (children == EMPTY)
         children = new ArrayList<Node>();
-      
+
       children.add(child);
     }
-    
+
     public NodeType getType() {
       return type;
     }
-    
+
     public List<Node> getChildren() {
       return children;
     }
-    
+
     public int getTermStart() {
       return start;
     }
-    
+
     public int getTermEnd() {
       return end;
     }
-    
+
     public ByteSequence getTerm(byte expression[]) {
       if (type != NodeType.TERM)
         throw new RuntimeException();
@@ -101,21 +101,21 @@ public class ColumnVisibility {
         // its a quoted term
         int qStart = start + 1;
         int qEnd = end - 1;
-        
+
         return new ArrayByteSequence(expression, qStart, qEnd - qStart);
       }
       return new ArrayByteSequence(expression, start, end - start);
     }
   }
-  
+
   public static class NodeComparator implements Comparator<Node> {
-    
+
     byte[] text;
-    
+
     public NodeComparator(byte[] text) {
       this.text = text;
     }
-    
+
     @Override
     public int compare(Node a, Node b) {
       int diff = a.type.ordinal() - b.type.ordinal();
@@ -144,7 +144,7 @@ public class ColumnVisibility {
    */
   private static Node normalize(Node root, byte[] expression) {
     return normalize(root, expression, new NodeComparator(expression));
-  } 
+  }
 
   /* Walks an expression's AST in order to:
    *  1) roll up expressions with the same operant (`a&(b&c) becomes a&b&c`)
@@ -155,7 +155,7 @@ public class ColumnVisibility {
     if(root.type != NodeType.TERM) {
       TreeSet<Node> rolledUp = new TreeSet<Node>(comparator);
       java.util.Iterator<Node> itr = root.children.iterator();
-      while(itr.hasNext()) { 
+      while(itr.hasNext()) {
         Node c = normalize(itr.next(), expression, comparator);
         if(c.type == root.type) {
           rolledUp.addAll(c.children);
@@ -165,7 +165,7 @@ public class ColumnVisibility {
       rolledUp.addAll(root.children);
       root.children.clear();
       root.children.addAll(rolledUp);
-      
+
       //need to promote a child if it's an only child
       if(root.children.size() == 1) {
         return root.children.get(0);
@@ -208,14 +208,14 @@ public class ColumnVisibility {
     StringBuilder builder = new StringBuilder(expression.length);
     stringify(normRoot, expression, builder);
     return builder.toString().getBytes();
-  } 
-  
+  }
+
   private static class ColumnVisibilityParser {
     private int index = 0;
     private int parens = 0;
-    
+
     public ColumnVisibilityParser() {}
-    
+
     Node parse(byte[] expression) {
       if (expression.length > 0) {
         Node node = parse_(expression);
@@ -229,7 +229,7 @@ public class ColumnVisibility {
       }
       return null;
     }
-    
+
     Node processTerm(int start, int end, Node expr, byte[] expression) {
       if (start != end) {
         if (expr != null)
@@ -240,7 +240,7 @@ public class ColumnVisibility {
         throw new BadArgumentException("empty term", new String(expression), start);
       return expr;
     }
-    
+
     Node parse_(byte[] expression) {
       Node result = null;
       Node expr = null;
@@ -313,15 +313,15 @@ public class ColumnVisibility {
               }
               index++;
             }
-            
+
             if (index == expression.length)
               throw new BadArgumentException("unclosed quote", new String(expression), termStart);
-            
+
             if (termStart + 1 == index)
               throw new BadArgumentException("empty term", new String(expression), termStart);
 
             index++;
-            
+
             termComplete = true;
 
             break;
@@ -347,7 +347,7 @@ public class ColumnVisibility {
       return result;
     }
   }
-  
+
   private void validate(byte[] expression) {
     if (expression != null && expression.length > 0) {
       ColumnVisibilityParser p = new ColumnVisibilityParser();
@@ -355,26 +355,26 @@ public class ColumnVisibility {
     }
     this.expression = expression;
   }
-  
+
   /**
    * Empty visibility. Normally, elements with empty visibility can be seen by everyone. Though, one could change this behavior with filters.
    */
   public ColumnVisibility() {
     expression = new byte[0];
   }
-  
+
   /**
    * See {@link #ColumnVisibility(byte[])}
-   * 
+   *
    * @param expression
    */
   public ColumnVisibility(String expression) {
     this(expression.getBytes());
   }
-  
+
   /**
    * See {@link #ColumnVisibility(byte[])}
-   * 
+   *
    * @param expression
    * @param encoding
    *          uses this encoding to convert the expression to a byte array
@@ -387,26 +387,26 @@ public class ColumnVisibility {
   public ColumnVisibility(Text expression) {
     this(TextUtil.getBytes(expression));
   }
-  
+
   /**
    * Set the column visibility for a Mutation.
-   * 
+   *
    * @param expression
    *          An expression of the rights needed to see this mutation. The expression is a sequence of characters from the set [A-Za-z0-9_-] along with the
    *          binary operators "&" and "|" indicating that both operands are necessary, or the either is necessary. The following are valid expressions for
    *          visibility:
-   * 
+   *
    *          <pre>
    * A
    * A|B
    * (A|B)&(C|D)
    * orange|(red&yellow)
-   * 
+   *
    * </pre>
-   * 
+   *
    *          <P>
    *          The following are not valid expressions for visibility:
-   * 
+   *
    *          <pre>
    * A|B&C
    * A=B
@@ -416,25 +416,25 @@ public class ColumnVisibility {
    * )
    * dog|!cat
    * </pre>
-   * 
+   *
    *          <P>
    *          You can use any character you like in your column visibility expression with quoting. If your quoted term contains '&quot;' or '\' then escape
    *          them with '\'. The {@link #quote(String)} method will properly quote and escape terms for you.
-   * 
+   *
    *          <pre>
    * &quot;A#C&quot;&B
    * </pre>
-   * 
+   *
    */
   public ColumnVisibility(byte[] expression) {
     validate(expression);
   }
-  
+
   @Override
   public String toString() {
     return "[" + new String(expression) + "]";
   }
-  
+
   /**
    * See {@link #equals(ColumnVisibility)}
    */
@@ -444,34 +444,34 @@ public class ColumnVisibility {
       return equals((ColumnVisibility) obj);
     return false;
   }
-  
+
   /**
    * Compares two ColumnVisibilities for string equivalence, not as a meaningful comparison of terms and conditions.
    */
   public boolean equals(ColumnVisibility otherLe) {
     return Arrays.equals(expression, otherLe.expression);
   }
-  
+
   @Override
   public int hashCode() {
     return Arrays.hashCode(expression);
   }
-  
+
   public Node getParseTree() {
     return node;
   }
-  
+
   /**
    * see {@link #quote(byte[])}
-   * 
+   *
    */
   public static String quote(String term) {
     return quote(term, "UTF-8");
   }
-  
+
   /**
    * see {@link #quote(byte[])}
-   * 
+   *
    */
   public static String quote(String term, String encoding) {
     try {
@@ -480,13 +480,13 @@ public class ColumnVisibility {
       throw new RuntimeException(e);
     }
   }
-  
+
   /**
    * Use to properly quote terms in a column visibility expression. If no quoting is needed, then nothing is done.
-   * 
+   *
    * <p>
    * Examples of using quote :
-   * 
+   *
    * <pre>
    * import static org.apache.accumulo.core.security.ColumnVisibility.quote;
    *   .
@@ -494,22 +494,22 @@ public class ColumnVisibility {
    *   .
    * ColumnVisibility cv = new ColumnVisibility(quote(&quot;A#C&quot;) + &quot;&amp;&quot; + quote(&quot;FOO&quot;));
    * </pre>
-   * 
+   *
    */
 
   public static byte[] quote(byte[] term) {
     boolean needsQuote = false;
-    
+
     for (int i = 0; i < term.length; i++) {
       if (!Authorizations.isValidAuthChar(term[i])) {
         needsQuote = true;
         break;
       }
     }
-    
+
     if (!needsQuote)
       return term;
-    
+
     return VisibilityEvaluator.escape(term, true);
   }
 }

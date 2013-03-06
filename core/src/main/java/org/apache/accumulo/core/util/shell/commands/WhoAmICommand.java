@@ -28,12 +28,12 @@ public class WhoAmICommand extends Command {
     shellState.getReader().printString(shellState.getConnector().whoami() + "\n");
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "reports the current user name";
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

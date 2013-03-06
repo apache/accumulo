@@ -53,13 +53,13 @@ public class TestProxyReadWrite {
   protected static ByteBuffer userpass;
   protected static final int port = 10194;
   protected static final String testtable = "testtable";
-  
+
   @SuppressWarnings("serial")
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
     prop.setProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance", "true");
-    
+
     proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"), Class.forName("org.apache.accumulo.proxy.ProxyServer"),
         port, TCompactProtocol.Factory.class, prop);
     thread = new Thread() {
@@ -72,40 +72,40 @@ public class TestProxyReadWrite {
     tpc = new TestProxyClient("localhost", port);
     userpass = tpc.proxy().login("root", new TreeMap<String, String>() {{put("password",""); }});
   }
-  
+
   @AfterClass
   public static void tearDown() throws InterruptedException {
     proxy.stop();
     thread.join();
   }
-  
+
   @Before
   public void makeTestTable() throws Exception {
     tpc.proxy().createTable(userpass, testtable, true, TimeType.MILLIS);
   }
-  
+
   @After
   public void deleteTestTable() throws Exception {
     tpc.proxy().deleteTable(userpass, testtable);
   }
-  
+
   private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row, String cf, String cq, String value) {
     ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
     update.setValue(value.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
   }
-  
+
   private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row, String cf, String cq, String vis, String value) {
     ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
     update.setValue(value.getBytes());
     update.setColVisibility(vis.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
   }
-  
+
   /**
    * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a range so only the entries between -Inf...5 come back (there should be
    * 50,000)
-   * 
+   *
    * @throws Exception
    */
   @Test
@@ -115,22 +115,22 @@ public class TestProxyReadWrite {
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
-      
+
       if (i % 1000 == 0 || i == maxInserts - 1) {
         tpc.proxy().updateAndFlush(userpass, testtable, mutations);
         mutations.clear();
       }
     }
-    
+
     Key stop = new Key();
     stop.setRow("5".getBytes());
     BatchScanOptions options = new BatchScanOptions();
     options.ranges = Collections.singletonList(new Range(null, false, stop, false));
     String cookie = tpc.proxy().createBatchScanner(userpass, testtable, options);
-    
+
     int i = 0;
     boolean hasNext = true;
-    
+
     int k = 1000;
     while (hasNext) {
       ScanResult kvList = tpc.proxy().nextK(cookie, k);
@@ -139,10 +139,10 @@ public class TestProxyReadWrite {
     }
     assertEquals(i, 50000);
   }
-  
+
   /**
    * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Filter the results so only the even numbers come back.
-   * 
+   *
    * @throws Exception
    */
   @Test
@@ -152,39 +152,39 @@ public class TestProxyReadWrite {
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
-      
+
       if (i % 1000 == 0 || i == maxInserts - 1) {
         tpc.proxy().updateAndFlush(userpass, testtable, mutations);
         mutations.clear();
       }
-      
+
     }
-    
+
     String regex = ".*[02468]";
-    
+
     org.apache.accumulo.core.client.IteratorSetting is = new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
-    
+
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
     ScanOptions opts = new ScanOptions();
     opts.iterators = Collections.singletonList(pis);
     String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
-    
+
     int i = 0;
     boolean hasNext = true;
-    
+
     int k = 1000;
     while (hasNext) {
       ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(Integer.parseInt(new String(kv.getKey().getRow())), i);
-        
+
         i += 2;
       }
       hasNext = kvList.isMore();
     }
   }
-  
+
   @Test
   public void readWriteOneShotWithRange() throws Exception {
     int maxInserts = 100000;
@@ -192,22 +192,22 @@ public class TestProxyReadWrite {
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
-      
+
       if (i % 1000 == 0 || i == maxInserts - 1) {
         tpc.proxy().updateAndFlush(userpass, testtable, mutations);
         mutations.clear();
       }
     }
-    
+
     Key stop = new Key();
     stop.setRow("5".getBytes());
     ScanOptions opts = new ScanOptions();
     opts.range = new Range(null, false, stop, false);
     String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
-    
+
     int i = 0;
     boolean hasNext = true;
-    
+
     int k = 1000;
     while (hasNext) {
       ScanResult kvList = tpc.proxy().nextK(cookie, k);
@@ -216,10 +216,10 @@ public class TestProxyReadWrite {
     }
     assertEquals(i, 50000);
   }
-  
+
   /**
    * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Filter the results so only the even numbers come back.
-   * 
+   *
    * @throws Exception
    */
   @Test
@@ -229,41 +229,41 @@ public class TestProxyReadWrite {
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
-      
+
       if (i % 1000 == 0 || i == maxInserts - 1) {
-        
+
         tpc.proxy().updateAndFlush(userpass, testtable, mutations);
         mutations.clear();
-        
+
       }
-      
+
     }
-    
+
     String regex = ".*[02468]";
-    
+
     org.apache.accumulo.core.client.IteratorSetting is = new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
-    
+
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
     ScanOptions opts = new ScanOptions();
     opts.iterators = Collections.singletonList(pis);
     String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
-    
+
     int i = 0;
     boolean hasNext = true;
-    
+
     int k = 1000;
     while (hasNext) {
       ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(Integer.parseInt(new String(kv.getKey().getRow())), i);
-        
+
         i += 2;
       }
       hasNext = kvList.isMore();
     }
   }
-  
+
   // @Test
   // This test takes kind of a long time. Enable it if you think you may have memory issues.
   public void manyWritesAndReads() throws Exception {
@@ -273,24 +273,24 @@ public class TestProxyReadWrite {
     String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
-      
+
       if (i % 1000 == 0 || i == maxInserts - 1) {
-        
+
         tpc.proxy().update(writer, mutations);
         mutations.clear();
-        
+
       }
-      
+
     }
-    
+
     tpc.proxy().flush(writer);
     tpc.proxy().closeWriter(writer);
-    
+
     String cookie = tpc.proxy().createScanner(userpass, testtable, null);
-    
+
     int i = 0;
     boolean hasNext = true;
-    
+
     int k = 1000;
     while (hasNext) {
       ScanResult kvList = tpc.proxy().nextK(cookie, k);
@@ -304,7 +304,7 @@ public class TestProxyReadWrite {
     }
     assertEquals(maxInserts, i);
   }
-  
+
   @Test
   public void asynchReadWrite() throws Exception {
     int maxInserts = 10000;
@@ -313,29 +313,29 @@ public class TestProxyReadWrite {
     String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
-      
+
       if (i % 1000 == 0 || i == maxInserts - 1) {
         tpc.proxy().update(writer, mutations);
         mutations.clear();
       }
     }
-    
+
     tpc.proxy().flush(writer);
     tpc.proxy().closeWriter(writer);
-    
+
     String regex = ".*[02468]";
-    
+
     org.apache.accumulo.core.client.IteratorSetting is = new org.apache.accumulo.core.client.IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
-    
+
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
     ScanOptions opts = new ScanOptions();
     opts.iterators = Collections.singletonList(pis);
     String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
-    
+
     int i = 0;
     boolean hasNext = true;
-    
+
     int k = 1000;
     int numRead = 0;
     while (hasNext) {
@@ -349,14 +349,14 @@ public class TestProxyReadWrite {
     }
     assertEquals(maxInserts / 2, numRead);
   }
-  
+
   @Test
   public void testVisibility() throws Exception {
-    
+
     Set<ByteBuffer> auths = new HashSet<ByteBuffer>();
     auths.add(ByteBuffer.wrap("even".getBytes()));
     tpc.proxy().changeUserAuthorizations(userpass, "root", auths);
-    
+
     int maxInserts = 10000;
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     String format = "%1$05d";
@@ -366,22 +366,22 @@ public class TestProxyReadWrite {
         addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, "even", Util.randString(10));
       else
         addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, "odd", Util.randString(10));
-      
+
       if (i % 1000 == 0 || i == maxInserts - 1) {
         tpc.proxy().update(writer, mutations);
         mutations.clear();
       }
     }
-    
+
     tpc.proxy().flush(writer);
     tpc.proxy().closeWriter(writer);
     ScanOptions opts = new ScanOptions();
     opts.authorizations = auths;
     String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
-    
+
     int i = 0;
     boolean hasNext = true;
-    
+
     int k = 1000;
     int numRead = 0;
     while (hasNext) {
@@ -392,9 +392,9 @@ public class TestProxyReadWrite {
         numRead++;
       }
       hasNext = kvList.isMore();
-      
+
     }
     assertEquals(maxInserts / 2, numRead);
   }
-  
+
 }

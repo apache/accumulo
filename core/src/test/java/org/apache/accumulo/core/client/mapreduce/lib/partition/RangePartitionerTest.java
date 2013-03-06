@@ -25,9 +25,9 @@ import org.apache.hadoop.mapreduce.Job;
 import org.junit.Test;
 
 public class RangePartitionerTest {
-  
+
   private static Text[] cutArray = new Text[] {new Text("A"), new Text("B"), new Text("C")};
-  
+
   @Test
   public void testNoSubBins() throws IOException {
     for (int i = -2; i < 2; ++i) {
@@ -36,22 +36,22 @@ public class RangePartitionerTest {
       checkExpectedBins(i, new String[] {"", "AA", "BB", "CC"}, new int[] {0, 1, 2, 3});
     }
   }
-  
+
   @Test
   public void testSubBins() throws IOException {
     checkExpectedRangeBins(2, new String[] {"A", "B", "C"}, new int[] {1, 3, 5});
     checkExpectedRangeBins(2, new String[] {"C", "A", "B"}, new int[] {5, 1, 3});
     checkExpectedRangeBins(2, new String[] {"", "AA", "BB", "CC"}, new int[] {1, 3, 5, 7});
-    
+
     checkExpectedRangeBins(3, new String[] {"A", "B", "C"}, new int[] {2, 5, 8});
     checkExpectedRangeBins(3, new String[] {"C", "A", "B"}, new int[] {8, 2, 5});
     checkExpectedRangeBins(3, new String[] {"", "AA", "BB", "CC"}, new int[] {2, 5, 8, 11});
-    
+
     checkExpectedRangeBins(10, new String[] {"A", "B", "C"}, new int[] {9, 19, 29});
     checkExpectedRangeBins(10, new String[] {"C", "A", "B"}, new int[] {29, 9, 19});
     checkExpectedRangeBins(10, new String[] {"", "AA", "BB", "CC"}, new int[] {9, 19, 29, 39});
   }
-  
+
   private RangePartitioner prepPartitioner(int numSubBins) throws IOException {
     Job job = new Job();
     RangePartitioner.setNumSubBins(job, numSubBins);
@@ -59,7 +59,7 @@ public class RangePartitionerTest {
     rp.setConf(job.getConfiguration());
     return rp;
   }
-  
+
   private void checkExpectedRangeBins(int numSubBins, String[] strings, int[] rangeEnds) throws IOException {
     assertTrue(strings.length == rangeEnds.length);
     for (int i = 0; i < strings.length; ++i) {
@@ -70,7 +70,7 @@ public class RangePartitionerTest {
       assertTrue(part <= endRange);
     }
   }
-  
+
   private void checkExpectedBins(int numSubBins, String[] strings, int[] bins) throws IOException {
     assertTrue(strings.length == bins.length);
     for (int i = 0; i < strings.length; ++i) {

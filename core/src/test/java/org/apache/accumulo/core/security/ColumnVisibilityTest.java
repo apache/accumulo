@@ -22,7 +22,7 @@ import static org.junit.Assert.fail;
 import org.junit.Test;
 
 public class ColumnVisibilityTest {
-  
+
   private void shouldThrow(String... strings) {
     for (String s : strings)
       try {
@@ -32,45 +32,45 @@ public class ColumnVisibilityTest {
         // expected
       }
   }
-  
+
   private void shouldNotThrow(String... strings) {
     for (String s : strings) {
       new ColumnVisibility(s.getBytes());
     }
   }
-  
+
   @Test
   public void testEmpty() {
     // empty visibility is valid
     new ColumnVisibility();
     new ColumnVisibility(new byte[0]);
   }
-  
+
   @Test
   public void testSimple() {
     shouldNotThrow("test", "(one)");
   }
-  
+
   @Test
   public void testCompound() {
     shouldNotThrow("a|b", "a&b", "ab&bc");
     shouldNotThrow("A&B&C&D&E", "A|B|C|D|E", "(A|B|C)", "(A)|B|(C)", "A&(B)&(C)", "A&B&(L)");
     shouldNotThrow("_&-&:");
   }
-  
+
   @Test
   public void testBadCharacters() {
     shouldThrow("=", "*", "^", "%", "@");
     shouldThrow("a*b");
   }
-  
+
   public void normalized(String... values) {
     for (int i = 0; i < values.length; i += 2) {
       ColumnVisibility cv = new ColumnVisibility(values[i].getBytes());
       assertArrayEquals(cv.flatten(), values[i + 1].getBytes());
     }
   }
-  
+
   @Test
   public void testComplexCompound() {
     shouldNotThrow("(a|b)&(x|y)");
@@ -78,7 +78,7 @@ public class ColumnVisibilityTest {
     shouldNotThrow("A&FOO&(L|M)", "(A|B)&FOO&(L|M)", "A&B&(L|M|FOO)", "((A|B|C)|foo)&bar");
     shouldNotThrow("(one&two)|(foo&bar)", "(one|foo)&three", "one|foo|bar", "(one|foo)|bar", "((one|foo)|bar)&two");
   }
-  
+
   @Test
   public void testNormalization() {
     normalized("a", "a", "(a)", "a", "b|a", "a|b", "(b)|a", "a|b", "(b|(a|c))&x", "x&(a|b|c)", "(((a)))", "a");
@@ -88,7 +88,7 @@ public class ColumnVisibilityTest {
     // this an expression that's basically `expr | expr`
     normalized("(d&c&b&a)|(b&c&a&d)", "a&b&c&d");
   }
-  
+
   @Test
   public void testDanglingOperators() {
     shouldThrow("a|b&");
@@ -97,23 +97,23 @@ public class ColumnVisibilityTest {
     shouldThrow("a|", "|a", "|", "&");
     shouldThrow("&(five)", "|(five)", "(five)&", "five|", "a|(b)&", "(&five)", "(five|)");
   }
-  
+
   @Test
   public void testMissingSeparators() {
     shouldThrow("one(five)", "(five)one", "(one)(two)", "a|(b(c))");
   }
-  
+
   @Test
   public void testMismatchedParentheses() {
     shouldThrow("(", ")", "(a&b", "b|a)", "A|B)");
   }
-  
+
   @Test
   public void testMixedOperators() {
     shouldThrow("(A&B)|(C&D)&(E)");
     shouldThrow("a|b&c", "A&B&C|D", "(A&B)|(C&D)&(E)");
   }
-  
+
   @Test
   public void testQuotes() {
     shouldThrow("\"\"");
@@ -126,7 +126,7 @@ public class ColumnVisibilityTest {
     shouldThrow("\"B");
     shouldThrow("A&\"B");
     shouldThrow("A&\"B\\'");
-    
+
     shouldNotThrow("\"A\"");
     shouldNotThrow("(\"A\")");
     shouldNotThrow("A&\"B.D\"");

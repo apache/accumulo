@@ -28,81 +28,81 @@ import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 /**
- * 
+ *
  */
 public class MockInstanceOperations implements InstanceOperations {
   MockAccumulo acu;
-  
+
   /**
    * @param acu
    */
   public MockInstanceOperations(MockAccumulo acu) {
     this.acu = acu;
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#setProperty(java.lang.String, java.lang.String)
    */
   @Override
   public void setProperty(String property, String value) throws AccumuloException, AccumuloSecurityException {
     acu.setProperty(property, value);
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#removeProperty(java.lang.String)
    */
   @Override
   public void removeProperty(String property) throws AccumuloException, AccumuloSecurityException {
     acu.removeProperty(property);
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#getSystemConfiguration()
    */
   @Override
   public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException {
     return acu.systemProperties;
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#getSiteConfiguration()
    */
   @Override
   public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException {
     return acu.systemProperties;
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#getTabletServers()
    */
   @Override
   public List<String> getTabletServers() {
     return new ArrayList<String>();
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#getActiveScans(java.lang.String)
    */
   @Override
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
     return new ArrayList<ActiveScan>();
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#testClassLoad(java.lang.String, java.lang.String)
    */
   @Override
@@ -115,25 +115,25 @@ public class MockInstanceOperations implements InstanceOperations {
     }
     return true;
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#getActiveCompactions(java.lang.String)
    */
   @Override
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
     return new ArrayList<ActiveCompaction>();
   }
-  
+
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#ping(java.lang.String)
    */
   @Override
   public void ping(String tserver) throws AccumuloException {
     // TODO Auto-generated method stub
-    
+
   }
 }

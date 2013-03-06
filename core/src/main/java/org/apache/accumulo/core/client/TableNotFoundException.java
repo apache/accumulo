@@ -24,12 +24,12 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 public class TableNotFoundException extends Exception {
   /**
    * Exception to throw if an operation is attempted on a table that doesn't exist.
-   * 
+   *
    */
   private static final long serialVersionUID = 1L;
-  
+
   private String tableName;
-  
+
   /**
    * @param tableId
    *          the internal id of the table that was sought
@@ -43,7 +43,7 @@ public class TableNotFoundException extends Exception {
         + " does not exist" + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
     this.tableName = tableName;
   }
-  
+
   /**
    * @param tableId
    *          the internal id of the table that was sought
@@ -58,7 +58,7 @@ public class TableNotFoundException extends Exception {
     this(tableId, tableName, description);
     super.initCause(cause);
   }
-  
+
   /**
    * @param e
    *          constructs an exception from a thrift exception
@@ -66,7 +66,7 @@ public class TableNotFoundException extends Exception {
   public TableNotFoundException(ThriftTableOperationException e) {
     this(e.getTableId(), e.getTableName(), e.getDescription(), e);
   }
-  
+
   /**
    * @return the name of the table sought
    */

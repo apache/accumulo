@@ -50,14 +50,14 @@ public class ConnectorImpl extends Connector {
   private SecurityOperations secops = null;
   private TableOperations tableops = null;
   private InstanceOperations instanceops = null;
-  
+
   @Deprecated
   public ConnectorImpl(Instance instance, TCredentials cred) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(instance, cred);
     this.instance = instance;
-    
+
     this.credentials = cred;
-    
+
     // hardcoded string for SYSTEM user since the definition is
     // in server code
     if (!cred.getPrincipal().equals("!SYSTEM")) {
@@ -70,25 +70,25 @@ public class ConnectorImpl extends Connector {
       });
     }
   }
-  
+
   private String getTableId(String tableName) throws TableNotFoundException {
     String tableId = Tables.getTableId(instance, tableName);
     if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
       throw new TableOfflineException(instance, tableId);
     return tableId;
   }
-  
+
   @Override
   public Instance getInstance() {
     return instance;
   }
-  
+
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName, authorizations);
     return new TabletServerBatchReader(instance, credentials, getTableId(tableName), authorizations, numQueryThreads);
   }
-  
+
   @Deprecated
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
@@ -97,14 +97,14 @@ public class ConnectorImpl extends Connector {
     return new TabletServerBatchDeleter(instance, credentials, getTableId(tableName), authorizations, numQueryThreads, new BatchWriterConfig()
         .setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
-  
+
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
       throws TableNotFoundException {
     ArgumentChecker.notNull(tableName, authorizations);
     return new TabletServerBatchDeleter(instance, credentials, getTableId(tableName), authorizations, numQueryThreads, config);
   }
-  
+
   @Deprecated
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
@@ -112,57 +112,57 @@ public class ConnectorImpl extends Connector {
     return new BatchWriterImpl(instance, credentials, getTableId(tableName), new BatchWriterConfig().setMaxMemory(maxMemory)
         .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
-  
+
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName);
     return new BatchWriterImpl(instance, credentials, getTableId(tableName), config);
   }
-  
+
   @Deprecated
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
     return new MultiTableBatchWriterImpl(instance, credentials, new BatchWriterConfig().setMaxMemory(maxMemory)
         .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
-  
+
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
     return new MultiTableBatchWriterImpl(instance, credentials, config);
   }
-  
+
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName, authorizations);
     return new ScannerImpl(instance, credentials, getTableId(tableName), authorizations);
   }
-  
+
   @Override
   public String whoami() {
     return credentials.getPrincipal();
   }
-  
+
   @Override
   public synchronized TableOperations tableOperations() {
     if (tableops == null)
       tableops = new TableOperationsImpl(instance, credentials);
     return tableops;
   }
-  
+
   @Override
   public synchronized SecurityOperations securityOperations() {
     if (secops == null)
       secops = new SecurityOperationsImpl(instance, credentials);
-    
+
     return secops;
   }
-  
+
   @Override
   public synchronized InstanceOperations instanceOperations() {
     if (instanceops == null)
       instanceops = new InstanceOperationsImpl(instance, credentials);
-    
+
     return instanceops;
   }
-  
+
 }

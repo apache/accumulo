@@ -36,23 +36,23 @@ import org.apache.log4j.Logger;
  * </ul>
  */
 public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanReceiver {
-  
+
   private static final Logger log = Logger.getLogger(AsyncSpanReceiver.class);
-  
+
   private final Map<SpanKey,Destination> clients = new HashMap<SpanKey,Destination>();
-  
+
   protected final String host;
   protected final String service;
-  
+
   protected abstract Destination createDestination(SpanKey key) throws Exception;
-  
+
   protected abstract void send(Destination resource, RemoteSpan span) throws Exception;
-  
+
   protected abstract SpanKey getSpanKey(Map<String,String> data);
-  
+
   Timer timer = new Timer("SpanSender", true);
   final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
-  
+
   public AsyncSpanReceiver(String host, String service, long millis) {
     this.host = host;
     this.service = service;
@@ -65,10 +65,10 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
           log.warn("Exception sending spans to destination", ex);
         }
       }
-      
+
     }, millis, millis);
   }
-  
+
   void sendSpans() {
     while (!sendQueue.isEmpty()) {
       boolean sent = false;
@@ -105,16 +105,16 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
         break;
     }
   }
-  
+
   @Override
   public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
-    
+
     SpanKey dest = getSpanKey(data);
     if (dest != null) {
       sendQueue.add(new RemoteSpan(host, service, traceId, spanId, parentId, start, stop, description, data));
     }
   }
-  
+
   @Override
   public void flush() {
     synchronized (sendQueue) {
@@ -128,5 +128,5 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
       }
     }
   }
-  
+
 }

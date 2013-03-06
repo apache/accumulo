@@ -24,7 +24,7 @@ import org.apache.commons.vfs2.impl.DefaultFileContentInfo;
 
 /**
  * Creates FileContentInfo instances for HDFS.
- * 
+ *
  * @since 2.1
  */
 public class HdfsFileContentInfoFactory implements FileContentInfoFactory
@@ -34,7 +34,7 @@ public class HdfsFileContentInfoFactory implements FileContentInfoFactory
 
     /**
      * Creates a FileContentInfo for a the given FileContent.
-     * 
+     *
      * @param fileContent
      *            Use this FileContent to create a matching FileContentInfo
      * @return a FileContentInfo for the given FileContent with content set to "text/plain" and encoding set to "UTF-8"

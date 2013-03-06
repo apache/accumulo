@@ -31,21 +31,21 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class ChangePermissions extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> userNames = (List<String>) state.get("users");
     String userName = userNames.get(rand.nextInt(userNames.size()));
-    
+
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-    
+
     try {
       if (rand.nextBoolean())
         changeSystemPermission(conn, rand, userName);
@@ -55,18 +55,18 @@ public class ChangePermissions extends Test {
       log.debug("Unable to change user permissions: " + ex.getCause());
     }
   }
-  
+
   private void changeTablePermission(Connector conn, Random rand, String userName, String tableName) throws AccumuloException, AccumuloSecurityException {
-    
+
     EnumSet<TablePermission> perms = EnumSet.noneOf(TablePermission.class);
     for (TablePermission p : TablePermission.values()) {
       if (conn.securityOperations().hasTablePermission(userName, tableName, p))
         perms.add(p);
     }
-    
+
     EnumSet<TablePermission> more = EnumSet.allOf(TablePermission.class);
     more.removeAll(perms);
-    
+
     if (rand.nextBoolean() && more.size() > 0) {
       List<TablePermission> moreList = new ArrayList<TablePermission>(more);
       TablePermission choice = moreList.get(rand.nextInt(moreList.size()));
@@ -81,18 +81,18 @@ public class ChangePermissions extends Test {
       }
     }
   }
-  
+
   private void changeSystemPermission(Connector conn, Random rand, String userName) throws AccumuloException, AccumuloSecurityException {
     EnumSet<SystemPermission> perms = EnumSet.noneOf(SystemPermission.class);
     for (SystemPermission p : SystemPermission.values()) {
       if (conn.securityOperations().hasSystemPermission(userName, p))
         perms.add(p);
     }
-    
+
     EnumSet<SystemPermission> more = EnumSet.allOf(SystemPermission.class);
     more.removeAll(perms);
     more.remove(SystemPermission.GRANT);
-    
+
     if (rand.nextBoolean() && more.size() > 0) {
       List<SystemPermission> moreList = new ArrayList<SystemPermission>(more);
       SystemPermission choice = moreList.get(rand.nextInt(moreList.size()));
@@ -107,5 +107,5 @@ public class ChangePermissions extends Test {
       }
     }
   }
-  
+
 }

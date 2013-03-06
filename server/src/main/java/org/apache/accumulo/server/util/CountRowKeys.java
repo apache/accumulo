@@ -37,47 +37,47 @@ import org.apache.hadoop.util.ToolRunner;
 public class CountRowKeys extends Configured implements Tool {
   private static class MyMapper extends Mapper<Key,Value,Text,NullWritable> {
     Text k = new Text();
-    
+
     public void map(Key key, Value value, Context context) throws IOException, InterruptedException {
       context.write(key.getRow(k), NullWritable.get());
     }
   }
-  
+
   private static class MyReducer extends Reducer<Text,NullWritable,Text,Text> {
     public enum Count {
       uniqueRows
     }
-    
+
     public void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException {
       context.getCounter(Count.uniqueRows).increment(1);
     }
   }
-  
+
   @Override
   public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
     if (args.length != 2) {
       System.out.println("Usage: CountRowKeys tableName outputPath");
       return 1;
     }
-    
+
     Job job = new Job(getConf(), this.getClass().getName());
     job.setJarByClass(this.getClass());
-    
+
     job.setInputFormatClass(SequenceFileInputFormat.class);
     SequenceFileInputFormat.addInputPath(job, new Path(ServerConstants.getTablesDir() + "/" + args[0] + "/*/*/data"));
-    
+
     job.setMapperClass(MyMapper.class);
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(NullWritable.class);
-    
+
     job.setReducerClass(MyReducer.class);
-    
+
     TextOutputFormat.setOutputPath(job, new Path(args[1]));
-    
+
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }
-  
+
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new CountRowKeys(), args);
     if (res != 0)

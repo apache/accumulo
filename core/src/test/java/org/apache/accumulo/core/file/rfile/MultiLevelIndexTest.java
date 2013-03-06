@@ -38,43 +38,43 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 
 public class MultiLevelIndexTest extends TestCase {
-  
+
   public void test1() throws Exception {
-    
+
     runTest(500, 1);
     runTest(500, 10);
     runTest(500, 100);
     runTest(500, 1000);
     runTest(500, 10000);
-    
+
     runTest(1, 100);
   }
-  
+
   private void runTest(int maxBlockSize, int num) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
     CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", CachedConfiguration.getInstance());
-    
+
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
-    
+
     for (int i = 0; i < num; i++)
       mliw.add(new Key(String.format("%05d000", i)), i, 0, 0, 0);
-    
+
     mliw.addLast(new Key(String.format("%05d000", num)), num, 0, 0, 0);
-    
+
     ABlockWriter root = _cbw.prepareMetaBlock("root");
     mliw.close(root);
     root.close();
-    
+
     _cbw.close();
     dos.close();
     baos.close();
-    
+
     byte[] data = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length, CachedConfiguration.getInstance());
-    
+
     Reader reader = new Reader(_cbr, RFile.RINDEX_VER_7);
     BlockRead rootIn = _cbr.getMetaBlock("root");
     reader.readFields(rootIn);
@@ -87,22 +87,22 @@ public class MultiLevelIndexTest extends TestCase {
       assertEquals(count, liter.next().getNumEntries());
       count++;
     }
-    
+
     assertEquals(num + 1, count);
-    
+
     while (liter.hasPrevious()) {
       count--;
       assertEquals(count, liter.previousIndex());
       assertEquals(count, liter.peekPrevious().getNumEntries());
       assertEquals(count, liter.previous().getNumEntries());
     }
-    
+
     assertEquals(0, count);
-    
+
     // go past the end
     liter = reader.lookup(new Key(String.format("%05d000", num + 1)));
     assertFalse(liter.hasNext());
-    
+
     Random rand = new Random();
     for (int i = 0; i < 100; i++) {
       int k = rand.nextInt(num * 1000);
@@ -115,7 +115,7 @@ public class MultiLevelIndexTest extends TestCase {
       IndexEntry ie = liter.next();
       assertEquals(expected, ie.getNumEntries());
     }
-    
+
   }
-  
+
 }

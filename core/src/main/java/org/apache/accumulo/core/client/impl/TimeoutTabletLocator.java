@@ -31,14 +31,14 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.hadoop.io.Text;
 
 /**
- * 
+ *
  */
 public class TimeoutTabletLocator extends TabletLocator {
-  
+
   private TabletLocator locator;
   private long timeout;
   private Long firstFailTime = null;
-  
+
   private void failed() {
     if (firstFailTime == null) {
       firstFailTime = System.currentTimeMillis();
@@ -46,11 +46,11 @@ public class TimeoutTabletLocator extends TabletLocator {
       throw new TimedOutException("Failed to obtain metadata");
     }
   }
-  
+
   private void succeeded() {
     firstFailTime = null;
   }
-  
+
   public TimeoutTabletLocator(TabletLocator locator, long timeout) {
     this.locator = locator;
     this.timeout = timeout;
@@ -58,22 +58,22 @@ public class TimeoutTabletLocator extends TabletLocator {
 
   @Override
   public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    
+
     try {
       TabletLocation ret = locator.locateTablet(row, skipRow, retry, credentials);
-      
+
       if (ret == null)
         failed();
       else
         succeeded();
-      
+
       return ret;
     } catch (AccumuloException ae) {
       failed();
       throw ae;
     }
   }
-  
+
   @Override
   public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
@@ -90,48 +90,48 @@ public class TimeoutTabletLocator extends TabletLocator {
       throw ae;
     }
   }
-  
+
   /**
-   * 
+   *
    */
 
   @Override
   public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    
+
     try {
       List<Range> ret = locator.binRanges(ranges, binnedRanges, credentials);
-      
+
       if (ranges.size() == ret.size())
         failed();
       else
         succeeded();
-      
+
       return ret;
     } catch (AccumuloException ae) {
       failed();
       throw ae;
     }
   }
-  
+
   @Override
   public void invalidateCache(KeyExtent failedExtent) {
     locator.invalidateCache(failedExtent);
   }
-  
+
   @Override
   public void invalidateCache(Collection<KeyExtent> keySet) {
     locator.invalidateCache(keySet);
   }
-  
+
   @Override
   public void invalidateCache() {
     locator.invalidateCache();
   }
-  
+
   @Override
   public void invalidateCache(String server) {
     locator.invalidateCache(server);
   }
-  
+
 }

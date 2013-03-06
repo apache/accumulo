@@ -52,23 +52,23 @@ import org.apache.thrift.TException;
  * Tablet server that creates a lock in zookeeper, responds to one status request, and then hangs on subsequent requests. Exits with code zero if halted.
  */
 public class ZombieTServer {
-  
+
   public static class ThriftClientHandler extends org.apache.accumulo.test.performance.thrift.NullTserver.ThriftClientHandler {
-    
+
     int statusCount = 0;
-    
+
     boolean halted = false;
 
     ThriftClientHandler(Instance instance, TransactionWatcher watcher) {
       super(instance, watcher);
     }
-    
+
     @Override
     synchronized public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) {
       halted = true;
       notifyAll();
     }
-    
+
     @Override
     public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       synchronized (this) {
@@ -81,34 +81,34 @@ public class ZombieTServer {
       UtilWaitThread.sleep(Integer.MAX_VALUE);
       return null;
     }
-    
+
     @Override
     synchronized public void halt(TInfo tinfo, TCredentials credentials, String lock) throws ThriftSecurityException, TException {
       halted = true;
       notifyAll();
     }
-    
+
   }
-  
+
   public static void main(String[] args) throws Exception {
     final Logger log = Logger.getLogger(ZombieTServer.class);
     Random random = new Random(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
     Instance instance = HdfsZooInstance.getInstance();
-    
+
     TransactionWatcher watcher = new TransactionWatcher();
     final ThriftClientHandler tch = new ThriftClientHandler(instance, watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
     ServerPort serverPort = TServerUtils.startTServer(port, processor, "ZombieTServer", "walking dead", 2, 1000, 10*1024*1024);
-    
+
     InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), serverPort.port);
     String addressString = AddressUtil.toString(addr);
     String zPath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + addressString;
     ZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
-    
+
     ZooLock zlock = new ZooLock(zPath);
-    
+
     LockWatcher lw = new LockWatcher() {
       @Override
       public void lostLock(final LockLossReason reason) {
@@ -119,7 +119,7 @@ public class ZombieTServer {
           System.exit(1);
         }
       }
-      
+
       @Override
       public void unableToMonitorLockNode(Throwable e) {
         try {
@@ -130,7 +130,7 @@ public class ZombieTServer {
         }
       }
     };
-    
+
     byte[] lockContent = new ServerServices(addressString, Service.TSERV_CLIENT).toString().getBytes();
     if (zlock.tryLock(lw, lockContent)) {
       log.debug("Obtained tablet server lock " + zlock.getLockPath());

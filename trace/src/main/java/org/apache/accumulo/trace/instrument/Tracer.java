@@ -33,24 +33,24 @@ import org.apache.accumulo.trace.thrift.TInfo;
 public class Tracer {
   private final static Random random = new SecureRandom();
   private final List<SpanReceiver> receivers = new ArrayList<SpanReceiver>();
-  
+
   private static final ThreadLocal<Span> currentTrace = new ThreadLocal<Span>();
   public static final NullSpan NULL_SPAN = new NullSpan();
   private static final TInfo dontTrace = new TInfo(0, 0);
-  
+
   private static Tracer instance = null;
-  
+
   synchronized public static void setInstance(Tracer tracer) {
     instance = tracer;
   }
-  
+
   synchronized public static Tracer getInstance() {
     if (instance == null) {
       instance = new Tracer();
     }
     return instance;
   }
-  
+
   public static TInfo traceInfo() {
     Span span = currentTrace.get();
     if (span != null) {
@@ -58,14 +58,14 @@ public class Tracer {
     }
     return dontTrace;
   }
-  
+
   public Span start(String description) {
     Span parent = currentTrace.get();
     if (parent == null)
       return NULL_SPAN;
     return push(parent.child(description));
   }
-  
+
   public Span on(String description) {
     Span parent = currentTrace.get();
     Span root;
@@ -76,45 +76,45 @@ public class Tracer {
     }
     return push(root);
   }
-  
+
   public Span startThread(Span parent, String activity) {
     return push(parent.child(activity));
   }
-  
+
   public void endThread(Span span) {
     if (span != null) {
       span.stop();
       currentTrace.set(null);
     }
   }
-  
+
   public boolean isTracing() {
     return currentTrace.get() != null;
   }
-  
+
   public Span currentTrace() {
     return currentTrace.get();
   }
-  
+
   public void stopTracing() {
     endThread(currentTrace());
   }
-  
+
   protected void deliver(Span span) {
     for (SpanReceiver receiver : receivers) {
       receiver.span(span.traceId(), span.spanId(), span.parentId(), span.getStartTimeMillis(), span.getStopTimeMillis(), span.description(), span.getData());
-      
+
     }
   }
-  
+
   public synchronized void addReceiver(SpanReceiver receiver) {
     receivers.add(receiver);
   }
-  
+
   public synchronized void removeReceiver(SpanReceiver receiver) {
     receivers.remove(receiver);
   }
-  
+
   public Span push(Span span) {
     if (span != null) {
       currentTrace.set(span);
@@ -122,7 +122,7 @@ public class Tracer {
     }
     return span;
   }
-  
+
   public void pop(Span span) {
     if (span != null) {
       deliver(span);
@@ -130,15 +130,15 @@ public class Tracer {
     } else
       currentTrace.set(null);
   }
-  
+
   public Span continueTrace(String description, long traceId, long parentId) {
     return push(new RootMilliSpan(description, traceId, random.nextLong(), parentId));
   }
-  
+
   public void flush() {
     for (SpanReceiver receiver : receivers) {
       receiver.flush();
     }
   }
-  
+
 }

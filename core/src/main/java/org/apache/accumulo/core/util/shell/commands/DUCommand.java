@@ -34,11 +34,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
 public class DUCommand extends Command {
-  
+
   private Option optTablePattern;
-  
+
   public int execute(final String fullCommand, final CommandLine cl, Shell shellState) throws IOException, TableNotFoundException {
-    
+
     final SortedSet<String> tablesToFlush = new TreeSet<String>(Arrays.asList(cl.getArgs()));
     if (cl.hasOption(optTablePattern.getOpt())) {
       for (String table : shellState.getConnector().tableOperations().list()) {
@@ -55,29 +55,29 @@ public class DUCommand extends Command {
     }
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "prints how much space is used by files referenced by a table.  When multiple tables are specified it prints how much space is used by files shared between tables, if any.";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     optTablePattern = new Option("p", "pattern", true, "regex pattern of table names");
     optTablePattern.setArgName("pattern");
-    
+
     o.addOption(optTablePattern);
-    
+
     return o;
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <table>{ <table>}";
   }
-  
+
   @Override
   public int numArgs() {
     return Shell.NO_FIXED_ARG_LENGTH_CHECK;

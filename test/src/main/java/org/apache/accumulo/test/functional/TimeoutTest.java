@@ -37,20 +37,20 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.UtilWaitThread;
 
 /**
- * 
+ *
  */
 public class TimeoutTest extends FunctionalTest {
-  
+
   @Override
   public Map<String,String> getInitialConfig() {
     return Collections.emptyMap();
   }
-  
+
   @Override
   public List<TableSetup> getTablesToCreate() {
     return Collections.emptyList();
   }
-  
+
   @Override
   public void run() throws Exception {
     testBatchScannerTimeout();
@@ -59,19 +59,19 @@ public class TimeoutTest extends FunctionalTest {
 
   public void testBatchWriterTimeout() throws Exception {
     Connector conn = getConnector();
-    
+
     conn.tableOperations().create("foo1");
-    
+
     conn.tableOperations().addConstraint("foo1", SlowConstraint.class.getName());
-    
+
     // give constraint time to propogate through zookeeper
     UtilWaitThread.sleep(250);
-    
+
     BatchWriter bw = conn.createBatchWriter("foo1", new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
-    
+
     Mutation mut = new Mutation("r1");
     mut.put("cf1", "cq1", "v1");
-    
+
     bw.addMutation(mut);
     try {
       bw.close();
@@ -82,31 +82,31 @@ public class TimeoutTest extends FunctionalTest {
       }
     }
   }
-  
+
   public void testBatchScannerTimeout() throws Exception {
     getConnector().tableOperations().create("timeout");
-    
+
     BatchWriter bw = getConnector().createBatchWriter("timeout", new BatchWriterConfig());
-    
+
     Mutation m = new Mutation("r1");
     m.put("cf1", "cq1", "v1");
     m.put("cf1", "cq2", "v2");
     m.put("cf1", "cq3", "v3");
     m.put("cf1", "cq4", "v4");
-    
+
     bw.addMutation(m);
-    
+
     bw.close();
-    
+
     BatchScanner bs = getConnector().createBatchScanner("timeout", Constants.NO_AUTHS, 2);
     bs.setTimeout(1, TimeUnit.SECONDS);
     bs.setRanges(Collections.singletonList(new Range()));
-    
+
     // should not timeout
     for (Entry<Key,Value> entry : bs) {
       entry.getKey();
     }
-    
+
     IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
     iterSetting.addOption("sleepTime", 2000 + "");
     getConnector().tableOperations().attachIterator("timeout", iterSetting);
@@ -123,10 +123,10 @@ public class TimeoutTest extends FunctionalTest {
 
     bs.close();
   }
-  
+
   @Override
   public void cleanup() throws Exception {
-    
+
   }
-  
+
 }

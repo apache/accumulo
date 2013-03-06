@@ -51,102 +51,102 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 class TableInfo implements Serializable {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   String tableName;
   String tableId;
   char timeType;
   String user;
-  
+
   public Map<String,String> props;
 }
 
 class FinishCreateTable extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   private TableInfo tableInfo;
-  
+
   public FinishCreateTable(TableInfo ti) {
     this.tableInfo = ti;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return 0;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
-    
+
     Utils.unreserveTable(tableInfo.tableId, tid, true);
-    
+
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
-    
+
     Logger.getLogger(FinishCreateTable.class).debug("Created table " + tableInfo.tableId + " " + tableInfo.tableName);
-    
+
     return null;
   }
-  
+
   @Override
   public String getReturn() {
     return tableInfo.tableId;
   }
-  
+
   @Override
   public void undo(long tid, Master env) throws Exception {}
-  
+
 }
 
 class PopulateMetadata extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   private TableInfo tableInfo;
-  
+
   PopulateMetadata(TableInfo ti) {
     this.tableInfo = ti;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return 0;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    
+
     KeyExtent extent = new KeyExtent(new Text(tableInfo.tableId), null, null);
     MetadataTable.addTablet(extent, Constants.DEFAULT_TABLET_LOCATION, SecurityConstants.getSystemCredentials(), tableInfo.timeType,
         environment.getMasterLock());
-    
+
     return new FinishCreateTable(tableInfo);
-    
+
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
     MetadataTable.deleteTable(tableInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
   }
-  
+
 }
 
 class CreateDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
-  
+
   private TableInfo tableInfo;
-  
+
   CreateDir(TableInfo ti) {
     this.tableInfo = ti;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return 0;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
@@ -154,7 +154,7 @@ class CreateDir extends MasterRepo {
     TabletOperations.createTabletDirectory(fs, dir, null);
     return new PopulateMetadata(tableInfo);
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
@@ -164,44 +164,44 @@ class CreateDir extends MasterRepo {
 }
 
 class PopulateZookeeper extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   private TableInfo tableInfo;
-  
+
   PopulateZookeeper(TableInfo ti) {
     this.tableInfo = ti;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return Utils.reserveTable(tableInfo.tableId, tid, true, false, TableOperation.CREATE);
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     // reserve the table name in zookeeper or fail
-    
+
     Utils.tableNameLock.lock();
     try {
       // write tableName & tableId to zookeeper
       Instance instance = master.getInstance();
-      
+
       Utils.checkTableDoesNotExist(instance, tableInfo.tableName, tableInfo.tableId, TableOperation.CREATE);
-      
+
       TableManager.getInstance().addTable(tableInfo.tableId, tableInfo.tableName, NodeExistsPolicy.OVERWRITE);
-      
+
       for (Entry<String,String> entry : tableInfo.props.entrySet())
         TablePropUtil.setTableProperty(tableInfo.tableId, entry.getKey(), entry.getValue());
-      
+
       Tables.clearCache(instance);
       return new CreateDir(tableInfo);
     } finally {
       Utils.tableNameLock.unlock();
     }
-    
+
   }
-  
+
   @Override
   public void undo(long tid, Master master) throws Exception {
     Instance instance = master.getInstance();
@@ -209,24 +209,24 @@ class PopulateZookeeper extends MasterRepo {
     Utils.unreserveTable(tableInfo.tableId, tid, true);
     Tables.clearCache(instance);
   }
-  
+
 }
 
 class SetupPermissions extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   private TableInfo tableInfo;
-  
+
   public SetupPermissions(TableInfo ti) {
     this.tableInfo = ti;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return 0;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all table permissions to the creator
@@ -239,25 +239,25 @@ class SetupPermissions extends MasterRepo {
         throw e;
       }
     }
-    
+
     // setup permissions in zookeeper before table info in zookeeper
     // this way concurrent users will not get a spurious permission denied
     // error
     return new PopulateZookeeper(tableInfo);
   }
-  
+
   @Override
   public void undo(long tid, Master env) throws Exception {
     AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableInfo.tableId);
   }
-  
+
 }
 
 public class CreateTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
-  
+
   private TableInfo tableInfo;
-  
+
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props) {
     tableInfo = new TableInfo();
     tableInfo.tableName = tableName;
@@ -265,20 +265,20 @@ public class CreateTable extends MasterRepo {
     tableInfo.user = user;
     tableInfo.props = props;
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return 0;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped
-    
+
     // assuming only the master process is creating tables
-    
+
     Utils.idLock.lock();
     try {
       tableInfo.tableId = Utils.getNextTableId(tableInfo.tableName, master.getInstance());
@@ -286,12 +286,12 @@ public class CreateTable extends MasterRepo {
     } finally {
       Utils.idLock.unlock();
     }
-    
+
   }
-  
+
   @Override
   public void undo(long tid, Master env) throws Exception {
     // nothing to do, the table id was allocated!
   }
-  
+
 }

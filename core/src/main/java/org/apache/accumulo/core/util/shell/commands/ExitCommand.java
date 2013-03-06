@@ -26,12 +26,12 @@ public class ExitCommand extends Command {
     shellState.setExit(true);
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "exits the shell";
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

@@ -40,42 +40,42 @@ import org.apache.zookeeper.KeeperException;
 public class ZKAuthorizor implements Authorizor {
   private static final Logger log = Logger.getLogger(ZKAuthorizor.class);
   private static Authorizor zkAuthorizorInstance = null;
-  
+
   private final String ZKUserAuths = "/Authorizations";
-  
+
   private String ZKUserPath;
   private final ZooCache zooCache;
-  
+
   public static synchronized Authorizor getInstance() {
     if (zkAuthorizorInstance == null)
       zkAuthorizorInstance = new ZKAuthorizor();
     return zkAuthorizorInstance;
   }
-  
+
   public ZKAuthorizor() {
     zooCache = new ZooCache();
   }
-  
+
   public void initialize(String instanceId, boolean initialize) {
     ZKUserPath = ZKSecurityTool.getInstancePath(instanceId) + "/users";
   }
-  
+
   public Authorizations getCachedUserAuthorizations(String user) {
     byte[] authsBytes = zooCache.get(ZKUserPath + "/" + user + ZKUserAuths);
     if (authsBytes != null)
       return ZKSecurityTool.convertAuthorizations(authsBytes);
     return Constants.NO_AUTHS;
   }
-  
+
   @Override
   public boolean validSecurityHandlers(Authenticator auth, PermissionHandler pm) {
     return true;
   }
-  
+
   @Override
   public void initializeSecurity(TCredentials itw, String rootuser) throws AccumuloSecurityException {
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
-    
+
     // create the root user with all system privileges, no table privileges, and no record-level authorizations
     Set<SystemPermission> rootPerms = new TreeSet<SystemPermission>();
     for (SystemPermission p : SystemPermission.values())
@@ -83,12 +83,12 @@ public class ZKAuthorizor implements Authorizor {
     Map<String,Set<TablePermission>> tablePerms = new HashMap<String,Set<TablePermission>>();
     // Allow the root user to flush the !METADATA table
     tablePerms.put(Constants.METADATA_TABLE_ID, Collections.singleton(TablePermission.ALTER_TABLE));
-    
+
     try {
       // prep parent node of users with root username
       if (!zoo.exists(ZKUserPath))
         zoo.putPersistentData(ZKUserPath, rootuser.getBytes(), NodeExistsPolicy.FAIL);
-      
+
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths, ZKSecurityTool.convertAuthorizations(Constants.NO_AUTHS), NodeExistsPolicy.FAIL);
     } catch (KeeperException e) {
@@ -99,7 +99,7 @@ public class ZKAuthorizor implements Authorizor {
       throw new RuntimeException(e);
     }
   }
-  
+
   /**
    * @param user
    * @throws AccumuloSecurityException
@@ -116,7 +116,7 @@ public class ZKAuthorizor implements Authorizor {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
     try {
@@ -133,10 +133,10 @@ public class ZKAuthorizor implements Authorizor {
       if (e.code().equals(KeeperException.Code.NONODE))
         throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
-      
+
     }
   }
-  
+
   @Override
   public void changeAuthorizations(String user, Authorizations authorizations) throws AccumuloSecurityException {
     try {
@@ -153,5 +153,5 @@ public class ZKAuthorizor implements Authorizor {
       throw new RuntimeException(e);
     }
   }
-  
+
 }

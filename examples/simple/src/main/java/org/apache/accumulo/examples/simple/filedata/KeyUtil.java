@@ -25,10 +25,10 @@ import org.apache.hadoop.io.Text;
  */
 public class KeyUtil {
   public static final byte[] nullbyte = new byte[] {0};
-  
+
   /**
    * Join some number of strings using a null byte separator into a text object.
-   * 
+   *
    * @param s
    *          strings
    * @return a text object containing the strings separated by null bytes
@@ -41,10 +41,10 @@ public class KeyUtil {
     }
     return t;
   }
-  
+
   /**
    * Split a text object using a null byte separator into an array of strings.
-   * 
+   *
    * @param t
    *          null-byte separated text object
    * @return an array of strings

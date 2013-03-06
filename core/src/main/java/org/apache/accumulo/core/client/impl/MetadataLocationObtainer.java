@@ -56,17 +56,17 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
   private Instance instance;
-  
+
   MetadataLocationObtainer(Instance instance) {
-    
+
     this.instance = instance;
-    
+
     locCols = new TreeSet<Column>();
     locCols.add(new Column(TextUtil.getBytes(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY), null, null));
     locCols.add(Constants.METADATA_PREV_ROW_COLUMN.toColumn());
     columns = new ArrayList<Column>(locCols);
   }
-  
+
   @Override
   public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials) throws AccumuloSecurityException,
       AccumuloException {
@@ -78,13 +78,13 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (log.isTraceEnabled())
         opTimer = new OpTimer(log, Level.TRACE).start("Looking up in " + src.tablet_extent.getTableId() + " row=" + TextUtil.truncate(row) + "  extent="
             + src.tablet_extent + " tserver=" + src.tablet_location);
-      
+
       Range range = new Range(row, true, stopRow, true);
-      
+
       TreeMap<Key,Value> results = new TreeMap<Key,Value>();
-      
+
       // System.out.println(range);
-      
+
       boolean more = ThriftScanner.getBatchFromServer(credentials, range, src.tablet_extent, src.tablet_location, results, locCols, Constants.SCAN_BATCH_SIZE,
           Constants.NO_AUTHS, false, instance.getConfiguration());
       if (more && results.size() == 1) {
@@ -92,18 +92,18 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         more = ThriftScanner.getBatchFromServer(credentials, range, src.tablet_extent, src.tablet_location, results, locCols, Constants.SCAN_BATCH_SIZE,
             Constants.NO_AUTHS, false, instance.getConfiguration());
       }
-      
+
       if (opTimer != null)
         opTimer.stop("Got " + results.size() + " results  from " + src.tablet_extent + " in %DURATION%");
-      
+
       // System.out.println("results "+results.keySet());
-      
+
       Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> metadata = MetadataTable.getMetadataLocationEntries(results);
-      
+
       for (Entry<KeyExtent,Text> entry : metadata.getFirst().entrySet()) {
         list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
       }
-      
+
       return new TabletLocations(list, metadata.getSecond());
 
     } catch (AccumuloServerException ase) {
@@ -119,20 +119,20 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         log.trace(src.tablet_extent.getTableId() + " lookup failed", e);
       parent.invalidateCache(src.tablet_location);
     }
-    
+
     return null;
   }
-  
+
   @Override
   public List<TabletLocation> lookupTablets(String tserver, Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent, TCredentials credentials) throws AccumuloSecurityException,
       AccumuloException {
-    
+
     final TreeMap<Key,Value> results = new TreeMap<Key,Value>();
-    
+
     ArrayList<TabletLocation> list = new ArrayList<TabletLocation>();
-    
+
     ResultReceiver rr = new ResultReceiver() {
-      
+
       @Override
       public void receive(List<Entry<Key,Value>> entries) {
         for (Entry<Key,Value> entry : entries) {
@@ -140,10 +140,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         }
       }
     };
-    
+
     ScannerOptions opts = new ScannerOptions();
     opts.fetchedColumns = locCols;
-    
+
     Map<KeyExtent,List<Range>> unscanned = new HashMap<KeyExtent,List<Range>>();
     Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
     try {
@@ -162,13 +162,13 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       log.trace("lookupTablets failed server=" + tserver, e);
       throw e;
     }
-    
+
     SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results).getFirst();
-    
+
     for (Entry<KeyExtent,Text> entry : metadata.entrySet()) {
       list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
     }
-    
+
     return list;
   }
 }

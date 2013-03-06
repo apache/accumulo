@@ -22,7 +22,7 @@ public class InstanceUserPassword {
   public Instance instance;
   public String username;
   public byte[] password;
-  
+
   public InstanceUserPassword(Instance instance, String username, String password) {
     this.instance = instance;
     this.username = username;

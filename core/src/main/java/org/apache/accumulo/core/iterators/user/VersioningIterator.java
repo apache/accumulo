@@ -35,15 +35,15 @@ import org.apache.accumulo.core.iterators.WrappingIterator;
 
 public class VersioningIterator extends WrappingIterator implements OptionDescriber {
   private final int maxCount = 10;
-  
+
   private Key currentKey = new Key();
   private int numVersions;
   protected int maxVersions;
-  
+
   private Range range;
   private Collection<ByteSequence> columnFamilies;
   private boolean inclusive;
-  
+
   @Override
   public VersioningIterator deepCopy(IteratorEnvironment env) {
     VersioningIterator copy = new VersioningIterator();
@@ -51,7 +51,7 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
     copy.maxVersions = maxVersions;
     return copy;
   }
-  
+
   @Override
   public void next() throws IOException {
     if (numVersions >= maxVersions) {
@@ -59,7 +59,7 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
       resetVersionCount();
       return;
     }
-    
+
     super.next();
     if (getSource().hasTop()) {
       if (getSource().getTopKey().equals(currentKey, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
@@ -69,7 +69,7 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
       }
     }
   }
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     // do not want to seek to the middle of a row
@@ -77,25 +77,25 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
     this.range = seekRange;
     this.columnFamilies = columnFamilies;
     this.inclusive = inclusive;
-    
+
     super.seek(seekRange, columnFamilies, inclusive);
     resetVersionCount();
-    
+
     if (range.getStartKey() != null)
       while (hasTop() && range.beforeStartKey(getTopKey()))
         next();
   }
-  
+
   private void resetVersionCount() {
     if (super.hasTop())
       currentKey.set(getSource().getTopKey());
     numVersions = 1;
   }
-  
+
   private void skipRowColumn() throws IOException {
     Key keyToSkip = currentKey;
     super.next();
-    
+
     int count = 0;
     while (getSource().hasTop() && getSource().getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
       if (count < maxCount) {
@@ -109,7 +109,7 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
       }
     }
   }
-  
+
   protected void reseek(Key key) throws IOException {
     if (key == null)
       return;
@@ -121,30 +121,30 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
       getSource().seek(range, columnFamilies, inclusive);
     }
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.numVersions = 0;
-    
+
     String maxVerString = options.get("maxVersions");
     if (maxVerString != null)
       this.maxVersions = Integer.parseInt(maxVerString);
     else
       this.maxVersions = 1;
-    
+
     if (maxVersions < 1)
       throw new IllegalArgumentException("maxVersions for versioning iterator must be >= 1");
   }
-  
+
   @Override
   public IteratorOptions describeOptions() {
     return new IteratorOptions("vers", "The VersioningIterator keeps a fixed number of versions for each key", Collections.singletonMap("maxVersions",
         "number of versions to keep for a particular key (with differing timestamps)"), null);
   }
-  
+
   private static final String MAXVERSIONS_OPT = "maxVersions";
-  
+
   @Override
   public boolean validateOptions(Map<String,String> options) {
     int i;
@@ -157,10 +157,10 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
       throw new IllegalArgumentException(MAXVERSIONS_OPT + " for versioning iterator must be >= 1");
     return true;
   }
-  
+
   /**
    * Encode the maximum number of versions to return onto the ScanIterator
-   * 
+   *
    * @param cfg
    * @param maxVersions
    */

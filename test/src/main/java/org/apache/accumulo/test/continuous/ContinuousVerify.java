@@ -51,23 +51,23 @@ import com.beust.jcommander.validators.PositiveInteger;
  */
 
 public class ContinuousVerify extends Configured implements Tool {
-  
+
   public static final VLongWritable DEF = new VLongWritable(-1);
-  
+
   public static class CMapper extends Mapper<Key,Value,LongWritable,VLongWritable> {
-    
+
     private LongWritable row = new LongWritable();
     private LongWritable ref = new LongWritable();
     private VLongWritable vrow = new VLongWritable();
-    
+
     private long corrupt = 0;
-    
+
     @Override
     public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
       long r = Long.parseLong(key.getRow().toString(), 16);
       if (r < 0)
         throw new IllegalArgumentException();
-      
+
       try {
         ContinuousWalk.validate(key, data);
       } catch (BadChecksumException bce) {
@@ -80,12 +80,12 @@ public class ContinuousVerify extends Configured implements Tool {
         corrupt++;
         return;
       }
-      
+
       row.set(r);
-      
+
       context.write(row, DEF);
       byte[] val = data.get();
-      
+
       int offset = ContinuousWalk.getPrevRowOffset(val);
       if (offset > 0) {
         ref.set(Long.parseLong(new String(val, offset, 16), 16));
@@ -94,19 +94,19 @@ public class ContinuousVerify extends Configured implements Tool {
       }
     }
   }
-  
+
   public static enum Counts {
     UNREFERENCED, UNDEFINED, REFERENCED, CORRUPT
   }
-  
+
   public static class CReducer extends Reducer<LongWritable,VLongWritable,Text,Text> {
     private ArrayList<Long> refs = new ArrayList<Long>();
-    
+
     @Override
     public void reduce(LongWritable key, Iterable<VLongWritable> values, Context context) throws IOException, InterruptedException {
-      
+
       int defCount = 0;
-      
+
       refs.clear();
       for (VLongWritable type : values) {
         if (type.get() == -1) {
@@ -115,7 +115,7 @@ public class ContinuousVerify extends Configured implements Tool {
           refs.add(type.get());
         }
       }
-      
+
       if (defCount == 0 && refs.size() > 0) {
         StringBuilder sb = new StringBuilder();
         String comma = "";
@@ -124,45 +124,45 @@ public class ContinuousVerify extends Configured implements Tool {
           comma = ",";
           sb.append(new String(ContinuousIngest.genRow(ref)));
         }
-        
+
         context.write(new Text(ContinuousIngest.genRow(key.get())), new Text(sb.toString()));
         context.getCounter(Counts.UNDEFINED).increment(1);
-        
+
       } else if (defCount > 0 && refs.size() == 0) {
         context.getCounter(Counts.UNREFERENCED).increment(1);
       } else {
         context.getCounter(Counts.REFERENCED).increment(1);
       }
-      
+
     }
   }
-  
+
   static class Opts extends ClientOnDefaultTable {
     @Parameter(names = "--output", description = "location in HDFS to store the results; must not exist", required = true)
     String outputDir = "/tmp/continuousVerify";
-    
+
     @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use", required = true, validateWith = PositiveInteger.class)
     int maxMaps = 0;
-    
+
     @Parameter(names = "--reducers", description = "the number of reducers to use", required = true, validateWith = PositiveInteger.class)
     int reducers = 0;
-    
+
     @Parameter(names = "--offline", description = "perform the verification directly on the files while the table is offline")
     boolean scanOffline = false;
-    
+
     public Opts() {
       super("ci");
     }
   }
-  
+
   @Override
   public int run(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(this.getClass().getName(), args);
-    
+
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
-    
+
     String clone = opts.getTableName();
     Connector conn = null;
     if (opts.scanOffline) {
@@ -172,12 +172,12 @@ public class ContinuousVerify extends Configured implements Tool {
       conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
       conn.tableOperations().offline(clone);
     }
-    
+
     job.setInputFormatClass(AccumuloInputFormat.class);
-    
+
     opts.setAccumuloConfigs(job);
     AccumuloInputFormat.setOfflineTableScan(job, opts.scanOffline);
-    
+
     // set up ranges
     try {
       Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
@@ -186,31 +186,31 @@ public class ContinuousVerify extends Configured implements Tool {
     } catch (Exception e) {
       throw new IOException(e);
     }
-    
+
     job.setMapperClass(CMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(VLongWritable.class);
-    
+
     job.setReducerClass(CReducer.class);
     job.setNumReduceTasks(opts.reducers);
-    
+
     job.setOutputFormatClass(TextOutputFormat.class);
-    
+
     job.getConfiguration().setBoolean("mapred.map.tasks.speculative.execution", opts.scanOffline);
-    
+
     TextOutputFormat.setOutputPath(job, new Path(opts.outputDir));
-    
+
     job.waitForCompletion(true);
-    
+
     if (opts.scanOffline) {
       conn.tableOperations().delete(clone);
     }
     opts.stopTracing();
     return job.isSuccessful() ? 0 : 1;
   }
-  
+
   /**
-   * 
+   *
    * @param args
    *          instanceName zookeepers username password table columns outputpath
    * @throws Exception

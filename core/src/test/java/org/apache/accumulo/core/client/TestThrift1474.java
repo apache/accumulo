@@ -37,7 +37,7 @@ import org.apache.thrift.transport.TTransport;
 import org.junit.Test;
 
 public class TestThrift1474 {
-  
+
   static class TestServer implements ThriftTest.Iface {
 
     @Override
@@ -54,9 +54,9 @@ public class TestThrift1474 {
     public boolean throwsError() throws ThriftSecurityException, TException {
       throw new ThriftSecurityException();
     }
-    
+
   }
-  
+
   @Test
   public void test() throws IOException, TException, InterruptedException {
     TServerSocket serverTransport = new TServerSocket(0);
@@ -64,7 +64,7 @@ public class TestThrift1474 {
     int port = serverTransport.getServerSocket().getLocalPort();
     TestServer handler = new TestServer();
     ThriftTest.Processor<ThriftTest.Iface> processor = new ThriftTest.Processor<ThriftTest.Iface>(handler);
-    
+
     TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport);
     args.stopTimeoutVal = 10;
     args.stopTimeoutUnit = TimeUnit.MILLISECONDS;
@@ -78,7 +78,7 @@ public class TestThrift1474 {
     while (!server.isServing()) {
       UtilWaitThread.sleep(10);
     }
-    
+
     TTransport transport = new TSocket("localhost", port);
     transport.open();
     TProtocol protocol = new TBinaryProtocol(transport);
@@ -94,5 +94,5 @@ public class TestThrift1474 {
     server.stop();
     thread.join();
   }
-  
+
 }

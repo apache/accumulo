@@ -45,9 +45,9 @@ import org.apache.log4j.xml.DOMConfigurator;
 import org.apache.zookeeper.KeeperException;
 
 public class Accumulo {
-  
+
   private static final Logger log = Logger.getLogger(Accumulo.class);
-  
+
   public static synchronized void updateAccumuloVersion(FileSystem fs) {
     try {
       if (getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
@@ -58,7 +58,7 @@ public class Accumulo {
       throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
     }
   }
-  
+
   public static synchronized int getAccumuloPersistentVersion(FileSystem fs) {
     int dataVersion;
     try {
@@ -73,7 +73,7 @@ public class Accumulo {
       throw new RuntimeException("Unable to read accumulo version: an error occurred.", e);
     }
   }
-  
+
   public static void enableTracing(String address, String application) {
     try {
       DistributedTrace.enable(HdfsZooInstance.getInstance(), ZooReaderWriter.getInstance(), application, address);
@@ -81,24 +81,24 @@ public class Accumulo {
       log.error("creating remote sink for trace spans", ex);
     }
   }
-  
+
   public static void init(FileSystem fs, ServerConfiguration config, String application) throws UnknownHostException {
-    
+
     System.setProperty("org.apache.accumulo.core.application", application);
-    
+
     if (System.getenv("ACCUMULO_LOG_DIR") != null)
       System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_LOG_DIR"));
     else
       System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_HOME") + "/logs/");
-    
+
     String localhost = InetAddress.getLocalHost().getHostName();
     System.setProperty("org.apache.accumulo.core.ip.localhost.hostname", localhost);
-    
+
     if (System.getenv("ACCUMULO_LOG_HOST") != null)
       System.setProperty("org.apache.accumulo.core.host.log", System.getenv("ACCUMULO_LOG_HOST"));
     else
       System.setProperty("org.apache.accumulo.core.host.log", localhost);
-    
+
     // Use a specific log config, if it exists
     String logConfig = String.format("%s/conf/%s_logger.xml", System.getenv("ACCUMULO_HOME"), application);
     if (!new File(logConfig).exists()) {
@@ -107,37 +107,37 @@ public class Accumulo {
     }
     // Turn off messages about not being able to reach the remote logger... we protect against that.
     LogLog.setQuietMode(true);
-    
+
     // Configure logging
     DOMConfigurator.configureAndWatch(logConfig, 5000);
-    
+
     log.info(application + " starting");
     log.info("Instance " + config.getInstance().getInstanceID());
     int dataVersion = Accumulo.getAccumuloPersistentVersion(fs);
     log.info("Data Version " + dataVersion);
     Accumulo.waitForZookeeperAndHdfs(fs);
-    
+
     Version codeVersion = new Version(Constants.VERSION);
     if (dataVersion != Constants.DATA_VERSION && dataVersion != Constants.PREV_DATA_VERSION) {
       throw new RuntimeException("This version of accumulo (" + codeVersion + ") is not compatible with files stored using data version " + dataVersion);
     }
-    
+
     TreeMap<String,String> sortedProps = new TreeMap<String,String>();
     for (Entry<String,String> entry : config.getConfiguration())
       sortedProps.put(entry.getKey(), entry.getValue());
-    
+
     for (Entry<String,String> entry : sortedProps.entrySet()) {
       if (entry.getKey().toLowerCase().contains("password") || entry.getKey().toLowerCase().contains("secret"))
         log.info(entry.getKey() + " = <hidden>");
       else
         log.info(entry.getKey() + " = " + entry.getValue());
     }
-    
+
     monitorSwappiness();
   }
-  
+
   /**
-   * 
+   *
    */
   public static void monitorSwappiness() {
     SimpleTimer.getInstance().schedule(new Runnable() {
@@ -167,7 +167,7 @@ public class Accumulo {
       }
     }, 1000, 10 * 60 * 1000);
   }
-  
+
   public static String getLocalAddress(String[] args) throws UnknownHostException {
     InetAddress result = InetAddress.getLocalHost();
     for (int i = 0; i < args.length - 1; i++) {
@@ -179,7 +179,7 @@ public class Accumulo {
     }
     return result.getHostName();
   }
-  
+
   public static void waitForZookeeperAndHdfs(FileSystem fs) {
     log.info("Attempting to talk to zookeeper");
     while (true) {

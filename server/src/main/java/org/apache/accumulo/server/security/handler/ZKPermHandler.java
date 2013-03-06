@@ -40,31 +40,31 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 
 /**
- * 
+ *
  */
 public class ZKPermHandler implements PermissionHandler {
   private static final Logger log = Logger.getLogger(ZKAuthorizor.class);
   private static PermissionHandler zkPermHandlerInstance = null;
-  
+
   private String ZKUserPath;
   private final ZooCache zooCache;
   private final String ZKUserSysPerms = "/System";
   private final String ZKUserTablePerms = "/Tables";
-  
+
   public static synchronized PermissionHandler getInstance() {
     if (zkPermHandlerInstance == null)
       zkPermHandlerInstance = new ZKPermHandler();
     return zkPermHandlerInstance;
   }
-  
+
   public void initialize(String instanceId, boolean initialize) {
     ZKUserPath = ZKSecurityTool.getInstancePath(instanceId) + "/users";
   }
-  
+
   public ZKPermHandler() {
     zooCache = new ZooCache();
   }
-  
+
   @Override
   public boolean hasTablePermission(String user, String table, TablePermission permission) {
     byte[] serializedPerms;
@@ -87,7 +87,7 @@ public class ZKPermHandler implements PermissionHandler {
     }
     return false;
   }
-  
+
   @Override
   public boolean hasCachedTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
     byte[] serializedPerms = zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
@@ -96,7 +96,7 @@ public class ZKPermHandler implements PermissionHandler {
     }
     return false;
   }
-  
+
   @Override
   public void grantSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     try {
@@ -107,7 +107,7 @@ public class ZKPermHandler implements PermissionHandler {
       } else {
         perms = ZKSecurityTool.convertSystemPermissions(permBytes);
       }
-      
+
       if (perms.add(permission)) {
         synchronized (zooCache) {
           zooCache.clear();
@@ -123,7 +123,7 @@ public class ZKPermHandler implements PermissionHandler {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void grantTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException {
     Set<TablePermission> tablePerms;
@@ -132,7 +132,7 @@ public class ZKPermHandler implements PermissionHandler {
       tablePerms = ZKSecurityTool.convertTablePermissions(serializedPerms);
     else
       tablePerms = new TreeSet<TablePermission>();
-    
+
     try {
       if (tablePerms.add(permission)) {
         synchronized (zooCache) {
@@ -150,17 +150,17 @@ public class ZKPermHandler implements PermissionHandler {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void revokeSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     byte[] sysPermBytes = zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms);
-    
+
     // User had no system permission, nothing to revoke.
     if (sysPermBytes == null)
       return;
-    
+
     Set<SystemPermission> sysPerms = ZKSecurityTool.convertSystemPermissions(sysPermBytes);
-    
+
     try {
       if (sysPerms.remove(permission)) {
         synchronized (zooCache) {
@@ -177,15 +177,15 @@ public class ZKPermHandler implements PermissionHandler {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void revokeTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException {
     byte[] serializedPerms = zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
-    
+
     // User had no table permission, nothing to revoke.
     if (serializedPerms == null)
       return;
-    
+
     Set<TablePermission> tablePerms = ZKSecurityTool.convertTablePermissions(serializedPerms);
     try {
       if (tablePerms.remove(permission)) {
@@ -205,7 +205,7 @@ public class ZKPermHandler implements PermissionHandler {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void cleanTablePermissions(String table) throws AccumuloSecurityException {
     try {
@@ -223,11 +223,11 @@ public class ZKPermHandler implements PermissionHandler {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void initializeSecurity(TCredentials itw, String rootuser) throws AccumuloSecurityException {
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
-    
+
     // create the root user with all system privileges, no table privileges, and no record-level authorizations
     Set<SystemPermission> rootPerms = new TreeSet<SystemPermission>();
     for (SystemPermission p : SystemPermission.values())
@@ -235,12 +235,12 @@ public class ZKPermHandler implements PermissionHandler {
     Map<String,Set<TablePermission>> tablePerms = new HashMap<String,Set<TablePermission>>();
     // Allow the root user to flush the !METADATA table
     tablePerms.put(Constants.METADATA_TABLE_ID, Collections.singleton(TablePermission.ALTER_TABLE));
-    
+
     try {
       // prep parent node of users with root username
       if (!zoo.exists(ZKUserPath))
         zoo.putPersistentData(ZKUserPath, rootuser.getBytes(), NodeExistsPolicy.FAIL);
-      
+
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserSysPerms, ZKSecurityTool.convertSystemPermissions(rootPerms), NodeExistsPolicy.FAIL);
       for (Entry<String,Set<TablePermission>> entry : tablePerms.entrySet())
@@ -253,7 +253,7 @@ public class ZKPermHandler implements PermissionHandler {
       throw new RuntimeException(e);
     }
   }
-  
+
   /**
    * @param user
    * @throws AccumuloSecurityException
@@ -271,7 +271,7 @@ public class ZKPermHandler implements PermissionHandler {
       throw new RuntimeException(e);
     }
   }
-  
+
   /**
    * Sets up a new table configuration for the provided user/table. No checking for existence is done here, it should be done before calling.
    */
@@ -282,7 +282,7 @@ public class ZKPermHandler implements PermissionHandler {
           ZKSecurityTool.convertTablePermissions(perms), NodeExistsPolicy.FAIL);
     }
   }
-  
+
   @Override
   public void cleanUser(String user) throws AccumuloSecurityException {
     try {
@@ -300,10 +300,10 @@ public class ZKPermHandler implements PermissionHandler {
       if (e.code().equals(KeeperException.Code.NONODE))
         throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
-      
+
     }
   }
-  
+
   @Override
   public boolean hasSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     byte[] perms;
@@ -321,12 +321,12 @@ public class ZKPermHandler implements PermissionHandler {
       log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
       return false;
     }
-    
+
     if (perms == null)
       return false;
     return ZKSecurityTool.convertSystemPermissions(perms).contains(permission);
   }
-  
+
   @Override
   public boolean hasCachedSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     byte[] perms = zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms);
@@ -334,12 +334,12 @@ public class ZKPermHandler implements PermissionHandler {
       return false;
     return ZKSecurityTool.convertSystemPermissions(perms).contains(permission);
   }
-  
+
   @Override
   public boolean validSecurityHandlers(Authenticator authent, Authorizor author) {
     return true;
   }
-  
+
   @Override
   public void initTable(String table) throws AccumuloSecurityException {
     // All proper housekeeping is done on delete and permission granting, no work needs to be done here

@@ -27,10 +27,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class TransactionWatcherTest {
-  
+
   static class SimpleArbitrator implements TransactionWatcher.Arbitrator {
     Map<String,List<Long>> map = new HashMap<String,List<Long>>();
-    
+
     public synchronized void start(String txType, Long txid) throws Exception {
       List<Long> txids = map.get(txType);
       if (txids == null)
@@ -40,7 +40,7 @@ public class TransactionWatcherTest {
       txids.add(txid);
       map.put(txType, txids);
     }
-    
+
     public synchronized void stop(String txType, Long txid) throws Exception {
       List<Long> txids = map.get(txType);
       if (txids != null && txids.contains(txid)) {
@@ -49,7 +49,7 @@ public class TransactionWatcherTest {
       }
       throw new Exception("transaction does not exist");
     }
-    
+
     @Override
     synchronized public boolean transactionAlive(String txType, long tid) throws Exception {
       List<Long> txids = map.get(txType);
@@ -57,9 +57,9 @@ public class TransactionWatcherTest {
         return false;
       return txids.contains(tid);
     }
-    
+
   }
-  
+
   @Test
   public void testTransactionWatcher() throws Exception {
     final String txType = "someName";
@@ -120,7 +120,7 @@ public class TransactionWatcherTest {
         return null;
       }
     });
-    
+
   }
-  
+
 }

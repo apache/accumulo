@@ -30,16 +30,16 @@ import org.apache.accumulo.trace.thrift.RemoteSpan;
 public class SpanTree {
   final Map<Long,List<Long>> parentChildren = new HashMap<Long,List<Long>>();
   public final Map<Long,RemoteSpan> nodes = new HashMap<Long,RemoteSpan>();
-  
+
   public SpanTree() {}
-  
+
   public void addNode(RemoteSpan span) {
     nodes.put(span.spanId, span);
     if (parentChildren.get(span.parentId) == null)
       parentChildren.put(span.parentId, new ArrayList<Long>());
     parentChildren.get(span.parentId).add(span.spanId);
   }
-  
+
   public Set<Long> visit(SpanTreeVisitor visitor) {
     Set<Long> visited = new HashSet<Long>();
     List<Long> root = parentChildren.get(new Long(Span.ROOT_SPAN_ID));
@@ -51,7 +51,7 @@ public class SpanTree {
     recurse(0, null, rootSpan, visitor, visited);
     return visited;
   }
-  
+
   private void recurse(int level, RemoteSpan parent, RemoteSpan node, SpanTreeVisitor visitor, Set<Long> visited) {
     // improbable case: duplicate spanId in a trace tree: prevent
     // infinite recursion

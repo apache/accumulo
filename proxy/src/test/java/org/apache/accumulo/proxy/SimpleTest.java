@@ -88,9 +88,9 @@ import org.junit.rules.TemporaryFolder;
  * Call every method on the proxy and try to verify that it works.
  */
 public class SimpleTest {
-  
+
   public static TemporaryFolder folder = new TemporaryFolder();
-  
+
   private static MiniAccumuloCluster accumulo;
   private static String secret = "superSecret";
   private static Random random = new Random();
@@ -100,7 +100,7 @@ public class SimpleTest {
   private static org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
   private static String principal = "root";
   @SuppressWarnings("serial")
-  private static Map<String, String> properties = new TreeMap<String, String>() {{ put("password",secret);}}; 
+  private static Map<String, String> properties = new TreeMap<String, String>() {{ put("password",secret);}};
   private static ByteBuffer creds = null;
 
   private static Class<? extends TProtocolFactory> protocolClass;
@@ -111,7 +111,7 @@ public class SimpleTest {
     protocolFactories.add(org.apache.thrift.protocol.TBinaryProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TTupleProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TCompactProtocol.Factory.class);
-    
+
     Random rand = new Random();
     return protocolFactories.get(rand.nextInt(protocolFactories.size()));
   }
@@ -121,11 +121,11 @@ public class SimpleTest {
     folder.create();
     accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
     accumulo.start();
-  
+
     Properties props = new Properties();
     props.put("org.apache.accumulo.proxy.ProxyServer.instancename", accumulo.getInstanceName());
     props.put("org.apache.accumulo.proxy.ProxyServer.zookeepers", accumulo.getZooKeepers());
-    
+
     protocolClass = getRandomProtocol();
     System.out.println(protocolClass.getName());
 
@@ -153,23 +153,23 @@ public class SimpleTest {
       tservers++;
     }
     assertTrue(tservers > 0);
-    
+
     // get something we know is in the site config
     Map<String,String> cfg = client.getSiteConfiguration(creds);
     assertTrue(cfg.get("instance.dfs.dir").startsWith(folder.getRoot().toString()));
-    
+
     // set a property in zookeeper
     client.setProperty(creds, "table.split.threshold", "500M");
-    
+
     // check that we can read it
     cfg = client.getSystemConfiguration(creds);
     assertEquals("500M", cfg.get("table.split.threshold"));
-    
+
     // unset the setting, check that it's not what it was
     client.removeProperty(creds, "table.split.threshold");
     cfg = client.getSystemConfiguration(creds);
     assertNotEquals("500M", cfg.get("table.split.threshold"));
-    
+
     // try to load some classes via the proxy
     assertTrue(client.testClassLoad(creds, DevNull.class.getName(), SortedKeyValueIterator.class.getName()));
     assertFalse(client.testClassLoad(creds, "foo.bar", SortedKeyValueIterator.class.getName()));
@@ -182,7 +182,7 @@ public class SimpleTest {
     client.updateAndFlush(creds, "slow", mutation("row2", "cf", "cq", "value"));
     client.updateAndFlush(creds, "slow", mutation("row3", "cf", "cq", "value"));
     client.updateAndFlush(creds, "slow", mutation("row4", "cf", "cq", "value"));
-    
+
     // scan
     Thread t = new Thread() {
       @Override
@@ -221,7 +221,7 @@ public class SimpleTest {
     assertEquals(map.get("slow"), scan.getExtent().tableId);
     assertTrue(scan.getExtent().endRow == null);
     assertTrue(scan.getExtent().prevEndRow == null);
-    
+
     // start a compaction
     t = new Thread() {
       @Override
@@ -235,7 +235,7 @@ public class SimpleTest {
       }
     };
     t.start();
-    
+
     // try to catch it in the act
     List<ActiveCompaction> compactions = Collections.emptyList();
     loop2:
@@ -258,7 +258,7 @@ public class SimpleTest {
     assertEquals("", c.localityGroup);
     assertTrue(c.outputFile.contains("default_tablet"));
   }
-  
+
   @Test
   public void testSecurityOperations() throws Exception {
     // check password
@@ -274,15 +274,15 @@ public class SimpleTest {
     client.changeUserAuthorizations(creds, "stooge", auths);
     List<ByteBuffer> update = client.getUserAuthorizations(creds, "stooge");
     assertEquals(auths, new HashSet<ByteBuffer>(update));
-    
+
     // change password
     client.changeLocalUserPassword(creds, "stooge", s2bb(""));
     assertTrue(client.authenticateUser(creds, "stooge", s2pp("")));
-    
+
     // check permission failure
     @SuppressWarnings("serial")
     ByteBuffer stooge = client.login("stooge", new TreeMap<String,String>() {{put("password",""); }});
-    
+
     try {
       client.createTable(stooge, "fail", true, TimeType.MILLIS);
       fail("should not create the table");
@@ -295,7 +295,7 @@ public class SimpleTest {
     assertTrue(client.hasSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE));
     client.createTable(stooge, "success", true, TimeType.MILLIS);
     client.listTables(creds).contains("succcess");
-    
+
     // revoke permissions
     client.revokeSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE);
     assertFalse(client.hasSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE));
@@ -330,14 +330,14 @@ public class SimpleTest {
       fail("stooge should not read table test");
     } catch (TException ex) {
     }
-    
+
     // delete user
     client.dropLocalUser(creds, "stooge");
     users = client.listLocalUsers(creds);
     assertEquals(1, users.size());
-    
+
   }
-  
+
   @Test
   public void testTableOperations() throws Exception {
     if (client.tableExists(creds, "test"))
@@ -407,15 +407,15 @@ public class SimpleTest {
     client.closeScanner(scanner);
     assertEquals(10, more.getResults().size());
     client.deleteTable(creds, "test2");
-    
+
     // don't know how to test this, call it just for fun
     client.clearLocatorCache(creds, "test");
-    
+
     // compact
     assertTrue(countFiles("test") > 1);
     client.compactTable(creds, "test", null, null, null, true, true);
     assertEquals(1, countFiles("test"));
-    
+
     // export/import
     String dir = folder.getRoot() + "/test";
     String destDir = folder.getRoot() + "/test_dest";
@@ -438,7 +438,7 @@ public class SimpleTest {
     more = client.nextK(scanner, 100);
     client.closeScanner(scanner);
     assertEquals(10, more.results.size());
-    
+
     // Locality groups
     client.createTable(creds, "test", true, TimeType.MILLIS);
     Map<String, Set<String>> groups = new HashMap<String, Set<String>>();
@@ -477,7 +477,7 @@ public class SimpleTest {
     ByteBuffer maxRow = client.getMaxRow(creds, "bar", null, null, false, null, false);
     assertEquals(s2bb("a"), maxRow);
   }
-  
+
   // scan !METADATA table for file entries for the given table
   private int countFiles(String table) throws Exception {
     Map<String,String> tableIdMap = client.tableIdMap(creds);
@@ -522,5 +522,5 @@ public class SimpleTest {
     accumulo.stop();
     // folder.delete();
   }
-  
+
 }

@@ -32,7 +32,7 @@ import org.apache.hadoop.io.WritableUtils;
 @Deprecated
 public class NumSummation implements Aggregator {
   long sum = 0l;
-  
+
   public Value aggregate() {
     try {
       return new Value(NumSummation.longToBytes(sum));
@@ -40,7 +40,7 @@ public class NumSummation implements Aggregator {
       throw new RuntimeException(e);
     }
   }
-  
+
   public void collect(Value value) {
     long l;
     try {
@@ -48,24 +48,24 @@ public class NumSummation implements Aggregator {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
+
     sum = NumSummation.safeAdd(sum, l);
   }
-  
+
   public static byte[] longToBytes(long l) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
-    
+
     WritableUtils.writeVLong(dos, l);
-    
+
     return baos.toByteArray();
   }
-  
+
   public static long bytesToLong(byte[] b) throws IOException {
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
     return WritableUtils.readVLong(dis);
   }
-  
+
   public static long safeAdd(long a, long b) {
     long aSign = Long.signum(a);
     long bSign = Long.signum(b);
@@ -80,9 +80,9 @@ public class NumSummation implements Aggregator {
     }
     return a + b;
   }
-  
+
   public void reset() {
     sum = 0l;
   }
-  
+
 }

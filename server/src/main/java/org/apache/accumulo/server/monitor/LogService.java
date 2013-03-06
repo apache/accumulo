@@ -34,19 +34,19 @@ import org.apache.log4j.spi.LoggingEvent;
 
 /**
  * Hijack log4j and capture log events for display.
- * 
+ *
  */
 public class LogService extends org.apache.log4j.AppenderSkeleton {
-  
+
   private static final Logger log = Logger.getLogger(LogService.class);
-  
+
   /**
    * Read logging events forward to us over the net.
-   * 
+   *
    */
   static class SocketServer implements Runnable {
     private ServerSocket server = null;
-    
+
     public SocketServer(int port) {
       try {
         server = new ServerSocket(port);
@@ -54,7 +54,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
         throw new RuntimeException(io);
       }
     }
-    
+
     public void run() {
       try {
         while (true) {
@@ -69,7 +69,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
       }
     }
   }
-  
+
   static void startLogListener(AccumuloConfiguration conf) {
     try {
       new Daemon(new SocketServer(conf.getPort(Property.MONITOR_LOG4J_PORT))).start();
@@ -77,42 +77,42 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
       log.info("Unable to listen to cluster-wide ports", t);
     }
   }
-  
+
   static private LogService instance = null;
-  
+
   synchronized public static LogService getInstance() {
     if (instance == null)
       return new LogService();
     return instance;
   }
-  
+
   private static final int MAX_LOGS = 50;
-  
+
   private LinkedHashMap<String,DedupedLogEvent> events = new LinkedHashMap<String,DedupedLogEvent>(MAX_LOGS + 1, (float) .75, true) {
-    
+
     private static final long serialVersionUID = 1L;
-    
+
     @Override
     @SuppressWarnings("rawtypes")
     protected boolean removeEldestEntry(Map.Entry eldest) {
       return size() > MAX_LOGS;
     }
   };
-  
+
   public LogService() {
     synchronized (LogService.class) {
       instance = this;
     }
   }
-  
+
   @Override
   synchronized protected void append(LoggingEvent ev) {
     Object application = ev.getMDC("application");
     if (application == null || application.toString().isEmpty())
       return;
-    
+
     DedupedLogEvent dev = new DedupedLogEvent(ev);
-    
+
     // if event is present, increase the count
     if (events.containsKey(dev.toString())) {
       DedupedLogEvent oldDev = events.remove(dev.toString());
@@ -120,26 +120,26 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     }
     events.put(dev.toString(), dev);
   }
-  
+
   @Override
   public void close() {
     events = null;
   }
-  
+
   @Override
   public synchronized void doAppend(LoggingEvent event) {
     super.doAppend(event);
   }
-  
+
   @Override
   public boolean requiresLayout() {
     return false;
   }
-  
+
   synchronized public List<DedupedLogEvent> getEvents() {
     return new ArrayList<DedupedLogEvent>(events.values());
   }
-  
+
   synchronized public void clear() {
     events.clear();
   }

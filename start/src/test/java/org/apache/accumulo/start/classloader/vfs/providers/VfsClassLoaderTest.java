@@ -32,25 +32,25 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class VfsClassLoaderTest extends AccumuloDFSBase {
-  
+
   private static final Path TEST_DIR = new Path(HDFS_URI + "/test-dir");
 
   private FileSystem hdfs = null;
   private VFSClassLoader cl = null;
-  
+
   @Before
   public void setup() throws Exception {
-    
+
     this.hdfs = cluster.getFileSystem();
     this.hdfs.mkdirs(TEST_DIR);
-    
+
     //Copy jar file to TEST_DIR
     URL jarPath = this.getClass().getResource("/HelloWorld.jar");
     Path src = new Path(jarPath.toURI().toString());
     Path dst = new Path(TEST_DIR, src.getName());
     this.hdfs.copyFromLocalFile(src, dst);
-    
-    
+
+
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
     FileObject[] dirContents = testDir.getChildren();
 
@@ -64,7 +64,7 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     Object o = helloWorldClass.newInstance();
     Assert.assertEquals("Hello World!", o.toString());
   }
-  
+
   @Test
   public void testFileMonitor() throws Exception {
     MyFileMonitor listener = new MyFileMonitor();
@@ -73,7 +73,7 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
     monitor.addFile(testDir);
     monitor.start();
-    
+
     //Copy jar file to a new file name
     URL jarPath = this.getClass().getResource("/HelloWorld.jar");
     Path src = new Path(jarPath.toURI().toString());
@@ -91,28 +91,28 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
 
     Thread.sleep(2000);
     Assert.assertTrue(listener.isFileChanged());
-    
+
     this.hdfs.delete(dst, false);
     Thread.sleep(2000);
     Assert.assertTrue(listener.isFileDeleted());
-    
+
     monitor.stop();
-    
+
   }
-  
-  
+
+
   @After
   public void tearDown() throws Exception {
     this.hdfs.delete(TEST_DIR, true);
   }
-  
-  
+
+
   public static class MyFileMonitor implements FileListener {
 
     private boolean fileChanged = false;
     private boolean fileDeleted = false;
     private boolean fileCreated = false;
-    
+
     public void fileCreated(FileChangeEvent event) throws Exception {
       //System.out.println(event.getFile() + " created");
       this.fileCreated = true;
@@ -139,7 +139,7 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     public boolean isFileCreated() {
       return fileCreated;
     }
-    
-    
+
+
   }
 }
