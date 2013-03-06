@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -54,6 +55,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.security.AuditLevel;
+import org.apache.accumulo.core.security.handler.Authenticator;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -244,17 +246,28 @@ public class Shell extends ShellOptions {
     String sysUser = System.getProperty("user.name");
     if (sysUser == null)
       sysUser = "root";
-    String user = cl.getOptionValue(usernameOption.getOpt(), sysUser);
+    String user = cl.getOptionValue(usernameOption.getOpt());
+    String principal = cl.getOptionValue(principalOption.getOpt(), sysUser);
     
     String passw = cl.getOptionValue(passwOption.getOpt(), null);
     tabCompletion = !cl.hasOption(tabCompleteOption.getLongOpt());
+    String[] loginOptions = cl.getOptionValues(loginOption.getOpt());
     
     // Use a fake (Mock), ZK, or HdfsZK Accumulo instance
     setInstance(cl);
     
     // process default parameters if unspecified
-    byte[] pass;
     try {
+      if (loginOptions != null) {
+        Properties props = new Properties();
+        for (String loginOption : loginOptions)
+          for (String lo : loginOption.split(",")) {
+            String[] split = lo.split("=");
+            props.put(split[0], split[1]);
+          }
+        this.token = instance.getAuthenticator().login(props);
+      }
+
       if (!cl.hasOption(fakeOption.getLongOpt())) {
         DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), "shell", InetAddress.getLocalHost()
             .getHostName());
@@ -267,19 +280,45 @@ public class Shell extends ShellOptions {
         }
       });
       
-      if (passw == null)
-        passw = readMaskedLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
-      if (passw == null) {
+      if (passw != null) {
+        this.token = new PasswordToken(passw);
+      }
+      
+      if (this.token == null) {
+        List<Set<Authenticator.AuthProperty>> loginList = instance.getAuthenticator().getProperties();
+        int loginMethod = 0;
+        if (loginList.size() > 1) {
+          System.out.println("Please select your preferred login method: ");
+          int i = 0;
+          for (Set<Authenticator.AuthProperty> set : loginList) {
+            System.out.println(i + " " + set);
+            i++;
+          }
+          loginMethod = Integer.parseInt(reader.readLine());
+        }
+        Set<Authenticator.AuthProperty> chosenMethod = loginList.get(loginMethod);
+        Properties props = new Properties();
+        for (Authenticator.AuthProperty prop : chosenMethod) {
+          String value;
+          if (prop.getMask())
+            value = readMaskedLine("Enter " + prop + ": ", '*');
+          else
+            value = reader.readLine("Enter " + prop + ": ");
+          props.setProperty(prop.getKey(), value);
+        }
+        this.token = instance.getAuthenticator().login(props);
+      }
+      if (this.token == null) {
         reader.printNewline();
         configError = true;
         return true;
       } // user canceled
       
-      pass = passw.getBytes();
       this.setTableName("");
       this.principal = user;
-      this.token = new PasswordToken(pass);
-      connector = instance.getConnector(principal, token);
+      if (this.principal == null)
+        this.principal = principal;
+      connector = instance.getConnector(this.principal, token);
       
     } catch (Exception e) {
       printException(e);
@@ -952,7 +991,6 @@ public class Shell extends ShellOptions {
   public AuthenticationToken getToken() {
     return token;
   }
-  
   
   /**
    * Return the formatter for the current table.
