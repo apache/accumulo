@@ -268,6 +268,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   public void setTabUserName(String name) {
     state.set("table" + userName, name);
+    state.set(name + userExists, Boolean.toString(false));
   }
   
   public void setSysUserName(String name) {
