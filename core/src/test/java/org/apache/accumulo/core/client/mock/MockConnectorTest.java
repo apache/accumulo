@@ -96,7 +96,7 @@ public class MockConnectorTest {
   @Test
   public void testAggregation() throws Exception {
     MockInstance mockInstance = new MockInstance();
-    Connector c = mockInstance.getConnector("root", new byte[] {});
+    Connector c = mockInstance.getConnector("root", new PasswordToken(""));
     String table = "perDayCounts";
     c.tableOperations().create(table);
     IteratorSetting is = new IteratorSetting(10, "String Summation", SummingCombiner.class);
@@ -343,8 +343,8 @@ public class MockConnectorTest {
   public void testMockConnectorReturnsCorrectInstance() throws AccumuloException, AccumuloSecurityException {
     String name = "an-interesting-instance-name";
     Instance mockInstance = new MockInstance(name);
-    assertEquals(mockInstance, mockInstance.getConnector("foo", "bar").getInstance());
-    assertEquals(name, mockInstance.getConnector("foo", "bar").getInstance().getInstanceName());
+    assertEquals(mockInstance, mockInstance.getConnector("foo", new PasswordToken("bar")).getInstance());
+    assertEquals(name, mockInstance.getConnector("foo", new PasswordToken("bar")).getInstance().getInstanceName());
   }
   
 }

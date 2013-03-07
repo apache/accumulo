@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -49,7 +50,7 @@ public class FindMaxTest extends TestCase {
   public void test1() throws Exception {
     MockInstance mi = new MockInstance();
     
-    Connector conn = mi.getConnector("root", "");
+    Connector conn = mi.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("foo");
     
     BatchWriter bw = conn.createBatchWriter("foo", new BatchWriterConfig());

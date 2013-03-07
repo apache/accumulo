@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -37,7 +38,7 @@ public class CloneTest extends TestCase {
   
   public void testNoFiles() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector("", new PasswordToken(""));
     
     KeyExtent ke = new KeyExtent(new Text("0"), null, null);
     Mutation mut = ke.getPrevRowUpdateMutation();
@@ -65,7 +66,7 @@ public class CloneTest extends TestCase {
   
   public void testFilesChange() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector("", new PasswordToken(""));
     
     KeyExtent ke = new KeyExtent(new Text("0"), null, null);
     Mutation mut = ke.getPrevRowUpdateMutation();
@@ -117,7 +118,7 @@ public class CloneTest extends TestCase {
   // test split where files of children are the same
   public void testSplit1() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector("", new PasswordToken(""));
     
     BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
@@ -159,7 +160,7 @@ public class CloneTest extends TestCase {
   // test split where files of children differ... like majc and split occurred
   public void testSplit2() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector("", new PasswordToken(""));
     
     BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
@@ -230,7 +231,7 @@ public class CloneTest extends TestCase {
   // test two tablets splitting into four
   public void testSplit3() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector("", new PasswordToken(""));
     
     BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
@@ -277,7 +278,7 @@ public class CloneTest extends TestCase {
   public void testClonedMarker() throws Exception {
     
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector("", new PasswordToken(""));
     
     BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
@@ -341,7 +342,7 @@ public class CloneTest extends TestCase {
   // test two tablets splitting into four
   public void testMerge() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector("", new PasswordToken(""));
     
     BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     

@@ -24,6 +24,7 @@ import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.fs.FileSystem;
@@ -55,7 +56,7 @@ public class BulkImportDirectory {
       final Path failureDirPath = new Path(failureDir);
       fs.delete(failureDirPath, true);
       fs.mkdirs(failureDirPath);
-      HdfsZooInstance.getInstance().getConnector(user, pass).tableOperations().importDirectory(tableName, dir, failureDir, false);
+      HdfsZooInstance.getInstance().getConnector(user, new PasswordToken(pass)).tableOperations().importDirectory(tableName, dir, failureDir, false);
     } else {
       opts.parseArgs(BulkImportDirectory.class.getName(), args);
       fs.delete(new Path(opts.failures), true);

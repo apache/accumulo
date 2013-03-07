@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -38,7 +39,7 @@ public class TestBatchScanner821 {
   @Test
   public void test() throws Exception {
     MockInstance inst = new MockInstance();
-    Connector conn = inst.getConnector("root", "");
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     for (String row : "A,B,C,D".split(",")) {

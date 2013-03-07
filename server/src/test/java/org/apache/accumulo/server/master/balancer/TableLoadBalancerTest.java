@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -105,7 +106,7 @@ public class TableLoadBalancerTest {
     @Override
     protected TableOperations getTableOperations() {
       try {
-        return instance.getConnector("user", "pass").tableOperations();
+        return instance.getConnector("user", new PasswordToken("pass")).tableOperations();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -126,7 +127,7 @@ public class TableLoadBalancerTest {
   
   @Test
   public void test() throws Exception {
-    Connector c = instance.getConnector("user", "pass".getBytes());
+    Connector c = instance.getConnector("user", new PasswordToken("pass"));
     c.tableOperations().create("t1");
     c.tableOperations().create("t2");
     c.tableOperations().create("t3");

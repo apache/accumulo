@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -82,7 +83,7 @@ public class RowFilterTest extends TestCase {
 
   public void test1() throws Exception {
     MockInstance instance = new MockInstance("rft1");
-    Connector conn = instance.getConnector("", "".getBytes());
+    Connector conn = instance.getConnector("", new PasswordToken(""));
     
     conn.tableOperations().create("table1");
     BatchWriter bw = conn.createBatchWriter("table1", new BatchWriterConfig());

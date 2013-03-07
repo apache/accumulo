@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -69,7 +70,7 @@ public class TransformingIteratorTest {
   @Before
   public void setUpMockAccumulo() throws Exception {
     MockInstance instance = new MockInstance("test");
-    connector = instance.getConnector("user", "password");
+    connector = instance.getConnector("user", new PasswordToken("password"));
     connector.securityOperations().changeUserAuthorizations("user", authorizations);
     
     if (connector.tableOperations().exists(TABLE_NAME))
@@ -278,7 +279,7 @@ public class TransformingIteratorTest {
   @Test
   public void testDeepCopy() throws Exception {
     MockInstance instance = new MockInstance("test");
-    Connector connector = instance.getConnector("user", "password");
+    Connector connector = instance.getConnector("user", new PasswordToken("password"));
     
     connector.tableOperations().create("shard_table");
     

@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -272,7 +273,7 @@ public class IntersectingIteratorTest extends TestCase {
   public void testWithBatchScanner() throws Exception {
     Value empty = new Value(new byte[] {});
     MockInstance inst = new MockInstance("mockabye");
-    Connector connector = inst.getConnector("user", "pass");
+    Connector connector = inst.getConnector("user", new PasswordToken("pass"));
     connector.tableOperations().create("index");
     BatchWriter bw = connector.createBatchWriter("index", new BatchWriterConfig());
     Mutation m = new Mutation("000012");

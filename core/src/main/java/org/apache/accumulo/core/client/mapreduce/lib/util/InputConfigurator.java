@@ -480,9 +480,6 @@ public class InputConfigurator extends ConfiguratorBase {
     if ("MockInstance".equals(instanceType))
       return new MockTabletLocator();
     Instance instance = getInstance(implementingClass, conf);
-    String principal = getPrincipal(implementingClass, conf);
-    String tokenClass = getTokenClass(implementingClass, conf);
-    byte[] token = getToken(implementingClass, conf);
     String tableName = getInputTableName(implementingClass, conf);
     return TabletLocator.getInstance(instance, new Text(Tables.getTableId(instance, tableName)));
   }

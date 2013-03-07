@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -75,7 +76,7 @@ public class TabletIteratorTest extends TestCase {
   // simulate a merge happening while iterating over tablets
   public void testMerge() throws Exception {
     MockInstance mi = new MockInstance();
-    Connector conn = mi.getConnector("", "");
+    Connector conn = mi.getConnector("", new PasswordToken(""));
     
     KeyExtent ke1 = new KeyExtent(new Text("0"), new Text("m"), null);
     Mutation mut1 = ke1.getPrevRowUpdateMutation();

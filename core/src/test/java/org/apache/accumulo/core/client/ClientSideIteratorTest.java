@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -64,7 +65,7 @@ public class ClientSideIteratorTest {
   @Test
   public void testIntersect() throws Exception {
     Instance instance = new MockInstance("local");
-    Connector conn = instance.getConnector("root", "".getBytes());
+    Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("intersect");
     BatchWriter bw = conn.createBatchWriter("intersect", new BatchWriterConfig());
     Mutation m = new Mutation("part1");
@@ -94,7 +95,7 @@ public class ClientSideIteratorTest {
   @Test
   public void testVersioning() throws Exception {
     final Instance instance = new MockInstance("local");
-    final Connector conn = instance.getConnector("root", "".getBytes());
+    final Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("table");
     conn.tableOperations().removeProperty("table", "table.iterator.scan.vers");
     conn.tableOperations().removeProperty("table", "table.iterator.majc.vers");
