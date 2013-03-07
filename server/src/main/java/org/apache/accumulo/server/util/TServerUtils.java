@@ -215,7 +215,7 @@ public class TServerUtils {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(port);
     THsHaServer.Args options = new THsHaServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
-    options.transportFactory(ThriftUtil.transportFactory());
+    options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
     /*
      * Create our own very special thread pool.
      */

@@ -17,9 +17,9 @@
 package org.apache.accumulo.core.util;
 
 import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.ClientExec;
@@ -29,6 +29,8 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -166,6 +168,23 @@ public class ThriftUtil {
     return transportFactory;
   }
   
+  private final static Map<Integer,TTransportFactory> factoryCache = new HashMap<Integer,TTransportFactory>();
+  synchronized public static TTransportFactory transportFactory(int maxFrameSize) {
+    TTransportFactory factory = factoryCache.get(maxFrameSize);
+    if(factory == null)
+    {
+      factory = new TFramedTransport.Factory(maxFrameSize);
+      factoryCache.put(maxFrameSize,factory);
+    }
+    return factory;
+  }
+
+  synchronized public static TTransportFactory transportFactory(long maxFrameSize) {
+    if(maxFrameSize > Integer.MAX_VALUE || maxFrameSize < 1)
+      throw new RuntimeException("Thrift transport frames are limited to "+Integer.MAX_VALUE);
+    return transportFactory((int)maxFrameSize);
+  }
+
   public static TProtocolFactory protocolFactory() {
     return protocolFactory;
   }
