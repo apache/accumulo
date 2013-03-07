@@ -323,6 +323,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     doLookups(binnedRanges, receiver, columns);
   }
   
+  private String getTableInfo() {
+    return Tables.getPrintableTableInfoFromId(instance, table);
+  }
+  
   private class QueryTask implements Runnable {
     
     private String tsLocation;
@@ -376,6 +380,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         locator.invalidateCache(tsLocation);
         log.debug(e.getMessage(), e);
       } catch (AccumuloSecurityException e) {
+        e.setTableInfo(getTableInfo());
         log.debug(e.getMessage(), e);
         
         Tables.clearCache(instance);
@@ -405,6 +410,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               log.debug(e.getMessage(), e);
               fatalException = e;
             } catch (AccumuloSecurityException e) {
+              e.setTableInfo(getTableInfo());
               log.debug(e.getMessage(), e);
               fatalException = e;
             } catch (Throwable t) {

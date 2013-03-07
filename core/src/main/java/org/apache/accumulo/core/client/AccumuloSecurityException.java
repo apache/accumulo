@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client;
 
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * An Accumulo Exception for security violations, authentication failures, authorization failures, etc.
@@ -61,6 +62,7 @@ public class AccumuloSecurityException extends Exception {
   }
   
   private String user;
+  private String tableInfo;
   private SecurityErrorCode errorCode;
   
   /**
@@ -89,11 +91,43 @@ public class AccumuloSecurityException extends Exception {
    *          the relevant user for the security violation
    * @param errorcode
    *          the specific reason for this exception
+   * @param tableInfo
+   *          the relevant tableInfo for the security violation 
+   * @param cause
+   *          the exception that caused this violation
+   */
+  public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode, final String tableInfo, final Throwable cause) {
+    super(getDefaultErrorMessage(errorcode), cause);
+    this.user = user;
+    this.errorCode = errorcode == null ? SecurityErrorCode.DEFAULT_SECURITY_ERROR : errorcode;
+    this.tableInfo = tableInfo;
+  }
+  
+  /**
+   * @param user
+   *          the relevant user for the security violation
+   * @param errorcode
+   *          the specific reason for this exception
    */
   public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode) {
     super(getDefaultErrorMessage(errorcode));
     this.user = user;
     this.errorCode = errorcode == null ? SecurityErrorCode.DEFAULT_SECURITY_ERROR : errorcode;
+  }
+  
+  /**
+   * @param user
+   *          the relevant user for the security violation
+   * @param errorcode
+   *          the specific reason for this exception
+   * @param tableInfo
+   *          the relevant tableInfo for the security violation 
+   */
+  public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode, final String tableInfo) {
+    super(getDefaultErrorMessage(errorcode));
+    this.user = user;
+    this.errorCode = errorcode == null ? SecurityErrorCode.DEFAULT_SECURITY_ERROR : errorcode;
+    this.tableInfo = tableInfo;
   }
   
   /**
@@ -108,6 +142,17 @@ public class AccumuloSecurityException extends Exception {
   }
   
   /**
+   * @return the relevant tableInfo for the security violation
+   */
+  public String getTableInfo() {
+    return tableInfo;
+  }
+  
+  public void setTableInfo(String tableInfo) {
+    this.tableInfo = tableInfo;
+  }
+  
+  /**
    * @return the specific reason for this exception
    */
   public SecurityErrorCode getErrorCode() {
@@ -115,6 +160,13 @@ public class AccumuloSecurityException extends Exception {
   }
   
   public String getMessage() {
-    return "Error " + errorCode + " for user " + user + " - " + super.getMessage();
+    StringBuilder message = new StringBuilder();
+    message.append("Error ").append(errorCode);
+    message.append(" for user ").append(user);
+    if(!StringUtils.isEmpty(tableInfo)) {
+      message.append(" on table ").append(tableInfo);
+    }
+    message.append(" - ").append(super.getMessage());
+    return message.toString();
   }
 }

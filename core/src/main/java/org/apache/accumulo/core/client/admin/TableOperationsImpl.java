@@ -80,6 +80,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MetadataTable;
@@ -289,7 +290,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Tables.clearCache(instance);
       return ret;
     } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
+      String tableName = ByteBufferUtil.toString(args.get(0));
+      String tableInfo = Tables.getPrintableTableInfoFromName(instance, tableName);
+      throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case EXISTS:

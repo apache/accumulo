@@ -300,6 +300,7 @@ public class ThriftScanner {
           Tables.clearCache(instance);
           if (!Tables.exists(instance, scanState.tableName.toString()))
             throw new TableDeletedException(scanState.tableName.toString());
+          e.setTableInfo(Tables.getPrintableTableInfoFromId(instance, scanState.tableName.toString()));
           throw e;
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(loc.tablet_location, tae);

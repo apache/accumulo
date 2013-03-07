@@ -102,6 +102,26 @@ public class Tables {
     return tableId == null ? "(NAME:" + tableName + ")" : tableId;
   }
   
+  public static String getPrintableTableInfoFromId(Instance instance, String tableId) {
+    String tableName = null;
+    try {
+      tableName = getTableName(instance, tableId);
+    } catch (TableNotFoundException e) {
+      //handled in the string formatting
+    }
+    return tableName == null ? String.format("?(ID:%s)", tableId) : String.format("%s(ID:%s)", tableName, tableId);
+  }
+  
+  public static String getPrintableTableInfoFromName(Instance instance, String tableName) {
+    String tableId = null;
+    try {
+      tableId = getTableId(instance, tableName);
+    } catch (TableNotFoundException e) {
+      //handled in the string formatting
+    }
+    return tableId == null ? String.format("%s(?)", tableName) : String.format("%s(ID:%s)", tableName, tableId);
+  }
+  
   public static TableState getTableState(Instance instance, String tableId) {
     String statePath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
     ZooCache zc = getZooCache(instance);

@@ -522,7 +522,7 @@ public class TabletServerBatchWriter {
   private void checkForFailures() throws MutationsRejectedException {
     if (somethingFailed) {
       List<ConstraintViolationSummary> cvsList = violations.asList();
-      throw new MutationsRejectedException(cvsList, new HashMap<KeyExtent,Set<SecurityErrorCode>>(authorizationFailures), serverSideErrors, unknownErrors, lastUnknownError);
+      throw new MutationsRejectedException(instance, cvsList, new HashMap<KeyExtent,Set<SecurityErrorCode>>(authorizationFailures), serverSideErrors, unknownErrors, lastUnknownError);
     }
   }
   
