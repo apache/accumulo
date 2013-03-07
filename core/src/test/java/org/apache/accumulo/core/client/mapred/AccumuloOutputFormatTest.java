@@ -179,7 +179,7 @@ public class AccumuloOutputFormatTest {
   @Test
   public void testMR() throws Exception {
     MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
-    Connector c = mockInstance.getConnector("root", "");
+    Connector c = mockInstance.getConnector("root", new PasswordToken(""));
     c.tableOperations().create(TEST_TABLE_1);
     c.tableOperations().create(TEST_TABLE_2);
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());

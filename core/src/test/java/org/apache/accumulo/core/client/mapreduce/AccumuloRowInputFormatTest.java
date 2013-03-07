@@ -181,7 +181,7 @@ public class AccumuloRowInputFormatTest {
   @Test
   public void test() throws Exception {
     final MockInstance instance = new MockInstance(INSTANCE_NAME);
-    final Connector conn = instance.getConnector("root", "".getBytes());
+    final Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create(TEST_TABLE_1);
     BatchWriter writer = null;
     try {

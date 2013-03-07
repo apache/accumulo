@@ -89,7 +89,7 @@ public class TestMergeState {
   @Test
   public void test() throws Exception {
     Instance instance = new MockInstance();
-    Connector connector = instance.getConnector("root", "");
+    Connector connector = instance.getConnector("root", new PasswordToken(""));
     BatchWriter bw = connector.createBatchWriter("!METADATA", new BatchWriterConfig());
     
     // Create a fake METADATA table with these splits

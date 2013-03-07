@@ -19,6 +19,9 @@ package org.apache.accumulo.server.trace;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.trace.instrument.Span;
@@ -31,6 +34,8 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -156,7 +161,25 @@ public class TraceServer implements Watcher {
     table = conf.get(Property.TRACE_TABLE);
     while (true) {
       try {
-        connector = serverConfiguration.getInstance().getConnector(conf.get(Property.TRACE_USER), conf.get(Property.TRACE_PASSWORD).getBytes());
+        String principal = conf.get(Property.TRACE_PRINCIPAL);
+        if (principal == null)
+          principal = conf.get(Property.TRACE_USER);
+        AuthenticationToken at;
+        Map<String, String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_LOGIN_PROPERTIES);
+        if (loginMap == null)
+          at = new PasswordToken(conf.get(Property.TRACE_PASSWORD).getBytes());
+        else{
+          Properties props = new Properties();
+          int prefixLength = Property.TRACE_LOGIN_PROPERTIES.getKey().length()+1;
+          for (Entry<String, String> entry : loginMap.entrySet()) {
+            props.put(entry.getKey().substring(prefixLength), entry.getValue());
+          }
+          if (!props.containsKey("principal"))
+            props.put("principal", principal);
+          at = serverConfiguration.getInstance().getAuthenticator().login(props);
+        }
+        
+        connector = serverConfiguration.getInstance().getConnector(principal, at);
         if (!connector.tableOperations().exists(table)) {
           connector.tableOperations().create(table);
         }

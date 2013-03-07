@@ -267,7 +267,7 @@ public class AccumuloInputFormatTest {
   @Test
   public void testMap() throws Exception {
     MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
-    Connector c = mockInstance.getConnector("root", "");
+    Connector c = mockInstance.getConnector("root", new PasswordToken(""));
     c.tableOperations().create(TEST_TABLE_1);
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {

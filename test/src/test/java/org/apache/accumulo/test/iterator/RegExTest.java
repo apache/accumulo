@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -45,7 +46,7 @@ public class RegExTest {
   
   @Test
   public void runTest() throws Exception {
-    conn = inst.getConnector("user", "pass");
+    conn = inst.getConnector("user", new PasswordToken("pass"));
     conn.tableOperations().create("ret");
     BatchWriter bw = conn.createBatchWriter("ret", new BatchWriterConfig());
     

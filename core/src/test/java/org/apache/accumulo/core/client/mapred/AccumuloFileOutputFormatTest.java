@@ -67,7 +67,7 @@ public class AccumuloFileOutputFormatTest {
     folder.create();
     
     MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
-    Connector c = mockInstance.getConnector("root", new byte[0]);
+    Connector c = mockInstance.getConnector("root", new PasswordToken(""));
     c.tableOperations().create(EMPTY_TABLE);
     c.tableOperations().create(TEST_TABLE);
     c.tableOperations().create(BAD_TABLE);
