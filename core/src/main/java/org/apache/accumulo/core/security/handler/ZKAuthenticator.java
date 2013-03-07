@@ -26,17 +26,20 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.log4j.Logger;
 
 /**
  * 
  */
 public class ZKAuthenticator implements Authenticator {
+  Logger log = Logger.getLogger(ZKAuthenticator.class);
   
   @Override
   public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
     if (properties.containsKey("password"))
       return new PasswordToken(properties.getProperty("password"));
-    throw new AccumuloSecurityException(properties.getProperty("user"), SecurityErrorCode.INSUFFICIENT_PROPERTIES);
+    
+    throw new AccumuloSecurityException(properties.getProperty("principal"), SecurityErrorCode.INSUFFICIENT_PROPERTIES);
   }
 
   @Override
@@ -44,6 +47,7 @@ public class ZKAuthenticator implements Authenticator {
     List<Set<AuthProperty>> toRet = new LinkedList<Set<AuthProperty>>();
     Set<AuthProperty> internal = new TreeSet<AuthProperty>();
     internal.add(new AuthProperty("password", "the password for the principal", true));
+    internal.add(new AuthProperty("principal", "option field to provide the principal, mostly used for better debug statements", false));
     toRet.add(internal);
     return toRet;
   }

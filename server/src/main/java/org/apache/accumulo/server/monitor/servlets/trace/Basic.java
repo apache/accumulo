@@ -19,6 +19,7 @@ package org.apache.accumulo.server.monitor.servlets.trace;
 import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -76,7 +77,12 @@ abstract class Basic extends BasicServlet {
       at = new PasswordToken(conf.get(Property.TRACE_PASSWORD).getBytes());
     else{
       Properties props = new Properties();
-      props.putAll(loginMap);
+      int prefixLength = Property.TRACE_LOGIN_PROPERTIES.getKey().length()+1;
+      for (Entry<String, String> entry : loginMap.entrySet()) {
+        props.put(entry.getKey().substring(prefixLength), entry.getValue());
+      }
+      if (!props.containsKey("principal"))
+        props.put("principal", principal);
       at = HdfsZooInstance.getInstance().getAuthenticator().login(props);
     }
     
