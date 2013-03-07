@@ -39,7 +39,10 @@ public enum Property {
       "Fully qualified class name of the class that implements the CryptoModule interface, to be used in setting up encryption at rest for the WAL and (future) other parts of the code.",
       true),
   CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING, "Describes the cipher suite to use for the write-ahead log", true),
-  CRYPTO_CIPHER_ALGORITHM_NAME("crypto.cipher.algorithm.name", "NullCipher", PropertyType.STRING,
+  CRYPTO_CIPHER_ALGORITHM_NAME(
+      "crypto.cipher.algorithm.name",
+      "NullCipher",
+      PropertyType.STRING,
       "States the name of the algorithm used in the corresponding cipher suite.  Do not make these different, unless you enjoy mysterious exceptions and bugs.",
       true),
   CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
@@ -105,8 +108,8 @@ public enum Property {
   MASTER_THREADCHECK("master.server.threadcheck.time", "1s", PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool."),
   MASTER_RECOVERY_DELAY("master.recovery.delay", "10s", PropertyType.TIMEDURATION,
       "When a tablet server's lock is deleted, it takes time for it to completely quit. This delay gives it time before log recoveries begin."),
-  MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation", "org.apache.accumulo.server.master.recovery.HadoopLogCloser",
-      PropertyType.CLASSNAME, "A class that implements a mechansim to steal write access to a file"),
+  MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation", "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
+      "A class that implements a mechansim to steal write access to a file"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run FAult-Tolerant Executions.  These are primarily table operations like merge."),
 
@@ -230,8 +233,6 @@ public enum Property {
   @Deprecated
   TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING, "The password for the user used to store distributed traces"),
   TRACE_LOGIN_PROPERTIES("trace.login", null, PropertyType.PREFIX, "The login credentials prefix for the principal used to store distributed traces"),
-  
->>>>>>> .merge-right.r1453623
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX, "Properties in this category affect tablet server treatment of tablets, but can be configured "
       + "on a per-table basis. Setting these properties in the site file will override the default globally "
@@ -342,13 +343,12 @@ public enum Property {
           + "You can enable post delegation for a context, which will load classes from the context first instead of the parent first.  "
           + "Do this by setting general.vfs.context.classpath.<name>.delegation=post, where <name> is your context name.  "
           + "If delegation is not specified, it defaults to loading from parent classloader first."),
- VFS_CLASSLOADER_CACHE_DIR(
-	    AccumuloVFSClassLoader.VFS_CACHE_DIR,
-	    new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache")
-		    .getAbsolutePath(),
-	    PropertyType.ABSOLUTEPATH,
-	    "Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM. This should be on local disk on each node with sufficient space. It defaults to /tmp",
-	    false);
+  VFS_CLASSLOADER_CACHE_DIR(
+      AccumuloVFSClassLoader.VFS_CACHE_DIR,
+      new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache").getAbsolutePath(),
+      PropertyType.ABSOLUTEPATH,
+      "Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM. This should be on local disk on each node with sufficient space. It defaults to /tmp",
+      false);
 
   private String key, defaultValue, description;
   private PropertyType type;
@@ -366,6 +366,7 @@ public enum Property {
     this(name, defaultValue, type, description, false);
   }
 
+  @Override
   public String toString() {
     return this.key;
   }
@@ -396,8 +397,9 @@ public enum Property {
 
   private static boolean isKeyValidlyPrefixed(String key) {
     for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix))
+      if (key.startsWith(prefix)) {
         return true;
+      }
     }
 
     return false;
@@ -454,14 +456,16 @@ public enum Property {
   }
 
   public static Property getPropertyByKey(String key) {
-    for (Property prop : Property.values())
-      if (prop.getKey().equals(key))
+    for (Property prop : Property.values()) {
+      if (prop.getKey().equals(key)) {
         return prop;
+      }
+    }
     return null;
   }
 
   /**
-   *
+   * 
    * @param key
    * @return true if this is a property whose value is expected to be a java class
    */
