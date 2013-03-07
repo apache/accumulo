@@ -8,4 +8,13 @@
             <property name="ignoreComments" value="true"/>
         </module>    
     </module>
+    <module name="NewlineAtEndOfFile">
+      <property name="lineSeparator" value="lf"/>
+      <!--property name="fileExtensions" value="java, xml, py"/-->
+    </module>
+
+<!--
+  EmptyBlock - 2013-Mar-06 - Accumulo has about 80 empty blocks.`
+-->
+
 </module>

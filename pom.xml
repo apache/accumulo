@@ -78,6 +78,7 @@
         <version>2.10</version>
         <configuration>
           <configLocation>contrib/checkstyle/checkstyle.xml</configLocation>
+          <excludes>**/thrift/*.java</excludes>
         </configuration>
       </plugin>
       <plugin>
