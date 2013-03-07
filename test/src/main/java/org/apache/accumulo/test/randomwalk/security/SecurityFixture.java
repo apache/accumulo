@@ -95,6 +95,7 @@ public class SecurityFixture extends Fixture {
     String systemUserName = WalkingSecurity.get(state).getSysUserName();
     log.debug("Dropping user: " + systemUserName);
     conn.securityOperations().dropLocalUser(systemUserName);
+    WalkingSecurity.clearInstance();
     
   }
 }

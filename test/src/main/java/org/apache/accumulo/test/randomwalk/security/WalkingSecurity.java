@@ -419,4 +419,8 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     toRet.add(internal);
     return toRet;
   }
+
+  public static void clearInstance() {
+    instance = null;
+  }
 }
