@@ -115,7 +115,15 @@ public class Config extends Test {
       Property property = tableSettings[choice].property;
       if (state.getConnector().tableOperations().exists(table)) {
         log.debug("Setting " + property.getKey() + " on " + table + " back to " + property.getDefaultValue());
-        state.getConnector().tableOperations().setProperty(table, property.getKey(), property.getDefaultValue());
+        try {
+          state.getConnector().tableOperations().setProperty(table, property.getKey(), property.getDefaultValue());
+        } catch (AccumuloException ex) {
+          if (ex.toString().contains("NoNode for")) {
+            // race condition for a table that has been deleted
+          } else {
+            throw ex;
+          }
+        }
       }
     }
     state.getMap().remove(LAST_SETTING);
