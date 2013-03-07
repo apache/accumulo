@@ -33,7 +33,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
 
 public class TraceCommand extends DebugCommand {
-
+  
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
@@ -85,7 +85,7 @@ public class TraceCommand extends DebugCommand {
     }
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "turns trace logging on or off";

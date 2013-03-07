@@ -38,53 +38,53 @@ public class MockAccumulo {
   final Map<String,String> systemProperties = new HashMap<String,String>();
   Map<String,MockUser> users = new HashMap<String,MockUser>();
   final FileSystem fs;
-
+  
   MockAccumulo(FileSystem fs) {
     this.fs = fs;
   }
-
+  
   {
     MockUser root = new MockUser("root", new PasswordToken(new byte[0]), Constants.NO_AUTHS);
     root.permissions.add(SystemPermission.SYSTEM);
     users.put(root.name, root);
     createTable("root", Constants.METADATA_TABLE_NAME, true, TimeType.LOGICAL);
   }
-
+  
   public FileSystem getFileSystem() {
     return fs;
   }
-
+  
   void setProperty(String key, String value) {
     systemProperties.put(key, value);
   }
-
+  
   String removeProperty(String key) {
     return systemProperties.remove(key);
   }
-
+  
   void createTable(String user, String table) {
     createTable(user, table, true, TimeType.MILLIS);
   }
-
+  
   public void addMutation(String table, Mutation m) {
     MockTable t = tables.get(table);
     t.addMutation(m);
   }
-
+  
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations) {
     return new MockBatchScanner(tables.get(tableName), authorizations);
   }
-
+  
   public void createTable(String username, String tableName, boolean useVersions, TimeType timeType) {
     MockTable t = new MockTable(useVersions, timeType);
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
     tables.put(tableName, t);
   }
-
+  
   public void addSplits(String tableName, SortedSet<Text> partitionKeys) {
     tables.get(tableName).addSplits(partitionKeys);
   }
-
+  
   public Collection<Text> getSplits(String tableName) {
     return tables.get(tableName).getSplits();
   }

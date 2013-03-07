@@ -27,12 +27,12 @@ public class OpTimer {
   private long t1;
   private long opid;
   private static AtomicLong nextOpid = new AtomicLong();
-
+  
   public OpTimer(Logger log, Level level) {
     this.log = log;
     this.level = level;
   }
-
+  
   public OpTimer start(String msg) {
     opid = nextOpid.getAndIncrement();
     if (log.isEnabledFor(level))
@@ -40,7 +40,7 @@ public class OpTimer {
     t1 = System.currentTimeMillis();
     return this;
   }
-
+  
   public void stop(String msg) {
     if (log.isEnabledFor(level)) {
       long t2 = System.currentTimeMillis();

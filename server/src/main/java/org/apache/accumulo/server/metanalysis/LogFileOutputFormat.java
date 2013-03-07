@@ -32,11 +32,11 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * Output format for Accumulo write ahead logs.
  */
 public class LogFileOutputFormat extends FileOutputFormat<LogFileKey,LogFileValue> {
-
+  
   private static class LogFileRecordWriter extends RecordWriter<LogFileKey,LogFileValue> {
-
+    
     private FSDataOutputStream out;
-
+    
     /**
      * @param outputPath
      * @throws IOException
@@ -44,7 +44,7 @@ public class LogFileOutputFormat extends FileOutputFormat<LogFileKey,LogFileValu
     public LogFileRecordWriter(Path outputPath) throws IOException {
       Configuration conf = new Configuration();
       FileSystem fs = FileSystem.get(conf);
-
+      
       out = fs.create(outputPath);
     }
 
@@ -52,13 +52,13 @@ public class LogFileOutputFormat extends FileOutputFormat<LogFileKey,LogFileValu
     public void close(TaskAttemptContext arg0) throws IOException, InterruptedException {
       out.close();
     }
-
+    
     @Override
     public void write(LogFileKey key, LogFileValue val) throws IOException, InterruptedException {
       key.write(out);
       val.write(out);
     }
-
+    
   }
 
   @Override
@@ -66,5 +66,5 @@ public class LogFileOutputFormat extends FileOutputFormat<LogFileKey,LogFileValu
     Path outputPath = getDefaultWorkFile(context, "");
     return new LogFileRecordWriter(outputPath);
   }
-
+  
 }

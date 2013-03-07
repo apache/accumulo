@@ -40,8 +40,8 @@ public class BulkImportDirectory {
     @Parameter(description="<username> <password> <tablename> <sourcedir> <failuredir>")
     List<String> args = new ArrayList<String>();
   }
-
-
+  
+  
   public static void main(String[] args) throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     final FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Opts opts = new Opts();

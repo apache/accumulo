@@ -29,16 +29,16 @@ import org.apache.log4j.Logger;
 public class DefaultCryptoModuleUtils {
 
   private static final Logger log = Logger.getLogger(DefaultCryptoModuleUtils.class);
-
+  
   public static SecureRandom getSecureRandom(String secureRNG, String secureRNGProvider) {
     SecureRandom secureRandom = null;
     try {
       secureRandom = SecureRandom.getInstance(secureRNG, secureRNGProvider);
-
+      
       // Immediately seed the generator
       byte[] throwAway = new byte[16];
       secureRandom.nextBytes(throwAway);
-
+      
     } catch (NoSuchAlgorithmException e) {
       log.error(String.format("Accumulo configuration file specified a secure random generator \"%s\" that was not found by any provider.", secureRNG));
       throw new RuntimeException(e);
@@ -51,7 +51,7 @@ public class DefaultCryptoModuleUtils {
 
   public static Cipher getCipher(String cipherSuite) {
     Cipher cipher = null;
-
+    
     if (cipherSuite.equals("NullCipher")) {
       cipher = new NullCipher();
     } else {
@@ -67,6 +67,6 @@ public class DefaultCryptoModuleUtils {
     }
     return cipher;
   }
-
-
+  
+  
 }

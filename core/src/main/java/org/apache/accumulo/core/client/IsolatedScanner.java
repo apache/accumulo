@@ -34,32 +34,32 @@ import org.apache.hadoop.io.Text;
 /**
  * A scanner that presents a row isolated view of an accumulo table. Rows are buffered in memory on the client side. If you think your rows may not fit into
  * memory, then you can provide an alternative row buffer factory to the constructor. This would allow rows to be buffered to disk for example.
- *
+ * 
  */
 
 public class IsolatedScanner extends ScannerOptions implements Scanner {
-
+  
   private static class RowBufferingIterator implements Iterator<Entry<Key,Value>> {
-
+    
     private Iterator<Entry<Key,Value>> source;
     private RowBuffer buffer;
     private Entry<Key,Value> nextRowStart;
     private Iterator<Entry<Key,Value>> rowIter;
     private ByteSequence lastRow = null;
     private long timeout;
-
+    
     private final Scanner scanner;
     private ScannerOptions opts;
     private Range range;
     private int batchSize;
-
+    
     private void readRow() {
-
+      
       ByteSequence row = null;
-
+      
       while (true) {
         buffer.clear();
-
+        
         try {
           if (nextRowStart != null) {
             buffer.add(nextRowStart);
@@ -70,10 +70,10 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
             buffer.add(entry);
             row = entry.getKey().getRowData();
           }
-
+          
           while (source.hasNext()) {
             Entry<Key,Value> entry = source.next();
-
+            
             if (entry.getKey().getRowData().equals(row)) {
               buffer.add(entry);
             } else {
@@ -81,16 +81,16 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
               break;
             }
           }
-
+          
           lastRow = row;
           rowIter = buffer.iterator();
           // System.out.println("lastRow <- "+lastRow + " "+buffer);
           return;
         } catch (IsolationException ie) {
           Range seekRange = null;
-
+          
           nextRowStart = null;
-
+          
           if (lastRow == null)
             seekRange = range;
           else {
@@ -102,21 +102,21 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
             }
             // System.out.println(seekRange);
           }
-
+          
           if (seekRange == null) {
             buffer.clear();
             rowIter = buffer.iterator();
             return;
           }
-
+          
           // wait a moment before retrying
           UtilWaitThread.sleep(100);
-
+          
           source = newIterator(seekRange);
         }
       }
     }
-
+    
     private Iterator<Entry<Key,Value>> newIterator(Range r) {
       synchronized (scanner) {
         scanner.enableIsolation();
@@ -124,99 +124,99 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
         scanner.setTimeout(timeout, TimeUnit.MILLISECONDS);
         scanner.setRange(r);
         setOptions((ScannerOptions) scanner, opts);
-
+        
         return scanner.iterator();
         // return new FaultyIterator(scanner.iterator());
       }
     }
-
+    
     public RowBufferingIterator(Scanner scanner, ScannerOptions opts, Range range, long timeout, int batchSize, RowBufferFactory bufferFactory) {
       this.scanner = scanner;
       this.opts = new ScannerOptions(opts);
       this.range = range;
       this.timeout = timeout;
       this.batchSize = batchSize;
-
+      
       buffer = bufferFactory.newBuffer();
-
+      
       this.source = newIterator(range);
-
+      
       readRow();
     }
-
+    
     @Override
     public boolean hasNext() {
       return rowIter.hasNext();
     }
-
+    
     @Override
     public Entry<Key,Value> next() {
       Entry<Key,Value> next = rowIter.next();
       if (!rowIter.hasNext()) {
         readRow();
       }
-
+      
       return next;
     }
-
+    
     @Override
     public void remove() {
       throw new UnsupportedOperationException();
     }
-
+    
   }
-
+  
   public static interface RowBufferFactory {
     RowBuffer newBuffer();
   }
-
+  
   public static interface RowBuffer extends Iterable<Entry<Key,Value>> {
     void add(Entry<Key,Value> entry);
-
+    
     @Override
     Iterator<Entry<Key,Value>> iterator();
-
+    
     void clear();
   }
-
+  
   public static class MemoryRowBufferFactory implements RowBufferFactory {
-
+    
     @Override
     public RowBuffer newBuffer() {
       return new MemoryRowBuffer();
     }
   }
-
+  
   public static class MemoryRowBuffer implements RowBuffer {
-
+    
     private ArrayList<Entry<Key,Value>> buffer = new ArrayList<Entry<Key,Value>>();
-
+    
     @Override
     public void add(Entry<Key,Value> entry) {
       buffer.add(entry);
     }
-
+    
     @Override
     public Iterator<Entry<Key,Value>> iterator() {
       return buffer.iterator();
     }
-
+    
     @Override
     public void clear() {
       buffer.clear();
     }
-
+    
   }
-
+  
   private Scanner scanner;
   private Range range;
   private int batchSize;
   private RowBufferFactory bufferFactory;
-
+  
   public IsolatedScanner(Scanner scanner) {
     this(scanner, new MemoryRowBufferFactory());
   }
-
+  
   public IsolatedScanner(Scanner scanner, RowBufferFactory bufferFactory) {
     this.scanner = scanner;
     this.range = scanner.getRange();
@@ -224,12 +224,12 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     this.batchSize = scanner.getBatchSize();
     this.bufferFactory = bufferFactory;
   }
-
+  
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, bufferFactory);
   }
-
+  
   @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
@@ -238,7 +238,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     else
       setTimeout(timeOut, TimeUnit.SECONDS);
   }
-
+  
   @Deprecated
   @Override
   public int getTimeOut() {
@@ -247,33 +247,33 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       return Integer.MAX_VALUE;
     return (int) timeout;
   }
-
+  
   @Override
   public void setRange(Range range) {
     this.range = range;
     ;
   }
-
+  
   @Override
   public Range getRange() {
     return range;
   }
-
+  
   @Override
   public void setBatchSize(int size) {
     this.batchSize = size;
   }
-
+  
   @Override
   public int getBatchSize() {
     return batchSize;
   }
-
+  
   @Override
   public void enableIsolation() {
     // aye aye captain, already done sir
   }
-
+  
   @Override
   public void disableIsolation() {
     throw new UnsupportedOperationException();

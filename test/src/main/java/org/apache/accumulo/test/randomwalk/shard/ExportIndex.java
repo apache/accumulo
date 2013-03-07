@@ -33,36 +33,36 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
- *
+ * 
  */
 public class ExportIndex extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
-
+    
     String indexTableName = (String) state.get("indexTableName");
     String tmpIndexTableName = indexTableName + "_tmp";
-
+    
     String exportDir = "/tmp/shard_export/" + indexTableName;
     String copyDir = "/tmp/shard_export/" + tmpIndexTableName;
-
+    
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-
+    
     fs.delete(new Path("/tmp/shard_export/" + indexTableName), true);
     fs.delete(new Path("/tmp/shard_export/" + tmpIndexTableName), true);
-
+    
     // disable spits, so that splits can be compared later w/o worrying one table splitting and the other not
     state.getConnector().tableOperations().setProperty(indexTableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "20G");
 
     long t1 = System.currentTimeMillis();
-
+    
     state.getConnector().tableOperations().flush(indexTableName, null, null, true);
     state.getConnector().tableOperations().offline(indexTableName);
-
+    
     long t2 = System.currentTimeMillis();
 
     state.getConnector().tableOperations().exportTable(indexTableName, exportDir);
-
+    
     long t3 = System.currentTimeMillis();
 
     // copy files
@@ -75,31 +75,31 @@ public class ExportIndex extends Test {
     }
 
     reader.close();
-
+    
     long t4 = System.currentTimeMillis();
-
+    
     state.getConnector().tableOperations().online(indexTableName);
     state.getConnector().tableOperations().importTable(tmpIndexTableName, copyDir);
-
+    
     long t5 = System.currentTimeMillis();
 
     fs.delete(new Path(exportDir), true);
     fs.delete(new Path(copyDir), true);
-
+    
     HashSet<Text> splits1 = new HashSet<Text>(state.getConnector().tableOperations().getSplits(indexTableName));
     HashSet<Text> splits2 = new HashSet<Text>(state.getConnector().tableOperations().getSplits(tmpIndexTableName));
-
+    
     if (!splits1.equals(splits2))
       throw new Exception("Splits not equals " + indexTableName + " " + tmpIndexTableName);
-
+    
     HashMap<String,String> props1 = new HashMap<String,String>();
     for (Entry<String,String> entry : state.getConnector().tableOperations().getProperties(indexTableName))
       props1.put(entry.getKey(), entry.getValue());
-
+    
     HashMap<String,String> props2 = new HashMap<String,String>();
     for (Entry<String,String> entry : state.getConnector().tableOperations().getProperties(tmpIndexTableName))
       props2.put(entry.getKey(), entry.getValue());
-
+    
     if (!props1.equals(props2))
       throw new Exception("Props not equals " + indexTableName + " " + tmpIndexTableName);
 
@@ -109,7 +109,7 @@ public class ExportIndex extends Test {
 
     log.debug("Imported " + tmpIndexTableName + " from " + indexTableName + " flush: " + (t2 - t1) + "ms export: " + (t3 - t2) + "ms copy:" + (t4 - t3)
         + "ms import:" + (t5 - t4) + "ms");
-
+    
   }
-
+  
 }

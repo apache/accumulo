@@ -25,7 +25,7 @@ package org.apache.accumulo.core.file.blockfile.cache;
 public interface BlockCache {
   /**
    * Add block to cache.
-   *
+   * 
    * @param blockName
    *          Zero-based file block number.
    * @param buf
@@ -34,31 +34,31 @@ public interface BlockCache {
    *          Whether block should be treated as in-memory
    */
   public CacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory);
-
+  
   /**
    * Add block to cache (defaults to not in-memory).
-   *
+   * 
    * @param blockName
    *          Zero-based file block number.
    * @param buf
    *          The block contents wrapped in a ByteBuffer.
    */
   public CacheEntry cacheBlock(String blockName, byte buf[]);
-
+  
   /**
    * Fetch block from cache.
-   *
+   * 
    * @param blockName
    *          Block number to fetch.
    * @return Block or null if block is not in the cache.
    */
   public CacheEntry getBlock(String blockName);
-
+  
   /**
    * Shutdown the cache.
    */
   public void shutdown();
-
+  
   /**
    * Get the maximum size of this cache.
    *

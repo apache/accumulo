@@ -27,36 +27,36 @@ import org.apache.thrift.transport.TTransportException;
 
 // Thrift-959 removed the small buffer from TSocket; this adds it back for servers
 public class TBufferedServerSocket extends TServerTransport {
-
+  
   // expose acceptImpl
   static class TServerSocket extends org.apache.thrift.transport.TServerSocket {
     public TServerSocket(ServerSocket serverSocket) {
       super(serverSocket);
     }
-
+    
     public TSocket acceptImplPublic() throws TTransportException {
       return acceptImpl();
     }
   }
-
+  
   final TServerSocket impl;
   final int bufferSize;
-
+  
   public TBufferedServerSocket(ServerSocket serverSocket, int bufferSize) {
     this.impl = new TServerSocket(serverSocket);
     this.bufferSize = bufferSize;
   }
-
+  
   @Override
   public void listen() throws TTransportException {
     impl.listen();
   }
-
+  
   @Override
   public void close() {
     impl.close();
   }
-
+  
   // Wrap accepted sockets using buffered IO
   @Override
   protected TTransport acceptImpl() throws TTransportException {
@@ -67,5 +67,5 @@ public class TBufferedServerSocket extends TServerTransport {
       throw new TTransportException(e);
     }
   }
-
+  
 }

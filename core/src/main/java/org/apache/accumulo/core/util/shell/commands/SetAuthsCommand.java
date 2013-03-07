@@ -33,7 +33,7 @@ public class SetAuthsCommand extends Command {
   private Option userOpt;
   private Option scanOptAuths;
   private Option clearOptAuths;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
@@ -42,17 +42,17 @@ public class SetAuthsCommand extends Command {
     Shell.log.debug("Changed record-level authorizations for user " + user);
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "sets the maximum scan authorizations for a user";
   }
-
+  
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();
@@ -69,7 +69,7 @@ public class SetAuthsCommand extends Command {
     o.addOption(userOpt);
     return o;
   }
-
+  
   @Override
   public int numArgs() {
     return 0;

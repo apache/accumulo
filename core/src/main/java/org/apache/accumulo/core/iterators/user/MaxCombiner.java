@@ -35,7 +35,7 @@ public class MaxCombiner extends LongCombiner {
     }
     return max;
   }
-
+  
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();

@@ -28,10 +28,10 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 
 /**
- *
+ * 
  */
 public class ZKAuthenticator implements Authenticator {
-
+  
   @Override
   public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
     if (properties.containsKey("password"))

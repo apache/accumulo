@@ -29,7 +29,7 @@ import org.apache.commons.cli.Options;
 
 public class DeleteShellterCommand extends Command {
   private Option nameOpt, allOpt, profileOpt;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
 
@@ -55,36 +55,36 @@ public class DeleteShellterCommand extends Command {
           Shell.log.info("Removed iterator " + name + " from profile " + profile + " (" + iterSettings.size() + " left)");
         }
       }
-
+      
     } else {
       Shell.log.info("No profile named " + profile);
     }
-
+    
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "deletes iterators profiles configured in this shell session";
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();
-
+    
     OptionGroup nameGroup = new OptionGroup();
-
+    
     nameOpt = new Option("n", "name", true, "iterator to delete");
     nameOpt.setArgName("itername");
-
+    
     allOpt = new Option("a", "all", false, "delete all scan iterators");
     allOpt.setArgName("all");
-
+    
     nameGroup.addOption(nameOpt);
     nameGroup.addOption(allOpt);
     nameGroup.setRequired(true);
     o.addOptionGroup(nameGroup);
-
+    
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setRequired(true);
     profileOpt.setArgName("profile");
@@ -92,7 +92,7 @@ public class DeleteShellterCommand extends Command {
 
     return o;
   }
-
+  
   @Override
   public int numArgs() {
     return 0;

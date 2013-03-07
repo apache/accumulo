@@ -23,21 +23,21 @@ import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.Mutation;
 
 public class UnsatisfiableConstraint implements Constraint {
-
+  
   private List<Short> violations;
   private String vDesc;
-
+  
   public UnsatisfiableConstraint(short vcode, String violationDescription) {
     this.violations = Collections.unmodifiableList(Collections.singletonList(vcode));
     this.vDesc = violationDescription;
   }
-
+  
   public List<Short> check(Environment env, Mutation mutation) {
     return violations;
   }
-
+  
   public String getViolationDescription(short violationCode) {
     return vDesc;
   }
-
+  
 }

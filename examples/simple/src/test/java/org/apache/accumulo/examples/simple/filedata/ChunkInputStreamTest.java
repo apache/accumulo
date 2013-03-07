@@ -47,7 +47,7 @@ public class ChunkInputStreamTest extends TestCase {
   List<Entry<Key,Value>> data;
   List<Entry<Key,Value>> baddata;
   List<Entry<Key,Value>> multidata;
-
+  
   {
     data = new ArrayList<Entry<Key,Value>>();
     addData(data, "a", "refs", "id\0ext", "A&B", "ext");
@@ -91,17 +91,17 @@ public class ChunkInputStreamTest extends TestCase {
     addData(multidata, "c", "~chunk", 100, 0, "A&B", "asdfjkl;");
     addData(multidata, "c", "~chunk", 100, 1, "B&C", "");
   }
-
+  
   public static void addData(List<Entry<Key,Value>> data, String row, String cf, String cq, String vis, String value) {
     data.add(new KeyValue(new Key(new Text(row), new Text(cf), new Text(cq), new Text(vis)), value.getBytes()));
   }
-
+  
   public static void addData(List<Entry<Key,Value>> data, String row, String cf, int chunkSize, int chunkCount, String vis, String value) {
     Text chunkCQ = new Text(FileDataIngest.intToBytes(chunkSize));
     chunkCQ.append(FileDataIngest.intToBytes(chunkCount), 0, 4);
     data.add(new KeyValue(new Key(new Text(row), new Text(cf), chunkCQ, new Text(vis)), value.getBytes()));
   }
-
+  
   public void testExceptionOnMultipleSetSourceWithoutClose() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
@@ -115,11 +115,11 @@ public class ChunkInputStreamTest extends TestCase {
     }
     cis.close();
   }
-
+  
   public void testExceptionOnGetVisBeforeClose() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
-
+    
     cis.setSource(pi);
     try {
       cis.getVisibilities();
@@ -130,13 +130,13 @@ public class ChunkInputStreamTest extends TestCase {
     cis.close();
     cis.getVisibilities();
   }
-
+  
   public void testReadIntoBufferSmallerThanChunks() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[5];
-
+    
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
-
+    
     cis.setSource(pi);
     int read;
     assertEquals(read = cis.read(b), 5);
@@ -144,7 +144,7 @@ public class ChunkInputStreamTest extends TestCase {
     assertEquals(read = cis.read(b), 3);
     assertEquals(new String(b, 0, read), "kl;");
     assertEquals(read = cis.read(b), -1);
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 5);
     assertEquals(new String(b, 0, read), "qwert");
@@ -153,7 +153,7 @@ public class ChunkInputStreamTest extends TestCase {
     assertEquals(read = cis.read(b), -1);
     assertEquals(cis.getVisibilities().toString(), "[A&B, B&C, D]");
     cis.close();
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 5);
     assertEquals(new String(b, 0, read), "asdfj");
@@ -166,11 +166,11 @@ public class ChunkInputStreamTest extends TestCase {
     assertEquals(read = cis.read(b), -1);
     assertEquals(cis.getVisibilities().toString(), "[A&B]");
     cis.close();
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), -1);
     cis.close();
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 5);
     assertEquals(new String(b, 0, read), "asdfj");
@@ -178,53 +178,53 @@ public class ChunkInputStreamTest extends TestCase {
     assertEquals(new String(b, 0, read), "kl;");
     assertEquals(read = cis.read(b), -1);
     cis.close();
-
+    
     assertFalse(pi.hasNext());
   }
-
+  
   public void testReadIntoBufferLargerThanChunks() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
     int read;
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);
     assertEquals(new String(b, 0, read), "asdfjkl;");
     assertEquals(read = cis.read(b), -1);
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 10);
     assertEquals(new String(b, 0, read), "qwertyuiop");
     assertEquals(read = cis.read(b), -1);
     assertEquals(cis.getVisibilities().toString(), "[A&B, B&C, D]");
     cis.close();
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 16);
     assertEquals(new String(b, 0, read), "asdfjkl;asdfjkl;");
     assertEquals(read = cis.read(b), -1);
     assertEquals(cis.getVisibilities().toString(), "[A&B]");
     cis.close();
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), -1);
     cis.close();
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);
     assertEquals(new String(b, 0, read), "asdfjkl;");
     assertEquals(read = cis.read(b), -1);
     cis.close();
-
+    
     assertFalse(pi.hasNext());
   }
-
+  
   public void testWithAccumulo() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException {
     Connector conn = new MockInstance().getConnector("root", "".getBytes());
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
-
+    
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());
@@ -232,46 +232,46 @@ public class ChunkInputStreamTest extends TestCase {
       bw.addMutation(m);
     }
     bw.close();
-
+    
     Scanner scan = conn.createScanner("test", new Authorizations("A", "B", "C", "D"));
-
+    
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
     int read;
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(scan.iterator());
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);
     assertEquals(new String(b, 0, read), "asdfjkl;");
     assertEquals(read = cis.read(b), -1);
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 10);
     assertEquals(new String(b, 0, read), "qwertyuiop");
     assertEquals(read = cis.read(b), -1);
     assertEquals(cis.getVisibilities().toString(), "[A&B, B&C, D]");
     cis.close();
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 16);
     assertEquals(new String(b, 0, read), "asdfjkl;asdfjkl;");
     assertEquals(read = cis.read(b), -1);
     assertEquals(cis.getVisibilities().toString(), "[A&B]");
     cis.close();
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), -1);
     cis.close();
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);
     assertEquals(new String(b, 0, read), "asdfjkl;");
     assertEquals(read = cis.read(b), -1);
     cis.close();
-
+    
     assertFalse(pi.hasNext());
   }
-
+  
   private static void assumeExceptionOnRead(ChunkInputStream cis, byte[] b) {
     try {
       cis.read(b);
@@ -281,7 +281,7 @@ public class ChunkInputStreamTest extends TestCase {
       assertNull(null);
     }
   }
-
+  
   private static void assumeExceptionOnClose(ChunkInputStream cis) {
     try {
       cis.close();
@@ -291,41 +291,41 @@ public class ChunkInputStreamTest extends TestCase {
       assertNull(null);
     }
   }
-
+  
   public void testBadData() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
     int read;
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(baddata.iterator());
-
+    
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
     assumeExceptionOnClose(cis);
     // can still get visibilities after exception -- bad?
     assertEquals(cis.getVisibilities().toString(), "[A]");
-
+    
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
     assumeExceptionOnClose(cis);
     assertEquals(cis.getVisibilities().toString(), "[B, C]");
-
+    
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
     assumeExceptionOnClose(cis);
     assertEquals(cis.getVisibilities().toString(), "[D, E]");
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);
     assertEquals(new String(b, 0, read), "asdfjkl;");
     assertEquals(read = cis.read(b), -1);
     assertEquals(cis.getVisibilities().toString(), "[F, G]");
     cis.close();
-
+    
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
     cis.close();
     assertEquals(cis.getVisibilities().toString(), "[I, J]");
-
+    
     try {
       cis.setSource(pi);
       assertNotNull(null);
@@ -334,49 +334,49 @@ public class ChunkInputStreamTest extends TestCase {
     }
     assumeExceptionOnClose(cis);
     assertEquals(cis.getVisibilities().toString(), "[K]");
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), -1);
     assertEquals(cis.getVisibilities().toString(), "[L]");
     cis.close();
-
+    
     assertFalse(pi.hasNext());
-
+    
     pi = new PeekingIterator<Entry<Key,Value>>(baddata.iterator());
     cis.setSource(pi);
     assumeExceptionOnClose(cis);
   }
-
+  
   public void testBadDataWithoutClosing() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
     int read;
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(baddata.iterator());
-
+    
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
     // can still get visibilities after exception -- bad?
     assertEquals(cis.getVisibilities().toString(), "[A]");
-
+    
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
     assertEquals(cis.getVisibilities().toString(), "[B, C]");
-
+    
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
     assertEquals(cis.getVisibilities().toString(), "[D, E]");
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);
     assertEquals(new String(b, 0, read), "asdfjkl;");
     assertEquals(read = cis.read(b), -1);
     assertEquals(cis.getVisibilities().toString(), "[F, G]");
     cis.close();
-
+    
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
     assertEquals(cis.getVisibilities().toString(), "[I, J]");
-
+    
     try {
       cis.setSource(pi);
       assertNotNull(null);
@@ -384,51 +384,51 @@ public class ChunkInputStreamTest extends TestCase {
       assertNull(null);
     }
     assertEquals(cis.getVisibilities().toString(), "[K]");
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), -1);
     assertEquals(cis.getVisibilities().toString(), "[L]");
     cis.close();
-
+    
     assertFalse(pi.hasNext());
-
+    
     pi = new PeekingIterator<Entry<Key,Value>>(baddata.iterator());
     cis.setSource(pi);
     assumeExceptionOnClose(cis);
   }
-
+  
   public void testMultipleChunkSizes() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
     int read;
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(multidata.iterator());
-
+    
     b = new byte[20];
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);
     assertEquals(read = cis.read(b), -1);
     cis.close();
     assertEquals(cis.getVisibilities().toString(), "[A&B]");
-
+    
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
     assertEquals(cis.getVisibilities().toString(), "[A&B]");
-
+    
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);
     assertEquals(new String(b, 0, read), "asdfjkl;");
     assertEquals(read = cis.read(b), -1);
     cis.close();
     assertEquals(cis.getVisibilities().toString(), "[A&B, B&C]");
-
+    
     assertFalse(pi.hasNext());
   }
-
+  
   public void testSingleByteRead() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
     PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
-
+    
     cis.setSource(pi);
     assertEquals((byte) 'a', (byte) cis.read());
     assertEquals((byte) 's', (byte) cis.read());

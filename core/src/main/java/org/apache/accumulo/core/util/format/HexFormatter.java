@@ -28,11 +28,11 @@ import org.apache.hadoop.io.Text;
  * A simple formatter that print the row, column family, column qualifier, and value as hex
  */
 public class HexFormatter implements Formatter, ScanInterpreter {
-
+  
   private char chars[] = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
   private Iterator<Entry<Key,Value>> iter;
   private boolean printTimestamps;
-
+  
   private void toHex(StringBuilder sb, byte[] bin) {
 
     for (int i = 0; i < bin.length; i++) {
@@ -42,22 +42,22 @@ public class HexFormatter implements Formatter, ScanInterpreter {
       sb.append(chars[0x0f & bin[i]]);
     }
   }
-
+  
   private int fromChar(char b) {
     if (b >= '0' && b <= '9') {
       return (b - '0');
     } else if (b >= 'a' && b <= 'f') {
       return (b - 'a' + 10);
     }
-
+    
     throw new IllegalArgumentException("Bad char " + b);
   }
-
+  
   private byte[] toBinary(String hex) {
     hex = hex.replace("-", "");
 
     byte[] bin = new byte[(hex.length() / 2) + (hex.length() % 2)];
-
+    
     int j = 0;
     for (int i = 0; i < bin.length; i++) {
       bin[i] = (byte) (fromChar(hex.charAt(j++)) << 4);
@@ -65,7 +65,7 @@ public class HexFormatter implements Formatter, ScanInterpreter {
         break;
       bin[i] |= (byte) fromChar(hex.charAt(j++));
     }
-
+    
     return bin;
   }
 
@@ -74,13 +74,13 @@ public class HexFormatter implements Formatter, ScanInterpreter {
   public boolean hasNext() {
     return iter.hasNext();
   }
-
+  
   @Override
   public String next() {
     Entry<Key,Value> entry = iter.next();
-
+    
     StringBuilder sb = new StringBuilder();
-
+    
     toHex(sb, entry.getKey().getRowData().toArray());
     sb.append("  ");
     toHex(sb, entry.getKey().getColumnFamilyData().toArray());
@@ -94,26 +94,26 @@ public class HexFormatter implements Formatter, ScanInterpreter {
       sb.append("  ");
     }
     toHex(sb, entry.getValue().get());
-
+    
     return sb.toString();
   }
-
+  
   @Override
   public void remove() {
     iter.remove();
   }
-
+  
   @Override
   public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
     this.iter = scanner.iterator();
     this.printTimestamps = printTimestamps;
   }
-
+  
   @Override
   public Text interpretRow(Text row) {
     return new Text(toBinary(row.toString()));
   }
-
+  
   @Override
   public Text interpretBeginRow(Text row) {
     return new Text(toBinary(row.toString()));

@@ -22,7 +22,7 @@ import org.apache.accumulo.trace.instrument.CountSampler;
 import org.junit.Test;
 
 public class CountSamplerTest {
-
+  
   @Test
   public void testNext() {
     CountSampler half = new CountSampler(2);

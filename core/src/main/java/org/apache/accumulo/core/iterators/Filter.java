@@ -29,9 +29,9 @@ import org.apache.accumulo.core.data.Value;
 
 /**
  * A SortedKeyValueIterator that filters entries from its source iterator.
- *
+ * 
  * Subclasses must implement an accept method: public boolean accept(Key k, Value v);
- *
+ * 
  * Key/Value pairs for which the accept method returns true are said to match the filter. By default, this class iterates over entries that match its filter.
  * This iterator takes an optional "negate" boolean parameter that defaults to false. If negate is set to true, this class instead omits entries that match its
  * filter, thus iterating over entries that do not match its filter.
@@ -49,22 +49,22 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
     newInstance.negate = negate;
     return newInstance;
   }
-
+  
   private static final String NEGATE = "negate";
   boolean negate = false;
-
+  
   @Override
   public void next() throws IOException {
     super.next();
     findTop();
   }
-
+  
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     super.seek(range, columnFamilies, inclusive);
     findTop();
   }
-
+  
   /**
    * Iterates over the source until an acceptable key/value pair is found.
    */
@@ -77,12 +77,12 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
       }
     }
   }
-
+  
   /**
    * @return <tt>true</tt> if the key/value pair is accepted by the filter.
    */
   public abstract boolean accept(Key k, Value v);
-
+  
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
@@ -91,13 +91,13 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
       negate = Boolean.parseBoolean(options.get(NEGATE));
     }
   }
-
+  
   @Override
   public IteratorOptions describeOptions() {
     return new IteratorOptions("filter", "Filter accepts or rejects each Key/Value pair", Collections.singletonMap("negate",
         "default false keeps k/v that pass accept method, true rejects k/v that pass accept method"), null);
   }
-
+  
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (options.get(NEGATE) != null) {
@@ -109,10 +109,10 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
     }
     return true;
   }
-
+  
   /**
    * A convenience method for setting the negation option on a filter.
-   *
+   * 
    * @param is
    *          IteratorSetting object to configure.
    * @param negate

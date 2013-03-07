@@ -25,16 +25,16 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class DropUser extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getSysToken());
-
+    
     String tableUserName = WalkingSecurity.get(state).getTabUserName();
-
+    
     boolean exists = WalkingSecurity.get(state).userExists(tableUserName);
     boolean hasPermission = WalkingSecurity.get(state).canDropUser(WalkingSecurity.get(state).getSysCredentials(), tableUserName);
-
+    
     try {
       conn.securityOperations().dropLocalUser(tableUserName);
     } catch (AccumuloSecurityException ae) {
@@ -49,7 +49,7 @@ public class DropUser extends Test {
             }
             return;
           }
-
+          
         case USER_DOESNT_EXIST:
           if (exists)
             throw new AccumuloException("Got user DNE exception when user should exists.", ae);

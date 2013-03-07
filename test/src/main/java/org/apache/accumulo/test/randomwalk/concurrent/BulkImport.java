@@ -41,25 +41,25 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class BulkImport extends Test {
-
+  
   public static class RFileBatchWriter implements BatchWriter {
-
+    
     RFile.Writer writer;
-
+    
     public RFileBatchWriter(Configuration conf, FileSystem fs, String file) throws IOException {
       CachableBlockFile.Writer cbw = new CachableBlockFile.Writer(fs.create(new Path(file), false, conf.getInt("io.file.buffer.size", 4096),
           (short) conf.getInt("dfs.replication", 3), conf.getLong("dfs.block.size", 1 << 26)), "gz", conf);
       writer = new RFile.Writer(cbw, 100000);
       writer.startDefaultLocalityGroup();
     }
-
+    
     @Override
     public void addMutation(Mutation m) throws MutationsRejectedException {
       List<ColumnUpdate> updates = m.getUpdates();
       for (ColumnUpdate cu : updates) {
         Key key = new Key(m.getRow(), cu.getColumnFamily(), cu.getColumnQualifier(), cu.getColumnVisibility(), 42, false, false);
         Value val = new Value(cu.getValue(), false);
-
+        
         try {
           writer.append(key, val);
         } catch (IOException e) {
@@ -67,16 +67,16 @@ public class BulkImport extends Test {
         }
       }
     }
-
+    
     @Override
     public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
       for (Mutation mutation : iterable)
         addMutation(mutation);
     }
-
+    
     @Override
     public void flush() throws MutationsRejectedException {}
-
+    
     @Override
     public void close() throws MutationsRejectedException {
       try {
@@ -85,28 +85,28 @@ public class BulkImport extends Test {
         throw new RuntimeException(e);
       }
     }
-
+    
   }
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-
+    
     Random rand = (Random) state.get("rand");
-
+    
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-
+    
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-
+    
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
-
+    
     String bulkDir = "/tmp/concurrent_bulk/b_" + String.format("%016x", Math.abs(rand.nextLong()));
-
+    
     fs.mkdirs(new Path(bulkDir));
     fs.mkdirs(new Path(bulkDir + "_f"));
-
+    
     try {
       BatchWriter bw = new RFileBatchWriter(conf, fs, bulkDir + "/file01.rf");
       try {
@@ -115,22 +115,22 @@ public class BulkImport extends Test {
         for (int i = 0; i < numRows; i++) {
           rows.add(Math.abs(rand.nextLong()));
         }
-
+        
         for (Long row : rows) {
           Mutation m = new Mutation(String.format("%016x", row));
           long val = Math.abs(rand.nextLong());
           for (int j = 0; j < 10; j++) {
             m.put("cf", "cq" + j, new Value(String.format("%016x", val).getBytes()));
           }
-
+          
           bw.addMutation(m);
         }
       } finally {
         bw.close();
       }
-
+      
       conn.tableOperations().importDirectory(tableName, bulkDir, bulkDir + "_f", rand.nextBoolean());
-
+      
       log.debug("BulkImported to " + tableName);
     } catch (TableNotFoundException e) {
       log.debug("BulkImport " + tableName + " failed, doesnt exist");
@@ -140,6 +140,6 @@ public class BulkImport extends Test {
       fs.delete(new Path(bulkDir), true);
       fs.delete(new Path(bulkDir + "_f"), true);
     }
-
+    
   }
 }

@@ -25,15 +25,15 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.thrift.TException;
 
 public class TabletStatusMessage implements MasterMessage {
-
+  
   private KeyExtent extent;
   private TabletLoadState status;
-
+  
   public TabletStatusMessage(TabletLoadState status, KeyExtent extent) {
     this.extent = extent;
     this.status = status;
   }
-
+  
   public void send(TCredentials auth, String serverName, Iface client) throws TException, ThriftSecurityException {
     client.reportTabletStatus(Tracer.traceInfo(), auth, serverName, status, extent.toThrift());
   }

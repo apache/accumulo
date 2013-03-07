@@ -28,53 +28,53 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooReader implements IZooReader {
-
+  
   protected String keepers;
   protected int timeout;
-
+  
   protected ZooKeeper getSession(String keepers, int timeout, String scheme, byte[] auth) {
     return ZooSession.getSession(keepers, timeout, scheme, auth);
   }
-
+  
   protected ZooKeeper getZooKeeper() {
     return getSession(keepers, timeout, null, null);
   }
-
+  
   @Override
   public byte[] getData(String zPath, Stat stat) throws KeeperException, InterruptedException {
     return getZooKeeper().getData(zPath, false, stat);
   }
-
+  
   @Override
   public Stat getStatus(String zPath) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, false);
   }
-
+  
   @Override
   public Stat getStatus(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, watcher);
   }
-
+  
   @Override
   public List<String> getChildren(String zPath) throws KeeperException, InterruptedException {
     return getZooKeeper().getChildren(zPath, false);
   }
-
+  
   @Override
   public List<String> getChildren(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
     return getZooKeeper().getChildren(zPath, watcher);
   }
-
+  
   @Override
   public boolean exists(String zPath) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, false) != null;
   }
-
+  
   @Override
   public boolean exists(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, watcher) != null;
   }
-
+  
   @Override
   public void sync(final String path) throws KeeperException, InterruptedException {
     final AtomicInteger rc = new AtomicInteger();
@@ -96,8 +96,8 @@ public class ZooReader implements IZooReader {
     if (code != KeeperException.Code.OK) {
       throw KeeperException.create(code);
     }
-  }
-
+  }  
+  
   public ZooReader(String keepers, int timeout) {
     this.keepers = keepers;
     this.timeout = timeout;

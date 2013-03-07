@@ -25,7 +25,7 @@ import org.apache.hadoop.io.Text;
 
 public class DeleteRowsCommand extends Command {
   private Option forceOpt;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
@@ -38,17 +38,17 @@ public class DeleteRowsCommand extends Command {
     shellState.getConnector().tableOperations().deleteRows(tableName, startRow, endRow);
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "deletes a range of rows in a table.  Note that rows matching the start row ARE NOT deleted, but rows matching the end row ARE deleted.";
   }
-
+  
   @Override
   public int numArgs() {
     return 0;
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();

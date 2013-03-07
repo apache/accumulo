@@ -46,19 +46,19 @@ public class SetShellIterCommand extends SetIterCommand {
       TableNotFoundException, IOException, ShellCommandException {
     return super.execute(fullCommand, cl, shellState);
   }
-
+  
   @Override
   protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
       final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
     // instead of setting table properties, just put the options in a list to use at scan time
-
+    
     String profile = cl.getOptionValue(profileOpt.getOpt());
 
     if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
           + SortedKeyValueIterator.class.getName());
     }
-
+    
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty()) {
@@ -83,12 +83,12 @@ public class SetShellIterCommand extends SetIterCommand {
 
     tableScanIterators.add(setting);
   }
-
+  
   @Override
   public String description() {
     return "adds an iterator to a profile for this shell session";
   }
-
+  
   @Override
   public Options getOptions() {
     // Remove the options that specify which type of iterator this is, since
@@ -109,14 +109,14 @@ public class SetShellIterCommand extends SetIterCommand {
     for (OptionGroup group : groups) {
       modifiedOptions.addOptionGroup(group);
     }
-
+    
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setRequired(true);
     profileOpt.setArgName("profile");
-
+    
     modifiedOptions.addOption(profileOpt);
 
     return modifiedOptions;
   }
-
+  
 }

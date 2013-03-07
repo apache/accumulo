@@ -30,43 +30,43 @@ import org.apache.hadoop.io.Text;
  * See ACCUMULO-779
  */
 public class FateStarvationTest extends FunctionalTest {
-
+  
   @Override
   public void cleanup() throws Exception {}
-
+  
   @Override
   public Map<String,String> getInitialConfig() {
     return Collections.emptyMap();
   }
-
+  
   @Override
   public List<TableSetup> getTablesToCreate() {
     return Collections.emptyList();
   }
-
+  
   @Override
   public void run() throws Exception {
     getConnector().tableOperations().create("test_ingest");
-
+    
     getConnector().tableOperations().addSplits("test_ingest", TestIngest.getSplitPoints(0, 100000, 50));
-
+    
     TestIngest.main(new String[] {"-random", "89", "-timestamp", "7", "-size", "" + 50, "100000", "0", "1"});
-
+    
     getConnector().tableOperations().flush("test_ingest", null, null, true);
-
+    
     List<Text> splits = new ArrayList<Text>(TestIngest.getSplitPoints(0, 100000, 67));
     Random rand = new Random();
-
+    
     for (int i = 0; i < 100; i++) {
       int idx1 = rand.nextInt(splits.size() - 1);
       int idx2 = rand.nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
-
+      
       getConnector().tableOperations().compact("test_ingest", splits.get(idx1), splits.get(idx2), false, false);
     }
-
+    
     getConnector().tableOperations().offline("test_ingest");
   }
-
+  
   public static void main(String[] args) throws Exception {
     ArrayList<String> argsList = new ArrayList<String>();
     argsList.addAll(Arrays.asList(args));

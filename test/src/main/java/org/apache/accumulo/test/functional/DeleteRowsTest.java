@@ -38,7 +38,7 @@ import org.apache.log4j.Logger;
 
 public class DeleteRowsTest extends FunctionalTest {
   private static final Logger log = Logger.getLogger(DeleteRowsTest.class);
-
+  
   private static final int ROWS_PER_TABLET = 10;
   private static final String[] LETTERS = new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
       "u", "v", "w", "x", "y", "z"};
@@ -54,20 +54,20 @@ public class DeleteRowsTest extends FunctionalTest {
     ROWS.add("A");
     ROWS.add("{");
   }
-
+  
   @Override
   public void cleanup() throws Exception {}
-
+  
   @Override
   public Map<String,String> getInitialConfig() {
     return Collections.emptyMap();
   }
-
+  
   @Override
   public List<TableSetup> getTablesToCreate() {
     return Collections.emptyList();
   }
-
+  
   @Override
   public void run() throws Exception {
     // Delete ranges of rows, and verify the tablets are removed.
@@ -99,7 +99,7 @@ public class DeleteRowsTest extends FunctionalTest {
     // Delete everything
     testSplit("test" + i++, null, null, "", 0);
   }
-
+  
   private void testSplit(String table, String start, String end, String result, int entries) throws Exception {
     // Put a bunch of rows on each tablet
     this.getConnector().tableOperations().create(table);
@@ -115,7 +115,7 @@ public class DeleteRowsTest extends FunctionalTest {
     bw.close();
     // Split the table
     this.getConnector().tableOperations().addSplits(table, SPLITS);
-
+    
     Text startText = start == null ? null : new Text(start);
     Text endText = end == null ? null : new Text(end);
     this.getConnector().tableOperations().deleteRows(table, startText, endText);
@@ -137,21 +137,21 @@ public class DeleteRowsTest extends FunctionalTest {
     log.info("Finished table " + table);
     assertEquals(entries, count);
   }
-
+  
   private void assertEquals(int expected, int value) {
     if (expected != value)
       throw new RuntimeException("Test failed, expected " + expected + " != " + value);
-
+    
   }
-
+  
   private void assertTrue(boolean b) {
     if (!b)
       throw new RuntimeException("test failed, false value");
   }
-
+  
   private void assertEquals(String expected, String value) {
     if (!expected.equals(value))
       throw new RuntimeException("expected " + expected + " != " + value);
   }
-
+  
 }

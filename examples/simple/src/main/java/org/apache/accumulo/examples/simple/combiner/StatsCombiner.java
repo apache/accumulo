@@ -33,22 +33,22 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  * and count. See {@link Combiner} for more information on which values are combined together. See docs/examples/README.combiner for instructions.
  */
 public class StatsCombiner extends Combiner {
-
+  
   public static final String RADIX_OPTION = "radix";
-
+  
   private int radix = 10;
-
+  
   @Override
   public Value reduce(Key key, Iterator<Value> iter) {
-
+    
     long min = Long.MAX_VALUE;
     long max = Long.MIN_VALUE;
     long sum = 0;
     long count = 0;
-
+    
     while (iter.hasNext()) {
       String stats[] = iter.next().toString().split(",");
-
+      
       if (stats.length == 1) {
         long val = Long.parseLong(stats[0], radix);
         min = Math.min(val, min);
@@ -62,21 +62,21 @@ public class StatsCombiner extends Combiner {
         count += Long.parseLong(stats[3], radix);
       }
     }
-
+    
     String ret = Long.toString(min, radix) + "," + Long.toString(max, radix) + "," + Long.toString(sum, radix) + "," + Long.toString(count, radix);
     return new Value(ret.getBytes());
   }
-
+  
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-
+    
     if (options.containsKey(RADIX_OPTION))
       radix = Integer.parseInt(options.get(RADIX_OPTION));
     else
       radix = 10;
   }
-
+  
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
@@ -85,21 +85,21 @@ public class StatsCombiner extends Combiner {
     io.addNamedOption(RADIX_OPTION, "radix/base of the numbers");
     return io;
   }
-
+  
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (!super.validateOptions(options))
       return false;
-
+    
     if (options.containsKey(RADIX_OPTION) && !options.get(RADIX_OPTION).matches("\\d+"))
       throw new IllegalArgumentException("invalid option " + RADIX_OPTION + ":" + options.get(RADIX_OPTION));
-
+    
     return true;
   }
-
+  
   /**
    * A convenience method for setting the expected base/radix of the numbers
-   *
+   * 
    * @param iterConfig
    *          Iterator settings to configure
    * @param base

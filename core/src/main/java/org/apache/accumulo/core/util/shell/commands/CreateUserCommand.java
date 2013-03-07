@@ -33,7 +33,7 @@ public class CreateUserCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException,
       AccumuloSecurityException, TableExistsException, IOException {
     final String user = cl.getArgs()[0];
-
+    
     final String password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
     if (password == null) {
       shellState.getReader().printNewline();
@@ -44,7 +44,7 @@ public class CreateUserCommand extends Command {
       shellState.getReader().printNewline();
       return 0;
     } // user canceled
-
+    
     if (!password.equals(passwordConfirm)) {
       throw new IllegalArgumentException("Passwords do not match");
     }
@@ -52,23 +52,23 @@ public class CreateUserCommand extends Command {
     Shell.log.debug("Created user " + user);
     return 0;
   }
-
+  
   @Override
   public String usage() {
     return getName() + " <username>";
   }
-
+  
   @Override
   public String description() {
     return "creates a new user";
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();
     return o;
   }
-
+  
   @Override
   public int numArgs() {
     return 1;

@@ -35,21 +35,21 @@ import org.apache.hadoop.io.Text;
 
 public class MetaDataStateStore extends TabletStateStore {
   // private static final Logger log = Logger.getLogger(MetaDataStateStore.class);
-
+  
   private static final int THREADS = 4;
   private static final int LATENCY = 1000;
   private static final int MAX_MEMORY = 200 * 1024 * 1024;
-
+  
   final protected Instance instance;
   final protected CurrentState state;
   final protected TCredentials auths;
-
+  
   public MetaDataStateStore(Instance instance, TCredentials auths, CurrentState state) {
     this.instance = instance;
     this.state = state;
     this.auths = auths;
   }
-
+  
   public MetaDataStateStore() {
     this(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), null);
   }
@@ -58,7 +58,7 @@ public class MetaDataStateStore extends TabletStateStore {
   public Iterator<TabletLocationState> iterator() {
     return new MetaDataTableScanner(instance, auths, Constants.NON_ROOT_METADATA_KEYSPACE, state);
   }
-
+  
   @Override
   public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     BatchWriter writer = createBatchWriter();
@@ -80,7 +80,7 @@ public class MetaDataStateStore extends TabletStateStore {
       }
     }
   }
-
+  
   BatchWriter createBatchWriter() {
     try {
       return instance.getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths)).createBatchWriter(Constants.METADATA_TABLE_NAME,
@@ -92,7 +92,7 @@ public class MetaDataStateStore extends TabletStateStore {
       throw new RuntimeException(e);
     }
   }
-
+  
   @Override
   public void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     BatchWriter writer = createBatchWriter();
@@ -112,10 +112,10 @@ public class MetaDataStateStore extends TabletStateStore {
       }
     }
   }
-
+  
   @Override
   public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException {
-
+    
     BatchWriter writer = createBatchWriter();
     try {
       for (TabletLocationState tls : tablets) {
@@ -138,7 +138,7 @@ public class MetaDataStateStore extends TabletStateStore {
       }
     }
   }
-
+  
   @Override
   public String name() {
     return "Normal Tablets";

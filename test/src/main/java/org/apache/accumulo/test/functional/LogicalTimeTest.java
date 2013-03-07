@@ -32,27 +32,27 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.io.Text;
 
 public class LogicalTimeTest extends FunctionalTest {
-
+  
   @Override
   public Map<String,String> getInitialConfig() {
     return Collections.emptyMap();
   }
-
+  
   @Override
   public List<TableSetup> getTablesToCreate() {
     return Collections.emptyList();
   }
-
+  
   @Override
   public void run() throws Exception {
     int tc = 0;
-
+    
     runMergeTest("foo" + tc++, new String[] {"m"}, new String[] {"a"}, null, null, "b", 2l);
     runMergeTest("foo" + tc++, new String[] {"m"}, new String[] {"z"}, null, null, "b", 2l);
     runMergeTest("foo" + tc++, new String[] {"m"}, new String[] {"a", "z"}, null, null, "b", 2l);
     runMergeTest("foo" + tc++, new String[] {"m"}, new String[] {"a", "c", "z"}, null, null, "b", 3l);
     runMergeTest("foo" + tc++, new String[] {"m"}, new String[] {"a", "y", "z"}, null, null, "b", 3l);
-
+    
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"a"}, null, null, "b", 2l);
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"h"}, null, null, "b", 2l);
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"s"}, null, null, "b", 2l);
@@ -60,7 +60,7 @@ public class LogicalTimeTest extends FunctionalTest {
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"a", "c", "h", "s"}, null, null, "b", 3l);
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s", "i"}, null, null, "b", 3l);
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"t", "a", "h", "s"}, null, null, "b", 3l);
-
+    
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"a"}, null, "h", "b", 2l);
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"h"}, null, "h", "b", 2l);
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"s"}, null, "h", "b", 1l);
@@ -68,9 +68,9 @@ public class LogicalTimeTest extends FunctionalTest {
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"a", "c", "h", "s"}, null, "h", "b", 3l);
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s", "i"}, null, "h", "b", 3l);
     runMergeTest("foo" + tc++, new String[] {"g", "r"}, new String[] {"t", "a", "h", "s"}, null, "h", "b", 2l);
-
+    
   }
-
+  
   private void runMergeTest(String table, String[] splits, String[] inserts, String start, String end, String last, long expected) throws Exception {
     Connector conn = super.getConnector();
     conn.tableOperations().create(table, true, TimeType.LOGICAL);
@@ -79,33 +79,33 @@ public class LogicalTimeTest extends FunctionalTest {
       splitSet.add(new Text(split));
     }
     conn.tableOperations().addSplits(table, splitSet);
-
+    
     BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
     for (String row : inserts) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", "v");
       bw.addMutation(m);
     }
-
+    
     bw.flush();
-
+    
     conn.tableOperations().merge(table, start == null ? null : new Text(start), end == null ? null : new Text(end));
-
+    
     Mutation m = new Mutation(last);
     m.put("cf", "cq", "v");
     bw.addMutation(m);
     bw.flush();
-
+    
     Scanner scanner = conn.createScanner(table, Constants.NO_AUTHS);
     scanner.setRange(new Range(last));
-
+    
     bw.close();
-
+    
     long time = scanner.iterator().next().getKey().getTimestamp();
     if (time != expected) throw new RuntimeException("unexpected time " + time + " " + expected);
   }
-
+  
   @Override
   public void cleanup() throws Exception {}
-
+  
 }

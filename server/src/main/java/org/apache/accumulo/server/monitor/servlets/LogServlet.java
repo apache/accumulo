@@ -30,13 +30,13 @@ import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
 
 public class LogServlet extends BasicServlet {
-
+  
   private static final long serialVersionUID = 1L;
-
+  
   protected String getTitle(HttpServletRequest req) {
     return "Recent Logs";
   }
-
+  
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
     boolean clear = true;
@@ -66,7 +66,7 @@ public class LogServlet extends BasicServlet {
           default:
             text.append(c);
         }
-
+        
       }
       msg = text.toString();
       if (ev.getThrowableStrRep() != null)
@@ -82,13 +82,13 @@ public class LogServlet extends BasicServlet {
     if (!clear)
       sb.append("<div class='center'><a href='/op?action=clearLog&redir=").append(currentPage(req)).append("'>Clear&nbsp;All&nbsp;Events</a></div>\n");
   }
-
+  
   private static class LogLevelType extends StringType<Level> {
     @Override
     public String alignment() {
       return "center";
     }
-
+    
     @Override
     public String format(Object obj) {
       if (obj == null)

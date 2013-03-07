@@ -29,7 +29,7 @@ import org.apache.hadoop.io.Text;
 
 public class MergeCommand extends Command {
   private Option verboseOpt, forceOpt, sizeOpt;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     boolean verbose = shellState.isVerbose();
@@ -75,17 +75,17 @@ public class MergeCommand extends Command {
     }
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "merges tablets in a table";
   }
-
+  
   @Override
   public int numArgs() {
     return 0;
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();
@@ -102,5 +102,5 @@ public class MergeCommand extends Command {
     o.addOption(forceOpt);
     return o;
   }
-
+  
 }

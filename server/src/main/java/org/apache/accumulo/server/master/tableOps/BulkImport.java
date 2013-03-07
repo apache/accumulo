@@ -93,39 +93,39 @@ import org.apache.thrift.TException;
  * that *a* request completed by seeing the flag written into the metadata
  * table, but we won't know if some other rogue thread is still waiting to start
  * a thread and repeat the operation.
- *
+ * 
  * The master can ask the tablet server if it has any requests still running.
  * Except the tablet server might have some thread about to start a request, but
  * before it has made any bookkeeping about the request. To prevent problems
  * like this, an Arbitrator is used. Before starting any new request, the tablet
  * server checks the Arbitrator to see if the request is still valid.
- *
+ * 
  */
 
 public class BulkImport extends MasterRepo {
   public static final String FAILURES_TXT = "failures.txt";
 
   private static final long serialVersionUID = 1L;
-
+  
   private static final Logger log = Logger.getLogger(BulkImport.class);
-
+  
   private String tableId;
   private String sourceDir;
   private String errorDir;
   private boolean setTime;
-
+  
   public BulkImport(String tableId, String sourceDir, String errorDir, boolean setTime) {
     this.tableId = tableId;
     this.sourceDir = sourceDir;
     this.errorDir = errorDir;
     this.setTime = setTime;
   }
-
+  
   @Override
   public long isReady(long tid, Master master) throws Exception {
     if (!Utils.getReadLock(tableId, tid).tryLock())
       return 100;
-
+    
     Instance instance = HdfsZooInstance.getInstance();
     Tables.clearCache(instance);
     if (Tables.getTableState(instance, tableId) == TableState.ONLINE) {
@@ -138,13 +138,13 @@ public class BulkImport extends MasterRepo {
       throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.OFFLINE, null);
     }
   }
-
+  
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug(" tid " + tid + " sourceDir " + sourceDir);
-
+    
     Utils.getReadLock(tableId, tid).lock();
-
+    
     // check that the error directory exists and is empty
     FileSystem fs = master.getFileSystem();
 
@@ -159,9 +159,9 @@ public class BulkImport extends MasterRepo {
     if (fs.listStatus(errorPath).length != 0)
       throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir
           + " is not empty");
-
+    
     ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
-
+    
     // move the files into the directory
     try {
       String bulkDir = prepareBulkImport(fs, sourceDir, tableId);
@@ -173,19 +173,19 @@ public class BulkImport extends MasterRepo {
           + ex);
     }
   }
-
+  
   private Path createNewBulkDir(FileSystem fs, String tableId) throws IOException {
     Path directory = new Path(ServerConstants.getTablesDir() + "/" + tableId);
     fs.mkdirs(directory);
-
+    
     // only one should be able to create the lock file
     // the purpose of the lock file is to avoid a race
     // condition between the call to fs.exists() and
     // fs.mkdirs()... if only hadoop had a mkdir() function
     // that failed when the dir existed
-
+    
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
-
+    
     while (true) {
       Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
       if (fs.exists(newBulkDir)) // sanity check
@@ -193,27 +193,27 @@ public class BulkImport extends MasterRepo {
       if (fs.mkdirs(newBulkDir))
         return newBulkDir;
       log.warn("Failed to create " + newBulkDir + " for unknown reason");
-
+      
       UtilWaitThread.sleep(3000);
     }
   }
-
+  
   private String prepareBulkImport(FileSystem fs, String dir, String tableId) throws IOException {
     Path bulkDir = createNewBulkDir(fs, tableId);
-
+    
     MetadataTable.addBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-
+    
     Path dirPath = new Path(dir);
     FileStatus[] mapFiles = fs.listStatus(dirPath);
-
+    
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
-
+    
     for (FileStatus fileStatus : mapFiles) {
       String sa[] = fileStatus.getPath().getName().split("\\.");
       String extension = "";
       if (sa.length > 1) {
         extension = sa[sa.length - 1];
-
+        
         if (!FileOperations.getValidExtensions().contains(extension)) {
           log.warn(fileStatus.getPath() + " does not have a valid extension, ignoring");
           continue;
@@ -222,13 +222,13 @@ public class BulkImport extends MasterRepo {
         // assume it is a map file
         extension = Constants.MAPFILE_EXTENSION;
       }
-
+      
       if (extension.equals(Constants.MAPFILE_EXTENSION)) {
         if (!fileStatus.isDir()) {
           log.warn(fileStatus.getPath() + " is not a map file, ignoring");
           continue;
         }
-
+        
         if (fileStatus.getPath().getName().equals("_logs")) {
           log.info(fileStatus.getPath() + " is probably a log directory from a map/reduce task, skipping");
           continue;
@@ -244,7 +244,7 @@ public class BulkImport extends MasterRepo {
           continue;
         }
       }
-
+      
       String newName = "I" + namer.getNextName() + "." + extension;
       Path newPath = new Path(bulkDir, newName);
       try {
@@ -256,7 +256,7 @@ public class BulkImport extends MasterRepo {
     }
     return bulkDir.toString();
   }
-
+  
   @Override
   public void undo(long tid, Master environment) throws Exception {
     // unreserve source/error directories
@@ -267,23 +267,23 @@ public class BulkImport extends MasterRepo {
 }
 
 class CleanUpBulkImport extends MasterRepo {
-
+  
   private static final long serialVersionUID = 1L;
-
+  
   private static final Logger log = Logger.getLogger(CleanUpBulkImport.class);
-
+  
   private String tableId;
   private String source;
   private String bulk;
   private String error;
-
+  
   public CleanUpBulkImport(String tableId, String source, String bulk, String error) {
     this.tableId = tableId;
     this.source = source;
     this.bulk = bulk;
     this.error = error;
   }
-
+  
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug("removing the bulk processing flag file in " + bulk);
@@ -302,21 +302,21 @@ class CleanUpBulkImport extends MasterRepo {
 }
 
 class CompleteBulkImport extends MasterRepo {
-
+  
   private static final long serialVersionUID = 1L;
-
+  
   private String tableId;
   private String source;
   private String bulk;
   private String error;
-
+  
   public CompleteBulkImport(String tableId, String source, String bulk, String error) {
     this.tableId = tableId;
     this.source = source;
     this.bulk = bulk;
     this.error = error;
   }
-
+  
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     ZooArbitrator.stop(Constants.BULK_ARBITRATOR_TYPE, tid);
@@ -325,21 +325,21 @@ class CompleteBulkImport extends MasterRepo {
 }
 
 class CopyFailed extends MasterRepo {
-
+  
   private static final long serialVersionUID = 1L;
 
   private String tableId;
   private String source;
   private String bulk;
   private String error;
-
+  
   public CopyFailed(String tableId, String source, String bulk, String error) {
     this.tableId = tableId;
     this.source = source;
     this.bulk = bulk;
     this.error = error;
   }
-
+  
   @Override
   public long isReady(long tid, Master master) throws Exception {
     Set<TServerInstance> finished = new HashSet<TServerInstance>();
@@ -357,19 +357,19 @@ class CopyFailed extends MasterRepo {
       return 0;
     return 500;
   }
-
+  
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-	//This needs to execute after the arbiter is stopped
-
+	//This needs to execute after the arbiter is stopped  
+	  
     FileSystem fs = master.getFileSystem();
-
+	  
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
-
+    
     HashMap<String,String> failures = new HashMap<String,String>();
     HashMap<String,String> loadedFailures = new HashMap<String,String>();
-
+    
     FSDataInputStream failFile = fs.open(new Path(error, BulkImport.FAILURES_TXT));
     BufferedReader in = new BufferedReader(new InputStreamReader(failFile));
     try {
@@ -382,7 +382,7 @@ class CopyFailed extends MasterRepo {
     } finally {
       failFile.close();
     }
-
+    
     /*
      * I thought I could move files that have no file references in the table. However its possible a clone references a file. Therefore only move files that
      * have no loaded markers.
@@ -393,7 +393,7 @@ class CopyFailed extends MasterRepo {
     Scanner mscanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
     mscanner.fetchColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY);
-
+    
     for (Entry<Key,Value> entry : mscanner) {
       if (Long.parseLong(entry.getValue().toString()) == tid) {
         String loadedFile = entry.getKey().getColumnQualifier().toString();
@@ -403,7 +403,7 @@ class CopyFailed extends MasterRepo {
         }
       }
     }
-
+    
     // move failed files that were not loaded
     for (String failure : failures.values()) {
       Path orig = new Path(failure);
@@ -411,50 +411,50 @@ class CopyFailed extends MasterRepo {
       fs.rename(orig, dest);
       log.debug("tid " + tid + " renamed " + orig + " to " + dest + ": import failed");
     }
-
+    
     if (loadedFailures.size() > 0) {
       DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID()
           + Constants.ZBULK_FAILED_COPYQ);
-
+      
       HashSet<String> workIds = new HashSet<String>();
-
+      
       for (String failure : loadedFailures.values()) {
         Path orig = new Path(failure);
         Path dest = new Path(error, orig.getName());
-
+        
         if (fs.exists(dest))
           continue;
-
+        
         bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes());
         workIds.add(orig.getName());
         log.debug("tid " + tid + " added to copyq: " + orig + " to " + dest + ": failed");
       }
-
+      
       bifCopyQueue.waitUntilDone(workIds);
     }
 
     fs.delete(new Path(error, BulkImport.FAILURES_TXT), true);
     return new CleanUpBulkImport(tableId, source, bulk, error);
   }
-
+  
 }
 
 class LoadFiles extends MasterRepo {
-
+  
   private static final long serialVersionUID = 1L;
-
+  
   private static ExecutorService threadPool = null;
   static {
 
   }
   private static final Logger log = Logger.getLogger(BulkImport.class);
-
+  
   private String tableId;
   private String source;
   private String bulk;
   private String errorDir;
   private boolean setTime;
-
+  
   public LoadFiles(String tableId, String source, String bulk, String errorDir, boolean setTime) {
     this.tableId = tableId;
     this.source = source;
@@ -462,14 +462,14 @@ class LoadFiles extends MasterRepo {
     this.errorDir = errorDir;
     this.setTime = setTime;
   }
-
+  
   @Override
   public long isReady(long tid, Master master) throws Exception {
     if (master.onlineTabletServers().size() == 0)
       return 500;
     return 0;
   }
-
+  
   synchronized void initializeThreadPool(Master master) {
     if (threadPool == null) {
       int threadPoolSize = master.getSystemConfiguration().getCount(Property.MASTER_BULK_THREADPOOL_SIZE);
@@ -499,22 +499,22 @@ class LoadFiles extends MasterRepo {
             "Unable to write to " + this.errorDir);
     }
     fs.delete(writable, false);
-
+    
     final List<String> filesToLoad = Collections.synchronizedList(new ArrayList<String>());
     for (FileStatus f : files)
       filesToLoad.add(f.getPath().toString());
-
+    
     final int RETRIES = Math.max(1, conf.getCount(Property.MASTER_BULK_RETRIES));
     for (int attempt = 0; attempt < RETRIES && filesToLoad.size() > 0; attempt++) {
       List<Future<List<String>>> results = new ArrayList<Future<List<String>>>();
-
+      
       if (master.onlineTabletServers().size() == 0)
         log.warn("There are no tablet server to process bulk import, waiting (tid = " + tid + ")");
-
+      
       while (master.onlineTabletServers().size() == 0) {
         UtilWaitThread.sleep(500);
       }
-
+      
       // Use the threadpool to assign files one-at-a-time to the server
       for (final String file : filesToLoad) {
         results.add(threadPool.submit(new Callable<List<String>>() {
@@ -556,7 +556,7 @@ class LoadFiles extends MasterRepo {
         UtilWaitThread.sleep(100);
       }
     }
-
+    
     FSDataOutputStream failFile = fs.create(new Path(errorDir, BulkImport.FAILURES_TXT), true);
     BufferedWriter out = new BufferedWriter(new OutputStreamWriter(failFile));
     try {
@@ -571,7 +571,7 @@ class LoadFiles extends MasterRepo {
     // return the next step, which will perform cleanup
     return new CompleteBulkImport(tableId, source, bulk, errorDir);
   }
-
+  
   static String sampleList(Collection<?> potentiallyLongList, int max) {
     StringBuffer result = new StringBuffer();
     result.append("[");

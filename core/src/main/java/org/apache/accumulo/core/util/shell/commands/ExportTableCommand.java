@@ -31,46 +31,46 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class ExportTableCommand extends Command {
-
+  
   private Option tableOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
-
+    
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     shellState.getConnector().tableOperations().exportTable(tableName, cl.getArgs()[0]);
     return 0;
   }
-
+  
   @Override
   public String usage() {
     return getName() + " <export dir>";
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();
-
+    
     tableOpt = new Option(Shell.tableOption, "table", true, "table to export");
-
+    
     tableOpt.setArgName("table");
-
+    
     o.addOption(tableOpt);
 
     return o;
   }
-
+  
   @Override
   public String description() {
     return "exports a table";
   }
-
+  
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForTables(root, completionSet);
   }
-
+  
   @Override
   public int numArgs() {
     return 1;

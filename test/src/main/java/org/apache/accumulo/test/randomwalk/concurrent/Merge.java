@@ -29,24 +29,24 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class Merge extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-
+    
     Random rand = (Random) state.get("rand");
-
+    
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-
+    
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-
+    
     // TODO need to sometimes do null start and end ranges
-
+    
     TreeSet<Text> range = new TreeSet<Text>();
     range.add(new Text(String.format("%016x", Math.abs(rand.nextLong()))));
     range.add(new Text(String.format("%016x", Math.abs(rand.nextLong()))));
-
+    
     try {
       conn.tableOperations().merge(tableName, range.first(), range.last());
       log.debug("merged " + tableName);
@@ -55,6 +55,6 @@ public class Merge extends Test {
     } catch (TableNotFoundException tne) {
       log.debug("merge " + tableName + " failed, doesnt exist");
     }
-
+    
   }
 }

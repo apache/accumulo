@@ -29,76 +29,76 @@ import org.apache.commons.logging.LogFactory;
 
 /**
  * Class for determining the "size" of a class, an attempt to calculate the actual bytes that an object of this class will occupy in memory
- *
+ * 
  * The core of this class is taken from the Derby project
  */
 public class ClassSize {
   static final Log LOG = LogFactory.getLog(ClassSize.class);
-
+  
   private static int nrOfRefsPerObj = 2;
-
+  
   /** Array overhead */
   public static int ARRAY = 0;
-
+  
   /** Overhead for ArrayList(0) */
   public static int ARRAYLIST = 0;
-
+  
   /** Overhead for ByteBuffer */
   public static int BYTE_BUFFER = 0;
-
+  
   /** Overhead for an Integer */
   public static int INTEGER = 0;
-
+  
   /** Overhead for entry in map */
   public static int MAP_ENTRY = 0;
-
+  
   /** Object overhead is minimum 2 * reference size (8 bytes on 64-bit) */
   public static int OBJECT = 0;
-
+  
   /** Reference size is 8 bytes on 64-bit, 4 bytes on 32-bit */
   public static int REFERENCE = 0;
-
+  
   /** String overhead */
   public static int STRING = 0;
-
+  
   /** Overhead for TreeMap */
   public static int TREEMAP = 0;
-
+  
   /** Overhead for ConcurrentHashMap */
   public static int CONCURRENT_HASHMAP = 0;
-
+  
   /** Overhead for ConcurrentHashMap.Entry */
   public static int CONCURRENT_HASHMAP_ENTRY = 0;
-
+  
   /** Overhead for ConcurrentHashMap.Segment */
   public static int CONCURRENT_HASHMAP_SEGMENT = 0;
-
+  
   /** Overhead for ConcurrentSkipListMap */
   public static int CONCURRENT_SKIPLISTMAP = 0;
-
+  
   /** Overhead for ConcurrentSkipListMap Entry */
   public static int CONCURRENT_SKIPLISTMAP_ENTRY = 0;
-
+  
   /** Overhead for ReentrantReadWriteLock */
   public static int REENTRANT_LOCK = 0;
-
+  
   /** Overhead for AtomicLong */
   public static int ATOMIC_LONG = 0;
-
+  
   /** Overhead for AtomicInteger */
   public static int ATOMIC_INTEGER = 0;
-
+  
   /** Overhead for AtomicBoolean */
   public static int ATOMIC_BOOLEAN = 0;
-
+  
   /** Overhead for CopyOnWriteArraySet */
   public static int COPYONWRITE_ARRAYSET = 0;
-
+  
   /** Overhead for CopyOnWriteArrayList */
   public static int COPYONWRITE_ARRAYLIST = 0;
-
+  
   private static final String THIRTY_TWO = "32";
-
+  
   /**
    * Method for reading the arc settings and setting overheads according to 32-bit or 64-bit architecture.
    */
@@ -106,60 +106,60 @@ public class ClassSize {
     // Figure out whether this is a 32 or 64 bit machine.
     Properties sysProps = System.getProperties();
     String arcModel = sysProps.getProperty("sun.arch.data.model");
-
+    
     // Default value is set to 8, covering the case when arcModel is unknown
     REFERENCE = 8;
     if (arcModel.equals(THIRTY_TWO)) {
       REFERENCE = 4;
     }
-
+    
     OBJECT = 2 * REFERENCE;
-
+    
     ARRAY = 3 * REFERENCE;
-
+    
     ARRAYLIST = align(OBJECT + align(REFERENCE) + align(ARRAY) + (2 * SizeConstants.SIZEOF_INT));
-
+    
     BYTE_BUFFER = align(OBJECT + align(REFERENCE) + align(ARRAY) + (5 * SizeConstants.SIZEOF_INT) + (3 * SizeConstants.SIZEOF_BOOLEAN)
         + SizeConstants.SIZEOF_LONG);
-
+    
     INTEGER = align(OBJECT + SizeConstants.SIZEOF_INT);
-
+    
     MAP_ENTRY = align(OBJECT + 5 * REFERENCE + SizeConstants.SIZEOF_BOOLEAN);
-
+    
     TREEMAP = align(OBJECT + (2 * SizeConstants.SIZEOF_INT) + align(7 * REFERENCE));
-
+    
     STRING = align(OBJECT + ARRAY + REFERENCE + 3 * SizeConstants.SIZEOF_INT);
-
+    
     CONCURRENT_HASHMAP = align((2 * SizeConstants.SIZEOF_INT) + ARRAY + (6 * REFERENCE) + OBJECT);
-
+    
     CONCURRENT_HASHMAP_ENTRY = align(REFERENCE + OBJECT + (3 * REFERENCE) + (2 * SizeConstants.SIZEOF_INT));
-
+    
     CONCURRENT_HASHMAP_SEGMENT = align(REFERENCE + OBJECT + (3 * SizeConstants.SIZEOF_INT) + SizeConstants.SIZEOF_FLOAT + ARRAY);
-
+    
     CONCURRENT_SKIPLISTMAP = align(SizeConstants.SIZEOF_INT + OBJECT + (8 * REFERENCE));
-
+    
     CONCURRENT_SKIPLISTMAP_ENTRY = align(align(OBJECT + (3 * REFERENCE)) + /* one node per entry */
     align((OBJECT + (3 * REFERENCE)) / 2)); /* one index per two entries */
-
+    
     REENTRANT_LOCK = align(OBJECT + (3 * REFERENCE));
-
+    
     ATOMIC_LONG = align(OBJECT + SizeConstants.SIZEOF_LONG);
-
+    
     ATOMIC_INTEGER = align(OBJECT + SizeConstants.SIZEOF_INT);
-
+    
     ATOMIC_BOOLEAN = align(OBJECT + SizeConstants.SIZEOF_BOOLEAN);
-
+    
     COPYONWRITE_ARRAYSET = align(OBJECT + REFERENCE);
-
+    
     COPYONWRITE_ARRAYLIST = align(OBJECT + (2 * REFERENCE) + ARRAY);
   }
-
+  
   /**
    * The estimate of the size of a class instance depends on whether the JVM uses 32 or 64 bit addresses, that is it depends on the size of an object reference.
    * It is a linear function of the size of a reference, e.g. 24 + 5*r where r is the size of a reference (usually 4 or 8 bytes).
-   *
+   * 
    * This method returns the coefficients of the linear function, e.g. {24, 5} in the above example.
-   *
+   * 
    * @param cl
    *          A class whose instance size is to be estimated
    * @return an array of 3 integers. The first integer is the size of the primitives, the second the number of arrays and the third the number of references.
@@ -169,7 +169,7 @@ public class ClassSize {
     int arrays = 0;
     // The number of references that a new object takes
     int references = nrOfRefsPerObj;
-
+    
     for (; null != cl; cl = cl.getSuperclass()) {
       Field[] field = cl.getDeclaredFields();
       if (null != field) {
@@ -183,7 +183,7 @@ public class ClassSize {
               references++;
             } else {// Is simple primitive
               String name = fieldClass.getName();
-
+              
               if (name.equals("int") || name.equals("I"))
                 primitives += SizeConstants.SIZEOF_INT;
               else if (name.equals("long") || name.equals("J"))
@@ -213,18 +213,18 @@ public class ClassSize {
     }
     return new int[] {primitives, arrays, references};
   }
-
+  
   /**
    * Estimate the static space taken up by a class instance given the coefficients returned by getSizeCoefficients.
-   *
+   * 
    * @param coeff
    *          the coefficients
-   *
+   * 
    * @return the size estimate, in bytes
    */
   private static long estimateBaseFromCoefficients(int[] coeff, boolean debug) {
     long size = coeff[0] + align(coeff[1] * ARRAY) + coeff[2] * REFERENCE;
-
+    
     // Round up to a multiple of 8
     size = align(size);
     if (debug) {
@@ -236,21 +236,21 @@ public class ClassSize {
     }
     return size;
   }
-
+  
   /**
    * Estimate the static space taken up by the fields of a class. This includes the space taken up by by references (the pointer) but not by the referenced
    * object. So the estimated size of an array field does not depend on the size of the array. Similarly the size of an object (reference) field does not depend
    * on the object.
-   *
+   * 
    * @return the size estimate in bytes.
    */
   public static long estimateBase(Class<?> cl, boolean debug) {
     return estimateBaseFromCoefficients(getSizeCoefficients(cl, debug), debug);
   }
-
+  
   /**
    * Aligns a number to 8.
-   *
+   * 
    * @param num
    *          number to align to 8
    * @return smallest number >= input that is a multiple of 8
@@ -258,10 +258,10 @@ public class ClassSize {
   public static int align(int num) {
     return (int) (align((long) num));
   }
-
+  
   /**
    * Aligns a number to 8.
-   *
+   * 
    * @param num
    *          number to align to 8
    * @return smallest number >= input that is a multiple of 8
@@ -271,5 +271,5 @@ public class ClassSize {
     // stored and sent together
     return ((num + 7) >> 3) << 3;
   }
-
+  
 }

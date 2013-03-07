@@ -38,18 +38,18 @@ import org.apache.hadoop.io.Text;
  * Test deleting documents by using a compaction filter iterator
  */
 public class CompactFilter extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     String indexTableName = (String) state.get("indexTableName");
     String docTableName = (String) state.get("docTableName");
     Random rand = (Random) state.get("rand");
-
+    
     String deleteChar = Integer.toHexString(rand.nextInt(16)) + "";
     String regex = "^[0-9a-f][" + deleteChar + "].*";
 
     ArrayList<IteratorSetting> documentFilters = new ArrayList<IteratorSetting>();
-
+    
     IteratorSetting is = new IteratorSetting(21, "ii", RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     RegExFilter.setNegate(is, true);
@@ -59,35 +59,35 @@ public class CompactFilter extends Test {
     state.getConnector().tableOperations().compact(docTableName, null, null, documentFilters, true, true);
     long t2 = System.currentTimeMillis();
     long t3 = t2 - t1;
-
+    
     ArrayList<IteratorSetting> indexFilters = new ArrayList<IteratorSetting>();
-
+    
     is = new IteratorSetting(21, RegExFilter.class);
     RegExFilter.setRegexs(is, null, null, regex, null, false);
     RegExFilter.setNegate(is, true);
     indexFilters.add(is);
-
+    
     t1 = System.currentTimeMillis();
     state.getConnector().tableOperations().compact(indexTableName, null, null, indexFilters, true, true);
     t2 = System.currentTimeMillis();
-
+    
     log.debug("Filtered documents using compaction iterators " + regex + " " + (t3) + " " + (t2 - t1));
-
+    
     BatchScanner bscanner = state.getConnector().createBatchScanner(docTableName, new Authorizations(), 10);
-
+    
     List<Range> ranges = new ArrayList<Range>();
     for (int i = 0; i < 16; i++) {
       ranges.add(Range.prefix(new Text(Integer.toHexString(i) + "" + deleteChar)));
     }
-
+    
     bscanner.setRanges(ranges);
     Iterator<Entry<Key,Value>> iter = bscanner.iterator();
-
+    
     if (iter.hasNext()) {
       throw new Exception("Saw unexpected document " + iter.next().getKey());
     }
 
     bscanner.close();
   }
-
+  
 }

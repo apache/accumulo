@@ -27,7 +27,7 @@ import org.apache.hadoop.fs.Path;
 import com.beust.jcommander.Parameter;
 
 public class GenerateTestData {
-
+  
   static class Opts extends org.apache.accumulo.core.cli.Help {
     @Parameter(names="--start-row", required=true)
     int startRow = 0;
@@ -36,18 +36,18 @@ public class GenerateTestData {
     @Parameter(names="--output", required=true)
     String outputFile;
   }
-
+  
   public static void main(String[] args) throws IOException {
     Opts opts = new Opts();
     opts.parseArgs(GenerateTestData.class.getName(), args);
-
+    
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     PrintStream out = new PrintStream(new BufferedOutputStream(fs.create(new Path(opts.outputFile))));
-
+    
     for (int i = 0; i < opts.numRows; i++) {
       out.println(String.format("row_%08d\tvalue_%08d", i + opts.startRow, i + opts.startRow));
     }
     out.close();
   }
-
+  
 }

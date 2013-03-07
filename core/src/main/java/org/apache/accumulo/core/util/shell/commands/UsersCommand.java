@@ -32,12 +32,12 @@ public class UsersCommand extends Command {
     }
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "displays a list of existing users";
   }
-
+  
   @Override
   public int numArgs() {
     return 0;

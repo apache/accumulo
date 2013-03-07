@@ -31,7 +31,7 @@ public class ConstraintCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
     int i;
-
+    
     switch (OptUtil.getAldOpt(cl)) {
       case ADD:
         for (String constraint : cl.getArgs()) {
@@ -55,25 +55,25 @@ public class ConstraintCommand extends Command {
           shellState.getReader().printString(property.toString() + "\n");
         }
     }
-
+    
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "adds, deletes, or lists constraints for a table";
   }
-
+  
   @Override
   public int numArgs() {
     return Shell.NO_FIXED_ARG_LENGTH_CHECK;
   }
-
+  
   @Override
   public String usage() {
     return getName() + " <constraint>{ <constraint>}";
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();

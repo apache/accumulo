@@ -32,50 +32,50 @@ import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 public class MetricsConfiguration {
-
+  
   private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(MetricsConfiguration.class);
-
+  
   private static final String metricsFileName = "conf/accumulo-metrics.xml";
-
+  
   private static boolean alreadyWarned = false;
-
+  
   private boolean notFound = false;
-
+  
   private int notFoundCount = 0;
-
+  
   private static SystemConfiguration sysConfig = null;
-
+  
   private static EnvironmentConfiguration envConfig = null;
-
+  
   private XMLConfiguration xConfig = null;
-
+  
   private Configuration config = null;
-
+  
   private final Object lock = new Object();
-
+  
   private boolean needsReloading = false;
-
+  
   private long lastCheckTime = 0;
-
+  
   private static long CONFIG_FILE_CHECK_INTERVAL = 1000 * 60 * 10; // 10 minutes
-
+  
   private static int CONFIG_FILE_CHECK_COUNTER = 100;
-
+  
   public final static long CONFIG_FILE_RELOAD_DELAY = 60000;
-
+  
   private MetricsConfigWatcher watcher = null;
-
+  
   private boolean enabled = false;
-
+  
   private String enabledName = null;
-
+  
   /**
    * Background thread that pokes the XMLConfiguration file to see if it has changed. If it has, then the Configuration Listener will get an event.
-   *
+   * 
    */
   private class MetricsConfigWatcher extends Daemon {
     public MetricsConfigWatcher() {}
-
+    
     public void run() {
       while (this.isAlive()) {
         try {
@@ -87,7 +87,7 @@ public class MetricsConfiguration {
       }
     }
   }
-
+  
   /**
    * ConfigurationListener that sets a flag to reload the XML config file
    */
@@ -97,7 +97,7 @@ public class MetricsConfiguration {
         needsReloading = true;
     }
   }
-
+  
   public MetricsConfiguration(String name) {
     // We are going to store the "enabled" parameter for this
     // name as a shortcut so that it doesn't have to be looked
@@ -105,19 +105,19 @@ public class MetricsConfiguration {
     this.enabledName = name + ".enabled";
     getMetricsConfiguration();
   }
-
+  
   public Configuration getEnvironmentConfiguration() {
     if (null == envConfig)
       envConfig = new EnvironmentConfiguration();
     return envConfig;
   }
-
+  
   public Configuration getSystemConfiguration() {
     if (null == sysConfig)
       sysConfig = new SystemConfiguration();
     return sysConfig;
   }
-
+  
   public Configuration getMetricsConfiguration() {
     if (notFound) {
       if (notFoundCount <= CONFIG_FILE_CHECK_COUNTER) {
@@ -141,7 +141,7 @@ public class MetricsConfiguration {
       }
     return config;
   }
-
+  
   private void loadConfiguration() {
     // Check to see if ACCUMULO_HOME environment variable is set.
     String ACUHOME = getEnvironmentConfiguration().getString("ACCUMULO_HOME");
@@ -156,7 +156,7 @@ public class MetricsConfiguration {
           xConfig.append(getEnvironmentConfiguration());
           xConfig.addConfigurationListener(new MetricsConfigListener());
           xConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
-
+          
           // Start a background Thread that checks a property from the XMLConfiguration
           // every so often to force the FileChangedReloadingStrategy to fire.
           if (null == watcher || !watcher.isAlive()) {
@@ -193,16 +193,16 @@ public class MetricsConfiguration {
     } else {
       enabled = false;
     }
-
+    
   }
-
+  
   public boolean isEnabled() {
     // Force reload if necessary
     if (null == getMetricsConfiguration())
       return false;
     return enabled;
   }
-
+  
   public static String toStringValue(Configuration config) {
     ToStringBuilder tsb = new ToStringBuilder(MetricsConfiguration.class);
     Iterator<?> keys = config.getKeys();
@@ -216,7 +216,7 @@ public class MetricsConfiguration {
     }
     return tsb.toString();
   }
-
+  
   public static void main(String[] args) throws Exception {
     MetricsConfiguration mc = new MetricsConfiguration("master");
     while (true) {
@@ -228,5 +228,5 @@ public class MetricsConfiguration {
       Thread.sleep(1000);
     }
   }
-
+  
 }

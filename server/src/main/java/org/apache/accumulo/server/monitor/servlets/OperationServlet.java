@@ -33,14 +33,14 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.log4j.Logger;
 
 public class OperationServlet extends BasicServlet {
-
+  
   private static final long serialVersionUID = 1L;
-
+  
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "Operations";
   }
-
+  
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     String redir = null;
@@ -49,7 +49,7 @@ public class OperationServlet extends BasicServlet {
       redir = req.getParameter("redir");
       if (redir != null)
         redir = decode(redir);
-
+      
       if (operation != null) {
         for (Class<?> subclass : OperationServlet.class.getClasses()) {
           Object t;
@@ -81,11 +81,11 @@ public class OperationServlet extends BasicServlet {
       }
     }
   }
-
+  
   private static interface WebOperation {
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws Exception;
   }
-
+  
   public static class RefreshOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
@@ -93,14 +93,14 @@ public class OperationServlet extends BasicServlet {
       resp.addCookie(new Cookie("page.refresh.rate", value == null ? "5" : value));
     }
   }
-
+  
   public static class ClearLogOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
       LogService.getInstance().clear();
     }
   }
-
+  
   public static class ClearTableProblemsOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
@@ -112,7 +112,7 @@ public class OperationServlet extends BasicServlet {
       }
     }
   }
-
+  
   public static class ClearProblemOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
@@ -130,7 +130,7 @@ public class OperationServlet extends BasicServlet {
       }
     }
   }
-
+  
   public static class SortTableOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws IOException {
@@ -146,7 +146,7 @@ public class OperationServlet extends BasicServlet {
         resp.addCookie(new Cookie("tableSort." + page + "." + table + "." + "sortAsc", asc));
     }
   }
-
+  
   public static class ToggleLegendOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws Exception {
@@ -158,7 +158,7 @@ public class OperationServlet extends BasicServlet {
       resp.addCookie(new Cookie("tableLegend." + page + "." + table + "." + "show", show));
     }
   }
-
+  
   public static class ClearDeadServerOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {

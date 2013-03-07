@@ -36,9 +36,9 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 public class TestMultiTableIngest {
-
+  
   private static ArrayList<String> tableNames = new ArrayList<String>();
-
+  
   static class Opts extends ClientOpts {
     @Parameter(names="--readonly", description="read only")
     boolean readonly = false;
@@ -47,7 +47,7 @@ public class TestMultiTableIngest {
     @Parameter(names="--count", description="number of entries to create")
     int count = 10000;
   }
-
+  
   private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn) throws Exception {
     int i = 0;
     for (String table : tableNames) {
@@ -63,7 +63,7 @@ public class TestMultiTableIngest {
       i++;
     }
   }
-
+  
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
@@ -81,18 +81,18 @@ public class TestMultiTableIngest {
     for (int i = 0; i < opts.tables; i++) {
       tableNames.add(String.format("test_%04d", i));
     }
-
+    
     if (!opts.readonly) {
       for (String table : tableNames)
         connector.tableOperations().create(table);
-
+      
       MultiTableBatchWriter b;
       try {
         b = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-
+      
       // populate
       for (int i = 0; i < opts.count; i++) {
         Mutation m = new Mutation(new Text(String.format("%05d", i)));
@@ -111,5 +111,5 @@ public class TestMultiTableIngest {
       throw new RuntimeException(e);
     }
   }
-
+  
 }

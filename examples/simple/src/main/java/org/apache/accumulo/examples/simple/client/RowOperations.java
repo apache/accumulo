@@ -42,132 +42,132 @@ import org.apache.log4j.Logger;
  * A demonstration of reading entire rows and deleting entire rows.
  */
 public class RowOperations {
-
+  
   private static final Logger log = Logger.getLogger(RowOperations.class);
-
+  
   private static Connector connector;
   private static String table = "example";
   private static BatchWriter bw;
-
+  
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
       MutationsRejectedException {
-
+    
     ClientOpts opts = new ClientOpts();
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RowOperations.class.getName(), args, scanOpts, bwOpts);
-
+    
     // First the setup work
     connector = opts.getConnector();
-
+    
     // lets create an example table
     connector.tableOperations().create(table);
-
+    
     // lets create 3 rows of information
     Text row1 = new Text("row1");
     Text row2 = new Text("row2");
     Text row3 = new Text("row3");
-
+    
     // Which means 3 different mutations
     Mutation mut1 = new Mutation(row1);
     Mutation mut2 = new Mutation(row2);
     Mutation mut3 = new Mutation(row3);
-
+    
     // And we'll put 4 columns in each row
     Text col1 = new Text("1");
     Text col2 = new Text("2");
     Text col3 = new Text("3");
     Text col4 = new Text("4");
-
+    
     // Now we'll add them to the mutations
     mut1.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     mut1.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     mut1.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     mut1.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-
+    
     mut2.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     mut2.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     mut2.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     mut2.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-
+    
     mut3.put(new Text("column"), col1, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     mut3.put(new Text("column"), col2, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     mut3.put(new Text("column"), col3, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     mut3.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
-
+    
     // Now we'll make a Batch Writer
     bw = connector.createBatchWriter(table, bwOpts.getBatchWriterConfig());
-
+    
     // And add the mutations
     bw.addMutation(mut1);
     bw.addMutation(mut2);
     bw.addMutation(mut3);
-
+    
     // Force a send
     bw.flush();
-
+    
     // Now lets look at the rows
     Scanner rowThree = getRow(opts, scanOpts, new Text("row3"));
     Scanner rowTwo = getRow(opts, scanOpts, new Text("row2"));
     Scanner rowOne = getRow(opts, scanOpts, new Text("row1"));
-
+    
     // And print them
     log.info("This is everything");
     printRow(rowOne);
     printRow(rowTwo);
     printRow(rowThree);
     System.out.flush();
-
+    
     // Now lets delete rowTwo with the iterator
     rowTwo = getRow(opts, scanOpts, new Text("row2"));
     deleteRow(rowTwo);
-
+    
     // Now lets look at the rows again
     rowThree = getRow(opts, scanOpts, new Text("row3"));
     rowTwo = getRow(opts, scanOpts, new Text("row2"));
     rowOne = getRow(opts, scanOpts, new Text("row1"));
-
+    
     // And print them
     log.info("This is row1 and row3");
     printRow(rowOne);
     printRow(rowTwo);
     printRow(rowThree);
     System.out.flush();
-
+    
     // Should only see the two rows
     // Now lets delete rowOne without passing in the iterator
-
+    
     deleteRow(opts, scanOpts, row1);
-
+    
     // Now lets look at the rows one last time
     rowThree = getRow(opts, scanOpts, new Text("row3"));
     rowTwo = getRow(opts, scanOpts, new Text("row2"));
     rowOne = getRow(opts, scanOpts, new Text("row1"));
-
+    
     // And print them
     log.info("This is just row3");
     printRow(rowOne);
     printRow(rowTwo);
     printRow(rowThree);
     System.out.flush();
-
+    
     // Should only see rowThree
-
+    
     // Always close your batchwriter
-
+    
     bw.close();
-
+    
     // and lets clean up our mess
     connector.tableOperations().delete(table);
-
+    
     // fin~
-
+    
   }
-
+  
   /**
    * Deletes a row given a text object
-   * @param opts
-   *
+   * @param opts 
+   * 
    * @param row
    * @throws TableNotFoundException
    * @throws AccumuloSecurityException
@@ -176,10 +176,10 @@ public class RowOperations {
   private static void deleteRow(ClientOpts opts, ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     deleteRow(getRow(opts, scanOpts, row));
   }
-
+  
   /**
    * Deletes a row, given a Scanner of JUST that row
-   *
+   * 
    * @param scanner
    */
   private static void deleteRow(Scanner scanner) throws MutationsRejectedException {
@@ -195,10 +195,10 @@ public class RowOperations {
     bw.addMutation(deleter);
     bw.flush();
   }
-
+  
   /**
    * Just a generic print function given an iterator. Not necessarily just for printing a single row
-   *
+   * 
    * @param scanner
    */
   private static void printRow(Scanner scanner) {
@@ -206,11 +206,11 @@ public class RowOperations {
     for (Entry<Key,Value> entry : scanner)
       log.info("Key: " + entry.getKey().toString() + " Value: " + entry.getValue().toString());
   }
-
+  
   /**
    * Gets a scanner over one row
-   * @param opts
-   *
+   * @param opts 
+   * 
    * @param row
    * @return
    * @throws TableNotFoundException
@@ -227,5 +227,5 @@ public class RowOperations {
     scanner.setRange(new Range(row));
     return scanner;
   }
-
+  
 }

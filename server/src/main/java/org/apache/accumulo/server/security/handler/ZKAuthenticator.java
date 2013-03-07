@@ -38,24 +38,24 @@ import org.apache.zookeeper.KeeperException;
 public final class ZKAuthenticator extends org.apache.accumulo.core.security.handler.ZKAuthenticator implements Authenticator {
   static final Logger log = Logger.getLogger(ZKAuthenticator.class);
   private static Authenticator zkAuthenticatorInstance = null;
-
+  
   private String ZKUserPath;
   private final ZooCache zooCache;
-
+  
   public static synchronized Authenticator getInstance() {
     if (zkAuthenticatorInstance == null)
       zkAuthenticatorInstance = new ZKAuthenticator();
     return zkAuthenticatorInstance;
   }
-
+  
   public ZKAuthenticator() {
     zooCache = new ZooCache();
   }
-
+  
   public void initialize(String instanceId, boolean initialize) {
     ZKUserPath = Constants.ZROOT + "/" + instanceId + "/users";
   }
-
+  
   @Override
   public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException {
     try {
@@ -67,10 +67,10 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
           zoo.recursiveDelete(ZKUserPath, NodeMissingPolicy.SKIP);
           log.info("Removed " + ZKUserPath + "/" + " from zookeeper");
         }
-
+        
         // prep parent node of users with root username
         zoo.putPersistentData(ZKUserPath, principal.getBytes(), NodeExistsPolicy.FAIL);
-
+        
         constructUser(principal, ZKSecurityTool.createPass(token));
       }
     } catch (KeeperException e) {
@@ -84,7 +84,7 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
       throw new RuntimeException(e);
     }
   }
-
+  
   /**
    * Sets up the user in ZK for the provided user. No checking for existence is done here, it should be done before calling.
    */
@@ -95,12 +95,12 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
       zoo.putPrivatePersistentData(ZKUserPath + "/" + user, pass, NodeExistsPolicy.FAIL);
     }
   }
-
+  
   @Override
   public Set<String> listUsers() {
     return new TreeSet<String>(zooCache.getChildren(ZKUserPath));
   }
-
+  
   /**
    * Creates a user with no permissions whatsoever
    */
@@ -123,7 +123,7 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
       throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
     }
   }
-
+  
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
     try {
@@ -141,7 +141,7 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     }
   }
-
+  
   @Override
   public void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException {
     if (!(token instanceof PasswordToken))
@@ -167,7 +167,7 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
     } else
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
-
+  
   /**
    * Checks if a user exists
    */
@@ -175,12 +175,12 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
   public boolean userExists(String user) {
     return zooCache.get(ZKUserPath + "/" + user) != null;
   }
-
+  
   @Override
   public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm) {
     return true;
   }
-
+  
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
     if (!(token instanceof PasswordToken))
@@ -197,7 +197,7 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
     }
     return result;
   }
-
+  
   @Override
   public String getTokenLoginClass() {
     return this.getClass().getSuperclass().getName();

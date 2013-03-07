@@ -30,28 +30,28 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class AlterTablePerm extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     alter(state, props);
   }
-
-  public static void alter(State state, Properties props) throws Exception {
+  
+  public static void alter(State state, Properties props) throws Exception {    
     String action = props.getProperty("task", "toggle");
     String perm = props.getProperty("perm", "random");
     String sourceUserProp = props.getProperty("source", "system");
     String targetUser = props.getProperty("target", "table");
     boolean tabExists = WalkingSecurity.get(state).getTableExists();
-
+    
     String target;
     if ("table".equals(targetUser))
       target = WalkingSecurity.get(state).getTabUserName();
     else
       target = WalkingSecurity.get(state).getSysUserName();
-
+    
     boolean exists = WalkingSecurity.get(state).userExists(target);
     boolean tableExists = WalkingSecurity.get(state).getTableExists();
-
+    
     TablePermission tabPerm;
     if (perm.equals("random")) {
       Random r = new Random();
@@ -75,7 +75,7 @@ public class AlterTablePerm extends Test {
       sourceToken = state.getToken();
     }
     Connector conn = state.getInstance().getConnector(sourceUser, sourceToken);
-
+    
     canGive = WalkingSecurity.get(state).canGrantTable(CredentialHelper.create(sourceUser, sourceToken, state.getInstance().getInstanceID()), target, WalkingSecurity.get(state).getTableName());
 
     // toggle
@@ -85,7 +85,7 @@ public class AlterTablePerm extends Test {
         if (hasPerm != (res = state.getConnector().securityOperations().hasTablePermission(target, tableName, tabPerm)))
           throw new AccumuloException("Test framework and accumulo are out of sync for user " + conn.whoami() + " for perm " + tabPerm.name()
               + " with local vs. accumulo being " + hasPerm + " " + res);
-
+        
         if (hasPerm)
           action = "take";
         else
@@ -107,7 +107,7 @@ public class AlterTablePerm extends Test {
         }
       }
     }
-
+    
     boolean trans = WalkingSecurity.get(state).userPassTransient(conn.whoami());
     if ("take".equals(action)) {
       try {
@@ -169,14 +169,14 @@ public class AlterTablePerm extends Test {
       }
       WalkingSecurity.get(state).grantTablePermission(target, tableName, tabPerm);
     }
-
+    
     if (!exists)
       throw new AccumuloException("User shouldn't have existed, but apparantly does");
     if (!tableExists)
       throw new AccumuloException("Table shouldn't have existed, but apparantly does");
     if (!canGive)
       throw new AccumuloException(conn.whoami() + " shouldn't have been able to grant privilege");
-
+    
   }
-
+  
 }

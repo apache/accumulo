@@ -31,12 +31,12 @@ public class SystemPermissionsCommand extends Command {
     }
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "displays a list of valid system permissions";
   }
-
+  
   @Override
   public int numArgs() {
     return 0;

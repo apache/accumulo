@@ -26,49 +26,49 @@ import org.apache.commons.collections.buffer.PriorityBuffer;
 public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> {
   private PriorityBuffer heap;
   private SortedKeyValueIterator<Key,Value> currentIter;
-
+  
   private static class Index implements Comparable<Index> {
     SortedKeyValueIterator<Key,Value> iter;
-
+    
     public Index(SortedKeyValueIterator<Key,Value> iter) {
       this.iter = iter;
     }
-
+    
     public int compareTo(Index o) {
       return iter.getTopKey().compareTo(o.iter.getTopKey());
     }
   }
-
+  
   protected HeapIterator() {
     heap = null;
   }
-
+  
   protected HeapIterator(int maxSize) {
     createHeap(maxSize);
   }
-
+  
   protected void createHeap(int maxSize) {
     if (heap != null)
       throw new IllegalStateException("heap already exist");
-
+    
     heap = new PriorityBuffer(maxSize == 0 ? 1 : maxSize);
   }
-
+  
   @Override
   final public Key getTopKey() {
     return currentIter.getTopKey();
   }
-
+  
   @Override
   final public Value getTopValue() {
     return currentIter.getTopValue();
   }
-
+  
   @Override
   final public boolean hasTop() {
     return heap.size() > 0;
   }
-
+  
   @Override
   final public void next() throws IOException {
     switch (heap.size()) {
@@ -95,21 +95,21 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
         currentIter = ((Index) heap.get()).iter;
     }
   }
-
+  
   final protected void clear() {
     heap.clear();
     currentIter = null;
   }
-
+  
   final protected void addSource(SortedKeyValueIterator<Key,Value> source) {
-
+    
     if (source.hasTop())
       heap.add(new Index(source));
-
+    
     if (heap.size() > 0)
       currentIter = ((Index) heap.get()).iter;
     else
       currentIter = null;
   }
-
+  
 }

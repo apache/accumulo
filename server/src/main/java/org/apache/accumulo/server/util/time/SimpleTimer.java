@@ -24,18 +24,18 @@ import org.apache.log4j.Logger;
 /**
  * Generic singleton timer: don't use it if you are going to do anything that will take very long. Please use it to reduce the number of threads dedicated to
  * simple events.
- *
+ * 
  */
 public class SimpleTimer {
-
+  
   static class LoggingTimerTask extends TimerTask {
-
+    
     private Runnable task;
-
+    
     LoggingTimerTask(Runnable task) {
       this.task = task;
     }
-
+    
     @Override
     public void run() {
       try {
@@ -44,28 +44,28 @@ public class SimpleTimer {
         Logger.getLogger(LoggingTimerTask.class).warn("Timer task failed " + task.getClass().getName() + " " + t.getMessage(), t);
       }
     }
-
+    
   }
 
   private static SimpleTimer instance;
   private Timer timer;
-
+  
   public static synchronized SimpleTimer getInstance() {
     if (instance == null)
       instance = new SimpleTimer();
     return instance;
   }
-
+  
   private SimpleTimer() {
     timer = new Timer("SimpleTimer", true);
   }
-
+  
   public void schedule(Runnable task, long delay) {
     timer.schedule(new LoggingTimerTask(task), delay);
   }
-
+  
   public void schedule(Runnable task, long delay, long period) {
     timer.schedule(new LoggingTimerTask(task), delay, period);
   }
-
+  
 }

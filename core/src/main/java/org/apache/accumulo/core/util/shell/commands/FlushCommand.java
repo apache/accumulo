@@ -29,15 +29,15 @@ import org.apache.hadoop.io.Text;
 public class FlushCommand extends TableOperation {
   private Text startRow;
   private Text endRow;
-
+  
   private boolean wait;
   private Option waitOpt;
-
+  
   @Override
   public String description() {
     return "flushes a tables data that is currently in memory to disk";
   }
-
+  
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     shellState.getConnector().tableOperations().flush(tableName, startRow, endRow, wait);
     Shell.log.info("Flush of table " + tableName + (wait ? " completed." : " initiated..."));
@@ -48,7 +48,7 @@ public class FlushCommand extends TableOperation {
       Shell.log.info("  Check the monitor web page and give it time to settle.");
     }
   }
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     wait = cl.hasOption(waitOpt.getLongOpt());
@@ -56,7 +56,7 @@ public class FlushCommand extends TableOperation {
     endRow = OptUtil.getEndRow(cl);
     return super.execute(fullCommand, cl, shellState);
   }
-
+  
   @Override
   public Options getOptions() {
     final Options opts = super.getOptions();
@@ -64,7 +64,7 @@ public class FlushCommand extends TableOperation {
     opts.addOption(waitOpt);
     opts.addOption(OptUtil.startRowOpt());
     opts.addOption(OptUtil.endRowOpt());
-
+    
     return opts;
   }
 }

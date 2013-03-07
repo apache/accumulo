@@ -47,11 +47,11 @@ public class SetScanIterCommand extends SetIterCommand {
     Shell.log.warn("Deprecated, use " + new SetShellIterCommand().getName());
     return super.execute(fullCommand, cl, shellState);
   }
-
+  
   @Override
   protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
       final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
-
+    
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     // instead of setting table properties, just put the options in a list to use at scan time
@@ -59,7 +59,7 @@ public class SetScanIterCommand extends SetIterCommand {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
           + SortedKeyValueIterator.class.getName());
     }
-
+    
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty()) {
@@ -74,7 +74,7 @@ public class SetScanIterCommand extends SetIterCommand {
     }
     final IteratorSetting setting = new IteratorSetting(priority, name, classname);
     setting.addOptions(options);
-
+    
     // initialize a scanner to ensure the new setting does not conflict with existing settings
     final String user = shellState.getConnector().whoami();
     final Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
@@ -83,17 +83,17 @@ public class SetScanIterCommand extends SetIterCommand {
       scanner.addScanIterator(s);
     }
     scanner.addScanIterator(setting);
-
+    
     // if no exception has been thrown, it's safe to add it to the list
     tableScanIterators.add(setting);
     Shell.log.debug("Scan iterators :" + shellState.scanIteratorOptions.get(tableName));
   }
-
+  
   @Override
   public String description() {
     return "sets a table-specific scan iterator for this shell session";
   }
-
+  
   @Override
   public Options getOptions() {
     // Remove the options that specify which type of iterator this is, since
@@ -115,5 +115,5 @@ public class SetScanIterCommand extends SetIterCommand {
     }
     return modifiedOptions;
   }
-
+  
 }

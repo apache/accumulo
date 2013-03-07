@@ -34,13 +34,13 @@ import org.apache.log4j.Logger;
 
 public abstract class ShellPluginConfigurationCommand extends Command {
   private Option removePluginOption, pluginClassOption, listPluginOption;
-
+  
   private String pluginType;
-
+  
   private Property tableProp;
-
+  
   private String classOpt;
-
+  
   ShellPluginConfigurationCommand(final String typeName, final Property tableProp, final String classOpt) {
     this.pluginType = typeName;
     this.tableProp = tableProp;
@@ -50,19 +50,19 @@ public abstract class ShellPluginConfigurationCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
-
+    
     if (cl.hasOption(removePluginOption.getOpt())) {
       // Remove the property
       removePlugin(cl, shellState, tableName);
-
+      
       shellState.getReader().printString("Removed "+pluginType+" on " + tableName + "\n");
     } else if (cl.hasOption(listPluginOption.getOpt())) {
       // Get the options for this table
       final Iterator<Entry<String,String>> iter = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
-
+      
       while (iter.hasNext()) {
         Entry<String,String> ent = iter.next();
-
+        
         // List all parameters with the property name
         if (ent.getKey().startsWith(tableProp.toString())) {
           shellState.getReader().printString(ent.getKey() + ": " + ent.getValue() + "\n");
@@ -71,22 +71,22 @@ public abstract class ShellPluginConfigurationCommand extends Command {
     } else {
       // Set the plugin with the provided options
       String className = cl.getOptionValue(pluginClassOption.getOpt());
-
+      
       // Set the plugin property on the table
       setPlugin(cl, shellState, tableName, className);
     }
-
+    
     return 0;
   }
 
   protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName, final String className) throws AccumuloException, AccumuloSecurityException {
     shellState.getConnector().tableOperations().setProperty(tableName, tableProp.toString(), className);
   }
-
+  
   protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
     shellState.getConnector().tableOperations().removeProperty(tableName, tableProp.toString());
   }
-
+  
   public static <T> Class<? extends T> getPluginClass(final String tableName, final Shell shellState, final Class<T> clazz, final Property pluginProp) {
     Iterator<Entry<String,String>> props;
     try {
@@ -96,7 +96,7 @@ public abstract class ShellPluginConfigurationCommand extends Command {
     } catch (TableNotFoundException e) {
       return null;
     }
-
+    
     while (props.hasNext()) {
       final Entry<String,String> ent = props.next();
       if (ent.getKey().equals(pluginProp.toString())) {
@@ -107,40 +107,40 @@ public abstract class ShellPluginConfigurationCommand extends Command {
           Logger.getLogger(ShellPluginConfigurationCommand.class).warn("Class not found" + e.getMessage());
           return null;
         }
-
+        
         return pluginClazz;
       }
     }
-
+    
     return null;
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();
     final OptionGroup actionGroup = new OptionGroup();
-
+    
     pluginClassOption = new Option(classOpt, pluginType, true, "fully qualified name of the " + pluginType + " class to use");
     pluginClassOption.setArgName("className");
-
+    
     // Action to take: apply (default), remove, list
     removePluginOption = new Option("r", "remove", false, "remove the current "+pluginType+"");
     listPluginOption = new Option("l", "list", false, "display the current "+pluginType+"");
-
+    
     actionGroup.addOption(pluginClassOption);
     actionGroup.addOption(removePluginOption);
     actionGroup.addOption(listPluginOption);
     actionGroup.setRequired(true);
-
+    
     o.addOptionGroup(actionGroup);
     o.addOption(OptUtil.tableOpt("table to set the "+pluginType+" on"));
-
+    
     return o;
   }
-
+  
   @Override
   public int numArgs() {
     return 0;
   }
-
+  
 }

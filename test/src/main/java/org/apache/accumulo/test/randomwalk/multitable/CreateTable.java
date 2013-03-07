@@ -26,11 +26,11 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CreateTable extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-
+    
     int nextId = ((Integer) state.get("nextId")).intValue();
     String tableName = String.format("%s_%d", state.getString("tableNamePrefix"), nextId);
     try {
@@ -43,7 +43,7 @@ public class CreateTable extends Test {
     } catch (TableExistsException e) {
       log.warn("Failed to create " + tableName + " as it already exists");
     }
-
+    
     nextId++;
     state.set("nextId", new Integer(nextId));
   }

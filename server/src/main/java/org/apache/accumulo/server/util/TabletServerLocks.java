@@ -29,7 +29,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import com.beust.jcommander.Parameter;
 
 public class TabletServerLocks {
-
+  
   static class Opts extends Help {
     @Parameter(names="-list")
     boolean list = false;
@@ -40,23 +40,23 @@ public class TabletServerLocks {
    * @param args
    */
   public static void main(String[] args) throws Exception {
-
+    
     String tserverPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTSERVERS;
     Opts opts = new Opts();
     opts.parseArgs(TabletServerLocks.class.getName(), args);
-
+    
     if (opts.list) {
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-
+      
       List<String> tabletServers = zoo.getChildren(tserverPath);
-
+      
       for (String tabletServer : tabletServers) {
         byte[] lockData = ZooLock.getLockData(tserverPath + "/" + tabletServer);
         String holder = null;
         if (lockData != null) {
           holder = new String(lockData);
         }
-
+        
         System.out.printf("%32s %16s%n", tabletServer, holder);
       }
     } else if (opts.delete != null) {
@@ -64,7 +64,7 @@ public class TabletServerLocks {
     } else {
       System.out.println("Usage : " + TabletServerLocks.class.getName() + " -list|-delete <tserver lock>");
     }
-
+    
   }
-
+  
 }

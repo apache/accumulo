@@ -32,21 +32,21 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 public class VisibilityFilterTest extends TestCase {
-
+  
   public void testBadVisibility() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-
+    
     tm.put(new Key("r1", "cf1", "cq1", "A&"), new Value(new byte[0]));
     VisibilityFilter filter = new VisibilityFilter(new SortedMapIterator(tm), new Authorizations("A"), "".getBytes());
-
+    
     // suppress logging
     Level prevLevel = Logger.getLogger(VisibilityFilter.class).getLevel();
     Logger.getLogger(VisibilityFilter.class).setLevel(Level.FATAL);
 
     filter.seek(new Range(), new HashSet<ByteSequence>(), false);
     assertFalse(filter.hasTop());
-
+    
     Logger.getLogger(VisibilityFilter.class).setLevel(prevLevel);
   }
-
+  
 }

@@ -29,26 +29,26 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NotEmptyException;
 
 public class ZooQueueLock implements QueueLock {
-
+  
   private static final String PREFIX = "lock-";
-
+  
   // private static final Logger log = Logger.getLogger(ZooQueueLock.class);
-
+  
   private IZooReaderWriter zoo;
   private String path;
   private boolean ephemeral;
-
+  
   public ZooQueueLock(String zookeepers, int timeInMillis, String scheme, byte[] auth, String path, boolean ephemeral) throws KeeperException,
       InterruptedException {
     this(ZooReaderWriter.getRetryingInstance(zookeepers, timeInMillis, scheme, auth), path, ephemeral);
   }
-
+  
   protected ZooQueueLock(IZooReaderWriter zrw, String path, boolean ephemeral) {
     this.zoo = zrw;
     this.path = path;
     this.ephemeral = ephemeral;
   }
-
+  
   @Override
   public long addEntry(byte[] data) {
     String newPath;
@@ -72,7 +72,7 @@ public class ZooQueueLock implements QueueLock {
       throw new RuntimeException(ex);
     }
   }
-
+  
   @Override
   public SortedMap<Long,byte[]> getEarlierEntries(long entry) {
     SortedMap<Long,byte[]> result = new TreeMap<Long,byte[]>();
@@ -83,7 +83,7 @@ public class ZooQueueLock implements QueueLock {
       } catch (KeeperException.NoNodeException ex) {
         // the path does not exist (it was deleted or not created yet), that is ok there are no earlier entries then
       }
-
+      
       for (String name : children) {
         // this try catch must be done inside the loop because some subset of the children may exist
         try {
@@ -100,7 +100,7 @@ public class ZooQueueLock implements QueueLock {
     }
     return result;
   }
-
+  
   @Override
   public void removeEntry(long entry) {
     try {

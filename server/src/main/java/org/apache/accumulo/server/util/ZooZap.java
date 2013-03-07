@@ -29,9 +29,9 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 public class ZooZap {
-
+  
   static boolean verbose = false;
-
+  
   /**
    * @param args
    */
@@ -39,7 +39,7 @@ public class ZooZap {
     if (verbose)
       System.out.println(msg);
   }
-
+  
   static class Opts extends ClientOpts {
     @Parameter(names="-master", description="remove master locks")
     boolean zapMaster = false;
@@ -50,33 +50,33 @@ public class ZooZap {
     @Parameter(names="-verbose", description="print out messages about progress")
     boolean verbose = false;
   }
-
+  
   public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(ZooZap.class.getName(), args);
-
+    
     if (!opts.zapMaster && !opts.zapTservers && !opts.zapTracers)
     {
         new JCommander(opts).usage();
         return;
     }
-
+    
     String iid = opts.getInstance().getInstanceID();
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-
+    
     if (opts.zapMaster) {
       String masterLockPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
-
+      
       zapDirectory(zoo, masterLockPath);
     }
-
+    
     if (opts.zapTservers) {
       String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
       try {
         List<String> children = zoo.getChildren(tserversPath);
         for (String child : children) {
           message("Deleting " + tserversPath + "/" + child + " from zookeeper");
-
+          
           if (opts.zapMaster)
             ZooReaderWriter.getInstance().recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
           else {
@@ -92,14 +92,14 @@ public class ZooZap {
         e.printStackTrace();
       }
     }
-
+    
     if (opts.zapTracers) {
       String path = Constants.ZROOT + "/" + iid + Constants.ZTRACERS;
       zapDirectory(zoo, path);
     }
-
+    
   }
-
+  
   private static void zapDirectory(IZooReaderWriter zoo, String path) {
     try {
       List<String> children = zoo.getChildren(path);

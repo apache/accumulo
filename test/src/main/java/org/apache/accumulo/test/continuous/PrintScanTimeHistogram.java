@@ -23,33 +23,33 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class PrintScanTimeHistogram {
-
+  
   public static void main(String[] args) throws Exception {
     Histogram<String> srqHist = new Histogram<String>();
     Histogram<String> fsrHist = new Histogram<String>();
-
+    
     processFile(System.in, srqHist, fsrHist);
-
+    
     System.out.println();
     System.out.println(" *** Single row queries histogram *** ");
     System.out.println();
     srqHist.print();
-
+    
     System.out.println();
     System.out.println(" *** Find start rows histogram *** ");
     System.out.println();
     fsrHist.print();
   }
-
+  
   private static void processFile(InputStream ins, Histogram<String> srqHist, Histogram<String> fsrHist) throws FileNotFoundException, IOException {
     String line;
     BufferedReader in = new BufferedReader(new InputStreamReader(ins));
-
+    
     while ((line = in.readLine()) != null) {
-
+      
       try {
         String[] tokens = line.split(" ");
-
+        
         String type = tokens[0];
         if (type.equals("SRQ")) {
           long delta = Long.parseLong(tokens[3]);
@@ -65,13 +65,13 @@ public class PrintScanTimeHistogram {
         e.printStackTrace();
       }
     }
-
+    
     in.close();
   }
-
+  
   private static String generateHistPoint(long delta) {
     String point;
-
+    
     if (delta / 1000.0 < .1) {
       point = String.format("%07.2f", delta / 1000.0);
       if (point.equals("0000.10"))
@@ -85,5 +85,5 @@ public class PrintScanTimeHistogram {
     }
     return point;
   }
-
+  
 }

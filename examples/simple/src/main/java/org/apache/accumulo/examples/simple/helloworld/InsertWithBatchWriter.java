@@ -34,20 +34,20 @@ import org.apache.hadoop.io.Text;
  * Inserts 10K rows (50K entries) into accumulo with each row having 5 entries.
  */
 public class InsertWithBatchWriter {
-
+  
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, MutationsRejectedException, TableExistsException,
       TableNotFoundException {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(InsertWithBatchWriter.class.getName(), args, bwOpts);
-
+    
     Connector connector = opts.getConnector();
     MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
-
+    
     if (!connector.tableOperations().exists(opts.tableName))
       connector.tableOperations().create(opts.tableName);
     BatchWriter bw = mtbw.getBatchWriter(opts.tableName);
-
+    
     Text colf = new Text("colfam");
     System.out.println("writing ...");
     for (int i = 0; i < 10000; i++) {
@@ -61,5 +61,5 @@ public class InsertWithBatchWriter {
     }
     mtbw.close();
   }
-
+  
 }

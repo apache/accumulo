@@ -51,34 +51,34 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.log4j.Logger;
 
 public class FileUtil {
-
+  
   public static class FileInfo {
     Key firstKey = new Key();
     Key lastKey = new Key();
-
+    
     public FileInfo(Key firstKey, Key lastKey) {
       this.firstKey = firstKey;
       this.lastKey = lastKey;
     }
-
+    
     public Text getFirstRow() {
       return firstKey.getRow();
     }
-
+    
     public Text getLastRow() {
       return lastKey.getRow();
     }
   }
-
+  
   private static final Logger log = Logger.getLogger(FileUtil.class);
-
+  
   private static String createTmpDir(AccumuloConfiguration acuConf, FileSystem fs) throws IOException {
     String accumuloDir = acuConf.get(Property.INSTANCE_DFS_DIR);
-
+    
     String tmpDir = null;
     while (tmpDir == null) {
       tmpDir = accumuloDir + "/tmp/idxReduce_" + String.format("%09d", (int) (Math.random() * Integer.MAX_VALUE));
-
+      
       try {
         fs.getFileStatus(new Path(tmpDir));
         tmpDir = null;
@@ -86,67 +86,67 @@ public class FileUtil {
       } catch (FileNotFoundException fne) {
         // found an unused temp directory
       }
-
+      
       fs.mkdirs(new Path(tmpDir));
-
+      
       // try to reserve the tmp dir
       if (!fs.createNewFile(new Path(tmpDir + "/__reserve")))
         tmpDir = null;
     }
-
+    
     return tmpDir;
   }
-
+  
   public static Collection<String> reduceFiles(AccumuloConfiguration acuConf, Configuration conf, FileSystem fs, Text prevEndRow, Text endRow,
       Collection<String> mapFiles, int maxFiles, String tmpDir, int pass) throws IOException {
     ArrayList<String> paths = new ArrayList<String>(mapFiles);
-
+    
     if (paths.size() <= maxFiles)
       return paths;
-
+    
     String newDir = String.format("%s/pass_%04d", tmpDir, pass);
-
+    
     int start = 0;
-
+    
     ArrayList<String> outFiles = new ArrayList<String>();
-
+    
     int count = 0;
-
+    
     while (start < paths.size()) {
       int end = Math.min(maxFiles + start, paths.size());
       List<String> inFiles = paths.subList(start, end);
-
+      
       start = end;
-
+      
       String newMapFile = String.format("%s/%04d." + RFile.EXTENSION, newDir, count++);
-
+      
       outFiles.add(newMapFile);
-
+      
       FileSKVWriter writer = new RFileOperations().openWriter(newMapFile, fs, conf, acuConf);
       writer.startDefaultLocalityGroup();
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(inFiles.size());
-
+      
       FileSKVIterator reader = null;
       try {
         for (String s : inFiles) {
           reader = FileOperations.getInstance().openIndex(s, fs, conf, acuConf);
           iters.add(reader);
         }
-
+        
         MultiIterator mmfi = new MultiIterator(iters, true);
-
+        
         while (mmfi.hasTop()) {
           Key key = mmfi.getTopKey();
-
+          
           boolean gtPrevEndRow = prevEndRow == null || key.compareRow(prevEndRow) > 0;
           boolean lteEndRow = endRow == null || key.compareRow(endRow) <= 0;
-
+          
           if (gtPrevEndRow && lteEndRow)
             writer.append(key, new Value(new byte[0]));
-
+          
           if (!lteEndRow)
             break;
-
+          
           mmfi.next();
         }
       } finally {
@@ -156,7 +156,7 @@ public class FileUtil {
         } catch (IOException e) {
           log.error(e, e);
         }
-
+        
         for (SortedKeyValueIterator<Key,Value> r : iters)
           try {
             if (r != null)
@@ -165,7 +165,7 @@ public class FileUtil {
             // continue closing
             log.error(e, e);
           }
-
+        
         try {
           if (writer != null)
             writer.close();
@@ -175,7 +175,7 @@ public class FileUtil {
         }
       }
     }
-
+    
     return reduceFiles(acuConf, conf, fs, prevEndRow, endRow, outFiles, maxFiles, tmpDir, pass + 1);
   }
 
@@ -183,114 +183,114 @@ public class FileUtil {
       double minSplit) throws IOException {
     return findMidPoint(fs, acuConf, prevEndRow, endRow, mapFiles, minSplit, true);
   }
-
+  
   public static double estimatePercentageLTE(FileSystem fs, AccumuloConfiguration acuconf, Text prevEndRow, Text endRow, Collection<String> mapFiles,
       Text splitRow) throws IOException {
-
+    
     Configuration conf = CachedConfiguration.getInstance();
-
+    
     String tmpDir = null;
-
+    
     int maxToOpen = acuconf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
     ArrayList<FileSKVIterator> readers = new ArrayList<FileSKVIterator>(mapFiles.size());
-
+    
     try {
       if (mapFiles.size() > maxToOpen) {
         tmpDir = createTmpDir(acuconf, fs);
-
+        
         log.debug("Too many indexes (" + mapFiles.size() + ") to open at once for " + endRow + " " + prevEndRow + ", reducing in tmpDir = " + tmpDir);
-
+        
         long t1 = System.currentTimeMillis();
         mapFiles = reduceFiles(acuconf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
-
+        
         log.debug("Finished reducing indexes for " + endRow + " " + prevEndRow + " in " + String.format("%6.2f secs", (t2 - t1) / 1000.0));
       }
-
+      
       if (prevEndRow == null)
         prevEndRow = new Text();
-
+      
       long numKeys = 0;
-
+      
       numKeys = countIndexEntries(acuconf, prevEndRow, endRow, mapFiles, true, conf, fs, readers);
-
+      
       if (numKeys == 0) {
         // not enough info in the index to answer the question, so instead of going to
         // the data just punt and return .5
         return .5;
       }
-
+      
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
-
+      
       // skip the prevendrow
       while (mmfi.hasTop() && mmfi.getTopKey().compareRow(prevEndRow) <= 0) {
         mmfi.next();
       }
-
+      
       int numLte = 0;
-
+      
       while (mmfi.hasTop() && mmfi.getTopKey().compareRow(splitRow) <= 0) {
         numLte++;
         mmfi.next();
       }
-
+      
       if (numLte > numKeys) {
         // something went wrong
         throw new RuntimeException("numLte > numKeys " + numLte + " " + numKeys + " " + prevEndRow + " " + endRow + " " + splitRow + " " + mapFiles);
       }
-
+      
       // do not want to return 0% or 100%, so add 1 and 2 below
       return (numLte + 1) / (double) (numKeys + 2);
-
+      
     } finally {
       cleanupIndexOp(acuconf, tmpDir, fs, readers);
     }
   }
-
+  
   /**
-   *
+   * 
    * @param mapFiles
    *          - list MapFiles to find the mid point key
-   *
+   * 
    *          ISSUES : This method used the index files to find the mid point. If the map files have different index intervals this method will not return an
    *          accurate mid point. Also, it would be tricky to use this method in conjunction with an in memory map because the indexing interval is unknown.
    */
   public static SortedMap<Double,Key> findMidPoint(FileSystem fs, AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<String> mapFiles,
       double minSplit, boolean useIndex) throws IOException {
     Configuration conf = CachedConfiguration.getInstance();
-
+    
     Collection<String> origMapFiles = mapFiles;
-
+    
     String tmpDir = null;
-
+    
     int maxToOpen = acuConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
     ArrayList<FileSKVIterator> readers = new ArrayList<FileSKVIterator>(mapFiles.size());
-
+    
     try {
       if (mapFiles.size() > maxToOpen) {
         if (!useIndex)
           throw new IOException("Cannot find mid point using data files, too many " + mapFiles.size());
         tmpDir = createTmpDir(acuConf, fs);
-
+        
         log.debug("Too many indexes (" + mapFiles.size() + ") to open at once for " + endRow + " " + prevEndRow + ", reducing in tmpDir = " + tmpDir);
-
+        
         long t1 = System.currentTimeMillis();
         mapFiles = reduceFiles(acuConf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
-
+        
         log.debug("Finished reducing indexes for " + endRow + " " + prevEndRow + " in " + String.format("%6.2f secs", (t2 - t1) / 1000.0));
       }
-
+      
       if (prevEndRow == null)
         prevEndRow = new Text();
-
+      
       long t1 = System.currentTimeMillis();
-
+      
       long numKeys = 0;
-
+      
       numKeys = countIndexEntries(acuConf, prevEndRow, endRow, mapFiles, tmpDir == null ? useIndex : false, conf, fs, readers);
-
+      
       if (numKeys == 0) {
         if (useIndex) {
           log.warn("Failed to find mid point using indexes, falling back to data files which is slower. No entries between " + prevEndRow + " and " + endRow
@@ -300,48 +300,48 @@ public class FileUtil {
         }
         throw new IOException("Failed to find mid point, no entries between " + prevEndRow + " and " + endRow + " for " + mapFiles);
       }
-
+      
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
-
+      
       // skip the prevendrow
       while (mmfi.hasTop() && mmfi.getTopKey().compareRow(prevEndRow) <= 0)
         mmfi.next();
-
+      
       // read half of the keys in the index
       TreeMap<Double,Key> ret = new TreeMap<Double,Key>();
       Key lastKey = null;
       long keysRead = 0;
-
+      
       Key keyBeforeMidPoint = null;
       long keyBeforeMidPointPosition = 0;
-
+      
       while (keysRead < numKeys / 2) {
         if (lastKey != null && !lastKey.equals(mmfi.getTopKey(), PartialKey.ROW) && (keysRead - 1) / (double) numKeys >= minSplit) {
           keyBeforeMidPoint = new Key(lastKey);
           keyBeforeMidPointPosition = keysRead - 1;
         }
-
+        
         if (lastKey == null)
           lastKey = new Key();
-
+        
         lastKey.set(mmfi.getTopKey());
-
+        
         keysRead++;
-
+        
         // consume minimum
         mmfi.next();
       }
-
+      
       if (keyBeforeMidPoint != null)
         ret.put(keyBeforeMidPointPosition / (double) numKeys, keyBeforeMidPoint);
-
+      
       long t2 = System.currentTimeMillis();
-
+      
       log.debug(String.format("Found midPoint from indexes in %6.2f secs.%n", ((t2 - t1) / 1000.0)));
-
+      
       ret.put(.5, mmfi.getTopKey());
-
+      
       // sanity check
       for (Key key : ret.values()) {
         boolean inRange = (key.compareRow(prevEndRow) > 0 && (endRow == null || key.compareRow(endRow) < 1));
@@ -349,13 +349,13 @@ public class FileUtil {
           throw new IOException("Found mid point is not in range " + key + " " + prevEndRow + " " + endRow + " " + mapFiles);
         }
       }
-
+      
       return ret;
     } finally {
       cleanupIndexOp(acuConf, tmpDir, fs, readers);
     }
   }
-
+  
   private static void cleanupIndexOp(AccumuloConfiguration acuConf, String tmpDir, FileSystem fs, ArrayList<FileSKVIterator> readers) throws IOException {
     // close all of the index sequence files
     for (FileSKVIterator r : readers) {
@@ -367,7 +367,7 @@ public class FileUtil {
         log.error(e, e);
       }
     }
-
+    
     if (tmpDir != null) {
       String tmpPrefix = acuConf.get(Property.INSTANCE_DFS_DIR) + "/tmp";
       if (tmpDir.startsWith(tmpPrefix))
@@ -376,12 +376,12 @@ public class FileUtil {
         log.error("Did not delete tmp dir because it wasn't a tmp dir " + tmpDir);
     }
   }
-
+  
   private static long countIndexEntries(AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<String> mapFiles, boolean useIndex,
       Configuration conf, FileSystem fs, ArrayList<FileSKVIterator> readers) throws IOException {
-
+    
     long numKeys = 0;
-
+    
     // count the total number of index entries
     for (String path : mapFiles) {
       FileSKVIterator reader = null;
@@ -391,14 +391,14 @@ public class FileUtil {
         else
           reader = FileOperations.getInstance().openReader(path, new Range(prevEndRow, false, null, true), LocalityGroupUtil.EMPTY_CF_SET, false, fs, conf,
               acuConf);
-
+        
         while (reader.hasTop()) {
           Key key = reader.getTopKey();
           if (endRow != null && key.compareRow(endRow) > 0)
             break;
           else if (prevEndRow == null || key.compareRow(prevEndRow) > 0)
             numKeys++;
-
+          
           reader.next();
         }
       } finally {
@@ -409,36 +409,36 @@ public class FileUtil {
           log.error(e, e);
         }
       }
-
+      
       if (useIndex)
         readers.add(FileOperations.getInstance().openIndex(path, fs, conf, acuConf));
       else
         readers.add(FileOperations.getInstance().openReader(path, new Range(prevEndRow, false, null, true), LocalityGroupUtil.EMPTY_CF_SET, false, fs, conf,
             acuConf));
-
+      
     }
     return numKeys;
   }
-
+  
   public static Map<String,FileInfo> tryToGetFirstAndLastRows(FileSystem fs, AccumuloConfiguration acuConf, Set<String> mapfiles) {
-
+    
     HashMap<String,FileInfo> mapFilesInfo = new HashMap<String,FileInfo>();
-
+    
     Configuration conf = CachedConfiguration.getInstance();
-
+    
     long t1 = System.currentTimeMillis();
-
+    
     for (String mapfile : mapfiles) {
-
+      
       FileSKVIterator reader = null;
       try {
         reader = FileOperations.getInstance().openReader(mapfile, false, fs, conf, acuConf);
-
+        
         Key firstKey = reader.getFirstKey();
         if (firstKey != null) {
           mapFilesInfo.put(mapfile, new FileInfo(firstKey, reader.getLastKey()));
         }
-
+        
       } catch (IOException ioe) {
         log.warn("Failed to read map file to determine first and last key : " + mapfile, ioe);
       } finally {
@@ -450,31 +450,31 @@ public class FileUtil {
           }
         }
       }
-
+      
     }
-
+    
     long t2 = System.currentTimeMillis();
-
+    
     log.debug(String.format("Found first and last keys for %d map files in %6.2f secs", mapfiles.size(), (t2 - t1) / 1000.0));
-
+    
     return mapFilesInfo;
   }
-
+  
   public static WritableComparable<Key> findLastKey(FileSystem fs, AccumuloConfiguration acuConf, Collection<String> mapFiles) throws IOException {
     Key lastKey = null;
-
+    
     Configuration conf = CachedConfiguration.getInstance();
-
+    
     for (String path : mapFiles) {
       FileSKVIterator reader = FileOperations.getInstance().openReader(path, true, fs, conf, acuConf);
-
+      
       try {
         if (!reader.hasTop())
           // file is empty, so there is no last key
           continue;
-
+        
         Key key = reader.getLastKey();
-
+        
         if (lastKey == null || key.compareTo(lastKey) > 0)
           lastKey = key;
       } finally {
@@ -486,41 +486,41 @@ public class FileUtil {
         }
       }
     }
-
+    
     return lastKey;
-
+    
   }
-
+  
   private static class MLong {
     public MLong(long i) {
       l = i;
     }
-
+    
     long l;
   }
-
+  
   public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf, Path mapFile, long fileSize, List<KeyExtent> extents, Configuration conf,
       FileSystem fs) throws IOException {
-
+    
     long totalIndexEntries = 0;
     Map<KeyExtent,MLong> counts = new TreeMap<KeyExtent,MLong>();
     for (KeyExtent keyExtent : extents)
       counts.put(keyExtent, new MLong(0));
-
+    
     Text row = new Text();
-
+    
     FileSKVIterator index = FileOperations.getInstance().openIndex(mapFile.toString(), fs, conf, acuConf);
-
+    
     try {
       while (index.hasTop()) {
         Key key = index.getTopKey();
         totalIndexEntries++;
         key.getRow(row);
-
+        
         for (Entry<KeyExtent,MLong> entry : counts.entrySet())
           if (entry.getKey().contains(row))
             entry.getValue().l++;
-
+        
         index.next();
       }
     } finally {
@@ -532,7 +532,7 @@ public class FileUtil {
         log.error(e, e);
       }
     }
-
+    
     Map<KeyExtent,Long> results = new TreeMap<KeyExtent,Long>();
     for (KeyExtent keyExtent : extents) {
       double numEntries = counts.get(keyExtent).l;
@@ -543,7 +543,7 @@ public class FileUtil {
     }
     return results;
   }
-
+  
   public static FileSystem getFileSystem(Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     String uri = acuconf.get(Property.INSTANCE_DFS_URI);
     if ("".equals(uri))

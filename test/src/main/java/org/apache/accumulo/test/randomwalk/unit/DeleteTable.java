@@ -22,7 +22,7 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class DeleteTable extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {}
 }

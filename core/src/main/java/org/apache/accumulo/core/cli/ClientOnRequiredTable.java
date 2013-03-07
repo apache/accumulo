@@ -24,10 +24,10 @@ import org.apache.hadoop.mapreduce.Job;
 import com.beust.jcommander.Parameter;
 
 public class ClientOnRequiredTable extends ClientOpts {
-
+  
   @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
   public String tableName = null;
-
+  
   @Override
   public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
     super.setAccumuloConfigs(job);

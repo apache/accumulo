@@ -40,21 +40,21 @@ import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
 public class Merge {
-
+  
   public static class MergeException extends Exception {
     private static final long serialVersionUID = 1L;
-
+    
     MergeException(Exception ex) {
       super(ex);
     }
   };
-
+  
   private static final Logger log = Logger.getLogger(Merge.class);
-
+  
   protected void message(String format, Object... args) {
     log.info(String.format(format, args));
   }
-
+  
   static class MemoryConverter implements IStringConverter<Long> {
     @Override
     public Long convert(String value) {
@@ -67,7 +67,7 @@ public class Merge {
       return new Text(value);
     }
   }
-
+  
   static class Opts extends ClientOnRequiredTable {
     @Parameter(names={"-s", "--size"}, description="merge goal size", converter=MemoryConverter.class)
     Long goalSize = null;
@@ -78,14 +78,14 @@ public class Merge {
     @Parameter(names={"-e", "--end"}, description="end tablet", converter=TextConverter.class)
     Text end = null;
   }
-
+  
   public void start(String[] args) throws MergeException, ParseException {
     Opts opts = new Opts();
     opts.parseArgs(Merge.class.getCanonicalName(), args);
-
+    
     try {
       Connector conn = opts.getConnector();
-
+      
       if (!conn.tableOperations().exists(opts.tableName)) {
         System.err.println("table " + opts.tableName + " does not exist");
         return;
@@ -94,29 +94,29 @@ public class Merge {
         AccumuloConfiguration tableConfig = new ConfigurationCopy(conn.tableOperations().getProperties(opts.tableName));
         opts.goalSize = tableConfig.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
       }
-
+      
       message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
       mergomatic(conn, opts.tableName, opts.begin, opts.end, opts.goalSize, opts.force);
     } catch (Exception ex) {
       throw new MergeException(ex);
     }
   }
-
+  
   public static void main(String[] args) throws MergeException, ParseException {
     Merge merge = new Merge();
     merge.start(args);
   }
-
+  
   public static class Size {
     public Size(KeyExtent extent, long size) {
       this.extent = extent;
       this.size = size;
     }
-
+    
     KeyExtent extent;
     long size;
   }
-
+  
   public void mergomatic(Connector conn, String table, Text start, Text end, long goalSize, boolean force) throws MergeException {
     try {
       if (table.equals(Constants.METADATA_TABLE_NAME)) {
@@ -140,7 +140,7 @@ public class Merge {
       throw new MergeException(ex);
     }
   }
-
+  
   protected long mergeMany(Connector conn, String table, List<Size> sizes, long goalSize, boolean force, boolean last) throws MergeException {
     // skip the big tablets, which will be the typical case
     while (!sizes.isEmpty()) {
@@ -151,7 +151,7 @@ public class Merge {
     if (sizes.isEmpty()) {
       return 0;
     }
-
+    
     // collect any small ones
     long mergeSize = 0;
     int numToMerge = 0;
@@ -162,7 +162,7 @@ public class Merge {
       }
       mergeSize += sizes.get(i).size;
     }
-
+    
     if (numToMerge > 1) {
       mergeSome(conn, table, sizes, numToMerge);
     } else {
@@ -185,14 +185,14 @@ public class Merge {
     }
     return result;
   }
-
+  
   protected void mergeSome(Connector conn, String table, List<Size> sizes, int numToMerge) throws MergeException {
     merge(conn, table, sizes, numToMerge);
     for (int i = 0; i < numToMerge; i++) {
       sizes.remove(0);
     }
   }
-
+  
   protected void merge(Connector conn, String table, List<Size> sizes, int numToMerge) throws MergeException {
     try {
       Text start = sizes.get(0).extent.getPrevEndRow();
@@ -203,7 +203,7 @@ public class Merge {
       throw new MergeException(ex);
     }
   }
-
+  
   protected Iterator<Size> getSizeIterator(Connector conn, String tablename, Text start, Text end) throws MergeException {
     // open up the !METADATA table, walk through the tablets.
     String tableId;
@@ -218,15 +218,15 @@ public class Merge {
     scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
     Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     final Iterator<Entry<Key,Value>> iterator = scanner.iterator();
-
+    
     Iterator<Size> result = new Iterator<Size>() {
       Size next = fetch();
-
+      
       @Override
       public boolean hasNext() {
         return next != null;
       }
-
+      
       private Size fetch() {
         long tabletSize = 0;
         while (iterator.hasNext()) {
@@ -244,14 +244,14 @@ public class Merge {
         }
         return null;
       }
-
+      
       @Override
       public Size next() {
         Size result = next;
         next = fetch();
         return result;
       }
-
+      
       @Override
       public void remove() {
         throw new UnsupportedOperationException();
@@ -259,5 +259,5 @@ public class Merge {
     };
     return result;
   }
-
+  
 }

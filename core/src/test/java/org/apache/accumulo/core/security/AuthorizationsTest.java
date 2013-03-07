@@ -23,31 +23,31 @@ import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.Test;
 
 public class AuthorizationsTest {
-
+  
   @Test
   public void testSetOfByteArrays() {
     assertTrue(ByteArraySet.fromStrings("a", "b", "c").contains("a".getBytes()));
   }
-
+  
   @Test
   public void testEncodeDecode() {
     Authorizations a = new Authorizations("a", "abcdefg", "hijklmno", ",");
     byte[] array = a.getAuthorizationsArray();
     Authorizations b = new Authorizations(array);
     assertEquals(a, b);
-
+    
     // test encoding empty auths
     a = new Authorizations();
     array = a.getAuthorizationsArray();
     b = new Authorizations(array);
     assertEquals(a, b);
   }
-
+  
   @Test
   public void testSerialization() {
     Authorizations a1 = new Authorizations("a", "b");
     Authorizations a2 = new Authorizations("b", "a");
-
+    
     assertEquals(a1, a2);
     assertEquals(a1.serialize(), a2.serialize());
   }

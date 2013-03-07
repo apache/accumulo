@@ -34,31 +34,31 @@ import org.apache.thrift.transport.TTransportException;
 
 public class MasterClient {
   private static final Logger log = Logger.getLogger(MasterClient.class);
-
+  
   public static MasterClientService.Client getConnectionWithRetry(Instance instance) {
     ArgumentChecker.notNull(instance);
-
+    
     while (true) {
-
+      
       MasterClientService.Client result = getConnection(instance);
       if (result != null)
         return result;
       UtilWaitThread.sleep(250);
     }
-
+    
   }
-
+  
   public static MasterClientService.Client getConnection(Instance instance) {
     List<String> locations = instance.getMasterLocations();
-
+    
     if (locations.size() == 0) {
       log.debug("No masters...");
       return null;
     }
-
+    
     String master = locations.get(0);
     int portHint = instance.getConfiguration().getPort(Property.MASTER_CLIENTPORT);
-
+    
     try {
       // Master requests can take a long time: don't ever time out
       MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, Property.MASTER_CLIENTPORT,
@@ -73,7 +73,7 @@ public class MasterClient {
       return null;
     }
   }
-
+  
   public static void close(MasterClientService.Iface iface) {
     TServiceClient client = (TServiceClient) iface;
     if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
@@ -82,7 +82,7 @@ public class MasterClient {
       log.debug("Attempt to close null connection to the master", new Exception());
     }
   }
-
+  
   public static <T> T execute(Instance instance, ClientExecReturn<T,MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     MasterClientService.Client client = null;
     while (true) {
@@ -104,7 +104,7 @@ public class MasterClient {
       }
     }
   }
-
+  
   public static void execute(Instance instance, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     MasterClientService.Client client = null;
     while (true) {
@@ -127,5 +127,5 @@ public class MasterClient {
       }
     }
   }
-
+  
 }

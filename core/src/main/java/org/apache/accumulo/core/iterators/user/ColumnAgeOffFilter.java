@@ -39,14 +39,14 @@ public class ColumnAgeOffFilter extends Filter {
   public static class TTLSet extends ColumnToClassMapping<Long> {
     public TTLSet(Map<String,String> objectStrings) {
       super();
-
+      
       for (Entry<String,String> entry : objectStrings.entrySet()) {
         String column = entry.getKey();
         String ttl = entry.getValue();
         Long l = Long.parseLong(ttl);
-
+        
         Pair<Text,Text> colPair = ColumnSet.decodeColumns(column);
-
+        
         if (colPair.getSecond() == null) {
           addObject(colPair.getFirst(), l);
         } else {
@@ -55,10 +55,10 @@ public class ColumnAgeOffFilter extends Filter {
       }
     }
   }
-
+  
   TTLSet ttls;
   long currentTime = 0;
-
+  
   @Override
   public boolean accept(Key k, Value v) {
     Long threshold = ttls.getObject(k);
@@ -68,14 +68,14 @@ public class ColumnAgeOffFilter extends Filter {
       return false;
     return true;
   }
-
+  
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.ttls = new TTLSet(options);
     currentTime = System.currentTimeMillis();
   }
-
+  
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     ColumnAgeOffFilter copy = (ColumnAgeOffFilter) super.deepCopy(env);
@@ -83,11 +83,11 @@ public class ColumnAgeOffFilter extends Filter {
     copy.ttls = ttls;
     return copy;
   }
-
+  
   public void overrideCurrentTime(long ts) {
     this.currentTime = ts;
   }
-
+  
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
@@ -96,7 +96,7 @@ public class ColumnAgeOffFilter extends Filter {
     io.addUnnamedOption("<col fam>[:<col qual>] <Long> (escape non-alphanum chars using %<hex>)");
     return io;
   }
-
+  
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (super.validateOptions(options) == false)
@@ -108,10 +108,10 @@ public class ColumnAgeOffFilter extends Filter {
     }
     return true;
   }
-
+  
   /**
    * A convenience method for adding or changing an age off threshold for a column.
-   *
+   * 
    * @param is
    *          IteratorSetting object to configure.
    * @param column
@@ -122,10 +122,10 @@ public class ColumnAgeOffFilter extends Filter {
   public static void addTTL(IteratorSetting is, IteratorSetting.Column column, Long ttl) {
     is.addOption(ColumnSet.encodeColumns(column.getFirst(), column.getSecond()), Long.toString(ttl));
   }
-
+  
   /**
    * A convenience method for removing an age off threshold for a column.
-   *
+   * 
    * @param is
    *          IteratorSetting object to configure.
    * @param column

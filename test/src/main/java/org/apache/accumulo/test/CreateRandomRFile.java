@@ -33,21 +33,21 @@ import org.apache.hadoop.io.Text;
 public class CreateRandomRFile {
   private static int num;
   private static String file;
-
+  
   public static byte[] createValue(long rowid, int dataSize) {
     Random r = new Random(rowid);
     byte value[] = new byte[dataSize];
-
+    
     r.nextBytes(value);
-
+    
     // transform to printable chars
     for (int j = 0; j < value.length; j++) {
       value[j] = (byte) (((0xff & value[j]) % 92) + ' ');
     }
-
+    
     return value;
   }
-
+  
   public static void main(String[] args) {
     if (args.length != 2) {
       System.err.println("Usage CreateRandomRFile <filename> <size>");
@@ -56,15 +56,15 @@ public class CreateRandomRFile {
     file = args[0];
     num = Integer.parseInt(args[1]);
     long rands[] = new long[num];
-
+    
     Random r = new Random();
-
+    
     for (int i = 0; i < rands.length; i++) {
       rands[i] = Math.abs(r.nextLong()) % 10000000000l;
     }
-
+    
     Arrays.sort(rands);
-
+    
     Configuration conf = CachedConfiguration.getInstance();
     FileSKVWriter mfw;
     try {
@@ -73,25 +73,25 @@ public class CreateRandomRFile {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-
+    
     for (int i = 0; i < rands.length; i++) {
       Text row = new Text(String.format("row_%010d", rands[i]));
       Key key = new Key(row);
-
+      
       Value dv = new Value(createValue(rands[i], 40));
-
+      
       try {
         mfw.append(key, dv);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
     }
-
+    
     try {
       mfw.close();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
-
+  
 }

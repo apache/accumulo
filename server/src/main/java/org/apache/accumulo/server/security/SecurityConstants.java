@@ -38,17 +38,17 @@ import org.apache.log4j.Logger;
 public class SecurityConstants {
   private static SecurityPermission SYSTEM_CREDENTIALS_PERMISSION = new SecurityPermission("systemCredentialsPermission");
   static Logger log = Logger.getLogger(SecurityConstants.class);
-
+  
   public static final String SYSTEM_PRINCIPAL = "!SYSTEM";
   private static final AuthenticationToken SYSTEM_TOKEN = makeSystemPassword();
   private static final TCredentials systemCredentials = CredentialHelper.createSquelchError(SYSTEM_PRINCIPAL, SYSTEM_TOKEN, HdfsZooInstance.getInstance()
       .getInstanceID());
   public static byte[] confChecksum = null;
-
+  
   public static AuthenticationToken getSystemToken() {
     return SYSTEM_TOKEN;
   }
-
+  
   public static TCredentials getSystemCredentials() {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
@@ -56,11 +56,11 @@ public class SecurityConstants {
     }
     return systemCredentials;
   }
-
+  
   public static String getSystemPrincipal() {
     return SYSTEM_PRINCIPAL;
   }
-
+  
   private static AuthenticationToken makeSystemPassword() {
     int wireVersion = Constants.WIRE_VERSION;
     byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8);
@@ -69,7 +69,7 @@ public class SecurityConstants {
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException("Failed to compute configuration checksum", e);
     }
-
+    
     ByteArrayOutputStream bytes = new ByteArrayOutputStream(3 * (Integer.SIZE / Byte.SIZE) + inst.length + confChecksum.length);
     DataOutputStream out = new DataOutputStream(bytes);
     try {
@@ -85,16 +85,16 @@ public class SecurityConstants {
     }
     return new PasswordToken(Base64.encodeBase64(bytes.toByteArray()));
   }
-
+  
   private static byte[] getSystemConfigChecksum() throws NoSuchAlgorithmException {
     if (confChecksum == null) {
       MessageDigest md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
-
+      
       // seed the config with the version and instance id, so at least
       // it's not empty
       md.update(Constants.WIRE_VERSION.toString().getBytes(Constants.UTF8));
       md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8));
-
+      
       for (Entry<String,String> entry : ServerConfiguration.getSiteConfiguration()) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
@@ -102,7 +102,7 @@ public class SecurityConstants {
           md.update(entry.getValue().getBytes(Constants.UTF8));
         }
       }
-
+      
       confChecksum = md.digest();
     }
     return confChecksum;

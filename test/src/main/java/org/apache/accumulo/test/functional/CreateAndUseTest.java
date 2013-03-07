@@ -36,69 +36,69 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 public class CreateAndUseTest extends FunctionalTest {
-
+  
   @Override
   public void cleanup() throws Exception {
-
+    
   }
-
+  
   @Override
   public Map<String,String> getInitialConfig() {
     return Collections.emptyMap();
   }
-
+  
   @Override
   public List<TableSetup> getTablesToCreate() {
     return Collections.emptyList();
   }
-
+  
   @Override
   public void run() throws Exception {
     SortedSet<Text> splits = new TreeSet<Text>();
-
+    
     for (int i = 1; i < 256; i++) {
       splits.add(new Text(String.format("%08x", i << 8)));
     }
-
+    
     // TEST 1 create a table and immediately batch write to it
-
+    
     Text cf = new Text("cf1");
     Text cq = new Text("cq1");
-
+    
     getConnector().tableOperations().create("t1");
     getConnector().tableOperations().addSplits("t1", splits);
     BatchWriter bw = getConnector().createBatchWriter("t1", new BatchWriterConfig());
-
+    
     for (int i = 1; i < 257; i++) {
       Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
       m.put(cf, cq, new Value(("" + i).getBytes()));
-
+      
       bw.addMutation(m);
     }
-
+    
     bw.close();
-
+    
     // verify data is there
     Scanner scanner1 = getConnector().createScanner("t1", Constants.NO_AUTHS);
-
+    
     int ei = 1;
-
+    
     for (Entry<Key,Value> entry : scanner1) {
       if (!entry.getKey().getRow().toString().equals(String.format("%08x", (ei << 8) - 16))) {
         throw new Exception("Expected row " + String.format("%08x", (ei << 8) - 16) + " saw " + entry.getKey().getRow());
       }
-
+      
       if (!entry.getValue().toString().equals("" + ei)) {
         throw new Exception("Expected value " + ei + " saw " + entry.getValue());
       }
-
+      
       ei++;
     }
-
+    
     if (ei != 257) {
       throw new Exception("Did not see expected number of rows, ei = " + ei);
     }
-
+    
     // TEST 2 create a table and immediately scan it
     getConnector().tableOperations().create("t2");
     getConnector().tableOperations().addSplits("t2", splits);
@@ -108,18 +108,18 @@ public class CreateAndUseTest extends FunctionalTest {
       if (entry != null)
         count++;
     }
-
+    
     if (count != 0) {
       throw new Exception("Did not see expected number of entries, count = " + count);
     }
-
+    
     // TEST 3 create a table and immediately batch scan it
-
+    
     ArrayList<Range> ranges = new ArrayList<Range>();
     for (int i = 1; i < 257; i++) {
       ranges.add(new Range(new Text(String.format("%08x", (i << 8) - 16))));
     }
-
+    
     getConnector().tableOperations().create("t3");
     getConnector().tableOperations().addSplits("t3", splits);
     BatchScanner bs = getConnector().createBatchScanner("t3", Constants.NO_AUTHS, 3);
@@ -129,13 +129,13 @@ public class CreateAndUseTest extends FunctionalTest {
       if (entry != null)
         count++;
     }
-
+    
     if (count != 0) {
       throw new Exception("Did not see expected number of entries, count = " + count);
     }
-
+    
     bs.close();
-
+    
   }
-
+  
 }

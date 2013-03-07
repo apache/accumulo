@@ -25,17 +25,17 @@ public class Version {
   int minor = 0;
   int release = 0;
   String etcetera = null;
-
+  
   public Version(String everything) {
     parse(everything);
   }
-
+  
   private void parse(String everything) {
     Pattern pattern = Pattern.compile("(([^-]*)-)?(\\d+)(\\.(\\d+)(\\.(\\d+))?)?(-(.*))?");
     Matcher parser = pattern.matcher(everything);
     if (!parser.matches())
       throw new IllegalArgumentException("Unable to parse: " + everything + " as a version");
-
+    
     if (parser.group(1) != null)
       package_ = parser.group(2);
     major = Integer.valueOf(parser.group(3));
@@ -46,29 +46,29 @@ public class Version {
       release = Integer.valueOf(parser.group(7));
     if (parser.group(9) != null)
       etcetera = parser.group(9);
-
+    
   }
-
+  
   public String getPackage() {
     return package_;
   }
-
+  
   public int getMajorVersion() {
     return major;
   }
-
+  
   public int getMinorVersion() {
     return minor;
   }
-
+  
   public int getReleaseVersion() {
     return release;
   }
-
+  
   public String getEtcetera() {
     return etcetera;
   }
-
+  
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
@@ -87,5 +87,5 @@ public class Version {
     }
     return result.toString();
   }
-
+  
 }

@@ -39,16 +39,16 @@ import com.beust.jcommander.Parameter;
 
 /**
  * Remove file entries for map files that don't exist.
- *
+ * 
  */
 public class RemoveEntriesForMissingFiles {
   private static Logger log = Logger.getLogger(RemoveEntriesForMissingFiles.class);
-
+  
   static class Opts extends ClientOpts {
     @Parameter(names="--fix")
     boolean fix = false;
   }
-
+  
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
@@ -62,7 +62,7 @@ public class RemoveEntriesForMissingFiles {
     metadata.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
     int count = 0;
     int missing = 0;
-    BatchWriter writer = null;
+    BatchWriter writer = null; 
     if (opts.fix)
       writer = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, bwOpts.getBatchWriterConfig());
     for (Entry<Key,Value> entry : metadata) {

@@ -31,7 +31,7 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.accumulo.trace.instrument.Tracer;
 
 public class StartAll extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     log.info("Starting all servers");
@@ -49,5 +49,5 @@ public class StartAll extends Test {
       }
     }
   }
-
+  
 }

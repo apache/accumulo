@@ -22,18 +22,18 @@ import java.lang.reflect.Proxy;
 
 public class TraceProxy {
   // private static final Logger log = Logger.getLogger(TraceProxy.class);
-
+  
   static final Sampler ALWAYS = new Sampler() {
     @Override
     public boolean next() {
       return true;
     }
   };
-
+  
   public static <T> T trace(T instance) {
     return trace(instance, ALWAYS);
   }
-
+  
   @SuppressWarnings("unchecked")
   public static <T> T trace(final T instance, final Sampler sampler) {
     InvocationHandler handler = new InvocationHandler() {
@@ -55,5 +55,5 @@ public class TraceProxy {
     };
     return (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
   }
-
+  
 }

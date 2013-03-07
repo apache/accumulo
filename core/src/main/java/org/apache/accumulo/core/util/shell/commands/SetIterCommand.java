@@ -48,16 +48,16 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class SetIterCommand extends Command {
-
+  
   private Option mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt, priorityOpt;
   private Option aggTypeOpt, ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, IOException, ShellCommandException {
-
+    
     final int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
-
+    
     final Map<String,String> options = new HashMap<String,String>();
     String classname = cl.getOptionValue(classnameTypeOpt.getOpt());
     if (cl.hasOption(aggTypeOpt.getOpt())) {
@@ -74,13 +74,13 @@ public class SetIterCommand extends Command {
     } else if (cl.hasOption(reqvisTypeOpt.getOpt())) {
       classname = ReqVisFilter.class.getName();
     }
-
+    
     if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
           + SortedKeyValueIterator.class.getName());
     }
     final String name = cl.getOptionValue(nameOpt.getOpt(), setUpOptions(shellState.getReader(), classname, options));
-
+    
     final String aggregatorClass = options.get("aggregatorClass");
     @SuppressWarnings("deprecation")
     String deprecatedAggregatorClassName = org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
@@ -89,16 +89,16 @@ public class SetIterCommand extends Command {
           + deprecatedAggregatorClassName);
     }
     setTableProperties(cl, shellState, priority, options, classname, name);
-
+    
     return 0;
   }
-
+  
   protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
       final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
     // remove empty values
-
+    
     final String tableName = OptUtil.getTableOpt(cl, shellState);
-
+    
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty()) {
@@ -121,7 +121,7 @@ public class SetIterCommand extends Command {
     final IteratorSetting setting = new IteratorSetting(priority, name, classname, options);
     shellState.getConnector().tableOperations().attachIterator(tableName, setting, scopes);
   }
-
+  
   private static String setUpOptions(final ConsoleReader reader, final String className, final Map<String,String> options) throws IOException,
       ShellCommandException {
     String input;
@@ -140,7 +140,7 @@ public class SetIterCommand extends Command {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Unable to load " + className + " as type " + OptionDescriber.class.getName()
           + "; configure with 'config' instead");
     }
-
+    
     final IteratorOptions itopts = skvi.describeOptions();
     if (itopts.getName() == null) {
       throw new IllegalArgumentException(className + " described its default distinguishing name as null");
@@ -156,10 +156,10 @@ public class SetIterCommand extends Command {
         options.remove(key);
       }
       localOptions.clear();
-
+      
       reader.printString(itopts.getDescription());
       reader.printNewline();
-
+      
       String prompt;
       if (itopts.getNamedOptions() != null) {
         for (Entry<String,String> e : itopts.getNamedOptions().entrySet()) {
@@ -178,14 +178,14 @@ public class SetIterCommand extends Command {
           localOptions.put(e.getKey(), input);
         }
       }
-
+      
       if (itopts.getUnnamedOptionDescriptions() != null) {
         for (String desc : itopts.getUnnamedOptionDescriptions()) {
           reader.printString(Shell.repeat("-", 10) + "> entering options: " + desc + "\n");
           input = "start";
           while (true) {
             prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " option (<name> <value>, hit enter to skip): ";
-
+            
             reader.flushConsole();
             input = reader.readLine(prompt);
             if (input == null) {
@@ -194,44 +194,44 @@ public class SetIterCommand extends Command {
             } else {
               input = new String(input);
             }
-
+            
             if (input.length() == 0)
               break;
-
+            
             String[] sa = input.split(" ", 2);
             localOptions.put(sa[0], sa[1]);
           }
         }
       }
-
+      
       options.putAll(localOptions);
       if (!skvi.validateOptions(options))
         reader.printString("invalid options for " + clazz.getName() + "\n");
-
+      
     } while (!skvi.validateOptions(options));
     return itopts.getName();
   }
-
+  
   @Override
   public String description() {
     return "sets a table-specific iterator";
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();
-
+    
     priorityOpt = new Option("p", "priority", true, "the order in which the iterator is applied");
     priorityOpt.setArgName("pri");
     priorityOpt.setRequired(true);
-
+    
     nameOpt = new Option("n", "name", true, "iterator to set");
     nameOpt.setArgName("itername");
-
+    
     mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false, "applied at minor compaction");
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false, "applied at major compaction");
     scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "applied at scan time");
-
+    
     final OptionGroup typeGroup = new OptionGroup();
     classnameTypeOpt = new Option("class", "class-name", true, "a java class that implements SortedKeyValueIterator");
     classnameTypeOpt.setArgName("name");
@@ -240,7 +240,7 @@ public class SetIterCommand extends Command {
     versionTypeOpt = new Option("vers", "version", false, "a versioning iterator");
     reqvisTypeOpt = new Option("reqvis", "require-visibility", false, "an iterator that omits entries with empty visibilities");
     ageoffTypeOpt = new Option("ageoff", "ageoff", false, "an aging off iterator");
-
+    
     typeGroup.addOption(classnameTypeOpt);
     typeGroup.addOption(aggTypeOpt);
     typeGroup.addOption(regexTypeOpt);
@@ -248,7 +248,7 @@ public class SetIterCommand extends Command {
     typeGroup.addOption(reqvisTypeOpt);
     typeGroup.addOption(ageoffTypeOpt);
     typeGroup.setRequired(true);
-
+    
     o.addOption(OptUtil.tableOpt("table to configure iterators on"));
     o.addOption(priorityOpt);
     o.addOption(nameOpt);
@@ -258,7 +258,7 @@ public class SetIterCommand extends Command {
     o.addOptionGroup(typeGroup);
     return o;
   }
-
+  
   @Override
   public int numArgs() {
     return 0;

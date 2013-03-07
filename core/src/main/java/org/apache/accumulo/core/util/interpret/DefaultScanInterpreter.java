@@ -19,33 +19,33 @@ package org.apache.accumulo.core.util.interpret;
 import org.apache.hadoop.io.Text;
 
 /**
- *
+ * 
  */
 public class DefaultScanInterpreter implements ScanInterpreter {
-
+  
   @Override
   public Text interpretRow(Text row) {
     return row;
   }
-
+  
   @Override
   public Text interpretBeginRow(Text row) {
     return row;
   }
-
+  
   @Override
   public Text interpretEndRow(Text row) {
     return row;
   }
-
+  
   @Override
   public Text interpretColumnFamily(Text cf) {
     return cf;
   }
-
+  
   @Override
   public Text interpretColumnQualifier(Text cq) {
     return cq;
   }
-
+  
 }

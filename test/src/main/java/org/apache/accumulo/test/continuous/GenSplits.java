@@ -23,27 +23,27 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 
 /**
- *
+ * 
  */
 public class GenSplits {
-
+  
   static class Opts {
     @Parameter(names = "--min", description = "minimum row")
     long minRow = 0;
-
+    
     @Parameter(names = "--max", description = "maximum row")
     long maxRow = Long.MAX_VALUE;
-
+    
     @Parameter(description = "<num tablets>")
     List<String> args = null;
   }
 
   public static void main(String[] args) {
-
+    
     Opts opts = new Opts();
     JCommander jcommander = new JCommander(opts);
     jcommander.setProgramName(GenSplits.class.getSimpleName());
-
+    
     try {
       jcommander.parse(args);
     } catch (ParameterException pe) {
@@ -56,14 +56,14 @@ public class GenSplits {
       jcommander.usage();
       System.exit(-1);
     }
-
+    
     int numTablets = Integer.parseInt(opts.args.get(0));
-
+    
     if (numTablets < 1) {
       System.err.println("ERROR: numTablets < 1");
       System.exit(-1);
     }
-
+    
     if (opts.minRow >= opts.maxRow) {
       System.err.println("ERROR: min >= max");
       System.exit(-1);
@@ -73,13 +73,13 @@ public class GenSplits {
     long distance = ((opts.maxRow - opts.minRow) / numTablets) + 1;
     long split = distance;
     for (int i = 0; i < numSplits; i++) {
-
+      
       String s = String.format("%016x", split + opts.minRow);
-
+      
       while (s.charAt(s.length() - 1) == '0') {
         s = s.substring(0, s.length() - 1);
       }
-
+      
       System.out.println(s);
       split += distance;
     }

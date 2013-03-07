@@ -30,29 +30,29 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class HistoryCommand extends Command {
-
+  
   private Option clearHist;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-
+    
     final String histDir = System.getenv("HOME") + "/.accumulo";
     int counter = 0;
-
+    
     if (cl.hasOption(clearHist.getOpt())) {
-
+      
       try {
-
+        
         final FileWriter outFile = new FileWriter(histDir + "/shell_history.txt");
         final PrintWriter out = new PrintWriter(outFile);
         out.close();
-
+        
       } catch (IOException e) {
-
+        
         e.printStackTrace();
       }
     }
-
+    
     else {
       try {
         final BufferedReader in = new BufferedReader(new FileReader(histDir + "/shell_history.txt"));
@@ -66,37 +66,37 @@ public class HistoryCommand extends Command {
             Line = in.readLine();
           }
         } catch (IOException e) {
-
+          
           e.printStackTrace();
         }
       } catch (FileNotFoundException e) {
-
+        
         e.printStackTrace();
       }
     }
-
+    
     return 0;
   }
-
+  
   @Override
   public String description() {
     return ("generates a list of commands previously executed");
   }
-
+  
   @Override
   public int numArgs() {
     return 0;
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();
-
+    
     clearHist = new Option("c", "clear", false, "clear history file");
     clearHist.setRequired(false);
-
+    
     o.addOption(clearHist);
-
+    
     return o;
   }
 }

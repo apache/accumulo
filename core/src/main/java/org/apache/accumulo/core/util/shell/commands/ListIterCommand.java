@@ -32,13 +32,13 @@ import org.apache.commons.cli.Options;
 public class ListIterCommand extends Command {
   private Option nameOpt;
   private Map<IteratorScope,Option> scopeOpts;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
-
+    
     final Map<String,EnumSet<IteratorScope>> iterators = shellState.getConnector().tableOperations().listIterators(tableName);
-
+    
     if (cl.hasOption(nameOpt.getOpt())) {
       final String name = cl.getOptionValue(nameOpt.getOpt());
       if (!iterators.containsKey(name)) {
@@ -49,7 +49,7 @@ public class ListIterCommand extends Command {
       iterators.clear();
       iterators.put(name, scopes);
     }
-
+    
     boolean hasScope = false;
     for (IteratorScope scope : IteratorScope.values()) {
       if (cl.hasOption(scopeOpts.get(scope).getOpt()))
@@ -57,7 +57,7 @@ public class ListIterCommand extends Command {
     }
     if (!hasScope) {
       throw new IllegalArgumentException("You must select at least one scope to configure");
-    }
+    }    
     final StringBuilder sb = new StringBuilder("-\n");
     for (String name : iterators.keySet()) {
       for (IteratorScope scope : iterators.get(name)) {
@@ -74,38 +74,38 @@ public class ListIterCommand extends Command {
     }
     sb.append("-\n");
     shellState.getReader().printString(sb.toString());
-
+    
     return 0;
   }
-
+  
   public String description() {
     return "lists table-specific iterators configured in this shell session";
   }
-
+  
   @Override
   public int numArgs() {
     return 0;
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();
-
+    
     nameOpt = new Option("n", "name", true, "iterator to list");
     nameOpt.setArgName("itername");
-
+    
     scopeOpts = new EnumMap<IteratorScope,Option>(IteratorScope.class);
     scopeOpts.put(IteratorScope.minc, new Option(IteratorScope.minc.name(), "minor-compaction", false, "list iterator for minor compaction scope"));
     scopeOpts.put(IteratorScope.majc, new Option(IteratorScope.majc.name(), "major-compaction", false, "list iterator for major compaction scope"));
     scopeOpts.put(IteratorScope.scan, new Option(IteratorScope.scan.name(), "scan-time", false, "list iterator for scan scope"));
-
+    
     o.addOption(OptUtil.tableOpt("table to list the configured iterators on"));
     o.addOption(nameOpt);
-
+    
     for (Option opt : scopeOpts.values()) {
       o.addOption(opt);
     }
-
+    
     return o;
   }
 }

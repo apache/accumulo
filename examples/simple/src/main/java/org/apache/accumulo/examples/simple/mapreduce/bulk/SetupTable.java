@@ -27,12 +27,12 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 public class SetupTable {
-
+  
   static class Opts extends ClientOnRequiredTable {
     @Parameter(description="<split> { <split> ... } ")
     List<String> splits = new ArrayList<String>();
   }
-
+  
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(SetupTable.class.getName(), args);
@@ -45,6 +45,6 @@ public class SetupTable {
         intialPartitions.add(new Text(split));
       }
       conn.tableOperations().addSplits(opts.tableName, intialPartitions);
-    }
+    } 
   }
 }

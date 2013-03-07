@@ -32,7 +32,7 @@ import org.apache.hadoop.io.WritableUtils;
 @Deprecated
 public class NumArraySummation implements Aggregator {
   long[] sum = new long[0];
-
+  
   public Value aggregate() {
     try {
       return new Value(NumArraySummation.longArrayToBytes(sum));
@@ -40,7 +40,7 @@ public class NumArraySummation implements Aggregator {
       throw new RuntimeException(e);
     }
   }
-
+  
   public void collect(Value value) {
     long[] la;
     try {
@@ -48,7 +48,7 @@ public class NumArraySummation implements Aggregator {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-
+    
     if (la.length > sum.length) {
       for (int i = 0; i < sum.length; i++) {
         la[i] = NumSummation.safeAdd(la[i], sum[i]);
@@ -60,34 +60,34 @@ public class NumArraySummation implements Aggregator {
       }
     }
   }
-
+  
   public static byte[] longArrayToBytes(long[] la) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
-
+    
     WritableUtils.writeVInt(dos, la.length);
     for (int i = 0; i < la.length; i++) {
       WritableUtils.writeVLong(dos, la[i]);
     }
-
+    
     return baos.toByteArray();
   }
-
+  
   public static long[] bytesToLongArray(byte[] b) throws IOException {
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
     int len = WritableUtils.readVInt(dis);
-
+    
     long[] la = new long[len];
-
+    
     for (int i = 0; i < len; i++) {
       la[i] = WritableUtils.readVLong(dis);
     }
-
+    
     return la;
   }
-
+  
   public void reset() {
     sum = new long[0];
   }
-
+  
 }

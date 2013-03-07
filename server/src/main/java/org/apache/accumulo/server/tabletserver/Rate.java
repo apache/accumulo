@@ -21,10 +21,10 @@ public class Rate {
   private long lastTime = -1;
   private double current = 0.0;
   final double ratio;
-
+  
   /**
    * Turn a counter into an exponentially smoothed rate over time.
-   *
+   * 
    * @param ratio
    *          the rate at which each update influences the curve; must be (0., 1.0)
    */
@@ -33,11 +33,11 @@ public class Rate {
       throw new IllegalArgumentException("ratio must be > 0. and < 1.0");
     this.ratio = ratio;
   }
-
+  
   public double update(long counter) {
     return update(System.currentTimeMillis(), counter);
   }
-
+  
   synchronized public double update(long when, long counter) {
     if (lastCounter < 0) {
       lastTime = when;
@@ -53,7 +53,7 @@ public class Rate {
     lastCounter = counter;
     return current;
   }
-
+  
   synchronized public double rate() {
     return this.current;
   }

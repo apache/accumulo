@@ -29,18 +29,18 @@ import org.apache.accumulo.test.randomwalk.Fixture;
 import org.apache.accumulo.test.randomwalk.State;
 
 public class SecurityFixture extends Fixture {
-
+  
   @Override
   public void setUp(State state) throws Exception {
     String secTableName, systemUserName, tableUserName;
     Connector conn = state.getConnector();
-
+    
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
-
+    
     systemUserName = String.format("system_%s", hostname);
     tableUserName = String.format("table_%s", hostname);
     secTableName = String.format("security_%s", hostname);
-
+    
     if (conn.tableOperations().exists(secTableName))
       conn.tableOperations().delete(secTableName);
     Set<String> users = conn.securityOperations().listLocalUsers();
@@ -48,20 +48,20 @@ public class SecurityFixture extends Fixture {
       conn.securityOperations().dropLocalUser(tableUserName);
     if (users.contains(systemUserName))
       conn.securityOperations().dropLocalUser(systemUserName);
-
+    
     PasswordToken sysUserPass = new PasswordToken("sysUser");
     conn.securityOperations().createLocalUser(systemUserName, sysUserPass);
-
+    
     WalkingSecurity.get(state).setTableName(secTableName);
     state.set("rootUserPass", CredentialHelper.extractToken(state.getCredentials()));
-
+    
     WalkingSecurity.get(state).setSysUserName(systemUserName);
     WalkingSecurity.get(state).createUser(systemUserName, sysUserPass);
-
+    
     WalkingSecurity.get(state).changePassword(tableUserName, new PasswordToken(new byte[0]));
-
+    
     WalkingSecurity.get(state).setTabUserName(tableUserName);
-
+    
     for (TablePermission tp : TablePermission.values()) {
       WalkingSecurity.get(state).revokeTablePermission(systemUserName, secTableName, tp);
       WalkingSecurity.get(state).revokeTablePermission(tableUserName, secTableName, tp);
@@ -72,29 +72,29 @@ public class SecurityFixture extends Fixture {
     }
     WalkingSecurity.get(state).changeAuthorizations(tableUserName, new Authorizations());
   }
-
+  
   @Override
   public void tearDown(State state) throws Exception {
     log.debug("One last validate");
     Validate.validate(state, log);
     Connector conn = state.getConnector();
-
+    
     if (WalkingSecurity.get(state).getTableExists()) {
       String secTableName = WalkingSecurity.get(state).getTableName();
       log.debug("Dropping tables: " + secTableName);
-
+      
       conn.tableOperations().delete(secTableName);
     }
-
+    
     if (WalkingSecurity.get(state).userExists(WalkingSecurity.get(state).getTabUserName())) {
       String tableUserName = WalkingSecurity.get(state).getTabUserName();
       log.debug("Dropping user: " + tableUserName);
-
+      
       conn.securityOperations().dropLocalUser(tableUserName);
     }
     String systemUserName = WalkingSecurity.get(state).getSysUserName();
     log.debug("Dropping user: " + systemUserName);
     conn.securityOperations().dropLocalUser(systemUserName);
-
+    
   }
 }

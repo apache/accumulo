@@ -23,16 +23,16 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 
 public class RootTabletStateStore extends MetaDataStateStore {
-
+  
   public RootTabletStateStore(Instance instance, TCredentials auths, CurrentState state) {
     super(instance, auths, state);
   }
-
+  
   @Override
   public Iterator<TabletLocationState> iterator() {
     return new MetaDataTableScanner(instance, auths, Constants.METADATA_ROOT_TABLET_KEYSPACE, state);
   }
-
+  
   @Override
   public String name() {
     return "Non-Root Metadata Tablets";

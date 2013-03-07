@@ -39,21 +39,21 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- *
+ * 
  */
 public class AccumuloClassLoader {
-
+  
   public static final String CLASSPATH_PROPERTY_NAME = "general.classpaths";
-
+  
   public static final String ACCUMULO_CLASSPATH_VALUE = "$ACCUMULO_HOME/conf,\n" + "$ACCUMULO_HOME/lib/[^.].*.jar,\n"
       + "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,\n" + "$HADOOP_PREFIX/[^.].*.jar,\n" + "$HADOOP_CONF_DIR,\n" + "$HADOOP_PREFIX/lib/[^.].*.jar,\n";
-
+  
   private static String SITE_CONF;
-
+  
   private static URLClassLoader classloader;
-
+  
   private static Logger log = Logger.getLogger(AccumuloClassLoader.class);
-
+  
   static {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
     if (System.getenv("ACCUMULO_HOME") != null) {
@@ -63,11 +63,11 @@ public class AccumuloClassLoader {
       SITE_CONF = null;
     }
   }
-
+  
   /**
    * Parses and XML Document for a property node for a <name> with the value propertyName if it finds one the function return that property's value for its
    * <value> node. If not found the function will return null
-   *
+   * 
    * @param d
    *          XMLDocument to search through
    * @param propertyName
@@ -86,20 +86,20 @@ public class AccumuloClassLoader {
     }
     return null;
   }
-
+  
   /**
    * Looks for the site configuration file for Accumulo and if it has a property for propertyName return it otherwise returns defaultValue Should throw an
    * exception if the default configuration can not be read;
-   *
+   * 
    * @param propertyName
    *          Name of the property to pull
    * @param defaultValue
    *          Value to default to if not found.
    * @return site or default class path String
    */
-
+  
   public static String getAccumuloString(String propertyName, String defaultValue) {
-
+    
     try {
       DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
       DocumentBuilder db = dbf.newDocumentBuilder();
@@ -117,10 +117,10 @@ public class AccumuloClassLoader {
       throw new IllegalStateException("ClassPath Strings Lookup failed", e);
     }
   }
-
+  
   /**
    * Replace environment variables in the classpath string with their actual value
-   *
+   * 
    * @param classpath
    * @param env
    */
@@ -139,10 +139,10 @@ public class AccumuloClassLoader {
     }
     return classpath;
   }
-
+  
   /**
    * Populate the list of URLs with the items in the classpath string
-   *
+   * 
    * @param classpath
    * @param urls
    * @throws MalformedURLException
@@ -151,9 +151,9 @@ public class AccumuloClassLoader {
     classpath = classpath.trim();
     if (classpath.length() == 0)
       return;
-
+    
     classpath = replaceEnvVars(classpath, System.getenv());
-
+    
     // Try to make a URI out of the classpath
     URI uri = null;
     try {
@@ -161,7 +161,7 @@ public class AccumuloClassLoader {
     } catch (URISyntaxException e) {
       // Not a valid URI
     }
-
+    
     if (null == uri || !uri.isAbsolute() || (null != uri.getScheme() && uri.getScheme().equals("file://"))) {
       // Then treat this URI as a File.
       // This checks to see if the url string is a dir if it expand and get all jars in that directory
@@ -189,9 +189,9 @@ public class AccumuloClassLoader {
     } else {
       urls.add(uri.toURL());
     }
-
+    
   }
-
+  
   private static ArrayList<URL> findAccumuloURLs() throws IOException {
     String cp = getAccumuloString(AccumuloClassLoader.CLASSPATH_PROPERTY_NAME, AccumuloClassLoader.ACCUMULO_CLASSPATH_VALUE);
     if (cp == null)
@@ -205,18 +205,18 @@ public class AccumuloClassLoader {
     }
     return urls;
   }
-
+  
   public static synchronized ClassLoader getClassLoader() throws IOException {
     if (classloader == null) {
       ArrayList<URL> urls = findAccumuloURLs();
-
+      
       ClassLoader parentClassLoader = ClassLoader.getSystemClassLoader();
-
+      
       log.debug("Create 2nd tier ClassLoader using URLs: " + urls.toString());
       URLClassLoader aClassLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]), parentClassLoader) {
         @Override
         protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-
+          
           if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
             Class<?> c = findLoadedClass(name);
             if (c == null) {
@@ -224,7 +224,7 @@ public class AccumuloClassLoader {
                 // try finding this class here instead of parent
                 c = findClass(name);
               } catch (ClassNotFoundException e) {
-
+                
               }
             }
           }
@@ -233,7 +233,7 @@ public class AccumuloClassLoader {
       };
       classloader = aClassLoader;
     }
-
+    
     return classloader;
   }
 }

@@ -25,16 +25,16 @@ import org.apache.accumulo.core.util.shell.Shell;
 
 /**
  * A basic tokenizer for generating tokens from a string. It understands quoted strings and escaped quote characters.
- *
+ * 
  * You can use the escape sequence '\' to escape single quotes, double quotes, and spaces only, in addition to the escape character itself.
- *
+ * 
  * The behavior is the same for single and double quoted strings. (i.e. '\'' is the same as "\'")
  */
 
 public class QuotedStringTokenizer implements Iterable<String> {
   private ArrayList<String> tokens;
   private String input;
-
+  
   public QuotedStringTokenizer(final String t) throws BadArgumentException {
     tokens = new ArrayList<String>();
     this.input = t;
@@ -44,23 +44,23 @@ public class QuotedStringTokenizer implements Iterable<String> {
       throw new IllegalArgumentException(e.getMessage());
     }
   }
-
+  
   public String[] getTokens() {
     return tokens.toArray(new String[tokens.size()]);
   }
-
+  
   private void createTokens() throws BadArgumentException, UnsupportedEncodingException {
     boolean inQuote = false;
     boolean inEscapeSequence = false;
     String hexChars = null;
     char inQuoteChar = '"';
-
+    
     final byte[] token = new byte[input.length()];
     int tokenLength = 0;
     final byte[] inputBytes = input.getBytes();
     for (int i = 0; i < input.length(); ++i) {
       final char ch = input.charAt(i);
-
+      
       // if I ended up in an escape sequence, check for valid escapable character, and add it as a literal
       if (inEscapeSequence) {
         inEscapeSequence = false;
@@ -132,7 +132,7 @@ public class QuotedStringTokenizer implements Iterable<String> {
       tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
     }
   }
-
+  
   @Override
   public Iterator<String> iterator() {
     return tokens.iterator();

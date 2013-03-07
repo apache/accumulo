@@ -29,10 +29,10 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 /**
- *
+ * 
  */
 public class CheckBalance extends Test {
-
+  
   private static final String LAST_UNBALANCED_TIME = "lastUnbalancedTime";
 
   /* (non-Javadoc)
@@ -55,7 +55,7 @@ public class CheckBalance extends Test {
       total += count.longValue();
     }
     final double average = total / counts.size();
-
+    
     // Check for even # of tablets on each node
     boolean balanced = true;
     for (Entry<String,Long> entry : counts.entrySet()) {
@@ -64,7 +64,7 @@ public class CheckBalance extends Test {
         break;
       }
     }
-
+    
     // It is expected that the number of tablets will be uneven for short
     // periods of time. Don't complain unless we've seen it only unbalanced
     // over a 15 minute period.
@@ -78,5 +78,5 @@ public class CheckBalance extends Test {
       props.remove(LAST_UNBALANCED_TIME);
     }
   }
-
+  
 }

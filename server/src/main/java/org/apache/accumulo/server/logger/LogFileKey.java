@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.hadoop.io.WritableComparable;
 
 public class LogFileKey implements WritableComparable<LogFileKey> {
-
+  
   public LogEvents event;
   public String filename = null;
   public KeyExtent tablet = null;
@@ -37,7 +37,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   public int tid = -1;
   public static final int VERSION = 2;
   public String tserverSession;
-
+  
   @Override
   public void readFields(DataInput in) throws IOException {
     int value = in.readByte();
@@ -76,9 +76,9 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
       default:
         throw new RuntimeException("Unknown log event type: " + event);
     }
-
+    
   }
-
+  
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeByte(event.ordinal());
@@ -116,7 +116,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
         throw new IllegalArgumentException("Bad value for LogFileEntry type");
     }
   }
-
+  
   static int eventType(LogEvents event) {
     // Order logs by START, TABLET_DEFINITIONS, COMPACTIONS and then MUTATIONS
     if (event == MUTATION || event == MANY_MUTATIONS) {
@@ -130,7 +130,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     }
     return 2;
   }
-
+  
   private static int sign(long l) {
     if (l < 0)
       return -1;
@@ -138,7 +138,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
       return 1;
     return 0;
   }
-
+  
   @Override
   public int compareTo(LogFileKey o) {
     if (eventType(this.event) != eventType(o.event)) {
@@ -151,7 +151,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     }
     return sign(this.seq - o.seq);
   }
-
+  
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof LogFileKey) {
@@ -159,16 +159,16 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     }
     return false;
   }
-
+  
   @Override
   public int hashCode() {
     return (int) seq;
   }
-
+  
   public static void printEntry(LogFileKey entry) {
     System.out.println(entry.toString());
   }
-
+  
   @Override
   public String toString() {
     switch (event) {

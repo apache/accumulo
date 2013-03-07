@@ -27,10 +27,10 @@ package org.apache.accumulo.core.file.blockfile.cache;
  * An Object's size is determined by the non-static data members in it, as well as the fixed {@link Object} overhead.
  * <p>
  * For example:
- *
+ * 
  * <pre>
  * public class SampleObject implements HeapSize {
- *
+ *   
  *   int[] numbers;
  *   int x;
  * }
@@ -41,5 +41,5 @@ public interface HeapSize {
    * @return Approximate 'exclusive deep size' of implementing object. Includes count of payload and hosting object sizings.
    */
   public long heapSize();
-
+  
 }

@@ -52,7 +52,7 @@ public class ClientSideIteratorTest {
     resultSet3.add(new Key("part1", "", "doc2"));
     resultSet3.add(new Key("part2", "", "DOC2"));
   }
-
+  
   public void checkResults(final Iterable<Entry<Key,Value>> scanner, final List<Key> results, final PartialKey pk) {
     int i = 0;
     for (Entry<Key,Value> entry : scanner) {
@@ -60,7 +60,7 @@ public class ClientSideIteratorTest {
     }
     assertEquals(i, results.size());
   }
-
+  
   @Test
   public void testIntersect() throws Exception {
     Instance instance = new MockInstance("local");
@@ -82,15 +82,15 @@ public class ClientSideIteratorTest {
     m.put("foo", "DOC3", "value");
     bw.addMutation(m);
     bw.flush();
-
+    
     final ClientSideIteratorScanner csis = new ClientSideIteratorScanner(conn.createScanner("intersect", new Authorizations()));
     final IteratorSetting si = new IteratorSetting(10, "intersect", IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(si, new Text[] {new Text("bar"), new Text("foo")});
     csis.addScanIterator(si);
-
+    
     checkResults(csis, resultSet3, PartialKey.ROW_COLFAM_COLQUAL);
   }
-
+  
   @Test
   public void testVersioning() throws Exception {
     final Instance instance = new MockInstance("local");
@@ -110,17 +110,17 @@ public class ClientSideIteratorTest {
     m.put("colf", "colq", 4l, "value");
     bw.addMutation(m);
     bw.flush();
-
+    
     final Scanner scanner = conn.createScanner("table", new Authorizations());
-
+    
     final ClientSideIteratorScanner csis = new ClientSideIteratorScanner(scanner);
     final IteratorSetting si = new IteratorSetting(10, "localvers", VersioningIterator.class);
     si.addOption("maxVersions", "2");
     csis.addScanIterator(si);
-
+    
     checkResults(csis, resultSet1, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
     checkResults(scanner, resultSet2, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
-
+    
     csis.fetchColumnFamily(new Text("colf"));
     checkResults(csis, resultSet1, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
     csis.clearColumns();

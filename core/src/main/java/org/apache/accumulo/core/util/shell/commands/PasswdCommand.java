@@ -30,25 +30,25 @@ import org.apache.commons.cli.Options;
 
 public class PasswdCommand extends Command {
   private Option userOpt;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     final String currentUser = shellState.getConnector().whoami();
     final String user = cl.getOptionValue(userOpt.getOpt(), currentUser);
-
+    
     String password = null;
     String passwordConfirm = null;
     String oldPassword = null;
-
+    
     oldPassword = shellState.readMaskedLine("Enter current password for '" + currentUser + "': ", '*');
     if (oldPassword == null) {
       shellState.getReader().printNewline();
       return 0;
     } // user canceled
-
+    
     if (!shellState.getConnector().securityOperations().authenticateUser(currentUser, new PasswordToken(oldPassword)))
       throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
-
+    
     password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
     if (password == null) {
       shellState.getReader().printNewline();
@@ -59,7 +59,7 @@ public class PasswdCommand extends Command {
       shellState.getReader().printNewline();
       return 0;
     } // user canceled
-
+    
     if (!password.equals(passwordConfirm)) {
       throw new IllegalArgumentException("Passwords do not match");
     }
@@ -73,12 +73,12 @@ public class PasswdCommand extends Command {
     Shell.log.debug("Changed password for user " + user);
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "changes a user's password";
   }
-
+  
   @Override
   public Options getOptions() {
     final Options o = new Options();
@@ -87,7 +87,7 @@ public class PasswdCommand extends Command {
     o.addOption(userOpt);
     return o;
   }
-
+  
   @Override
   public int numArgs() {
     return 0;

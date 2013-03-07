@@ -28,42 +28,42 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
 public class DefaultIteratorEnvironment implements IteratorEnvironment {
-
+  
   AccumuloConfiguration conf;
-
+  
   public DefaultIteratorEnvironment(AccumuloConfiguration conf) {
     this.conf = conf;
   }
-
+  
   public DefaultIteratorEnvironment() {
     this.conf = AccumuloConfiguration.getDefaultConfiguration();
   }
-
+  
   @Override
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
     return new MapFileIterator(this.conf, fs, mapFileName, conf);
   }
-
+  
   @Override
   public AccumuloConfiguration getConfig() {
     return conf;
   }
-
+  
   @Override
   public IteratorScope getIteratorScope() {
     throw new UnsupportedOperationException();
   }
-
+  
   @Override
   public boolean isFullMajorCompaction() {
     throw new UnsupportedOperationException();
   }
-
+  
   @Override
   public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
     throw new UnsupportedOperationException();
   }
-
+  
 }

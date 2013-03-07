@@ -29,21 +29,21 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class AlterTable extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getSysToken());
-
+    
     String tableName = WalkingSecurity.get(state).getTableName();
-
+    
     boolean exists = WalkingSecurity.get(state).getTableExists();
     boolean hasPermission = WalkingSecurity.get(state).canAlterTable(WalkingSecurity.get(state).getSysCredentials(), tableName);
     String newTableName = String.format("security_%s_%s_%d", InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_"), state.getPid(),
         System.currentTimeMillis());
-
+    
     renameTable(conn, state, tableName, newTableName, hasPermission, exists);
   }
-
+  
   public static void renameTable(Connector conn, State state, String oldName, String newName, boolean hasPermission, boolean tableExists)
       throws AccumuloSecurityException, AccumuloException, TableExistsException {
     try {

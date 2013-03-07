@@ -28,16 +28,16 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CreateTable extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getSysToken());
-
+    
     String tableName = WalkingSecurity.get(state).getTableName();
-
+    
     boolean exists = WalkingSecurity.get(state).getTableExists();
     boolean hasPermission = WalkingSecurity.get(state).canCreateTable(WalkingSecurity.get(state).getSysCredentials());
-
+    
     try {
       conn.tableOperations().create(tableName);
     } catch (AccumuloSecurityException ae) {

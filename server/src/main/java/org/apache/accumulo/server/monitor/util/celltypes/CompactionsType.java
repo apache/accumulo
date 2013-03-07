@@ -20,13 +20,13 @@ import org.apache.accumulo.core.master.thrift.Compacting;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 
 public class CompactionsType extends CellType<TableInfo> {
-
+  
   private String fieldName;
-
+  
   public CompactionsType(String which) {
     this.fieldName = which;
   }
-
+  
   @Override
   public String format(Object obj) {
     if (obj == null)
@@ -41,7 +41,7 @@ public class CompactionsType extends CellType<TableInfo> {
       c = new Compacting();
     return String.format("%s&nbsp;(%,d)", NumberType.commas(c.running, c.queued == 0 ? 0 : 1, summary.onlineTablets), c.queued);
   }
-
+  
   @Override
   public int compare(TableInfo o1, TableInfo o2) {
     if (o1 == null)
@@ -63,10 +63,10 @@ public class CompactionsType extends CellType<TableInfo> {
       return 1;
     return c1.running + c1.queued - c2.running - c2.queued;
   }
-
+  
   @Override
   public String alignment() {
     return "right";
   }
-
+  
 }

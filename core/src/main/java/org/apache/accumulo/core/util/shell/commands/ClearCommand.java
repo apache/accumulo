@@ -27,7 +27,7 @@ public class ClearCommand extends Command {
   public String description() {
     return "clears the screen";
   }
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     // custom clear screen, so I don't have to redraw the prompt twice
@@ -37,14 +37,14 @@ public class ClearCommand extends Command {
     // send the ANSI code to clear the screen
     shellState.getReader().printString(((char) 27) + "[2J");
     shellState.getReader().flushConsole();
-
+    
     // then send the ANSI code to go to position 1,1
     shellState.getReader().printString(((char) 27) + "[1;1H");
     shellState.getReader().flushConsole();
-
+    
     return 0;
   }
-
+  
   @Override
   public int numArgs() {
     return 0;

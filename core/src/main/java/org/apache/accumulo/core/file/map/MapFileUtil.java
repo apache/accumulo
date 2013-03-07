@@ -35,7 +35,7 @@ public class MapFileUtil {
       throw e;
     }
   }
-
+  
   public static SequenceFile.Reader openIndex(Configuration conf, FileSystem fs, Path mapFile) throws IOException {
     Path indexPath = new Path(mapFile, MapFile.INDEX_FILE_NAME);
     SequenceFile.Reader index = null;

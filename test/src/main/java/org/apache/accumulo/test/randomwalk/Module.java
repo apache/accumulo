@@ -45,15 +45,15 @@ import org.w3c.dom.NodeList;
  * A module is directed graph of tests
  */
 public class Module extends Node {
-
+  
   private class Dummy extends Node {
-
+    
     String name;
-
+    
     Dummy(String name) {
       this.name = name;
     }
-
+    
     @Override
     public void visit(State state, Properties props) {
       String print;
@@ -62,87 +62,87 @@ public class Module extends Node {
         log.log(level, name);
       }
     }
-
+    
     public String toString() {
       return name;
     }
   }
-
+  
   private class Alias extends Node {
-
+    
     Node target;
     String targetId;
     String id;
-
+    
     Alias(String id) {
       target = null;
       this.id = id;
     }
-
+    
     @Override
     public void visit(State state, Properties props) throws Exception {
       throw new Exception("You don't visit aliases!");
     }
-
+    
     public String toString() {
       return id;
     }
-
+    
     public void update(String node) throws Exception {
       targetId = node;
       target = getNode(node);
     }
-
+    
     public Node get() {
       return target;
     }
-
+    
     public String getTargetId() {
       return targetId;
     }
   }
-
+  
   private HashMap<String,Node> nodes = new HashMap<String,Node>();
   private HashMap<String,Properties> localProps = new HashMap<String,Properties>();
-
+  
   private class Edge {
     String nodeId;
     int weight;
   }
-
+  
   private class AdjList {
-
+    
     private List<Edge> edges = new ArrayList<Edge>();
     private int totalWeight = 0;
     private Random rand = new Random();
-
+    
     /**
      * Adds a neighbor node and weight of edge
      */
     private void addEdge(String nodeId, int weight) {
-
+      
       totalWeight += weight;
-
+      
       Edge e = new Edge();
       e.nodeId = nodeId;
       e.weight = weight;
       edges.add(e);
     }
-
+    
     /**
      * Chooses a random neighbor node
-     *
+     * 
      * @return Node or null if no edges
      * @throws Exception
      */
     private String randomNeighbor() throws Exception {
-
+      
       String nodeId = null;
       rand = new Random();
-
+      
       int randNum = rand.nextInt(totalWeight) + 1;
       int sum = 0;
-
+      
       for (Edge e : edges) {
         nodeId = e.nodeId;
         sum += e.weight;
@@ -153,24 +153,24 @@ public class Module extends Node {
       return nodeId;
     }
   }
-
+  
   private HashMap<String,String> prefixes = new HashMap<String,String>();
   private HashMap<String,AdjList> adjMap = new HashMap<String,AdjList>();
   private HashMap<String,Set<String>> aliasMap = new HashMap<String,Set<String>>();
   private final File xmlFile;
   private String initNodeId;
   private Fixture fixture = null;
-
+  
   public Module(File xmlFile) throws Exception {
     this.xmlFile = xmlFile;
     loadFromXml();
   }
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     int maxHops, maxSec;
     boolean teardown;
-
+    
     Properties initProps = getProps("_init");
     initProps.putAll(props);
     String prop;
@@ -178,23 +178,23 @@ public class Module extends Node {
       maxHops = Integer.MAX_VALUE;
     else
       maxHops = Integer.parseInt(initProps.getProperty("maxHops", "0"));
-
+    
     if ((prop = initProps.getProperty("maxSec")) == null || prop.equals("0") || prop.equals(""))
       maxSec = Integer.MAX_VALUE;
     else
       maxSec = Integer.parseInt(initProps.getProperty("maxSec", "0"));
-
+    
     if ((prop = initProps.getProperty("teardown")) == null || prop.equals("true") || prop.equals(""))
       teardown = true;
     else
       teardown = false;
-
+    
     if (fixture != null) {
       fixture.setUp(state);
     }
-
+    
     Node initNode = getNode(initNodeId);
-
+    
     boolean test = false;
     if (initNode instanceof Test) {
       startTimer(initNode);
@@ -203,7 +203,7 @@ public class Module extends Node {
     initNode.visit(state, getProps(initNodeId));
     if (test)
       stopTimer(initNode);
-
+    
     state.visitedNode();
     // update aliases
     Set<String> aliases;
@@ -211,7 +211,7 @@ public class Module extends Node {
       for (String alias : aliases) {
         ((Alias) nodes.get(alias)).update(initNodeId);
       }
-
+    
     String curNodeId = initNodeId;
     int numHops = 0;
     long startTime = System.currentTimeMillis() / 1000;
@@ -233,7 +233,7 @@ public class Module extends Node {
         break;
       }
       numHops++;
-
+      
       if (!adjMap.containsKey(curNodeId) && !curNodeId.startsWith("alias.")) {
         throw new Exception("Reached node(" + curNodeId + ") without outgoing edges in module(" + this + ")");
       }
@@ -279,35 +279,35 @@ public class Module extends Node {
             logMsg += new String(((PasswordToken) value).getPassword());
           else
             logMsg += value.getClass()+ " - " + value;
-
+          
           log.debug(logMsg);
         }
         throw new Exception("Error running node " + nextNodeId, e);
       }
       state.visitedNode();
-
+      
       // update aliases
       if ((aliases = aliasMap.get(curNodeId)) != null)
         for (String alias : aliases) {
           ((Alias) nodes.get(alias)).update(curNodeId);
         }
-
+      
       curNodeId = nextNodeId;
     }
-
+    
     if (teardown && (fixture != null)) {
       log.debug("tearing down module");
       fixture.tearDown(state);
     }
   }
-
+  
   Thread timer = null;
   final int time = 5 * 1000 * 60;
   AtomicBoolean runningLong = new AtomicBoolean(false);
   long systemTime;
-
+  
   /**
-   *
+   * 
    */
   private void startTimer(final Node initNode) {
     runningLong.set(false);
@@ -330,9 +330,9 @@ public class Module extends Node {
     initNode.makingProgress();
     timer.start();
   }
-
+  
   /**
-   *
+   * 
    */
   private void stopTimer(Node nextNode) {
     synchronized (timer) {
@@ -347,31 +347,31 @@ public class Module extends Node {
     if (runningLong.get())
       log.warn("Node " + nextNode + ", which was running long, has now completed after " + (System.currentTimeMillis() - systemTime) / 1000.0 + " seconds");
   }
-
+  
   @Override
   public String toString() {
     return xmlFile.toString();
   }
-
+  
   private String getFullName(String name) {
-
+    
     int index = name.indexOf(".");
     if ((index == -1) || name.endsWith(".xml")) {
       return name;
     }
-
+    
     String id = name.substring(0, index);
-
+    
     if (!prefixes.containsKey(id)) {
       log.warn("Id (" + id + ") was not found in prefixes");
       return name;
     }
-
+    
     return prefixes.get(id).concat(name.substring(index + 1));
   }
-
+  
   private Node createNode(String id, String src) throws Exception {
-
+    
     // check if id indicates dummy node
     if (id.equalsIgnoreCase("END") || id.startsWith("dummy")) {
       if (nodes.containsKey(id) == false) {
@@ -379,14 +379,14 @@ public class Module extends Node {
       }
       return nodes.get(id);
     }
-
+    
     if (id.startsWith("alias")) {
       if (nodes.containsKey(id) == false) {
         nodes.put(id, new Alias(id));
       }
       return nodes.get(id);
     }
-
+    
     // grab node from framework based on its id or src
     Node node;
     if (src == null || src.isEmpty()) {
@@ -394,44 +394,44 @@ public class Module extends Node {
     } else {
       node = Framework.getInstance().getNode(getFullName(src));
     }
-
+    
     // add to node to this module's map
     nodes.put(id, node);
-
+    
     return node;
   }
-
+  
   private Node getNode(String id) throws Exception {
-
+    
     if (nodes.containsKey(id)) {
       return nodes.get(id);
     }
-
+    
     if (id.equalsIgnoreCase("END")) {
       nodes.put(id, new Dummy(id));
       return nodes.get(id);
     }
-
+    
     return Framework.getInstance().getNode(getFullName(id));
   }
-
+  
   private Properties getProps(String nodeId) {
     if (localProps.containsKey(nodeId)) {
       return localProps.get(nodeId);
     }
     return new Properties();
   }
-
+  
   private void loadFromXml() throws Exception {
     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
     DocumentBuilder docbuilder;
     Document d = null;
-
+    
     // set the schema
     SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
     Schema moduleSchema = sf.newSchema(this.getClass().getClassLoader().getResource("randomwalk/module.xsd"));
     dbf.setSchema(moduleSchema);
-
+    
     // parse the document
     try {
       docbuilder = dbf.newDocumentBuilder();
@@ -440,7 +440,7 @@ public class Module extends Node {
       log.error("Failed to parse: " + xmlFile, e);
       throw new Exception("Failed to parse: " + xmlFile);
     }
-
+    
     // parse packages
     NodeList nodelist = d.getDocumentElement().getElementsByTagName("package");
     for (int i = 0; i < nodelist.getLength(); i++) {
@@ -451,91 +451,91 @@ public class Module extends Node {
       }
       prefixes.put(el.getAttribute("prefix"), value);
     }
-
+    
     // parse fixture node
     nodelist = d.getDocumentElement().getElementsByTagName("fixture");
     if (nodelist.getLength() > 0) {
       Element fixtureEl = (Element) nodelist.item(0);
       fixture = (Fixture) Class.forName(getFullName(fixtureEl.getAttribute("id"))).newInstance();
     }
-
+    
     // parse initial node
     Element initEl = (Element) d.getDocumentElement().getElementsByTagName("init").item(0);
     initNodeId = initEl.getAttribute("id");
     Properties initProps = new Properties();
     String attr = initEl.getAttribute("maxHops");
-
+    
     if (attr != null)
       initProps.setProperty("maxHops", attr);
     attr = initEl.getAttribute("maxSec");
-
+    
     if (attr != null)
       initProps.setProperty("maxSec", attr);
     attr = initEl.getAttribute("teardown");
-
+    
     if (attr != null)
       initProps.setProperty("teardown", attr);
     localProps.put("_init", initProps);
-
+    
     // parse all nodes
     nodelist = d.getDocumentElement().getElementsByTagName("node");
     for (int i = 0; i < nodelist.getLength(); i++) {
-
+      
       Element nodeEl = (Element) nodelist.item(i);
-
+      
       // get attributes
       String id = nodeEl.getAttribute("id");
       if (adjMap.containsKey(id)) {
         throw new Exception("Module already contains: " + id);
       }
       String src = nodeEl.getAttribute("src");
-
+      
       // create node
       createNode(id, src);
-
+      
       // set some attributes in properties for later use
       Properties props = new Properties();
       props.setProperty("maxHops", nodeEl.getAttribute("maxHops"));
       props.setProperty("maxSec", nodeEl.getAttribute("maxSec"));
       props.setProperty("teardown", nodeEl.getAttribute("teardown"));
-
+      
       // parse aliases
       NodeList aliaslist = nodeEl.getElementsByTagName("alias");
       Set<String> aliases = new TreeSet<String>();
       for (int j = 0; j < aliaslist.getLength(); j++) {
         Element propEl = (Element) aliaslist.item(j);
-
+        
         if (!propEl.hasAttribute("name")) {
           throw new Exception("Node " + id + " has alias with no identifying name");
         }
-
+        
         String key = "alias." + propEl.getAttribute("name");
-
+        
         aliases.add(key);
         createNode(key, null);
       }
       if (aliases.size() > 0)
         aliasMap.put(id, aliases);
-
+      
       // parse properties of nodes
       NodeList proplist = nodeEl.getElementsByTagName("property");
       for (int j = 0; j < proplist.getLength(); j++) {
         Element propEl = (Element) proplist.item(j);
-
+        
         if (!propEl.hasAttribute("key") || !propEl.hasAttribute("value")) {
           throw new Exception("Node " + id + " has property with no key or value");
         }
-
+        
         String key = propEl.getAttribute("key");
-
+        
         if (key.equals("maxHops") || key.equals("maxSec") || key.equals("teardown")) {
           throw new Exception("The following property can only be set in attributes: " + key);
         }
-
+        
         props.setProperty(key, propEl.getAttribute("value"));
       }
       localProps.put(id, props);
-
+      
       // parse edges of nodes
       AdjList edges = new AdjList();
       adjMap.put(id, edges);
@@ -545,13 +545,13 @@ public class Module extends Node {
       }
       for (int j = 0; j < edgelist.getLength(); j++) {
         Element edgeEl = (Element) edgelist.item(j);
-
+        
         String edgeID = edgeEl.getAttribute("id");
-
+        
         if (!edgeEl.hasAttribute("weight")) {
           throw new Exception("Edge with id=" + edgeID + " is missing weight");
         }
-
+        
         int weight = Integer.parseInt(edgeEl.getAttribute("weight"));
         edges.addEdge(edgeID, weight);
       }

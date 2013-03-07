@@ -22,7 +22,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.thrift.TException;
 
 public interface MasterMessage {
-
+  
   void send(TCredentials info, String serverName, MasterClientService.Iface client) throws TException, ThriftSecurityException;
-
+  
 }

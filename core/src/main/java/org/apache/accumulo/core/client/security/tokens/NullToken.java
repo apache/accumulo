@@ -23,34 +23,34 @@ import java.io.IOException;
 import javax.security.auth.DestroyFailedException;
 
 /**
- *
+ * 
  */
 public class NullToken implements AuthenticationToken {
-
+  
   @Override
   public void readFields(DataInput arg0) throws IOException {
     return;
   }
-
+  
   @Override
   public void write(DataOutput arg0) throws IOException {
     return;
   }
-
+  
   @Override
   public void destroy() throws DestroyFailedException {
     return;
   }
-
+  
   @Override
   public boolean isDestroyed() {
     return false;
   }
-
+  
   public NullToken clone() {
     return new NullToken();
   }
-
+  
   public boolean equals(Object obj) {
     return obj instanceof NullToken;
   }

@@ -22,10 +22,10 @@ import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 
 /**
- *
+ * 
  */
 public class PostDelegatingVFSClassLoader extends VFSClassLoader {
-
+  
   /**
    * @param files
    * @param manager
@@ -35,7 +35,7 @@ public class PostDelegatingVFSClassLoader extends VFSClassLoader {
   public PostDelegatingVFSClassLoader(FileObject[] files, FileSystemManager manager, ClassLoader parent) throws FileSystemException {
     super(files, manager, parent);
   }
-
+  
   protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
     Class<?> c = findLoadedClass(name);
     if (c == null) {

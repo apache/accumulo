@@ -46,24 +46,24 @@ public class DebugCommand extends Command {
     }
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "turns debug logging on or off";
   }
-
+  
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
     final Token debug_command = new Token(getName());
     debug_command.addSubcommand(Arrays.asList(new String[] {"on", "off"}));
     root.addSubcommand(debug_command);
   }
-
+  
   @Override
   public String usage() {
     return getName() + " [ on | off ]";
   }
-
+  
   @Override
   public int numArgs() {
     return Shell.NO_FIXED_ARG_LENGTH_CHECK;

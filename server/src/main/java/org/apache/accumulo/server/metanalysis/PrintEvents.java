@@ -42,7 +42,7 @@ import com.beust.jcommander.Parameter;
  * Looks up and prints mutations indexed by IndexMeta
  */
 public class PrintEvents {
-
+  
   static class Opts extends ClientOpts {
     @Parameter(names={"-t", "--tableId"}, description="table id", required=true)
     String tableId;
@@ -51,19 +51,19 @@ public class PrintEvents {
     @Parameter(names={"-t", "--time"}, description="time, in milliseconds", required=true)
     long time;
   }
-
+  
   /**
    * @param args
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(PrintEvents.class.getName(), args);
-
+    
     Connector conn = opts.getConnector();
-
+    
     printEvents(conn, opts.tableId, opts.endRow, opts.time);
   }
-
+  
   /**
    * @param conn
    * @param tablePrefix
@@ -76,7 +76,7 @@ public class PrintEvents {
     String metaRow = tableId + (endRow == null ? "<" : ";" + endRow);
     scanner.setRange(new Range(new Key(metaRow, String.format("%020d", time)), true, new Key(metaRow).followingKey(PartialKey.ROW), false));
     int count = 0;
-
+    
     String lastLog = null;
 
     loop1: for (Entry<Key,Value> entry : scanner) {
@@ -88,12 +88,12 @@ public class PrintEvents {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(entry.getValue().get()));
         Mutation m = new Mutation();
         m.readFields(dis);
-
+        
         LogFileValue lfv = new LogFileValue();
         lfv.mutations = Collections.singletonList(m);
-
+        
         System.out.println(LogFileValue.format(lfv, 1));
-
+        
         List<ColumnUpdate> columnsUpdates = m.getUpdates();
         for (ColumnUpdate cu : columnsUpdates) {
           if (Constants.METADATA_PREV_ROW_COLUMN.equals(new Text(cu.getColumnFamily()), new Text(cu.getColumnQualifier())) && count > 0) {

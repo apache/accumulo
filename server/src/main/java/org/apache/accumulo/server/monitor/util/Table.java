@@ -34,11 +34,11 @@ public class Table {
   private ArrayList<TableColumn<?>> columns;
   private ArrayList<TableRow> rows;
   private boolean hasBegunAddingRows = false;
-
+  
   public Table(String tableName, String caption) {
     this(tableName, caption, null);
   }
-
+  
   public Table(String tableName, String caption, String captionClass) {
     this.table = tableName;
     this.caption = caption;
@@ -47,52 +47,52 @@ public class Table {
     this.columns = new ArrayList<TableColumn<?>>();
     this.rows = new ArrayList<TableRow>();
   }
-
+  
   public synchronized void setSubCaption(String subcaption) {
     this.subcaption = subcaption;
   }
-
+  
   public synchronized <T> void addColumn(TableColumn<T> column) {
     if (hasBegunAddingRows)
       throw new IllegalStateException("Cannot add more columns newServer rows have been added");
     columns.add(column);
   }
-
+  
   private synchronized <T> void addColumn(String title, CellType<T> type, String legend, boolean sortable) {
     if (type == null)
       type = new StringType<T>();
     type.setSortable(sortable);
     addColumn(new TableColumn<T>(title, type, legend));
   }
-
+  
   public synchronized <T> void addUnsortableColumn(String title, CellType<T> type, String legend) {
     addColumn(title, type, legend, false);
   }
-
+  
   public synchronized <T> void addSortableColumn(String title, CellType<T> type, String legend) {
     addColumn(title, type, legend, true);
   }
-
+  
   public synchronized void addUnsortableColumn(String title) {
     addUnsortableColumn(title, null, null);
   }
-
+  
   public synchronized void addSortableColumn(String title) {
     addSortableColumn(title, null, null);
   }
-
+  
   public synchronized TableRow prepareRow() {
     hasBegunAddingRows = true;
     return new TableRow(columns.size());
   }
-
+  
   public synchronized void addRow(TableRow row) {
     hasBegunAddingRows = true;
     if (columns.size() != row.size())
       throw new IllegalStateException("Row must be the same size as the columns");
     rows.add(row);
   }
-
+  
   public synchronized void addRow(Object... cells) {
     TableRow row = prepareRow();
     if (cells.length != columns.size())
@@ -101,7 +101,7 @@ public class Table {
       row.add(cell);
     addRow(row);
   }
-
+  
   public synchronized void generate(HttpServletRequest req, StringBuilder sb) {
     String page = req.getRequestURI();
     if (columns.isEmpty())
@@ -109,12 +109,12 @@ public class Table {
     for (TableRow row : rows)
       if (row.size() != columns.size())
         throw new RuntimeException("Each row must have the same number of columns");
-
+    
     boolean sortAscending = true;
     Cookie c = BasicServlet.getCookie(req, "tableSort." + page + "." + table + "." + "sortAsc");
     if (c != null && "false".equals(c.getValue()))
       sortAscending = false;
-
+    
     int sortCol = -1; // set to first sortable column by default
     int numLegends = 0;
     for (int i = 0; i < columns.size(); ++i) {
@@ -124,7 +124,7 @@ public class Table {
       if (col.getLegend() != null && !col.getLegend().isEmpty())
         ++numLegends;
     }
-
+    
     // only get cookie if there is a possibility that it is sortable
     if (sortCol >= 0) {
       c = BasicServlet.getCookie(req, "tableSort." + page + "." + table + "." + "sortCol");
@@ -139,13 +139,13 @@ public class Table {
         }
       }
     }
-
+    
     boolean showLegend = false;
     if (numLegends > 0) {
       c = BasicServlet.getCookie(req, "tableLegend." + page + "." + table + "." + "show");
       showLegend = c != null && Boolean.parseBoolean(c.getValue());
     }
-
+    
     sb.append("<div>\n");
     sb.append("<a name='").append(table).append("'>&nbsp;</a>\n");
     sb.append("<table id='").append(table).append("' class='sortable'>\n");
@@ -157,7 +157,7 @@ public class Table {
       sb.append("<span class='table-caption'>").append(caption).append("</span><br />\n");
     if (subcaption != null && !subcaption.isEmpty())
       sb.append("<span class='table-subcaption'>").append(subcaption).append("</span><br />\n");
-
+    
     String redir = BasicServlet.currentPage(req);
     if (numLegends > 0) {
       String legendUrl = String.format("/op?action=toggleLegend&redir=%s&page=%s&table=%s&show=%s", redir, page, table, !showLegend);
@@ -213,7 +213,7 @@ public class Table {
       sb.append("<tr><td class='center' colspan='").append(columns.size()).append("'><i>Empty</i></td></tr>\n");
     sb.append("</table>\n</div>\n\n");
   }
-
+  
   private static void row(StringBuilder sb, boolean highlight, ArrayList<TableColumn<?>> columns, TableRow row) {
     sb.append(highlight ? "<tr class='highlight'>" : "<tr>");
     boolean first = true;
@@ -229,5 +229,5 @@ public class Table {
     }
     sb.append("</tr>\n");
   }
-
+  
 }

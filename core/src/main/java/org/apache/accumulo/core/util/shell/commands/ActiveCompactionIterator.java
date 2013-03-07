@@ -30,11 +30,11 @@ import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.util.Duration;
 
 class ActiveCompactionIterator implements Iterator<String> {
-
+  
   private InstanceOperations instanceOps;
   private Iterator<String> tsIter;
   private Iterator<String> compactionIter;
-
+  
   private static String maxDecimal(double count) {
     if (count < 9.995)
       return String.format("%.2f", count);
@@ -55,15 +55,15 @@ class ActiveCompactionIterator implements Iterator<String> {
 
   private void readNext() {
     final List<String> compactions = new ArrayList<String>();
-
+    
     while (tsIter.hasNext()) {
-
+      
       final String tserver = tsIter.next();
       try {
         List<ActiveCompaction> acl = instanceOps.getActiveCompactions(tserver);
-
+        
         acl = new ArrayList<ActiveCompaction>(acl);
-
+        
         Collections.sort(acl, new Comparator<ActiveCompaction>() {
           @Override
           public int compare(ActiveCompaction o1, ActiveCompaction o2) {
@@ -77,9 +77,9 @@ class ActiveCompactionIterator implements Iterator<String> {
           if (index > 0) {
             output = output.substring(index + 6);
           }
-
+          
           ac.getIterators();
-
+          
           List<String> iterList = new ArrayList<String>();
           Map<String,Map<String,String>> iterOpts = new HashMap<String,Map<String,String>>();
           for (IteratorSetting is : ac.getIterators()) {
@@ -94,43 +94,43 @@ class ActiveCompactionIterator implements Iterator<String> {
       } catch (Exception e) {
         compactions.add(tserver + " ERROR " + e.getMessage());
       }
-
+      
       if (compactions.size() > 0) {
         break;
       }
     }
-
+    
     compactionIter = compactions.iterator();
   }
-
+  
   ActiveCompactionIterator(List<String> tservers, InstanceOperations instanceOps) {
     this.instanceOps = instanceOps;
     this.tsIter = tservers.iterator();
-
+    
     final String header = String.format(" %-21s| %-9s | %-5s | %-6s | %-5s | %-5s | %-15s | %-40s | %-5s | %-35s | %-9s | %s", "TABLET SERVER", "AGE", "TYPE",
         "REASON", "READ", "WROTE", "TABLE", "TABLET", "INPUT", "OUTPUT", "ITERATORS", "ITERATOR OPTIONS");
-
+    
     compactionIter = Collections.singletonList(header).iterator();
   }
-
+  
   @Override
   public boolean hasNext() {
     return compactionIter.hasNext();
   }
-
+  
   @Override
   public String next() {
     final String next = compactionIter.next();
-
+    
     if (!compactionIter.hasNext())
       readNext();
-
+    
     return next;
   }
-
+  
   @Override
   public void remove() {
     throw new UnsupportedOperationException();
   }
-
+  
 }

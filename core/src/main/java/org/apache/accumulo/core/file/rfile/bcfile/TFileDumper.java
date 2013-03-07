@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -41,11 +41,11 @@ import org.apache.hadoop.io.IOUtils;
  */
 class TFileDumper {
   static final Log LOG = LogFactory.getLog(TFileDumper.class);
-
+  
   private TFileDumper() {
     // namespace object not constructable.
   }
-
+  
   private enum Align {
     LEFT, CENTER, RIGHT, ZERO_PADDED;
     static String format(String s, int width, Align align) {
@@ -68,22 +68,22 @@ class TFileDumper {
       }
       throw new IllegalArgumentException("Unsupported alignment");
     }
-
+    
     static String format(long l, int width, Align align) {
       if (align == ZERO_PADDED) {
         return String.format("%0" + width + "d", l);
       }
       return format(Long.toString(l), width, align);
     }
-
+    
     static int calculateWidth(String caption, long max) {
       return Math.max(caption.length(), Long.toString(max).length());
     }
   }
-
+  
   /**
    * Dump information about TFile.
-   *
+   * 
    * @param file
    *          Path string of the TFile
    * @param out
@@ -126,7 +126,7 @@ class TFileDumper {
           properties.put("Data Block Compression Ratio", String.format("1:%.1f", (double) dataSizeUncompressed / dataSize));
         }
       }
-
+      
       properties.put("Meta Block Count", Integer.toString(metaBlkCnt));
       long metaSize = 0, metaSizeUncompressed = 0;
       if (metaBlkCnt > 0) {
@@ -181,11 +181,11 @@ class TFileDumper {
         int recordsWidth = Align.calculateWidth(records, reader.getEntryCount() / blockCnt * 10);
         String endKey = "End-Key";
         int endKeyWidth = Math.max(endKey.length(), maxKeySampleLen * 2 + 5);
-
+        
         out.printf("%s %s %s %s %s %s%n", Align.format(blkID, blkIDWidth, Align.CENTER), Align.format(offset, offsetWidth, Align.CENTER),
             Align.format(blkLen, blkLenWidth, Align.CENTER), Align.format(rawSize, rawSizeWidth, Align.CENTER),
             Align.format(records, recordsWidth, Align.CENTER), Align.format(endKey, endKeyWidth, Align.LEFT));
-
+        
         for (int i = 0; i < blockCnt; ++i) {
           BlockRegion region = reader.readerBCF.dataIndex.getBlockRegionList().get(i);
           TFileIndexEntry indexEntry = reader.tfileIndex.getEntry(i);
@@ -216,7 +216,7 @@ class TFileDumper {
           out.println();
         }
       }
-
+      
       out.println();
       if (metaBlkCnt > 0) {
         String name = "Meta-Block";
@@ -240,7 +240,7 @@ class TFileDumper {
         out.printf("%s %s %s %s %s%n", Align.format(name, nameWidth, Align.CENTER), Align.format(offset, offsetWidth, Align.CENTER),
             Align.format(blkLen, blkLenWidth, Align.CENTER), Align.format(rawSize, rawSizeWidth, Align.CENTER),
             Align.format(compression, compressionWidth, Align.LEFT));
-
+        
         for (Iterator<Map.Entry<String,MetaIndexEntry>> it = metaBlkEntrySet.iterator(); it.hasNext();) {
           Map.Entry<String,MetaIndexEntry> e = it.next();
           String blkName = e.getValue().getMetaName();

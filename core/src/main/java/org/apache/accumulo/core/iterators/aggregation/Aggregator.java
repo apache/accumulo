@@ -24,8 +24,8 @@ import org.apache.accumulo.core.data.Value;
 @Deprecated
 public interface Aggregator {
   void reset();
-
+  
   void collect(Value value);
-
+  
   Value aggregate();
 }

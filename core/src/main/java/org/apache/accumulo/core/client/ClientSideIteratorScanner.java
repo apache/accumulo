@@ -54,10 +54,10 @@ import org.apache.hadoop.io.Text;
  */
 public class ClientSideIteratorScanner extends ScannerOptions implements Scanner {
   private int size;
-
+  
   private Range range;
   private boolean isolated = false;
-
+  
   /**
    * A class that wraps a Scanner in a SortedKeyValueIterator so that other accumulo iterators can use it as a source.
    */
@@ -65,27 +65,27 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     protected Scanner scanner;
     Iterator<Entry<Key,Value>> iter;
     Entry<Key,Value> top = null;
-
+    
     /**
      * Constructs an accumulo iterator from a scanner.
-     *
+     * 
      * @param scanner
      *          the scanner to iterate over
      */
     public ScannerTranslator(final Scanner scanner) {
       this.scanner = scanner;
     }
-
+    
     @Override
     public void init(final SortedKeyValueIterator<Key,Value> source, final Map<String,String> options, final IteratorEnvironment env) throws IOException {
       throw new UnsupportedOperationException();
     }
-
+    
     @Override
     public boolean hasTop() {
       return top != null;
     }
-
+    
     @Override
     public void next() throws IOException {
       if (iter.hasNext())
@@ -93,7 +93,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       else
         top = null;
     }
-
+    
     @Override
     public void seek(final Range range, final Collection<ByteSequence> columnFamilies, final boolean inclusive) throws IOException {
       if (!inclusive && columnFamilies.size() > 0) {
@@ -107,28 +107,28 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       iter = scanner.iterator();
       next();
     }
-
+    
     @Override
     public Key getTopKey() {
       return top.getKey();
     }
-
+    
     @Override
     public Value getTopValue() {
       return top.getValue();
     }
-
+    
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
       return new ScannerTranslator(scanner);
     }
   }
-
+  
   private ScannerTranslator smi;
-
+  
   /**
    * Constructs a scanner that can execute client-side iterators.
-   *
+   * 
    * @param scanner
    *          the source scanner
    */
@@ -138,16 +138,16 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     this.size = scanner.getBatchSize();
     this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
   }
-
+  
   /**
    * Sets the source Scanner.
-   *
+   * 
    * @param scanner
    */
   public void setSource(final Scanner scanner) {
     smi = new ScannerTranslator(scanner);
   }
-
+  
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     smi.scanner.setBatchSize(size);
@@ -156,13 +156,13 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       smi.scanner.enableIsolation();
     else
       smi.scanner.disableIsolation();
-
+    
     final TreeMap<Integer,IterInfo> tm = new TreeMap<Integer,IterInfo>();
-
+    
     for (IterInfo iterInfo : serverSideIteratorList) {
       tm.put(iterInfo.getPriority(), iterInfo);
     }
-
+    
     SortedKeyValueIterator<Key,Value> skvi;
     try {
       skvi = IteratorUtil.loadIterators(smi, tm.values(), serverSideIteratorOptions, new IteratorEnvironment() {
@@ -170,43 +170,43 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
         public SortedKeyValueIterator<Key,Value> reserveMapFileReader(final String mapFileName) throws IOException {
           return null;
         }
-
+        
         @Override
         public AccumuloConfiguration getConfig() {
           return null;
         }
-
+        
         @Override
         public IteratorScope getIteratorScope() {
           return null;
         }
-
+        
         @Override
         public boolean isFullMajorCompaction() {
           return false;
         }
-
+        
         @Override
         public void registerSideChannel(final SortedKeyValueIterator<Key,Value> iter) {}
       }, false, null);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-
+    
     final Set<ByteSequence> colfs = new TreeSet<ByteSequence>();
     for (Column c : this.getFetchedColumns()) {
       colfs.add(new ArrayByteSequence(c.getColumnFamily()));
     }
-
+    
     try {
       skvi.seek(range, colfs, true);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-
+    
     return new IteratorAdapter(skvi);
   }
-
+  
   @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
@@ -215,7 +215,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     else
       setTimeout(timeOut, TimeUnit.SECONDS);
   }
-
+  
   @Deprecated
   @Override
   public int getTimeOut() {
@@ -224,32 +224,32 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       return Integer.MAX_VALUE;
     return (int) timeout;
   }
-
+  
   @Override
   public void setRange(final Range range) {
     this.range = range;
   }
-
+  
   @Override
   public Range getRange() {
     return range;
   }
-
+  
   @Override
   public void setBatchSize(final int size) {
     this.size = size;
   }
-
+  
   @Override
   public int getBatchSize() {
     return size;
   }
-
+  
   @Override
   public void enableIsolation() {
     this.isolated = true;
   }
-
+  
   @Override
   public void disableIsolation() {
     this.isolated = false;

@@ -29,32 +29,32 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 
 public class ServerConfiguration {
-
+  
   private static final Map<String,TableConfiguration> tableInstances = new HashMap<String,TableConfiguration>(1);
   private static SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
-
+  
   public static synchronized SiteConfiguration getSiteConfiguration() {
     checkPermissions();
     return SiteConfiguration.getInstance(getDefaultConfiguration());
   }
-
+  
   private static void checkPermissions() {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(CONFIGURATION_PERMISSION);
     }
   }
-
+  
   private static synchronized ZooConfiguration getZooConfiguration(Instance instance) {
     checkPermissions();
     return ZooConfiguration.getInstance(instance, getSiteConfiguration());
   }
-
+  
   public static synchronized DefaultConfiguration getDefaultConfiguration() {
     checkPermissions();
     return DefaultConfiguration.getInstance();
   }
-
+  
   public static synchronized AccumuloConfiguration getSystemConfiguration(Instance instance) {
     return getZooConfiguration(instance);
   }
@@ -71,13 +71,13 @@ public class ServerConfiguration {
       return conf;
     }
   }
-
+  
   static void removeTableIdInstance(String tableId) {
     synchronized (tableInstances) {
       tableInstances.remove(tableId);
     }
   }
-
+  
   static void expireAllTableObservers() {
     synchronized (tableInstances) {
       for (Entry<String,TableConfiguration> entry : tableInstances.entrySet()) {
@@ -85,17 +85,17 @@ public class ServerConfiguration {
       }
     }
   }
-
+  
   private final Instance instance;
-
+  
   public ServerConfiguration(Instance instance) {
     this.instance = instance;
   }
-
+  
   public TableConfiguration getTableConfiguration(String tableId) {
     return getTableConfiguration(instance, tableId);
   }
-
+  
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getTableConfiguration(extent.getTableId().toString());
   }
@@ -103,7 +103,7 @@ public class ServerConfiguration {
   public synchronized AccumuloConfiguration getConfiguration() {
     return getZooConfiguration(instance);
   }
-
+  
   public Instance getInstance() {
     return instance;
   }

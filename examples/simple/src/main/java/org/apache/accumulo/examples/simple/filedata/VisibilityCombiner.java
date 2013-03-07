@@ -24,16 +24,16 @@ import org.apache.accumulo.core.data.ByteSequence;
  * A utility for merging visibilities into the form {@code (VIS1)|(VIS2)|...|(VISN)}. Used by the {@link ChunkCombiner}.
  */
 public class VisibilityCombiner {
-
+  
   private TreeSet<String> visibilities = new TreeSet<String>();
-
+  
   void add(ByteSequence cv) {
     if (cv.length() == 0)
       return;
-
+    
     int depth = 0;
     int offset = 0;
-
+    
     for (int i = 0; i < cv.length(); i++) {
       switch (cv.byteAt(i)) {
         case '(':
@@ -49,25 +49,25 @@ public class VisibilityCombiner {
             insert(cv.subSequence(offset, i));
             offset = i + 1;
           }
-
+          
           break;
       }
     }
-
+    
     insert(cv.subSequence(offset, cv.length()));
-
+    
     if (depth != 0)
       throw new IllegalArgumentException("Invalid vis " + cv);
-
+    
   }
-
+  
   private void insert(ByteSequence cv) {
     for (int i = 0; i < cv.length(); i++) {
-
+      
     }
-
+    
     String cvs = cv.toString();
-
+    
     if (cvs.charAt(0) != '(')
       cvs = "(" + cvs + ")";
     else {
@@ -85,14 +85,14 @@ public class VisibilityCombiner {
             break;
         }
       }
-
+      
       if (depthZeroCloses > 1)
         cvs = "(" + cvs + ")";
     }
-
+    
     visibilities.add(cvs);
   }
-
+  
   byte[] get() {
     StringBuilder sb = new StringBuilder();
     String sep = "";
@@ -101,7 +101,7 @@ public class VisibilityCombiner {
       sep = "|";
       sb.append(cvs);
     }
-
+    
     return sb.toString().getBytes();
   }
 }

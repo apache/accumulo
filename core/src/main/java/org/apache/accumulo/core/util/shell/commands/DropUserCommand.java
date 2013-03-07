@@ -38,22 +38,22 @@ public class DropUserCommand extends Command {
     Shell.log.debug("Deleted user " + user);
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "deletes a user";
   }
-
+  
   @Override
   public String usage() {
     return getName() + " <username>";
   }
-
+  
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
-
+  
   @Override
   public int numArgs() {
     return 1;

@@ -34,15 +34,15 @@ public class RevokeCommand extends TableOperation {
   {
     disableUnflaggedTableOptions();
   }
-
+  
   private Option systemOpt, userOpt;
   private String user;
   private String[] permission;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     user = cl.hasOption(userOpt.getOpt()) ? cl.getOptionValue(userOpt.getOpt()) : shellState.getConnector().whoami();
-
+    
     permission = cl.getArgs()[0].split("\\.", 2);
     if (cl.hasOption(systemOpt.getOpt()) && permission[0].equalsIgnoreCase("System")) {
       try {
@@ -58,7 +58,7 @@ public class RevokeCommand extends TableOperation {
     }
     return 0;
   }
-
+  
   @Override
   protected void doTableOp(final Shell shellState, final String tableName) throws Exception {
     try {
@@ -68,17 +68,17 @@ public class RevokeCommand extends TableOperation {
       throw new IllegalArgumentException("No such table permission", e);
     }
   }
-
+  
   @Override
   public String description() {
     return "revokes system or table permissions from a user";
   }
-
+  
   @Override
   public String usage() {
     return getName() + " <permission>";
   }
-
+  
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     final Token cmd = new Token(getName());
@@ -86,29 +86,29 @@ public class RevokeCommand extends TableOperation {
     cmd.addSubcommand(new Token(SystemPermission.printableValues()));
     root.addSubcommand(cmd);
   }
-
+  
   @Override
   public Options getOptions() {
     super.getOptions();
     final Options o = new Options();
-
+    
     final OptionGroup group = new OptionGroup();
-
+    
     systemOpt = new Option("s", "system", false, "revoke a system permission");
-
+    
     group.addOption(systemOpt);
     group.addOption(optTableName);
     group.addOption(optTablePattern);
-
+    
     o.addOptionGroup(group);
     userOpt = new Option(Shell.userOption, "user", true, "user to operate on");
     userOpt.setArgName("username");
     userOpt.setRequired(true);
     o.addOption(userOpt);
-
+    
     return o;
   }
-
+  
   @Override
   public int numArgs() {
     return 1;

@@ -40,12 +40,12 @@ import com.beust.jcommander.Parameter;
 /**
  * Using the doc2word table created by Reverse.java, this program randomly selects N words per document. Then it continually queries a random set of words in
  * the shard table (created by {@link Index}) using the {@link IntersectingIterator}.
- *
+ * 
  * See docs/examples/README.shard for instructions.
  */
 
 public class ContinuousQuery {
-
+  
   static class Opts extends ClientOpts {
     @Parameter(names="--shardTable", required=true, description="name of the shard table")
     String table = null;
@@ -56,32 +56,32 @@ public class ContinuousQuery {
     @Parameter(names="--count", description="the number of queries to run")
     long iterations = Long.MAX_VALUE;
   }
-
+  
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();
     opts.parseArgs(ContinuousQuery.class.getName(), args, bsOpts);
-
+    
     Connector conn = opts.getConnector();
-
+    
     ArrayList<Text[]> randTerms = findRandomTerms(conn.createScanner(opts.doc2Term, opts.auths), opts.numTerms);
-
+    
     Random rand = new Random();
-
+    
     BatchScanner bs = conn.createBatchScanner(opts.table, opts.auths, bsOpts.scanThreads);
     bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
-
+    
     for (long i = 0; i < opts.iterations; i += 1) {
       Text[] columns = randTerms.get(rand.nextInt(randTerms.size()));
-
+      
       bs.clearScanIterators();
       bs.clearColumns();
-
+      
       IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
       IntersectingIterator.setColumnFamilies(ii, columns);
       bs.addScanIterator(ii);
       bs.setRanges(Collections.singleton(new Range()));
-
+      
       long t1 = System.currentTimeMillis();
       int count = 0;
       for (@SuppressWarnings("unused")
@@ -89,44 +89,44 @@ public class ContinuousQuery {
         count++;
       }
       long t2 = System.currentTimeMillis();
-
+      
       System.out.printf("  %s %,d %6.3f%n", Arrays.asList(columns), count, (t2 - t1) / 1000.0);
     }
-
+    
     bs.close();
-
+    
   }
-
+  
   private static ArrayList<Text[]> findRandomTerms(Scanner scanner, int numTerms) {
-
+    
     Text currentRow = null;
-
+    
     ArrayList<Text> words = new ArrayList<Text>();
     ArrayList<Text[]> ret = new ArrayList<Text[]>();
-
+    
     Random rand = new Random();
-
+    
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();
-
+      
       if (currentRow == null)
         currentRow = key.getRow();
-
+      
       if (!currentRow.equals(key.getRow())) {
         selectRandomWords(words, ret, rand, numTerms);
         words.clear();
         currentRow = key.getRow();
       }
-
+      
       words.add(key.getColumnFamily());
-
+      
     }
-
+    
     selectRandomWords(words, ret, rand, numTerms);
-
+    
     return ret;
   }
-
+  
   private static void selectRandomWords(ArrayList<Text> words, ArrayList<Text[]> ret, Random rand, int numTerms) {
     if (words.size() >= numTerms) {
       Collections.shuffle(words, rand);
@@ -134,7 +134,7 @@ public class ContinuousQuery {
       for (int i = 0; i < docWords.length; i++) {
         docWords[i] = words.get(i);
       }
-
+      
       ret.add(docWords);
     }
   }

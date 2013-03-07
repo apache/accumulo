@@ -30,42 +30,42 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 
 public class MockSecurityOperations implements SecurityOperations {
-
+  
   final private MockAccumulo acu;
-
+  
   MockSecurityOperations(MockAccumulo acu) {
     this.acu = acu;
   }
-
+  
   @Deprecated
   @Override
   public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     createLocalUser(user, new PasswordToken(password));
     changeUserAuthorizations(user, authorizations);
   }
-
+  
   @Override
   public void createLocalUser(String principal, PasswordToken password) throws AccumuloException, AccumuloSecurityException {
     this.acu.users.put(principal, new MockUser(principal, password, new Authorizations()));
   }
-
+  
   @Deprecated
   @Override
   public void dropUser(String user) throws AccumuloException, AccumuloSecurityException {
     dropLocalUser(user);
   }
-
+  
   @Override
   public void dropLocalUser(String principal) throws AccumuloException, AccumuloSecurityException {
     this.acu.users.remove(principal);
   }
-
+  
   @Deprecated
   @Override
   public boolean authenticateUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
     return authenticateUser(user, new PasswordToken(password));
   }
-
+  
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(principal);
@@ -73,13 +73,13 @@ public class MockSecurityOperations implements SecurityOperations {
       return false;
     return user.token.equals(token);
   }
-
+  
   @Deprecated
   @Override
   public void changeUserPassword(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
     changeLocalUserPassword(user, new PasswordToken(password));
   }
-
+  
   @Override
   public void changeLocalUserPassword(String principal, PasswordToken token) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(principal);
@@ -88,7 +88,7 @@ public class MockSecurityOperations implements SecurityOperations {
     else
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
   }
-
+  
   @Override
   public void changeUserAuthorizations(String principal, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(principal);
@@ -97,7 +97,7 @@ public class MockSecurityOperations implements SecurityOperations {
     else
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
   }
-
+  
   @Override
   public Authorizations getUserAuthorizations(String principal) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(principal);
@@ -106,7 +106,7 @@ public class MockSecurityOperations implements SecurityOperations {
     else
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
   }
-
+  
   @Override
   public boolean hasSystemPermission(String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(principal);
@@ -115,7 +115,7 @@ public class MockSecurityOperations implements SecurityOperations {
     else
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
   }
-
+  
   @Override
   public boolean hasTablePermission(String principal, String tableName, TablePermission perm) throws AccumuloException, AccumuloSecurityException {
     MockTable table = acu.tables.get(tableName);
@@ -126,7 +126,7 @@ public class MockSecurityOperations implements SecurityOperations {
       return false;
     return perms.contains(perm);
   }
-
+  
   @Override
   public void grantSystemPermission(String principal, SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(principal);
@@ -135,7 +135,7 @@ public class MockSecurityOperations implements SecurityOperations {
     else
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
   }
-
+  
   @Override
   public void grantTablePermission(String principal, String tableName, TablePermission permission) throws AccumuloException, AccumuloSecurityException {
     if (acu.users.get(principal) == null)
@@ -149,7 +149,7 @@ public class MockSecurityOperations implements SecurityOperations {
     else
       perms.add(permission);
   }
-
+  
   @Override
   public void revokeSystemPermission(String principal, SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(principal);
@@ -158,7 +158,7 @@ public class MockSecurityOperations implements SecurityOperations {
     else
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
   }
-
+  
   @Override
   public void revokeTablePermission(String principal, String tableName, TablePermission permission) throws AccumuloException, AccumuloSecurityException {
     if (acu.users.get(principal) == null)
@@ -169,18 +169,18 @@ public class MockSecurityOperations implements SecurityOperations {
     EnumSet<TablePermission> perms = table.userPermissions.get(principal);
     if (perms != null)
       perms.remove(permission);
-
+    
   }
-
+  
   @Deprecated
   @Override
   public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException {
     return listLocalUsers();
   }
-
+  
   @Override
   public Set<String> listLocalUsers() throws AccumuloException, AccumuloSecurityException {
     return acu.users.keySet();
   }
-
+  
 }

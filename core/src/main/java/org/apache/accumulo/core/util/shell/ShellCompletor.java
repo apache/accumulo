@@ -28,23 +28,23 @@ import org.apache.accumulo.core.util.shell.Shell.Command.CompletionSet;
 import org.apache.accumulo.core.util.shell.commands.QuotedStringTokenizer;
 
 public class ShellCompletor implements Completor {
-
+  
   // private static final Logger log = Logger.getLogger(ShellCompletor.class);
-
+  
   Map<CompletionSet,Set<String>> options;
   Token root = null;
-
+  
   public ShellCompletor() {}
-
+  
   public ShellCompletor(Token root) {
     this.root = root;
   }
-
+  
   public ShellCompletor(Token rootToken, Map<CompletionSet,Set<String>> options) {
     this.root = rootToken;
     this.options = options;
   }
-
+  
   @SuppressWarnings({"unchecked", "rawtypes"})
   public int complete(String buffer, int cursor, List candidates) {
     try {
@@ -55,33 +55,33 @@ public class ShellCompletor implements Completor {
       return cursor;
     }
   }
-
+  
   private int _complete(String fullBuffer, int cursor, List<String> candidates) {
     boolean inTableFlag = false, inUserFlag = false;
     // Only want to grab the buffer up to the cursor because
     // the user could be trying to tab complete in the middle
     // of the line
     String buffer = fullBuffer.substring(0, cursor);
-
+    
     Token current_command_token = root;
     String current_string_token = null;
     boolean end_space = buffer.endsWith(" ");
-
+    
     // tabbing with no text
     if (buffer.length() == 0) {
       candidates.addAll(root.getSubcommandNames());
       return 0;
     }
-
+    
     String prefix = "";
-
+    
     QuotedStringTokenizer qst = new QuotedStringTokenizer(buffer);
-
+    
     Iterator<String> iter = qst.iterator();
     while (iter.hasNext()) {
       current_string_token = iter.next();
       current_string_token = current_string_token.replaceAll("([\\s'\"])", "\\\\$1");
-
+      
       if (!iter.hasNext()) {
         // if we end in a space and that space isn't part of the last token
         // (which would be the case at the start of a quote) OR the buffer
@@ -89,7 +89,7 @@ public class ShellCompletor implements Completor {
         // and not complete the current command.
         if (end_space && !current_string_token.endsWith(" ") || buffer.endsWith("\"")) {
           // match subcommands
-
+          
           // we're in a subcommand so try to match the universal
           // option flags if we're there
           if (current_string_token.trim().equals("-" + Shell.tableOption)) {
@@ -102,12 +102,12 @@ public class ShellCompletor implements Completor {
             Token next = current_command_token.getSubcommand(current_string_token);
             if (next != null) {
               current_command_token = next;
-
+              
               if (current_command_token.getCaseSensitive())
                 prefix += current_string_token + " ";
               else
                 prefix += current_string_token.toUpperCase() + " ";
-
+              
               candidates.addAll(current_command_token.getSubcommandNames());
             }
           }
@@ -126,26 +126,26 @@ public class ShellCompletor implements Completor {
               candidates.add(a);
         } else if (current_command_token != null)
           candidates.addAll(current_command_token.getSubcommandNames(current_string_token));
-
+        
         Collections.sort(candidates);
         return (prefix.length());
       }
-
+      
       if (current_string_token.trim().equals("-" + Shell.tableOption))
         inTableFlag = true;
       else if (current_string_token.trim().equals("-" + Shell.userOption))
         inUserFlag = true;
       else
         inUserFlag = inTableFlag = false;
-
+      
       if (current_command_token != null && current_command_token.getCaseSensitive())
         prefix += current_string_token + " ";
       else
         prefix += current_string_token.toUpperCase() + " ";
-
+      
       if (current_command_token != null && current_command_token.getSubcommandNames().contains(current_string_token))
         current_command_token = current_command_token.getSubcommand(current_string_token);
-
+      
     }
     return 0;
   }

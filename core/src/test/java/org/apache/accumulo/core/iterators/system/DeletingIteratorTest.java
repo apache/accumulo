@@ -32,19 +32,19 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 
 public class DeletingIteratorTest extends TestCase {
-
+  
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
-
+  
   public void test1() {
     Text colf = new Text("a");
     Text colq = new Text("b");
     Value dvOld = new Value("old".getBytes());
     Value dvDel = new Value("old".getBytes());
     Value dvNew = new Value("new".getBytes());
-
+    
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
     Key k;
-
+    
     for (int i = 0; i < 2; i++) {
       for (long j = 0; j < 5; j++) {
         k = new Key(new Text(String.format("%03d", i)), colf, colq, j);
@@ -61,12 +61,12 @@ public class DeletingIteratorTest extends TestCase {
       }
     }
     assertTrue("Initial size was " + tm.size(), tm.size() == 21);
-
+    
     Text checkRow = new Text("000");
     try {
       DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
-
+      
       TreeMap<Key,Value> tmOut = new TreeMap<Key,Value>();
       while (it.hasTop()) {
         tmOut.put(it.getTopKey(), it.getTopValue());
@@ -84,7 +84,7 @@ public class DeletingIteratorTest extends TestCase {
     } catch (IOException e) {
       assertFalse(true);
     }
-
+    
     try {
       DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), true);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -112,120 +112,120 @@ public class DeletingIteratorTest extends TestCase {
       assertFalse(true);
     }
   }
-
+  
   // seek test
   public void test2() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-
+    
     nkv(tm, "r000", 4, false, "v4");
     nkv(tm, "r000", 3, false, "v3");
     nkv(tm, "r000", 2, true, "v2");
     nkv(tm, "r000", 1, false, "v1");
-
+    
     DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
-
+    
     // SEEK two keys before delete
     it.seek(nr("r000", 4), EMPTY_COL_FAMS, false);
-
+    
     assertTrue(it.hasTop());
     assertEquals(nk("r000", 4), it.getTopKey());
     assertEquals("v4", it.getTopValue().toString());
-
+    
     it.next();
-
+    
     assertTrue(it.hasTop());
     assertEquals(nk("r000", 3), it.getTopKey());
     assertEquals("v3", it.getTopValue().toString());
-
+    
     it.next();
-
+    
     assertFalse(it.hasTop());
-
+    
     // SEEK passed delete
     it.seek(nr("r000", 1), EMPTY_COL_FAMS, false);
-
+    
     assertFalse(it.hasTop());
-
+    
     // SEEK to delete
     it.seek(nr("r000", 2), EMPTY_COL_FAMS, false);
-
+    
     assertFalse(it.hasTop());
-
+    
     // SEEK right before delete
     it.seek(nr("r000", 3), EMPTY_COL_FAMS, false);
-
+    
     assertTrue(it.hasTop());
     assertEquals(nk("r000", 3), it.getTopKey());
     assertEquals("v3", it.getTopValue().toString());
-
+    
     it.next();
-
+    
     assertFalse(it.hasTop());
   }
-
+  
   // test delete with same timestamp as existing key
   public void test3() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-
+    
     nkv(tm, "r000", 3, false, "v3");
     nkv(tm, "r000", 2, false, "v2");
     nkv(tm, "r000", 2, true, "");
     nkv(tm, "r000", 1, false, "v1");
-
+    
     DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
     it.seek(new Range(), EMPTY_COL_FAMS, false);
-
+    
     assertTrue(it.hasTop());
     assertEquals(nk("r000", 3), it.getTopKey());
     assertEquals("v3", it.getTopValue().toString());
-
+    
     it.next();
-
+    
     assertFalse(it.hasTop());
-
+    
     it.seek(nr("r000", 2), EMPTY_COL_FAMS, false);
-
+    
     assertFalse(it.hasTop());
   }
-
+  
   // test range inclusiveness
   public void test4() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-
+    
     nkv(tm, "r000", 3, false, "v3");
     nkv(tm, "r000", 2, false, "v2");
     nkv(tm, "r000", 2, true, "");
     nkv(tm, "r000", 1, false, "v1");
-
+    
     DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
-
+    
     it.seek(nr("r000", 3), EMPTY_COL_FAMS, false);
-
+    
     assertTrue(it.hasTop());
     assertEquals(nk("r000", 3), it.getTopKey());
     assertEquals("v3", it.getTopValue().toString());
-
+    
     it.next();
-
+    
     assertFalse(it.hasTop());
-
+    
     it.seek(nr("r000", 3, false), EMPTY_COL_FAMS, false);
-
+    
     assertFalse(it.hasTop());
   }
-
+  
   private Range nr(String row, long ts, boolean inclusive) {
     return new Range(nk(row, ts), inclusive, null, true);
   }
-
+  
   private Range nr(String row, long ts) {
     return nr(row, ts, true);
   }
-
+  
   private Key nk(String row, long ts) {
     return new Key(new Text(row), ts);
   }
-
+  
   private void nkv(TreeMap<Key,Value> tm, String row, long ts, boolean deleted, String val) {
     Key k = nk(row, ts);
     k.setDeleted(deleted);

@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.Value;
 import org.junit.Test;
 
 public class RowIteratorTest {
-
+  
   Iterator<Entry<Key,Value>> makeIterator(final String... args) {
     final Map<Key,Value> result = new TreeMap<Key,Value>();
     for (String s : args) {
@@ -45,7 +45,7 @@ public class RowIteratorTest {
     }
     return result.entrySet().iterator();
   }
-
+  
   List<List<Entry<Key,Value>>> getRows(final Iterator<Entry<Key,Value>> iter) {
     final List<List<Entry<Key,Value>>> result = new ArrayList<List<Entry<Key,Value>>>();
     final RowIterator riter = new RowIterator(iter);
@@ -58,7 +58,7 @@ public class RowIteratorTest {
     }
     return result;
   }
-
+  
   @Test
   public void testRowIterator() {
     List<List<Entry<Key,Value>>> rows = getRows(makeIterator());
@@ -70,13 +70,13 @@ public class RowIteratorTest {
     assertEquals(2, rows.size());
     assertEquals(3, rows.get(0).size());
     assertEquals(1, rows.get(1).size());
-
+    
     RowIterator i = new RowIterator(makeIterator());
     try {
       i.next();
       fail();
     } catch (NoSuchElementException ex) {}
-
+    
     i = new RowIterator(makeIterator("a b c d", "a 1 2 3"));
     assertTrue(i.hasNext());
     Iterator<Entry<Key,Value>> row = i.next();
@@ -97,7 +97,7 @@ public class RowIteratorTest {
       fail();
     } catch (NoSuchElementException ex) {}
   }
-
+  
   @Test
   public void testUnreadRow() {
     final RowIterator i = new RowIterator(makeIterator("a b c d", "a 1 2 3", "b 1 2 3"));

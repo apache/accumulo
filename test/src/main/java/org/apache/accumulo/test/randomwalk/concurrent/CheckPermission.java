@@ -28,21 +28,21 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CheckPermission extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-
+    
     Random rand = (Random) state.get("rand");
-
+    
     @SuppressWarnings("unchecked")
     List<String> userNames = (List<String>) state.get("users");
     String userName = userNames.get(rand.nextInt(userNames.size()));
-
+    
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-
+    
     try {
       if (rand.nextBoolean()) {
         log.debug("Checking systerm permission " + userName);
@@ -51,10 +51,10 @@ public class CheckPermission extends Test {
         log.debug("Checking table permission " + userName + " " + tableName);
         conn.securityOperations().hasTablePermission(userName, tableName, TablePermission.values()[rand.nextInt(TablePermission.values().length)]);
       }
-
+      
     } catch (AccumuloSecurityException ex) {
       log.debug("Unable to check permissions: " + ex.getCause());
     }
   }
-
+  
 }

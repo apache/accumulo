@@ -31,28 +31,28 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 public class ContinuousQuery {
-
+  
   public static class Opts extends BaseOpts {
     @Parameter(names="--sleep", description="the time to wait between queries", converter=TimeConverter.class)
     long sleepTime = 100;
   }
-
+  
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(ContinuousQuery.class.getName(), args, scanOpts);
-
+    
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
-
+    
     Random r = new Random();
-
+    
     while (true) {
       byte[] row = ContinuousIngest.genRow(opts.min, opts.max, r);
-
+      
       int count = 0;
-
+      
       long t1 = System.currentTimeMillis();
       scanner.setRange(new Range(new Text(row)));
       for (Entry<Key,Value> entry : scanner) {
@@ -60,9 +60,9 @@ public class ContinuousQuery {
         count++;
       }
       long t2 = System.currentTimeMillis();
-
+      
       System.out.printf("SRQ %d %s %d %d%n", t1, new String(row), (t2 - t1), count);
-
+      
       if (opts.sleepTime > 0)
         Thread.sleep(opts.sleepTime);
     }

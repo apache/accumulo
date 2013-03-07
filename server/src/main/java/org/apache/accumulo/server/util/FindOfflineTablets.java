@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
 
 public class FindOfflineTablets {
   private static final Logger log = Logger.getLogger(FindOfflineTablets.class);
-
+  
   /**
    * @param args
    */
@@ -66,5 +66,5 @@ public class FindOfflineTablets {
           System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
     }
   }
-
+  
 }

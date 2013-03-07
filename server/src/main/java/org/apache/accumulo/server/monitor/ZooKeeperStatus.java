@@ -30,22 +30,22 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
 public class ZooKeeperStatus implements Runnable {
-
+  
   private static final Logger log = Logger.getLogger(ZooKeeperStatus.class);
-
+  
   private volatile boolean stop = false;
-
+  
   public static class ZooKeeperState implements Comparable<ZooKeeperState> {
     public final String keeper;
     public final String mode;
     public final int clients;
-
+    
     public ZooKeeperState(String keeper, String mode, int clients) {
       this.keeper = keeper;
       this.mode = mode;
       this.clients = clients;
     }
-
+    
     @Override
     public int compareTo(ZooKeeperState other) {
       if (this == other) {
@@ -65,29 +65,29 @@ public class ZooKeeperStatus implements Runnable {
       }
     }
   }
-
+  
   private static SortedSet<ZooKeeperState> status = new TreeSet<ZooKeeperState>();
-
+  
   public static Collection<ZooKeeperState> getZooKeeperStatus() {
     return status;
   }
-
+  
   public void stop() {
     this.stop = true;
   }
-
+  
   @Override
   public void run() {
-
+    
     while (!stop) {
-
+      
       TreeSet<ZooKeeperState> update = new TreeSet<ZooKeeperState>();
-
+      
       String zookeepers[] = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST).split(",");
       for (String keeper : zookeepers) {
         int clients = 0;
         String mode = "unknown";
-
+        
         String[] parts = keeper.split(":");
         TTransport transport = null;
         try {
@@ -96,7 +96,7 @@ public class ZooKeeperStatus implements Runnable {
             addr = new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
           else
             addr = new InetSocketAddress(parts[0], 2181);
-
+          
           transport = TTimeoutTransport.create(addr, 10 * 1000l);
           transport.write("stat\n".getBytes(), 0, 5);
           StringBuilder response = new StringBuilder();
@@ -134,5 +134,5 @@ public class ZooKeeperStatus implements Runnable {
       UtilWaitThread.sleep(1000);
     }
   }
-
+  
 }

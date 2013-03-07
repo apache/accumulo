@@ -50,23 +50,23 @@ import com.beust.jcommander.Parameter;
 
 /**
  * A map reduce job that takes write ahead logs containing mutations for the metadata table and indexes them into Accumulo tables for analysis.
- *
+ * 
  */
 
 public class IndexMeta extends Configured implements Tool {
-
+  
   public static class IndexMapper extends Mapper<LogFileKey,LogFileValue,Text,Mutation> {
     private static final Text CREATE_EVENTS_TABLE = new Text("createEvents");
     private static final Text TABLET_EVENTS_TABLE = new Text("tabletEvents");
     private Map<Integer,KeyExtent> tabletIds = new HashMap<Integer,KeyExtent>();
     private String uuid = null;
-
+    
     @Override
     protected void setup(Context context) throws java.io.IOException, java.lang.InterruptedException {
       tabletIds = new HashMap<Integer,KeyExtent>();
       uuid = null;
     }
-
+    
     @Override
     public void map(LogFileKey key, LogFileValue value, Context context) throws IOException, InterruptedException {
       if (key.event == LogEvents.OPEN) {
@@ -81,33 +81,33 @@ public class IndexMeta extends Configured implements Tool {
         }
       }
     }
-
+    
     void index(Context context, Mutation m, String logFile, KeyExtent metaTablet) throws IOException, InterruptedException {
       List<ColumnUpdate> columnsUpdates = m.getUpdates();
-
+      
       Text prevRow = null;
       long timestamp = 0;
-
+      
       if (m.getRow().length > 0 && m.getRow()[0] == '~') {
         return;
       }
-
+      
       for (ColumnUpdate cu : columnsUpdates) {
         if (Constants.METADATA_PREV_ROW_COLUMN.equals(new Text(cu.getColumnFamily()), new Text(cu.getColumnQualifier())) && !cu.isDeleted()) {
           prevRow = new Text(cu.getValue());
         }
-
+        
         timestamp = cu.getTimestamp();
       }
-
+      
       byte[] serMut = WritableUtils.toByteArray(m);
-
+      
       if (prevRow != null) {
         Mutation createEvent = new Mutation(new Text(m.getRow()));
         createEvent.put(prevRow, new Text(String.format("%020d", timestamp)), new Value(metaTablet.toString().getBytes()));
         context.write(CREATE_EVENTS_TABLE, createEvent);
       }
-
+      
       Mutation tabletEvent = new Mutation(new Text(m.getRow()));
       tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("mut"), new Value(serMut));
       tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("mtab"), new Value(metaTablet.toString().getBytes()));
@@ -115,59 +115,59 @@ public class IndexMeta extends Configured implements Tool {
       context.write(TABLET_EVENTS_TABLE, tabletEvent);
     }
   }
-
+  
   static class Opts extends ClientOpts {
     @Parameter(description = "<logfile> { <logfile> ...}")
     List<String> logFiles = new ArrayList<String>();
   }
-
+  
   @Override
   public int run(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(IndexMeta.class.getName(), args);
-
+    
     String jobName = this.getClass().getSimpleName() + "_" + System.currentTimeMillis();
-
+    
     Job job = new Job(getConf(), jobName);
     job.setJarByClass(this.getClass());
-
+    
     List<String> logFiles = Arrays.asList(args).subList(4, args.length);
     Path paths[] = new Path[logFiles.size()];
     int count = 0;
     for (String logFile : logFiles) {
       paths[count++] = new Path(logFile);
     }
-
+    
     job.setInputFormatClass(LogFileInputFormat.class);
     LogFileInputFormat.setInputPaths(job, paths);
-
+    
     job.setNumReduceTasks(0);
-
+    
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     AccumuloOutputFormat.setZooKeeperInstance(job, opts.instance, opts.zookeepers);
     AccumuloOutputFormat.setConnectorInfo(job, opts.principal, opts.getToken());
     AccumuloOutputFormat.setCreateTables(job, false);
-
+    
     job.setMapperClass(IndexMapper.class);
-
+    
     Connector conn = opts.getConnector();
-
+    
     try {
       conn.tableOperations().create("createEvents");
     } catch (TableExistsException tee) {
       Logger.getLogger(IndexMeta.class).warn("Table createEvents exists");
     }
-
+    
     try {
       conn.tableOperations().create("tabletEvents");
     } catch (TableExistsException tee) {
       Logger.getLogger(IndexMeta.class).warn("Table tabletEvents exists");
     }
-
+    
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }
-
+  
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new IndexMeta(), args);
     System.exit(res);

@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -29,17 +29,17 @@ import org.apache.hadoop.io.Text;
  * Supporting Utility classes used by TFile, and shared by users of TFile.
  */
 public final class Utils {
-
+  
   /**
    * Prevent the instantiation of Utils.
    */
   private Utils() {
     // nothing
   }
-
+  
   /**
    * Encoding an integer into a variable-length encoding format. Synonymous to <code>Utils#writeVLong(out, n)</code>.
-   *
+   * 
    * @param out
    *          output stream
    * @param n
@@ -50,7 +50,7 @@ public final class Utils {
   public static void writeVInt(DataOutput out, int n) throws IOException {
     writeVLong(out, n);
   }
-
+  
   /**
    * Encoding a Long integer into a variable-length encoding format.
    * <ul>
@@ -68,7 +68,7 @@ public final class Utils {
    * <li>if n in [-2^63, 2^63): encode in nine bytes: byte[0]=-121; byte[1] = (n>>54)&0xff; byte[2] = (n>>48)&0xff; byte[3] = (n>>40)&0xff;
    * byte[4]=(n>>32)&0xff; byte[5]=(n>>24)&0xff; byte[6]=(n>>16)&0xff; byte[7]=(n>>8)&0xff; byte[8]=n&0xff;
    * </ul>
-   *
+   * 
    * @param out
    *          output stream
    * @param n
@@ -81,7 +81,7 @@ public final class Utils {
       out.writeByte((int) n);
       return;
     }
-
+    
     long un = (n < 0) ? ~n : n;
     // how many bytes do we need to represent the number with sign bit?
     int len = (Long.SIZE - Long.numberOfLeadingZeros(un)) / 8 + 1;
@@ -140,15 +140,15 @@ public final class Utils {
         throw new RuntimeException("Internel error");
     }
   }
-
+  
   /**
    * Decoding the variable-length integer. Synonymous to <code>(int)Utils#readVLong(in)</code>.
-   *
+   * 
    * @param in
    *          input stream
    * @return the decoded integer
    * @throws IOException
-   *
+   * 
    * @see Utils#readVLong(DataInput)
    */
   public static int readVInt(DataInput in) throws IOException {
@@ -158,7 +158,7 @@ public final class Utils {
     }
     return (int) ret;
   }
-
+  
   /**
    * Decoding the variable-length integer. Suppose the value of the first byte is FB, and the following bytes are NB[*].
    * <ul>
@@ -167,19 +167,19 @@ public final class Utils {
    * <li>if (FB in [-104, -73]), return (FB+88)<<16 + (NB[0]&0xff)<<8 + NB[1]&0xff;
    * <li>if (FB in [-120, -105]), return (FB+112)<<24 + (NB[0]&0xff)<<16 + (NB[1]&0xff)<<8 + NB[2]&0xff;
    * <li>if (FB in [-128, -121]), return interpret NB[FB+129] as a signed big-endian integer.
-   *
+   * 
    * @param in
    *          input stream
    * @return the decoded long integer.
    * @throws IOException
    */
-
+  
   public static long readVLong(DataInput in) throws IOException {
     int firstByte = in.readByte();
     if (firstByte >= -32) {
       return firstByte;
     }
-
+    
     switch ((firstByte + 128) / 8) {
       case 11:
       case 10:
@@ -215,10 +215,10 @@ public final class Utils {
         throw new RuntimeException("Internal error");
     }
   }
-
+  
   /**
    * Write a String as a VInt n, followed by n Bytes as in Text format.
-   *
+   * 
    * @param out
    * @param s
    * @throws IOException
@@ -234,10 +234,10 @@ public final class Utils {
       writeVInt(out, -1);
     }
   }
-
+  
   /**
    * Read a String as a VInt n, followed by n Bytes in Text format.
-   *
+   * 
    * @param in
    *          The input stream.
    * @return The string
@@ -251,20 +251,20 @@ public final class Utils {
     in.readFully(buffer);
     return Text.decode(buffer);
   }
-
+  
   /**
    * A generic Version class. We suggest applications built on top of TFile use this class to maintain version information in their meta blocks.
-   *
+   * 
    * A version number consists of a major version and a minor version. The suggested usage of major and minor version number is to increment major version
    * number when the new storage format is not backward compatible, and increment the minor version otherwise.
    */
   public static final class Version implements Comparable<Version> {
     private final short major;
     private final short minor;
-
+    
     /**
      * Construct the Version object by reading from the input stream.
-     *
+     * 
      * @param in
      *          input stream
      * @throws IOException
@@ -273,10 +273,10 @@ public final class Utils {
       major = in.readShort();
       minor = in.readShort();
     }
-
+    
     /**
      * Constructor.
-     *
+     * 
      * @param major
      *          major version.
      * @param minor
@@ -286,10 +286,10 @@ public final class Utils {
       this.major = major;
       this.minor = minor;
     }
-
+    
     /**
      * Write the object to a DataOutput. The serialized format of the Version is major version followed by minor version, both as big-endian short integers.
-     *
+     * 
      * @param out
      *          The DataOutput object.
      * @throws IOException
@@ -298,34 +298,34 @@ public final class Utils {
       out.writeShort(major);
       out.writeShort(minor);
     }
-
+    
     /**
      * Get the major version.
-     *
+     * 
      * @return Major version.
      */
     public int getMajor() {
       return major;
     }
-
+    
     /**
      * Get the minor version.
-     *
+     * 
      * @return The minor version.
      */
     public int getMinor() {
       return minor;
     }
-
+    
     /**
      * Get the size of the serialized Version object.
-     *
+     * 
      * @return serialized size of the version object.
      */
     public static int size() {
       return (Short.SIZE + Short.SIZE) / Byte.SIZE;
     }
-
+    
     /**
      * Return a string representation of the version.
      */
@@ -333,10 +333,10 @@ public final class Utils {
     public String toString() {
       return new StringBuilder("v").append(major).append(".").append(minor).toString();
     }
-
+    
     /**
      * Test compatibility.
-     *
+     * 
      * @param other
      *          The Version object to test compatibility with.
      * @return true if both versions have the same major version number; false otherwise.
@@ -344,7 +344,7 @@ public final class Utils {
     public boolean compatibleWith(Version other) {
       return major == other.major;
     }
-
+    
     /**
      * Compare this version with another version.
      */
@@ -355,7 +355,7 @@ public final class Utils {
       }
       return minor - that.minor;
     }
-
+    
     @Override
     public boolean equals(Object other) {
       if (this == other)
@@ -364,16 +364,16 @@ public final class Utils {
         return false;
       return compareTo((Version) other) == 0;
     }
-
+    
     @Override
     public int hashCode() {
       return (major << 16 + minor);
     }
   }
-
+  
   /**
    * Lower bound binary search. Find the index to the first element in the list that compares greater than or equal to key.
-   *
+   * 
    * @param <T>
    *          Type of the input key.
    * @param list
@@ -387,7 +387,7 @@ public final class Utils {
   public static <T> int lowerBound(List<? extends T> list, T key, Comparator<? super T> cmp) {
     int low = 0;
     int high = list.size();
-
+    
     while (low < high) {
       int mid = (low + high) >>> 1;
       T midVal = list.get(mid);
@@ -399,10 +399,10 @@ public final class Utils {
     }
     return low;
   }
-
+  
   /**
    * Upper bound binary search. Find the index to the first element in the list that compares greater than the input key.
-   *
+   * 
    * @param <T>
    *          Type of the input key.
    * @param list
@@ -416,7 +416,7 @@ public final class Utils {
   public static <T> int upperBound(List<? extends T> list, T key, Comparator<? super T> cmp) {
     int low = 0;
     int high = list.size();
-
+    
     while (low < high) {
       int mid = (low + high) >>> 1;
       T midVal = list.get(mid);
@@ -428,10 +428,10 @@ public final class Utils {
     }
     return low;
   }
-
+  
   /**
    * Lower bound binary search. Find the index to the first element in the list that compares greater than or equal to key.
-   *
+   * 
    * @param <T>
    *          Type of the input key.
    * @param list
@@ -443,7 +443,7 @@ public final class Utils {
   public static <T> int lowerBound(List<? extends Comparable<? super T>> list, T key) {
     int low = 0;
     int high = list.size();
-
+    
     while (low < high) {
       int mid = (low + high) >>> 1;
       Comparable<? super T> midVal = list.get(mid);
@@ -455,10 +455,10 @@ public final class Utils {
     }
     return low;
   }
-
+  
   /**
    * Upper bound binary search. Find the index to the first element in the list that compares greater than the input key.
-   *
+   * 
    * @param <T>
    *          Type of the input key.
    * @param list
@@ -470,7 +470,7 @@ public final class Utils {
   public static <T> int upperBound(List<? extends Comparable<? super T>> list, T key) {
     int low = 0;
     int high = list.size();
-
+    
     while (low < high) {
       int mid = (low + high) >>> 1;
       Comparable<? super T> midVal = list.get(mid);

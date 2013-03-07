@@ -40,30 +40,30 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.io.Text;
 
 public class MockTable {
-
+  
   static class MockMemKey extends Key {
     private int count;
-
+    
     MockMemKey(Key key, int count) {
       super(key);
       this.count = count;
     }
-
+    
     @Override
     public int hashCode() {
       return super.hashCode() + count;
     }
-
+    
     @Override
     public boolean equals(Object other) {
       return (other instanceof MockMemKey) && super.equals((MockMemKey)other) && count == ((MockMemKey)other).count;
     }
-
+    
     @Override
     public String toString() {
       return super.toString() + " count=" + count;
     }
-
+    
     @Override
     public int compareTo(Key o) {
       int compare = super.compareTo(o);
@@ -81,7 +81,7 @@ public class MockTable {
       return 0;
     }
   };
-
+  
   final SortedMap<Key,Value> table = new ConcurrentSkipListMap<Key,Value>();
   int mutationCount = 0;
   final Map<String,String> settings;
@@ -89,7 +89,7 @@ public class MockTable {
   private TimeType timeType;
   SortedSet<Text> splits = new TreeSet<Text>();
   Map<String,Set<Text>> localityGroups = new TreeMap<String, Set<Text>>();
-
+  
   MockTable(boolean limitVersion, TimeType timeType) {
     this.timeType = timeType;
     settings = IteratorUtil.generateInitialTableProperties(limitVersion);
@@ -99,7 +99,7 @@ public class MockTable {
         settings.put(key, entry.getValue());
     }
   }
-
+  
   synchronized void addMutation(Mutation m) {
     long now = System.currentTimeMillis();
     mutationCount++;
@@ -113,19 +113,19 @@ public class MockTable {
           key.setTimestamp(mutationCount);
         else
           key.setTimestamp(now);
-
+      
       table.put(new MockMemKey(key, mutationCount), new Value(u.getValue()));
     }
   }
-
+  
   public void addSplits(SortedSet<Text> partitionKeys) {
     splits.addAll(partitionKeys);
   }
-
+  
   public Collection<Text> getSplits() {
     return splits;
   }
-
+  
   public void setLocalityGroups(Map<String,Set<Text>> groups) {
     localityGroups = groups;
   }

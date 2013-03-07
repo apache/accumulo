@@ -41,33 +41,33 @@ public class GrepIteratorTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
   SortedMap<Key,Value> input;
   SortedMap<Key,Value> output;
-
+  
   @Before
   public void init() {
     input = new TreeMap<Key,Value>();
     output = new TreeMap<Key,Value>();
     input.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz".getBytes()));
     output.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz".getBytes()));
-
+    
     input.put(new Key("bdf", "ace", "xyz", 0), new Value("xyz".getBytes()));
     input.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz".getBytes()));
     output.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz".getBytes()));
     input.put(new Key("bdf", "xyz", "xyz", 0), new Value("xyz".getBytes()));
-
+    
     input.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz".getBytes()));
     output.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz".getBytes()));
     input.put(new Key("ceg", "xyz", "xyz", 0), new Value("xyz".getBytes()));
-
+    
     input.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef".getBytes()));
     output.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef".getBytes()));
     input.put(new Key("dfh", "xyz", "xyz", 1), new Value("xyz".getBytes()));
-
+    
     Key k = new Key("dfh", "xyz", "xyz", 1);
     k.setDeleted(true);
     input.put(k, new Value("xyz".getBytes()));
     output.put(k, new Value("xyz".getBytes()));
   }
-
+  
   public static void checkEntries(SortedKeyValueIterator<Key,Value> skvi, SortedMap<Key,Value> map) throws IOException {
     for (Entry<Key,Value> e : map.entrySet()) {
       assertTrue(skvi.hasTop());
@@ -77,7 +77,7 @@ public class GrepIteratorTest {
     }
     assertFalse(skvi.hasTop());
   }
-
+  
   @Test
   public void test() throws IOException {
     GrepIterator gi = new GrepIterator();

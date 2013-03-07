@@ -31,33 +31,33 @@ import org.apache.zookeeper.data.Stat;
 import com.beust.jcommander.Parameter;
 
 public class DumpZookeeper {
-
+  
   static IZooReaderWriter zk = null;
-
+  
   private static final Logger log = Logger.getLogger(DumpZookeeper.class);
-
+  
   private static class Encoded {
     public String encoding;
     public String value;
-
+    
     Encoded(String e, String v) {
       encoding = e;
       value = v;
     }
   }
-
+  
   static class Opts extends Help {
     @Parameter(names="--root", description="the root of the znode tree to dump")
     String root = "/";
   }
-
+  
   /**
    * @param args
    */
   public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(DumpZookeeper.class.getName(), args);
-
+    
     Logger.getRootLogger().setLevel(Level.WARN);
     PrintStream out = System.out;
     // int timeout = 30 * 1000;
@@ -66,7 +66,7 @@ public class DumpZookeeper {
       opts.root = args[0];
     try {
       zk = ZooReaderWriter.getInstance();
-
+      
       write(out, 0, "<dump root='%s'>", opts.root);
       for (String child : zk.getChildren(opts.root, null))
         if (!child.equals("zookeeper"))
@@ -76,7 +76,7 @@ public class DumpZookeeper {
       log.error(ex, ex);
     }
   }
-
+  
   private static void dump(PrintStream out, String root, String child, int indent) throws KeeperException, InterruptedException, UnsupportedEncodingException {
     String path = root + "/" + child;
     if (root.endsWith("/"))
@@ -108,7 +108,7 @@ public class DumpZookeeper {
       write(out, indent, "</node>");
     }
   }
-
+  
   private static Encoded value(String path) throws KeeperException, InterruptedException, UnsupportedEncodingException {
     byte[] data = zk.getData(path, null);
     for (int i = 0; i < data.length; i++) {
@@ -118,7 +118,7 @@ public class DumpZookeeper {
     }
     return new Encoded("utf8", new String(data, "utf8"));
   }
-
+  
   private static void write(PrintStream out, int indent, String fmt, Object... args) {
     for (int i = 0; i < indent; i++)
       out.print(" ");

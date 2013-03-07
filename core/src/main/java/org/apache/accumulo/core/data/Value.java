@@ -42,33 +42,33 @@ import org.apache.log4j.Logger;
 public class Value implements WritableComparable<Object> {
   protected byte[] value;
   private static final Logger log = Logger.getLogger(Value.class);
-
+  
   /**
    * Create a zero-size sequence.
    */
   public Value() {
     super();
   }
-
+  
   /**
    * Create a Value using the byte array as the initial value.
-   *
+   * 
    * @param bytes
    *          This array becomes the backing storage for the object.
    */
-
+  
   public Value(byte[] bytes) {
     this(bytes, false);
   }
-
+  
   public Value(ByteBuffer bytes) {
     this(toBytes(bytes), false);
   }
-
+  
   public Value(ByteBuffer bytes, boolean copy) {
     this(toBytes(bytes), copy);
   }
-
+  
   public Value(byte[] bytes, boolean copy) {
     if (!copy) {
       this.value = bytes;
@@ -76,22 +76,22 @@ public class Value implements WritableComparable<Object> {
       this.value = new byte[bytes.length];
       System.arraycopy(bytes, 0, this.value, 0, bytes.length);
     }
-
+    
   }
-
+  
   /**
    * Set the new Value to a copy of the contents of the passed <code>ibw</code>.
-   *
+   * 
    * @param ibw
    *          the value to set this Value to.
    */
   public Value(final Value ibw) {
     this(ibw.get(), 0, ibw.getSize());
   }
-
+  
   /**
    * Set the value to a copy of the given byte range
-   *
+   * 
    * @param newData
    *          the new values to copy in
    * @param offset
@@ -103,10 +103,10 @@ public class Value implements WritableComparable<Object> {
     this.value = new byte[length];
     System.arraycopy(newData, offset, this.value, 0, length);
   }
-
+  
   /**
    * Get the data from the BytesWritable.
-   *
+   * 
    * @return The data is only valid between 0 and getSize() - 1.
    */
   public byte[] get() {
@@ -115,7 +115,7 @@ public class Value implements WritableComparable<Object> {
     }
     return this.value;
   }
-
+  
   /**
    * @param b
    *          Use passed bytes as backing array for this instance.
@@ -123,9 +123,9 @@ public class Value implements WritableComparable<Object> {
   public void set(final byte[] b) {
     this.value = b;
   }
-
+  
   /**
-   *
+   * 
    * @param b
    *          copy bytes
    */
@@ -133,7 +133,7 @@ public class Value implements WritableComparable<Object> {
     this.value = new byte[b.length];
     System.arraycopy(b, 0, this.value, 0, b.length);
   }
-
+  
   /**
    * @return the current size of the buffer.
    */
@@ -143,29 +143,29 @@ public class Value implements WritableComparable<Object> {
     }
     return this.value.length;
   }
-
+  
   public void readFields(final DataInput in) throws IOException {
     this.value = new byte[in.readInt()];
     in.readFully(this.value, 0, this.value.length);
   }
-
+  
   /** {@inheritDoc} */
   public void write(final DataOutput out) throws IOException {
     out.writeInt(this.value.length);
     out.write(this.value, 0, this.value.length);
   }
-
+  
   // Below methods copied from BytesWritable
-
+  
   /** {@inheritDoc} */
   @Override
   public int hashCode() {
     return WritableComparator.hashBytes(value, this.value.length);
   }
-
+  
   /**
    * Define the sort order of the BytesWritable.
-   *
+   * 
    * @param right_obj
    *          The other bytes writable
    * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is smaller than right.
@@ -173,17 +173,17 @@ public class Value implements WritableComparable<Object> {
   public int compareTo(Object right_obj) {
     return compareTo(((Value) right_obj).get());
   }
-
+  
   /**
    * Compares the bytes in this object to the specified byte array
-   *
+   * 
    * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is smaller than right.
    */
   public int compareTo(final byte[] that) {
     int diff = this.value.length - that.length;
     return (diff != 0) ? diff : WritableComparator.compareBytes(this.value, 0, this.value.length, that, 0, that.length);
   }
-
+  
   /** {@inheritDoc} */
   @Override
   public boolean equals(Object right_obj) {
@@ -195,7 +195,7 @@ public class Value implements WritableComparable<Object> {
     }
     return false;
   }
-
+  
   @Override
   public String toString() {
 	String retValue = "";
@@ -206,29 +206,29 @@ public class Value implements WritableComparable<Object> {
     }
     return retValue;
   }
-
+  
   /**
    * A Comparator optimized for Value.
    */
   public static class Comparator extends WritableComparator {
     private BytesWritable.Comparator comparator = new BytesWritable.Comparator();
-
+    
     /** constructor */
     public Comparator() {
       super(Value.class);
     }
-
+    
     /** {@inheritDoc} */
     @Override
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
       return comparator.compare(b1, s1, l1, b2, s2, l2);
     }
   }
-
+  
   static { // register this comparator
     WritableComparator.define(Value.class, new Comparator());
   }
-
+  
   /**
 	 */
   public static byte[][] toArray(final List<byte[]> array) {
@@ -239,5 +239,5 @@ public class Value implements WritableComparable<Object> {
     }
     return results;
   }
-
+  
 }

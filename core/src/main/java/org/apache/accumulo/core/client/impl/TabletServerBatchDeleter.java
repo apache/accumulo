@@ -35,12 +35,12 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 
 public class TabletServerBatchDeleter extends TabletServerBatchReader implements BatchDeleter {
-
+  
   private Instance instance;
   private TCredentials credentials;
   private String tableId;
   private BatchWriterConfig bwConfig;
-
+  
   public TabletServerBatchDeleter(Instance instance, TCredentials credentials, String tableId, Authorizations authorizations, int numQueryThreads,
       BatchWriterConfig bwConfig) throws TableNotFoundException {
     super(instance, credentials, tableId, authorizations, numQueryThreads);
@@ -50,7 +50,7 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
     this.bwConfig = bwConfig;
     super.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, BatchDeleter.class.getName() + ".NOVALUE", SortedKeyIterator.class));
   }
-
+  
   @Override
   public void delete() throws MutationsRejectedException, TableNotFoundException {
     BatchWriter bw = null;
@@ -69,5 +69,5 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
         bw.close();
     }
   }
-
+  
 }

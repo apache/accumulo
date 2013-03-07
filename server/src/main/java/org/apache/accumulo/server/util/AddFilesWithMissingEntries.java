@@ -42,41 +42,41 @@ import org.apache.log4j.Logger;
 import com.beust.jcommander.Parameter;
 
 public class AddFilesWithMissingEntries {
-
+  
   static final Logger log = Logger.getLogger(AddFilesWithMissingEntries.class);
-
+  
   public static class Opts extends ClientOpts {
     @Parameter(names="-update", description="Make changes to the !METADATA table to include missing files")
     boolean update = false;
   }
-
-
+  
+  
   /**
-   * A utility to add files to the !METADATA table that are not listed in the root tablet.
-   * This is a recovery tool for someone who knows what they are doing.  It might be better to
+   * A utility to add files to the !METADATA table that are not listed in the root tablet.  
+   * This is a recovery tool for someone who knows what they are doing.  It might be better to 
    * save off files, and recover your instance by re-initializing and importing the existing files.
-   *
+   *  
    * @param args
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(AddFilesWithMissingEntries.class.getName(), args, bwOpts);
-
+    
     final Key rootTableEnd = new Key(Constants.ROOT_TABLET_EXTENT.getEndRow());
     final Range range = new Range(rootTableEnd.followingKey(PartialKey.ROW), true, Constants.METADATA_RESERVED_KEYSPACE_START_KEY, false);
     final Scanner scanner = opts.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     scanner.setRange(range);
     final Configuration conf = new Configuration();
     final FileSystem fs = FileSystem.get(conf);
-
+    
     KeyExtent last = new KeyExtent();
     String directory = null;
     Set<String> knownFiles = new HashSet<String>();
-
+    
     int count = 0;
     final MultiTableBatchWriter writer = opts.getConnector().createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
-
+    
     // collect the list of known files and the directory for each extent
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();
@@ -107,7 +107,7 @@ public class AddFilesWithMissingEntries {
     log.info("There were " + count + " files that are unknown to the metadata table");
     writer.close();
   }
-
+  
   private static int addUnknownFiles(FileSystem fs, String directory, Set<String> knownFiles, KeyExtent ke, MultiTableBatchWriter writer, boolean update) throws Exception {
     int count = 0;
     final String tableId = ke.getTableId().toString();
@@ -132,5 +132,5 @@ public class AddFilesWithMissingEntries {
     }
     return count;
   }
-
+  
 }

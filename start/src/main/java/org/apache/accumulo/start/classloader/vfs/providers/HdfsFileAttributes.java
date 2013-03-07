@@ -18,7 +18,7 @@ package org.apache.accumulo.start.classloader.vfs.providers;
 
 /**
  * HDFS file content attributes.
- *
+ * 
  * @since 2.1
  */
 public enum HdfsFileAttributes

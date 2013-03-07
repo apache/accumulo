@@ -22,7 +22,7 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 
 public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
-
+  
   {
     principal = "root";
   }

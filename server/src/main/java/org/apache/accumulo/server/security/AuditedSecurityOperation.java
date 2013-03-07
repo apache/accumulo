@@ -31,16 +31,16 @@ import org.apache.accumulo.server.security.handler.PermissionHandler;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * 
  */
 public class AuditedSecurityOperation extends SecurityOperation {
-
+  
   public AuditedSecurityOperation(Authorizor author, Authenticator authent, PermissionHandler pm, String instanceId) {
     super(author, authent, pm, instanceId);
   }
-
+  
   public static final Logger log = Logger.getLogger(AuditedSecurityOperation.class);
-
+  
   public static synchronized SecurityOperation getInstance(String instanceId, boolean initialize) {
     if (instance == null) {
       instance = new AuditedSecurityOperation(getAuthorizor(instanceId, initialize), getAuthenticator(instanceId, initialize), getPermHandler(instanceId,
@@ -48,15 +48,15 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
     return instance;
   }
-
+  
   private void audit(TCredentials credentials, ThriftSecurityException ex, String template, Object... args) {
     log.log(AuditLevel.AUDIT, "Error: authenticated operation failed: " + credentials.getPrincipal() + ": " + String.format(template, args));
   }
-
+  
   private void audit(TCredentials credentials, String template, Object... args) {
     log.log(AuditLevel.AUDIT, "Using credentials " + credentials.getPrincipal() + ": " + String.format(template, args));
   }
-
+  
   @Override
   public boolean authenticateUser(TCredentials credentials, TCredentials toAuth) throws ThriftSecurityException {
     try {
@@ -69,7 +69,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public Authorizations getUserAuthorizations(TCredentials credentials, String user) throws ThriftSecurityException {
     try {
@@ -81,9 +81,9 @@ public class AuditedSecurityOperation extends SecurityOperation {
       log.debug(ex);
       throw ex;
     }
-
+    
   }
-
+  
   @Override
   public Authorizations getUserAuthorizations(TCredentials credentials) throws ThriftSecurityException {
     try {
@@ -93,7 +93,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public void changeAuthorizations(TCredentials credentials, String user, Authorizations authorizations) throws ThriftSecurityException {
     try {
@@ -105,7 +105,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public void changePassword(TCredentials credentials, TCredentials newInfo) throws ThriftSecurityException {
     try {
@@ -117,7 +117,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public void createUser(TCredentials credentials, TCredentials newUser, Authorizations authorizations) throws ThriftSecurityException {
     try {
@@ -129,7 +129,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public void dropUser(TCredentials credentials, String user) throws ThriftSecurityException {
     try {
@@ -141,7 +141,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public void grantSystemPermission(TCredentials credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     try {
@@ -153,7 +153,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public void grantTablePermission(TCredentials credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
     try {
@@ -165,7 +165,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public void revokeSystemPermission(TCredentials credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     try {
@@ -177,7 +177,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public void revokeTablePermission(TCredentials credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
     try {
@@ -189,7 +189,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public boolean hasSystemPermission(TCredentials credentials, String user, SystemPermission permission) throws ThriftSecurityException {
     try {
@@ -202,7 +202,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public boolean hasTablePermission(TCredentials credentials, String user, String table, TablePermission permission) throws ThriftSecurityException {
     try {
@@ -215,7 +215,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public Set<String> listUsers(TCredentials credentials) throws ThriftSecurityException {
     try {
@@ -228,7 +228,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public void deleteTable(TCredentials credentials, String table) throws ThriftSecurityException {
     try {
@@ -240,7 +240,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       throw ex;
     }
   }
-
+  
   @Override
   public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException {
     super.initializeSecurity(credentials, principal, token);

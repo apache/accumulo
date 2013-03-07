@@ -30,7 +30,7 @@ import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TTransport;
 
 public class TTimeoutTransport {
-
+  
   public static TTransport create(SocketAddress addr, long timeoutMillis) throws IOException {
     Socket socket = SelectorProvider.provider().openSocketChannel().socket();
     socket.setSoLinger(false, 0);

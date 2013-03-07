@@ -28,22 +28,22 @@ import org.mortbay.jetty.servlet.Context;
 import org.mortbay.jetty.servlet.SessionHandler;
 
 public class EmbeddedWebServer {
-
+  
   Server server = null;
   SocketConnector sock;
   ContextHandlerCollection handler;
   Context root;
   boolean usingSsl;
-
+  
   public EmbeddedWebServer() {
     this("0.0.0.0", 0);
   }
-
+  
   public EmbeddedWebServer(String host, int port) {
     server = new Server();
     handler = new ContextHandlerCollection();
     root = new Context(handler, "/", new SessionHandler(), null, null, null);
-
+    
     if (Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE) == ""
         || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS) == ""
         || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE) == ""
@@ -61,15 +61,15 @@ public class EmbeddedWebServer {
     sock.setHost(host);
     sock.setPort(port);
   }
-
+  
   public void addServlet(Class<? extends HttpServlet> klass, String where) {
     root.addServlet(klass, where);
   }
-
+  
   public int getPort() {
     return sock.getLocalPort();
   }
-
+  
   public void start() {
     try {
       server.addConnector(sock);
@@ -80,7 +80,7 @@ public class EmbeddedWebServer {
       throw new RuntimeException(e);
     }
   }
-
+  
   public void stop() {
     try {
       server.stop();
@@ -88,7 +88,7 @@ public class EmbeddedWebServer {
       throw new RuntimeException(e);
     }
   }
-
+  
   public boolean isUsingSsl() {
     return usingSsl;
   }

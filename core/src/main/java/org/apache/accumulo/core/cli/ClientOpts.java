@@ -54,64 +54,64 @@ import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
 public class ClientOpts extends Help {
-
+  
   public static class TimeConverter implements IStringConverter<Long> {
     @Override
     public Long convert(String value) {
       return AccumuloConfiguration.getTimeInMillis(value);
     }
   }
-
+  
   public static class MemoryConverter implements IStringConverter<Long> {
     @Override
     public Long convert(String value) {
       return AccumuloConfiguration.getMemoryInBytes(value);
     }
   }
-
+  
   public static class AuthConverter implements IStringConverter<Authorizations> {
     @Override
     public Authorizations convert(String value) {
       return new Authorizations(value.split(","));
     }
   }
-
+  
   public static class Password {
     public byte[] value;
-
+    
     public Password(String dfault) {
       value = dfault.getBytes(Charset.forName("UTF-8"));
     }
-
+    
     @Override
     public String toString() {
       return new String(value);
     }
   }
-
+  
   public static class PasswordConverter implements IStringConverter<Password> {
     @Override
     public Password convert(String value) {
       return new Password(value);
     }
   }
-
+  
   public static class VisibilityConverter implements IStringConverter<ColumnVisibility> {
     @Override
     public ColumnVisibility convert(String value) {
       return new ColumnVisibility(value);
     }
   }
-
+  
   @Parameter(names = {"-u", "--user"}, description = "Connection user")
   public String principal = System.getProperty("user.name");
-
+  
   @Parameter(names = "-p", converter = PasswordConverter.class, description = "Connection password")
   public Password password = null;
-
+  
   @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
   public Password securePassword = null;
-
+  
   @DynamicParameter(names = "-l",
       description = "login properties in the format key=value. Reuse -l for each property (prompt for properties if this option is missing")
   public Map<String,String> loginProps = new LinkedHashMap<String,String>();
@@ -140,52 +140,52 @@ public class ClientOpts extends Help {
     
     return null;
   }
-
+  
   @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
   public String zookeepers = "localhost:2181";
-
+  
   @Parameter(names = {"-i", "--instance"}, description = "The name of the accumulo instance")
   public String instance = null;
-
+  
   @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class, description = "the authorizations to use when reading or writing")
   public Authorizations auths = Constants.NO_AUTHS;
-
+  
   @Parameter(names = "--debug", description = "turn on TRACE-level log messages")
   public boolean debug = false;
-
+  
   @Parameter(names = {"-fake", "--mock"}, description = "Use a mock Instance")
   public boolean mock = false;
-
+  
   @Parameter(names = "--site-file", description = "Read the given accumulo site file to find the accumulo instance")
   public String siteFile = null;
-
+  
   public void startDebugLogging() {
     if (debug)
       Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(Level.TRACE);
   }
-
+  
   @Parameter(names = "--trace", description = "turn on distributed tracing")
   public boolean trace = false;
-
+  
   public void startTracing(String applicationName) {
     if (trace) {
       Trace.on(applicationName);
     }
   }
-
+  
   public void stopTracing() {
     Trace.off();
   }
-
+  
   @Override
   public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
     startDebugLogging();
     startTracing(programName);
   }
-
+  
   protected Instance cachedInstance = null;
-
+  
   synchronized public Instance getInstance() {
     if (cachedInstance != null)
       return cachedInstance;
@@ -197,7 +197,7 @@ public class ClientOpts extends Help {
         {
           xml.addResource(new Path(siteFile));
         }
-
+        
         @Override
         public Iterator<Entry<String,String>> iterator() {
           TreeMap<String,String> map = new TreeMap<String,String>();
@@ -207,7 +207,7 @@ public class ClientOpts extends Help {
             map.put(props.getKey(), props.getValue());
           return map.entrySet().iterator();
         }
-
+        
         @Override
         public String get(Property property) {
           String value = xml.get(property.getKey());
@@ -224,16 +224,16 @@ public class ClientOpts extends Help {
     }
     return cachedInstance = new ZooKeeperInstance(this.instance, this.zookeepers);
   }
-
+  
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (this.principal == null || this.getToken() == null)
       throw new AccumuloSecurityException("You must provide a user (-u) and password (-p)", SecurityErrorCode.BAD_CREDENTIALS);
     return getInstance().getConnector(principal, getToken());
   }
-
+  
   public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
     AccumuloInputFormat.setZooKeeperInstance(job, instance, zookeepers);
     AccumuloOutputFormat.setZooKeeperInstance(job, instance, zookeepers);
   }
-
+  
 }

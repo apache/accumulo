@@ -31,11 +31,11 @@ import org.apache.commons.cli.Options;
 public class UserPermissionsCommand extends Command {
   private Option userOpt;
   private static int runOnce = 0;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
-
+    
     String delim = "";
     shellState.getReader().printString("System permissions: ");
     for (SystemPermission p : SystemPermission.values()) {
@@ -45,7 +45,7 @@ public class UserPermissionsCommand extends Command {
       }
     }
     shellState.getReader().printNewline();
-
+    
     for (String t : shellState.getConnector().tableOperations().list()) {
       delim = "";
       for (TablePermission p : TablePermission.values()) {
@@ -57,19 +57,19 @@ public class UserPermissionsCommand extends Command {
           shellState.getReader().printString(delim + "Table." + p.name());
           delim = ", ";
         }
-
+        
       }
       runOnce = 0;
     }
     shellState.getReader().printNewline();
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "displays a user's system and table permissions";
   }
-
+  
   @Override
   public Options getOptions() {
     Options o = new Options();
@@ -78,7 +78,7 @@ public class UserPermissionsCommand extends Command {
     o.addOption(userOpt);
     return o;
   }
-
+  
   @Override
   public int numArgs() {
     return 0;

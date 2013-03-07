@@ -67,7 +67,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 
 public class TraceServer implements Watcher {
-
+  
   final private static Logger log = Logger.getLogger(TraceServer.class);
   final private ServerConfiguration serverConfiguration;
   final private TServer server;
@@ -78,40 +78,40 @@ public class TraceServer implements Watcher {
   private static void put(Mutation m, String cf, String cq, byte[] bytes, int len) {
     m.put(new Text(cf), new Text(cq), new Value(bytes, 0, len));
   }
-
+  
   static class ByteArrayTransport extends TTransport {
     TByteArrayOutputStream out = new TByteArrayOutputStream();
-
+    
     @Override
     public boolean isOpen() {
       return true;
     }
-
+    
     @Override
     public void open() throws TTransportException {}
-
+    
     @Override
     public void close() {}
-
+    
     @Override
     public int read(byte[] buf, int off, int len) {
       return 0;
     }
-
+    
     @Override
     public void write(byte[] buf, int off, int len) throws TTransportException {
       out.write(buf, off, len);
     }
-
+    
     public byte[] get() {
       return out.get();
     }
-
+    
     public int len() {
       return out.len();
     }
   }
-
+  
   class Receiver implements Iface {
     @Override
     public void span(RemoteSpan s) throws TException {
@@ -147,9 +147,9 @@ public class TraceServer implements Watcher {
         log.error("Unable to write mutation to table: " + spanMutation, ex);
       }
     }
-
+    
   }
-
+  
   public TraceServer(ServerConfiguration serverConfiguration, String hostname) throws Exception {
     this.serverConfiguration = serverConfiguration;
     AccumuloConfiguration conf = serverConfiguration.getConfiguration();
@@ -167,7 +167,7 @@ public class TraceServer implements Watcher {
         UtilWaitThread.sleep(1000);
       }
     }
-
+    
     int port = conf.getPort(Property.TRACE_PORT);
     final ServerSocket sock = ServerSocketChannel.open().socket();
     sock.setReuseAddress(true);
@@ -178,10 +178,10 @@ public class TraceServer implements Watcher {
     server = new TThreadPoolServer(options);
     final InetSocketAddress address = new InetSocketAddress(hostname, sock.getLocalPort());
     registerInZooKeeper(AddressUtil.toString(address));
-
+    
     writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS));
   }
-
+  
   public void run() throws Exception {
     SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
@@ -191,7 +191,7 @@ public class TraceServer implements Watcher {
     }, 1000, 1000);
     server.serve();
   }
-
+  
   private void flush() {
     try {
       writer.flush();
@@ -200,7 +200,7 @@ public class TraceServer implements Watcher {
       resetWriter();
     }
   }
-
+  
   synchronized private void resetWriter() {
     try {
       if (writer != null)
@@ -216,14 +216,14 @@ public class TraceServer implements Watcher {
       }
     }
   }
-
+  
   private void registerInZooKeeper(String name) throws Exception {
     String root = ZooUtil.getRoot(serverConfiguration.getInstance()) + Constants.ZTRACERS;
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes());
     zoo.exists(path, this);
   }
-
+  
   public static void main(String[] args) throws Exception {
     SecurityUtil.serverLogin();
     Instance instance = HdfsZooInstance.getInstance();
@@ -236,7 +236,7 @@ public class TraceServer implements Watcher {
     server.run();
     log.info("tracer stopping");
   }
-
+  
   @Override
   public void process(WatchedEvent event) {
     log.debug("event " + event.getPath() + " " + event.getType() + " " + event.getState());
@@ -256,5 +256,5 @@ public class TraceServer implements Watcher {
     log.warn("Trace server unable to reset watch on zookeeper registration");
     server.stop();
   }
-
+  
 }

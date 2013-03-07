@@ -22,13 +22,13 @@ public class TabletMigration {
   public KeyExtent tablet;
   public TServerInstance oldServer;
   public TServerInstance newServer;
-
+  
   public TabletMigration(KeyExtent extent, TServerInstance before, TServerInstance after) {
     this.tablet = extent;
     this.oldServer = before;
     this.newServer = after;
   }
-
+  
   public String toString() {
     return tablet + ": " + oldServer + " -> " + newServer;
   }

@@ -38,29 +38,29 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
  * Input format for Accumulo write ahead logs
  */
 public class LogFileInputFormat extends FileInputFormat<LogFileKey,LogFileValue> {
-
+  
   private static class LogFileRecordReader extends RecordReader<LogFileKey,LogFileValue> {
-
+    
     private FSDataInputStream fsdis;
     private LogFileKey key;
     private LogFileValue value;
     private long length;
-
+    
     @Override
     public void close() throws IOException {
       fsdis.close();
     }
-
+    
     @Override
     public LogFileKey getCurrentKey() throws IOException, InterruptedException {
       return key;
     }
-
+    
     @Override
     public LogFileValue getCurrentValue() throws IOException, InterruptedException {
       return value;
     }
-
+    
     @Override
     public float getProgress() throws IOException, InterruptedException {
       float progress = (length - fsdis.getPos()) / (float) length;
@@ -68,17 +68,17 @@ public class LogFileInputFormat extends FileInputFormat<LogFileKey,LogFileValue>
         return 0;
       return progress;
     }
-
+    
     @Override
     public void initialize(InputSplit is, TaskAttemptContext context) throws IOException, InterruptedException {
       FileSplit fileSplit = (FileSplit) is;
-
+      
       Configuration conf = new Configuration();
       FileSystem fs = FileSystem.get(conf);
-
+      
       key = new LogFileKey();
       value = new LogFileValue();
-
+      
       fsdis = fs.open(fileSplit.getPath());
       FileStatus status = fs.getFileStatus(fileSplit.getPath());
       length = status.getLen();
@@ -88,7 +88,7 @@ public class LogFileInputFormat extends FileInputFormat<LogFileKey,LogFileValue>
     public boolean nextKeyValue() throws IOException, InterruptedException {
       if (key == null)
         return false;
-
+      
       try {
         key.readFields(fsdis);
         value.readFields(fsdis);
@@ -99,18 +99,18 @@ public class LogFileInputFormat extends FileInputFormat<LogFileKey,LogFileValue>
         return false;
       }
     }
-
+    
   }
 
-
+  
   @Override
   public RecordReader<LogFileKey,LogFileValue> createRecordReader(InputSplit arg0, TaskAttemptContext arg1) throws IOException, InterruptedException {
     return new LogFileRecordReader();
   }
-
+  
   @Override
   protected boolean isSplitable(JobContext context, Path filename) {
     return false;
   }
-
+  
 }

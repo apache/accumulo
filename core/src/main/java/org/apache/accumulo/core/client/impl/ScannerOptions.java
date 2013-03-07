@@ -39,70 +39,70 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
 public class ScannerOptions implements ScannerBase {
-
+  
   protected List<IterInfo> serverSideIteratorList = Collections.emptyList();
   protected Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
-
+  
   protected SortedSet<Column> fetchedColumns = new TreeSet<Column>();
-
+  
   protected long timeOut = Long.MAX_VALUE;
 
   private String regexIterName = null;
-
+  
   protected ScannerOptions() {}
-
+  
   public ScannerOptions(ScannerOptions so) {
     setOptions(this, so);
   }
-
+  
   /**
    * Adds server-side scan iterators.
-   *
+   * 
    */
   @Override
   public synchronized void addScanIterator(IteratorSetting si) {
     ArgumentChecker.notNull(si);
     if (serverSideIteratorList.size() == 0)
       serverSideIteratorList = new ArrayList<IterInfo>();
-
+    
     for (IterInfo ii : serverSideIteratorList) {
       if (ii.iterName.equals(si.getName()))
         throw new IllegalArgumentException("Iterator name is already in use " + si.getName());
       if (ii.getPriority() == si.getPriority())
         throw new IllegalArgumentException("Iterator priority is already in use " + si.getPriority());
     }
-
+    
     serverSideIteratorList.add(new IterInfo(si.getPriority(), si.getIteratorClass(), si.getName()));
-
+    
     if (serverSideIteratorOptions.size() == 0)
       serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
-
+    
     Map<String,String> opts = serverSideIteratorOptions.get(si.getName());
-
+    
     if (opts == null) {
       opts = new HashMap<String,String>();
       serverSideIteratorOptions.put(si.getName(), opts);
     }
     opts.putAll(si.getOptions());
   }
-
+  
   @Override
   public synchronized void removeScanIterator(String iteratorName) {
     ArgumentChecker.notNull(iteratorName);
     // if no iterators are set, we don't have it, so it is already removed
     if (serverSideIteratorList.size() == 0)
       return;
-
+    
     for (IterInfo ii : serverSideIteratorList) {
       if (ii.iterName.equals(iteratorName)) {
         serverSideIteratorList.remove(ii);
         break;
       }
     }
-
+    
     serverSideIteratorOptions.remove(iteratorName);
   }
-
+    
   /**
    * Override any existing options on the given named iterator
    */
@@ -111,50 +111,50 @@ public class ScannerOptions implements ScannerBase {
     ArgumentChecker.notNull(iteratorName, key, value);
     if (serverSideIteratorOptions.size() == 0)
       serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
-
+    
     Map<String,String> opts = serverSideIteratorOptions.get(iteratorName);
-
+    
     if (opts == null) {
       opts = new HashMap<String,String>();
       serverSideIteratorOptions.put(iteratorName, opts);
     }
     opts.put(key, value);
   }
-
+  
   /**
    * Limit a scan to the specified column family. This can limit which locality groups are read on the server side.
-   *
+   * 
    * To fetch multiple column families call this function multiple times.
    */
-
+  
   @Override
   public synchronized void fetchColumnFamily(Text col) {
     ArgumentChecker.notNull(col);
     Column c = new Column(TextUtil.getBytes(col), null, null);
     fetchedColumns.add(c);
   }
-
+  
   @Override
   public synchronized void fetchColumn(Text colFam, Text colQual) {
     ArgumentChecker.notNull(colFam, colQual);
     Column c = new Column(TextUtil.getBytes(colFam), TextUtil.getBytes(colQual), null);
     fetchedColumns.add(c);
   }
-
+  
   public synchronized void fetchColumn(Column column) {
     ArgumentChecker.notNull(column);
     fetchedColumns.add(column);
   }
-
+  
   @Override
   public synchronized void clearColumns() {
     fetchedColumns.clear();
   }
-
+  
   public synchronized SortedSet<Column> getFetchedColumns() {
     return fetchedColumns;
   }
-
+  
   /**
    * Clears scan iterators prior to returning a scanner to the pool.
    */
@@ -164,14 +164,14 @@ public class ScannerOptions implements ScannerBase {
     serverSideIteratorOptions = Collections.emptyMap();
     regexIterName = null;
   }
-
+  
   protected static void setOptions(ScannerOptions dst, ScannerOptions src) {
     synchronized (dst) {
       synchronized (src) {
         dst.regexIterName = src.regexIterName;
         dst.fetchedColumns = new TreeSet<Column>(src.fetchedColumns);
         dst.serverSideIteratorList = new ArrayList<IterInfo>(src.serverSideIteratorList);
-
+        
         dst.serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
         Set<Entry<String,Map<String,String>>> es = src.serverSideIteratorOptions.entrySet();
         for (Entry<String,Map<String,String>> entry : es)
@@ -179,12 +179,12 @@ public class ScannerOptions implements ScannerBase {
       }
     }
   }
-
+  
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     throw new UnsupportedOperationException();
   }
-
+  
   @Override
   public void setTimeout(long timeout, TimeUnit timeUnit) {
     if (timeOut < 0) {
@@ -196,7 +196,7 @@ public class ScannerOptions implements ScannerBase {
     else
       this.timeOut = timeUnit.toMillis(timeout);
   }
-
+  
   @Override
   public long getTimeout(TimeUnit timeunit) {
     return timeunit.convert(timeOut, TimeUnit.MILLISECONDS);

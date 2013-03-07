@@ -34,50 +34,50 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
 
 public class ContinuousScanner {
-
+  
   static class Opts extends ContinuousWalk.Opts {
     @Parameter(names="--numToScan", description="Number rows to scan between sleeps", required=true, validateWith=PositiveInteger.class)
     long numToScan = 0;
   }
-
+  
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(ContinuousScanner.class.getName(), args, scanOpts);
-
+    
     Random r = new Random();
 
     long distance = 1000000000000l;
-
+    
     Connector conn = opts.getConnector();
     Authorizations auths = opts.randomAuths.getAuths(r);
     Scanner scanner = conn.createScanner(opts.getTableName(), auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
-
+    
     double delta = Math.min(.05, .05 / (opts.numToScan / 1000.0));
-
+    
     while (true) {
       long startRow = ContinuousIngest.genLong(opts.min, opts.max - distance, r);
       byte[] scanStart = ContinuousIngest.genRow(startRow);
       byte[] scanStop = ContinuousIngest.genRow(startRow + distance);
-
+      
       scanner.setRange(new Range(new Text(scanStart), new Text(scanStop)));
-
+      
       int count = 0;
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
-
+      
       long t1 = System.currentTimeMillis();
-
+      
       while (iter.hasNext()) {
         Entry<Key,Value> entry = iter.next();
         ContinuousWalk.validate(entry.getKey(), entry.getValue());
         count++;
       }
-
+      
       long t2 = System.currentTimeMillis();
-
+      
       // System.out.println("P1 " +count +" "+((1-delta) * numToScan)+" "+((1+delta) * numToScan)+" "+numToScan);
-
+      
       if (count < (1 - delta) * opts.numToScan || count > (1 + delta) * opts.numToScan) {
         if (count == 0) {
           distance = distance * 10;
@@ -89,15 +89,15 @@ public class ContinuousScanner {
           ratio = ratio - (ratio - 1.0) * (2.0 / 3.0);
           distance = (long) (ratio * distance);
         }
-
+        
         // System.out.println("P2 "+delta +" "+numToScan+" "+distance+"  "+((double)numToScan/count ));
       }
-
+      
       System.out.printf("SCN %d %s %d %d%n", t1, new String(scanStart), (t2 - t1), count);
-
+      
       if (opts.sleepTime > 0)
         UtilWaitThread.sleep(opts.sleepTime);
     }
-
+    
   }
 }

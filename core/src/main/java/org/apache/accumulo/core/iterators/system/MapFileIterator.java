@@ -49,7 +49,7 @@ public class MapFileIterator implements FileSKVIterator {
   private int interruptCheckCount = 0;
   private FileSystem fs;
   private String dirName;
-
+  
   /**
    * @param acuconf
    * @param fs
@@ -67,58 +67,58 @@ public class MapFileIterator implements FileSKVIterator {
   public void setInterruptFlag(AtomicBoolean flag) {
     this.interruptFlag = flag;
   }
-
+  
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
-
+  
   @Override
   public boolean hasTop() {
     return topKey != null;
   }
-
+  
   @Override
   public void next() throws IOException {
     if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get())
       throw new IterationInterruptedException();
-
+    
     reader.next(topKey, topValue);
   }
-
+  
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     if (columnFamilies.size() != 0 || inclusive) {
       throw new IllegalArgumentException("I do not know how to filter column families");
     }
-
+    
     if (range == null)
       throw new IllegalArgumentException("Cannot seek to null range");
-
+    
     if (interruptFlag != null && interruptFlag.get())
       throw new IterationInterruptedException();
-
+    
     Key key = range.getStartKey();
     if (key == null) {
       key = new Key();
     }
-
+    
     reader.seek(key);
-
+    
     while (hasTop() && range.beforeStartKey(getTopKey())) {
       next();
     }
   }
-
+  
   @Override
   public Key getTopKey() {
     return topKey;
   }
-
+  
   @Override
   public Value getTopValue() {
     return topValue;
   }
-
+  
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     try {
@@ -131,17 +131,17 @@ public class MapFileIterator implements FileSKVIterator {
       throw new RuntimeException(e);
     }
   }
-
+  
   @Override
   public Key getFirstKey() throws IOException {
     throw new UnsupportedOperationException();
   }
-
+  
   @Override
   public Key getLastKey() throws IOException {
     throw new UnsupportedOperationException();
   }
-
+  
   @Override
   public DataInputStream getMetaStore(String name) throws IOException {
     Path path = new Path(this.dirName, name);
@@ -149,12 +149,12 @@ public class MapFileIterator implements FileSKVIterator {
       throw new NoSuchMetaStoreException("name = " + name);
     return fs.open(path);
   }
-
+  
   @Override
   public void closeDeepCopies() throws IOException {
     // nothing to do, deep copies are externally managed/closed
   }
-
+  
   @Override
   public void close() throws IOException {
     reader.close();

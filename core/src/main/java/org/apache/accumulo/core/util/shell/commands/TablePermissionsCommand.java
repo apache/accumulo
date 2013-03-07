@@ -31,12 +31,12 @@ public class TablePermissionsCommand extends Command {
     }
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "displays a list of valid table permissions";
   }
-
+  
   @Override
   public int numArgs() {
     return 0;

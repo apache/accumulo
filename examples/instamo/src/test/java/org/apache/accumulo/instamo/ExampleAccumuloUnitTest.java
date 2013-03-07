@@ -27,31 +27,31 @@ import org.junit.rules.TemporaryFolder;
  */
 
 public class ExampleAccumuloUnitTest {
-
+  
   public static TemporaryFolder folder = new TemporaryFolder();
-
+  
   private static MiniAccumuloCluster accumulo;
 
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
 
     folder.create();
-
+    
     accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
-
+    
     accumulo.start();
-
+    
   }
 
   @Test(timeout = 30000)
   public void test() throws Exception {
     AccumuloApp.run(accumulo.getInstanceName(), accumulo.getZooKeepers(), "superSecret", new String[0]);
   }
-
+  
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
     folder.delete();
   }
-
+  
 }

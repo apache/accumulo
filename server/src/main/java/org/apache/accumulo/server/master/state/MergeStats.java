@@ -46,7 +46,7 @@ public class MergeStats {
   int total = 0;
   boolean lowerSplit = false;
   boolean upperSplit = false;
-
+  
   public MergeStats(MergeInfo info) {
     this.info = info;
     if (info.getState().equals(MergeState.NONE))
@@ -56,7 +56,7 @@ public class MergeStats {
     if (info.getRange().getPrevEndRow() == null)
       lowerSplit = true;
   }
-
+  
   public MergeInfo getMergeInfo() {
     return info;
   }
@@ -90,7 +90,7 @@ public class MergeStats {
     if (state.equals(TabletState.UNASSIGNED))
       this.unassigned++;
   }
-
+  
   public MergeState nextMergeState(Connector connector, CurrentState master) throws Exception {
     MergeState state = info.getState();
     if (state == MergeState.NONE)
@@ -168,7 +168,7 @@ public class MergeStats {
     }
     return state;
   }
-
+  
   private boolean verifyMergeConsistency(Connector connector, CurrentState master) throws TableNotFoundException, IOException {
     MergeStats verify = new MergeStats(info);
     Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
@@ -201,14 +201,14 @@ public class MergeStats {
         if (tls.extent.getPrevEndRow() != null && tls.extent.getPrevEndRow().compareTo(start) > 0) {
           return false;
         }
-
+        
         if (tls.getState(master.onlineTabletServers()) != TabletState.UNASSIGNED)
           return false;
-
+        
       } else if (!tls.extent.isPreviousExtent(prevExtent)) {
         return false;
       }
-
+      
       prevExtent = tls.extent;
 
       verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped, !tls.walogs.isEmpty());
@@ -219,11 +219,11 @@ public class MergeStats {
     }
     return chopped == verify.chopped && unassigned == verify.unassigned && unassigned == verify.total;
   }
-
+  
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MergeStats.class.getName(), args);
-
+    
     Connector conn = opts.getConnector();
     Map<String,String> tableIdMap = conn.tableOperations().tableIdMap();
     for (String table : tableIdMap.keySet()) {

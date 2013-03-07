@@ -36,23 +36,23 @@ import org.apache.hadoop.io.Text;
  * This test recreates issue ACCUMULO-516. Until that issue is fixed this test should time out.
  */
 public class SparseColumnFamilyTest extends FunctionalTest {
-
+  
   @Override
   public Map<String,String> getInitialConfig() {
     return Collections.emptyMap();
   }
-
+  
   @Override
   public List<TableSetup> getTablesToCreate() {
     return Collections.emptyList();
   }
-
+  
   @Override
   public void run() throws Exception {
     getConnector().tableOperations().create("scftt");
-
+    
     BatchWriter bw = getConnector().createBatchWriter("scftt", new BatchWriterConfig());
-
+    
     // create file in the tablet that has mostly column family 0, with a few entries for column family 1
 
     bw.addMutation(nm(0, 1, 0));
@@ -61,28 +61,28 @@ public class SparseColumnFamilyTest extends FunctionalTest {
     }
     bw.addMutation(nm(99999 * 2, 1, 99999));
     bw.flush();
-
+    
     getConnector().tableOperations().flush("scftt", null, null, true);
-
+    
     // create a file that has column family 1 and 0 interleaved
     for (int i = 0; i < 100000; i++) {
       bw.addMutation(nm(i * 2 + 1, i % 2 == 0 ? 0 : 1, i));
     }
     bw.close();
-
+    
     getConnector().tableOperations().flush("scftt", null, null, true);
-
+    
     Scanner scanner = getConnector().createScanner("scftt", Constants.NO_AUTHS);
-
+    
     for (int i = 0; i < 200; i++) {
-
+      
       // every time we search for column family 1, it will scan the entire file
       // that has mostly column family 0 until the bug is fixed
       scanner.setRange(new Range(String.format("%06d", i), null));
       scanner.clearColumns();
       scanner.setBatchSize(3);
       scanner.fetchColumnFamily(new Text(String.format("%03d", 1)));
-
+      
       long t1 = System.currentTimeMillis();
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
       if (iter.hasNext()) {
@@ -92,12 +92,12 @@ public class SparseColumnFamilyTest extends FunctionalTest {
         }
       }
       long t2 = System.currentTimeMillis();
-
+      
       System.out.println("time " + (t2 - t1));
-
+      
     }
   }
-
+  
   /**
    * @param i
    * @param j
@@ -113,7 +113,7 @@ public class SparseColumnFamilyTest extends FunctionalTest {
   @Override
   public void cleanup() throws Exception {
     // TODO Auto-generated method stub
-
+    
   }
-
+  
 }

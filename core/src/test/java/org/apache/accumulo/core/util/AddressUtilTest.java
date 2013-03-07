@@ -25,7 +25,7 @@ import org.apache.thrift.transport.TSocket;
 
 /**
  * Test the AddressUtil class.
- *
+ * 
  */
 public class AddressUtilTest extends TestCase {
   public void testAddress() {
@@ -47,9 +47,9 @@ public class AddressUtilTest extends TestCase {
     // lame:
     assertTrue(sock != null);
   }
-
+  
   public void testToString() {
     assertTrue(AddressUtil.toString(new InetSocketAddress("127.0.0.1", 1234)).equals("127.0.0.1:1234"));
   }
-
+  
 }

@@ -41,15 +41,15 @@ import com.beust.jcommander.Parameter;
 
 /**
  * Simple example for writing random data to Accumulo. See docs/examples/README.batch for instructions.
- *
+ * 
  * The rows of the entries will be randomly generated numbers between a specified min and max (prefixed by "row_"). The column families will be "foo" and column
  * qualifiers will be "1". The values will be random byte arrays of a specified size.
  */
 public class RandomBatchWriter {
-
+  
   /**
    * Creates a random byte array of specified size using the specified seed.
-   *
+   * 
    * @param rowid
    *          the seed to use for the random number generator
    * @param dataSize
@@ -59,20 +59,20 @@ public class RandomBatchWriter {
   public static byte[] createValue(long rowid, int dataSize) {
     Random r = new Random(rowid);
     byte value[] = new byte[dataSize];
-
+    
     r.nextBytes(value);
-
+    
     // transform to printable chars
     for (int j = 0; j < value.length; j++) {
       value[j] = (byte) (((0xff & value[j]) % 92) + ' ');
     }
-
+    
     return value;
   }
-
+  
   /**
    * Creates a mutation on a specified row with column family "foo", column qualifier "1", specified visibility, and a random value of specified size.
-   *
+   * 
    * @param rowid
    *          the row of the mutation
    * @param dataSize
@@ -83,18 +83,18 @@ public class RandomBatchWriter {
    */
   public static Mutation createMutation(long rowid, int dataSize, ColumnVisibility visibility) {
     Text row = new Text(String.format("row_%010d", rowid));
-
+    
     Mutation m = new Mutation(row);
-
+    
     // create a random value that is a function of the
     // row id for verification purposes
     byte value[] = createValue(rowid, dataSize);
-
+    
     m.put(new Text("foo"), new Text("1"), visibility, new Value(value));
-
+    
     return m;
   }
-
+  
   static class Opts extends ClientOnRequiredTable {
     @Parameter(names="--num", required=true)
     int num = 0;
@@ -109,10 +109,10 @@ public class RandomBatchWriter {
     @Parameter(names="--seed", description="seed for pseudo-random number generator")
     Long seed = null;
   }
-
+ 
   /**
    * Writes a specified number of entries to Accumulo using a {@link BatchWriter}.
-   *
+   * 
    * @throws AccumuloException
    * @throws AccumuloSecurityException
    * @throws TableNotFoundException
@@ -121,30 +121,30 @@ public class RandomBatchWriter {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RandomBatchWriter.class.getName(), args, bwOpts);
-
+    
     Random r;
     if (opts.seed == null)
       r = new Random();
     else {
       r = new Random(opts.seed);
     }
-
+    
     Connector connector = opts.getConnector();
     BatchWriter bw = connector.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());
-
+    
     // reuse the ColumnVisibility object to improve performance
     ColumnVisibility cv = opts.visiblity;
-
+    
     for (int i = 0; i < opts.num; i++) {
-
+      
       long rowid = (Math.abs(r.nextLong()) % (opts.max - opts.min)) + opts.min;
-
+      
       Mutation m = createMutation(rowid, opts.size, cv);
-
+      
       bw.addMutation(m);
-
+      
     }
-
+    
     try {
       bw.close();
     } catch (MutationsRejectedException e) {
@@ -160,7 +160,7 @@ public class RandomBatchWriter {
         }
         System.err.println("ERROR : Not authorized to write to tables : " + tables);
       }
-
+      
       if (e.getConstraintViolationSummaries().size() > 0) {
         System.err.println("ERROR : Constraint violations occurred : " + e.getConstraintViolationSummaries());
       }

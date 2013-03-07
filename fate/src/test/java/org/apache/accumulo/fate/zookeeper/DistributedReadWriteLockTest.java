@@ -27,20 +27,20 @@ import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock.QueueLock;
 import org.junit.Test;
 
 public class DistributedReadWriteLockTest {
-
+  
   // Non-zookeeper version of QueueLock
   public static class MockQueueLock implements QueueLock {
-
+    
     long next = 0L;
     final SortedMap<Long,byte[]> locks = new TreeMap<Long,byte[]>();
-
+    
     @Override
     synchronized public SortedMap<Long,byte[]> getEarlierEntries(long entry) {
       SortedMap<Long,byte[]> result = new TreeMap<Long,byte[]>();
       result.putAll(locks.headMap(entry + 1));
       return result;
     }
-
+    
     @Override
     synchronized public void removeEntry(long entry) {
       synchronized (locks) {
@@ -48,7 +48,7 @@ public class DistributedReadWriteLockTest {
         locks.notifyAll();
       }
     }
-
+    
     @Override
     synchronized public long addEntry(byte[] data) {
       long result;
@@ -59,31 +59,31 @@ public class DistributedReadWriteLockTest {
       return result;
     }
   }
-
+  
   // some data that is probably not going to update atomically
   static class SomeData {
     volatile int[] data = new int[100];
     volatile int counter;
-
+    
     void read() {
       for (int i = 0; i < data.length; i++)
         assertEquals(counter, data[i]);
     }
-
+    
     void write() {
       ++counter;
       for (int i = data.length - 1; i >= 0; i--)
         data[i] = counter;
     }
   }
-
+  
   @Test
   public void testLock() throws Exception {
     final SomeData data = new SomeData();
     data.write();
     data.read();
     QueueLock qlock = new MockQueueLock();
-
+    
     final ReadWriteLock locker = new DistributedReadWriteLock(qlock, "locker1".getBytes());
     final Lock readLock = locker.readLock();
     final Lock writeLock = locker.writeLock();
@@ -93,7 +93,7 @@ public class DistributedReadWriteLockTest {
     writeLock.unlock();
     readLock.lock();
     readLock.unlock();
-
+    
     // do a bunch of reads/writes in separate threads, look for inconsistent updates
     Thread[] threads = new Thread[2];
     for (int i = 0; i < threads.length; i++) {
@@ -128,5 +128,5 @@ public class DistributedReadWriteLockTest {
       t.join();
     }
   }
-
+  
 }

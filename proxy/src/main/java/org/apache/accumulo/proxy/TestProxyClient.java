@@ -40,14 +40,14 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
 public class TestProxyClient {
-
+  
   protected AccumuloProxy.Client proxy;
   protected TTransport transport;
-
+  
   public TestProxyClient(String host, int port) throws TTransportException {
     this(host, port, new TCompactProtocol.Factory());
   }
-
+  
   public TestProxyClient(String host, int port, TProtocolFactory protoFactory) throws TTransportException {
     final TSocket socket = new TSocket(host, port);
     socket.setTimeout(600000);
@@ -56,41 +56,41 @@ public class TestProxyClient {
     proxy = new AccumuloProxy.Client(protocol);
     transport.open();
   }
-
+  
   public AccumuloProxy.Client proxy() {
     return proxy;
   }
-
+  
   public static void main(String[] args) throws Exception {
-
+    
     TestProxyClient tpc = new TestProxyClient("localhost", 42424);
     String principal = "root";
     Map<String, String> props = new TreeMap<String, String>();
     props.put("password", "secret");
-
+    
     System.out.println("Logging in");
     ByteBuffer login = tpc.proxy.login(principal, props);
-
+    
     System.out.println("Creating user: ");
     if (!tpc.proxy().listLocalUsers(login).contains("testuser")) {
       tpc.proxy().createLocalUser(login, "testuser", ByteBuffer.wrap("testpass".getBytes()));
     }
     System.out.println("UserList: " + tpc.proxy().listLocalUsers(login));
-
+    
     System.out.println("Listing: " + tpc.proxy().listTables(login));
-
+    
     System.out.println("Deleting: ");
     String testTable = "testtableOMGOMGOMG";
-
+    
     System.out.println("Creating: ");
-
+    
     if (tpc.proxy().tableExists(login, testTable))
       tpc.proxy().deleteTable(login, testTable);
-
+    
     tpc.proxy().createTable(login, testTable, true, TimeType.MILLIS);
-
+    
     System.out.println("Listing: " + tpc.proxy().listTables(login));
-
+    
     System.out.println("Writing: ");
     Date start = new Date();
     Date then = new Date();
@@ -102,7 +102,7 @@ public class TestProxyClient {
       ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes()), ByteBuffer.wrap(("cq" + i).getBytes()));
       update.setValue(Util.randStringBuffer(10));
       mutations.put(ByteBuffer.wrap(result.getBytes()), Collections.singletonList(update));
-
+      
       if (i % 1000 == 0) {
         tpc.proxy().updateAndFlush(login, testTable, mutations);
         mutations.clear();
@@ -111,12 +111,12 @@ public class TestProxyClient {
     tpc.proxy().updateAndFlush(login, testTable, mutations);
     Date end = new Date();
     System.out.println(" End of writing: " + (end.getTime() - start.getTime()));
-
+    
     tpc.proxy().deleteTable(login, testTable);
     tpc.proxy().createTable(login, testTable, true, TimeType.MILLIS);
-
+    
     // Thread.sleep(1000);
-
+    
     System.out.println("Writing async: ");
     start = new Date();
     then = new Date();
@@ -132,7 +132,7 @@ public class TestProxyClient {
       tpc.proxy().update(writer, mutations);
       mutations.clear();
     }
-
+    
     end = new Date();
     System.out.println(" End of writing: " + (end.getTime() - start.getTime()));
     start = end;
@@ -140,29 +140,29 @@ public class TestProxyClient {
     tpc.proxy().closeWriter(writer);
     end = new Date();
     System.out.println(" End of closing: " + (end.getTime() - start.getTime()));
-
+    
     System.out.println("Reading: ");
-
+    
     String regex = "cf1.*";
-
+    
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, null, regex, null, null, false);
-
+    
     String cookie = tpc.proxy().createScanner(login, testTable, null);
-
+    
     int i = 0;
     start = new Date();
     then = new Date();
     boolean hasNext = true;
-
+    
     int k = 1000;
     while (hasNext) {
       ScanResult kvList = tpc.proxy().nextK(cookie, k);
-
+      
       Date now = new Date();
       System.out.println(i + " " + (now.getTime() - then.getTime()));
       then = now;
-
+      
       i += kvList.getResultsSize();
       // for (TKeyValue kv:kvList.getResults()) System.out.println(new Key(kv.getKey()));
       hasNext = kvList.isMore();

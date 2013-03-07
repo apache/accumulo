@@ -25,9 +25,9 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 public interface Authenticator {
   public AuthenticationToken login(Properties properties) throws AccumuloSecurityException;
-
+  
   public List<Set<AuthProperty>> getProperties();
-
+  
   public class AuthProperty {
     private String key, description;
     private boolean masked;
@@ -41,11 +41,11 @@ public interface Authenticator {
     public String toString() {
       return this.key + " - " + description;
     }
-
+    
     public String getKey() {
       return this.key;
     }
-
+    
     public String getDescription() {
       return this.description;
     }

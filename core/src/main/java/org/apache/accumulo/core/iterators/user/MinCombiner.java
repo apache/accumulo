@@ -35,7 +35,7 @@ public class MinCombiner extends LongCombiner {
     }
     return min;
   }
-
+  
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();

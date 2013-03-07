@@ -31,7 +31,7 @@ import org.apache.commons.vfs2.provider.http.HttpFileNameParser;
 
 /**
  * FileProvider for HDFS files.
- *
+ * 
  * @since 2.1
  */
 public class HdfsFileProvider extends AbstractOriginatingFileProvider

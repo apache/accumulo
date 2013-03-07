@@ -33,29 +33,29 @@ import org.apache.accumulo.server.tabletserver.NativeMap;
 import org.apache.hadoop.io.Text;
 
 public class NativeMapPerformanceTest {
-
+  
   private static final byte ROW_PREFIX[] = new byte[] {'r'};
   private static final byte COL_PREFIX[] = new byte[] {'c'};
-
+  
   static Key nk(int r, int c) {
     return new Key(new Text(FastFormat.toZeroPaddedString(r, 9, 10, ROW_PREFIX)), new Text(FastFormat.toZeroPaddedString(c, 6, 10, COL_PREFIX)));
   }
-
+  
   static Mutation nm(int r) {
     return new Mutation(new Text(FastFormat.toZeroPaddedString(r, 9, 10, ROW_PREFIX)));
   }
-
+  
   static Text ET = new Text();
-
+  
   private static void pc(Mutation m, int c, Value v) {
     m.put(new Text(FastFormat.toZeroPaddedString(c, 6, 10, COL_PREFIX)), ET, Long.MAX_VALUE, v);
   }
-
+  
   static void runPerformanceTest(int numRows, int numCols, int numLookups, String mapType) {
-
+    
     SortedMap<Key,Value> tm = null;
     NativeMap nm = null;
-
+    
     if (mapType.equals("SKIP_LIST"))
       tm = new ConcurrentSkipListMap<Key,Value>();
     else if (mapType.equals("TREE_MAP"))
@@ -64,12 +64,12 @@ public class NativeMapPerformanceTest {
       nm = new NativeMap();
     else
       throw new IllegalArgumentException(" map type must be SKIP_LIST, TREE_MAP, or NATIVE_MAP");
-
+    
     Random rand = new Random(19);
-
+    
     // puts
     long tps = System.currentTimeMillis();
-
+    
     if (nm != null) {
       for (int i = 0; i < numRows; i++) {
         int row = rand.nextInt(1000000000);
@@ -92,9 +92,9 @@ public class NativeMapPerformanceTest {
         }
       }
     }
-
+    
     long tpe = System.currentTimeMillis();
-
+    
     // Iteration
     Iterator<Entry<Key,Value>> iter;
     if (nm != null) {
@@ -102,15 +102,15 @@ public class NativeMapPerformanceTest {
     } else {
       iter = tm.entrySet().iterator();
     }
-
+    
     long tis = System.currentTimeMillis();
-
+    
     while (iter.hasNext()) {
       iter.next();
     }
-
+    
     long tie = System.currentTimeMillis();
-
+    
     rand = new Random(19);
     int rowsToLookup[] = new int[numLookups];
     int colsToLookup[] = new int[numLookups];
@@ -120,13 +120,13 @@ public class NativeMapPerformanceTest {
       for (int j = 0; j < numCols; j++) {
         col = rand.nextInt(1000000);
       }
-
+      
       rowsToLookup[i] = row;
       colsToLookup[i] = col;
     }
-
+    
     // get
-
+    
     long tgs = System.currentTimeMillis();
     if (nm != null) {
       for (int i = 0; i < numLookups; i++) {
@@ -144,54 +144,54 @@ public class NativeMapPerformanceTest {
       }
     }
     long tge = System.currentTimeMillis();
-
+    
     long memUsed = 0;
     if (nm != null) {
       memUsed = nm.getMemoryUsed();
     }
-
+    
     int size = (nm == null ? tm.size() : nm.size());
-
+    
     // delete
     long tds = System.currentTimeMillis();
-
+    
     if (nm != null)
       nm.delete();
-
+    
     long tde = System.currentTimeMillis();
-
+    
     if (tm != null)
       tm.clear();
-
+    
     System.gc();
     System.gc();
     System.gc();
     System.gc();
-
+    
     UtilWaitThread.sleep(3000);
-
+    
     System.out.printf("mapType:%10s   put rate:%,6.2f  scan rate:%,6.2f  get rate:%,6.2f  delete time : %6.2f  mem : %,d%n", "" + mapType, (numRows * numCols)
         / ((tpe - tps) / 1000.0), (size) / ((tie - tis) / 1000.0), numLookups / ((tge - tgs) / 1000.0), (tde - tds) / 1000.0, memUsed);
-
+    
   }
-
+  
   /**
    * @param args
    */
   public static void main(String[] args) {
-
+    
     if (args.length != 3) {
       throw new IllegalArgumentException("Usage : " + NativeMapPerformanceTest.class.getName() + " <map type> <rows> <columns>");
     }
-
+    
     String mapType = args[0];
     int rows = Integer.parseInt(args[1]);
     int cols = Integer.parseInt(args[2]);
-
+    
     runPerformanceTest(rows, cols, 10000, mapType);
     runPerformanceTest(rows, cols, 10000, mapType);
     runPerformanceTest(rows, cols, 10000, mapType);
-
+    
   }
-
+  
 }

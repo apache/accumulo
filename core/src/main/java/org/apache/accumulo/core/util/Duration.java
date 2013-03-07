@@ -17,15 +17,15 @@
 package org.apache.accumulo.core.util;
 
 public class Duration {
-
+  
   public static String format(long time) {
     return format(time, "&nbsp;");
   }
-
+  
   public static String format(long time, String space) {
     return format(time, space, "&mdash;");
   }
-
+  
   public static String format(long time, String space, String zero) {
     long ms, sec, min, hr, day, yr;
     ms = sec = min = hr = day = yr = -1;
@@ -53,7 +53,7 @@ public class Duration {
       return String.format("%dd" + space + "%dh", day, hr);
     yr = time;
     return String.format("%dy" + space + "%dd", yr, day);
-
+    
   }
-
+  
 }

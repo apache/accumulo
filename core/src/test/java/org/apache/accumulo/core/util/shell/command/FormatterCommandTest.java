@@ -44,22 +44,22 @@ import org.junit.Test;
 public class FormatterCommandTest {
   Writer writer = null;
   InputStream in = null;
-
+  
   @Test
   public void test() throws IOException, AccumuloException, AccumuloSecurityException, TableExistsException, ClassNotFoundException {
     // Keep the Shell AUDIT log off the test output
     Logger.getLogger(Shell.class).setLevel(Level.WARN);
-
+    
     final String[] args = new String[] {"--fake", "-u", "root", "-p", ""};
-
+   
     final String[] commands = createCommands();
-
+    
     in = MockShell.makeCommands(commands);
     writer = new StringWriter();
-
+    
     final MockShell shell = new MockShell(in, writer);
     shell.config(args);
-
+    
     // Can't call createtable in the shell with MockAccumulo
     shell.getConnector().tableOperations().create("test");
 
@@ -67,60 +67,60 @@ public class FormatterCommandTest {
       shell.start();
     } catch (Exception e) {
       Assert.fail("Exception while running commands: " + e.getMessage());
-    }
-
+    } 
+    
     shell.getReader().flushConsole();
-
+    
     final String[] output = StringUtils.split(writer.toString(), '\n');
-
+   
     boolean formatterOn = false;
-
+    
     final String[] expectedDefault = new String[] {
         "row cf:cq []    1234abcd",
         "row cf1:cq1 []    9876fedc",
         "row2 cf:cq []    13579bdf",
         "row2 cf1:cq []    2468ace"
     };
-
+    
     final String[] expectedFormatted = new String[] {
         "row cf:cq []    0x31 0x32 0x33 0x34 0x61 0x62 0x63 0x64",
         "row cf1:cq1 []    0x39 0x38 0x37 0x36 0x66 0x65 0x64 0x63",
         "row2 cf:cq []    0x31 0x33 0x35 0x37 0x39 0x62 0x64 0x66",
         "row2 cf1:cq []    0x32 0x34 0x36 0x38 0x61 0x63 0x65"
     };
-
+    
     int outputIndex = 0;
     while (outputIndex < output.length) {
       final String line = output[outputIndex];
-
+      
       if (line.startsWith("root@mock-instance")) {
         if (line.contains("formatter -t test -f org.apache.accumulo.core.util.shell.command.FormatterCommandTest$HexFormatter")) {
           formatterOn = true;
         }
-
+       
         outputIndex++;
       } else if (line.startsWith("row")) {
         int expectedIndex = 0;
         String[] comparisonData;
-
+        
         // Pick the type of data we expect (formatted or default)
         if (formatterOn) {
           comparisonData = expectedFormatted;
         } else {
           comparisonData = expectedDefault;
         }
-
+        
         // Ensure each output is what we expected
         while (expectedIndex + outputIndex < output.length && expectedIndex < expectedFormatted.length) {
           Assert.assertEquals(comparisonData[expectedIndex].trim(), output[expectedIndex + outputIndex].trim());
           expectedIndex++;
         }
-
+        
         outputIndex += expectedIndex;
       }
     }
   }
-
+  
   private String[] createCommands() {
     return new String[] {
         "table test",
@@ -133,12 +133,12 @@ public class FormatterCommandTest {
         "scan"
     };
   }
-
+  
   /**
    * <p>Simple <code>Formatter</code> that will convert each character in the Value
    * from decimal to hexadecimal. Will automatically skip over characters in the value
    * which do not fall within the [0-9,a-f] range.</p>
-   *
+   * 
    * <p>Example: <code>'0'</code> will be displayed as <code>'0x30'</code></p>
    */
   public static class HexFormatter implements Formatter {
@@ -147,9 +147,9 @@ public class FormatterCommandTest {
 
     private final static String tab = "\t";
     private final static String newline = "\n";
-
+    
     public HexFormatter() {}
-
+    
     /* (non-Javadoc)
      * @see java.util.Iterator#hasNext()
      */
@@ -164,31 +164,31 @@ public class FormatterCommandTest {
     @Override
     public String next() {
       final Entry<Key, Value> entry = iter.next();
-
+      
       String key;
-
+      
       // Observe the timestamps
       if (printTs) {
         key = entry.getKey().toString();
       } else {
         key = entry.getKey().toStringNoTime();
       }
-
+      
       final Value v = entry.getValue();
-
+      
       // Approximate how much space we'll need
-      final StringBuilder sb = new StringBuilder(key.length() + v.getSize() * 5);
-
+      final StringBuilder sb = new StringBuilder(key.length() + v.getSize() * 5); 
+      
       sb.append(key).append(tab);
-
+      
       for (byte b : v.get()) {
         if ((b >= 48 && b <= 57) || (b >= 97 || b <= 102)) {
           sb.append(String.format("0x%x ", Integer.valueOf(b)));
         }
       }
-
+      
       sb.append(newline);
-
+      
       return sb.toString();
     }
 
@@ -208,5 +208,5 @@ public class FormatterCommandTest {
       this.printTs = printTimestamps;
     }
   }
-
+  
 }

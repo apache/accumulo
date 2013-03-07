@@ -41,7 +41,7 @@ public class ChunkInputFormat extends InputFormatBase<List<Entry<Key,Value>>,Inp
       InterruptedException {
     return new RecordReaderBase<List<Entry<Key,Value>>,InputStream>() {
       private PeekingIterator<Entry<Key,Value>> peekingScannerIterator;
-
+      
       @Override
       public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
         super.initialize(inSplit, attempt);
@@ -49,7 +49,7 @@ public class ChunkInputFormat extends InputFormatBase<List<Entry<Key,Value>>,Inp
         currentK = new ArrayList<Entry<Key,Value>>();
         currentV = new ChunkInputStream();
       }
-
+      
       @Override
       public boolean nextKeyValue() throws IOException, InterruptedException {
         currentK.clear();

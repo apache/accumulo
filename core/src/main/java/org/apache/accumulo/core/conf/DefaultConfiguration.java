@@ -29,7 +29,7 @@ import org.apache.log4j.Logger;
 public class DefaultConfiguration extends AccumuloConfiguration {
   private static DefaultConfiguration instance = null;
   private static Logger log = Logger.getLogger(DefaultConfiguration.class);
-
+  
   synchronized public static DefaultConfiguration getInstance() {
     if (instance == null) {
       instance = new DefaultConfiguration();
@@ -37,22 +37,22 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     }
     return instance;
   }
-
+  
   @Override
   public String get(Property property) {
     return property.getDefaultValue();
   }
-
+  
   @Override
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
     for (Property prop : Property.values())
       if (!prop.isExperimental() && !prop.getType().equals(PropertyType.PREFIX))
         entries.put(prop.getKey(), prop.getDefaultValue());
-
+    
     return entries.entrySet().iterator();
   }
-
+  
   private static void generateDocumentation(PrintStream doc) {
     // read static content from resources and output
     InputStream data = DefaultConfiguration.class.getClassLoader().getResourceAsStream("config.html");
@@ -66,7 +66,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
         e.printStackTrace();
         return;
       } finally {
-    	  try {
+    	  try { 
     		  data.close();
     	  } catch (IOException ex) {
     		  log .error(ex, ex);
@@ -74,7 +74,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       }
     }
     doc.println();
-
+    
     ArrayList<Property> prefixes = new ArrayList<Property>();
     TreeMap<String,Property> sortedProps = new TreeMap<String,Property>();
     for (Property prop : Property.values()) {
@@ -86,7 +86,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       else
         sortedProps.put(prop.getKey(), prop);
     }
-
+    
     doc.println("  <p>Jump to: ");
     String delimiter = "";
     for (Property prefix : prefixes) {
@@ -97,10 +97,10 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       delimiter = "&nbsp;|&nbsp;";
     }
     doc.println("  </p>");
-
+    
     doc.println("  <table>");
     for (Property prefix : prefixes) {
-
+      
       if (prefix.isExperimental())
         continue;
 
@@ -109,7 +109,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       if (!prefix.equals(Property.TABLE_CONSTRAINT_PREFIX) && !prefix.equals(Property.TABLE_ITERATOR_PREFIX)
           && !prefix.equals(Property.TABLE_LOCALITY_GROUP_PREFIX))
         doc.println("   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>");
-
+      
       boolean highlight = true;
       for (Property prop : sortedProps.values()) {
         if (prop.isExperimental())
@@ -135,7 +135,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       }
     }
     doc.println("  </table>");
-
+    
     doc.println("  <h1>Property Type Descriptions</h1>");
     doc.println("  <table>");
     doc.println("   <tr><th>Property Type</th><th>Description</th></tr>");
@@ -154,7 +154,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     doc.println("</html>");
     doc.close();
   }
-
+  
   /*
    * Generate documentation for conf/accumulo-site.xml file usage
    */

@@ -26,11 +26,11 @@ import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class Merge extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     String indexTableName = (String) state.get("indexTableName");
-
+    
     Collection<Text> splits = state.getConnector().tableOperations().getSplits(indexTableName);
     SortedSet<Text> splitSet = new TreeSet<Text>(splits);
     log.debug("merging " + indexTableName);
@@ -44,5 +44,5 @@ public class Merge extends Test {
       throw new Exception("There are more tablets after a merge: " + splits.size() + " was " + splitSet.size());
     }
   }
-
+  
 }

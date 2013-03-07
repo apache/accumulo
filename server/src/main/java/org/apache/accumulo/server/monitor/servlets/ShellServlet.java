@@ -39,12 +39,12 @@ public class ShellServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;
   private Map<String,ShellExecutionThread> userShells = new HashMap<String,ShellExecutionThread>();
   private ExecutorService service = Executors.newCachedThreadPool();
-
+  
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "Shell";
   }
-
+  
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
     HttpSession session = req.getSession(true);
@@ -147,7 +147,7 @@ public class ShellServlet extends BasicServlet {
     sb.append("</script>\n");
     sb.append("<script type='text/javascript'>window.onload = function() { document.getElementById('cmd').select(); }</script>\n");
   }
-
+  
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     HttpSession session = req.getSession(true);
     String user = (String) session.getAttribute("user");
@@ -186,31 +186,31 @@ public class ShellServlet extends BasicServlet {
     resp.getWriter().append(sb.toString());
     resp.getWriter().flush();
   }
-
+  
   private String authenticationForm(String requestURI) {
     return "<div id='login'><form method=POST action='" + requestURI + "'>"
         + "<table><tr><td>Mock:&nbsp</td><td><input type='checkbox' name='mock' value='mock'></td></tr>"
         + "<tr><td>Username:&nbsp;</td><td><input type='text' name='user'></td></tr>"
         + "<tr><td>Password:&nbsp;</td><td><input type='password' name='pass'></td><td><input type='submit' value='Enter'></td></tr></table></form></div>";
   }
-
+  
   private static class StringBuilderOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
-
+    
     @Override
     public void write(int b) throws IOException {
       sb.append((char) (0xff & b));
     }
-
+    
     public String get() {
       return sb.toString();
     }
-
+    
     public void clear() {
       sb.setLength(0);
     }
   }
-
+  
   private static class ShellExecutionThread extends InputStream implements Runnable {
     private Shell shell;
     StringBuilderOutputStream output;
@@ -218,7 +218,7 @@ public class ShellServlet extends BasicServlet {
     private int cmdIndex;
     private boolean done;
     private boolean readWait;
-
+    
     private ShellExecutionThread(String username, String password, String mock) throws IOException {
       this.done = false;
       this.cmd = null;
@@ -235,7 +235,7 @@ public class ShellServlet extends BasicServlet {
         throw new IOException("shell config error");
       }
     }
-
+    
     @Override
     public synchronized int read() throws IOException {
       if (cmd == null) {
@@ -261,7 +261,7 @@ public class ShellServlet extends BasicServlet {
       }
       return c;
     }
-
+    
     @Override
     public synchronized void run() {
       Thread.currentThread().setName("shell thread");
@@ -282,7 +282,7 @@ public class ShellServlet extends BasicServlet {
       done = true;
       this.notifyAll();
     }
-
+    
     public synchronized void addInputString(String s) {
       if (done)
         throw new IllegalStateException("adding string to exited shell");
@@ -293,7 +293,7 @@ public class ShellServlet extends BasicServlet {
       }
       this.notifyAll();
     }
-
+    
     public synchronized void waitUntilReady() {
       while (cmd != null) {
         try {
@@ -301,29 +301,29 @@ public class ShellServlet extends BasicServlet {
         } catch (InterruptedException e) {}
       }
     }
-
+    
     public synchronized String getOutput() {
       String s = output.get();
       output.clear();
       return s;
     }
-
+    
     public String getPrompt() {
       return shell.getDefaultPrompt();
     }
-
+    
     public void printInfo() throws IOException {
       shell.printInfo();
     }
-
+    
     public boolean isMasking() {
       return shell.isMasking();
     }
-
+    
     public synchronized boolean isWaitingForInput() {
       return readWait;
     }
-
+    
     public boolean isDone() {
       return done;
     }

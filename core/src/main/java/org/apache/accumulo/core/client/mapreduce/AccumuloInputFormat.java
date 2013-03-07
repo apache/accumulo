@@ -34,16 +34,16 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 /**
  * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat} provides keys and values of type {@link Key} and
  * {@link Value} to the Map function.
- *
+ * 
  * The user must specify the following via static configurator methods:
- *
+ * 
  * <ul>
  * <li>{@link AccumuloInputFormat#setConnectorInfo(Job, String, AuthenticationToken)} OR {@link AccumuloInputFormat#setConnectorInfo(Job, Path)}
  * <li>{@link AccumuloInputFormat#setInputTableName(Job, String)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(Job, Authorizations)}
  * <li>{@link AccumuloInputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloInputFormat#setMockInstance(Job, String)}
  * </ul>
- *
+ * 
  * Other static methods are optional.
  */
 public class AccumuloInputFormat extends InputFormatBase<Key,Value> {

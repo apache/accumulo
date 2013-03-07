@@ -59,30 +59,30 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
 class CompactionDriver extends MasterRepo {
-
+  
   private static final long serialVersionUID = 1L;
-
+  
   private long compactId;
   private String tableId;
   private byte[] startRow;
   private byte[] endRow;
-
+  
   public CompactionDriver(long compactId, String tableId, byte[] startRow, byte[] endRow) {
-
+    
     this.compactId = compactId;
     this.tableId = tableId;
     this.startRow = startRow;
     this.endRow = endRow;
   }
-
+  
   @Override
   public long isReady(long tid, Master master) throws Exception {
-
+    
     String zCancelID = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
-
+    
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
-
+    
     if (Long.parseLong(new String(zoo.getData(zCancelID, null))) >= compactId) {
       // compaction was canceled
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
@@ -91,68 +91,68 @@ class CompactionDriver extends MasterRepo {
     MapCounter<TServerInstance> serversToFlush = new MapCounter<TServerInstance>();
     Connector conn = master.getConnector();
     Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
-
+    
     Range range = new KeyExtent(new Text(tableId), null, startRow == null ? null : new Text(startRow)).toMetadataRange();
-
+    
     if (tableId.equals(Constants.METADATA_TABLE_ID))
       range = range.clip(new Range(Constants.ROOT_TABLET_EXTENT.getMetadataEntry(), false, null, true));
-
+    
     scanner.setRange(range);
     Constants.METADATA_COMPACT_COLUMN.fetch(scanner);
     Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-
+    
     // TODO since not using tablet iterator, are there any issues w/ splits merges?
     long t1 = System.currentTimeMillis();
     RowIterator ri = new RowIterator(scanner);
-
+    
     int tabletsToWaitFor = 0;
     int tabletCount = 0;
-
+    
     while (ri.hasNext()) {
       Iterator<Entry<Key,Value>> row = ri.next();
       long tabletCompactID = -1;
-
+      
       TServerInstance server = null;
-
+      
       Entry<Key,Value> entry = null;
       while (row.hasNext()) {
         entry = row.next();
         Key key = entry.getKey();
-
+        
         if (Constants.METADATA_COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
           tabletCompactID = Long.parseLong(entry.getValue().toString());
-
+        
         if (Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily()))
           server = new TServerInstance(entry.getValue(), key.getColumnQualifier());
       }
-
+      
       if (tabletCompactID < compactId) {
         tabletsToWaitFor++;
         if (server != null)
           serversToFlush.increment(server, 1);
       }
-
+      
       tabletCount++;
-
+      
       Text tabletEndRow = new KeyExtent(entry.getKey().getRow(), (Text) null).getEndRow();
       if (tabletEndRow == null || (endRow != null && tabletEndRow.compareTo(new Text(endRow)) >= 0))
         break;
     }
-
+    
     long scanTime = System.currentTimeMillis() - t1;
-
+    
     Instance instance = master.getInstance();
     Tables.clearCache(instance);
     if (tabletCount == 0 && !Tables.exists(instance, tableId))
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
-
+    
     if (serversToFlush.size() == 0 && Tables.getTableState(instance, tableId) == TableState.OFFLINE)
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
-
+    
     if (tabletsToWaitFor == 0)
       return 0;
-
+    
     for (TServerInstance tsi : serversToFlush.keySet()) {
       try {
         final TServerConnection server = master.getConnection(tsi);
@@ -162,54 +162,54 @@ class CompactionDriver extends MasterRepo {
         Logger.getLogger(CompactionDriver.class).error(ex.toString());
       }
     }
-
+    
     long sleepTime = 500;
-
+    
     if (serversToFlush.size() > 0)
       sleepTime = Collections.max(serversToFlush.values()) * sleepTime; // make wait time depend on the server with the most to
                                                                         // compact
-
+      
     sleepTime = Math.max(2 * scanTime, sleepTime);
-
+    
     sleepTime = Math.min(sleepTime, 30000);
-
+    
     return sleepTime;
   }
-
+  
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     CompactRange.removeIterators(tid, tableId);
     Utils.getReadLock(tableId, tid).unlock();
     return null;
   }
-
+  
   @Override
   public void undo(long tid, Master environment) throws Exception {
-
+    
   }
-
+  
 }
 
 
 public class CompactRange extends MasterRepo {
-
+  
   private static final long serialVersionUID = 1L;
   private String tableId;
   private byte[] startRow;
   private byte[] endRow;
   private byte[] iterators;
-
+  
   public static class CompactionIterators implements Writable {
     byte[] startRow;
     byte[] endRow;
     List<IteratorSetting> iterators;
-
+    
     public CompactionIterators(byte[] startRow, byte[] endRow, List<IteratorSetting> iterators) {
       this.startRow = startRow;
       this.endRow = endRow;
       this.iterators = iterators;
     }
-
+    
     public CompactionIterators() {
       startRow = null;
       endRow = null;
@@ -223,19 +223,19 @@ public class CompactRange extends MasterRepo {
         out.writeInt(startRow.length);
         out.write(startRow);
       }
-
+      
       out.writeBoolean(endRow != null);
       if (endRow != null) {
         out.writeInt(endRow.length);
         out.write(endRow);
       }
-
+      
       out.writeInt(iterators.size());
       for (IteratorSetting is : iterators) {
         is.write(out);
       }
     }
-
+    
     @Override
     public void readFields(DataInput in) throws IOException {
       if (in.readBoolean()) {
@@ -244,34 +244,34 @@ public class CompactRange extends MasterRepo {
       } else {
         startRow = null;
       }
-
+      
       if (in.readBoolean()) {
         endRow = new byte[in.readInt()];
         in.readFully(endRow);
       } else {
         endRow = null;
       }
-
+      
       int num = in.readInt();
       iterators = new ArrayList<IteratorSetting>(num);
-
+      
       for (int i = 0; i < num; i++) {
         iterators.add(new IteratorSetting(in));
       }
     }
-
+    
     public Text getEndRow() {
       if (endRow == null)
         return null;
       return new Text(endRow);
     }
-
+    
     public Text getStartRow() {
       if (startRow == null)
         return null;
       return new Text(startRow);
     }
-
+    
     public List<IteratorSetting> getIterators() {
       return iterators;
     }
@@ -281,7 +281,7 @@ public class CompactRange extends MasterRepo {
     this.tableId = tableId;
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
-
+    
     if (iterators.size() > 0) {
       this.iterators = WritableUtils.toByteArray(new CompactionIterators(this.startRow, this.endRow, iterators));
     } else {
@@ -292,16 +292,16 @@ public class CompactRange extends MasterRepo {
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.BAD_RANGE,
           "start row must be less than end row");
   }
-
+  
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT);
   }
-
+  
   @Override
   public Repo<Master> call(final long tid, Master environment) throws Exception {
     String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
-
+    
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
     byte[] cid;
     try {
@@ -312,9 +312,9 @@ public class CompactRange extends MasterRepo {
           String[] tokens = cvs.split(",");
           long flushID = Long.parseLong(new String(tokens[0]));
           flushID++;
-
+          
           String txidString = String.format("%016x", tid);
-
+          
           for (int i = 1; i < tokens.length; i++) {
             if (tokens[i].startsWith(txidString))
               continue; // skip self
@@ -332,23 +332,23 @@ public class CompactRange extends MasterRepo {
             encodedIterators.append("=");
             encodedIterators.append(new String(hex.encode(iterators)));
           }
-
+          
           return ("" + flushID + encodedIterators).getBytes();
         }
       });
-
+      
       return new CompactionDriver(Long.parseLong(new String(cid).split(",")[0]), tableId, startRow, endRow);
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
     }
-
+    
   }
-
+  
   static void removeIterators(final long txid, String tableId) throws Exception {
     String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
-
+    
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
-
+    
     zoo.mutate(zTablePath, null, null, new Mutator() {
       @Override
       public byte[] mutate(byte[] currentValue) throws Exception {
@@ -357,7 +357,7 @@ public class CompactRange extends MasterRepo {
         long flushID = Long.parseLong(new String(tokens[0]));
 
         String txidString = String.format("%016x", txid);
-
+        
         StringBuilder encodedIterators = new StringBuilder();
         for (int i = 1; i < tokens.length; i++) {
           if (tokens[i].startsWith(txidString))
@@ -365,7 +365,7 @@ public class CompactRange extends MasterRepo {
           encodedIterators.append(",");
           encodedIterators.append(tokens[i]);
         }
-
+        
         return ("" + flushID + encodedIterators).getBytes();
       }
     });
@@ -380,5 +380,5 @@ public class CompactRange extends MasterRepo {
       Utils.unreserveTable(tableId, tid, false);
     }
   }
-
+  
 }

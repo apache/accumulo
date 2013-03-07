@@ -29,20 +29,20 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class Authenticate extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     authenticate(WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getSysToken(), state, props);
   }
-
+  
   public static void authenticate(String principal, AuthenticationToken token, State state, Properties props) throws Exception {
     String targetProp = props.getProperty("target");
     boolean success = Boolean.parseBoolean(props.getProperty("valid"));
-
+    
     Connector conn = state.getInstance().getConnector(principal, token);
-
+    
     String target;
-
+    
     if (targetProp.equals("table")) {
       target = WalkingSecurity.get(state).getTabUserName();
     } else {
@@ -52,13 +52,13 @@ public class Authenticate extends Test {
     // Copy so if failed it doesn't mess with the password stored in state
     byte[] password = Arrays.copyOf(WalkingSecurity.get(state).getUserPassword(target), WalkingSecurity.get(state).getUserPassword(target).length);
     boolean hasPermission = WalkingSecurity.get(state).canAskAboutUser(CredentialHelper.create(principal, token, state.getInstance().getInstanceID()), target);
-
+    
     if (!success)
       for (int i = 0; i < password.length; i++)
         password[i]++;
-
+    
     boolean result;
-
+    
     try {
       result = conn.securityOperations().authenticateUser(target, new PasswordToken(password));
     } catch (AccumuloSecurityException ae) {

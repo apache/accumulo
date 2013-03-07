@@ -31,27 +31,27 @@ import org.apache.log4j.Logger;
  * Copy failed bulk imports.
  */
 public class BulkFailedCopyProcessor implements Processor {
-
+  
   private static final Logger log = Logger.getLogger(BulkFailedCopyProcessor.class);
-
+  
   @Override
   public Processor newProcessor() {
     return new BulkFailedCopyProcessor();
   }
-
+  
   @Override
   public void process(String workID, byte[] data) {
-
+    
     String paths[] = new String(data).split(",");
-
+    
     Path orig = new Path(paths[0]);
     Path dest = new Path(paths[1]);
     Path tmp = new Path(dest.getParent(), dest.getName() + ".tmp");
-
+    
     try {
       FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(),
           ServerConfiguration.getSiteConfiguration()));
-
+      
       FileUtil.copy(fs, orig, fs, tmp, false, true, CachedConfiguration.getInstance());
       fs.rename(tmp, dest);
       log.debug("copied " + orig + " to " + dest);
@@ -59,7 +59,7 @@ public class BulkFailedCopyProcessor implements Processor {
       try {
         FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(),
             ServerConfiguration.getSiteConfiguration()));
-
+        
         fs.create(dest).close();
         log.warn(" marked " + dest + " failed", ex);
       } catch (IOException e) {
@@ -68,5 +68,5 @@ public class BulkFailedCopyProcessor implements Processor {
     }
 
   }
-
+  
 }

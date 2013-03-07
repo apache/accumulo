@@ -39,20 +39,20 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- *
+ * 
  */
 
 public class RowFilterTest extends TestCase {
-
+  
   public static class SummingRowFilter extends RowFilter {
-
+    
     @Override
     public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
       int sum = 0;
       int sum2 = 0;
-
+      
       Key firstKey = null;
-
+      
       if (rowIterator.hasTop()) {
         firstKey = new Key(rowIterator.getTopKey());
       }
@@ -61,32 +61,32 @@ public class RowFilterTest extends TestCase {
         sum += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
       }
-
+      
       // ensure that seeks are confined to the row
       rowIterator.seek(new Range(), new HashSet<ByteSequence>(), false);
       while (rowIterator.hasTop()) {
         sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
       }
-
+      
       rowIterator.seek(new Range(firstKey.getRow(), false, null, true), new HashSet<ByteSequence>(), false);
       while (rowIterator.hasTop()) {
         sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
       }
-
+      
       return sum == 2 && sum2 == 2;
     }
-
+    
   }
 
   public void test1() throws Exception {
     MockInstance instance = new MockInstance("rft1");
     Connector conn = instance.getConnector("", "".getBytes());
-
+    
     conn.tableOperations().create("table1");
     BatchWriter bw = conn.createBatchWriter("table1", new BatchWriterConfig());
-
+    
     Mutation m = new Mutation("0");
     m.put("cf1", "cq1", "1");
     m.put("cf1", "cq2", "1");
@@ -100,22 +100,22 @@ public class RowFilterTest extends TestCase {
     m.put("cf2", "cq1", "1");
     m.put("cf2", "cq2", "1");
     bw.addMutation(m);
-
+    
     m = new Mutation("1");
     m.put("cf1", "cq1", "1");
     m.put("cf1", "cq2", "2");
     bw.addMutation(m);
-
+    
     m = new Mutation("2");
     m.put("cf1", "cq1", "1");
     m.put("cf1", "cq2", "1");
     bw.addMutation(m);
-
+    
     m = new Mutation("3");
     m.put("cf1", "cq1", "0");
     m.put("cf1", "cq2", "2");
     bw.addMutation(m);
-
+    
     m = new Mutation("4");
     m.put("cf1", "cq1", "1");
     m.put("cf1", "cq2", "1");
@@ -135,26 +135,26 @@ public class RowFilterTest extends TestCase {
 
     Scanner scanner = conn.createScanner("table1", Constants.NO_AUTHS);
     assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(scanner));
-
+    
     scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
     assertEquals(new HashSet<String>(Arrays.asList("1", "3")), getRows(scanner));
-
+    
     scanner.clearColumns();
     scanner.fetchColumn(new Text("cf1"), new Text("cq1"));
     assertEquals(new HashSet<String>(), getRows(scanner));
-
+    
     scanner.setRange(new Range("0", "4"));
     scanner.clearColumns();
     assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(scanner));
-
+    
     scanner.setRange(new Range("2"));
     scanner.clearColumns();
     assertEquals(new HashSet<String>(Arrays.asList("2")), getRows(scanner));
-
+    
     scanner.setRange(new Range("4"));
     scanner.clearColumns();
     assertEquals(new HashSet<String>(), getRows(scanner));
-
+    
     scanner.setRange(new Range("4"));
     scanner.clearColumns();
     scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
@@ -162,7 +162,7 @@ public class RowFilterTest extends TestCase {
     assertEquals(new HashSet<String>(Arrays.asList("4")), getRows(scanner));
 
   }
-
+  
   private HashSet<String> getRows(Scanner scanner) {
     HashSet<String> rows = new HashSet<String>();
     for (Entry<Key,Value> entry : scanner) {

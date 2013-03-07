@@ -37,21 +37,21 @@ public class RenameTableCommand extends Command {
       shellState.setTableName(cl.getArgs()[1]);
     return 0;
   }
-
+  
   @Override
   public String usage() {
     return getName() + " <current table name> <new table name>";
   }
-
+  
   @Override
   public String description() {
     return "renames a table";
   }
-
+  
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForTables(root, completionSet);
   }
-
+  
   @Override
   public int numArgs() {
     return 2;

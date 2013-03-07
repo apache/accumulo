@@ -28,15 +28,15 @@ import org.apache.commons.io.FileUtils;
  * An example of running local map reduce against MiniAccumuloCluster
  */
 public class MapReduceExample {
-
+  
   public static void run(String instanceName, String zookeepers, String rootPassword, String args[]) throws Exception {
-
+    
     // run continuous ingest to create data. This is not a map reduce job
     ContinuousIngest.main(new String[] {"-i", instanceName, "-z", zookeepers, "-u", "root", "-p", rootPassword, "--table", "ci", "--num", "5000000",
         "--batchMemory", "1000000"});
-
+    
     String outputDir = FileUtils.getTempDirectoryPath() + File.separator + "ci_verify" + UUID.randomUUID().toString();
-
+    
     try {
       // run verify map reduce job locally. This jobs looks for holes in the linked list create by continuous ingest
       ContinuousVerify.main(new String[] {"-D", "mapred.job.tracker=local", "-D", "fs.default.name=file:///", "-i", instanceName, "-z", zookeepers, "-u",
@@ -49,17 +49,17 @@ public class MapReduceExample {
 
   public static void main(String[] args) throws Exception {
     File tmpDir = new File(FileUtils.getTempDirectory(), "macc-" + UUID.randomUUID().toString());
-
+    
     try {
       MiniAccumuloCluster la = new MiniAccumuloCluster(tmpDir, "pass1234");
       la.start();
-
+      
       System.out.println("\n   ---- Running Mapred Against Accumulo\n");
-
+      
       run(la.getInstanceName(), la.getZooKeepers(), "pass1234", args);
-
+      
       System.out.println("\n   ---- Ran Mapred Against Accumulo\n");
-
+      
       la.stop();
     } finally {
       FileUtils.deleteQuietly(tmpDir);

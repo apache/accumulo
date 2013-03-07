@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
 
 public class MapRedVerifyTool extends Configured implements Tool {
   protected final Logger log = Logger.getLogger(this.getClass());
-
+  
   public static class SeqMapClass extends Mapper<Key,Value,NullWritable,IntWritable> {
     @Override
     public void map(Key row, Value data, Context output) throws IOException, InterruptedException {
@@ -45,16 +45,16 @@ public class MapRedVerifyTool extends Configured implements Tool {
       output.write(NullWritable.get(), new IntWritable(num.intValue()));
     }
   }
-
+  
   public static class SeqReduceClass extends Reducer<NullWritable,IntWritable,Text,Mutation> {
     @Override
     public void reduce(NullWritable ignore, Iterable<IntWritable> values, Context output) throws IOException, InterruptedException {
       Iterator<IntWritable> iterator = values.iterator();
-
+      
       if (iterator.hasNext() == false) {
         return;
       }
-
+      
       int start = iterator.next().get();
       int index = start;
       while (iterator.hasNext()) {
@@ -67,42 +67,42 @@ public class MapRedVerifyTool extends Configured implements Tool {
       }
       writeMutation(output, start, index);
     }
-
+    
     public void writeMutation(Context output, int start, int end) throws IOException, InterruptedException {
       Mutation m = new Mutation(new Text(String.format("%010d", start)));
       m.put(new Text(String.format("%010d", end)), new Text(""), new Value("".getBytes()));
       output.write(null, m);
     }
   }
-
+  
   @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), this.getClass().getSimpleName());
     job.setJarByClass(this.getClass());
-
+    
     if (job.getJar() == null) {
       log.error("M/R requires a jar file!  Run mvn package.");
       return 1;
     }
-
+    
     job.setInputFormatClass(AccumuloInputFormat.class);
     AccumuloInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     AccumuloInputFormat.setInputTableName(job, args[2]);
     AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
-
+    
     job.setMapperClass(SeqMapClass.class);
     job.setMapOutputKeyClass(NullWritable.class);
     job.setMapOutputValueClass(IntWritable.class);
-
+    
     job.setReducerClass(SeqReduceClass.class);
     job.setNumReduceTasks(1);
-
+    
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     AccumuloOutputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     AccumuloOutputFormat.setCreateTables(job, true);
     AccumuloOutputFormat.setDefaultTableName(job, args[5]);
     AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);
-
+    
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;
   }

@@ -25,12 +25,12 @@ import java.util.Map;
  */
 
 public class MiniAccumuloConfig {
-
+  
   private File dir = null;
   private String rootPassword = null;
   private Map<String,String> siteConfig = Collections.emptyMap();
   private int numTservers = 2;
-
+  
   /**
    * @param dir
    *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava,
@@ -38,49 +38,49 @@ public class MiniAccumuloConfig {
    * @param rootPassword
    *          The initial password for the Accumulo root user
    */
-
+  
   public MiniAccumuloConfig(File dir, String rootPassword) {
     this.dir = dir;
     this.rootPassword = rootPassword;
   }
-
+  
   public File getDir() {
     return dir;
   }
-
+  
   public String getRootPassword() {
     return rootPassword;
   }
-
+  
   public int getNumTservers() {
     return numTservers;
   }
-
+  
   /**
    * Calling this method is optional. If not set, it defaults to two.
-   *
+   * 
    * @param numTservers
    *          the number of tablet servers that mini accumulo cluster should start
    */
-
+  
   public MiniAccumuloConfig setNumTservers(int numTservers) {
     if (numTservers < 1)
       throw new IllegalArgumentException("Must have at least one tablet server");
     this.numTservers = numTservers;
     return this;
   }
-
+  
   public Map<String,String> getSiteConfig() {
     return siteConfig;
   }
-
+  
   /**
    * Calling this method is optional. If not set, it defautls to an empty map.
-   *
+   * 
    * @param siteConfig
    *          key/values that you normally put in accumulo-site.xml can be put here
    */
-
+  
   public MiniAccumuloConfig setSiteConfig(Map<String,String> siteConfig) {
     this.siteConfig = siteConfig;
     return this;

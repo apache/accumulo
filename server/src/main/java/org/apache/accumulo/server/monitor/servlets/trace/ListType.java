@@ -35,19 +35,19 @@ import org.apache.hadoop.io.Text;
 
 
 public class ListType extends Basic {
-
+  
   private static final long serialVersionUID = 1L;
-
+  
   String getType(HttpServletRequest req) {
     return getStringParameter(req, "type", "<Unknown>");
   }
-
+  
   int getMinutes(HttpServletRequest req) {
     return getIntParameter(req, "minutes", Summary.DEFAULT_MINUTES);
   }
-
+  
   private static class ShowTraceLinkType extends StringType<RemoteSpan> {
-
+    
     public String format(Object obj) {
       if (obj == null)
         return "-";
@@ -55,7 +55,7 @@ public class ListType extends Basic {
       return String.format("<a href='/trace/show?id=%s'>%s</a>", Long.toHexString(span.traceId), TraceFormatter.formatDate(new Date(span.start)));
     }
   }
-
+  
   @Override
   public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
     String type = getType(req);
@@ -80,7 +80,7 @@ public class ListType extends Basic {
     }
     trace.generate(req, sb);
   }
-
+  
   @Override
   public String getTitle(HttpServletRequest req) {
     return "Traces for " + getType(req) + " for the last " + getMinutes(req) + " minutes";

@@ -27,7 +27,7 @@ public class OfflineCommand extends TableOperation {
   public String description() {
     return "starts the process of taking table offline";
   }
-
+  
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
       Shell.log.info("  You cannot take the " + Constants.METADATA_TABLE_NAME + " offline.");

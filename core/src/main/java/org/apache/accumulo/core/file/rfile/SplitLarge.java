@@ -38,36 +38,36 @@ import com.beust.jcommander.Parameter;
 
 /**
  * Split an RFile into large and small key/value files.
- *
+ * 
  */
 public class SplitLarge {
-
+  
   static class Opts extends Help {
     @Parameter(names="-m", description="the maximum size of the key/value pair to shunt to the small file")
     long maxSize = 10 * 1024 * 1024;
     @Parameter(description="<file.rf> { <file.rf> ... }")
     List<String> files = new ArrayList<String>();
   }
-
-
+  
+  
   public static void main(String[] args) throws Exception {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
     long maxSize = 10 * 1024 * 1024;
     Opts opts = new Opts();
     opts.parseArgs(SplitLarge.class.getName(), args);
-
+    
     for (String file : opts.files) {
       Path path = new Path(file);
       CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
       Reader iter = new RFile.Reader(rdr);
-
+      
       if (!file.endsWith(".rf")) {
         throw new IllegalArgumentException("File must end with .rf");
       }
       String smallName = file.substring(0, file.length() - 3) + "_small.rf";
       String largeName = file.substring(0, file.length() - 3) + "_large.rf";
-
+      
       int blockSize = (int) DefaultConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
       Writer small = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(smallName), "gz", conf), blockSize);
       small.startDefaultLocalityGroup();
@@ -91,5 +91,5 @@ public class SplitLarge {
       small.close();
     }
   }
-
+  
 }

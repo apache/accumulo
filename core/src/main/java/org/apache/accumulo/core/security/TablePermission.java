@@ -29,39 +29,39 @@ public enum TablePermission {
   ALTER_TABLE((byte) 5),
   GRANT((byte) 6),
   DROP_TABLE((byte) 7);
-
+  
   final private byte permID;
-
+  
   final private static TablePermission mapping[] = new TablePermission[8];
   static {
     for (TablePermission perm : TablePermission.values())
       mapping[perm.permID] = perm;
   }
-
+  
   private TablePermission(byte id) {
     this.permID = id;
   }
-
+  
   public byte getId() {
     return this.permID;
   }
-
+  
   public static List<String> printableValues() {
     TablePermission[] a = TablePermission.values();
-
+    
     List<String> list = new ArrayList<String>(a.length);
-
+    
     for (TablePermission p : a)
       list.add("Table." + p);
-
+    
     return list;
   }
-
+  
   public static TablePermission getPermissionById(byte id) {
     TablePermission result = mapping[id];
     if (result != null)
       return result;
     throw new IndexOutOfBoundsException("No such permission");
   }
-
+  
 }

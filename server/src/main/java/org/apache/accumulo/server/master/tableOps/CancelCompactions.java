@@ -28,7 +28,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 class FinishCancelCompaction extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private String tableId;
-
+  
   public FinishCancelCompaction(String tableId) {
     this.tableId = tableId;
   }
@@ -38,21 +38,21 @@ class FinishCancelCompaction extends MasterRepo {
     Utils.getReadLock(tableId, tid).unlock();
     return null;
   }
-
+  
   @Override
   public void undo(long tid, Master environment) throws Exception {
-
+    
   }
 }
 
 /**
- *
+ * 
  */
 public class CancelCompactions extends MasterRepo {
-
+  
   private static final long serialVersionUID = 1L;
   private String tableId;
-
+  
   public CancelCompactions(String tableId) {
     this.tableId = tableId;
   }
@@ -61,26 +61,26 @@ public class CancelCompactions extends MasterRepo {
   public long isReady(long tid, Master environment) throws Exception {
     return Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
   }
-
+  
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     String zCompactID = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
     String zCancelID = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
-
+    
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
-
+    
     byte[] currentValue = zoo.getData(zCompactID, null);
-
+    
     String cvs = new String(currentValue);
     String[] tokens = cvs.split(",");
     final long flushID = Long.parseLong(new String(tokens[0]));
-
+    
     zoo.mutate(zCancelID, null, null, new Mutator() {
       @Override
       public byte[] mutate(byte[] currentValue) throws Exception {
         long cid = Long.parseLong(new String(currentValue));
-
+        
         if (cid < flushID)
           return (flushID + "").getBytes();
         else
@@ -91,7 +91,7 @@ public class CancelCompactions extends MasterRepo {
 
     return new FinishCancelCompaction(tableId);
   }
-
+  
   @Override
   public void undo(long tid, Master environment) throws Exception {
     Utils.unreserveTable(tableId, tid, false);

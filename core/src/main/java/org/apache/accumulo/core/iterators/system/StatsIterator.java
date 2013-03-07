@@ -29,36 +29,36 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 
 /**
- *
+ * 
  */
 public class StatsIterator extends WrappingIterator {
-
+  
   private int numRead = 0;
   private AtomicLong seekCounter;
   private AtomicLong readCounter;
-
+  
   public StatsIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong seekCounter, AtomicLong readCounter) {
     super.setSource(source);
     this.seekCounter = seekCounter;
     this.readCounter = readCounter;
   }
-
+  
   @Override
   public void next() throws IOException {
     super.next();
     numRead++;
-
+    
     if (numRead % 23 == 0) {
       readCounter.addAndGet(numRead);
       numRead = 0;
     }
   }
-
+  
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     return new StatsIterator(getSource().deepCopy(env), seekCounter, readCounter);
   }
-
+  
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     super.seek(range, columnFamilies, inclusive);
@@ -66,7 +66,7 @@ public class StatsIterator extends WrappingIterator {
     readCounter.addAndGet(numRead);
     numRead = 0;
   }
-
+  
   public void report() {
     readCounter.addAndGet(numRead);
     numRead = 0;

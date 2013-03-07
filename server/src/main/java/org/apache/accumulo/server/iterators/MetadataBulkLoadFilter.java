@@ -31,22 +31,22 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 
 /**
  * A special iterator for the metadata table that removes inactive bulk load flags
- *
+ * 
  */
 public class MetadataBulkLoadFilter extends Filter {
-
+  
   enum Status {
     ACTIVE, INACTIVE
   }
-
+  
   Map<Long,Status> bulkTxStatusCache;
   ZooArbitrator arbitrator;
-
+  
   @Override
   public boolean accept(Key k, Value v) {
     if (!k.isDeleted() && k.compareColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY) == 0) {
       long txid = Long.valueOf(v.toString());
-
+      
       Status status = bulkTxStatusCache.get(txid);
       if (status == null) {
         try {
@@ -59,10 +59,10 @@ public class MetadataBulkLoadFilter extends Filter {
           // TODO log
           status = Status.ACTIVE;
         }
-
+        
         bulkTxStatusCache.put(txid, status);
       }
-
+      
       return status == Status.ACTIVE;
     }
 
@@ -72,7 +72,7 @@ public class MetadataBulkLoadFilter extends Filter {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-
+    
     if (env.getIteratorScope() == IteratorScope.scan) {
       throw new IOException("This iterator not intended for use at scan time");
     }

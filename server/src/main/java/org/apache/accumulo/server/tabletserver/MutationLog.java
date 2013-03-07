@@ -33,53 +33,53 @@ import org.apache.hadoop.fs.Path;
 
 public class MutationLog {
   private FSDataOutputStream logout;
-
+  
   public static final byte MUTATION_EVENT = 1;
   public static final byte CLOSE_EVENT = 2;
-
+  
   public MutationLog(Path logfile) throws IOException {
-
+    
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
-
+    
     if (!fs.exists(logfile))
       logout = fs.create(logfile);
   }
-
+  
   public void log(Mutation m) throws IOException {
     // write event type
     logout.writeByte(MUTATION_EVENT);
-
+    
     // write event
     m.write(logout);
     logout.flush();
   }
-
+  
   public void close() throws IOException {
     logout.writeByte(CLOSE_EVENT);
     logout.close();
   }
-
+  
   public static Iterator<Mutation> replay(Path logfile, Tablet t, long min_timestamp) throws IOException {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
-
+    
     final FSDataInputStream login = fs.open(logfile);
-
+    
     final Mutation mutation = new ServerMutation();
-
+    
     return new Iterator<Mutation>() {
-
+      
       byte eventType;
-
+      
       {
         eventType = login.readByte();
       }
-
+      
       public boolean hasNext() {
         return eventType != CLOSE_EVENT;
       }
-
+      
       public Mutation next() {
         try {
           mutation.readFields(login);
@@ -87,10 +87,10 @@ public class MutationLog {
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
-
+        
         return mutation;
       }
-
+      
       public void remove() {
         throw new UnsupportedOperationException();
       }

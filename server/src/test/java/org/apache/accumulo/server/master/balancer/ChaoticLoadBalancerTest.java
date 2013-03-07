@@ -42,10 +42,10 @@ import org.apache.thrift.TException;
 import org.junit.Test;
 
 public class ChaoticLoadBalancerTest {
-
+  
   class FakeTServer {
     List<KeyExtent> extents = new ArrayList<KeyExtent>();
-
+    
     TabletServerStatus getStatus(TServerInstance server) {
       TabletServerStatus result = new TabletServerStatus();
       result.tableMap = new HashMap<String,TableInfo>();
@@ -62,11 +62,11 @@ public class ChaoticLoadBalancerTest {
       return result;
     }
   }
-
+  
   Map<TServerInstance,FakeTServer> servers = new HashMap<TServerInstance,FakeTServer>();
-
+  
   class TestChaoticLoadBalancer extends ChaoticLoadBalancer {
-
+    
     @Override
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String table) throws ThriftSecurityException, TException {
       List<TabletStats> result = new ArrayList<TabletStats>();
@@ -78,7 +78,7 @@ public class ChaoticLoadBalancerTest {
       return result;
     }
   }
-
+  
   @Test
   public void testAssignMigrations() {
     servers.clear();
@@ -98,20 +98,20 @@ public class ChaoticLoadBalancerTest {
     metadataTable.put(makeExtent(table, "d", "c"), null);
     metadataTable.put(makeExtent(table, "e", "d"), null);
     metadataTable.put(makeExtent(table, null, "e"), null);
-
+    
     TestChaoticLoadBalancer balancer = new TestChaoticLoadBalancer();
-
+    
     SortedMap<TServerInstance,TabletServerStatus> current = new TreeMap<TServerInstance,TabletServerStatus>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
       current.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
     }
-
+    
     Map<KeyExtent, TServerInstance> assignments = new HashMap<KeyExtent, TServerInstance>();
     balancer.getAssignments(getAssignments(servers), metadataTable, assignments);
-
+    
     assertEquals(assignments.size(), metadataTable.size());
   }
-
+  
   SortedMap<TServerInstance,TabletServerStatus> getAssignments(Map<TServerInstance,FakeTServer> servers) {
     SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
@@ -119,7 +119,7 @@ public class ChaoticLoadBalancerTest {
     }
     return result;
   }
-
+  
   @Test
   public void testUnevenAssignment() {
     servers.clear();
@@ -145,22 +145,22 @@ public class ChaoticLoadBalancerTest {
     first.getValue().extents.add(makeExtent("newTable", "i", null));
     TestChaoticLoadBalancer balancer = new TestChaoticLoadBalancer();
     Set<KeyExtent> migrations = Collections.emptySet();
-
+    
     // Just want to make sure it gets some migrations, randomness prevents guarantee of a defined amount, or even expected amount
     List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
     while (migrationsOut.size() != 0) {
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
     }
   }
-
+  
   private static KeyExtent makeExtent(String table, String end, String prev) {
     return new KeyExtent(new Text(table), toText(end), toText(prev));
   }
-
+  
   private static Text toText(String value) {
     if (value != null)
       return new Text(value);
     return null;
   }
-
+  
 }

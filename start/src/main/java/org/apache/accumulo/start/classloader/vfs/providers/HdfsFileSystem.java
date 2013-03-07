@@ -37,7 +37,7 @@ import org.apache.hadoop.fs.Path;
 
 /**
  * A VFS FileSystem that interacts with HDFS.
- *
+ * 
  * @since 2.1
  */
 public class HdfsFileSystem extends AbstractFileSystem
@@ -47,7 +47,7 @@ public class HdfsFileSystem extends AbstractFileSystem
     private FileSystem fs;
 
     /**
-     *
+     * 
      * @param rootName
      * @param fileSystemOptions
      */
@@ -149,16 +149,16 @@ public class HdfsFileSystem extends AbstractFileSystem
             {
         this.putFileToCache(file);
             }
-
+      
     }
-
+    
     /**
      * resync the file information if requested
      */
     if (getFileSystemManager().getCacheStrategy().equals(CacheStrategy.ON_RESOLVE)) {
       file.refresh();
     }
-
+    
     return file;
   }
 

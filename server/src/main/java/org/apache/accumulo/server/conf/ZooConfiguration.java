@@ -37,17 +37,17 @@ import org.apache.log4j.Logger;
 
 public class ZooConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(ZooConfiguration.class);
-
+  
   private final AccumuloConfiguration parent;
   private static ZooConfiguration instance = null;
   private static String instanceId = null;
   private static ZooCache propCache = null;
   private final Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<String,String>());
-
+  
   private ZooConfiguration(AccumuloConfiguration parent) {
     this.parent = parent;
   }
-
+  
   synchronized public static ZooConfiguration getInstance(Instance inst, AccumuloConfiguration parent) {
     if (instance == null) {
       propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
@@ -56,7 +56,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
     }
     return instance;
   }
-
+  
   synchronized public static ZooConfiguration getInstance(AccumuloConfiguration parent) {
     if (instance == null) {
       propCache = new ZooCache(parent.get(Property.INSTANCE_ZK_HOST), (int) parent.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
@@ -67,11 +67,11 @@ public class ZooConfiguration extends AccumuloConfiguration {
     }
     return instance;
   }
-
+  
   private String _get(Property property) {
     String key = property.getKey();
     String value = null;
-
+    
     if (Property.isValidZooPropertyKey(key)) {
       try {
         value = get(key);
@@ -79,7 +79,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
         log.warn("failed to lookup property in zookeeper: " + key, e);
       }
     }
-
+    
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using parent value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
@@ -87,7 +87,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
     }
     return value;
   }
-
+  
   @Override
   public String get(Property property) {
     if (Property.isFixedZooPropertyKey(property)) {
@@ -99,13 +99,13 @@ public class ZooConfiguration extends AccumuloConfiguration {
           fixedProps.put(property.getKey(), val);
           return val;
         }
-
+        
       }
     } else {
       return _get(property);
     }
   }
-
+  
   private String get(String key) {
     String zPath = ZooUtil.getRoot(instanceId) + Constants.ZCONFIG + "/" + key;
     byte[] v = propCache.get(zPath);
@@ -114,14 +114,14 @@ public class ZooConfiguration extends AccumuloConfiguration {
       value = new String(v);
     return value;
   }
-
+  
   @Override
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
-
+    
     for (Entry<String,String> parentEntry : parent)
       entries.put(parentEntry.getKey(), parentEntry.getValue());
-
+    
     List<String> children = propCache.getChildren(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG);
     if (children != null) {
       for (String child : children) {
@@ -130,15 +130,15 @@ public class ZooConfiguration extends AccumuloConfiguration {
           entries.put(child, value);
       }
     }
-
+    
     /*
      * //this code breaks the shells ability to show updates just made //the code is probably not needed as fixed props are only obtained through get
-     *
+     * 
      * for(Property prop : Property.getFixedProperties()) get(prop);
-     *
+     * 
      * for(Entry<String, String> fprop : fixedProps.entrySet()) entries.put(fprop.getKey(), fprop.getValue());
      */
-
+    
     return entries.entrySet().iterator();
   }
 }

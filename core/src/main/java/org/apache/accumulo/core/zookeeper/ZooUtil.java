@@ -23,7 +23,7 @@ public class ZooUtil extends org.apache.accumulo.fate.zookeeper.ZooUtil {
   public static String getRoot(final Instance instance) {
     return getRoot(instance.getInstanceID());
   }
-
+  
   public static String getRoot(final String instanceId) {
     return Constants.ZROOT + "/" + instanceId;
   }

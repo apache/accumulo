@@ -25,7 +25,7 @@ public class KeyUtilTest extends TestCase {
   public static void checkSeps(String... s) {
     Text t = KeyUtil.buildNullSepText(s);
     String[] rets = KeyUtil.splitNullSepText(t);
-
+    
     int length = 0;
     for (String str : s)
       length += str.length();
@@ -34,7 +34,7 @@ public class KeyUtilTest extends TestCase {
     for (int i = 0; i < s.length; i++)
       assertEquals(s[i], rets[i]);
   }
-
+  
   public void testNullSep() {
     checkSeps("abc", "d", "", "efgh");
     checkSeps("ab", "");

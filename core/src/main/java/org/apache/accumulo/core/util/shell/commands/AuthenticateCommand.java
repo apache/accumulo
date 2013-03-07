@@ -42,22 +42,22 @@ public class AuthenticateCommand extends Command {
     shellState.getReader().printString((valid ? "V" : "Not v") + "alid\n");
     return 0;
   }
-
+  
   @Override
   public String description() {
     return "verifies a user's credentials";
   }
-
+  
   @Override
   public String usage() {
     return getName() + " <username>";
   }
-
+  
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
-
+  
   @Override
   public int numArgs() {
     return 1;

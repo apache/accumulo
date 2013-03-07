@@ -25,17 +25,17 @@ public class DateTimeType extends CellType<Long> {
   private SimpleDateFormat simple;
   private int dateFormat;
   private int timeFormat;
-
+  
   public DateTimeType(int dateFormat, int timeFormat) {
     this.dateFormat = dateFormat;
     this.timeFormat = timeFormat;
     this.simple = null;
   }
-
+  
   public DateTimeType(SimpleDateFormat fmt) {
     simple = fmt;
   }
-
+  
   @Override
   public String format(Object obj) {
     if (obj == null)
@@ -47,7 +47,7 @@ public class DateTimeType extends CellType<Long> {
       return simple.format(new Date(millis)).replace(" ", "&nbsp;");
     return DateFormat.getDateTimeInstance(dateFormat, timeFormat, Locale.getDefault()).format(new Date(millis)).replace(" ", "&nbsp;");
   }
-
+  
   @Override
   public int compare(Long o1, Long o2) {
     if (o1 == null && o2 == null)
@@ -57,10 +57,10 @@ public class DateTimeType extends CellType<Long> {
     else
       return o1.compareTo(o2);
   }
-
+  
   @Override
   public String alignment() {
     return "right";
   }
-
+  
 }

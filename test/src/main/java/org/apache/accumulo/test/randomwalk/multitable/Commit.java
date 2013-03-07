@@ -22,18 +22,18 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class Commit extends Test {
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     state.getMultiTableBatchWriter().flush();
-
+    
     Long numWrites = state.getLong("numWrites");
     Long totalWrites = state.getLong("totalWrites") + numWrites;
-
+    
     log.debug("Committed " + numWrites + " writes.  Total writes: " + totalWrites);
-
+    
     state.set("totalWrites", totalWrites);
     state.set("numWrites", new Long(0));
   }
-
+  
 }

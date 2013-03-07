@@ -37,7 +37,7 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
 
 public class WholeRowIteratorTest extends TestCase {
-
+  
   public void testEmptyStuff() throws IOException {
     SortedMap<Key,Value> map = new TreeMap<Key,Value>();
     SortedMap<Key,Value> map2 = new TreeMap<Key,Value>();
@@ -83,7 +83,7 @@ public class WholeRowIteratorTest extends TestCase {
     }
     assertTrue(numRows == 5);
     assertEquals(resultMap, map);
-
+    
     WholeRowIterator iter2 = new WholeRowIterator(source) {
       @Override
       public boolean filter(Text row, List<Key> keys, List<Value> values) {
@@ -103,81 +103,81 @@ public class WholeRowIteratorTest extends TestCase {
     assertTrue(numRows == trueCount);
     assertEquals(resultMap, map2);
   }
-
+  
   private void pkv(SortedMap<Key,Value> map, String row, String cf, String cq, String cv, long ts, String val) {
     map.put(new Key(new Text(row), new Text(cf), new Text(cq), new Text(cv), ts), new Value(val.getBytes()));
   }
-
+  
   public void testContinue() throws Exception {
     SortedMap<Key,Value> map1 = new TreeMap<Key,Value>();
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, "foo");
     pkv(map1, "row1", "cf1", "cq2", "cv1", 6, "bar");
-
+    
     SortedMap<Key,Value> map2 = new TreeMap<Key,Value>();
     pkv(map2, "row2", "cf1", "cq1", "cv1", 5, "foo");
     pkv(map2, "row2", "cf1", "cq2", "cv1", 6, "bar");
-
+    
     SortedMap<Key,Value> map3 = new TreeMap<Key,Value>();
     pkv(map3, "row3", "cf1", "cq1", "cv1", 5, "foo");
     pkv(map3, "row3", "cf1", "cq2", "cv1", 6, "bar");
-
+    
     SortedMap<Key,Value> map = new TreeMap<Key,Value>();
     map.putAll(map1);
     map.putAll(map2);
     map.putAll(map3);
-
+    
     SortedMapIterator source = new SortedMapIterator(map);
     WholeRowIterator iter = new WholeRowIterator(source);
-
+    
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);
     iter.seek(range, new ArrayList<ByteSequence>(), false);
-
+    
     assertTrue(iter.hasTop());
     assertEquals(map1, WholeRowIterator.decodeRow(iter.getTopKey(), iter.getTopValue()));
-
+    
     // simulate something continuing using the last key from the iterator
     // this is what client and server code will do
     range = new Range(iter.getTopKey(), false, range.getEndKey(), range.isEndKeyInclusive());
     iter.seek(range, new ArrayList<ByteSequence>(), false);
-
+    
     assertTrue(iter.hasTop());
     assertEquals(map2, WholeRowIterator.decodeRow(iter.getTopKey(), iter.getTopValue()));
-
+    
     iter.next();
-
+    
     assertFalse(iter.hasTop());
-
+    
   }
-
+  
   public void testBug1() throws Exception {
     SortedMap<Key,Value> map1 = new TreeMap<Key,Value>();
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, "foo");
     pkv(map1, "row1", "cf1", "cq2", "cv1", 6, "bar");
-
+    
     SortedMap<Key,Value> map2 = new TreeMap<Key,Value>();
     pkv(map2, "row2", "cf1", "cq1", "cv1", 5, "foo");
-
+    
     SortedMap<Key,Value> map = new TreeMap<Key,Value>();
     map.putAll(map1);
     map.putAll(map2);
-
+    
     MultiIterator source = new MultiIterator(Collections.singletonList((SortedKeyValueIterator<Key,Value>) new SortedMapIterator(map)), new Range(null, true,
         new Text("row1"), true));
     WholeRowIterator iter = new WholeRowIterator(source);
-
+    
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);
     iter.seek(range, new ArrayList<ByteSequence>(), false);
-
+    
     assertTrue(iter.hasTop());
     assertEquals(map1, WholeRowIterator.decodeRow(iter.getTopKey(), iter.getTopValue()));
-
+    
     // simulate something continuing using the last key from the iterator
     // this is what client and server code will do
     range = new Range(iter.getTopKey(), false, range.getEndKey(), range.isEndKeyInclusive());
     iter.seek(range, new ArrayList<ByteSequence>(), false);
-
+    
     assertFalse(iter.hasTop());
-
+    
   }
-
+  
 }

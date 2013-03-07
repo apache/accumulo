@@ -29,12 +29,12 @@ import org.apache.zookeeper.KeeperException;
 import com.beust.jcommander.Parameter;
 
 public class DeleteZooInstance {
-
+  
   static class Opts extends Help {
     @Parameter(names={"-i", "--instance"}, description="the instance name or id to delete")
     String instance;
   }
-
+  
   static void deleteRetry(IZooReaderWriter zk, String path) throws Exception {
     for (int i = 0; i < 10; i++){
       try {
@@ -47,7 +47,7 @@ public class DeleteZooInstance {
       }
     }
   }
-
+  
   /**
    * @param args
    *          : the name or UUID of the instance to be deleted
@@ -55,7 +55,7 @@ public class DeleteZooInstance {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(DeleteZooInstance.class.getName(), args);
-
+    
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     // try instance name:
     Set<String> instances = new HashSet<String>(zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES));
@@ -77,5 +77,5 @@ public class DeleteZooInstance {
       deleteRetry(zk, Constants.ZROOT + "/" + opts.instance);
     }
   }
-
+  
 }

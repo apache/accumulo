@@ -34,26 +34,26 @@ import org.apache.log4j.Logger;
  */
 public class ChunkInputStream extends InputStream {
   private static final Logger log = Logger.getLogger(ChunkInputStream.class);
-
+  
   protected PeekingIterator<Entry<Key,Value>> source;
   protected Key currentKey;
   protected Set<Text> currentVis;
   protected int currentChunk;
   protected int currentChunkSize;
   protected boolean gotEndMarker;
-
+  
   protected byte buf[];
   protected int count;
   protected int pos;
-
+  
   public ChunkInputStream() {
     source = null;
   }
-
+  
   public ChunkInputStream(PeekingIterator<Entry<Key,Value>> in) throws IOException {
     setSource(in);
   }
-
+  
   public void setSource(PeekingIterator<Entry<Key,Value>> in) throws IOException {
     if (source != null)
       throw new IOException("setting new source without closing old one");
@@ -65,7 +65,7 @@ public class ChunkInputStream extends InputStream {
       gotEndMarker = true;
       return;
     }
-
+    
     // read forward until we reach a chunk
     Entry<Key,Value> entry = source.next();
     currentKey = entry.getKey();
@@ -91,7 +91,7 @@ public class ChunkInputStream extends InputStream {
       throw new IOException("starting chunk number isn't 0 for " + currentKey.getRow());
     }
   }
-
+  
   private int fill() throws IOException {
     if (source == null || !source.hasNext()) {
       if (gotEndMarker)
@@ -99,11 +99,11 @@ public class ChunkInputStream extends InputStream {
       else
         throw new IOException("no end chunk marker but source has no data");
     }
-
+    
     Entry<Key,Value> entry = source.peek();
     Key thisKey = entry.getKey();
     log.debug("evaluating key: " + thisKey.toString());
-
+    
     // check that we're still on the same row
     if (!thisKey.equals(currentKey, PartialKey.ROW)) {
       if (gotEndMarker)
@@ -115,39 +115,39 @@ public class ChunkInputStream extends InputStream {
       }
     }
     log.debug("matches current key");
-
+    
     // ok to advance the iterator
     source.next();
-
+    
     // check that this is part of a chunk
     if (!thisKey.getColumnFamily().equals(FileDataIngest.CHUNK_CF)) {
       log.debug("skipping non-chunk key");
       return fill();
     }
     log.debug("is a chunk");
-
+    
     // check that the chunk size is the same as the one being read
     if (currentChunkSize != FileDataIngest.bytesToInt(thisKey.getColumnQualifier().getBytes(), 0)) {
       log.debug("skipping chunk of different size");
       return fill();
     }
-
+    
     // add the visibility to the list if it's not there
     if (!currentVis.contains(thisKey.getColumnVisibility()))
       currentVis.add(thisKey.getColumnVisibility());
-
+    
     // check to see if it is an identical chunk with a different visibility
     if (thisKey.getColumnQualifier().equals(currentKey.getColumnQualifier())) {
       log.debug("skipping identical chunk with different visibility");
       return fill();
     }
-
+    
     if (gotEndMarker) {
       log.debug("got another chunk after end marker: " + currentKey.toString() + " " + thisKey.toString());
       clear();
       throw new IOException("found extra chunk after end marker");
     }
-
+    
     // got new chunk of the same file, check that it's the next chunk
     int thisChunk = FileDataIngest.bytesToInt(thisKey.getColumnQualifier().getBytes(), 4);
     if (thisChunk != currentChunk + 1) {
@@ -155,27 +155,27 @@ public class ChunkInputStream extends InputStream {
       clear();
       throw new IOException("missing chunks between " + currentChunk + " and " + thisChunk);
     }
-
+    
     currentKey = thisKey;
     currentChunk = thisChunk;
     buf = entry.getValue().get();
     pos = 0;
-
+    
     // check to see if it's the last chunk
     if (buf.length == 0) {
       gotEndMarker = true;
       return fill();
     }
-
+    
     return count = buf.length;
   }
-
+  
   public Set<Text> getVisibilities() {
     if (source != null)
       throw new IllegalStateException("don't get visibilities before chunks have been completely read");
     return currentVis;
   }
-
+  
   public int read() throws IOException {
     if (source == null)
       return -1;
@@ -191,7 +191,7 @@ public class ChunkInputStream extends InputStream {
     }
     return buf[pos++] & 0xff;
   }
-
+  
   @Override
   public int read(byte[] b, int off, int len) throws IOException {
     if (b == null) {
@@ -201,7 +201,7 @@ public class ChunkInputStream extends InputStream {
     } else if (len == 0) {
       return 0;
     }
-
+    
     log.debug("filling buffer " + off + " " + len);
     int total = 0;
     while (total < len) {
@@ -218,7 +218,7 @@ public class ChunkInputStream extends InputStream {
         }
         avail = count - pos;
       }
-
+      
       int cnt = (avail < len - total) ? avail : len - total;
       log.debug("copying from local buffer: local pos " + pos + " into pos " + off + " len " + cnt);
       System.arraycopy(buf, pos, b, off, cnt);
@@ -229,7 +229,7 @@ public class ChunkInputStream extends InputStream {
     log.debug("filled " + total + " bytes");
     return total;
   }
-
+  
   public void clear() {
     source = null;
     buf = null;
@@ -237,7 +237,7 @@ public class ChunkInputStream extends InputStream {
     currentChunk = 0;
     pos = count = 0;
   }
-
+  
   @Override
   public void close() throws IOException {
     try {

@@ -33,28 +33,28 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.security.Authorizations;
 
 public class MockConnector extends Connector {
-
+  
   String username;
   private final MockAccumulo acu;
   private final Instance instance;
-
+  
   MockConnector(String username, MockInstance instance) {
     this(username, new MockAccumulo(MockInstance.getDefaultFileSystem()), instance);
   }
-
+  
   MockConnector(String username, MockAccumulo acu, MockInstance instance) {
     this.username = username;
     this.acu = acu;
     this.instance = instance;
   }
-
+  
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
     if (acu.tables.get(tableName) == null)
       throw new TableNotFoundException(tableName, tableName, "no such table");
     return acu.createBatchScanner(tableName, authorizations);
   }
-
+  
   @Deprecated
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
@@ -63,14 +63,14 @@ public class MockConnector extends Connector {
       throw new TableNotFoundException(tableName, tableName, "no such table");
     return new MockBatchDeleter(acu, tableName, authorizations);
   }
-
+  
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
       throws TableNotFoundException {
     return createBatchDeleter(tableName, authorizations, numQueryThreads, config.getMaxMemory(), config.getMaxLatency(TimeUnit.MILLISECONDS),
         config.getMaxWriteThreads());
   }
-
+  
   @Deprecated
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
@@ -78,23 +78,23 @@ public class MockConnector extends Connector {
       throw new TableNotFoundException(tableName, tableName, "no such table");
     return new MockBatchWriter(acu, tableName);
   }
-
+  
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
     return createBatchWriter(tableName, config.getMaxMemory(), config.getMaxLatency(TimeUnit.MILLISECONDS), config.getMaxWriteThreads());
   }
-
+  
   @Deprecated
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
     return new MockMultiTableBatchWriter(acu);
   }
-
+  
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
     return createMultiTableBatchWriter(config.getMaxMemory(), config.getMaxLatency(TimeUnit.MILLISECONDS), config.getMaxWriteThreads());
   }
-
+  
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
     MockTable table = acu.tables.get(tableName);
@@ -102,30 +102,30 @@ public class MockConnector extends Connector {
       throw new TableNotFoundException(tableName, tableName, "no such table");
     return new MockScanner(table, authorizations);
   }
-
+  
   @Override
   public Instance getInstance() {
     return instance;
   }
-
+  
   @Override
   public String whoami() {
     return username;
   }
-
+  
   @Override
   public TableOperations tableOperations() {
     return new MockTableOperations(acu, username);
   }
-
+  
   @Override
   public SecurityOperations securityOperations() {
     return new MockSecurityOperations(acu);
   }
-
+  
   @Override
   public InstanceOperations instanceOperations() {
     return new MockInstanceOperations(acu);
   }
-
+  
 }

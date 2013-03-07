@@ -68,30 +68,30 @@ import org.apache.log4j.Logger;
 
 
 public class Compactor implements Callable<CompactionStats> {
-
+  
   public class CountingIterator extends WrappingIterator {
-
+    
     private long count;
-
+    
     public CountingIterator deepCopy(IteratorEnvironment env) {
       return new CountingIterator(this, env);
     }
-
+    
     private CountingIterator(CountingIterator other, IteratorEnvironment env) {
       setSource(other.getSource().deepCopy(env));
       count = 0;
     }
-
+    
     public CountingIterator(SortedKeyValueIterator<Key,Value> source) {
       this.setSource(source);
       count = 0;
     }
-
+    
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) {
       throw new UnsupportedOperationException();
     }
-
+    
     @Override
     public void next() throws IOException {
       super.next();
@@ -100,24 +100,24 @@ public class Compactor implements Callable<CompactionStats> {
         entriesRead.addAndGet(1024);
       }
     }
-
+    
     public long getCount() {
       return count;
     }
   }
 
   private static final Logger log = Logger.getLogger(Compactor.class);
-
+  
   static class CompactionCanceledException extends Exception {
     private static final long serialVersionUID = 1L;
   }
-
+  
   static interface CompactionEnv {
     boolean isCompactionEnabled();
-
+    
     IteratorScope getIteratorScope();
   }
-
+  
   private Map<String,DataFileValue> filesToCompact;
   private InMemoryMap imm;
   private String outputFile;
@@ -128,17 +128,17 @@ public class Compactor implements Callable<CompactionStats> {
   private FileSystem fs;
   protected KeyExtent extent;
   private List<IteratorSetting> iterators;
-
+  
   // things to report
   private String currentLocalityGroup = "";
   private long startTime;
 
   private MajorCompactionReason reason;
   protected MinorCompactionReason mincReason;
-
+  
   private AtomicLong entriesRead = new AtomicLong(0);
   private AtomicLong entriesWritten = new AtomicLong(0);
-
+  
   private synchronized void setLocalityGroup(String name) {
     this.currentLocalityGroup = name;
   }
@@ -149,14 +149,14 @@ public class Compactor implements Callable<CompactionStats> {
   }
 
   protected static Set<Compactor> runningCompactions = Collections.synchronizedSet(new HashSet<Compactor>());
-
+  
   public static class CompactionInfo {
-
+    
     private Compactor compactor;
     private String localityGroup;
     private long entriesRead;
     private long entriesWritten;
-
+    
     CompactionInfo(Compactor compactor) {
       this.localityGroup = compactor.currentLocalityGroup;
       this.entriesRead = compactor.entriesRead.get();
@@ -165,9 +165,9 @@ public class Compactor implements Callable<CompactionStats> {
     }
 
     public ActiveCompaction toThrift() {
-
+      
       CompactionType type;
-
+      
       if (compactor.imm != null)
         if (compactor.filesToCompact.size() > 0)
           type = CompactionType.MERGE;
@@ -177,9 +177,9 @@ public class Compactor implements Callable<CompactionStats> {
         type = CompactionType.FULL;
       else
         type = CompactionType.MAJOR;
-
+      
       CompactionReason reason;
-
+      
       if (compactor.imm != null)
         switch(compactor.mincReason){
           case USER:
@@ -209,29 +209,29 @@ public class Compactor implements Callable<CompactionStats> {
             reason = CompactionReason.SYSTEM;
             break;
         }
-
+      
       List<IterInfo> iiList = new ArrayList<IterInfo>();
       Map<String,Map<String,String>> iterOptions = new HashMap<String,Map<String,String>>();
-
+      
       for (IteratorSetting iterSetting : compactor.iterators) {
         iiList.add(new IterInfo(iterSetting.getPriority(), iterSetting.getIteratorClass(), iterSetting.getName()));
         iterOptions.put(iterSetting.getName(), iterSetting.getOptions());
       }
-
+      
       return new ActiveCompaction(compactor.extent.toThrift(), System.currentTimeMillis() - compactor.startTime, new ArrayList<String>(
           compactor.filesToCompact.keySet()), compactor.outputFile, type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);
     }
   }
-
+  
   public static List<CompactionInfo> getRunningCompactions() {
     ArrayList<CompactionInfo> compactions = new ArrayList<Compactor.CompactionInfo>();
-
+    
     synchronized (runningCompactions) {
       for (Compactor compactor : runningCompactions) {
         compactions.add(new CompactionInfo(compactor));
       }
     }
-
+    
     return compactions;
   }
 
@@ -248,53 +248,53 @@ public class Compactor implements Callable<CompactionStats> {
     this.env = env;
     this.iterators = iterators;
     this.reason = reason;
-
+    
     startTime = System.currentTimeMillis();
   }
-
+  
   Compactor(Configuration conf, FileSystem fs, Map<String,DataFileValue> files, InMemoryMap imm, String outputFile, boolean propogateDeletes,
       TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env) {
     this(conf, fs, files, imm, outputFile, propogateDeletes, acuTableConf, extent, env, new ArrayList<IteratorSetting>(), null);
   }
-
+  
   public FileSystem getFileSystem() {
     return fs;
   }
-
+  
   KeyExtent getExtent() {
     return extent;
   }
-
+  
   String getOutputFile() {
     return outputFile;
   }
-
+  
   @Override
   public CompactionStats call() throws IOException, CompactionCanceledException {
-
+    
     FileSKVWriter mfw = null;
-
+    
     CompactionStats majCStats = new CompactionStats();
 
     boolean remove = runningCompactions.add(this);
-
+    
     clearStats();
 
     try {
       FileOperations fileFactory = FileOperations.getInstance();
       mfw = fileFactory.openWriter(outputFile, fs, conf, acuTableConf);
-
+      
       Map<String,Set<ByteSequence>> lGroups;
       try {
         lGroups = LocalityGroupUtil.getLocalityGroups(acuTableConf);
       } catch (LocalityGroupConfigurationError e) {
         throw new IOException(e);
       }
-
+      
       long t1 = System.currentTimeMillis();
-
+      
       HashSet<ByteSequence> allColumnFamilies = new HashSet<ByteSequence>();
-
+      
       if (mfw.supportsLocalityGroups()) {
         for (Entry<String,Set<ByteSequence>> entry : lGroups.entrySet()) {
           setLocalityGroup(entry.getKey());
@@ -302,16 +302,16 @@ public class Compactor implements Callable<CompactionStats> {
           allColumnFamilies.addAll(entry.getValue());
         }
       }
-
+      
       setLocalityGroup("");
       compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats);
-
+      
       long t2 = System.currentTimeMillis();
-
+      
       FileSKVWriter mfwTmp = mfw;
       mfw = null; // set this to null so we do not try to close it again in finally if the close fails
       mfwTmp.close(); // if the close fails it will cause the compaction to fail
-
+      
       // Verify the file, since hadoop 0.20.2 sometimes lies about the success of close()
       try {
         FileSKVIterator openReader = fileFactory.openReader(outputFile, false, fs, conf, acuTableConf);
@@ -320,10 +320,10 @@ public class Compactor implements Callable<CompactionStats> {
         log.error("Verification of successful compaction fails!!! " + extent + " " + outputFile, ex);
         throw ex;
       }
-
+      
       log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %6.3f secs", extent, majCStats.getEntriesRead(),
           majCStats.getEntriesWritten(), (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0));
-
+      
       majCStats.setFileSize(fileFactory.getFileSize(outputFile, fs, conf, acuTableConf));
       return majCStats;
     } catch (IOException e) {
@@ -333,7 +333,7 @@ public class Compactor implements Callable<CompactionStats> {
       log.error(e, e);
       throw e;
     } finally {
-
+      
       if (remove)
         runningCompactions.remove(this);
 
@@ -356,32 +356,32 @@ public class Compactor implements Callable<CompactionStats> {
   }
 
   private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(String lgName, ArrayList<FileSKVIterator> readers) throws IOException {
-
+    
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(filesToCompact.size());
-
+    
     for (String mapFile : filesToCompact.keySet()) {
       try {
-
+        
         FileOperations fileFactory = FileOperations.getInstance();
-
+        
         FileSKVIterator reader;
-
+        
         reader = fileFactory.openReader(mapFile, false, fs, conf, acuTableConf);
-
+        
         readers.add(reader);
-
+        
         SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(extent.getTableId().toString(), mapFile, false, reader);
-
+        
         if (filesToCompact.get(mapFile).isTimeSet()) {
           iter = new TimeSettingIterator(iter, filesToCompact.get(mapFile).getTime());
         }
-
+        
         iters.add(iter);
-
+        
       } catch (Throwable e) {
-
+        
         ProblemReports.getInstance().report(new ProblemReport(extent.getTableId().toString(), ProblemType.FILE_READ, mapFile, e));
-
+        
         log.warn("Some problem opening map file " + mapFile + " " + e.getMessage(), e);
         // failed to open some map file... close the ones that were opened
         for (FileSKVIterator reader : readers) {
@@ -391,18 +391,18 @@ public class Compactor implements Callable<CompactionStats> {
             log.warn("Failed to close map file", e2);
           }
         }
-
+        
         readers.clear();
-
+        
         if (e instanceof IOException)
           throw (IOException) e;
         throw new IOException("Failed to open map data files", e);
       }
     }
-
+    
     return iters;
   }
-
+  
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies, boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats)
       throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<FileSKVIterator>(filesToCompact.size());
@@ -410,18 +410,18 @@ public class Compactor implements Callable<CompactionStats> {
     try {
       long entriesCompacted = 0;
       List<SortedKeyValueIterator<Key,Value>> iters = openMapDataFiles(lgName, readers);
-
+      
       if (imm != null) {
         iters.add(imm.compactionIterator());
       }
-
+      
       CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()));
       DeletingIterator delIter = new DeletingIterator(citr, propogateDeletes);
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
-
+      
 
       // if(env.getIteratorScope() )
-
+      
       TabletIteratorEnvironment iterEnv;
       if (env.getIteratorScope() == IteratorScope.majc)
         iterEnv = new TabletIteratorEnvironment(IteratorScope.majc, !propogateDeletes, acuTableConf);
@@ -429,25 +429,25 @@ public class Compactor implements Callable<CompactionStats> {
         iterEnv = new TabletIteratorEnvironment(IteratorScope.minc, acuTableConf);
       else
         throw new IllegalArgumentException();
-
+      
       SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(env.getIteratorScope(), cfsi, extent, acuTableConf,
           iterators, iterEnv));
-
+      
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
-
+      
       if (!inclusive) {
         mfw.startDefaultLocalityGroup();
       } else {
         mfw.startNewLocalityGroup(lgName, columnFamilies);
       }
-
+      
       Span write = Trace.start("write");
       try {
         while (itr.hasTop() && env.isCompactionEnabled()) {
           mfw.append(itr.getTopKey(), itr.getTopValue());
           itr.next();
           entriesCompacted++;
-
+          
           if (entriesCompacted % 1024 == 0) {
             // Periodically update stats, do not want to do this too often since its volatile
             entriesWritten.addAndGet(1024);
@@ -468,13 +468,13 @@ public class Compactor implements Callable<CompactionStats> {
           }
           throw new CompactionCanceledException();
         }
-
+        
       } finally {
         CompactionStats lgMajcStats = new CompactionStats(citr.getCount(), entriesCompacted);
         majCStats.add(lgMajcStats);
         write.stop();
       }
-
+      
     } finally {
       // close sequence files opened
       for (FileSKVIterator reader : readers) {
@@ -487,5 +487,5 @@ public class Compactor implements Callable<CompactionStats> {
       span.stop();
     }
   }
-
+  
 }

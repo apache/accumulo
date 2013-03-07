@@ -31,26 +31,26 @@ import org.apache.log4j.Logger;
 import com.beust.jcommander.Parameter;
 
 public class RandomWriter {
-
+  
   private static String table_name = "test_write_table";
   private static int num_columns_per_row = 1;
   private static int num_payload_bytes = 1024;
   private static final Logger log = Logger.getLogger(RandomWriter.class);
-
+  
   public static class RandomMutationGenerator implements Iterable<Mutation>, Iterator<Mutation> {
     private long max_mutations;
     private int mutations_so_far = 0;
     private Random r = new Random();
     private static final Logger log = Logger.getLogger(RandomMutationGenerator.class);
-
+    
     public RandomMutationGenerator(long num_mutations) {
       max_mutations = num_mutations;
     }
-
+    
     public boolean hasNext() {
       return mutations_so_far < max_mutations;
     }
-
+    
     public Mutation next() {
       Text row_value = new Text(Long.toString((Math.abs(r.nextLong()) / 177) % 100000000000l));
       Mutation m = new Mutation(row_value);
@@ -66,11 +66,11 @@ public class RandomWriter {
       }
       return m;
     }
-
+    
     public void remove() {
       mutations_so_far++;
     }
-
+    
     @Override
     public Iterator<Mutation> iterator() {
       return this;
@@ -79,14 +79,14 @@ public class RandomWriter {
   static class Opts extends ClientOnDefaultTable {
     @Parameter(names="--count", description="number of mutations to write", required=true)
     long count;
-
+    
     Opts(String table) { super(table); }
   }
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts(table_name);
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RandomWriter.class.getName(), args, bwOpts);
-
+    
     long start = System.currentTimeMillis();
     log.info("starting at " + start + " for user " + opts.principal);
     try {
@@ -100,9 +100,9 @@ public class RandomWriter {
       throw e;
     }
     long stop = System.currentTimeMillis();
-
+    
     log.info("stopping at " + stop);
     log.info("elapsed: " + (((double) stop - (double) start) / 1000.0));
   }
-
+  
 }

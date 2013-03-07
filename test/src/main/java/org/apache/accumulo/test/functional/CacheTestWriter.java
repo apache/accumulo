@@ -33,40 +33,40 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 public class CacheTestWriter {
-
+  
   static final int NUM_DATA = 3;
-
+  
   public static void main(String[] args) throws Exception {
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
-
+    
     String rootDir = args[0];
     File reportDir = new File(args[1]);
     int numReaders = Integer.parseInt(args[2]);
     int numVerifications = Integer.parseInt(args[3]);
     int numData = NUM_DATA;
-
+    
     boolean dataSExists = false;
     int count = 0;
-
+    
     zk.putPersistentData(rootDir, new byte[0], NodeExistsPolicy.FAIL);
     for (int i = 0; i < numData; i++) {
       zk.putPersistentData(rootDir + "/data" + i, new byte[0], NodeExistsPolicy.FAIL);
     }
-
+    
     zk.putPersistentData(rootDir + "/dir", new byte[0], NodeExistsPolicy.FAIL);
-
+    
     ArrayList<String> children = new ArrayList<String>();
-
+    
     Random r = new Random();
-
+    
     while (count++ < numVerifications) {
-
+      
       Map<String,String> expectedData = null;
       // change children in dir
-
+      
       for (int u = 0; u < r.nextInt(4) + 1; u++) {
         expectedData = new TreeMap<String,String>();
-
+        
         if (r.nextFloat() < .5) {
           String child = UUID.randomUUID().toString();
           zk.putPersistentData(rootDir + "/dir/" + child, new byte[0], NodeExistsPolicy.SKIP);
@@ -76,32 +76,32 @@ public class CacheTestWriter {
           String child = children.remove(index);
           zk.recursiveDelete(rootDir + "/dir/" + child, NodeMissingPolicy.FAIL);
         }
-
+        
         for (String child : children) {
           expectedData.put(rootDir + "/dir/" + child, "");
         }
-
+        
         // change values
         for (int i = 0; i < numData; i++) {
           byte data[] = Long.toString(r.nextLong(), 16).getBytes();
           zk.putPersistentData(rootDir + "/data" + i, data, NodeExistsPolicy.OVERWRITE);
           expectedData.put(rootDir + "/data" + i, new String(data));
         }
-
+        
         // test a data node that does not always exists...
         if (r.nextFloat() < .5) {
-
+          
           byte data[] = Long.toString(r.nextLong(), 16).getBytes();
-
+          
           if (!dataSExists) {
             zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.SKIP);
             dataSExists = true;
           } else {
             zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.OVERWRITE);
           }
-
+          
           expectedData.put(rootDir + "/dataS", new String(data));
-
+          
         } else {
           if (dataSExists) {
             zk.recursiveDelete(rootDir + "/dataS", NodeMissingPolicy.FAIL);
@@ -109,34 +109,34 @@ public class CacheTestWriter {
           }
         }
       }
-
+      
       // change children in dir and change values
-
+      
       System.out.println("expectedData " + expectedData);
-
+      
       // wait for all readers to see changes
       while (true) {
-
+        
         File[] files = reportDir.listFiles();
-
+        
         System.out.println("files.length " + files.length);
-
+        
         if (files.length == numReaders) {
           boolean ok = true;
-
+          
           for (int i = 0; i < files.length; i++) {
             try {
               FileInputStream fis = new FileInputStream(files[i]);
               ObjectInputStream ois = new ObjectInputStream(fis);
-
+              
               @SuppressWarnings("unchecked")
               Map<String,String> readerMap = (Map<String,String>) ois.readObject();
-
+              
               fis.close();
               ois.close();
-
+              
               System.out.println("read " + readerMap);
-
+              
               if (!readerMap.equals(expectedData)) {
                 System.out.println("maps not equals");
                 ok = false;
@@ -146,16 +146,16 @@ public class CacheTestWriter {
               ok = false;
             }
           }
-
+          
           if (ok)
             break;
         }
-
+        
         UtilWaitThread.sleep(5);
       }
     }
-
+    
     zk.putPersistentData(rootDir + "/die", new byte[0], NodeExistsPolicy.FAIL);
   }
-
+  
 }

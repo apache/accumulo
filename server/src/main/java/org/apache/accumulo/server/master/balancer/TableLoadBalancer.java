@@ -38,26 +38,26 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
 public class TableLoadBalancer extends TabletBalancer {
-
+  
   private static final Logger log = Logger.getLogger(TableLoadBalancer.class);
-
+  
   Map<String,TabletBalancer> perTableBalancers = new HashMap<String,TabletBalancer>();
-
+  
   private TabletBalancer constructNewBalancerForTable(String clazzName, String table) throws Exception {
     Class<? extends TabletBalancer> clazz = AccumuloVFSClassLoader.loadClass(clazzName, TabletBalancer.class);
     Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(String.class);
     return constructor.newInstance(table);
   }
-
+  
   protected String getLoadBalancerClassNameForTable(String table) {
     return configuration.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
   }
-
+  
   protected TabletBalancer getBalancerForTable(String table) {
     TabletBalancer balancer = perTableBalancers.get(table);
-
+    
     String clazzName = getLoadBalancerClassNameForTable(table);
-
+    
     if (clazzName == null)
       clazzName = DefaultLoadBalancer.class.getName();
     if (balancer != null) {
@@ -83,7 +83,7 @@ public class TableLoadBalancer extends TabletBalancer {
       } catch (Exception e) {
         log.warn("Failed to load table balancer class " + clazzName + " for table " + table, e);
       }
-
+      
       if (balancer == null) {
         log.info("Using balancer " + DefaultLoadBalancer.class.getName() + " for table " + table);
         balancer = new DefaultLoadBalancer(table);
@@ -93,7 +93,7 @@ public class TableLoadBalancer extends TabletBalancer {
     }
     return balancer;
   }
-
+  
   @Override
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
       Map<KeyExtent,TServerInstance> assignments) {
@@ -113,9 +113,9 @@ public class TableLoadBalancer extends TabletBalancer {
       assignments.putAll(newAssignments);
     }
   }
-
+  
   private TableOperations tops = null;
-
+  
   protected TableOperations getTableOperations() {
     if (tops == null)
       try {
@@ -127,7 +127,7 @@ public class TableLoadBalancer extends TabletBalancer {
       }
     return tops;
   }
-
+  
   @Override
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     long minBalanceTime = 5 * 1000;

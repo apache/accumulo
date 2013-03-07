@@ -36,25 +36,25 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.log4j.Logger;
 
 public class State {
-
+  
   private static final Logger log = Logger.getLogger(State.class);
   private HashMap<String,Object> stateMap = new HashMap<String,Object>();
   private Properties props;
   private int numVisits = 0;
   private int maxVisits = Integer.MAX_VALUE;
-
+  
   private MultiTableBatchWriter mtbw = null;
   private Connector connector = null;
   private Instance instance = null;
-
+  
   State(Properties props) {
     this.props = props;
   }
-
+  
   public void setMaxVisits(int num) {
     maxVisits = num;
   }
-
+  
   public void visitedNode() throws Exception {
     numVisits++;
     if (numVisits > maxVisits) {
@@ -62,67 +62,67 @@ public class State {
       throw new Exception("Visited max number (" + maxVisits + ") of nodes");
     }
   }
-
+  
   public String getPid() {
     return ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
   }
-
+  
   public void set(String key, Object value) {
     stateMap.put(key, value);
   }
-
+  
   public Object get(String key) {
     if (stateMap.containsKey(key) == false) {
       throw new RuntimeException("State does not contain " + key);
     }
     return stateMap.get(key);
   }
-
+  
   public HashMap<String,Object> getMap() {
     return stateMap;
   }
-
+  
   /**
-   *
+   * 
    * @return a copy of Properties, so accidental changes don't affect the framework
    */
   public Properties getProperties() {
     return new Properties(props);
   }
-
+  
   public String getString(String key) {
     return (String) stateMap.get(key);
   }
-
+  
   public Long getLong(String key) {
     return (Long) stateMap.get(key);
   }
-
+  
   public String getProperty(String key) {
     return props.getProperty(key);
   }
-
+  
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (connector == null) {
       connector = getInstance().getConnector(getUserName(), getToken());
     }
     return connector;
   }
-
+  
   public TCredentials getCredentials() {
     String username = getUserName();
     AuthenticationToken password = getToken();
     return CredentialHelper.createSquelchError(username, password, getInstance().getInstanceID());
   }
-
+  
   public String getUserName() {
     return props.getProperty("USERNAME");
   }
-
+  
   public AuthenticationToken getToken() {
     return new PasswordToken(props.getProperty("PASSWORD"));
   }
-
+  
   public Instance getInstance() {
     if (instance == null) {
       String instance = props.getProperty("INSTANCE");
@@ -131,7 +131,7 @@ public class State {
     }
     return instance;
   }
-
+  
   public MultiTableBatchWriter getMultiTableBatchWriter() {
     if (mtbw == null) {
       long maxMem = Long.parseLong(props.getProperty("MAX_MEM"));
@@ -142,18 +142,18 @@ public class State {
     }
     return mtbw;
   }
-
+  
   public String getMapReduceJars() {
-
+    
     String acuHome = System.getenv("ACCUMULO_HOME");
     String zkHome = System.getenv("ZOOKEEPER_HOME");
-
+    
     if (acuHome == null || zkHome == null) {
       throw new RuntimeException("ACCUMULO or ZOOKEEPER home not set!");
     }
-
+    
     String retval = null;
-
+    
     File zkLib = new File(zkHome);
     String[] files = zkLib.list();
     for (int i = 0; i < files.length; i++) {
@@ -166,7 +166,7 @@ public class State {
         }
       }
     }
-
+    
     File libdir = new File(acuHome + "/lib");
     files = libdir.list();
     for (int i = 0; i < files.length; i++) {
@@ -180,7 +180,7 @@ public class State {
         }
       }
     }
-
+    
     return retval;
   }
 }

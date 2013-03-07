@@ -33,27 +33,27 @@ import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class ColumnFamilySkippingIterator extends SkippingIterator implements InterruptibleIterator {
-
+  
   protected Set<ByteSequence> colFamSet = null;
   protected TreeSet<ByteSequence> sortedColFams = null;
-
+  
   protected boolean inclusive = false;
   protected Range range;
-
+  
   public ColumnFamilySkippingIterator(SortedKeyValueIterator<Key,Value> source) {
     this.setSource(source);
   }
-
+  
   protected ColumnFamilySkippingIterator(SortedKeyValueIterator<Key,Value> source, Set<ByteSequence> colFamSet, boolean inclusive) {
     this(source);
     this.colFamSet = colFamSet;
     this.inclusive = inclusive;
   }
-
+  
   @Override
   protected void consume() throws IOException {
     int count = 0;
-
+    
     if (inclusive)
       while (getSource().hasTop() && !colFamSet.contains(getSource().getTopKey().getColumnFamilyData())) {
         if (count < 10) {
@@ -70,7 +70,7 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
             // seek to the next column family in the sorted list of column families
             reseek(new Key(getSource().getTopKey().getRowData().toArray(), higherCF.toArray(), new byte[0], new byte[0], Long.MAX_VALUE));
           }
-
+          
           count = 0;
         }
       }
@@ -86,7 +86,7 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
         }
       }
   }
-
+  
   private void reseek(Key key) throws IOException {
     if (range.afterEndKey(key)) {
       range = new Range(range.getEndKey(), true, range.getEndKey(), range.isEndKeyInclusive());
@@ -96,36 +96,36 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
       getSource().seek(range, colFamSet, inclusive);
     }
   }
-
+  
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     return new ColumnFamilySkippingIterator(getSource().deepCopy(env), colFamSet, inclusive);
   }
-
+  
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-
+    
     if (columnFamilies instanceof Set<?>) {
       colFamSet = (Set<ByteSequence>) columnFamilies;
     } else {
       colFamSet = new HashSet<ByteSequence>();
       colFamSet.addAll(columnFamilies);
     }
-
+    
     if (inclusive) {
       sortedColFams = new TreeSet<ByteSequence>(colFamSet);
     } else {
       sortedColFams = null;
     }
-
+    
     this.range = range;
     this.inclusive = inclusive;
     super.seek(range, colFamSet, inclusive);
   }
-
+  
   @Override
   public void setInterruptFlag(AtomicBoolean flag) {
     ((InterruptibleIterator) getSource()).setInterruptFlag(flag);
   }
-
+  
 }

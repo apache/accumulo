@@ -27,52 +27,52 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class ListCompactionsCommand extends Command {
-
+  
   private Option tserverOption, disablePaginationOpt;
-
+  
   @Override
   public String description() {
     return "lists what compactions are currently running in accumulo. See the accumulo.core.client.admin.ActiveCompaciton javadoc for more information about columns.";
   }
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-
+    
     List<String> tservers;
-
+    
     final InstanceOperations instanceOps = shellState.getConnector().instanceOperations();
-
+    
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
-
+    
     if (cl.hasOption(tserverOption.getOpt())) {
       tservers = new ArrayList<String>();
       tservers.add(cl.getOptionValue(tserverOption.getOpt()));
     } else {
       tservers = instanceOps.getTabletServers();
     }
-
+    
     shellState.printLines(new ActiveCompactionIterator(tservers, instanceOps), paginate);
-
+    
     return 0;
   }
-
+  
   @Override
   public int numArgs() {
     return 0;
   }
-
+  
   @Override
   public Options getOptions() {
     final Options opts = new Options();
-
+    
     tserverOption = new Option("ts", "tabletServer", true, "tablet server to list compactions for");
     tserverOption.setArgName("tablet server");
     opts.addOption(tserverOption);
-
+    
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     opts.addOption(disablePaginationOpt);
-
+    
     return opts;
   }
-
+  
 }
