@@ -69,7 +69,7 @@
       <!-- 
         change this to the root user's password, and/or change the user below 
        -->
-      <value>password=secret</value>
+      <value>secret</value>
     </property>
     
     <property>
