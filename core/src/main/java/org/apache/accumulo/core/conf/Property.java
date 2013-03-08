@@ -225,10 +225,10 @@ public enum Property {
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT, "The listening port for the trace server"),
   TRACE_TABLE("trace.table", "trace", PropertyType.STRING, "The name of the table to store distributed traces"),
   @Deprecated
-  TRACE_USER("trace.user", "root", PropertyType.STRING, "The name of the user to store distributed traces"),
+  TRACE_USER("trace.user", "root", PropertyType.STRING, "DEPRECATED SINCE 1.5, USE trace.principal. The name of the user to store distributed traces"),
   TRACE_PRINCIPAL("trace.principal", "root", PropertyType.STRING, "The principal to store distributed traces"),
   @Deprecated
-  TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING, "The password for the user used to store distributed traces"),
+  TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING, "DEPRECATED SINCE 1.5, USE trace.login. The password for the user used to store distributed traces"),
   TRACE_LOGIN_PROPERTIES("trace.login", null, PropertyType.PREFIX, "The login credentials prefix for the principal used to store distributed traces"),
   
   // per table properties
