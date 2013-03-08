@@ -48,6 +48,7 @@
   <edge id="ct.StartAll" weight="1000"/>
   <edge id="ct.Shutdown" weight="10"/>
   <edge id="ct.Config" weight="1000"/>
+  <edge id="ct.Apocalypse" weight="10"/>
   <edge id="END" weight="1"/>
 </node>
 
@@ -149,6 +150,10 @@
 </node>
 
 <node id="ct.Shutdown">
+  <edge id="ct.StartAll" weight="1"/>
+</node>
+
+<node id="ct.Apocalypse">
   <edge id="ct.StartAll" weight="1"/>
 </node>
 
