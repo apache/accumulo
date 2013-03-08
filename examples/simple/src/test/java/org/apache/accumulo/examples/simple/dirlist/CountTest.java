@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -40,7 +41,7 @@ import org.apache.hadoop.io.Text;
 public class CountTest extends TestCase {
   {
     try {
-      Connector conn = new MockInstance("counttest").getConnector("root", "".getBytes());
+      Connector conn = new MockInstance("counttest").getConnector("root", new PasswordToken(""));
       conn.tableOperations().create("dirlisttable");
       BatchWriter bw = conn.createBatchWriter("dirlisttable", new BatchWriterConfig());
       ColumnVisibility cv = new ColumnVisibility();
@@ -61,7 +62,7 @@ public class CountTest extends TestCase {
   }
   
   public void test() throws Exception {
-    Scanner scanner = new MockInstance("counttest").getConnector("root", "".getBytes()).createScanner("dirlisttable", new Authorizations());
+    Scanner scanner = new MockInstance("counttest").getConnector("root", new PasswordToken("")).createScanner("dirlisttable", new Authorizations());
     scanner.fetchColumn(new Text("dir"), new Text("counts"));
     assertFalse(scanner.iterator().hasNext());
     

@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Mutation;
@@ -221,7 +222,7 @@ public class ChunkInputStreamTest extends TestCase {
   }
   
   public void testWithAccumulo() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException {
-    Connector conn = new MockInstance().getConnector("root", "".getBytes());
+    Connector conn = new MockInstance().getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     
