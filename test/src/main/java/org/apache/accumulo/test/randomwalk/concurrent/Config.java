@@ -118,11 +118,12 @@ public class Config extends Test {
         try {
           state.getConnector().tableOperations().setProperty(table, property.getKey(), property.getDefaultValue());
         } catch (AccumuloException ex) {
-          if (ex.toString().contains("NoNode for")) {
-            // race condition for a table that has been deleted
-          } else {
-            throw ex;
+          if (ex.getCause() instanceof ThriftTableOperationException) {
+            ThriftTableOperationException ttoe = (ThriftTableOperationException)ex.getCause();
+            if (ttoe.type == TableOperationExceptionType.NOTFOUND)
+              return;
           }
+          throw ex;
         }
       }
     }

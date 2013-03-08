@@ -138,6 +138,7 @@ import org.apache.accumulo.server.master.tableOps.TableRangeOp;
 import org.apache.accumulo.server.master.tableOps.TraceRepo;
 import org.apache.accumulo.server.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.monitor.Monitor;
+import org.apache.accumulo.server.monitor.util.Table;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityOperation;
@@ -663,9 +664,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         } else if (!TablePropUtil.setTableProperty(tableId, property, value)) {
           throw new Exception("Invalid table property.");
         }
+      } catch (KeeperException.NoNodeException e) {
+        // race condition... table no longer exists?  This call will throw an exception if the table was deleted:
+        checkTableId(tableName, op);
+        log.info("Error altering table property", e);
+        throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.OTHER, "Problem altering table property");
       } catch (Exception e) {
         log.error("Problem altering table property", e);
-        throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.OTHER, e.getMessage());
+        throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.OTHER, "Problem altering table property");
       }
     }
     
