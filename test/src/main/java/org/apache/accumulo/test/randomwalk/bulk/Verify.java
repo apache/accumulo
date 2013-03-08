@@ -23,13 +23,9 @@ import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -101,16 +97,9 @@ public class Verify extends Test {
   }
     
   public static void main(String args[]) throws Exception {
-    int i = 0;
-    String instance = args[i++];
-    String keepers = args[i++];
-    String username = args[i++];
-    String passwd = args[i++];
-    String tablename = args[i++];
-    int timeout = (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    Instance inst = new ZooKeeperInstance(instance, keepers, timeout);
-    Connector conn = inst.getConnector(username, passwd.getBytes());
-    Scanner scanner = conn.createScanner(tablename, conn.securityOperations().getUserAuthorizations(username));
+    ClientOnRequiredTable opts = new ClientOnRequiredTable();
+    opts.parseArgs(Verify.class.getName(), args);
+    Scanner scanner = opts.getConnector().createScanner(opts.tableName, opts.auths);
     scanner.fetchColumnFamily(BulkPlusOne.CHECK_COLUMN_FAMILY);
     Text startBadRow = null;
     Text lastBadRow = null;
