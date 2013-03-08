@@ -224,7 +224,7 @@ public class ChunkInputFormatTest extends TestCase {
   
   public void test() throws Exception {
     MockInstance instance = new MockInstance("instance1");
-    Connector conn = instance.getConnector("root", "".getBytes());
+    Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     
@@ -243,7 +243,7 @@ public class ChunkInputFormatTest extends TestCase {
   
   public void testErrorOnNextWithoutClose() throws Exception {
     MockInstance instance = new MockInstance("instance2");
-    Connector conn = instance.getConnector("root", "".getBytes());
+    Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     
@@ -263,7 +263,7 @@ public class ChunkInputFormatTest extends TestCase {
   
   public void testInfoWithoutChunks() throws Exception {
     MockInstance instance = new MockInstance("instance3");
-    Connector conn = instance.getConnector("root", "".getBytes());
+    Connector conn = instance.getConnector("root", new PasswordToken(""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     for (Entry<Key,Value> e : baddata) {

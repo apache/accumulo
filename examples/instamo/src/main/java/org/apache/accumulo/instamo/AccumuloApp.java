@@ -25,18 +25,19 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 
 public class AccumuloApp {
   
-  public static void run(String instanceName, String zookeepers, String rootPassword, String args[]) throws Exception {
+  public static void run(String instanceName, String zookeepers, AuthenticationToken token, String args[]) throws Exception {
     // edit this method to play with Accumulo
 
     Instance instance = new ZooKeeperInstance(instanceName, zookeepers);
     
-    Connector conn = instance.getConnector("root", rootPassword);
+    Connector conn = instance.getConnector("root", token);
     
     conn.tableOperations().create("foo");
     
