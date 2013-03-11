@@ -29,7 +29,7 @@ proxy = AccumuloProxy::Client.new(proto)
 transport.open()
 
 # Test if the server is up
-login = proxy.login(UserPass.new('username' => 'root', 'password' => 'secret'))
+login = proxy.login('root', {'password' => 'secret'})
 
 # print out a table list
 puts "List of tables: #{proxy.listTables(login).inspect}"
