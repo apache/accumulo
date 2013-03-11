@@ -18,8 +18,8 @@
 
 use POSIX qw(strftime);
 
-if(scalar(@ARGV) != 4 && scalar(@ARGV) != 2 && scalar(@ARGV) != 5){
-	print "Usage : agitator.pl <min sleep before kill in minutes>[:max sleep before kill in minutes] <min sleep before tup in minutes>[:max sleep before tup in minutes] [<min kill> <max kill> [rand|exp]]\n";
+if(scalar(@ARGV) != 4 && scalar(@ARGV) != 2){
+	print "Usage : agitator.pl <min sleep before kill in minutes>[:max sleep before kill in minutes] <min sleep before tup in minutes>[:max sleep before tup in minutes] [<min kill> <max kill>]\n";
 	exit(1);
 }
 
@@ -52,14 +52,9 @@ if($sleep2 > $sleep2max){
 	die("sleep2 > sleep2max $sleep2 > $sleep2max");
 }
 
-$mode = "rand";
-
-if(scalar(@ARGV) == 4 || scalar(@ARGV) == 5){
+if(scalar(@ARGV) == 4){
 	$minKill = $ARGV[2];
 	$maxKill = $ARGV[3];
-	if(scalar(@ARGV) == 5){
-		$mode = $ARGV[4];
-	}
 }else{
 	$minKill = 1;
 	$maxKill = 1;
@@ -67,10 +62,6 @@ if(scalar(@ARGV) == 4 || scalar(@ARGV) == 5){
 
 if($minKill > $maxKill){
 	die("minKill > maxKill $minKill > $maxKill");
-}
-
-if($mode ne "rand" && $mode ne "exp"){
-	die("Mode was $mode, must be 'rand' or 'exp'");
 }
 
 @slavesRaw = `cat $ACCUMULO_HOME/conf/slaves`;
@@ -95,31 +86,11 @@ if ($minKill > $maxKill){
     $minKill = $maxKill;
 }
 
-$exp = 0;
-
 while(1){
 
-	if($mode eq "exp"){
-		$numToKill = 2**$exp;
-		$exp++;
-		if($numToKill > $maxKill){
-			$exp = 0;
-			$numToKill = 2**$exp;
-		}
 
-		while($numToKill < $minKill){
-			$numToKill = 2**$exp;
-			$exp++;
-		}
-
-	}else{
-		$numToKill = int(rand($maxKill - $minKill + 1)) + $minKill;
-	}
+	$numToKill = int(rand($maxKill - $minKill + 1)) + $minKill;
 	%killed = {};
-
-	print("Num to kill : $numToKill\n");
-	sleep(1);
-	next;
 
 	for($i = 0; $i < $numToKill; $i++){
 		$server = "";	
