@@ -1,3 +1,35 @@
+Release Notes - Apache Accumulo - Version 1.4.3
+
+**Bug
+   * [ACCUMULO-906]  - Combiners documention could be improved
+   * [ACCUMULO-954]  - ZooLock watcher can stop watching
+   * [ACCUMULO-844]  - VisibilityFilter does not catch BadArgumentException
+   * [ACCUMULO-1062] - large numbers of threads make in-memory updates slow
+   * [ACCUMULO-977]  - listscans and listcompaction commands can get stuck on bad server
+   * [ACCUMULO-921]  - Stop-server has unecessary SSHs
+   * [ACCUMULO-915]  - os.getlogin is not portable python code
+   * [ACCUMULO-912]  - getConnector in MockAccumulo clobber's existing user authorizations
+   * [ACCUMULO-914]  - Junit tests in eclipse fail due to Classloader poorly parsing classpath locations
+   * [ACCUMULO-907]  - stacking combiners produces a strange result
+   * [ACCUMULO-889]  - Update jar regex in examples and scripts
+   * [ACCUMULO-873]  - Remove hadoop boxes from monitor
+   * [ACCUMULO-848]  - sometimes loggers don't stop
+   * [ACCUMULO-789]  - Native debian package won't install due to make or makefile error
+   * [ACCUMULO-788]  - Debian native package postinst scripts reference a bare $JAVA_HOME environment variable
+   * [ACCUMULO-787]  - Debian packages rely on old hadoop-zookeeper package
+   * [ACCUMULO-1125] - DistributedWorkQueue not releasing lock on failure
+   * [ACCUMULO-965]  - Zookeeper session ids created as unsigned long, parsed in ZooUtils.java as signed long
+   * [ACCUMULO-897]  - Port CloudStone fixes to 1.4.x branch
+   * [ACCUMULO-872]  - both accumulo and accumulo-native contain native libs
+   * [ACCUMULO-776]  - TimestampFilter should serialize start and end as longs in the IteratorSetting
+   * [ACCUMULO-364]  - Security Policy file should be an example
+
+**Improvement 
+   * [ACCUMULO-1049] - Master does not need to get tserver lock
+   * [ACCUMULO-909]  - NPE thrown for tablet readahead thread
+   * [ACCUMULO-824]  - Tweak the rc.d levels to have tserver come up before tracers
+
+
 Release Notes - Apache Accumulo - Version 1.4.2
 
 ** Bug
