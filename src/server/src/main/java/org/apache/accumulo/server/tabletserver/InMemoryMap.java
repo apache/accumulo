@@ -268,8 +268,6 @@ public class InMemoryMap {
    * 
    */
   public void mutate(List<Mutation> mutations) {
-    int mc = nextMutationCount.getAndAdd(mutations.size());
-    int numKVs = 0;
     // Can not update mutationCount while writes that started before
     // are in progress, this would cause partial mutations to be seen.
     // Also, can not continue until mutation count is updated, because
@@ -277,7 +275,8 @@ public class InMemoryMap {
     // wait for writes that started before to finish.
     //
     // using separate lock from this map, to allow read/write in parallel
-    synchronized (writeSerializer ) {
+    synchronized (writeSerializer) {
+      int mc = nextMutationCount.getAndAdd(mutations.size());
       try {
         map.mutate(mutations, mc);
       } finally {
