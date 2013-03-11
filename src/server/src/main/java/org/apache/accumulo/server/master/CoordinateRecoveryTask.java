@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.master;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -349,8 +350,7 @@ public class CoordinateRecoveryTask implements Runnable {
       if (children != null) {
         for (FileStatus child : children) {
           log.info("Deleting recovery directory " + child);
-          if (!trash.moveToTrash(child.getPath()))
-            fs.delete(child.getPath(), true);
+          delete(child.getPath());
         }
       }
     } catch (IOException e) {
@@ -396,13 +396,21 @@ public class CoordinateRecoveryTask implements Runnable {
     }
   }
   
+  private boolean delete(Path p) throws IOException {
+    try {
+      return trash.moveToTrash(p) || fs.delete(p, true);
+    } catch (FileNotFoundException ex) {
+      return false;
+    }
+  }
+  
   private void removeOldRecoverFiles() throws IOException {
     long now = System.currentTimeMillis();
     long maxAgeInMillis = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_MAXAGE);
     FileStatus[] children = fs.listStatus(new Path(ServerConstants.getRecoveryDir()));
     if (children != null) {
       for (FileStatus child : children) {
-        if (now - child.getModificationTime() > maxAgeInMillis && !fs.delete(child.getPath(), true)) {
+        if (now - child.getModificationTime() > maxAgeInMillis && !delete(child.getPath())) {
           log.warn("Unable to delete old recovery directory: " + child.getPath());
         }
       }
