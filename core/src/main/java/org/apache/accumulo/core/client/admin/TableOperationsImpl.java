@@ -1053,8 +1053,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       TableNotFoundException, AccumuloException {
     ArgumentChecker.notNull(tableName, dir, failureDir);
     FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), instance.getConfiguration());
+    Path dirPath = fs.makeQualified(new Path(dir));
     Path failPath = fs.makeQualified(new Path(failureDir));
-    if (!fs.exists(new Path(dir)))
+    if (!fs.exists(dirPath))
       throw new AccumuloException("Bulk import directory " + dir + " does not exist!");
     if (!fs.exists(failPath))
       throw new AccumuloException("Bulk import failure directory " + failureDir + " does not exist!");
@@ -1064,9 +1065,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new AccumuloException("Bulk import directory " + failPath + " is a file");
       throw new AccumuloException("Bulk import failure directory " + failPath + " is not empty");
     }
-    
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(dir.getBytes()), ByteBuffer.wrap(failureDir.getBytes()),
-        ByteBuffer.wrap((setTime + "").getBytes()));
+
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(dirPath.toString().getBytes()),
+        ByteBuffer.wrap(failPath.toString().getBytes()), ByteBuffer.wrap((setTime + "").getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
     
     try {
