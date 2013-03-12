@@ -270,14 +270,16 @@ public class TraceServer implements Watcher {
       log.warn("Trace server zookeeper entry lost " + event.getPath());
       server.stop();
     }
-    try {
-    if (ZooReaderWriter.getInstance().exists(event.getPath(), this))
-      return;
-    } catch (Exception ex) {
-      log.error(ex, ex);
+    if (event.getPath() != null) {
+      try {
+        if (ZooReaderWriter.getInstance().exists(event.getPath(), this))
+          return;
+      } catch (Exception ex) {
+        log.error(ex, ex);
+      }
+      log.warn("Trace server unable to reset watch on zookeeper registration");
+      server.stop();
     }
-    log.warn("Trace server unable to reset watch on zookeeper registration");
-    server.stop();
   }
   
 }
