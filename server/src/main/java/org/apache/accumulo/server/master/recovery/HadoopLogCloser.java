@@ -24,7 +24,7 @@ public class HadoopLogCloser implements LogCloser {
         }
         log.info("Recovered lease on " + source.toString());
         return 0;
-      } catch (IOException ex) {
+      } catch (Exception ex) {
         log.warn("Error recovery lease on " + source.toString(), ex);
       }
     } else if (fs instanceof LocalFileSystem) {
