@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.core.security.handler;
 
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -45,7 +45,7 @@ public class ZKAuthenticator implements Authenticator {
   @Override
   public List<Set<AuthProperty>> getProperties() {
     List<Set<AuthProperty>> toRet = new LinkedList<Set<AuthProperty>>();
-    Set<AuthProperty> internal = new TreeSet<AuthProperty>();
+    Set<AuthProperty> internal = new LinkedHashSet<AuthProperty>();
     internal.add(new AuthProperty("password", "the password for the principal", true));
     internal.add(new AuthProperty("principal", "option field to provide the principal, mostly used for better debug statements", false));
     toRet.add(internal);

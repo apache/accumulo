@@ -28,7 +28,7 @@ public interface Authenticator {
   
   public List<Set<AuthProperty>> getProperties();
   
-  public class AuthProperty {
+  public class AuthProperty implements Comparable<AuthProperty>{
     private String key, description;
     private boolean masked;
     
@@ -52,6 +52,21 @@ public interface Authenticator {
     
     public boolean getMask() {
       return this.masked;
+    }
+    
+    public int hashCode() {
+      return key.hashCode();
+    }
+    
+    public boolean equals(Object o) {
+      if (o instanceof AuthProperty)
+        return ((AuthProperty) o).key.equals(key);
+      return false;
+    }
+
+    @Override
+    public int compareTo(AuthProperty o) {
+      return key.compareTo(o.key);
     }
   }
 }
