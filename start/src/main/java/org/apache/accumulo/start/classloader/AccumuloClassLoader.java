@@ -45,8 +45,18 @@ public class AccumuloClassLoader {
   
   public static final String CLASSPATH_PROPERTY_NAME = "general.classpaths";
   
-  public static final String ACCUMULO_CLASSPATH_VALUE = "$ACCUMULO_HOME/conf,\n" + "$ACCUMULO_HOME/lib/[^.].*.jar,\n"
-      + "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,\n" + "$HADOOP_PREFIX/[^.].*.jar,\n" + "$HADOOP_CONF_DIR,\n" + "$HADOOP_PREFIX/lib/[^.].*.jar,\n";
+  public static final String ACCUMULO_CLASSPATH_VALUE = 
+      "$ACCUMULO_HOME/conf,\n" + 
+          "$ACCUMULO_HOME/lib/[^.].*.jar,\n" + 
+          "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,\n" + 
+          "$HADOOP_CONF_DIR,\n" +
+          "$HADOOP_PREFIX/[^.].*.jar,\n" + 
+          "$HADOOP_PREFIX/lib/[^.].*.jar,\n" + 
+          "$HADOOP_PREFIX/share/hadoop/common/.*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,\n" +
+          "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,\n"
+          ;
   
   private static String SITE_CONF;
   

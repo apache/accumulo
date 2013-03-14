@@ -110,11 +110,17 @@ export JAVA_HOME HADOOP_PREFIX ZOOKEEPER_HOME
 
 JAVA="$JAVA_HOME/bin/java"
 PLATFORM=$( $JAVA -cp $CLASSPATH org.apache.accumulo.start.Platform )
+# hadoop 1.0, 1.1
+LIB_PATH="$HADOOP_PREFIX/lib/native/$PLATFORM"
+if [ ! -d "$LIB_PATH" ]; then
+   # hadoop-2.0
+   LIB_PATH=$HADOOP_PREFIX/lib/native
+fi
 #
 # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
 exec $JAVA "-Dapp=$1" $ACCUMULO_OPTS -classpath $CLASSPATH -XX:OnOutOfMemoryError="kill -9 %p" \
    -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl \
-   -Djava.library.path="$HADOOP_PREFIX/lib/native/$PLATFORM" \
+   -Djava.library.path="$LIB_PATH" \
    -Dorg.apache.accumulo.core.home.dir="$ACCUMULO_HOME" \
    -Dhadoop.home.dir="$HADOOP_PREFIX" \
    -Dzookeeper.home.dir="$ZOOKEEPER_HOME" \
