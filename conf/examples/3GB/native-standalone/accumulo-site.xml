@@ -71,6 +71,13 @@
 
   <property>
     <name>general.classpaths</name>
+    <!--
+       Add the following for hadoop-2.0
+       $HADOOP_PREFIX/share/hadoop/common/.*.jar,
+       $HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,
+       $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
+       $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
+    -->
     <value>
       $ACCUMULO_HOME/server/target/classes/,
       $ACCUMULO_HOME/core/target/classes/,
