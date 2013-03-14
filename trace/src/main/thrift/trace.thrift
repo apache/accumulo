@@ -16,6 +16,7 @@
 */
 namespace java org.apache.accumulo.trace.thrift
 namespace cpp org.apache.accumulo.trace.thrift
+namespace python trace
 
 struct RemoteSpan {
    1:string sender,
