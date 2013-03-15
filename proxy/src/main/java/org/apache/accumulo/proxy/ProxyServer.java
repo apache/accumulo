@@ -342,9 +342,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public List<ByteBuffer> getSplits(ByteBuffer login, String tableName, int maxSplits) throws TException {
+  public List<ByteBuffer> listSplits(ByteBuffer login, String tableName, int maxSplits) throws TException {
     try {
-      Collection<Text> splits = getConnector(login).tableOperations().getSplits(tableName, maxSplits);
+      Collection<Text> splits = getConnector(login).tableOperations().listSplits(tableName, maxSplits);
       List<ByteBuffer> ret = new ArrayList<ByteBuffer>();
       for (Text split : splits) {
         ret.add(TextUtil.getByteBuffer(split));

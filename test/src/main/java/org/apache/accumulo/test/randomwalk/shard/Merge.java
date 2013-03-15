@@ -31,13 +31,13 @@ public class Merge extends Test {
   public void visit(State state, Properties props) throws Exception {
     String indexTableName = (String) state.get("indexTableName");
     
-    Collection<Text> splits = state.getConnector().tableOperations().getSplits(indexTableName);
+    Collection<Text> splits = state.getConnector().tableOperations().listSplits(indexTableName);
     SortedSet<Text> splitSet = new TreeSet<Text>(splits);
     log.debug("merging " + indexTableName);
     state.getConnector().tableOperations().merge(indexTableName, null, null);
     org.apache.accumulo.core.util.Merge merge = new org.apache.accumulo.core.util.Merge();
     merge.mergomatic(state.getConnector(), indexTableName, null, null, 256 * 1024 * 1024, true);
-    splits = state.getConnector().tableOperations().getSplits(indexTableName);
+    splits = state.getConnector().tableOperations().listSplits(indexTableName);
     if (splits.size() > splitSet.size()) {
       // throw an excpetion so that test will die an no further changes to table will occur...
       // this way table is left as is for debugging.

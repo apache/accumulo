@@ -529,24 +529,33 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @return the split points (end-row names) for the table's current split profile
    */
   @Override
-  public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
+  public Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException {
     
     ArgumentChecker.notNull(tableName);
     
-    if (!exists(tableName)) {
-      throw new TableNotFoundException(null, tableName, "Unknown table for getSplits");
-    }
+    String tableId = Tables.getTableId(instance, tableName);
     
     SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
     Map<KeyExtent,String> locations = new TreeMap<KeyExtent,String>();
-    
+
     while (true) {
       try {
         tablets.clear();
         locations.clear();
-        MetadataTable.getEntries(instance, credentials, tableName, false, locations, tablets);
+        // the following method throws AccumuloException for some conditions that should be retried
+        MetadataTable.getEntries(instance, credentials, tableId, true, locations, tablets);
         break;
+      } catch (AccumuloSecurityException ase) {
+        throw ase;
       } catch (Throwable t) {
+        if (!Tables.exists(instance, tableId)) {
+          throw new TableNotFoundException(tableId, tableName, null);
+        }
+
+        if (t instanceof RuntimeException && t.getCause() instanceof AccumuloSecurityException) {
+          throw (AccumuloSecurityException) t.getCause();
+        }
+
         log.info(t.getMessage() + " ... retrying ...");
         UtilWaitThread.sleep(3000);
       }
@@ -561,6 +570,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return endRows;
   }
   
+  @Override
+  public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
+    try {
+      return listSplits(tableName);
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   /**
    * @param tableName
    *          the name of the table
@@ -570,8 +588,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableNotFoundException
    */
   @Override
-  public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
-    Collection<Text> endRows = getSplits(tableName);
+  public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException, AccumuloSecurityException {
+    Collection<Text> endRows = listSplits(tableName);
     
     if (endRows.size() <= maxSplits)
       return endRows;
@@ -594,6 +612,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return subset;
   }
   
+  @Override
+  public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
+    try {
+      return listSplits(tableName, maxSplits);
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   /**
    * Delete a table
    * 

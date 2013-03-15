@@ -33,6 +33,7 @@
   <edge id="ct.ScanTable" weight="500"/>
   <edge id="ct.IsolatedScan" weight="500"/>
   <edge id="ct.AddSplits" weight="1000"/>
+  <edge id="ct.ListSplits" weight="1000"/>
   <edge id="ct.OfflineTable" weight="1000"/>
   <edge id="ct.Merge" weight="1000"/>
   <edge id="ct.Compact" weight="1000"/>
@@ -90,6 +91,10 @@
 </node>
 
 <node id="ct.AddSplits">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="ct.ListSplits">
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 

@@ -150,7 +150,7 @@ public class MockTableOperationsTest {
       Assert.fail();
     } catch (TableNotFoundException e) {}
     try {
-      conn.tableOperations().getSplits(t);
+      conn.tableOperations().listSplits(t);
       Assert.fail();
     } catch (TableNotFoundException e) {}
     try {
