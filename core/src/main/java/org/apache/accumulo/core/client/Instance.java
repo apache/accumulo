@@ -155,7 +155,8 @@ public interface Instance {
   /**
    * @return the canonical name of the helper class for the security token from the authenticator, if one exists.
    * @throws AccumuloException
-   * @throws AccumuloSecurityException 
+   * @throws AccumuloSecurityException
+   * @since 1.5.0
    */
   public abstract String getAuthenticatorClassName() throws AccumuloException, AccumuloSecurityException;
   
@@ -166,6 +167,7 @@ public interface Instance {
    *          {@link Authenticator#login(Properties)}
    * @throws AccumuloException
    * @throws AccumuloSecurityException
+   * @since 1.5.0
    */
   Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
   
@@ -176,6 +178,7 @@ public interface Instance {
    *          The properties necessary to construct an AuthenticationToken in the current security configuration
    * @throws AccumuloException
    * @throws AccumuloSecurityException
+   * @since 1.5.0
    */
   Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException;
   
@@ -185,6 +188,7 @@ public interface Instance {
    *         required properties {@link Authenticator#getProperties()}
    * @throws AccumuloException
    * @throws AccumuloSecurityException
+   * @since 1.5.0
    */
   Authenticator getAuthenticator() throws AccumuloException, AccumuloSecurityException;
 }

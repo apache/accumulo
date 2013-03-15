@@ -57,6 +57,7 @@ public interface BatchScanner extends ScannerBase {
    * @param timeout
    * @param timeUnit
    *          determines how timeout is interpreted
+   * @since 1.5.0
    */
   @Override
   void setTimeout(long timeout, TimeUnit timeUnit);

@@ -17,8 +17,9 @@
 package org.apache.accumulo.core.client.security.tokens;
 
 /**
- * 
+ * @since 1.5.0
  */
+
 public class SystemToken extends PasswordToken {
   
   public SystemToken(byte[] systemPassword) {

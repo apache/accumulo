@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 
 /**
  * 
+ * @since 1.5.0
  */
 public class ActiveCompaction {
   

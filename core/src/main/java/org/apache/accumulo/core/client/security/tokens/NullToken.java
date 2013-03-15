@@ -23,7 +23,7 @@ import java.io.IOException;
 import javax.security.auth.DestroyFailedException;
 
 /**
- * 
+ * @since 1.5.0
  */
 public class NullToken implements AuthenticationToken {
   

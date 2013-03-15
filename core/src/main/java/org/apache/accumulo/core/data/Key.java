@@ -483,6 +483,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * WARNING: using this method may inhibit performance since a new ColumnVisibility object is created on every call.
    * 
    * @return A new object representing the column visibility field
+   * @since 1.5.0
    */
   public final ColumnVisibility getColumnVisibilityParsed() {
     return new ColumnVisibility(colVisibility);

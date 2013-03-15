@@ -190,6 +190,9 @@ public class IteratorSetting implements Writable {
     this(priority, name, iteratorClass.getName());
   }
   
+  /**
+   * @since 1.5.0
+   */
   public IteratorSetting(DataInput din) throws IOException {
     this.properties = new HashMap<String,String>();
     this.readFields(din);
@@ -308,6 +311,9 @@ public class IteratorSetting implements Writable {
     
   }
   
+  /**
+   * @since 1.5.0
+   */
   @Override
   public void readFields(DataInput din) throws IOException {
     priority = WritableUtils.readVInt(din);
@@ -321,6 +327,9 @@ public class IteratorSetting implements Writable {
     }
   }
   
+  /**
+   * @since 1.5.0
+   */
   @Override
   public void write(DataOutput dout) throws IOException {
     WritableUtils.writeVInt(dout, priority);

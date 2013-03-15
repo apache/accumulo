@@ -192,13 +192,19 @@ public class Mutation implements Writable {
     }
   }
   
-  public Mutation(byte[] byteBuffer) {
-    this(byteBuffer, 0, byteBuffer.length);
+  /**
+   * @since 1.5.0
+   */
+  public Mutation(byte[] row) {
+    this(row, 0, row.length);
   }
   
-  public Mutation(byte[] byteBuffer, int start, int length) {
+  /**
+   * @since 1.5.0
+   */
+  public Mutation(byte[] row, int start, int length) {
     this.row = new byte[length];
-    System.arraycopy(byteBuffer, start, this.row, 0, length);
+    System.arraycopy(row, start, this.row, 0, length);
     buffer = new ByteBuffer();
   }
   
@@ -231,13 +237,6 @@ public class Mutation implements Writable {
     return row;
   }
   
-  public static String toHexString(byte[] ba) {
-    StringBuilder str = new StringBuilder();
-    for (int i = 0; i < ba.length; i++)
-      str.append(String.format("%x", ba[i]));
-    return str.toString();
-  }
-
   private void put(byte b[]) {
     put(b, b.length);
   }
@@ -390,34 +389,58 @@ public class Mutation implements Writable {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value);
   }
   
+  /**
+   * @since 1.5.0
+   */
   public void put(byte[] columnFamily, byte[] columnQualifier, byte[] value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
   }
   
+  /**
+   * @since 1.5.0
+   */
   public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, byte[] value) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
   }
   
+  /**
+   * @since 1.5.0
+   */
   public void put(byte[] columnFamily, byte[] columnQualifier, long timestamp, byte[] value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value);
   }
   
+  /**
+   * @since 1.5.0
+   */
   public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, long timestamp, byte[] value) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value);
   }
   
+  /**
+   * @since 1.5.0
+   */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
   }
   
+  /**
+   * @since 1.5.0
+   */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true, EMPTY_BYTES);
   }
   
+  /**
+   * @since 1.5.0
+   */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier, long timestamp) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
   }
   
+  /**
+   * @since 1.5.0
+   */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, long timestamp) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
   }

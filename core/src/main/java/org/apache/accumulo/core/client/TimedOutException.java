@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * 
+ * @since 1.5.0
  */
 public class TimedOutException extends RuntimeException {
   
