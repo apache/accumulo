@@ -228,6 +228,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   
   static final boolean X = true;
   static final boolean _ = false;
+  // @formatter:off
   static final boolean transitionOK[][] = {
       //                              INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
       /* INITIAL */                   {X,     X,        _,        _,      _,         _,          X},
@@ -237,7 +238,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       /* UNLOAD_METADATA_TABLETS */   {_,     _,        X,        X,      X,         X,          X},
       /* UNLOAD_ROOT_TABLET */        {_,     _,        _,        X,      _,         X,          X},
       /* STOP */                      {_,     _,        _,        _,      _,         _,          X}};
-  
+  //@formatter:on
   synchronized private void setMasterState(MasterState newState) {
     if (state.equals(newState))
       return;
