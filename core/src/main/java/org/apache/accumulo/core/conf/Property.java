@@ -343,7 +343,7 @@ public enum Property {
           + "If delegation is not specified, it defaults to loading from parent classloader first."),
  VFS_CLASSLOADER_CACHE_DIR(
 	    AccumuloVFSClassLoader.VFS_CACHE_DIR,
-	    new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache")
+      new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name", "nouser"))
 		    .getAbsolutePath(),
 	    PropertyType.ABSOLUTEPATH,
 	    "Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM. This should be on local disk on each node with sufficient space. It defaults to /tmp",
