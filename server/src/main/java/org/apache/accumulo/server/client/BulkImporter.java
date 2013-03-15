@@ -180,7 +180,9 @@ public class BulkImporter {
       for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet())
         failureCount.put(entry.getKey(), 1);
       
+      long sleepTime = 2*1000;
       while (assignmentFailures.size() > 0) {
+        sleepTime = Math.min(sleepTime*2, 60*1000);
         locator.invalidateCache();
         // assumption about assignment failures is that it caused by a split
         // happening or a missing location
@@ -189,7 +191,7 @@ public class BulkImporter {
         // same key range and are contiguous (no holes, no overlap)
         
         timer.start(Timers.SLEEP);
-        UtilWaitThread.sleep(4000);
+        UtilWaitThread.sleep(sleepTime);
         timer.stop(Timers.SLEEP);
         
         log.debug("Trying to assign " + assignmentFailures.size() + " map files that previously failed on some key extents");
@@ -245,8 +247,9 @@ public class BulkImporter {
         
         Set<Entry<Path,Integer>> failureIter = failureCount.entrySet();
         for (Entry<Path,Integer> entry : failureIter) {
-          if (entry.getValue() > acuConf.getCount(Property.TSERV_BULK_RETRY) && assignmentFailures.get(entry.getKey()) != null) {
-            log.error("Map file " + entry.getKey() + " failed more than three times, giving up.");
+          int retries = acuConf.getCount(Property.TSERV_BULK_RETRY);
+          if (entry.getValue() > retries && assignmentFailures.get(entry.getKey()) != null) {
+            log.error("Map file " + entry.getKey() + " failed more than " + retries + " times, giving up.");
             completeFailures.put(entry.getKey(), assignmentFailures.get(entry.getKey()));
             assignmentFailures.remove(entry.getKey());
           }
