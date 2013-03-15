@@ -89,7 +89,7 @@ public class Initialize {
     initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
     initialMetadataConf.put(Property.TABLE_WALOG_ENABLED.getKey(), "true");
     initialMetadataConf.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
-    initialMetadataConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "4M");
+    initialMetadataConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "64M");
     initialMetadataConf.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1", MetadataConstraints.class.getName());
     initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers", "10," + VersioningIterator.class.getName());
     initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions", "1");
