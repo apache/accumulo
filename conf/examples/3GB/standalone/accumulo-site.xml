@@ -50,12 +50,12 @@
 
   <property>
     <name>tserver.cache.data.size</name>
-    <value>50M</value>
+    <value>128M</value>
   </property>
 
   <property>
     <name>tserver.cache.index.size</name>
-    <value>100M</value>
+    <value>128M</value>
   </property>
 
   <property>
