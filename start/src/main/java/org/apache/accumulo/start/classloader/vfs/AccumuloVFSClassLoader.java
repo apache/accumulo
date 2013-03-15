@@ -231,9 +231,9 @@ public class AccumuloVFSClassLoader {
             vfs.setFileContentInfoFactory(new FileContentInfoFilenameFactory());
             vfs.setFilesCache(new SoftRefFilesCache());
             String cacheDirPath = AccumuloClassLoader.getAccumuloString(VFS_CACHE_DIR, "");
-            File cacheDir = new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache");
+            File cacheDir = new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name", "nouser"));
             if (!("".equals(cacheDirPath)))
-        	cacheDir = new File(cacheDirPath);
+              cacheDir = new File(cacheDirPath);
             vfs.setReplicator(new DefaultFileReplicator(cacheDir));
             vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
             vfs.init();
