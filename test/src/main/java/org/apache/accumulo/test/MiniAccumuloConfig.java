@@ -22,6 +22,8 @@ import java.util.Map;
 
 /**
  * Holds configuration for {@link MiniAccumuloCluster}. Required configurations must be passed to constructor and all other configurations are optional.
+ * 
+ * @since 1.5.0
  */
 
 public class MiniAccumuloConfig {
