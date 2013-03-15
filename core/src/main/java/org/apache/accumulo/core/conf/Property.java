@@ -177,7 +177,7 @@ public enum Property {
   TSERV_BULK_ASSIGNMENT_THREADS("tserver.bulk.assign.threads", "1", PropertyType.COUNT,
       "The master delegates bulk file processing and assignment to tablet servers. After the bulk file has been processed, the tablet server will assign"
           + " the file to the appropriate tablets on all servers.  This property controls the number of threads used to communicate to the other servers."),
-  TSERV_BULK_RETRY("tserver.bulk.retry.max", "3", PropertyType.COUNT,
+  TSERV_BULK_RETRY("tserver.bulk.retry.max", "5", PropertyType.COUNT,
       "The number of times the tablet server will attempt to assign a file to a tablet as it migrates and splits."),
   TSERV_BULK_TIMEOUT("tserver.bulk.timeout", "5m", PropertyType.TIMEDURATION, "The time to wait for a tablet server to process a bulk import request."),
   TSERV_MINTHREADS("tserver.server.threads.minimum", "20", PropertyType.COUNT, "The minimum number of threads to use to handle incoming requests."),
