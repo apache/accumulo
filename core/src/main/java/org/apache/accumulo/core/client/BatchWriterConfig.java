@@ -29,6 +29,8 @@ import org.apache.hadoop.util.StringUtils;
 
 /**
  * This object holds configuration settings used to instantiate a {@link BatchWriter}
+ * 
+ * @since 1.5.0
  */
 public class BatchWriterConfig implements Writable {
   

@@ -110,6 +110,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @param timeOut
    * @param timeUnit
    *          determines how timeout is interpreted
+   * @since 1.5.0
    */
   public void setTimeout(long timeOut, TimeUnit timeUnit);
   
@@ -117,11 +118,13 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * Returns the setting for how long a scanner will automatically retry when a failure occurs.
    * 
    * @return the timeout configured for this scanner
+   * @since 1.5.0
    */
   public long getTimeout(TimeUnit timeUnit);
 
   /**
    * Closes any underlying connections on the scanner
+   * @since 1.5.0
    */
   public void close();
 }

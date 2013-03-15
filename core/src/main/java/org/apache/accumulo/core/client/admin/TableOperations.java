@@ -107,6 +107,7 @@ public interface TableOperations {
    * @throws TableExistsException
    * @throws AccumuloException
    * @throws AccumuloSecurityException
+   * @since 1.5.0
    */
   public void importTable(String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException;
   
@@ -124,6 +125,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    * @throws AccumuloException
    * @throws AccumuloSecurityException
+   * @since 1.5.0
    */
   public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
@@ -162,7 +164,7 @@ public interface TableOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission
-   * @since 1.5
+   * @since 1.5.0
    */
   public Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
   
@@ -189,6 +191,7 @@ public interface TableOperations {
    *           if the user does not have permission
    * @return the split points (end-row names) for the table's current split profile, grouped into fewer splits so as not to exceed maxSplits
    * @throws TableNotFoundException
+   * @since 1.5.0
    */
   public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
   
@@ -272,6 +275,7 @@ public interface TableOperations {
    *          when true, table memory is flushed before compaction starts
    * @param wait
    *          when true, the call will not return until compactions are finished
+   * @since 1.5.0
    */
   public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException;
@@ -289,6 +293,7 @@ public interface TableOperations {
    *           if the table does not exist
    * @throws AccumuloSecurityException
    *           if the user does not have permission
+   * @since 1.5.0
    */
   public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException;
   
@@ -644,6 +649,7 @@ public interface TableOperations {
    * @throws AccumuloSecurityException
    *           thrown if the user doesn't have permission to add the constraint
    * @throws TableNotFoundException
+   * @since 1.5.0
    */
   public int addConstraint(String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   
@@ -657,6 +663,7 @@ public interface TableOperations {
    * @throws AccumuloException
    * @throws AccumuloSecurityException
    *           thrown if the user doesn't have permission to remove the constraint
+   * @since 1.5.0
    */
   public void removeConstraint(String tableName, int number) throws AccumuloException, AccumuloSecurityException;
   
@@ -669,6 +676,7 @@ public interface TableOperations {
    * @throws AccumuloException
    *           thrown if there are errors in the configuration of existing constraints
    * @throws TableNotFoundException
+   * @since 1.5.0
    */
   public Map<String,Integer> listConstraints(String tableName) throws AccumuloException, TableNotFoundException;
 }

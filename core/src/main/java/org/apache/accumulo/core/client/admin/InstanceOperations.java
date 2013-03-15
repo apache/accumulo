@@ -85,6 +85,7 @@ public interface InstanceOperations {
    * @return the list of active compactions
    * @throws AccumuloException
    * @throws AccumuloSecurityException
+   * @since 1.5.0
    */
   
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException;
@@ -95,6 +96,7 @@ public interface InstanceOperations {
    * @param tserver
    *          The tablet server address should be of the form <ip address>:<port>
    * @throws AccumuloException
+   * @since 1.5.0
    */
   public void ping(String tserver) throws AccumuloException;
   

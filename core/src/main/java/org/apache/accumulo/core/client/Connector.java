@@ -88,6 +88,7 @@ public abstract class Connector {
    *          configuration used to create batch writer
    * @return BatchDeleter object for configuring and deleting
    * @throws TableNotFoundException
+   * @since 1.5.0
    */
   
   public abstract BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
@@ -122,6 +123,7 @@ public abstract class Connector {
    *          configuration used to create batch writer
    * @return BatchWriter object for configuring and writing data to
    * @throws TableNotFoundException
+   * @since 1.5.0
    */
   
   public abstract BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException;
@@ -150,6 +152,7 @@ public abstract class Connector {
    * @param config
    *          configuration used to create multi-table batch writer
    * @return MultiTableBatchWriter object for configuring and writing data to
+   * @since 1.5.0
    */
   
   public abstract MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config);

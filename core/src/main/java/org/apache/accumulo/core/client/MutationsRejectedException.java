@@ -93,8 +93,8 @@ public class MutationsRejectedException extends AccumuloException {
   }
   
   /**
-   * 
    * @return the internal mapping of keyextent mappings to SecurityErrorCode
+   * @since 1.5.0
    */
   public Map<KeyExtent,Set<SecurityErrorCode>> getAuthorizationFailuresMap() {
     return af;
