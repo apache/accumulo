@@ -177,7 +177,7 @@ public abstract class FunctionalTest {
    */
   
   protected void checkSplits(String table, int min, int max) throws Exception {
-    Collection<Text> splits = getConnector().tableOperations().getSplits(table);
+    Collection<Text> splits = getConnector().tableOperations().listSplits(table);
     if (splits.size() < min || splits.size() > max) {
       throw new Exception("# of table splits points out of range, #splits=" + splits.size() + " table=" + table + " min=" + min + " max=" + max);
     }

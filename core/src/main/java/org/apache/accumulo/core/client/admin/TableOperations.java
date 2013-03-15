@@ -147,8 +147,24 @@ public interface TableOperations {
    * @return the split points (end-row names) for the table's current split profile
    * @throws TableNotFoundException
    *           if the table does not exist
+   * @deprecated since 1.5.0; use {@link #listSplits(String)} instead.
    */
+  @Deprecated
   public Collection<Text> getSplits(String tableName) throws TableNotFoundException;
+  
+  /**
+   * @param tableName
+   *          the name of the table
+   * @return the split points (end-row names) for the table's current split profile
+   * @throws TableNotFoundException
+   *           if the table does not exist
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @since 1.5
+   */
+  public Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
   
   /**
    * @param tableName
@@ -157,8 +173,24 @@ public interface TableOperations {
    *          specifies the maximum number of splits to return
    * @return the split points (end-row names) for the table's current split profile, grouped into fewer splits so as not to exceed maxSplits
    * @throws TableNotFoundException
+   * @deprecated since 1.5.0; use {@link #listSplits(String, int))} instead.
    */
+  @Deprecated
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException;
+  
+  /**
+   * @param tableName
+   *          the name of the table
+   * @param maxSplits
+   *          specifies the maximum number of splits to return
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @return the split points (end-row names) for the table's current split profile, grouped into fewer splits so as not to exceed maxSplits
+   * @throws TableNotFoundException
+   */
+  public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
   
   /**
    * Finds the max row within a given range. To find the max row in a table, pass null for start and end row.

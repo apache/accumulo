@@ -128,7 +128,7 @@ public class BulkIngestExample extends Configured implements Tool {
       FileSystem fs = FileSystem.get(conf);
       out = new PrintStream(new BufferedOutputStream(fs.create(new Path(opts.workDir + "/splits.txt"))));
       
-      Collection<Text> splits = connector.tableOperations().getSplits(opts.tableName, 100);
+      Collection<Text> splits = connector.tableOperations().listSplits(opts.tableName, 100);
       for (Text split : splits)
         out.println(new String(Base64.encodeBase64(TextUtil.getBytes(split))));
       

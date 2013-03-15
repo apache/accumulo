@@ -56,7 +56,7 @@ public class TableOp extends Test {
       log.debug("Retrieving info for " + tableName);
       tableOps.getLocalityGroups(tableName);
       tableOps.getProperties(tableName);
-      tableOps.getSplits(tableName);
+      tableOps.listSplits(tableName);
       tableOps.list();
     } else {
       log.debug("Clearing locator cache for " + tableName);

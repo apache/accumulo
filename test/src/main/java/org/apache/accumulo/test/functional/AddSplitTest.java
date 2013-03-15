@@ -69,7 +69,7 @@ public class AddSplitTest extends FunctionalTest {
     
     UtilWaitThread.sleep(100);
     
-    Collection<Text> actualSplits = getConnector().tableOperations().getSplits("foo");
+    Collection<Text> actualSplits = getConnector().tableOperations().listSplits("foo");
     
     if (!splits.equals(new TreeSet<Text>(actualSplits))) {
       throw new Exception(splits + " != " + actualSplits);
@@ -89,7 +89,7 @@ public class AddSplitTest extends FunctionalTest {
     
     UtilWaitThread.sleep(100);
     
-    actualSplits = getConnector().tableOperations().getSplits("foo");
+    actualSplits = getConnector().tableOperations().listSplits("foo");
     
     if (!splits.equals(new TreeSet<Text>(actualSplits))) {
       throw new Exception(splits + " != " + actualSplits);

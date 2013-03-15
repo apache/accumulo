@@ -103,6 +103,7 @@ public abstract class TabletLocator {
       if (tableId.toString().equals(Constants.METADATA_TABLE_ID)) {
         RootTabletLocator rootTabletLocator = new RootTabletLocator(instance);
         tl = new TabletLocatorImpl(new Text(Constants.METADATA_TABLE_ID), rootTabletLocator, mlo) {
+          @Override
           public TabletLocation _locateTablet(Text row, boolean skipRow, boolean retry, boolean lock, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
               TableNotFoundException {
             // add a special case for the root tablet itself to the cache of information in the root tablet

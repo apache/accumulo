@@ -119,7 +119,7 @@ public class TestProxyTableOperations {
     
     splits.remove("c");
     
-    List<ByteBuffer> tableSplits = tpc.proxy().getSplits(userpass, testtable, 10);
+    List<ByteBuffer> tableSplits = tpc.proxy().listSplits(userpass, testtable, 10);
     
     for (ByteBuffer split : tableSplits)
       assertTrue(splits.contains(split));
@@ -135,7 +135,7 @@ public class TestProxyTableOperations {
     splits.add(ByteBuffer.wrap("z".getBytes()));
     tpc.proxy().addSplits(userpass, testtable, splits);
     
-    List<ByteBuffer> tableSplits = tpc.proxy().getSplits(userpass, testtable, 10);
+    List<ByteBuffer> tableSplits = tpc.proxy().listSplits(userpass, testtable, 10);
     
     for (ByteBuffer split : tableSplits)
       assertTrue(splits.contains(split));

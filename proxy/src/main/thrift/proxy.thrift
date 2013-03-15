@@ -261,11 +261,11 @@ service AccumuloProxy
                     5:bool startInclusive, 6:binary endRow, 7:bool endInclusive) 
                                                                                                        throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
   map<string,string> getTableProperties (1:binary login, 2:string tableName)                           throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);
-  list<binary> getSplits (1:binary login, 2:string tableName, 3:i32 maxSplits)                         throws (1:TableNotFoundException ouch1);
   void importDirectory (1:binary login, 2:string tableName, 3:string importDir, 
                         4:string failureDir, 5:bool setTime) 
                                                                                                        throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch3, 3:AccumuloSecurityException ouch4);
   void importTable (1:binary login, 2:string tableName, 3:string importDir)                            throws (1:TableExistsException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
+  list<binary> listSplits (1:binary login, 2:string tableName, 3:i32 maxSplits)                        throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
   set<string> listTables (1:binary login);
   map<string,set<IteratorScope>> listIterators (1:binary login, 2:string tableName)                    throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
   map<string,i32> listConstraints (1:binary login, 2:string tableName)                                 throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);

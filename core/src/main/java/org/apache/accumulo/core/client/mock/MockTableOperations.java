@@ -105,14 +105,24 @@ public class MockTableOperations extends TableOperationsHelper {
   
   @Override
   public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
-    if (!exists(tableName))
-      throw new TableNotFoundException(tableName, tableName, "");
-    return acu.getSplits(tableName);
+    return listSplits(tableName);
   }
   
   @Override
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
-    return getSplits(tableName);
+    return listSplits(tableName);
+  }
+  
+  @Override
+  public Collection<Text> listSplits(String tableName) throws TableNotFoundException {
+    if (!exists(tableName))
+      throw new TableNotFoundException(tableName, tableName, "");
+    return acu.getSplits(tableName);
+  }
+
+  @Override
+  public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException {
+    return listSplits(tableName);
   }
   
   @Override

@@ -63,8 +63,8 @@ public class GetSplitsCommand extends Command {
     
     try {
       if (!verbose) {
-        for (Text row : maxSplits > 0 ? shellState.getConnector().tableOperations().getSplits(tableName, maxSplits) : shellState.getConnector()
-            .tableOperations().getSplits(tableName)) {
+        for (Text row : maxSplits > 0 ? shellState.getConnector().tableOperations().listSplits(tableName, maxSplits) : shellState.getConnector()
+            .tableOperations().listSplits(tableName)) {
           p.print(encode(encode, row));
         }
       } else {

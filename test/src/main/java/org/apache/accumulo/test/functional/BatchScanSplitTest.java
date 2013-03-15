@@ -75,10 +75,10 @@ public class BatchScanSplitTest extends FunctionalTest {
     
     getConnector().tableOperations().setProperty("bss", Property.TABLE_SPLIT_THRESHOLD.getKey(), "4K");
     
-    Collection<Text> splits = getConnector().tableOperations().getSplits("bss");
+    Collection<Text> splits = getConnector().tableOperations().listSplits("bss");
     while (splits.size() < 2) {
       UtilWaitThread.sleep(1);
-      splits = getConnector().tableOperations().getSplits("bss");
+      splits = getConnector().tableOperations().listSplits("bss");
     }
     
     System.out.println("splits : " + splits);
@@ -119,7 +119,7 @@ public class BatchScanSplitTest extends FunctionalTest {
         throw new Exception("Found and expected differ " + found + " " + expected);
     }
     
-    splits = getConnector().tableOperations().getSplits("bss");
+    splits = getConnector().tableOperations().listSplits("bss");
     System.out.println("splits : " + splits);
     
   }

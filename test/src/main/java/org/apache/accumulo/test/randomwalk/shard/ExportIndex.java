@@ -86,8 +86,8 @@ public class ExportIndex extends Test {
     fs.delete(new Path(exportDir), true);
     fs.delete(new Path(copyDir), true);
     
-    HashSet<Text> splits1 = new HashSet<Text>(state.getConnector().tableOperations().getSplits(indexTableName));
-    HashSet<Text> splits2 = new HashSet<Text>(state.getConnector().tableOperations().getSplits(tmpIndexTableName));
+    HashSet<Text> splits1 = new HashSet<Text>(state.getConnector().tableOperations().listSplits(indexTableName));
+    HashSet<Text> splits2 = new HashSet<Text>(state.getConnector().tableOperations().listSplits(tmpIndexTableName));
     
     if (!splits1.equals(splits2))
       throw new Exception("Splits not equals " + indexTableName + " " + tmpIndexTableName);

@@ -86,7 +86,7 @@ public class CreateTableCommand extends Command {
       if (!shellState.getConnector().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
-      partitions.addAll(shellState.getConnector().tableOperations().getSplits(oldTable));
+      partitions.addAll(shellState.getConnector().tableOperations().listSplits(oldTable));
     }
     
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {

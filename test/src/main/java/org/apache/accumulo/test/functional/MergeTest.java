@@ -126,7 +126,7 @@ public class MergeTest extends FunctionalTest {
       throw new Exception("data inconsistency " + table + " " + observed + " != " + expected);
     }
     
-    HashSet<Text> currentSplits = new HashSet<Text>(conn.tableOperations().getSplits(table));
+    HashSet<Text> currentSplits = new HashSet<Text>(conn.tableOperations().listSplits(table));
     HashSet<Text> ess = new HashSet<Text>();
     for (String es : expectedSplits) {
       ess.add(new Text(es));

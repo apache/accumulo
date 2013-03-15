@@ -78,7 +78,7 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
     UtilWaitThread.sleep(2000);
     
     // wait until over split threshold
-    while (getConnector().tableOperations().getSplits(TABLE_NAME).size() < 50) {
+    while (getConnector().tableOperations().listSplits(TABLE_NAME).size() < 50) {
       UtilWaitThread.sleep(500);
     }
     

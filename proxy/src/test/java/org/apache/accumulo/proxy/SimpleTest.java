@@ -361,13 +361,13 @@ public class SimpleTest {
     assertEquals(s2bb("x"), more.getResults().get(0).value);
     // splits, merge
     client.addSplits(creds, "test", new HashSet<ByteBuffer>(Arrays.asList(s2bb("a"), s2bb("m"), s2bb("z"))));
-    List<ByteBuffer> splits = client.getSplits(creds, "test", 1);
+    List<ByteBuffer> splits = client.listSplits(creds, "test", 1);
     assertEquals(Arrays.asList(s2bb("m")), splits);
     client.mergeTablets(creds, "test", null, s2bb("m"));
-    splits = client.getSplits(creds, "test", 10);
+    splits = client.listSplits(creds, "test", 10);
     assertEquals(Arrays.asList(s2bb("m"), s2bb("z")), splits);
     client.mergeTablets(creds, "test", null, null);
-    splits = client.getSplits(creds, "test", 10);
+    splits = client.listSplits(creds, "test", 10);
     List<ByteBuffer> empty = Collections.emptyList();
     assertEquals(empty, splits);
     // iterators

@@ -165,7 +165,7 @@ public class BulkInsert extends Test {
     
     Connector conn = state.getConnector();
     
-    Collection<Text> splits = conn.tableOperations().getSplits(tableName, maxSplits);
+    Collection<Text> splits = conn.tableOperations().listSplits(tableName, maxSplits);
     for (Text split : splits)
       out.println(new String(Base64.encodeBase64(TextUtil.getBytes(split))));
     

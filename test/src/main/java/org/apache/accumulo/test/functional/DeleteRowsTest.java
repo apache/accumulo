@@ -119,7 +119,7 @@ public class DeleteRowsTest extends FunctionalTest {
     Text startText = start == null ? null : new Text(start);
     Text endText = end == null ? null : new Text(end);
     this.getConnector().tableOperations().deleteRows(table, startText, endText);
-    Collection<Text> remainingSplits = this.getConnector().tableOperations().getSplits(table);
+    Collection<Text> remainingSplits = this.getConnector().tableOperations().listSplits(table);
     StringBuilder sb = new StringBuilder();
     // See that whole tablets are removed
     for (Text split : remainingSplits)

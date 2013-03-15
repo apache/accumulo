@@ -80,6 +80,16 @@ public class TableOperationsHelperTest {
     }
     
     @Override
+    public Collection<Text> listSplits(String tableName) throws TableNotFoundException {
+      return null;
+    }
+    
+    @Override
+    public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException {
+      return null;
+    }
+    
+    @Override
     public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
       return null;
