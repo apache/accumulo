@@ -24,6 +24,7 @@ Release Notes - Apache Accumulo - Version 1.4.3
    * [ACCUMULO-776]  - TimestampFilter should serialize start and end as longs in the IteratorSetting
    * [ACCUMULO-364]  - Security Policy file should be an example
    * [ACCUMULO-1173] - NPE in tracer on zookeeper disconnect
+   * [ACCUMULO-1170] - Memory map in unexpected state: nextMutationCount = 8342267 mutationCount = 8336164
 
 **Improvement 
    * [ACCUMULO-1049] - Master does not need to get tserver lock
