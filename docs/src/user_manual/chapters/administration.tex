@@ -57,9 +57,7 @@ Accumulo requires HDFS and ZooKeeper to be configured and running
 before starting. Password-less SSH should be configured between at least the
 Accumulo master and TabletServer machines. It is also a good idea to run Network
 Time Protocol (NTP) within the cluster to ensure nodes' clocks don't get too out of
-sync, which can cause problems with automatically timestamped data. Accumulo
-will remove from the set of TabletServers those machines whose times differ too
-much from the master's.
+sync, which can cause problems with automatically timestamped data. 
 
 \section{Configuration}
 
@@ -123,6 +121,15 @@ Specify appropriate values for the following settings in\\
     <value>zooserver-one:2181,zooserver-two:2181</value>
     <description>list of zookeeper servers</description>
 </property>
+\end{verbatim}
+\normalsize
+
+This enables Accumulo to find ZooKeeper. Accumulo uses ZooKeeper to coordinate
+settings between processes and helps finalize TabletServer failure.
+
+
+\small
+\begin{verbatim}
 <property>
     <name>walog</name>
     <value>/var/accumulo/walogs</value>
@@ -131,17 +138,26 @@ Specify appropriate values for the following settings in\\
 \end{verbatim}
 \normalsize
 
-This enables Accumulo to find ZooKeeper. Accumulo uses ZooKeeper to coordinate
-settings between processes and helps finalize TabletServer failure.
-
 Accumulo records all changes to tables to a write-ahead log before committing
 them to the table. The `walog' setting specifies the local directory on each machine
 to which write-ahead logs are written. This directory should exist on all machines
 acting as TabletServers.
 
-Some settings can be modified via the Accumulo shell and take effect immediately.
-However, any settings that should be persisted across system restarts must be
-recorded in the accumulo-site.xml file.
+\small
+\begin{verbatim}
+<property>
+    <name>instance.secret</name>
+    <value>DEFAULT</value>
+</property>
+\end{verbatim}
+\normalsize
+
+The instance needs a secret to enable secure communication between servers.  Configure your
+secret and make sure that the \texttt{accumulo-site.xml} file is not readable to other users.
+
+Some settings can be modified via the Accumulo shell and take effect immediately, but
+some settings require a process restart to take effect.  See the configuration documentation
+(available on the monitor web pages) for details.
 
 \subsection{Deploy Configuration}
 
@@ -213,9 +229,4 @@ unavailable to clients.
 The Accumulo client library is configured to retry failed mutations and in many
 cases clients will be able to continue processing after the recovery process without
 throwing an exception.
-
-Note that because Accumulo uses timestamps to order mutations, any mutations
-that are applied as part of the recovery process should appear to have been applied
-when they originally arrived at the TabletServer that failed. This makes the ordering
-of mutations consistent in the presence of failure.
 
