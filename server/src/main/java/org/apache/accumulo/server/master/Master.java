@@ -138,7 +138,6 @@ import org.apache.accumulo.server.master.tableOps.TableRangeOp;
 import org.apache.accumulo.server.master.tableOps.TraceRepo;
 import org.apache.accumulo.server.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.monitor.Monitor;
-import org.apache.accumulo.server.monitor.util.Table;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityOperation;
@@ -2007,7 +2006,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           if (connection == null)
             throw new IOException("No connection to " + server);
           TabletServerStatus status = connection.getTableMap();
-          // TODO maybe remove from bad servers
           result.put(server, status);
         } finally {
           t.setName(oldName);

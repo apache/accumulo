@@ -126,14 +126,8 @@ public class MockInstanceOperations implements InstanceOperations {
     return new ArrayList<ActiveCompaction>();
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.core.client.admin.InstanceOperations#ping(java.lang.String)
-   */
   @Override
   public void ping(String tserver) throws AccumuloException {
-    // TODO Auto-generated method stub
-    
+
   }
 }

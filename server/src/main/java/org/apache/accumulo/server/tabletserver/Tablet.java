@@ -708,14 +708,6 @@ public class Tablet {
         
       }
       
-      // TODO I do not think the case below is needed anymore
-      /*
-       * if(!fs.exists(new Path(bulkDir, Constants.BULK_LOAD_IN_PROGRESS))){ DataFileValue zero = new DataFileValue(0, 0);
-       * MetadataTable.replaceDatafiles(extent, abs2rel(paths.keySet()), new HashSet<String>(), "junk", null, zero, SecurityConstants.getSystemCredentials(),
-       * tabletServer.getClientAddressString(), lastLocation, tabletServer.getLock(), false); throw new
-       * IOException("Processing file does not exist, aborting bulk import "+extent+" "+bulkDir); }
-       */
-      
       synchronized (Tablet.this) {
         for (Entry<Path,DataFileValue> tpath : paths.entrySet()) {
           if (datafileSizes.containsKey(tpath.getKey())) {
