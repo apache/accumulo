@@ -111,9 +111,6 @@ public class SparseColumnFamilyTest extends FunctionalTest {
   }
 
   @Override
-  public void cleanup() throws Exception {
-    // TODO Auto-generated method stub
-    
-  }
+  public void cleanup() throws Exception {}
   
 }

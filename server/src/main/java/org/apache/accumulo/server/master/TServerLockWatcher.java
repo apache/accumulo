@@ -38,9 +38,6 @@ class TServerLockWatcher implements AsyncLockWatcher {
   public void lostLock(LockLossReason reason) {}
   
   @Override
-  public void unableToMonitorLockNode(Throwable e) {
-    // TODO Auto-generated method stub
-    
-  }
+  public void unableToMonitorLockNode(Throwable e) {}
   
 }
