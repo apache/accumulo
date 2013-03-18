@@ -80,3 +80,7 @@ fi
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2-2.0.jar"  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start-${ACCUMULO_VERSION}.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start-${ACCUMULO_VERSION}.jar"  > /dev/null
+for f in `cat $ACCUMULO_HOME/conf/slaves`
+do
+  rsync -ra --delete $ACCUMULO_HOME `dirname $ACCUMULO_HOME`
+done
