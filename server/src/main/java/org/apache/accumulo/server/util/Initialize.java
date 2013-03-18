@@ -492,16 +492,14 @@ public class Initialize {
   public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(Initialize.class.getName(), args);
-    
-    boolean justSecurity = false;
-    
+        
     try {
       SecurityUtil.serverLogin();
       Configuration conf = CachedConfiguration.getInstance();
       
       FileSystem fs = FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration());
       
-      if (justSecurity) {
+      if (opts.resetSecurity) {
         if (isInitialized(fs)) {
           opts.rootuser = getRootUser(opts);
           opts.rootpass = getRootPassword(opts);
