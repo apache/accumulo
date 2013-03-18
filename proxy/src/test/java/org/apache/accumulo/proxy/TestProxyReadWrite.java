@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.proxy.thrift.BatchScanOptions;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
+import org.apache.accumulo.proxy.thrift.ScanColumn;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
 import org.apache.accumulo.proxy.thrift.KeyValue;
@@ -139,7 +140,92 @@ public class TestProxyReadWrite {
     }
     assertEquals(i, 50000);
   }
-  
+
+  /**
+   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a columnFamily so only the entries with specified column family come back (there should be
+   * 50,000)
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void readWriteBatchOneShotWithColumnFamilyOnly() throws Exception {
+    int maxInserts = 100000;
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    String format = "%1$05d";
+    for (int i = 0; i < maxInserts; i++) {
+	
+      addMutation(mutations, String.format(format, i), "cf" + (i % 2) , "cq" + (i % 2), Util.randString(10));
+      
+      if (i % 1000 == 0 || i == maxInserts - 1) {
+        tpc.proxy().updateAndFlush(userpass, testtable, mutations);
+        mutations.clear();
+      }
+    }
+    
+    BatchScanOptions options = new BatchScanOptions();
+
+	ScanColumn sc = new ScanColumn();
+	sc.colFamily = ByteBuffer.wrap("cf0".getBytes());
+
+    options.columns = Collections.singletonList(sc);
+    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, options);
+    
+    int i = 0;
+    boolean hasNext = true;
+    
+    int k = 1000;
+    while (hasNext) {
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
+      i += kvList.getResultsSize();
+      hasNext = kvList.isMore();
+    }
+    assertEquals(i, 50000);
+  }
+
+
+  /**
+   * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a columnFamily + columnQualififer so only the entries with specified column 
+   * come back (there should be 50,000)
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void readWriteBatchOneShotWithFullColumn() throws Exception {
+    int maxInserts = 100000;
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    String format = "%1$05d";
+    for (int i = 0; i < maxInserts; i++) {
+	
+      addMutation(mutations, String.format(format, i), "cf" + (i % 2) , "cq" + (i % 2), Util.randString(10));
+      
+      if (i % 1000 == 0 || i == maxInserts - 1) {
+        tpc.proxy().updateAndFlush(userpass, testtable, mutations);
+        mutations.clear();
+      }
+    }
+    
+    BatchScanOptions options = new BatchScanOptions();
+
+	ScanColumn sc = new ScanColumn();
+	sc.colFamily = ByteBuffer.wrap("cf0".getBytes());
+	sc.colQualifier = ByteBuffer.wrap("cq0".getBytes());
+
+    options.columns = Collections.singletonList(sc);
+    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, options);
+    
+    int i = 0;
+    boolean hasNext = true;
+    
+    int k = 1000;
+    while (hasNext) {
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
+      i += kvList.getResultsSize();
+      hasNext = kvList.isMore();
+    }
+    assertEquals(i, 50000);
+  }
+
+
   /**
    * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Filter the results so only the even numbers come back.
    * 
