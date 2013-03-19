@@ -35,6 +35,7 @@ class MetaSplitTest(TabletShouldSplit):
         }
     tableSettings['test_ingest'] = { 
     	'table.split.threshold': '200K',
+    	'table.file.compress.blocksize': '10K',
         }
 
     def runTest(self):

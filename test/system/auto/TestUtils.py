@@ -64,6 +64,7 @@ $ACCUMULO_HOME/server/target/classes/,
       $HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,
       $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
       $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/yarn/.*.jar,
 """
 
 log = logging.getLogger('test.auto')
