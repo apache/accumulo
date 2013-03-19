@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -46,7 +47,12 @@ public class ImportDirectoryCommand extends Command {
     final boolean setTime = Boolean.parseBoolean(cl.getArgs()[2]);
     
     final FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    final FileStatus failStatus = fs.getFileStatus(new Path(failureDir));
+    FileStatus failStatus = null;
+    try {
+      failStatus = fs.getFileStatus(new Path(failureDir));
+    } catch (FileNotFoundException ex) {
+      // ignored
+    }
     if (failStatus == null || !failStatus.isDir() || fs.listStatus(new Path(failureDir)).length != 0) {
       throw new AccumuloException(failureDir + " is not an empty directory");
     }

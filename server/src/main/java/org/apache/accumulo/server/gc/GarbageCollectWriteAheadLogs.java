@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.gc;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -142,6 +143,8 @@ public class GarbageCollectWriteAheadLogs {
             Path path = new Path(Constants.getWalDirectory(conf), filename);
             if (trash == null || !trash.moveToTrash(path))
               fs.delete(path, true);
+          } catch (FileNotFoundException ex) {
+            // ignored
           } catch (IOException ex) {
             log.error("Unable to delete wal " + filename + ": " + ex);
           }
@@ -156,6 +159,8 @@ public class GarbageCollectWriteAheadLogs {
               Path path = new Path(serverPath, filename);
               if (trash == null || !trash.moveToTrash(path))
                 fs.delete(path, true);
+            } catch (FileNotFoundException ex) {
+              // ignored
             } catch (IOException ex) {
               log.error("Unable to delete wal " + filename + ": " + ex);
             }
@@ -187,6 +192,8 @@ public class GarbageCollectWriteAheadLogs {
         if (trash == null || !trash.moveToTrash(swalog)) {
           fs.delete(swalog, true);
         }
+      } catch (FileNotFoundException ex) {
+        // ignored
       } catch (IOException ioe) {
         log.error("Unable to delete sorted walog " + sortedWALogs + ": " + ioe);
       }
