@@ -27,7 +27,7 @@
     <name>instance.secret</name>
     <value>DEFAULT</value>
     <description>A secret unique to a given instance that all servers must know in order to communicate with one another.
-      Change it before initialization. To change it later use ./bin/accumulo org.apache.accumulo.server.util.ChangeSecret [oldpasswd] [newpasswd],
+      Change it before initialization. To change it later use ./bin/accumulo org.apache.accumulo.server.util.ChangeSecret --old [oldpasswd] --new [newpasswd],
       and then update this file.
     </description>
   </property>
@@ -70,6 +70,13 @@
 
   <property>
     <name>general.classpaths</name>
+    <!--
+       Add the following for hadoop-2.0
+       $HADOOP_PREFIX/share/hadoop/common/.*.jar,
+       $HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,
+       $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
+       $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
+    -->
     <value>
       $ACCUMULO_HOME/server/target/classes/,
       $ACCUMULO_HOME/core/target/classes/,
@@ -88,29 +95,57 @@
   </property>
 
   <!-- VFS ClassLoader Settings -->
+  
+  <!--
+  At a minimum the general.vfs.classpath property must be set. After this is set in the configuration, the bin/bootstrap_hdfs.sh can be
+  run to move the jars into the required locations. All other properties are optional. This example demonstrates using hdfs, other
+  protocols supported by the Apache Commons VFS software can be used but are not demonstrated here. If the accumulo-site.xml changes
+  after initial configuration, you will want to copy the file to all of the slave hosts. 
+  -->
   <property>
-    <name>classloader.vfs.enabled</name>
-    <value>true</value>
-    <description>set to true to enable the vfs classloader. If not enabled (default=false), then the old classloader is used</description>
+    <name>general.vfs.classpaths</name>
+    <value>hdfs://localhost:8020/accumulo/system-classpath</value>
+    <description>Configuration for a system level vfs classloader.  Accumulo jars can be configured here and loaded out of HDFS.</description>
   </property>
 
   <property>
-    <name>classloader.vfs.context.classpath.system</name>
-    <value>hdfs://localhost:8020/accumulo/classpath</value>
-    <description>location of the jars for the default (system) context</description>
+    <name>general.vfs.cache.dir</name>
+    <value>/tmp</value>
+    <description>Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM. 
+    This should be on local disk on each node with sufficient space. It defaults to /tmp and will use a directory with the 
+    format "accumulo-vfs-cache-" + System.getProperty("user.name", "nouser")
+    </description>
   </property>
 
-  <property>
-    <name>classloader.vfs.context.names</name>
-    <value>application1</value>
-    <description>list of context names</description>
-  </property>
+  <!--
+  Properties in this category define a classpath for a named context. These properties start with the category prefix, followed by a context name.
+  The value is a comma seperated list of URIs. Supports full regex on filename alone. For example 
+  general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar.  You can enable post delegation for a context, which will load classes from 
+  the context first instead of the parent first.  Do this by setting general.vfs.context.classpath.<name>.delegation=post, where <name> 
+  is your context name.  If delegation is not specified, it defaults to loading from parent classloader first.
+  -->
 
   <property>
-    <name>classloader.vfs.context.classpath.application1</name>
-    <value>hdfs://localhost:8020/application1/classpath</value>
+    <name>general.vfs.context.classpath.application1</name>
+    <value>hdfs://localhost:8020/application1/classpath/*.jar</value>
     <description>classpath for the application1 context</description>
   </property>
 
+  <property>
+    <name>general.vfs.context.classpath.application1.delegation=post</name>
+    <value>hdfs://localhost:8020/application1/classpath/*.jar</value>
+    <description>classpath for the application1 context, but the classloader parent delegation model is inverted to prefer the jars/classes in this directory</description>
+  </property>
+
+  <property>
+    <name>general.vfs.context.classpath.application2</name>
+    <value>hdfs://localhost:8020/application1/classpath/*.jar,hdfs://localhost:8020/application2/classpath/*.jar</value>
+    <description>classpath for the application2 context, includes all of the jars in app1 context</description>
+  </property>
+  
+  <!--
+  Once classpath context are configured, tables can be configured in the shell to use them via the table.classpath.context property.
+  For example, all of the tables related to application1 would have the context.classpath property set to 'application1'. 
+  -->
 
 </configuration>
