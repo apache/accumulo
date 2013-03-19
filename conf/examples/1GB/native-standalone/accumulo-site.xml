@@ -38,7 +38,7 @@
     <name>instance.secret</name>
     <value>DEFAULT</value>
     <description>A secret unique to a given instance that all servers must know in order to communicate with one another.
-      Change it before initialization. To change it later use ./bin/accumulo org.apache.accumulo.server.util.ChangeSecret [oldpasswd] [newpasswd],
+      Change it before initialization. To change it later use ./bin/accumulo org.apache.accumulo.server.util.ChangeSecret --old [oldpasswd] --new [newpasswd],
       and then update this file.
     </description>
   </property>
@@ -110,21 +110,5 @@
     <description>Classpaths that accumulo checks for updates and class files.
       When using the Security Manager, please remove the ".../target/classes/" values.
     </description>
-  </property>
-
-
-  <property>
-    <name>instance.security.authenticator</name>
-    <value>org.apache.accumulo.server.security.handler.ZKAuthenticator</value>
-  </property>
-
-  <property>
-    <name>instance.security.authorizor</name>
-    <value>org.apache.accumulo.server.security.handler.ZKAuthorizor</value>
-  </property>
-
-  <property>
-    <name>instance.security.permissionHandler</name>
-    <value>org.apache.accumulo.server.security.handler.ZKPermHandler</value>
   </property>
 </configuration>
