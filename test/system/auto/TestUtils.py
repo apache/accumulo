@@ -60,6 +60,10 @@ $ACCUMULO_HOME/server/target/classes/,
         $HADOOP_CONF_DIR,
         $HADOOP_PREFIX/[^.].*.jar,
         $HADOOP_PREFIX/lib/[^.].*.jar,
+      $HADOOP_PREFIX/share/hadoop/common/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 """
 
 log = logging.getLogger('test.auto')
