@@ -149,7 +149,12 @@ public class BulkImport extends MasterRepo {
     FileSystem fs = master.getFileSystem();
 
     Path errorPath = new Path(errorDir);
-    FileStatus errorStatus = fs.getFileStatus(errorPath);
+    FileStatus errorStatus = null;
+    try {
+      errorStatus = fs.getFileStatus(errorPath);
+    } catch (FileNotFoundException ex) {
+      // ignored
+    }
     if (errorStatus == null)
       throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir
           + " does not exist");

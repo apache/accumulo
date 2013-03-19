@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -291,7 +292,12 @@ public class ZooKeeperInstance implements Instance {
   public static String getInstanceIDFromHdfs(Path instanceDirectory) {
     try {
       FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), AccumuloConfiguration.getSiteConfiguration());
-      FileStatus[] files = fs.listStatus(instanceDirectory);
+      FileStatus[] files = null;
+      try {
+        files = fs.listStatus(instanceDirectory);
+      } catch (FileNotFoundException ex) {
+        // ignored
+      }
       log.debug("Trying to read instance id from " + instanceDirectory);
       if (files == null || files.length == 0) {
         log.error("unable obtain instance id at " + instanceDirectory);

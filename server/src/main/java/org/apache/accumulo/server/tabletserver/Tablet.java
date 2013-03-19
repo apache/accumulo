@@ -18,6 +18,7 @@ package org.apache.accumulo.server.tabletserver;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -488,7 +489,12 @@ public class Tablet {
   
   private void checkTabletDir(Path tabletDir) throws IOException {
     
-    FileStatus[] files = fs.listStatus(tabletDir);
+    FileStatus[] files = null;
+    try {
+      files = fs.listStatus(tabletDir);
+    } catch (FileNotFoundException ex) {
+      // ignored
+    }
     
     if (files == null) {
       if (tabletDir.getName().startsWith("c-"))

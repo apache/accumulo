@@ -351,9 +351,15 @@ public class SimpleGarbageCollector implements Iface {
     // tableIdsWithDeletes should now contain the set of deleted tables that had dirs deleted
     
     for (String delTableId : tableIdsWithDeletes) {
-      // if dir exist and is empty, then empty list is returned... if dir does not exist
-      // then null is returned
-      FileStatus[] tabletDirs = fs.listStatus(new Path(ServerConstants.getTablesDir() + "/" + delTableId));
+      // if dir exist and is empty, then empty list is returned...
+      // hadoop 1.0 will return null if the file doesn't exist
+      // hadoop 2.0 will throw an exception if the file does not exist
+      FileStatus[] tabletDirs = null;
+      try {
+        tabletDirs = fs.listStatus(new Path(ServerConstants.getTablesDir() + "/" + delTableId));
+      } catch (FileNotFoundException ex) {
+        // ignored 
+      }
       
       if (tabletDirs == null)
         continue;
