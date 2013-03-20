@@ -189,13 +189,13 @@ public class GarbageCollectWriteAheadLogs {
       log.debug("Removing sorted WAL " + sortedWALog);
       try {
         Path swalog = new Path(recoveryDir, sortedWALog);
-        if (trash == null || !trash.moveToTrash(swalog)) {
+        if (trash == null || (fs.exists(swalog) && !trash.moveToTrash(swalog))) {
           fs.delete(swalog, true);
         }
       } catch (FileNotFoundException ex) {
         // ignored
       } catch (IOException ioe) {
-        log.error("Unable to delete sorted walog " + sortedWALogs + ": " + ioe);
+        log.error("Unable to delete sorted walog " + sortedWALog + ": " + ioe);
       }
     }
 
