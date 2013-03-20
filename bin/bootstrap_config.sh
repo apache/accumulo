@@ -41,6 +41,11 @@ if [ "$2" = "native" ]; then
    TYPE="native-standalone"
 fi
 
+if [ -z "${SIZE}" -a -z "${TYPE}" ]; then
+   echo "Please choose from the following example configurations..."
+   echo ""
+fi
+
 if [ -z "${SIZE}" ]; then
    echo "Choose the heap configuration:"
    select DIRNAME in $(cd ${ACCUMULO_HOME}/conf/examples && ls -d */standalone/.. | sed -e 's/\/.*//'); do
