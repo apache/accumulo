@@ -69,7 +69,7 @@ public class FateCommand extends Command {
     
     String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
     String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
-    IZooReaderWriter zk = getZooReaderWriter(cl.getOptionValue('s'));
+    IZooReaderWriter zk = getZooReaderWriter(shellState.getInstance(), cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<FateCommand>(path, zk);
     
     if ("fail".equals(cmd)) {
@@ -113,9 +113,9 @@ public class FateCommand extends Command {
       
       // Parse TStatus filters for print display
       EnumSet<TStatus> filterStatus = null;
-      if (cl.hasOption('t')) {
+      if (cl.hasOption(statusOption.getOpt())) {
         filterStatus = EnumSet.noneOf(TStatus.class);
-        String[] tstat = cl.getOptionValues('t');
+        String[] tstat = cl.getOptionValues(statusOption.getOpt());
         for (int i = 0; i < tstat.length; i++) {
           try {
             filterStatus.add(TStatus.valueOf(tstat[i]));
@@ -138,12 +138,14 @@ public class FateCommand extends Command {
   }
   
   @SuppressWarnings("deprecation")
-  protected synchronized IZooReaderWriter getZooReaderWriter(String secret) {
-    AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
+  protected synchronized IZooReaderWriter getZooReaderWriter(Instance instance, String secret) {
+
     if (secret == null) {
+      AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
       secret = conf.get(Property.INSTANCE_SECRET);
     }
-    return new ZooReaderWriter(conf.get(Property.INSTANCE_ZK_HOST), (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), SCHEME,
+    
+    return new ZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), SCHEME,
         (USER + ":" + secret).getBytes());
   }
   
