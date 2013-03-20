@@ -652,7 +652,7 @@ public class SimpleGarbageCollector implements Iface {
                 ++status.current.errors;
               }
               String parts[] = delete.split("/");
-              if (parts.length > 1) {
+              if (parts.length > 2) {
                 String tableId = parts[1];
                 String tabletDir = parts[2];
                 TableManager.getInstance().updateTableStateCache(tableId);
