@@ -231,7 +231,7 @@ service AccumuloProxy
 
   // table operations
   i32 addConstraint (1:binary login, 2:string tableName, 3:string constraintClassName)                 throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void addSplits (1:binary login, 2:string tableName, 3:set<binary> splits)                            throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
+  void addSplits (1:binary login, 2:string tableName, 3:set<binary> splits)                            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void attachIterator (1:binary login, 2:string tableName, 3:IteratorSetting setting, 
                        4:set<IteratorScope> scopes) 
                                                                                                        throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
@@ -243,41 +243,41 @@ service AccumuloProxy
                    5:map<string,string> propertiesToSet, 6:set<string> propertiesToExclude) 
                                                                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3, 4:TableExistsException ouch4);
   void compactTable (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow, 
-		     5:list<IteratorSetting> iterators, 6:bool flush, 7:bool wait)                             throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
+		     5:list<IteratorSetting> iterators, 6:bool flush, 7:bool wait)                     throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
   void cancelCompaction(1:binary login, 2:string tableName)                                            throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
                                                                                                             
   void createTable (1:binary login, 2:string tableName, 3:bool versioningIter, 4:TimeType type)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableExistsException ouch3);
   void deleteTable (1:binary login, 2:string tableName)                                                throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void deleteRows (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow)             throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void exportTable (1:binary login, 2:string tableName, 3:string exportDir)                            throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
+  void exportTable (1:binary login, 2:string tableName, 3:string exportDir)                            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void flushTable (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow, 
                    5:bool wait)
                                                                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   map<string,set<string>> getLocalityGroups (1:binary login, 2:string tableName)                       throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);
   IteratorSetting getIteratorSetting (1:binary login, 2:string tableName, 
                                       3:string iteratorName, 4:IteratorScope scope) 
-                                                                                                       throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
+                                                                                                       throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   binary getMaxRow (1:binary login, 2:string tableName, 3:set<binary> auths, 4:binary startRow, 
                     5:bool startInclusive, 6:binary endRow, 7:bool endInclusive) 
-                                                                                                       throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
+                                                                                                       throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   map<string,string> getTableProperties (1:binary login, 2:string tableName)                           throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);
   void importDirectory (1:binary login, 2:string tableName, 3:string importDir, 
                         4:string failureDir, 5:bool setTime) 
                                                                                                        throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch3, 3:AccumuloSecurityException ouch4);
   void importTable (1:binary login, 2:string tableName, 3:string importDir)                            throws (1:TableExistsException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
-  list<binary> listSplits (1:binary login, 2:string tableName, 3:i32 maxSplits)                        throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
+  list<binary> listSplits (1:binary login, 2:string tableName, 3:i32 maxSplits)                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   set<string> listTables (1:binary login);
-  map<string,set<IteratorScope>> listIterators (1:binary login, 2:string tableName)                    throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
+  map<string,set<IteratorScope>> listIterators (1:binary login, 2:string tableName)                    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   map<string,i32> listConstraints (1:binary login, 2:string tableName)                                 throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);
   void mergeTablets (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow)           throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void offlineTable (1:binary login, 2:string tableName)                                               throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
-  void onlineTable (1:binary login, 2:string tableName)                                                throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
+  void offlineTable (1:binary login, 2:string tableName)                                               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  void onlineTable (1:binary login, 2:string tableName)                                                throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void removeConstraint (1:binary login, 2:string tableName, 3:i32 constraint)                         throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void removeIterator (1:binary login, 2:string tableName, 3:string iterName, 
                        4:set<IteratorScope> scopes)
-                                                                                                       throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
+                                                                                                       throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void removeTableProperty (1:binary login, 2:string tableName, 3:string property)                     throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void renameTable (1:binary login, 2:string oldTableName, 3:string newTableName)                      throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3, 4:TableExistsException ouch4);
+  void renameTable (1:binary login, 2:string oldTableName, 3:string newTableName)                      throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3, 4:TableExistsException ouch4);
   void setLocalityGroups (1:binary login, 2:string tableName, 3:map<string,set<string>> groups)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void setTableProperty (1:binary login, 2:string tableName, 3:string property, 4:string value)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   set<Range> splitRangeByTablets (1:binary login, 2:string tableName, 3:Range range, 4:i32 maxSplits)  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
@@ -300,20 +300,20 @@ service AccumuloProxy
   void changeUserAuthorizations (1:binary login, 2:string user, 3:set<binary> authorizations)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void changeLocalUserPassword (1:binary login, 2:string user, 3:binary password)                    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void createLocalUser (1:binary login, 2:string user, 3:binary password)                            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void dropLocalUser (1:binary login, 2:string user)                                                      throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void dropLocalUser (1:binary login, 2:string user)                                                 throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   list<binary> getUserAuthorizations (1:binary login, 2:string user)                                 throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void grantSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)                throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void grantTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm)  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void grantTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm)  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   bool hasSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)                  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   bool hasTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm)    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  set<string> listLocalUsers (1:binary login)                                                             throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  set<string> listLocalUsers (1:binary login)                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void revokeSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void revokeTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void revokeTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
 
 
   // scanning
-  string createBatchScanner(1:binary login, 2:string tableName, 3:BatchScanOptions options)          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  string createScanner(1:binary login, 2:string tableName, 3:ScanOptions options)                    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  string createBatchScanner(1:binary login, 2:string tableName, 3:BatchScanOptions options)          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  string createScanner(1:binary login, 2:string tableName, 3:ScanOptions options)                    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
 
   // use the scanner
   bool hasNext(1:string scanner)                        throws(1:UnknownScanner ouch1);
@@ -322,13 +322,13 @@ service AccumuloProxy
   void closeScanner(1:string scanner)                   throws(1:UnknownScanner ouch1);
 
   // writing
-  void updateAndFlush(1:binary login, 2:string tableName, 3:map<binary, list<ColumnUpdate>> cells) throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2);
-  string createWriter(1:binary login, 2:string tableName, 3:WriterOptions opts)                    throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2);
+  void updateAndFlush(1:binary login, 2:string tableName, 3:map<binary, list<ColumnUpdate>> cells) throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  string createWriter(1:binary login, 2:string tableName, 3:WriterOptions opts)                    throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
 
   // use the writer
   oneway void update(1:string writer, 2:map<binary, list<ColumnUpdate>> cells);
   void flush(1:string writer) throws (1:UnknownWriter ouch1, 2:AccumuloSecurityException ouch2);
-  void closeWriter(1:string writer) throws (1:UnknownWriter ouch1, 2:AccumuloSecurityException ouch2);
+  void closeWriter(1:string writer) throws (1:UnknownWriter ouch1, 2:AccumuloException outch1, 3:AccumuloSecurityException ouch2);
 
   // utilities
   Range getRowRange(1:binary row);
