@@ -149,13 +149,13 @@ public class ShellTest {
     Shell.log.debug("Starting auths test --------------------------");
     exec("setauths x,y,z", false, "Missing required option");
     exec("setauths -s x,y,z -u notauser", false, "user does not exist");
-    exec("setauths -s x,y,z", true);
+    exec("setauths -s y,z,x", true);
     exec("getauths -u notauser", false,"user does not exist");
-    exec("getauths", true,"y,z,x");
+    exec("getauths", true,"x,y,z");
     exec("addauths -u notauser", false,"Missing required option");
     exec("addauths -u notauser -s foo", false,"user does not exist");
     exec("addauths -s a", true);
-    exec("getauths", true, "y,z,a,x");
+    exec("getauths", true, "a,x,y,z");
     exec("setauths -c", true);
   }
   
