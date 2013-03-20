@@ -230,6 +230,18 @@ table.iterator.majc.vers.opt.maxVersions=3
 \end{verbatim}
 \normalsize
 
+When a table is created, by default its configured to use the
+VersioningIterator and keep one version.  A table can be created without the
+VersioningIterator with the -ndi option in the shell.  Also the Java API
+has the following method 
+
+\small
+\begin{verbatim}
+connector.tableOperations.create(String tableName, boolean limitVersion).
+\end{verbatim}
+\normalsize
+
+
 \subsubsection{Logical Time}
 
 Accumulo 1.2 introduces the concept of logical time. This ensures that timestamps
@@ -691,4 +703,4 @@ splits, and logical time.  Tables are exported and then copied via the hadoop
 distcp command.  To export a table, it must be offline and stay offline while
 discp runs.  The reason it needs to stay offline is to prevent files from being
 deleted.  A table can be cloned and the clone taken offline inorder to avoid
-losing access to the table.  See docs/examples/README.example for an example.
+losing access to the table.  See docs/examples/README.export for an example.

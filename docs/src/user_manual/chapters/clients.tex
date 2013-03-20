@@ -139,8 +139,8 @@ scan.setRange(new Range("harry","john"));
 scan.fetchFamily("attributes");
 
 for(Entry<Key,Value> entry : scan) {
-    String row = e.getKey().getRow();
-    Value value = e.getValue();
+    String row = entry.getKey().getRow();
+    Value value = entry.getValue();
 }
 \end{verbatim}
 \normalsize
@@ -195,7 +195,7 @@ bscan.setRanges(ranges);
 bscan.fetchFamily("attributes");
 
 for(Entry<Key,Value> entry : scan)
-    System.out.println(e.getValue());
+    System.out.println(entry.getValue());
 \end{verbatim}
 \normalsize
 

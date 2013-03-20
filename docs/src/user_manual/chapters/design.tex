@@ -62,12 +62,6 @@ TabletServers also perform recovery of a tablet
 that was previously on a server that failed, reapplying any writes
 found in the write-ahead log to the tablet.
 
-\subsection{Loggers}
-
-The Loggers accept updates to Tablet servers and write them to local
-on-disk storage.  Each tablet server will write their updates to
-multiple loggers to preserve data in case of hardware failure.
-
 \subsection{Garbage Collector}
 
 Accumulo processes will share files stored in HDFS.  Periodically, the Garbage
@@ -128,6 +122,23 @@ files are combined into one file. The previous files will eventually be removed
 by the Garbage Collector. This also provides an opportunity to permanently
 remove deleted key-value pairs by omitting key-value pairs suppressed by a
 delete entry when the new file is created.
+
+\section{Splitting}
+
+When a table is created it has one tablet.  As the table grows its initial
+tablet eventually splits into two tablets.   Its likely that one of these
+tablets will migrate to another tablet server.  As the table continues to grow,
+its tablets will continue to split and be migrated.  The decision to
+automatically split a tablet is based on the size of a tablets files.   The
+size threshold at which a tablet splits is configurable per table.  In addition
+to automatic splitting, a user can manually add split points to a table to
+create new tablets.  Manually splitting a new table can parallelize reads and
+writes giving better initial performance without waiting for automatic
+splitting.
+
+As data is deleted from a table, tablets may shrink.  Over time this can lead
+to small or empty tablets.   To deal with this, merging of tablets was
+introduced in Accumulo 1.4.  This is discussed in more detail later.
 
 \section{Fault-Tolerance}
 
