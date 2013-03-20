@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.master.recovery;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.apache.hadoop.fs.FileSystem;
@@ -40,6 +41,8 @@ public class HadoopLogCloser implements LogCloser {
         }
         log.info("Recovered lease on " + source.toString());
         return 0;
+      } catch (FileNotFoundException ex) {
+        throw ex;
       } catch (Exception ex) {
         log.warn("Error recovery lease on " + source.toString(), ex);
       }

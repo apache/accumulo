@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.master.recovery;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -92,7 +93,8 @@ public class RecoveryManager {
         } else {
           initiateSort(host, filename);
         }
-        
+      } catch (FileNotFoundException e) {
+        log.debug("Unable to initate log sort for " + filename + ": " + e);
       } catch (Exception e) {
         log.warn("Failed to initiate log sort " + filename, e);
       } finally {
