@@ -654,10 +654,14 @@ public class SimpleGarbageCollector implements Iface {
               String parts[] = delete.split("/");
               if (parts.length > 1) {
                 String tableId = parts[1];
+                String tabletDir = parts[2];
                 TableManager.getInstance().updateTableStateCache(tableId);
                 TableState tableState = TableManager.getInstance().getTableState(tableId);
-                if (tableState != null && tableState != TableState.DELETING)
-                  log.warn("File doesn't exist: " + p);
+                if (tableState != null && tableState != TableState.DELETING) {
+                  // clone directories don't always exist
+                  if (!tabletDir.startsWith("c-"))
+                    log.warn("File doesn't exist: " + p);
+                }
               } else {
                 log.warn("Very strange path name: " + delete);
               }
