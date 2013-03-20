@@ -27,10 +27,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -62,6 +58,10 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
+import org.apache.accumulo.trace.instrument.Tracer;
+import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -162,7 +162,7 @@ public class ThriftScanner {
   public static class ScanState {
     
     boolean isolated;
-    Text tableName;
+    Text tableId;
     Text startRow;
     boolean skipStartRow;
     
@@ -183,7 +183,7 @@ public class ThriftScanner {
     
     Map<String,Map<String,String>> serverSideIteratorOptions;
     
-    public ScanState(TCredentials credentials, Text tableName, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
+    public ScanState(TCredentials credentials, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated) {
       this.credentials = credentials;
       this.authorizations = authorizations;
@@ -193,7 +193,7 @@ public class ThriftScanner {
         columns.add(column);
       }
       
-      this.tableName = tableName;
+      this.tableId = tableId;
       this.range = range;
       
       Key startKey = range.getStartKey();
@@ -245,14 +245,15 @@ public class ThriftScanner {
           
           Span locateSpan = Trace.start("scan:locateTablet");
           try {
-            loc = TabletLocator.getInstance(instance, scanState.tableName).locateTablet(scanState.startRow, scanState.skipStartRow, false, credentials);
+            loc = TabletLocator.getInstance(instance, scanState.tableId).locateTablet(scanState.startRow, scanState.skipStartRow, false, credentials);
+
             if (loc == null) {
-              if (!Tables.exists(instance, scanState.tableName.toString()))
-                throw new TableDeletedException(scanState.tableName.toString());
-              else if (Tables.getTableState(instance, scanState.tableName.toString()) == TableState.OFFLINE)
-                throw new TableOfflineException(instance, scanState.tableName.toString());
+              if (!Tables.exists(instance, scanState.tableId.toString()))
+                throw new TableDeletedException(scanState.tableId.toString());
+              else if (Tables.getTableState(instance, scanState.tableId.toString()) == TableState.OFFLINE)
+                throw new TableOfflineException(instance, scanState.tableId.toString());
               
-              error = "Failed to locate tablet for table : " + scanState.tableName + " row : " + scanState.startRow;
+              error = "Failed to locate tablet for table : " + scanState.tableId + " row : " + scanState.startRow;
               if (!error.equals(lastError))
                 log.debug(error);
               else if (log.isTraceEnabled())
@@ -298,9 +299,9 @@ public class ThriftScanner {
           results = scan(loc, scanState, conf);
         } catch (AccumuloSecurityException e) {
           Tables.clearCache(instance);
-          if (!Tables.exists(instance, scanState.tableName.toString()))
-            throw new TableDeletedException(scanState.tableName.toString());
-          e.setTableInfo(Tables.getPrintableTableInfoFromId(instance, scanState.tableName.toString()));
+          if (!Tables.exists(instance, scanState.tableId.toString()))
+            throw new TableDeletedException(scanState.tableId.toString());
+          e.setTableInfo(Tables.getPrintableTableInfoFromId(instance, scanState.tableId.toString()));
           throw e;
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(loc.tablet_location, tae);
@@ -312,7 +313,7 @@ public class ThriftScanner {
             log.trace(error);
           lastError = error;
           
-          TabletLocator.getInstance(instance, scanState.tableName).invalidateCache(loc.tablet_extent);
+          TabletLocator.getInstance(instance, scanState.tableId).invalidateCache(loc.tablet_extent);
           loc = null;
           
           // no need to try the current scan id somewhere else
@@ -358,7 +359,7 @@ public class ThriftScanner {
           
           UtilWaitThread.sleep(100);
         } catch (TException e) {
-          TabletLocator.getInstance(instance, scanState.tableName).invalidateCache(loc.tablet_location);
+          TabletLocator.getInstance(instance, scanState.tableId).invalidateCache(loc.tablet_location);
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage() + " " + loc;
           if (!error.equals(lastError))
             log.debug(error);

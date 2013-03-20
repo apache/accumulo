@@ -49,7 +49,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private static final Logger log = Logger.getLogger(ScannerIterator.class);
   
   // scanner options
-  private Text tableName;
+  private Text tableId;
   private int timeOut;
   
   // scanner state
@@ -124,7 +124,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   ScannerIterator(Instance instance, TCredentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
       ScannerOptions options, boolean isolated) {
     this.instance = instance;
-    this.tableName = new Text(table);
+    this.tableId = new Text(table);
     this.timeOut = timeOut;
     this.credentials = credentials;
     
@@ -136,7 +136,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
     
-    scanState = new ScanState(credentials, tableName, authorizations, new Range(range), options.fetchedColumns, size, options.serverSideIteratorList,
+    scanState = new ScanState(credentials, tableId, authorizations, new Range(range), options.fetchedColumns, size, options.serverSideIteratorList,
         options.serverSideIteratorOptions, isolated);
     readaheadInProgress = false;
     iter = null;
