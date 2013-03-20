@@ -28,7 +28,6 @@
 
   <modules>
     <module>simple</module>
-    <module>instamo</module>
   </modules>
 
   <repositories>
