@@ -37,11 +37,11 @@ else
    #
    echo ""
    echo "Accumulo is not properly configured."
-   echo "Please choose from the following example configurations..."
    echo ""
-   $ACCUMULO_HOME/bin/bootstrap_config.sh
-   [[ $? != 0 ]] && echo "Bootstrap canceled, exiting..." && exit 1
-   . $ACCUMULO_HOME/conf/accumulo-env.sh
+   echo "Try running \$ACCUMULO_HOME/bin/bootstrap_config.sh and then editing"
+   echo "\$ACCUMULO_HOME/conf/accumulo-env.sh"
+   echo ""
+   exit 1
 fi
 
 if [ -z ${ACCUMULO_LOG_DIR} ]; then
@@ -74,31 +74,6 @@ then
 fi
 export HADOOP_PREFIX
 
-if [ ! -f "$ACCUMULO_HOME/conf/masters" -o ! -f "$ACCUMULO_HOME/conf/slaves" ]; then
-   if [ ! -f "$ACCUMULO_HOME/conf/masters" -a ! -f "$ACCUMULO_HOME/conf/slaves" ]; then
-      echo "STANDALONE: Missing both conf/masters and conf/slaves files"
-      echo "STANDALONE: Assuming single-node (localhost only) instance"
-      echo "STANDALONE: echo "`hostname`" > $ACCUMULO_HOME/conf/masters"
-      echo `hostname` > "$ACCUMULO_HOME/conf/masters"
-      echo "STANDALONE: echo "`hostname`" > $ACCUMULO_HOME/conf/slaves"
-      echo `hostname` > "$ACCUMULO_HOME/conf/slaves"
-      fgrep -s logger.dir.walog "$ACCUMULO_HOME/conf/accumulo-site.xml" > /dev/null
-      WALOG_CONFIGURED=$?
-      if [ $WALOG_CONFIGURED -ne 0 -a ! -e "$ACCUMULO_HOME/walogs" ]; then
-         echo "STANDALONE: Creating default local write-ahead log directory"
-         mkdir "$ACCUMULO_HOME/walogs"
-         echo "STANDALONE: mkdir \"$ACCUMULO_HOME/walogs\""
-      fi
-      if [ ! -e "$ACCUMULO_HOME/conf/accumulo-metrics.xml" ]; then
-         echo "STANDALONE: Creating default metrics configuration"
-         cp "$ACCUMULO_HOME/conf/accumulo-metrics.xml.example" "$ACCUMULO_HOME/conf/accumulo-metrics.xml"
-      fi
-   else
-      echo "You are missing either $ACCUMULO_HOME/conf/masters or $ACCUMULO_HOME/conf/slaves"
-      echo "Please configure them both for a multi-node instance, or delete them both for a single-node (localhost only) instance"
-      exit 1
-   fi
-fi
 MASTER1=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_HOME/conf/masters" | head -1)
 GC=$MASTER1
 MONITOR=$MASTER1
