@@ -93,6 +93,7 @@ import org.apache.accumulo.core.util.shell.commands.EGrepCommand;
 import org.apache.accumulo.core.util.shell.commands.ExecfileCommand;
 import org.apache.accumulo.core.util.shell.commands.ExitCommand;
 import org.apache.accumulo.core.util.shell.commands.ExportTableCommand;
+import org.apache.accumulo.core.util.shell.commands.FateCommand;
 import org.apache.accumulo.core.util.shell.commands.FlushCommand;
 import org.apache.accumulo.core.util.shell.commands.FormatterCommand;
 import org.apache.accumulo.core.util.shell.commands.GetAuthsCommand;
@@ -351,8 +352,8 @@ public class Shell extends ShellOptions {
     Command[] otherCommands = {new HiddenCommand()};
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(), new SystemPermissionsCommand(), new TablePermissionsCommand(),
         new UserPermissionsCommand()};
-    Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(), new SleepCommand(), new TableCommand(),
-        new UserCommand(), new WhoAmICommand()};
+    Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new FateCommand(), new NoTableCommand(), new SleepCommand(),
+        new TableCommand(), new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(), new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(),
         new DUCommand(), new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(),
         new TablesCommand()};
@@ -412,6 +413,10 @@ public class Shell extends ShellOptions {
     return connector;
   }
   
+  public Instance getInstance() {
+    return instance;
+  }
+  
   public static void main(String args[]) throws IOException {
     Shell shell = new Shell();
     shell.config(args);
@@ -444,8 +449,12 @@ public class Shell extends ShellOptions {
     
     if (execFile != null) {
       java.util.Scanner scanner = new java.util.Scanner(new File(execFile));
-      while (scanner.hasNextLine())
-        execCommand(scanner.nextLine(), true, isVerbose());
+      try {
+        while (scanner.hasNextLine())
+          execCommand(scanner.nextLine(), true, isVerbose());
+      } finally {
+        scanner.close();
+      }
     } else if (execCommand != null) {
       for (String command : execCommand.split("\n")) {
         execCommand(command, true, isVerbose());
@@ -515,6 +524,7 @@ public class Shell extends ShellOptions {
     return connector.whoami() + "@" + connector.getInstance().getInstanceName() + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
   
+  @SuppressWarnings("deprecation")
   public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt) throws IOException {
     audit.log(AuditLevel.AUDIT, getDefaultPrompt() + input);
     if (echoPrompt) {
@@ -819,7 +829,7 @@ public class Shell extends ShellOptions {
       writer.close();
     }
   };
-  
+
   public final void printLines(Iterator<String> lines, boolean paginate) throws IOException {
     printLines(lines, paginate, null);
   }

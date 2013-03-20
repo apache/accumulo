@@ -34,28 +34,24 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 
-
 /**
  * A utility to administer FATE operations
  */
 public class Admin {
   
   static class TxOpts {
-    @Parameter(description="<txid>", required=true)
+    @Parameter(description = "<txid>", required = true)
     List<String> args = new ArrayList<String>();
   }
   
-  @Parameters(commandDescription="Stop an existing FATE by transaction id")
-  static class FailOpts extends TxOpts {
-  }
+  @Parameters(commandDescription = "Stop an existing FATE by transaction id")
+  static class FailOpts extends TxOpts {}
   
-  @Parameters(commandDescription="Delete an existing FATE by transaction id")
-  static class DeleteOpts extends TxOpts {
-  }
+  @Parameters(commandDescription = "Delete an existing FATE by transaction id")
+  static class DeleteOpts extends TxOpts {}
   
-  @Parameters(commandDescription="List the existing FATE transactions")
-  static class PrintOpts {
-  }
+  @Parameters(commandDescription = "List the existing FATE transactions")
+  static class PrintOpts {}
   
   public static void main(String[] args) throws Exception {
     Help opts = new Help();
@@ -67,8 +63,10 @@ public class Admin {
     jc.parse(args);
     if (opts.help || jc.getParsedCommand() == null) {
       jc.usage();
-      System.exit(-1);
+      System.exit(1);
     }
+    
+    System.err.printf("This tool has been deprecated%nFATE administration now available within 'accumulo shell'%n$ fate fail <txid>... | delete <txid>... | print [<txid>...]%n%n");
     
     AdminUtil<Master> admin = new AdminUtil<Master>();
     
