@@ -16,15 +16,30 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import java.io.IOException;
+
+import jline.ConsoleReader;
+
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.Printer;
 import org.apache.commons.cli.CommandLine;
 
 public class ClasspathCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {
-    AccumuloVFSClassLoader.printClassPath();
+    final ConsoleReader reader = shellState.getReader();
+    AccumuloVFSClassLoader.printClassPath(new Printer() {
+      @Override
+      public void print(String s) {
+        try {
+          reader.printString(s + "\n");
+        } catch (IOException ex) {
+          throw new RuntimeException(ex);
+        }
+      }
+    });
     return 0;
   }
   

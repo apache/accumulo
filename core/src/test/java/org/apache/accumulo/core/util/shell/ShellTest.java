@@ -32,7 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ShellTest {
-  static class TestOutputStream extends OutputStream {
+  public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
     
     @Override
@@ -164,4 +164,5 @@ public class ShellTest {
     Shell.log.debug("Starting user test --------------------------");
     //exec("createuser root", false, "user exists");
   }
+  
 }

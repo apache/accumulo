@@ -148,7 +148,7 @@ public class MiniAccumuloCluster {
     throw new RuntimeException("Unable to find port");
   }
   
-  private Process exec(Class<? extends Object> clazz, String... args) throws IOException {
+  public Process exec(Class<? extends Object> clazz, String... args) throws IOException {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
     String classpath = System.getProperty("java.class.path");
@@ -263,6 +263,8 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TSERV_MAXMEM, "50M", siteConfig);
     appendProp(fileWriter, Property.TSERV_WALOG_MAX_SIZE, "100M", siteConfig);
     appendProp(fileWriter, Property.TSERV_NATIVEMAP_ENABLED, "false", siteConfig);
+    appendProp(fileWriter, Property.TRACE_LOGIN_PROPERTIES  + ".password", config.getRootPassword(), siteConfig);
+    appendProp(fileWriter, Property.TRACE_PORT, "" + getRandomFreePort(), siteConfig);
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);
     String cp = System.getenv("ACCUMULO_HOME")+"/lib/.*.jar,"+

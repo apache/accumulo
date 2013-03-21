@@ -50,6 +50,10 @@ public class Verify extends Test {
       lastSize = size;
       threadPool.awaitTermination(10, TimeUnit.SECONDS);
     }
+    if (!"true".equals(state.get("bulkImportSuccess"))) {
+      log.info("Not verifying bulk import test due to import failures");
+      return;
+    }
     
     String user = state.getConnector().whoami();
     Authorizations auths = state.getConnector().securityOperations().getUserAuthorizations(user);

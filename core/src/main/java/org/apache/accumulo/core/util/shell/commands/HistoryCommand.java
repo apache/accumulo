@@ -36,7 +36,10 @@ public class HistoryCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     
-    final String histDir = System.getenv("HOME") + "/.accumulo";
+    String home = System.getProperty("HOME");
+    if (home == null)
+      home = System.getenv("HOME");
+    final String histDir = home + "/.accumulo";
     int counter = 0;
     
     if (cl.hasOption(clearHist.getOpt())) {
@@ -60,8 +63,7 @@ public class HistoryCommand extends Command {
         try {
           Line = in.readLine();
           while (Line != null) {
-            shellState.getReader().printString(counter + " " + Line);
-            shellState.getReader().printNewline();
+            shellState.getReader().printString(counter + " " + Line + "\n");
             counter++;
             Line = in.readLine();
           }

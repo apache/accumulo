@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.util.TableDiskUsage;
+import org.apache.accumulo.core.util.TableDiskUsage.Printer;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -37,7 +38,7 @@ public class DUCommand extends Command {
   
   private Option optTablePattern;
   
-  public int execute(final String fullCommand, final CommandLine cl, Shell shellState) throws IOException, TableNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, TableNotFoundException {
     
     final SortedSet<String> tablesToFlush = new TreeSet<String>(Arrays.asList(cl.getArgs()));
     if (cl.hasOption(optTablePattern.getOpt())) {
@@ -49,7 +50,17 @@ public class DUCommand extends Command {
     }
     try {
       final AccumuloConfiguration acuConf = new ConfigurationCopy(shellState.getConnector().instanceOperations().getSystemConfiguration());
-      TableDiskUsage.printDiskUsage(acuConf, tablesToFlush, FileSystem.get(new Configuration()), shellState.getConnector());
+      TableDiskUsage.printDiskUsage(acuConf, tablesToFlush, FileSystem.get(new Configuration()), shellState.getConnector(), new Printer() {
+        @Override
+        public void print(String line) {
+          try {
+            shellState.getReader().printString(line + "\n");
+          } catch (IOException ex) {
+            throw new RuntimeException(ex);
+          }
+        }
+        
+      });
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }

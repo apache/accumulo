@@ -27,7 +27,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-public class DeleteShellterCommand extends Command {
+public class DeleteShellIterCommand extends Command {
   private Option nameOpt, allOpt, profileOpt;
   
   @Override
