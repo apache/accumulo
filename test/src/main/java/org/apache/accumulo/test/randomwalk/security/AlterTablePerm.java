@@ -24,7 +24,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -115,8 +114,7 @@ public class AlterTablePerm extends Test {
       } catch (AccumuloSecurityException ae) {
         switch (ae.getErrorCode()) {
           case GRANT_INVALID:
-            if (tabPerm.equals(SystemPermission.GRANT))
-              return;
+            throw new AccumuloException("Got a grant invalid on non-System.GRANT option", ae);
           case PERMISSION_DENIED:
             if (canGive)
               throw new AccumuloException(conn.whoami() + " failed to revoke permission to " + target + " when it should have worked", ae);
@@ -144,8 +142,6 @@ public class AlterTablePerm extends Test {
       } catch (AccumuloSecurityException ae) {
         switch (ae.getErrorCode()) {
           case GRANT_INVALID:
-            if (tabPerm.equals(SystemPermission.GRANT))
-              return;
             throw new AccumuloException("Got a grant invalid on non-System.GRANT option", ae);
           case PERMISSION_DENIED:
             if (canGive)

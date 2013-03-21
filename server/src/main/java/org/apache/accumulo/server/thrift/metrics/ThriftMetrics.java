@@ -26,7 +26,7 @@ public class ThriftMetrics extends AbstractMetricsImpl implements ThriftMetricsM
   
   private static final String METRICS_PREFIX = "thrift";
   
-  private static ObjectName OBJECT_NAME = null;
+  private ObjectName OBJECT_NAME = null;
   
   public ThriftMetrics(String serverName, String threadName) {
     super();

@@ -60,7 +60,7 @@ public class CreateRandomRFile {
     Random r = new Random();
     
     for (int i = 0; i < rands.length; i++) {
-      rands[i] = Math.abs(r.nextLong()) % 10000000000l;
+      rands[i] = (r.nextLong() & 0x7fffffffffffffffl) % 10000000000l;
     }
     
     Arrays.sort(rands);

@@ -22,10 +22,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -499,7 +499,7 @@ public class NativeMapTest {
     
     for (int i = 0; i < 100000; i++) {
       
-      Key k = new Key(rlrf(r, 97), rlrf(r, 13), rlrf(r, 31), rlrf(r, 11), Math.abs(r.nextLong()), false, false);
+      Key k = new Key(rlrf(r, 97), rlrf(r, 13), rlrf(r, 31), rlrf(r, 11), (r.nextLong() & 0x7fffffffffffffffl), false, false);
       Value v = new Value(rlrf(r, 511));
       
       testData.add(new Pair<Key,Value>(k, v));

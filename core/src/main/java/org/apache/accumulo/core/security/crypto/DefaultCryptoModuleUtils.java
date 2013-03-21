@@ -61,7 +61,7 @@ public class DefaultCryptoModuleUtils {
         log.error(String.format("Accumulo configuration file contained a cipher suite \"%s\" that was not recognized by any providers", cipherSuite));
         throw new RuntimeException(e);
       } catch (NoSuchPaddingException e) {
-        log.error(String.format("Accumulo configuration file contained a cipher, \"%s\" with a padding that was not recognized by any providers"));
+        log.error(String.format("Accumulo configuration file contained a cipher, \"%s\" with a padding that was not recognized by any providers", cipherSuite));
         throw new RuntimeException(e);
       }
     }

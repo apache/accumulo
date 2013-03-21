@@ -49,9 +49,9 @@ import org.apache.log4j.Logger;
 public class SecurityOperation {
   private static final Logger log = Logger.getLogger(SecurityOperationsImpl.class);
   
-  protected static Authorizor authorizor;
-  protected static Authenticator authenticator;
-  protected static PermissionHandler permHandle;
+  protected Authorizor authorizor;
+  protected Authenticator authenticator;
+  protected PermissionHandler permHandle;
   private static String rootUserName = null;
   private final ZooCache zooCache;
   private final String ZKUserPath;

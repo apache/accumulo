@@ -136,8 +136,8 @@ public class ZombieTServer {
       log.debug("Obtained tablet server lock " + zlock.getLockPath());
     }
     // modify !METADATA
-    while (!tch.halted) {
-      synchronized (tch) {
+    synchronized (tch) {
+      while (!tch.halted) {
         tch.wait();
       }
     }

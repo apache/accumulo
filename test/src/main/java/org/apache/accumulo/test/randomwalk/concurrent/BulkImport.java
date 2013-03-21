@@ -102,7 +102,7 @@ public class BulkImport extends Test {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
     
-    String bulkDir = "/tmp/concurrent_bulk/b_" + String.format("%016x", Math.abs(rand.nextLong()));
+    String bulkDir = "/tmp/concurrent_bulk/b_" + String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl);
     
     fs.mkdirs(new Path(bulkDir));
     fs.mkdirs(new Path(bulkDir + "_f"));
@@ -113,12 +113,12 @@ public class BulkImport extends Test {
         TreeSet<Long> rows = new TreeSet<Long>();
         int numRows = rand.nextInt(100000);
         for (int i = 0; i < numRows; i++) {
-          rows.add(Math.abs(rand.nextLong()));
+          rows.add(rand.nextLong() & 0x7fffffffffffffffl);
         }
         
         for (Long row : rows) {
           Mutation m = new Mutation(String.format("%016x", row));
-          long val = Math.abs(rand.nextLong());
+          long val = rand.nextLong() & 0x7fffffffffffffffl;
           for (int j = 0; j < 10; j++) {
             m.put("cf", "cq" + j, new Value(String.format("%016x", val).getBytes()));
           }

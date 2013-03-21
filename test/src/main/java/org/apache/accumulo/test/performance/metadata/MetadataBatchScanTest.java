@@ -63,7 +63,7 @@ public class MetadataBatchScanTest {
     Random r = new Random(42);
     
     while (splits.size() < 99999) {
-      splits.add(Math.abs(r.nextLong()) % 1000000000000l);
+      splits.add((r.nextLong() & 0x7fffffffffffffffl) % 1000000000000l);
     }
     
     Text tid = new Text("8");

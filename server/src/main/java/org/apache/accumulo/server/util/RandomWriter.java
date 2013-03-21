@@ -19,12 +19,12 @@ package org.apache.accumulo.server.util;
 import java.util.Iterator;
 import java.util.Random;
 
-import org.apache.accumulo.server.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.server.cli.ClientOnDefaultTable;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -52,7 +52,7 @@ public class RandomWriter {
     }
     
     public Mutation next() {
-      Text row_value = new Text(Long.toString((Math.abs(r.nextLong()) / 177) % 100000000000l));
+      Text row_value = new Text(Long.toString(((r.nextLong() & 0x7fffffffffffffffl) / 177) % 100000000000l));
       Mutation m = new Mutation(row_value);
       for (int column = 0; column < num_columns_per_row; column++) {
         Text column_fam = new Text("col_fam");

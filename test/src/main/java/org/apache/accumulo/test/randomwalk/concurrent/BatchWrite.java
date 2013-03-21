@@ -50,8 +50,8 @@ public class BatchWrite extends Test {
       try {
         int numRows = rand.nextInt(100000);
         for (int i = 0; i < numRows; i++) {
-          Mutation m = new Mutation(String.format("%016x", Math.abs(rand.nextLong())));
-          long val = Math.abs(rand.nextLong());
+          Mutation m = new Mutation(String.format("%016x", (rand.nextLong() & 0x7fffffffffffffffl)));
+          long val = (rand.nextLong() & 0x7fffffffffffffffl);
           for (int j = 0; j < 10; j++) {
             m.put("cf", "cq" + j, new Value(String.format("%016x", val).getBytes()));
           }

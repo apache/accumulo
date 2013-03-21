@@ -103,7 +103,7 @@ public class ZooStore<T> implements TStore<T> {
     while (true) {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
-        long tid = Math.abs(idgenerator.nextLong());
+        long tid = idgenerator.nextLong() & 0x7fffffffffffffffl;
         zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(), NodeExistsPolicy.FAIL);
         return tid;
       } catch (NodeExistsException nee) {
