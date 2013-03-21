@@ -70,7 +70,7 @@ public class ShutdownTServer extends MasterRepo {
       TServerConnection connection = master.getConnection(server);
       if (connection != null) {
         try {
-          TabletServerStatus status = connection.getTableMap();
+          TabletServerStatus status = connection.getTableMap(false);
           if (status.tableMap != null && status.tableMap.isEmpty()) {
             log.info("tablet server hosts no tablets " + server);
             connection.halt(master.getMasterLock());

@@ -2005,7 +2005,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           TServerConnection connection = tserverSet.getConnection(server);
           if (connection == null)
             throw new IOException("No connection to " + server);
-          TabletServerStatus status = connection.getTableMap();
+          TabletServerStatus status = connection.getTableMap(false);
           result.put(server, status);
         } finally {
           t.setName(oldName);
