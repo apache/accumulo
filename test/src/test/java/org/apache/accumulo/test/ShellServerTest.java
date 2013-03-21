@@ -29,8 +29,6 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.server.trace.TraceServer;
-import org.apache.accumulo.test.MiniAccumuloCluster;
-import org.apache.accumulo.test.MiniAccumuloConfig;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -133,7 +131,7 @@ public class ShellServerTest {
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
     traceProcess.destroy();
-    // folder.delete();
+    folder.delete();
   }
   
   @Test(timeout = 30000)
