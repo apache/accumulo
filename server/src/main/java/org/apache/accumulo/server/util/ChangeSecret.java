@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -31,6 +30,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -120,7 +120,7 @@ public class ChangeSecret {
           new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
         } else {
           // upgrade
-          if (acls.contains(Ids.OPEN_ACL_UNSAFE)) {
+          if (acls.containsAll(Ids.OPEN_ACL_UNSAFE)) {
             // make user nodes private, they contain the user's password
             String parts[] = path.split("/");
             if (parts[parts.length - 2].equals("users")) {

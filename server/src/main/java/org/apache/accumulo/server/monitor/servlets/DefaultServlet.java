@@ -85,7 +85,8 @@ public class DefaultServlet extends BasicServlet {
           out.write(("could not get resource " + path + "").getBytes());
         }
       } finally {
-        data.close();
+        if (data != null)
+          data.close();
       }
     } catch (Throwable t) {
       log.error(t, t);

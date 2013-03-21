@@ -457,8 +457,8 @@ public class OldMutation implements Writable {
   
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Mutation)
-      return equals((Mutation) o);
+    if (o instanceof OldMutation)
+      return equals((OldMutation) o);
     return false;
   }
   
@@ -467,7 +467,7 @@ public class OldMutation implements Writable {
     return toThrift().hashCode();
   }
   
-  public boolean equals(Mutation m) {
+  public boolean equals(OldMutation m) {
     serialize();
     if (!Arrays.equals(row, m.getRow()))
       return false;

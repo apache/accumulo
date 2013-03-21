@@ -27,8 +27,6 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-import org.apache.accumulo.trace.instrument.CountSampler;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
@@ -40,6 +38,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.trace.instrument.CountSampler;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -268,7 +268,7 @@ public class ContinuousIngest {
   }
   
   public static final long genLong(long min, long max, Random r) {
-    return (Math.abs(r.nextLong()) % (max - min)) + min;
+    return ((r.nextLong() & 0x7fffffffffffffffl) % (max - min)) + min;
   }
   
   static final byte[] genRow(long min, long max, Random r) {

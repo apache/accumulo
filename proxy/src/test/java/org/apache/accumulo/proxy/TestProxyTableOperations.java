@@ -117,7 +117,7 @@ public class TestProxyTableOperations {
     
     tpc.proxy().mergeTablets(userpass, testtable, ByteBuffer.wrap("b".getBytes()), ByteBuffer.wrap("d".getBytes()));
     
-    splits.remove("c");
+    splits.remove(ByteBuffer.wrap("c".getBytes()));
     
     List<ByteBuffer> tableSplits = tpc.proxy().listSplits(userpass, testtable, 10);
     

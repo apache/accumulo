@@ -123,7 +123,7 @@ public class BatchWriterConfig implements Writable {
       throw new IllegalArgumentException("Negative timeout not allowed " + timeout);
     
     if (timeout == 0)
-      timeout = Long.MAX_VALUE;
+      this.timeout = Long.MAX_VALUE;
     else
       // make small, positive values that truncate to 0 when converted use the minimum millis instead
       this.timeout = Math.max(1, timeUnit.toMillis(timeout));

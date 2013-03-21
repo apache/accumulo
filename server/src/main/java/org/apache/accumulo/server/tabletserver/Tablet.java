@@ -3407,8 +3407,10 @@ public class Tablet {
       
       Span curr = Trace.currentTrace();
       curr.data("extent", "" + getExtent());
-      curr.data("read", "" + majCStats.getEntriesRead());
-      curr.data("written", "" + majCStats.getEntriesWritten());
+      if (majCStats != null) {
+        curr.data("read", "" + majCStats.getEntriesRead());
+        curr.data("written", "" + majCStats.getEntriesWritten());
+      }
       span.stop();
     }
     

@@ -21,7 +21,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
 
-import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -32,6 +31,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -162,7 +162,7 @@ public class TestBinaryRows {
         long t1 = System.currentTimeMillis();
         
         for (int i = 0; i < numLookups; i++) {
-          long row = (Math.abs(r.nextLong()) % opts.num) + opts.start;
+          long row = ((r.nextLong() & 0x7fffffffffffffffl) % opts.num) + opts.start;
           
           Scanner s = connector.createScanner(opts.tableName, opts.auths);
           s.setBatchSize(scanOpts.scanBatchSize);

@@ -146,7 +146,7 @@ public class BloomFilterTest extends FunctionalTest {
     Text row = new Text("row"), cq = new Text("cq"), cf = new Text("cf");
     
     for (int i = 0; i < num; ++i) {
-      Long k = (Math.abs(r.nextLong()) % (end - start)) + start;
+      Long k = ((r.nextLong() & 0x7fffffffffffffffl) % (end - start)) + start;
       key.set(String.format("k_%010d", k));
       Range range = null;
       Key acuKey;

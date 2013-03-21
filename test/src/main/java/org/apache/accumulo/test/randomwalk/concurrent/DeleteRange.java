@@ -44,8 +44,8 @@ public class DeleteRange extends Test {
     
     List<Text> range = new ArrayList<Text>();
     do {
-      range.add(new Text(String.format("%016x", Math.abs(rand.nextLong()))));
-      range.add(new Text(String.format("%016x", Math.abs(rand.nextLong()))));
+      range.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));
+      range.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));
     } while (range.get(0).equals(range.get(1)));
     Collections.sort(range);
     if (rand.nextInt(20) == 0)

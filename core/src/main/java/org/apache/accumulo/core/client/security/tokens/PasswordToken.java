@@ -111,6 +111,12 @@ public class PasswordToken implements AuthenticationToken {
   
   @Override
   public PasswordToken clone() {
-    return new PasswordToken(password);
+    try {
+      PasswordToken clone = (PasswordToken) super.clone();
+      clone.password = Arrays.copyOf(password, password.length);
+      return clone;
+    } catch (CloneNotSupportedException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

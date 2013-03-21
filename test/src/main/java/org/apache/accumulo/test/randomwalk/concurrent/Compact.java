@@ -44,8 +44,8 @@ public class Compact extends Test {
     // TODO need to sometimes do null start and end ranges
     
     TreeSet<Text> range = new TreeSet<Text>();
-    range.add(new Text(String.format("%016x", Math.abs(rand.nextLong()))));
-    range.add(new Text(String.format("%016x", Math.abs(rand.nextLong()))));
+    range.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));
+    range.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));
     
     try {
       boolean wait = rand.nextBoolean();

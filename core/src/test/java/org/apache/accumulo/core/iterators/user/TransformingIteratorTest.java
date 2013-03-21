@@ -411,6 +411,13 @@ public class TransformingIteratorTest {
       Assert.assertFalse(true);
     } catch (IllegalArgumentException e) {}
 
+    opts.clear();
+    opts.put(TransformingIterator.AUTH_OPT, Authorizations.HEADER + "~~~~");
+    try {
+      ti.validateOptions(opts);
+      Assert.assertFalse(true);
+    } catch (IllegalArgumentException e) {}
+
   }
   
   private Key createDeleteKey(String row, String colFam, String colQual, String colVis, long timestamp) {

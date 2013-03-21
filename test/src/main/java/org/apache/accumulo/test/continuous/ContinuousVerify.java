@@ -167,7 +167,7 @@ public class ContinuousVerify extends Configured implements Tool {
     Connector conn = null;
     if (opts.scanOffline) {
       Random random = new Random();
-      clone = opts.getTableName() + "_" + String.format("%016x", Math.abs(random.nextLong()));
+      clone = opts.getTableName() + "_" + String.format("%016x", (random.nextLong() & 0x7fffffffffffffffl));
       conn = opts.getConnector();
       conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
       conn.tableOperations().offline(clone);

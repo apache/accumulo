@@ -25,7 +25,6 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -35,6 +34,7 @@ import org.apache.accumulo.core.trace.SpanTreeVisitor;
 import org.apache.accumulo.core.trace.TraceDump;
 import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.server.monitor.servlets.BasicServlet;
+import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
 
 
@@ -90,7 +90,7 @@ public class ShowTrace extends Basic {
     sb.append("</script>\n");
     sb.append("<div>");
     sb.append("<table><caption>");
-    sb.append(String.format("<span class='table-caption'>Trace started at<br>%s</span></caption>", id, dateString(start)));
+    sb.append(String.format("<span class='table-caption'>Trace %s started at<br>%s</span></caption>", id, dateString(start)));
     sb.append("<tr><th>Time</th><th>Start</th><th>Service@Location</th><th>Name</th><th>Addl Data</th></tr>");
     
     final long finalStart = start;
@@ -109,12 +109,14 @@ public class ShowTrace extends Basic {
         sb.append("</tr>\n");
         sb.append("<tr id='" + Long.toHexString(node.spanId) + "' style='display:none'>");
         sb.append("<td colspan='5'>\n");
-        sb.append("  <table class='indent,noborder'>\n");
-        for (Entry<String,String> entry : node.data.entrySet()) {
-          sb.append("  <tr><td>" + BasicServlet.sanitize(entry.getKey()) + "</td>");
-          sb.append("<td>" + BasicServlet.sanitize(entry.getValue()) + "</td></tr>\n");
+        if (hasData) {
+          sb.append("  <table class='indent,noborder'>\n");
+          for (Entry<String,String> entry : node.data.entrySet()) {
+            sb.append("  <tr><td>" + BasicServlet.sanitize(entry.getKey()) + "</td>");
+            sb.append("<td>" + BasicServlet.sanitize(entry.getValue()) + "</td></tr>\n");
+          }
+          sb.append("  </table>");
         }
-        sb.append("  </table>");
         sb.append("</td>\n");
         sb.append("</tr>\n");
       }

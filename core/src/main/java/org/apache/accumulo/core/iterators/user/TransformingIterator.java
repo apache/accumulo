@@ -143,7 +143,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     
     for (String opt : options.keySet()) {
       try {
-        if (options.equals(AUTH_OPT)) {
+        if (opt.equals(AUTH_OPT)) {
           new Authorizations(options.get(opt).getBytes());
         } else if (opt.equals(MAX_BUFFER_SIZE_OPT)) {
           AccumuloConfiguration.getMemoryInBytes(options.get(opt));
@@ -223,7 +223,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    seekRange = (range != null) ? new Range(range) : null;
+    seekRange = new Range(range);
     seekColumnFamilies = columnFamilies;
     seekColumnFamiliesInclusive = inclusive;
     

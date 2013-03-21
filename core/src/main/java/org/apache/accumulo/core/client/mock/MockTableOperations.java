@@ -281,7 +281,7 @@ public class MockTableOperations extends TableOperationsHelper {
   @Override
   public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     if (!exists(tableName))
-      new TableNotFoundException(tableName, tableName, "");
+      throw new TableNotFoundException(tableName, tableName, "");
   }
   
   @Override

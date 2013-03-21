@@ -37,7 +37,7 @@ public class Merge extends BulkTest {
   }
   
   public static Text getRandomRow(Random rand) {
-    return new Text(String.format(BulkPlusOne.FMT, Math.abs(rand.nextLong()) % BulkPlusOne.LOTS));
+    return new Text(String.format(BulkPlusOne.FMT, (rand.nextLong() & 0x7fffffffffffffffl) % BulkPlusOne.LOTS));
   }
   
   public static Text[] getRandomTabletRange(State state) {
