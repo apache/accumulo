@@ -37,25 +37,33 @@
         </plugin>
       </plugins>
     </pluginManagement>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>generate-thrift</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>${basedir}/src/main/scripts/generate-thrift.sh</executable>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
   </build>
+
+  <profiles>
+    <profile>
+        <id>thrift</id>
+        <build>
+            <plugins>
+                <plugin>
+                   <groupId>org.codehaus.mojo</groupId>
+                   <artifactId>exec-maven-plugin</artifactId>
+                   <executions>
+                     <execution>
+                       <id>generate-thrift</id>
+                       <phase>generate-sources</phase>
+                       <goals>
+                         <goal>exec</goal>
+                       </goals>
+                       <configuration>
+                         <executable>${basedir}/src/main/scripts/generate-thrift.sh</executable>
+                       </configuration>
+                     </execution>
+                   </executions>
+                 </plugin>
+             </plugins>
+        </build>
+    </profile>
+  </profiles>
 
   <dependencies>
     <dependency>
