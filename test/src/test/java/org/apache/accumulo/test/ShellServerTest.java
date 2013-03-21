@@ -1,4 +1,4 @@
-package org.apache.accumulo.test.shell;
+package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -112,7 +112,7 @@ public class ShellServerTest {
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     folder.create();
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.getRoot(), secret);
+    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
     
@@ -133,7 +133,7 @@ public class ShellServerTest {
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
     traceProcess.destroy();
-    //folder.delete();
+    // folder.delete();
   }
   
   @Test(timeout = 30000)
@@ -147,7 +147,7 @@ public class ShellServerTest {
     String export = folder.newFolder().getName();
     exec("exporttable -t t " + export, true);
     DistCp cp = new DistCp(new Configuration());
-    String import_ = "/tmp/import";
+    String import_ = folder.newFolder().getName();
     cp.run(new String[] {"-f", export + "/distcp.txt", import_});
     exec("importtable t2 " + import_, true);
     exec("config -t t2 -np", true, "345M", true);
@@ -273,10 +273,10 @@ public class ShellServerTest {
     // notable
     exec("createtable xyzzy", true);
     exec("scan", true, " xyzzy>", true);
-    assert (output.get().contains(" xyzzy>"));
+    assertTrue(output.get().contains(" xyzzy>"));
     exec("notable", true);
     exec("scan", false, "Not in a table context.", true);
-    assert (output.get().contains(" xyzzy>"));
+    assertFalse(output.get().contains(" xyzzy>"));
     exec("deletetable -f xyzzy");
   }
   
@@ -460,11 +460,11 @@ public class ShellServerTest {
   public void importDirectory() throws Exception {
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
-    fs.delete(new Path("/tmp/import"), true);
-    fs.delete(new Path("/tmp/errors"), true);
-    String even = "/tmp/import/even.rf";
-    String odd = "/tmp/import/odd.rf";
-    fs.mkdirs(new Path("/tmp/errors"));
+    File importDir = folder.newFolder("import");
+    String even = new File(importDir, "even.rf").toString();
+    String odd = new File(importDir, "odd.rf").toString();
+    File errorsDir = folder.newFolder("errors");
+    fs.mkdirs(new Path(errorsDir.toString()));
     AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
     FileSKVWriter evenWriter = FileOperations.getInstance().openWriter(even, fs, conf, aconf);
     evenWriter.startDefaultLocalityGroup();
@@ -483,7 +483,7 @@ public class ShellServerTest {
     evenWriter.close();
     oddWriter.close();
     exec("createtable t", true);
-    exec("importdirectory /tmp/import /tmp/errors true", true);
+    exec("importdirectory " + importDir + " " + errorsDir + " true", true);
     exec("scan -r 00000000", true, "00000000", true);
     exec("scan -r 00000099", true, "00000099", true);
     exec("deletetable -f t");
@@ -556,7 +556,7 @@ public class ShellServerTest {
   @Test(timeout = 30000)
   public void ping() throws Exception {
     exec("ping", true, "OK", true);
-    assertEquals(2, output.get().split("\n").length);
+    assertEquals(3, output.get().split("\n").length);
   }
   
   @Test(timeout = 30000)
@@ -567,7 +567,7 @@ public class ShellServerTest {
     exec("tables", true, "xyzzy", true);
     exec("tables", true, "aaaa", false);
     exec("scan -t xyzzy", true, "value", true);
-    exec("deletetable xyzzy", true);
+    exec("deletetable -f xyzzy", true);
   }
   
   @Test(timeout = 30000)
@@ -607,6 +607,7 @@ public class ShellServerTest {
     String parts[] = last.split("\\|");
     assertEquals(13, parts.length);
     thread.join();
+    exec("deletetable -f t", true);
   }
   
   //@Test(timeout = 60000)
