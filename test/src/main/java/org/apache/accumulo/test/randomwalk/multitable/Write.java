@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.test.randomwalk.State;
@@ -37,7 +38,7 @@ public class Write extends Test {
     
     @SuppressWarnings("unchecked")
     ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
-    
+
     if (tables.isEmpty()) {
       log.debug("No tables to ingest into");
       return;
@@ -49,6 +50,9 @@ public class Write extends Test {
     BatchWriter bw = null;
     try {
       bw = state.getMultiTableBatchWriter().getBatchWriter(tableName);
+    } catch (TableOfflineException e) {
+      log.error("Table " + tableName + " is offline!");
+      return;
     } catch (TableNotFoundException e) {
       log.error("Table " + tableName + " not found!");
       return;

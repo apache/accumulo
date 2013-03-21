@@ -100,6 +100,7 @@ public class BulkPlusOne extends BulkTest {
     fs.delete(dir, true);
     FileStatus[] failures = fs.listStatus(fail);
     if (failures != null && failures.length > 0) {
+      state.set("bulkImportSuccess", "false");
       throw new Exception(failures.length + " failure files found importing files from " + dir);
     }
     fs.delete(fail, true);

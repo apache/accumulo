@@ -261,8 +261,19 @@ public class AccumuloVFSClassLoader {
 
     return localLoader.getClassLoader();
   }
+  public interface Printer {
+    void print(String s);
+  }
   
   public static void printClassPath() {
+    printClassPath(new Printer() {
+      @Override
+      public void print(String s) { 
+        System.out.println(s);
+      }
+    });
+  }
+  public static void printClassPath(Printer out) {
     try {
       ClassLoader cl = getClassLoader();
       ArrayList<ClassLoader> classloaders = new ArrayList<ClassLoader>();
@@ -278,27 +289,26 @@ public class AccumuloVFSClassLoader {
       
       for (ClassLoader classLoader : classloaders) {
         if (level > 0)
-          System.out.println();
-        System.out.print("Level " + level + " ");
+          out.print("");
         level++;
         
         if (classLoader instanceof URLClassLoader) {
           // If VFS class loader enabled, but no contexts defined.
           URLClassLoader ucl = (URLClassLoader) classLoader;
-          System.out.println("URL classpath items are:");
+          out.print("Level " + level + " URL classpath items are:");
 
             for (URL u : ucl.getURLs()) {
-              System.out.println("\t" + u.toExternalForm());
+              out.print("\t" + u.toExternalForm());
             }
 
         } else if (classLoader instanceof VFSClassLoader) {
-          System.out.println("VFS classpaths items are:");
+          out.print("Level " + level + " VFS classpaths items are:");
           VFSClassLoader vcl = (VFSClassLoader) classLoader;
           for (FileObject f : vcl.getFileObjects()) {
-            System.out.println("\t" + f.getURL().toExternalForm());
+            out.print("\t" + f.getURL().toExternalForm());
           }
         } else {
-          System.out.println("Unknown classloader configuration " + classLoader.getClass());
+          out.print("Unknown classloader configuration " + classLoader.getClass());
         }
       }
       

@@ -112,9 +112,22 @@ public class TableDiskUsage {
     return externalUsage;
   }
   
+  public interface Printer {
+    void print(String line);
+  }
+  
   public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn) throws TableNotFoundException,
-      IOException {
-    
+  IOException {
+    printDiskUsage(acuConf, tables, fs, conn, new Printer() {
+      @Override
+      public void print(String line) {
+        System.out.println(line);
+      }
+    });
+  }
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, Printer printer) throws TableNotFoundException,
+  IOException {
+  
     TableDiskUsage tdu = new TableDiskUsage();
     
     HashSet<String> tableIds = new HashSet<String>();
@@ -204,7 +217,7 @@ public class TableDiskUsage {
     }
     
     for (Entry<TreeSet<String>,Long> entry : usage.entrySet())
-      System.out.printf("%,24d %s%n", entry.getValue(), entry.getKey());
+      printer.print(String.format("%,24d %s", entry.getValue(), entry.getKey()));
     
   }
   

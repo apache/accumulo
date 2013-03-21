@@ -23,6 +23,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -140,7 +142,7 @@ public class LocalityGroupUtil {
   }
   
   public static String encodeColumnFamilies(Set<Text> colFams) {
-    HashSet<String> ecfs = new HashSet<String>();
+    SortedSet<String> ecfs = new TreeSet<String>();
     
     StringBuilder sb = new StringBuilder();
     

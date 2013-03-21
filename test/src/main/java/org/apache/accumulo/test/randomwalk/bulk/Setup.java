@@ -59,6 +59,7 @@ public class Setup extends Test {
     }
     state.set("rand", rand);
     state.set("fs", FileSystem.get(CachedConfiguration.getInstance()));
+    state.set("bulkImportSuccess", "true");
     BulkPlusOne.counter.set(0l);
     
     ThreadPoolExecutor e = new SimpleThreadPool(MAX_POOL_SIZE, "bulkImportPool");

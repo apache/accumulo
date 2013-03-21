@@ -84,7 +84,7 @@ import org.apache.accumulo.core.util.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteManyCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteRowsCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteScanIterCommand;
-import org.apache.accumulo.core.util.shell.commands.DeleteShellterCommand;
+import org.apache.accumulo.core.util.shell.commands.DeleteShellIterCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteTableCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteUserCommand;
 import org.apache.accumulo.core.util.shell.commands.DropTableCommand;
@@ -347,7 +347,7 @@ public class Shell extends ShellOptions {
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
     Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(), new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand(),
-        new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellterCommand()};
+        new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
     Command[] otherCommands = {new HiddenCommand()};
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(), new SystemPermissionsCommand(), new TablePermissionsCommand(),
         new UserPermissionsCommand()};
@@ -427,7 +427,10 @@ public class Shell extends ShellOptions {
     if (isVerbose())
       printInfo();
     
-    String configDir = System.getenv("HOME") + "/.accumulo";
+    String home = System.getProperty("HOME");
+    if (home == null)
+      home = System.getenv("HOME");
+    String configDir = home + "/.accumulo";
     String historyPath = configDir + "/shell_history.txt";
     File accumuloDir = new File(configDir);
     if (!accumuloDir.exists() && !accumuloDir.mkdirs())
@@ -960,6 +963,10 @@ public class Shell extends ShellOptions {
   
   public void setExit(boolean exit) {
     this.exit = exit;
+  }
+  
+  public boolean getExit() {
+    return this.exit;
   }
   
   public boolean isVerbose() {

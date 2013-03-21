@@ -42,7 +42,7 @@ public class TraceCommand extends DebugCommand {
         if (Trace.isTracing()) {
           final long trace = Trace.currentTrace().traceId();
           Trace.off();
-          for (int i = 0; i < 10; i++) {
+          for (int i = 0; i < 30; i++) {
             try {
               final Map<String,String> properties = shellState.getConnector().instanceOperations().getSystemConfiguration();
               final String table = properties.get(Property.TRACE_TABLE.getKey());
