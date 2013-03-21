@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
@@ -164,6 +165,37 @@ public class ThriftUtil {
     }
   }
   
+  /**
+   * create a transport that is not pooled
+   */
+  public static TTransport createTransport(String address, int port, AccumuloConfiguration conf) throws TException {
+    TTransport transport = null;
+    
+    try {
+      transport = TTimeoutTransport.create(org.apache.accumulo.core.util.AddressUtil.parseAddress(address, port),
+          conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+      transport = ThriftUtil.transportFactory().getTransport(transport);
+      transport.open();
+      TTransport tmp = transport;
+      transport = null;
+      return tmp;
+    } catch (IOException ex) {
+      throw new TTransportException(ex);
+    } finally {
+      if (transport != null)
+        transport.close();
+    }
+    
+
+  }
+
+  /**
+   * create a transport that is not pooled
+   */
+  public static TTransport createTransport(InetSocketAddress address, AccumuloConfiguration conf) throws TException {
+    return createTransport(address.getAddress().getHostAddress(), address.getPort(), conf);
+  }
+
   public static TTransportFactory transportFactory() {
     return transportFactory;
   }

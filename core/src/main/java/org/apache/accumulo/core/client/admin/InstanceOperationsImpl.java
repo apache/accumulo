@@ -33,8 +33,10 @@ import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -42,6 +44,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
 /**
@@ -219,9 +222,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
    */
   @Override
   public void ping(String tserver) throws AccumuloException {
-    Client client = null;
+    TTransport transport = null;
     try {
-      client = ThriftUtil.getTServerClient(tserver, instance.getConfiguration());
+      transport = ThriftUtil.createTransport(tserver, instance.getConfiguration().getPort(Property.TSERV_CLIENTPORT), instance.getConfiguration());
+      TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
       client.getTabletServerStatus(Tracer.traceInfo(), credentials);
     } catch (TTransportException e) {
       throw new AccumuloException(e);
@@ -230,8 +234,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     } catch (TException e) {
       throw new AccumuloException(e);
     } finally {
-      if (client != null) {
-        ThriftUtil.returnClient(client);
+      if (transport != null) {
+        transport.close();
       }
     }
   }
