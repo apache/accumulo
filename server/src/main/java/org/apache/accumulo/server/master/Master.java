@@ -92,7 +92,6 @@ import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.TStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -2128,49 +2127,86 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return masterLock;
   }
   
+  private static class MasterLockWatcher implements ZooLock.AsyncLockWatcher {
+    
+    boolean acquiredLock = false;
+    boolean failedToAcquireLock = false;
+    
+    @Override
+    public void lostLock(LockLossReason reason) {
+      Halt.halt("Master lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+    }
+    
+    @Override
+    public void unableToMonitorLockNode(final Throwable e) {
+      Halt.halt(-1, new Runnable() {
+        @Override
+        public void run() {
+          log.fatal("No longer able to monitor master lock node", e);
+        }
+      });
+      
+    }
+    
+    @Override
+    public synchronized void acquiredLock() {
+      
+      if (acquiredLock || failedToAcquireLock) {
+        Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
+      }
+
+      acquiredLock = true;
+      notifyAll();
+    }
+    
+    @Override
+    public synchronized void failedToAcquireLock(Exception e) {
+      log.warn("Failed to get master lock " + e);
+      
+      if (acquiredLock) {
+        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock, -1);
+      }
+
+      failedToAcquireLock = true;
+      notifyAll();
+    }
+    
+    public synchronized void waitForChange() {
+      while (!acquiredLock && !failedToAcquireLock) {
+        try {
+          wait();
+        } catch (InterruptedException e) {}
+      }
+    }
+  }
+
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
     log.info("trying to get master lock");
-    LockWatcher masterLockWatcher = new ZooLock.LockWatcher() {
-      @Override
-      public void lostLock(LockLossReason reason) {
-        Halt.halt("Master lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
-      }
-      
-      @Override
-      public void unableToMonitorLockNode(final Throwable e) {
-        Halt.halt(-1, new Runnable() {
-          @Override
-          public void run() {
-            log.fatal("No longer able to monitor master lock node", e);
-          }
-        });
-        
-      }
-    };
-    long current = System.currentTimeMillis();
-    final long waitTime = getSystemConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+
     final String masterClientAddress = org.apache.accumulo.core.util.AddressUtil.toString(new InetSocketAddress(hostname, getSystemConfiguration().getPort(
         Property.MASTER_CLIENTPORT)));
     
-    boolean locked = false;
-    while (System.currentTimeMillis() - current < waitTime) {
+    while (true) {
+      
+      MasterLockWatcher masterLockWatcher = new MasterLockWatcher();
       masterLock = new ZooLock(zMasterLoc);
-      if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes())) {
-        locked = true;
+      masterLock.lockAsync(masterLockWatcher, masterClientAddress.getBytes());
+
+      masterLockWatcher.waitForChange();
+      
+      if (masterLockWatcher.acquiredLock) {
         break;
       }
+      
+      if (!masterLockWatcher.failedToAcquireLock) {
+        throw new IllegalStateException("master lock in unknown state");
+      }
+
+      masterLock.tryToCancelAsyncLockOrUnlock();
+
       UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS);
     }
-    if (!locked) {
-      log.info("Failed to get master lock, even after waiting for session timeout, becoming back-up server");
-      while (true) {
-        masterLock = new ZooLock(zMasterLoc);
-        if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes())) {
-          break;
-        }
-        UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS);
-      }
-    }
+
     setMasterState(MasterState.HAVE_LOCK);
   }
   
