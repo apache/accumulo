@@ -296,7 +296,8 @@ public class ShellServerTest {
     exec("createtable xyzzy -evc");
     exec("insert a b c d -l foo", true, "does not have authorization", true);
     exec("addauths -s foo,bar", true);
-    exec("getauths", true, "foo,bar", true);
+    exec("getauths", true, "foo", true);
+    exec("getauths", true, "bar", true);
     exec("insert a b c d -l foo");
     exec("scan", true, "[foo]");
     exec("scan -s bar", true, "[foo]", false);
