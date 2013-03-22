@@ -329,15 +329,15 @@ public class ShellServerTest {
   public void clonetable() throws Exception {
     // clonetable
     exec("createtable orig -evc");
-    exec("config -t orig -s table.split.threshold=123M");
-    exec("addsplit -t orig a b c");
+    exec("config -t orig -s table.split.threshold=123M", true);
+    exec("addsplits -t orig a b c", true);
     exec("insert a b c value");
     exec("scan", true, "value", true);
     exec("clonetable orig clone");
     // verify constraint, config, and splits were cloned
     exec("constraint --list -t clone", true, "VisibilityConstraint=1", true);
     exec("config -t clone -np", true, "123M", true);
-    String out = exec("getsplits -t clone"); // , true, "a\nb\nc\n");
+    exec("getsplits -t clone", true, "a\nb\nc\n");
     // compact
     exec("createtable c");
     // make two files
@@ -365,9 +365,9 @@ public class ShellServerTest {
     exec("merge --all -t c");
     exec("compact -w");
     assertTrue(countFiles() == oldCount - 3);
-    exec("deletetable orig");
-    exec("deletetable clone");
-    exec("deletetable c");
+    exec("deletetable -f orig");
+    exec("deletetable -f clone");
+    exec("deletetable -f c");
   }
   
   @Test(timeout = 30000)
@@ -619,6 +619,7 @@ public class ShellServerTest {
     exec("sleep 10");
     System.out.println(exec("scan -np"));
     UtilWaitThread.sleep(60*1000);
+    exec("deletetable -f t");
   }
   
   private int countkeys(String table) throws IOException {
@@ -634,7 +635,6 @@ public class ShellServerTest {
   
   private int countFiles() throws IOException {
     exec("scan -t !METADATA -np -c file");
-    // System.out.println(output.get());
     return output.get().split("\n").length - 1;
   }
   
