@@ -166,6 +166,14 @@ public class ShellTest {
   }
   
   @Test
+  public void duContextTest() throws Exception {
+    Shell.log.debug("Starting du context test --------------------------");
+    exec("createtable t", true);
+    exec("du", true, "0 [t]");
+    exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
+
+  @Test
   public void duTest() throws IOException {
     Shell.log.debug("Starting DU test --------------------------");
     exec("createtable t", true);

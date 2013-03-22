@@ -47,6 +47,9 @@ public class DUCommand extends Command {
           tablesToFlush.add(table);
         }
       }
+    } else {
+      shellState.checkTableState();
+      tablesToFlush.add(shellState.getTableName());
     }
     try {
       final AccumuloConfiguration acuConf = new ConfigurationCopy(shellState.getConnector().instanceOperations().getSystemConfiguration());
