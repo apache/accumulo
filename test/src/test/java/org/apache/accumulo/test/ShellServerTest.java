@@ -125,6 +125,8 @@ public class ShellServerTest {
     shell.start();
     shell.setExit(false);
     traceProcess = cluster.exec(TraceServer.class);
+    // give the tracer some time to start
+    UtilWaitThread.sleep(1000);
   }
   
   @AfterClass
@@ -598,8 +600,8 @@ public class ShellServerTest {
     };
     thread.start();
     exec("sleep 0.1", true);
-    System.out.println(exec("listscans", true));
-    String lines[] = output.get().split("\n");
+    String scans = exec("listscans", true);
+    String lines[] = scans.split("\n");
     String last = lines[lines.length - 1];
     assertTrue(last.contains("RUNNING"));
     String parts[] = last.split("\\|");
@@ -608,18 +610,18 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
   }
   
-  //@Test(timeout = 60000)
+  @Test(timeout = 30000)
   public void trace() throws Exception {
-    exec("sleep 1", true);
     exec("trace on", true);
     exec("createtable t", true);
-    System.out.println(exec("trace off"));
-    exec("table trace");
-    System.out.println(exec("scan -np"));
-    exec("sleep 10");
-    System.out.println(exec("scan -np"));
-    UtilWaitThread.sleep(60*1000);
+    exec("insert a b c value", true);
+    exec("scan -np", true, "value", true);
     exec("deletetable -f t");
+    String trace = exec("trace off");
+    //System.out.println("trace: " + trace);
+    assertTrue(trace.contains("binMutations"));
+    assertTrue(trace.contains("update"));
+    assertTrue(trace.contains("DeleteTable"));
   }
   
   private int countkeys(String table) throws IOException {
