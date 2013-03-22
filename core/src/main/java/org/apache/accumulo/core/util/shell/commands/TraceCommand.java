@@ -42,7 +42,10 @@ public class TraceCommand extends DebugCommand {
         if (Trace.isTracing()) {
           final long trace = Trace.currentTrace().traceId();
           Trace.off();
+          StringBuffer sb = new StringBuffer();
+          int traceCount = 0;
           for (int i = 0; i < 30; i++) {
+            sb = new StringBuffer();
             try {
               final Map<String,String> properties = shellState.getConnector().instanceOperations().getSystemConfiguration();
               final String table = properties.get(Property.TRACE_TABLE.getKey());
@@ -50,17 +53,18 @@ public class TraceCommand extends DebugCommand {
               final Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
               final Scanner scanner = shellState.getConnector().createScanner(table, auths);
               scanner.setRange(new Range(new Text(Long.toHexString(trace))));
-              final StringBuffer sb = new StringBuffer();
-              if (TraceDump.printTrace(scanner, new Printer() {
+              final StringBuffer finalSB = sb;
+              traceCount = TraceDump.printTrace(scanner, new Printer() {
                 @Override
                 public void print(final String line) {
                   try {
-                    sb.append(line + "\n");
+                    finalSB.append(line + "\n");
                   } catch (Exception ex) {
                     throw new RuntimeException(ex);
                   }
                 }
-              }) > 0) {
+              });
+              if (traceCount > 0) {
                 shellState.getReader().printString(sb.toString());
                 break;
               }
@@ -70,6 +74,10 @@ public class TraceCommand extends DebugCommand {
             shellState.getReader().printString("Waiting for trace information\n");
             shellState.getReader().flushConsole();
             UtilWaitThread.sleep(500);
+          }
+          if (traceCount < 0) {
+            // display the trace even though there are unrooted spans
+            shellState.getReader().printString(sb.toString());
           }
         } else {
           shellState.getReader().printString("Not tracing\n");

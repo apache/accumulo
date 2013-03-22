@@ -154,6 +154,7 @@ public class TraceDump {
       for (RemoteSpan span : sortByStart(tree.nodes.values())) {
         out.print(String.format("%s %s %s", Long.toHexString(span.spanId), Long.toHexString(span.parentId), span.description));
       }
+      return -1;
     }
     return count;
   }

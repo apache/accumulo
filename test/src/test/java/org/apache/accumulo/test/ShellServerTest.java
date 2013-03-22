@@ -131,9 +131,9 @@ public class ShellServerTest {
   
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
-    //cluster.stop();
-    //traceProcess.destroy();
-    //folder.delete();
+    cluster.stop();
+    traceProcess.destroy();
+    folder.delete();
   }
   
   @Test(timeout = 30000)
@@ -600,8 +600,8 @@ public class ShellServerTest {
     };
     thread.start();
     exec("sleep 0.1", true);
-    System.out.println(exec("listscans", true));
-    String lines[] = output.get().split("\n");
+    String scans = exec("listscans", true);
+    String lines[] = scans.split("\n");
     String last = lines[lines.length - 1];
     assertTrue(last.contains("RUNNING"));
     String parts[] = last.split("\\|");
@@ -618,9 +618,8 @@ public class ShellServerTest {
     exec("scan -np", true, "value", true);
     exec("deletetable -f t");
     String trace = exec("trace off");
-    assertTrue(trace.contains("shell@"));
+    //System.out.println("trace: " + trace);
     assertTrue(trace.contains("binMutations"));
-    assertTrue(trace.contains("client:update"));
     assertTrue(trace.contains("update"));
     assertTrue(trace.contains("DeleteTable"));
   }
