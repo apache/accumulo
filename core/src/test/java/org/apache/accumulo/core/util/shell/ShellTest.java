@@ -165,4 +165,21 @@ public class ShellTest {
     //exec("createuser root", false, "user exists");
   }
   
+  @Test
+  public void duTest() throws IOException {
+    Shell.log.debug("Starting DU test --------------------------");
+    exec("createtable t", true);
+    exec("du t", true, "0 [t]");
+    exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
+  
+  @Test
+  public void duPatternTest() throws IOException {
+    Shell.log.debug("Starting DU with pattern test --------------------------");
+    exec("createtable t", true);
+    exec("createtable tt", true);
+    exec("du -p t.*", true, "0 [t, tt]");
+    exec("deletetable t -f", true, "Table: [t] has been deleted");
+    exec("deletetable tt -f", true, "Table: [tt] has been deleted");
+  }
 }

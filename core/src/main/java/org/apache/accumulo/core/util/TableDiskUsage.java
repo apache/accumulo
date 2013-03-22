@@ -144,11 +144,16 @@ public class TableDiskUsage {
       tdu.addTable(tableId);
     
     HashSet<String> tablesReferenced = new HashSet<String>(tableIds);
+    HashSet<String> emptyTableIds = new HashSet<String>();
     
     for (String tableId : tableIds) {
       Scanner mdScanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
       mdScanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
       mdScanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
+      
+      if(!mdScanner.iterator().hasNext()) {
+        emptyTableIds.add(tableId);
+      }
       
       for (Entry<Key,Value> entry : mdScanner) {
         String file = entry.getKey().getColumnQualifier().toString();
@@ -214,6 +219,14 @@ public class TableDiskUsage {
         tableNames.add(reverseTableIdMap.get(tableId));
       
       usage.put(tableNames, entry.getValue());
+    }
+
+    if(!emptyTableIds.isEmpty()) {
+      TreeSet<String> emptyTables = new TreeSet<String>();
+      for (String tableId : emptyTableIds) {
+        emptyTables.add(reverseTableIdMap.get(tableId));
+      }
+      usage.put(emptyTables, 0L);
     }
     
     for (Entry<TreeSet<String>,Long> entry : usage.entrySet())
