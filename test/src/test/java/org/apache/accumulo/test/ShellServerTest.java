@@ -144,10 +144,10 @@ public class ShellServerTest {
     exec("addsplits row5", true);
     exec("config -t t -s table.split.threshold=345M", true);
     exec("offline t", true);
-    String export = folder.newFolder().getName();
+    String export = folder.newFolder().toString();
     exec("exporttable -t t " + export, true);
     DistCp cp = new DistCp(new Configuration());
-    String import_ = folder.newFolder().getName();
+    String import_ = folder.newFolder().toString();
     cp.run(new String[] {"-f", export + "/distcp.txt", import_});
     exec("importtable t2 " + import_, true);
     exec("config -t t2 -np", true, "345M", true);
