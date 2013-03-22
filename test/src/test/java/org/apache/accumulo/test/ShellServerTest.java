@@ -125,13 +125,15 @@ public class ShellServerTest {
     shell.start();
     shell.setExit(false);
     traceProcess = cluster.exec(TraceServer.class);
+    // give the tracer some time to start
+    UtilWaitThread.sleep(1000);
   }
   
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
-    cluster.stop();
-    traceProcess.destroy();
-    folder.delete();
+    //cluster.stop();
+    //traceProcess.destroy();
+    //folder.delete();
   }
   
   @Test(timeout = 30000)
@@ -608,18 +610,19 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
   }
   
-  //@Test(timeout = 60000)
+  @Test(timeout = 30000)
   public void trace() throws Exception {
-    exec("sleep 1", true);
     exec("trace on", true);
     exec("createtable t", true);
-    System.out.println(exec("trace off"));
-    exec("table trace");
-    System.out.println(exec("scan -np"));
-    exec("sleep 10");
-    System.out.println(exec("scan -np"));
-    UtilWaitThread.sleep(60*1000);
+    exec("insert a b c value", true);
+    exec("scan -np", true, "value", true);
     exec("deletetable -f t");
+    String trace = exec("trace off");
+    assertTrue(trace.contains("shell@"));
+    assertTrue(trace.contains("binMutations"));
+    assertTrue(trace.contains("client:update"));
+    assertTrue(trace.contains("update"));
+    assertTrue(trace.contains("DeleteTable"));
   }
   
   private int countkeys(String table) throws IOException {
