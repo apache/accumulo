@@ -240,6 +240,11 @@
               <format>xml</format>
               <format>html</format>
             </formats>
+            <instrumentation>
+              <excludes>
+                <exclude>**/thrift/*.class</exclude>
+              </excludes>
+            </instrumentation>
           </configuration>
         </plugin>
         <plugin>
