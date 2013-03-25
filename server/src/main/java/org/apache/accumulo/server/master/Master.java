@@ -276,6 +276,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
         
+        zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/loggers", NodeMissingPolicy.SKIP);
+        zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/dead/loggers", NodeMissingPolicy.SKIP);
+
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.SKIP);
         
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
