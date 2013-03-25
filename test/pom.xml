@@ -73,6 +73,10 @@
           <groupId>org.apache.hadoop</groupId>
           <artifactId>hadoop-core</artifactId>
         </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-tools</artifactId>
+        </dependency>
       </dependencies>
     </profile>
     <!-- profile for building against Hadoop 2.0.x
@@ -89,6 +93,10 @@
         <dependency>
           <groupId>org.apache.hadoop</groupId>
           <artifactId>hadoop-client</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-distcp</artifactId>
         </dependency>
       </dependencies>
     </profile>
@@ -110,10 +118,6 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math</artifactId>
-    </dependency>
-    <dependency>
-    	<groupId>org.apache.hadoop</groupId>
-    	<artifactId>hadoop-tools</artifactId>
     </dependency>
   </dependencies>
 
