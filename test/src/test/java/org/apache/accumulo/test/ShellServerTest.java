@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.lang.reflect.Constructor;
 import java.util.Map.Entry;
 
 import jline.ConsoleReader;
@@ -146,7 +147,7 @@ public class ShellServerTest {
     exec("offline t", true);
     String export = folder.newFolder().toString();
     exec("exporttable -t t " + export, true);
-    DistCp cp = new DistCp(new Configuration());
+    DistCp cp = newDistCp();
     String import_ = folder.newFolder().toString();
     cp.run(new String[] {"-f", export + "/distcp.txt", import_});
     exec("importtable t2 " + import_, true);
@@ -158,6 +159,25 @@ public class ShellServerTest {
     exec("deletetable -f t2", true);
   }
   
+  private DistCp newDistCp() {
+    try {
+      @SuppressWarnings("unchecked")
+      Constructor<DistCp>[] constructors = (Constructor<DistCp>[]) DistCp.class.getConstructors();
+      for (Constructor<DistCp> constructor : constructors) {
+        Class<?>[] parameterTypes = constructor.getParameterTypes();
+        if (parameterTypes.length > 1 && parameterTypes[0].equals(Configuration.class))
+          if (parameterTypes.length == 1) {
+            return constructor.newInstance(new Configuration());
+          } else if (parameterTypes.length == 2) {
+            return constructor.newInstance(new Configuration(), null);
+          }
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    throw new RuntimeException("Unexpected constructors for DistCp");
+  }
+
   @Test(timeout = 30000)
   public void setscaniterDeletescaniter() throws Exception {
     // setscaniter, deletescaniter
