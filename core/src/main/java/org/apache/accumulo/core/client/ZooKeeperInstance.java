@@ -234,7 +234,7 @@ public class ZooKeeperInstance implements Instance {
   
   public Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException {
     Authenticator authenticator = getAuthenticator();
-    AuthenticationToken authToken = authenticator.login(props);
+    AuthenticationToken authToken = authenticator.login(principal, props);
     return getConnector(principal, authToken);
   }
   

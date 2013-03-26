@@ -164,7 +164,7 @@ public interface Instance {
    * @param principal
    * @param token
    *          A known SecurityToken type. If uncertain which should be provided, use {@link #getAuthenticatorClassName()} and
-   *          {@link Authenticator#login(Properties)}
+   *          {@link Authenticator#login(String, Properties)}
    * @throws AccumuloException
    * @throws AccumuloSecurityException
    * @since 1.5.0
@@ -184,7 +184,7 @@ public interface Instance {
   
   /**
    * 
-   * @return Returns the corresponding Authenticator class, which can be used to create a token ({@link Authenticator#login(Properties)} or get a list of
+   * @return Returns the corresponding Authenticator class, which can be used to create a token ({@link Authenticator#login(String, Properties)} or get a list of
    *         required properties {@link Authenticator#getProperties()}
    * @throws AccumuloException
    * @throws AccumuloSecurityException

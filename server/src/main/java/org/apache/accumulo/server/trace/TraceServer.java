@@ -174,9 +174,7 @@ public class TraceServer implements Watcher {
           for (Entry<String, String> entry : loginMap.entrySet()) {
             props.put(entry.getKey().substring(prefixLength), entry.getValue());
           }
-          if (!props.containsKey("principal"))
-            props.put("principal", principal);
-          at = serverConfiguration.getInstance().getAuthenticator().login(props);
+          at = serverConfiguration.getInstance().getAuthenticator().login(principal, props);
         }
         
         connector = serverConfiguration.getInstance().getConnector(principal, at);

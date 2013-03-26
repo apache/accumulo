@@ -607,9 +607,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public boolean authenticateUser(ByteBuffer login, String user, Map<String, String> properties) throws TException {
+  public boolean authenticateUser(ByteBuffer login, String principal, Map<String, String> properties) throws TException {
     try {
-      return getConnector(login).securityOperations().authenticateUser(user, getToken(properties));
+      return getConnector(login).securityOperations().authenticateUser(principal, getToken(principal, properties));
     } catch (Exception e) {
       throw translateException(e);
     }
@@ -1191,7 +1191,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public ByteBuffer login(String principal, Map<String,String> loginProperties) throws TException {
     try {
-      AuthenticationToken token = getToken(loginProperties);
+      AuthenticationToken token = getToken(principal, loginProperties);
       TCredentials credential = CredentialHelper.create(principal, token, instance.getInstanceID());
       return ByteBuffer.wrap(CredentialHelper.asByteArray(credential));
     } catch (Exception e) {
@@ -1199,9 +1199,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
   }
   
-  private AuthenticationToken getToken(Map<String, String> properties) throws AccumuloSecurityException, AccumuloException {
+  private AuthenticationToken getToken(String principal, Map<String, String> properties) throws AccumuloSecurityException, AccumuloException {
     Properties props = new Properties();
     props.putAll(properties);
-    return instance.getAuthenticator().login(props);
+    return instance.getAuthenticator().login(principal, props);
   }
 }

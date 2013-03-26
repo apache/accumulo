@@ -83,7 +83,7 @@ abstract class Basic extends BasicServlet {
       }
       if (!props.containsKey("principal"))
         props.put("principal", principal);
-      at = HdfsZooInstance.getInstance().getAuthenticator().login(props);
+      at = HdfsZooInstance.getInstance().getAuthenticator().login(principal, props);
     }
     
     String table = conf.get(Property.TRACE_TABLE);

@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 public interface Authenticator {
-  public AuthenticationToken login(Properties properties) throws AccumuloSecurityException;
+  public AuthenticationToken login(String principal, Properties properties) throws AccumuloSecurityException;
   
   public List<Set<AuthProperty>> getProperties();
   

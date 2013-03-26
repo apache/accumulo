@@ -400,10 +400,10 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   @Override
-  public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
+  public AuthenticationToken login(String principal, Properties properties) throws AccumuloSecurityException {
     if (properties.containsKey("password"))
       return new PasswordToken(properties.getProperty("password"));
-    throw new AccumuloSecurityException(properties.getProperty("user"), SecurityErrorCode.INSUFFICIENT_PROPERTIES);
+    throw new AccumuloSecurityException(principal, SecurityErrorCode.INSUFFICIENT_PROPERTIES);
   }
   
   @Override
