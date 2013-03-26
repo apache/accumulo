@@ -59,7 +59,7 @@ public class JSONServlet extends BasicServlet {
 	map.put("ingestMB", ingestMB);
 	map.put("queryMB", queryMB);
 	map.put("scans", scans);
-	map.put("scans", scansessions);
+	map.put("scanssessions", scansessions);
 	map.put("holdtime", holdtime);
 	return map;
   }
