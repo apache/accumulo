@@ -24,9 +24,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import jline.ConsoleReader;
 
+import org.apache.accumulo.core.util.format.DateStringFormatter;
 import org.apache.log4j.Level;
 import org.junit.Before;
 import org.junit.Test;
@@ -189,5 +193,16 @@ public class ShellTest {
     exec("du -p t.*", true, "0 [t, tt]");
     exec("deletetable t -f", true, "Table: [t] has been deleted");
     exec("deletetable tt -f", true, "Table: [tt] has been deleted");
+  }
+  
+  @Test
+  public void scanDateStringFormatterTest() throws IOException {
+    Shell.log.debug("Starting scan dateStringFormatter test --------------------------");
+    exec("createtable t", true);
+    exec("insert r f q v -ts 0", true);
+    DateFormat dateFormat = new SimpleDateFormat(DateStringFormatter.DATE_FORMAT);
+    String expected = String.format("r f:q [] %s    v", dateFormat.format(new Date(0)));
+    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st", true, expected);
+    exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
 }

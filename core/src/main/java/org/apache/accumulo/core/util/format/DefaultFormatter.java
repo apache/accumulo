@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.util.format;
 
+import java.text.DateFormat;
+import java.text.FieldPosition;
+import java.text.ParsePosition;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -27,6 +31,28 @@ import org.apache.hadoop.io.Text;
 public class DefaultFormatter implements Formatter {
   private Iterator<Entry<Key,Value>> si;
   private boolean doTimestamps;
+  private static final ThreadLocal<DateFormat> formatter = new ThreadLocal<DateFormat>() {
+    @Override
+    protected DateFormat initialValue() {
+      return new DefaultDateFormat();
+    }
+    
+    class DefaultDateFormat extends DateFormat {
+      private static final long serialVersionUID = 1L;
+
+      @Override
+      public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {
+        toAppendTo.append(Long.toString(date.getTime()));
+        return toAppendTo;
+      }
+
+      @Override
+      public Date parse(String source, ParsePosition pos) {
+        return new Date(Long.parseLong(source));
+      }
+      
+    }
+  };
   
   @Override
   public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
@@ -41,8 +67,18 @@ public class DefaultFormatter implements Formatter {
   }
   
   public String next() {
+    DateFormat timestampFormat = null;
+    
+    if(doTimestamps) {
+      timestampFormat = formatter.get();
+    }
+    
+    return next(timestampFormat);
+  }
+  
+  protected String next(DateFormat timestampFormat) {
     checkState(si, true);
-    return formatEntry(si.next(), doTimestamps);
+    return formatEntry(si.next(), timestampFormat);
   }
   
   public void remove() {
@@ -59,6 +95,23 @@ public class DefaultFormatter implements Formatter {
   
   // this should be replaced with something like Record.toString();
   public static String formatEntry(Entry<Key,Value> entry, boolean showTimestamps) {
+    DateFormat timestampFormat = null;
+    
+    if(showTimestamps) {
+      timestampFormat = formatter.get();
+    }
+    
+    return formatEntry(entry, timestampFormat);
+  }
+  
+  /* so a new date object doesn't get created for every record in the scan result */
+  private static ThreadLocal<Date> tmpDate = new ThreadLocal<Date>() {
+    protected Date initialValue() { 
+      return new Date();
+    }
+  };
+  
+  public static String formatEntry(Entry<Key,Value> entry, DateFormat timestampFormat) {
     StringBuilder sb = new StringBuilder();
     
     // append row
@@ -74,9 +127,10 @@ public class DefaultFormatter implements Formatter {
     sb.append(new ColumnVisibility(entry.getKey().getColumnVisibility()));
     
     // append timestamp
-    if (showTimestamps)
-      sb.append(" ").append(entry.getKey().getTimestamp());
-    
+    if (timestampFormat != null) {
+      tmpDate.get().setTime(entry.getKey().getTimestamp());
+      sb.append(" ").append(timestampFormat.format(tmpDate.get()));
+    }
     // append value
     if (entry.getValue() != null && entry.getValue().getSize() > 0) {
       sb.append("\t");
