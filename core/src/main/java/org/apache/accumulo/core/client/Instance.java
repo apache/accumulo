@@ -83,7 +83,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(Properties)}
+   * @deprecated since 1.5, use {@link #getConnector(String, Properties)}
    */
   @Deprecated
   public abstract Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException;
@@ -98,7 +98,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)}
+   * @deprecated since 1.5, use {@link #getConnector(String, Properties)}
    */
   @Deprecated
   public abstract Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException;
@@ -115,7 +115,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(Properties)}
+   * @deprecated since 1.5, use {@link #getConnector(String, Properties)}
    */
   @Deprecated
   public abstract Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException;
@@ -132,7 +132,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(Properties)}
+   * @deprecated since 1.5, use {@link #getConnector(String, Properties)}
    */
   @Deprecated
   public abstract Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException;
