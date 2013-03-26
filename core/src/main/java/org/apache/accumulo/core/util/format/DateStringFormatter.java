@@ -24,8 +24,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
 public class DateStringFormatter implements Formatter {
-  boolean printTimestamps = false;
-  DefaultFormatter defaultFormatter = new DefaultFormatter();
+  private boolean printTimestamps = false;
+  private DefaultFormatter defaultFormatter = new DefaultFormatter();
   public static final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss.SSS";
   // SimpleDataFormat is not thread safe
   private static final ThreadLocal<DateFormat> formatter = new ThreadLocal<DateFormat>() {
