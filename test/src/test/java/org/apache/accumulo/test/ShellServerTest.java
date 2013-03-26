@@ -466,6 +466,8 @@ public class ShellServerTest {
   @Test(timeout = 30000)
   public void help() throws Exception {
     exec("help -np", true, "Help Commands", true);
+    shell.getReader().setInput(new ByteArrayInputStream("\n\n".getBytes()));
+    exec("?", true, "Help Commands", true);
   }
   
   // @Test(timeout = 30000)
