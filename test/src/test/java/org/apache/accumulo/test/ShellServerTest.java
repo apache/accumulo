@@ -165,12 +165,13 @@ public class ShellServerTest {
       Constructor<DistCp>[] constructors = (Constructor<DistCp>[]) DistCp.class.getConstructors();
       for (Constructor<DistCp> constructor : constructors) {
         Class<?>[] parameterTypes = constructor.getParameterTypes();
-        if (parameterTypes.length > 1 && parameterTypes[0].equals(Configuration.class))
+        if (parameterTypes.length > 0 && parameterTypes[0].equals(Configuration.class)) {
           if (parameterTypes.length == 1) {
             return constructor.newInstance(new Configuration());
           } else if (parameterTypes.length == 2) {
             return constructor.newInstance(new Configuration(), null);
           }
+        }
       }
     } catch (Exception e) {
       throw new RuntimeException(e);

@@ -123,7 +123,6 @@ public class ClientOpts extends Help {
         props.put(loginOption.getKey(), loginOption.getValue());
       
       try {
-        System.out.println(props);
         return getInstance().getAuthenticator().login(props);
       } catch (AccumuloSecurityException e) {
         throw new RuntimeException(e);
