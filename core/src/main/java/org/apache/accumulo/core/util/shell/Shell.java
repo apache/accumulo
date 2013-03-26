@@ -265,7 +265,7 @@ public class Shell extends ShellOptions {
             String[] split = lo.split("=");
             props.put(split[0], split[1]);
           }
-        this.token = instance.getAuthenticator().login(props);
+        this.token = instance.getAuthenticator().login(principal, props);
       }
 
       if (!cl.hasOption(fakeOption.getLongOpt())) {
@@ -306,7 +306,7 @@ public class Shell extends ShellOptions {
             value = reader.readLine("Enter " + prop + ": ");
           props.setProperty(prop.getKey(), value);
         }
-        this.token = instance.getAuthenticator().login(props);
+        this.token = instance.getAuthenticator().login(principal, props);
       }
       if (this.token == null) {
         reader.printNewline();

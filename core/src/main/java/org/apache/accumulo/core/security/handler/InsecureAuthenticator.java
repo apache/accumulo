@@ -33,7 +33,7 @@ public class InsecureAuthenticator implements Authenticator {
   static NullToken nt = new NullToken();
   
   @Override
-  public AuthenticationToken login(Properties properties) throws AccumuloSecurityException {
+  public AuthenticationToken login(String principal, Properties properties) throws AccumuloSecurityException {
     return nt;
   }
   

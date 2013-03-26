@@ -170,7 +170,7 @@ public class MockInstance implements Instance {
   
   @Override
   public Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(principal, getAuthenticator().login(props));
+    return getConnector(principal, getAuthenticator().login(principal, props));
   }
   
   @Override
