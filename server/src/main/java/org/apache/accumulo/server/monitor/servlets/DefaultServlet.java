@@ -29,7 +29,10 @@ import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -192,7 +195,7 @@ public class DefaultServlet extends BasicServlet {
         
         sb.append(sep);
         sep = ",";
-        sb.append("[" + point.getFirst() + "," + y + "]");
+        sb.append("[" + utc2local(point.getFirst()) + "," + y + "]");
       }
       sb.append("    ];\n");
     }
@@ -217,9 +220,26 @@ public class DefaultServlet extends BasicServlet {
       sb.append("data: d" + i + ", " + opts + ", color:\"" + colors[i] + "\" }");
     }
     sb.append("], ");
-    sb.append("{yaxis:{}, xaxis:{mode:\"time\",minTickSize: [1, \"minute\"],timeformat: \"%H:%M\", ticks:3}});");
+    sb.append("{yaxis:{}, xaxis:{mode:\"time\",minTickSize: [1, \"minute\"],timeformat: \"%H:%M<br />" + getShortTZName() + "\", ticks:3}});");
     sb.append("   });\n");
     sb.append("</script>\n");
+  }
+  
+  /**
+   * Shows the current time zone (based on the current time) short name
+   */
+  private static String getShortTZName() {
+    TimeZone tz = TimeZone.getDefault();
+    return tz.getDisplayName(tz.inDaylightTime(new Date()), TimeZone.SHORT);
+  }
+  
+  /**
+   * Converts a unix timestamp in UTC to one that is relative to the local timezone
+   */
+  private static Long utc2local(Long utcMillis) {
+    Calendar currentCalendar = Calendar.getInstance(); // default timezone
+    currentCalendar.setTimeInMillis(utcMillis + currentCalendar.getTimeZone().getOffset(utcMillis));
+    return currentCalendar.getTime().getTime();
   }
   
   @Override
