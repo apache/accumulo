@@ -73,7 +73,7 @@ abstract class Basic extends BasicServlet {
       principal = conf.get(Property.TRACE_USER);
     AuthenticationToken at;
     Map<String, String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_LOGIN_PROPERTIES);
-    if (loginMap == null)
+    if (loginMap.isEmpty())
       at = new PasswordToken(conf.get(Property.TRACE_PASSWORD).getBytes());
     else{
       Properties props = new Properties();
