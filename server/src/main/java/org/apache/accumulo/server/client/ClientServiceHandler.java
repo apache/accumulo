@@ -188,6 +188,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   
   static private Map<String,String> conf(TCredentials credentials, AccumuloConfiguration conf) throws TException {
     security.authenticateUser(credentials, credentials);
+    conf.invalidateCache();
     
     Map<String,String> result = new HashMap<String,String>();
     for (Entry<String,String> entry : conf) {

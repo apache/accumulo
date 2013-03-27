@@ -177,4 +177,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     
     return maxFilesPerTablet;
   }
+  
+  public void invalidateCache() {
+    // overridden in ZooConfiguration
+  }
 }
