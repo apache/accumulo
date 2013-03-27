@@ -125,11 +125,6 @@ public class TableConfiguration extends AccumuloConfiguration {
     return value;
   }
   
-  public static void invalidateCache() {
-    if (tablePropCache != null)
-      tablePropCache.clear();
-  }
-  
   @Override
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
