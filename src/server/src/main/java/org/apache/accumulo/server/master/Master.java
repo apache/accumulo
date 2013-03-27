@@ -1883,6 +1883,9 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
               if (getMasterState() == MasterState.NORMAL) {
                 setMasterState(MasterState.SAFE_MODE);
               }
+              if (getMasterState() == MasterState.HAVE_LOCK) {
+                setMasterState(MasterState.SAFE_MODE);
+              }
               break;
             case CLEAN_STOP:
               switch (getMasterState()) {
