@@ -641,6 +641,7 @@ public class ShellServerTest {
     exec("insert a b c value", true);
     exec("scan -np", true, "value", true);
     exec("deletetable -f t");
+    exec("sleep 1");
     String trace = exec("trace off");
     //System.out.println("trace: " + trace);
     assertTrue(trace.contains("binMutations"));
