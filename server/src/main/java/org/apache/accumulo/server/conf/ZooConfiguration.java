@@ -68,6 +68,11 @@ public class ZooConfiguration extends AccumuloConfiguration {
     return instance;
   }
   
+  public void invalidateCache() {
+    if (propCache != null)
+      propCache.clear();
+  }
+  
   private String _get(Property property) {
     String key = property.getKey();
     String value = null;
