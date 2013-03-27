@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.Map.Entry;
 
 import jline.ConsoleReader;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.server.trace.TraceServer;
+import org.apache.commons.logging.impl.Log4JCategoryLog;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -579,7 +581,14 @@ public class ShellServerTest {
   
   @Test(timeout = 30000)
   public void ping() throws Exception {
-    exec("ping", true, "OK", true);
+    for (int i = 0; i < 10; i++) {
+      exec("ping", true, "OK", true);
+      // wait for both tservers to start up
+      if (output.get().split("\n").length == 3)
+        break;
+      UtilWaitThread.sleep(1000);
+      
+    }
     assertEquals(3, output.get().split("\n").length);
   }
   
