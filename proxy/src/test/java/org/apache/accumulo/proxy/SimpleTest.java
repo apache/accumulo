@@ -214,7 +214,7 @@ public class SimpleTest {
     assertFalse(scans.isEmpty());
     ActiveScan scan = scans.get(0);
     assertEquals("root", scan.getUser());
-    assertEquals(ScanState.RUNNING, scan.getState());
+    assertTrue(ScanState.RUNNING.equals(scan.getState()) || ScanState.QUEUED.equals(scan.getState()));
     assertEquals(ScanType.SINGLE, scan.getType());
     assertEquals("slow", scan.getTable());
     Map<String,String> map = client.tableIdMap(creds);

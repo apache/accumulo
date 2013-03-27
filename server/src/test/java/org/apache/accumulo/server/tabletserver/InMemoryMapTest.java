@@ -307,7 +307,7 @@ public class InMemoryMapTest extends TestCase {
   }
   
   // @Test - hard to get this timing test to run well on apache build machines
-  public void testParallelWriteSpeed() throws InterruptedException {
+  public void parallelWriteSpeed() throws InterruptedException {
     List<Double> timings = new ArrayList<Double>();
     for (int threads: new int[]{1, 2, 16, /* 64, 256*/} ) {
       final long now = System.currentTimeMillis();
