@@ -52,12 +52,12 @@ public class GetMasterStats {
     out(0, "State: " + stats.state.name());
     out(0, "Goal State: " + stats.goalState.name());
     if (stats.serversShuttingDown != null && stats.serversShuttingDown.size() > 0) {
-      out(0, "Servers to shutdown: ");
+      out(0, "Servers to shutdown");
       for (String server : stats.serversShuttingDown) {
         out(1, "%s", server);
       }
     }
-    out(1, "Unassigned tablets: %d", stats.unassignedTablets);
+    out(0, "Unassigned tablets: %d", stats.unassignedTablets);
     if (stats.badTServers != null && stats.badTServers.size() > 0) {
       out(0, "Bad servers");
       
@@ -72,10 +72,10 @@ public class GetMasterStats {
         out(1, "%s", entry.getKey());
         out(2, "Records: %d", v.recs);
         out(2, "Records in Memory: %d", v.recsInMemory);
-        out(2, "Tablets %d", v.tablets);
-        out(2, "Online Tablets %d", v.onlineTablets);
-        out(2, "Ingest Rate %.2f", v.ingestRate);
-        out(2, "Query Rate %.2f", v.queryRate);
+        out(2, "Tablets: %d", v.tablets);
+        out(2, "Online Tablets: %d", v.onlineTablets);
+        out(2, "Ingest Rate: %.2f", v.ingestRate);
+        out(2, "Query Rate: %.2f", v.queryRate);
       }
     }
     if (stats.tServerInfo != null && stats.tServerInfo.size() > 0) {
@@ -83,37 +83,37 @@ public class GetMasterStats {
       long now = System.currentTimeMillis();
       for (TabletServerStatus server : stats.tServerInfo) {
         TableInfo summary = Monitor.summarizeTableStats(server);
-        out(1, "Name %s", server.name);
-        out(2, "Ingest %.2f", summary.ingestRate);
-        out(2, "Last Contact %s", server.lastContact);
-        out(2, "OS Load Average %.2f", server.osLoad);
-        out(2, "Queries %.2f", summary.queryRate);
-        out(2, "Time Difference %.1f", ((now - server.lastContact) / 1000.));
-        out(2, "Total Records %d", summary.recs);
-        out(2, "Lookups %d", server.lookups);
+        out(1, "Name: %s", server.name);
+        out(2, "Ingest: %.2f", summary.ingestRate);
+        out(2, "Last Contact: %s", server.lastContact);
+        out(2, "OS Load Average: %.2f", server.osLoad);
+        out(2, "Queries: %.2f", summary.queryRate);
+        out(2, "Time Difference: %.1f", ((now - server.lastContact) / 1000.));
+        out(2, "Total Records: %d", summary.recs);
+        out(2, "Lookups: %d", server.lookups);
         if (server.holdTime > 0)
-          out(2, "Hold Time %d", server.holdTime);
+          out(2, "Hold Time: %d", server.holdTime);
         if (server.tableMap != null && server.tableMap.size() > 0) {
           out(2, "Tables");
           for (Entry<String,TableInfo> status : server.tableMap.entrySet()) {
             TableInfo info = status.getValue();
-            out(3, "Table %s", status.getKey());
-            out(4, "Tablets %d", info.onlineTablets);
-            out(4, "Records %d", info.recs);
-            out(4, "Records in Memory %d", info.recsInMemory);
-            out(4, "Ingest %.2f", info.ingestRate);
-            out(4, "Queries %.2f", info.queryRate);
-            out(4, "Major Compacting %d", info.majors == null ? 0 : info.majors.running);
-            out(4, "Queued for Major Compaction %d", info.majors == null ? 0 : info.majors.queued);
-            out(4, "Minor Compacting %d", info.minors == null ? 0 : info.minors.running);
-            out(4, "Queued for Minor Compaction %d", info.minors == null ? 0 : info.minors.queued);
+            out(3, "Table: %s", status.getKey());
+            out(4, "Tablets: %d", info.onlineTablets);
+            out(4, "Records: %d", info.recs);
+            out(4, "Records in Memory: %d", info.recsInMemory);
+            out(4, "Ingest: %.2f", info.ingestRate);
+            out(4, "Queries: %.2f", info.queryRate);
+            out(4, "Major Compacting: %d", info.majors == null ? 0 : info.majors.running);
+            out(4, "Queued for Major Compaction: %d", info.majors == null ? 0 : info.majors.queued);
+            out(4, "Minor Compacting: %d", info.minors == null ? 0 : info.minors.running);
+            out(4, "Queued for Minor Compaction: %d", info.minors == null ? 0 : info.minors.queued);
           }
         }
-        out(2, "Recoveries %d", server.logSorts.size());
+        out(2, "Recoveries: %d", server.logSorts.size());
         for (RecoveryStatus sort : server.logSorts) {
-          out(3, "File %s", sort.name);
-          out(3, "Progress %.2f%%", sort.progress * 100);
-          out(3, "Time running %s", sort.runtime / 1000.);
+          out(3, "File: %s", sort.name);
+          out(3, "Progress: %.2f%%", sort.progress * 100);
+          out(3, "Time running: %s", sort.runtime / 1000.);
         }
       }
     }
