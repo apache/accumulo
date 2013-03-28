@@ -16,13 +16,11 @@
  */
 package org.apache.accumulo.server.monitor.servlets.trace;
 
-import java.util.Date;
 import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -31,6 +29,7 @@ import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.server.monitor.util.Table;
 import org.apache.accumulo.server.monitor.util.celltypes.DurationType;
 import org.apache.accumulo.server.monitor.util.celltypes.StringType;
+import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
 
 
@@ -44,16 +43,6 @@ public class ListType extends Basic {
   
   int getMinutes(HttpServletRequest req) {
     return getIntParameter(req, "minutes", Summary.DEFAULT_MINUTES);
-  }
-  
-  private static class ShowTraceLinkType extends StringType<RemoteSpan> {
-    
-    public String format(Object obj) {
-      if (obj == null)
-        return "-";
-      RemoteSpan span = (RemoteSpan) obj;
-      return String.format("<a href='/trace/show?id=%s'>%s</a>", Long.toHexString(span.traceId), TraceFormatter.formatDate(new Date(span.start)));
-    }
   }
   
   @Override

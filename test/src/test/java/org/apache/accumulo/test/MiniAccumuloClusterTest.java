@@ -135,7 +135,7 @@ public class MiniAccumuloClusterTest {
     conn.tableOperations().delete("table1");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 60000)
   public void testPerTableClasspath() throws Exception {
     
     Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", new PasswordToken("superSecret"));

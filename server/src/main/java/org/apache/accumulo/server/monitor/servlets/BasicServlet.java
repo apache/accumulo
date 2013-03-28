@@ -153,7 +153,7 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("</head>\n");
     
     // BEGIN BODY OPENING
-    sb.append("\n<body>\n");
+    sb.append("\n<body ").append(getBodyAttributes()).append(">\n");
     sb.append("<div id='content-wrapper'>\n");
     sb.append("<div id='content'>\n");
     sb.append("<div id='header'>");
@@ -221,6 +221,16 @@ abstract public class BasicServlet extends HttpServlet {
     }
     sb.append("</body>\n");
     sb.append("</html>\n");
+  }
+
+  /**
+   * Allow the concrete servlet implementation to provide attributes on the body HTML tag,
+   * such as 'onload', which can be used to call Javascript methods on page load.
+   * By default, nothing is specified.
+   * @return
+   */
+  protected String getBodyAttributes() {
+    return "";
   }
   
   public static String encode(String s) {

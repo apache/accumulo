@@ -46,12 +46,12 @@
             </archive>
           </configuration>
         </plugin>
-		<plugin>
-			<artifactId>maven-surefire-plugin</artifactId>
-			<configuration>
-				<forkMode>always</forkMode>
-			</configuration>
-		</plugin>
+    <plugin>
+      <artifactId>maven-surefire-plugin</artifactId>
+      <configuration>
+        <forkMode>always</forkMode>
+      </configuration>
+    </plugin>
         
       </plugins>
     </pluginManagement>
@@ -118,47 +118,47 @@
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
     </dependency>
-	<dependency>
-		<groupId>org.apache.commons</groupId>
-		<artifactId>commons-vfs2</artifactId>
-		<version>2.0</version>
-	</dependency>
-	<!-- TEST DEPENDENCIES -->
-	<dependency>
-		<groupId>junit</groupId>
-		<artifactId>junit</artifactId>
-		<scope>test</scope>
-	</dependency>
-	<dependency>
-		<groupId>javax.ws.rs</groupId>
-		<artifactId>jsr311-api</artifactId>
-		<version>1.0</version>
-		<scope>test</scope>
-	</dependency>
-	<dependency>
-		<groupId>org.slf4j</groupId>
-		<artifactId>slf4j-nop</artifactId>
-		<version>1.7.2</version>
-		<scope>test</scope>
-	</dependency>
-	<dependency>
-		<groupId>org.powermock</groupId>
-		<artifactId>powermock-module-junit4</artifactId>
-		<version>1.4.12</version>
-		<scope>test</scope>
-	</dependency>
-	<dependency>
-		<groupId>org.powermock</groupId>
-		<artifactId>powermock-api-easymock</artifactId>
-		<version>1.4.12</version>
-		<scope>test</scope>
-	</dependency>
-	<dependency>
-		<groupId>org.easymock</groupId>
-		<artifactId>easymock</artifactId>
-		<version>3.1</version>
-		<scope>test</scope>
-	</dependency>    
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-vfs2</artifactId>
+      <version>2.0</version>
+    </dependency>
+    <!-- TEST DEPENDENCIES -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax.ws.rs</groupId>
+      <artifactId>jsr311-api</artifactId>
+      <version>1.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-nop</artifactId>
+      <version>1.7.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-module-junit4</artifactId>
+      <version>1.4.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-api-easymock</artifactId>
+      <version>1.4.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.easymock</groupId>
+      <artifactId>easymock</artifactId>
+      <version>3.1</version>
+      <scope>test</scope>
+    </dependency>    
   </dependencies>
 
 </project>
