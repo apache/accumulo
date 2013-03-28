@@ -29,10 +29,10 @@ ifeq ($(shell uname),Linux)
       LIBS := $(LIBS_32)
     endif
     ifeq ($(DARCH),both)
-      LIBS := $(LIBS_64)$(LIBS_32)
+      LIBS := $(LIBS_64) $(LIBS_32)
     endif
     ifeq ($(LIBS),)
-      LIBS := $(LIBS_64)$(LIBS_32)
+      LIBS := $(LIBS_64) $(LIBS_32)
     endif
   else
     DARCH := $(shell getconf LONG_BIT)
