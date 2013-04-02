@@ -133,7 +133,7 @@ public class SortedLogRecovery {
           log.warn("Ignoring error closing file");
         }
       }
-      log.info("Recovery complete for " + logfile);
+      log.info("Recovery complete for " + extent + " using " + logfile);
     }
   }
   
