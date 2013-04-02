@@ -250,16 +250,20 @@ public class ZooStore<T> implements TStore<T> {
   public Repo<T> top(long tid) {
     verifyReserved(tid);
     
-    try {
-      String txpath = getTXPath(tid);
-      String top = findTop(txpath);
-      if (top == null)
-        return null;
-      
-      byte[] ser = zk.getData(txpath + "/" + top, null);
-      return (Repo<T>) deserialize(ser);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    while (true) {
+      try {
+        String txpath = getTXPath(tid);
+        String top = findTop(txpath);
+        if (top == null)
+          return null;
+        
+        byte[] ser = zk.getData(txpath + "/" + top, null);
+        return (Repo<T>) deserialize(ser);
+      } catch (KeeperException.NoNodeException ex) {
+        continue;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
   }
   
