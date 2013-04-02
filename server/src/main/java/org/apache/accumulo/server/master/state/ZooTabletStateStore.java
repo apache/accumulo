@@ -123,6 +123,11 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (assignment.tablet.compareTo(Constants.ROOT_TABLET_EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
+    Iterator<TabletLocationState> currentIter = iterator();
+    TabletLocationState current = currentIter.next();
+    if (current.current != null) {
+      throw new IllegalDSException("Trying to set the root tablet location: it is already set to " + current.current);
+    }
     store.put(Constants.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes());
   }
   
@@ -134,8 +139,17 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (assignment.tablet.compareTo(Constants.ROOT_TABLET_EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
+    Iterator<TabletLocationState> currentIter = iterator();
+    TabletLocationState current = currentIter.next();
+    if (current.current != null) {
+      throw new IllegalDSException("Trying to set the root tablet location: it is already set to " + current.current);
+    }
+    if (!current.future.equals(assignment.server)) {
+      throw new IllegalDSException("Root tablet is already assigned to " + current.future);
+    }
     store.put(Constants.ZROOT_TABLET_LOCATION, value.getBytes());
     store.put(Constants.ZROOT_TABLET_LAST_LOCATION, value.getBytes());
+    // Make the following unnecessary by making the entire update atomic 
     store.remove(Constants.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("Put down root tablet location");
   }
