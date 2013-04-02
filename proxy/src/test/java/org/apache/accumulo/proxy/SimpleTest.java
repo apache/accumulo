@@ -162,12 +162,22 @@ public class SimpleTest {
     client.setProperty(creds, "table.split.threshold", "500M");
     
     // check that we can read it
-    cfg = client.getSystemConfiguration(creds);
+    for (int i = 0; i < 5; i++) {
+      cfg = client.getSystemConfiguration(creds);
+      if ("500M".equals(cfg.get("table.split.threshold")))
+          break;
+      UtilWaitThread.sleep(200);
+    }
     assertEquals("500M", cfg.get("table.split.threshold"));
     
     // unset the setting, check that it's not what it was
     client.removeProperty(creds, "table.split.threshold");
-    cfg = client.getSystemConfiguration(creds);
+    for (int i = 0; i < 5; i++) {
+      cfg = client.getSystemConfiguration(creds);
+      if (!"500M".equals(cfg.get("table.split.threshold")))
+          break;
+      UtilWaitThread.sleep(200);
+    }
     assertNotEquals("500M", cfg.get("table.split.threshold"));
     
     // try to load some classes via the proxy
@@ -450,6 +460,11 @@ public class SimpleTest {
     Map<String,String> orig = client.getTableProperties(creds, "test");
     client.setTableProperty(creds, "test", "table.split.threshold", "500M");
     Map<String,String> update = client.getTableProperties(creds, "test");
+    for (int i = 0; i < 5; i++) {
+      if (update.get("table.split.threshold").equals("500M"))
+          break;
+      UtilWaitThread.sleep(200);
+    }
     assertEquals(update.get("table.split.threshold"), "500M");
     client.removeTableProperty(creds, "test", "table.split.threshold");
     update = client.getTableProperties(creds, "test");
