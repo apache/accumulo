@@ -892,10 +892,20 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   private static void getRootLogEntries(ArrayList<LogEntry> result) throws KeeperException, InterruptedException, IOException {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String root = getZookeeperLogLocation();
-    for (String child : zoo.getChildren(root)) {
-      LogEntry e = new LogEntry();
-      e.fromBytes(zoo.getData(root + "/" + child, null));
-      result.add(e);
+    // there's a little race between getting the children and fetching 
+    // the data.  The log can be removed in between.
+    while (true) {
+      result.clear();
+      for (String child : zoo.getChildren(root)) {
+        LogEntry e = new LogEntry();
+        try {
+          e.fromBytes(zoo.getData(root + "/" + child, null));
+          result.add(e);
+        } catch (KeeperException.NoNodeException ex) {
+          continue;
+        }
+      }
+      break;
     }
   }
   
