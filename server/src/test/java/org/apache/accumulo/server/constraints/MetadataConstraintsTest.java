@@ -105,7 +105,14 @@ public class MetadataConstraintsTest {
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
+
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("12345".getBytes()));
+    violations = mc.check(null, m);
     
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short)8), violations.get(0));
   }
   
 }
