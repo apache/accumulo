@@ -353,7 +353,7 @@ public interface TableOperations {
       TableExistsException;
   
   /**
-   * Initiate a flush of a tables data that is in memory
+   * Initiate a flush of a table's data that is in memory
    * 
    * @param tableName
    *          the name of the table
@@ -368,7 +368,7 @@ public interface TableOperations {
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
   
   /**
-   * Flush a tables data that is currently in memory.
+   * Flush a table's data that is currently in memory.
    * 
    * @param tableName
    *          the name of the table
@@ -384,7 +384,7 @@ public interface TableOperations {
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   
   /**
-   * Sets a property on a table
+   * Sets a property on a table. Note that it may take a short period of time (a second) to propagate the change everywhere.
    * 
    * @param tableName
    *          the name of the table
@@ -400,7 +400,7 @@ public interface TableOperations {
   public void setProperty(String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException;
   
   /**
-   * Removes a property from a table
+   * Removes a property from a table.  Note that it may take a short period of time (a second) to propagate the change everywhere.
    * 
    * @param tableName
    *          the name of the table
@@ -414,18 +414,19 @@ public interface TableOperations {
   public void removeProperty(String tableName, String property) throws AccumuloException, AccumuloSecurityException;
   
   /**
-   * Gets properties of a table
+   * Gets properties of a table.  Note that recently changed properties may not be available immediately.
    * 
    * @param tableName
    *          the name of the table
-   * @return all properties visible by this table (system and per-table properties)
+   * @return all properties visible by this table (system and per-table properties).  Note that recently changed 
+   *         properties may not be visible immediately. 
    * @throws TableNotFoundException
    *           if the table does not exist
    */
   public Iterable<Entry<String,String>> getProperties(String tableName) throws AccumuloException, TableNotFoundException;
   
   /**
-   * Sets a tables locality groups. A tables locality groups can be changed at any time.
+   * Sets a table's locality groups. A table's locality groups can be changed at any time.
    * 
    * @param tableName
    *          the name of the table
