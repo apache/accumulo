@@ -104,11 +104,19 @@ public class ProxyServer implements AccumuloProxy.Iface {
     public Iterator<Map.Entry<Key,Value>> iterator;
   }
   
-  static class CloseWriter implements RemovalListener<UUID,BatchWriter> {
+  static protected class BatchWriterPlusException {
+    public BatchWriter writer;
+    public MutationsRejectedException exception = null;
+  }
+  
+  static class CloseWriter implements RemovalListener<UUID,BatchWriterPlusException> {
     @Override
-    public void onRemoval(RemovalNotification<UUID,BatchWriter> notification) {
+    public void onRemoval(RemovalNotification<UUID,BatchWriterPlusException> notification) {
       try {
-        notification.getValue().close();
+        BatchWriterPlusException value = notification.getValue();
+        if (value.exception != null)
+          throw value.exception;
+        notification.getValue().writer.close();
       } catch (MutationsRejectedException e) {
         logger.warn(e, e);
       }
@@ -131,7 +139,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   protected Cache<UUID,ScannerPlusIterator> scannerCache;
-  protected Cache<UUID,BatchWriter> writerCache;
+  protected Cache<UUID,BatchWriterPlusException> writerCache;
   
   public ProxyServer(Properties props) {
 
@@ -904,10 +912,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void updateAndFlush(ByteBuffer login, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws TException {
     try {
-      BatchWriter writer = getWriter(login, tableName, null);
-      addCellsToWriter(cells, writer);
-      writer.flush();
-      writer.close();
+      BatchWriterPlusException bwpe = getWriter(login, tableName, null);
+      addCellsToWriter(cells, bwpe);
+      if (bwpe.exception != null)
+        throw bwpe.exception;
+      bwpe.writer.flush();
+      bwpe.writer.close();
     } catch (Exception e) {
       throw translateException(e);
     }
@@ -915,7 +925,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
   
-  private void addCellsToWriter(Map<ByteBuffer,List<ColumnUpdate>> cells, BatchWriter writer) throws MutationsRejectedException {
+  private void addCellsToWriter(Map<ByteBuffer,List<ColumnUpdate>> cells, BatchWriterPlusException bwpe) throws MutationsRejectedException {
+    if (bwpe.exception != null)
+      return;
+    
     HashMap<Text,ColumnVisibility> vizMap = new HashMap<Text,ColumnVisibility>();
     
     for (Entry<ByteBuffer,List<ColumnUpdate>> entry : cells.entrySet()) {
@@ -947,14 +960,18 @@ public class ProxyServer implements AccumuloProxy.Iface {
           m.put(update.getColFamily(), update.getColQualifier(), viz, value);
         }
       }
-      writer.addMutation(m);
+      try {
+        bwpe.writer.addMutation(m);
+      } catch (MutationsRejectedException mre) {
+        bwpe.exception = mre;
+      }
     }
   }
   
   @Override
   public String createWriter(ByteBuffer login, String tableName, WriterOptions opts) throws TException {
     try {
-      BatchWriter writer = getWriter(login, tableName, opts);
+      BatchWriterPlusException writer = getWriter(login, tableName, opts);
       UUID uuid = UUID.randomUUID();
       writerCache.put(uuid, writer);
       return uuid.toString();
@@ -966,11 +983,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void update(String writer, Map<ByteBuffer,List<ColumnUpdate>> cells) throws TException {
     try {
-      BatchWriter batchwriter = writerCache.getIfPresent(UUID.fromString(writer));
-      if (batchwriter == null) {
+      BatchWriterPlusException bwpe = writerCache.getIfPresent(UUID.fromString(writer));
+      if (bwpe == null) {
         throw new UnknownWriter("Writer never existed or no longer exists");
       }
-      addCellsToWriter(cells, batchwriter);
+      addCellsToWriter(cells, bwpe);
     } catch (Exception e) {
       throw translateException(e);
     }
@@ -979,11 +996,13 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void flush(String writer) throws TException {
     try {
-      BatchWriter batchwriter = writerCache.getIfPresent(UUID.fromString(writer));
-      if (batchwriter == null) {
+      BatchWriterPlusException bwpe = writerCache.getIfPresent(UUID.fromString(writer));
+      if (bwpe == null) {
         throw new UnknownWriter("Writer never existed or no longer exists");
       }
-      batchwriter.flush();
+      if (bwpe.exception != null)
+        throw bwpe.exception;
+      bwpe.writer.flush();
     } catch (Exception e) {
       throw translateException(e);
     }
@@ -992,18 +1011,20 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void closeWriter(String writer) throws TException {
     try {
-      BatchWriter batchwriter = writerCache.getIfPresent(UUID.fromString(writer));
-      if (batchwriter == null) {
+      BatchWriterPlusException bwpe = writerCache.getIfPresent(UUID.fromString(writer));
+      if (bwpe == null) {
         throw new UnknownWriter("Writer never existed or no longer exists");
       }
-      batchwriter.close();
+      if (bwpe.exception != null)
+        throw bwpe.exception;
+      bwpe.writer.close();
       writerCache.invalidate(UUID.fromString(writer));
     } catch (Exception e) {
       throw translateException(e);
     }
   }
   
-  private BatchWriter getWriter(ByteBuffer login, String tableName, WriterOptions opts) throws Exception {
+  private BatchWriterPlusException getWriter(ByteBuffer login, String tableName, WriterOptions opts) throws Exception {
     BatchWriterConfig cfg = new BatchWriterConfig();
     if (opts != null) {
       if (opts.maxMemory != 0)
@@ -1015,7 +1036,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
       if (opts.latencyMs != 0)
         cfg.setMaxLatency(opts.latencyMs, TimeUnit.MILLISECONDS);
     }
-    return getConnector(login).createBatchWriter(tableName, cfg);
+    BatchWriterPlusException result = new BatchWriterPlusException();
+    result.writer = getConnector(login).createBatchWriter(tableName, cfg);
+    return result;
   }
   
   private IteratorSetting getIteratorSetting(org.apache.accumulo.proxy.thrift.IteratorSetting setting) {

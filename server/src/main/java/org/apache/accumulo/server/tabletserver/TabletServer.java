@@ -2460,9 +2460,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
       // If extent given is not the one to be opened, update
       if (tabletsInRange.size() != 1 || !tabletsInRange.containsKey(extent)) {
-        
-        tabletsKeyValues.clear();
-        
         synchronized (openingTablets) {
           openingTablets.remove(extent);
           openingTablets.notifyAll();
@@ -2924,7 +2921,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           return null;
         }
         
-        // ensure lst key in map is same as extent that was passed in
+        // ensure last key in map is same as extent that was passed in
         if (!tabletEntries.lastKey().equals(extent.getMetadataEntry())) {
           log.warn("Failed to find metadata entry for " + extent + " found " + tabletEntries.lastKey());
           return null;
@@ -2980,7 +2977,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           // reread and reverify metadata entries now that metadata
           // entries were fixed
           tabletsKeyValues.clear();
-          return verifyTabletInformation(extent, instance, null, clientAddress, lock);
+          return verifyTabletInformation(extent, instance, tabletsKeyValues, clientAddress, lock);
         }
         
         SortedMap<KeyExtent,Text> children = new TreeMap<KeyExtent,Text>();
@@ -3016,7 +3013,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           log.warn("For extent " + extent + " metadata entries " + children + " do not form a contiguous range.");
           return null;
         }
-        
         return children;
       } catch (AccumuloException e) {
         log.error("error verifying metadata information. retrying ...");
