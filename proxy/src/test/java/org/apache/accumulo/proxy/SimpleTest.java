@@ -16,29 +16,6 @@
  */
 package org.apache.accumulo.proxy;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
-import java.util.Set;
-import java.util.TreeMap;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Value;
@@ -50,24 +27,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
-import org.apache.accumulo.proxy.thrift.ActiveCompaction;
-import org.apache.accumulo.proxy.thrift.ActiveScan;
-import org.apache.accumulo.proxy.thrift.ColumnUpdate;
-import org.apache.accumulo.proxy.thrift.CompactionReason;
-import org.apache.accumulo.proxy.thrift.CompactionType;
-import org.apache.accumulo.proxy.thrift.IteratorScope;
-import org.apache.accumulo.proxy.thrift.IteratorSetting;
-import org.apache.accumulo.proxy.thrift.Key;
-import org.apache.accumulo.proxy.thrift.PartialKey;
-import org.apache.accumulo.proxy.thrift.Range;
-import org.apache.accumulo.proxy.thrift.ScanColumn;
-import org.apache.accumulo.proxy.thrift.ScanOptions;
-import org.apache.accumulo.proxy.thrift.ScanResult;
-import org.apache.accumulo.proxy.thrift.ScanState;
-import org.apache.accumulo.proxy.thrift.ScanType;
-import org.apache.accumulo.proxy.thrift.SystemPermission;
-import org.apache.accumulo.proxy.thrift.TablePermission;
-import org.apache.accumulo.proxy.thrift.TimeType;
+import org.apache.accumulo.proxy.thrift.*;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
@@ -84,13 +44,23 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.util.*;
+
+import static org.junit.Assert.*;
+
 /**
  * Call every method on the proxy and try to verify that it works.
  */
 public class SimpleTest {
   
   public static TemporaryFolder folder = new TemporaryFolder();
-  
+
+  public static final String TABLE_TEST = "test";
+
   private static MiniAccumuloCluster accumulo;
   private static String secret = "superSecret";
   private static Random random = new Random();
@@ -145,7 +115,8 @@ public class SimpleTest {
     creds = client.login(principal, properties);
   }
 
-  @Test(timeout = 10000)
+
+    @Test(timeout = 10000)
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
     for (String tserver : client.getTabletServers(creds)) {
@@ -316,26 +287,26 @@ public class SimpleTest {
       assertFalse(client.listTables(creds).contains("fail"));
     }
     // create a table to test table permissions
-    client.createTable(creds, "test", true, TimeType.MILLIS);
+    client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     // denied!
     try {
-      String scanner = client.createScanner(stooge, "test", null);
+      String scanner = client.createScanner(stooge, TABLE_TEST, null);
       client.nextK(scanner, 100);
       fail("stooge should not read table test");
     } catch (TException ex) {
     }
     // grant
-    assertFalse(client.hasTablePermission(creds, "stooge", "test", TablePermission.READ));
-    client.grantTablePermission(creds, "stooge", "test", TablePermission.READ);
-    assertTrue(client.hasTablePermission(creds, "stooge", "test", TablePermission.READ));
-    String scanner = client.createScanner(stooge, "test", null);
+    assertFalse(client.hasTablePermission(creds, "stooge", TABLE_TEST, TablePermission.READ));
+    client.grantTablePermission(creds, "stooge", TABLE_TEST, TablePermission.READ);
+    assertTrue(client.hasTablePermission(creds, "stooge", TABLE_TEST, TablePermission.READ));
+    String scanner = client.createScanner(stooge, TABLE_TEST, null);
     client.nextK(scanner, 10);
     client.closeScanner(scanner);
     // revoke
-    client.revokeTablePermission(creds, "stooge", "test", TablePermission.READ);
-    assertFalse(client.hasTablePermission(creds, "stooge", "test", TablePermission.READ));
+    client.revokeTablePermission(creds, "stooge", TABLE_TEST, TablePermission.READ);
+    assertFalse(client.hasTablePermission(creds, "stooge", TABLE_TEST, TablePermission.READ));
     try {
-      scanner = client.createScanner(stooge, "test", null);
+      scanner = client.createScanner(stooge, TABLE_TEST, null);
       client.nextK(scanner, 100);
       fail("stooge should not read table test");
     } catch (TException ex) {
@@ -347,71 +318,123 @@ public class SimpleTest {
     assertEquals(1, users.size());
     
   }
+
+  @Test
+  public void testBatchWriter() throws Exception {
+      if (client.tableExists(creds, TABLE_TEST))
+          client.deleteTable(creds, TABLE_TEST);
+
+      client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
+      client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
+
+      WriterOptions writerOptions = new WriterOptions();
+      writerOptions.setLatencyMs(10000);
+      writerOptions.setMaxMemory(2);
+      writerOptions.setThreads(1);
+      writerOptions.setTimeoutMs(100000);
+
+      String batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
+      try {
+          client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
+          client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
+          fail("constraint did not fire");
+      } catch (MutationsRejectedException ex) {}
+      try {
+          client.flush(batchWriter);
+          fail("constraint did not fire");
+      } catch (MutationsRejectedException ex) {}
+      try {
+          client.closeWriter(batchWriter);
+          fail("constraint did not fire");
+      } catch(MutationsRejectedException e) {}
+
+      client.removeConstraint(creds, TABLE_TEST, 1);
+
+      writerOptions = new WriterOptions();
+      writerOptions.setLatencyMs(10000);
+      writerOptions.setMaxMemory(3000);
+      writerOptions.setThreads(1);
+      writerOptions.setTimeoutMs(100000);
+
+      batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
+
+      client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
+      client.flush(batchWriter);
+      client.closeWriter(batchWriter);
+
+      String scanner = client.createScanner(creds, TABLE_TEST, null);
+      ScanResult more = client.nextK(scanner, 2);
+      assertEquals(1, more.getResults().size());
+      client.closeScanner(scanner);
+
+      client.deleteTable(creds, TABLE_TEST);
+  }
   
   @Test
   public void testTableOperations() throws Exception {
-    if (client.tableExists(creds, "test"))
-      client.deleteTable(creds, "test");
-    client.createTable(creds, "test", true, TimeType.MILLIS);
+    if (client.tableExists(creds, TABLE_TEST))
+      client.deleteTable(creds, TABLE_TEST);
+    client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     // constraints
-    client.addConstraint(creds, "test", NumericValueConstraint.class.getName());
-    client.updateAndFlush(creds, "test", mutation("row1", "cf", "cq", "123"));
+    client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
+    client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));
+
     try {
-      client.updateAndFlush(creds, "test", mutation("row1", "cf", "cq", "x"));
+      client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
       fail("constraint did not fire");
-    } catch (Exception ex) {
-    }
-    client.removeConstraint(creds, "test", 1);
-    client.updateAndFlush(creds, "test", mutation("row1", "cf", "cq", "x"));
-    String scanner = client.createScanner(creds, "test", null);
+    } catch (MutationsRejectedException ex) {}
+
+    client.removeConstraint(creds, TABLE_TEST, 1);
+    client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
+    String scanner = client.createScanner(creds, TABLE_TEST, null);
     ScanResult more = client.nextK(scanner, 2);
     client.closeScanner(scanner);
     assertFalse(more.isMore());
     assertEquals(1, more.getResults().size());
     assertEquals(s2bb("x"), more.getResults().get(0).value);
     // splits, merge
-    client.addSplits(creds, "test", new HashSet<ByteBuffer>(Arrays.asList(s2bb("a"), s2bb("m"), s2bb("z"))));
-    List<ByteBuffer> splits = client.listSplits(creds, "test", 1);
+    client.addSplits(creds, TABLE_TEST, new HashSet<ByteBuffer>(Arrays.asList(s2bb("a"), s2bb("m"), s2bb("z"))));
+    List<ByteBuffer> splits = client.listSplits(creds, TABLE_TEST, 1);
     assertEquals(Arrays.asList(s2bb("m")), splits);
-    client.mergeTablets(creds, "test", null, s2bb("m"));
-    splits = client.listSplits(creds, "test", 10);
+    client.mergeTablets(creds, TABLE_TEST, null, s2bb("m"));
+    splits = client.listSplits(creds, TABLE_TEST, 10);
     assertEquals(Arrays.asList(s2bb("m"), s2bb("z")), splits);
-    client.mergeTablets(creds, "test", null, null);
-    splits = client.listSplits(creds, "test", 10);
+    client.mergeTablets(creds, TABLE_TEST, null, null);
+    splits = client.listSplits(creds, TABLE_TEST, 10);
     List<ByteBuffer> empty = Collections.emptyList();
     assertEquals(empty, splits);
     // iterators
-    client.deleteTable(creds, "test");
-    client.createTable(creds, "test", true, TimeType.MILLIS);
+    client.deleteTable(creds, TABLE_TEST);
+    client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     HashMap<String, String> options = new HashMap<String, String>();
     options.put("type", "STRING");
     options.put("columns", "cf");
-    IteratorSetting setting = new IteratorSetting(10, "test", SummingCombiner.class.getName(), options);
-    client.attachIterator(creds, "test", setting, EnumSet.allOf(IteratorScope.class));
+    IteratorSetting setting = new IteratorSetting(10, TABLE_TEST, SummingCombiner.class.getName(), options);
+    client.attachIterator(creds, TABLE_TEST, setting, EnumSet.allOf(IteratorScope.class));
     for (int i = 0; i < 10; i++) {
-      client.updateAndFlush(creds, "test", mutation("row1", "cf", "cq", "1"));
+      client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "1"));
     }
-    scanner = client.createScanner(creds, "test", null);
+    scanner = client.createScanner(creds, TABLE_TEST, null);
     more = client.nextK(scanner, 2);
     client.closeScanner(scanner);
     assertEquals("10", new String(more.getResults().get(0).getValue()));
     try {
-      client.checkIteratorConflicts(creds, "test", setting, EnumSet.allOf(IteratorScope.class));
+      client.checkIteratorConflicts(creds, TABLE_TEST, setting, EnumSet.allOf(IteratorScope.class));
       fail("checkIteratorConflicts did not throw and exception");
     } catch (Exception ex) {
     }
-    client.deleteRows(creds, "test", null, null);
-    client.removeIterator(creds, "test", "test", EnumSet.allOf(IteratorScope.class));
+    client.deleteRows(creds, TABLE_TEST, null, null);
+    client.removeIterator(creds, TABLE_TEST, "test", EnumSet.allOf(IteratorScope.class));
     for (int i = 0; i < 10; i++) {
-      client.updateAndFlush(creds, "test", mutation("row"+i, "cf", "cq", ""+i));
-      client.flushTable(creds, "test", null, null, true);
+      client.updateAndFlush(creds, TABLE_TEST, mutation("row"+i, "cf", "cq", ""+i));
+      client.flushTable(creds, TABLE_TEST, null, null, true);
     }
-    scanner = client.createScanner(creds, "test", null);
+    scanner = client.createScanner(creds, TABLE_TEST, null);
     more = client.nextK(scanner, 100);
     client.closeScanner(scanner);
     assertEquals(10, more.getResults().size());
     // clone
-    client.cloneTable(creds, "test", "test2", true, null, null);
+    client.cloneTable(creds, TABLE_TEST, "test2", true, null, null);
     scanner = client.createScanner(creds, "test2", null);
     more = client.nextK(scanner, 100);
     client.closeScanner(scanner);
@@ -419,18 +442,18 @@ public class SimpleTest {
     client.deleteTable(creds, "test2");
     
     // don't know how to test this, call it just for fun
-    client.clearLocatorCache(creds, "test");
+    client.clearLocatorCache(creds, TABLE_TEST);
     
     // compact
-    assertTrue(countFiles("test") > 1);
-    client.compactTable(creds, "test", null, null, null, true, true);
-    assertEquals(1, countFiles("test"));
+    assertTrue(countFiles(TABLE_TEST) > 1);
+    client.compactTable(creds, TABLE_TEST, null, null, null, true, true);
+    assertEquals(1, countFiles(TABLE_TEST));
     
     // export/import
     String dir = folder.getRoot() + "/test";
     String destDir = folder.getRoot() + "/test_dest";
-    client.offlineTable(creds, "test");
-    client.exportTable(creds, "test", dir);
+    client.offlineTable(creds, TABLE_TEST);
+    client.exportTable(creds, TABLE_TEST, dir);
     // copy files to a new location
     FileSystem fs = FileSystem.get(new Configuration());
     FSDataInputStream is = fs.open(new Path(dir + "/distcp.txt"));
@@ -442,7 +465,7 @@ public class SimpleTest {
       Path srcPath = new Path(line);
       FileUtils.copyFile(new File(srcPath.toUri().getPath()), new File(destDir, srcPath.getName()));
     }
-    client.deleteTable(creds, "test");
+    client.deleteTable(creds, TABLE_TEST);
     client.importTable(creds, "testify", destDir);
     scanner = client.createScanner(creds, "testify", null);
     more = client.nextK(scanner, 100);
