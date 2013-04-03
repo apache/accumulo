@@ -87,7 +87,7 @@ public class ShellTest {
     output = new TestOutputStream();
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
     shell.setLogErrorsToConsole();
-    shell.config("--fake", "-p", "pass");
+    shell.config("--fake", "-p", "");
   }
   
   void assertGoodExit(String s, boolean stringPresent) {
