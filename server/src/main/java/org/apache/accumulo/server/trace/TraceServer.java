@@ -155,6 +155,7 @@ public class TraceServer implements Watcher {
     
   }
   
+  @SuppressWarnings("deprecation")
   public TraceServer(ServerConfiguration serverConfiguration, String hostname) throws Exception {
     this.serverConfiguration = serverConfiguration;
     AccumuloConfiguration conf = serverConfiguration.getConfiguration();
