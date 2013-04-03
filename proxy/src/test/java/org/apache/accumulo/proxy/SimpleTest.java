@@ -334,11 +334,8 @@ public class SimpleTest {
       writerOptions.setTimeoutMs(100000);
 
       String batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
-      try {
-          client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
-          client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
-          fail("constraint did not fire");
-      } catch (MutationsRejectedException ex) {}
+      client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
+      client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
       try {
           client.flush(batchWriter);
           fail("constraint did not fire");

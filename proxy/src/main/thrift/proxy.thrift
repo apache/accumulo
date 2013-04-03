@@ -330,7 +330,7 @@ service AccumuloProxy
   string createWriter(1:binary login, 2:string tableName, 3:WriterOptions opts)                    throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
 
   // use the writer
-  void update(1:string writer, 2:map<binary, list<ColumnUpdate>> cells)                            throws (1:UnknownWriter ouch1, 2:MutationsRejectedException ouch2);
+  oneway void update(1:string writer, 2:map<binary, list<ColumnUpdate>> cells);
   void flush(1:string writer)                                                                      throws (1:UnknownWriter ouch1, 2:MutationsRejectedException ouch2);
   void closeWriter(1:string writer)                                                                throws (1:UnknownWriter ouch1, 2:MutationsRejectedException ouch2);
 
