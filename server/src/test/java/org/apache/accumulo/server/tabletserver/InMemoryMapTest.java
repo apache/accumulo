@@ -42,7 +42,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Before;
-import org.junit.Test;
 
 public class InMemoryMapTest extends TestCase {
   

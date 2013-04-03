@@ -246,9 +246,11 @@ public class Shell extends ShellOptions {
     String sysUser = System.getProperty("user.name");
     if (sysUser == null)
       sysUser = "root";
+    @SuppressWarnings("deprecation")
     String user = cl.getOptionValue(usernameOption.getOpt());
     String principal = cl.getOptionValue(principalOption.getOpt(), sysUser);
     
+    @SuppressWarnings("deprecation")
     String passw = cl.getOptionValue(passwOption.getOpt(), null);
     tabCompletion = !cl.hasOption(tabCompleteOption.getLongOpt());
     String[] loginOptions = cl.getOptionValues(loginOption.getOpt());

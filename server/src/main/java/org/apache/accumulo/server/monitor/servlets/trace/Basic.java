@@ -66,6 +66,7 @@ abstract class Basic extends BasicServlet {
     return TraceFormatter.formatDate(new Date(millis));
   }
   
+  @SuppressWarnings("deprecation")
   protected Scanner getScanner(StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
     AccumuloConfiguration conf = Monitor.getSystemConfiguration();
     String principal = conf.get(Property.TRACE_PRINCIPAL);

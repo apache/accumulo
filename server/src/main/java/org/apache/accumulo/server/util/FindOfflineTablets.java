@@ -24,7 +24,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
