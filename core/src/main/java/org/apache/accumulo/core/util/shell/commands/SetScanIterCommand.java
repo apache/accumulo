@@ -55,8 +55,16 @@ public class SetScanIterCommand extends SetIterCommand {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     // instead of setting table properties, just put the options in a list to use at scan time
-    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
+    Class<?> loadClass;
+    try {
+      loadClass = getClass().getClassLoader().loadClass(classname);
+    } catch (ClassNotFoundException e) {
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Unable to load " + classname);
+    }
+    try {
+      loadClass.asSubclass(SortedKeyValueIterator.class);
+    } catch (ClassCastException ex) {
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Unable to load " + classname  + " as type "
           + SortedKeyValueIterator.class.getName());
     }
     
