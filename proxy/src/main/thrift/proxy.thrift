@@ -224,10 +224,14 @@ exception TableExistsException {
   1:string msg
 }
 
+exception MutationsRejectedException {
+  1:string msg
+}
+
 service AccumuloProxy
 {
   // get an authentication token
-  binary login(1:string principal, 2:map<string, string> loginProperties)                               throws (1:AccumuloSecurityException ouch2);
+  binary login(1:string principal, 2:map<string, string> loginProperties)                              throws (1:AccumuloSecurityException ouch2);
 
   // table operations
   i32 addConstraint (1:binary login, 2:string tableName, 3:string constraintClassName)                 throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
@@ -243,7 +247,7 @@ service AccumuloProxy
                    5:map<string,string> propertiesToSet, 6:set<string> propertiesToExclude) 
                                                                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3, 4:TableExistsException ouch4);
   void compactTable (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow, 
-		     5:list<IteratorSetting> iterators, 6:bool flush, 7:bool wait)                     throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
+		     5:list<IteratorSetting> iterators, 6:bool flush, 7:bool wait)                             throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
   void cancelCompaction(1:binary login, 2:string tableName)                                            throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
                                                                                                             
   void createTable (1:binary login, 2:string tableName, 3:bool versioningIter, 4:TimeType type)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableExistsException ouch3);
@@ -322,13 +326,13 @@ service AccumuloProxy
   void closeScanner(1:string scanner)                   throws(1:UnknownScanner ouch1);
 
   // writing
-  void updateAndFlush(1:binary login, 2:string tableName, 3:map<binary, list<ColumnUpdate>> cells) throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  void updateAndFlush(1:binary login, 2:string tableName, 3:map<binary, list<ColumnUpdate>> cells) throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3, 4:MutationsRejectedException ouch4);
   string createWriter(1:binary login, 2:string tableName, 3:WriterOptions opts)                    throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
 
   // use the writer
-  oneway void update(1:string writer, 2:map<binary, list<ColumnUpdate>> cells);
-  void flush(1:string writer) throws (1:UnknownWriter ouch1, 2:AccumuloSecurityException ouch2);
-  void closeWriter(1:string writer) throws (1:UnknownWriter ouch1, 2:AccumuloException outch1, 3:AccumuloSecurityException ouch2);
+  void update(1:string writer, 2:map<binary, list<ColumnUpdate>> cells)                            throws (1:UnknownWriter ouch1, 2:MutationsRejectedException ouch2);
+  void flush(1:string writer)                                                                      throws (1:UnknownWriter ouch1, 2:MutationsRejectedException ouch2);
+  void closeWriter(1:string writer)                                                                throws (1:UnknownWriter ouch1, 2:MutationsRejectedException ouch2);
 
   // utilities
   Range getRowRange(1:binary row);

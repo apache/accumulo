@@ -134,6 +134,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   protected Cache<UUID,BatchWriter> writerCache;
   
   public ProxyServer(Properties props) {
+
     String useMock = props.getProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance");
     if (useMock != null && Boolean.parseBoolean(useMock))
       instance = new MockInstance();
@@ -157,6 +158,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
   private TException translateException(Exception ex) {
     try {
       throw ex;
+    } catch (MutationsRejectedException e) {
+        logger.debug(e,e);
+        return new org.apache.accumulo.proxy.thrift.MutationsRejectedException(e.toString());
     } catch (AccumuloException e) {
       logger.debug(e,e);
       return new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
@@ -223,8 +227,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void cancelCompaction(ByteBuffer login, String tableName) throws org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
-      org.apache.accumulo.proxy.thrift.TableNotFoundException, org.apache.accumulo.proxy.thrift.AccumuloException, TException {
+  public void cancelCompaction(ByteBuffer login, String tableName) throws TException {
     try {
       getConnector(login).tableOperations().cancelCompaction(tableName);
     } catch (Exception e) {
