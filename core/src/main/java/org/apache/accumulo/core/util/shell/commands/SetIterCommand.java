@@ -75,21 +75,9 @@ public class SetIterCommand extends Command {
       classname = ReqVisFilter.class.getName();
     }
     
-    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
-          + SortedKeyValueIterator.class.getName());
-    }
     final String name = cl.getOptionValue(nameOpt.getOpt(), setUpOptions(shellState.getReader(), classname, options));
     
-    final String aggregatorClass = options.get("aggregatorClass");
-    @SuppressWarnings("deprecation")
-    String deprecatedAggregatorClassName = org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
-    if (aggregatorClass != null && !shellState.getConnector().instanceOperations().testClassLoad(aggregatorClass, deprecatedAggregatorClassName)) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + aggregatorClass + " as type "
-          + deprecatedAggregatorClassName);
-    }
     setTableProperties(cl, shellState, priority, options, classname, name);
-    
     return 0;
   }
   
@@ -98,6 +86,19 @@ public class SetIterCommand extends Command {
     // remove empty values
     
     final String tableName = OptUtil.getTableOpt(cl, shellState);
+
+    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) {
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
+          + SortedKeyValueIterator.class.getName());
+    }
+    
+    final String aggregatorClass = options.get("aggregatorClass");
+    @SuppressWarnings("deprecation")
+    String deprecatedAggregatorClassName = org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
+    if (aggregatorClass != null && !shellState.getConnector().instanceOperations().testClassLoad(aggregatorClass, deprecatedAggregatorClassName)) {
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + aggregatorClass + " as type "
+          + deprecatedAggregatorClassName);
+    }
     
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
