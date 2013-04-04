@@ -44,8 +44,8 @@ public class CloneTable extends Test {
     boolean flush = rand.nextBoolean();
     
     try {
+      log.debug("Cloning table " + srcTableName + " " + newTableName + " " + flush);
       conn.tableOperations().clone(srcTableName, newTableName, flush, new HashMap<String,String>(), new HashSet<String>());
-      log.debug("Cloned table " + srcTableName + " " + newTableName + " " + flush);
     } catch (TableExistsException e) {
       log.debug("Clone " + srcTableName + " failed, " + newTableName + " exist");
     } catch (TableNotFoundException e) {

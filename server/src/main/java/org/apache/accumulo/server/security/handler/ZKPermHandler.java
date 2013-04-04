@@ -47,6 +47,7 @@ public class ZKPermHandler implements PermissionHandler {
   private static PermissionHandler zkPermHandlerInstance = null;
   
   private String ZKUserPath;
+  private String ZKTablePath;
   private final ZooCache zooCache;
   private final String ZKUserSysPerms = "/System";
   private final String ZKUserTablePerms = "/Tables";
@@ -59,6 +60,7 @@ public class ZKPermHandler implements PermissionHandler {
   
   public void initialize(String instanceId, boolean initialize) {
     ZKUserPath = ZKSecurityTool.getInstancePath(instanceId) + "/users";
+    ZKTablePath = ZKSecurityTool.getInstancePath(instanceId) + "/tables";
   }
   
   public ZKPermHandler() {
@@ -66,7 +68,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
   
   @Override
-  public boolean hasTablePermission(String user, String table, TablePermission permission) {
+  public boolean hasTablePermission(String user, String table, TablePermission permission) throws TableNotFoundException {
     byte[] serializedPerms;
     try {
       String path = ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table;
@@ -74,6 +76,22 @@ public class ZKPermHandler implements PermissionHandler {
       serializedPerms = ZooReaderWriter.getRetryingInstance().getData(path, null);
     } catch (KeeperException e) {
       if (e.code() == Code.NONODE) {
+        // maybe the table was just deleted?
+        try {
+          // check for existence:
+          ZooReaderWriter.getRetryingInstance().getData(ZKTablePath + "/" + table, null);
+          // it's there, you don't have permission
+          return false;
+        } catch (InterruptedException ex) {
+          log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
+          return false;
+        } catch (KeeperException ex) {
+          // not there, throw an informative exception
+          if (e.code() == Code.NONODE) {
+            throw new TableNotFoundException(null, table, "while checking permissions");
+          }
+          log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
+        }
         return false;
       }
       log.warn("Unhandled KeeperException, failing closed for table permission check", e);

@@ -223,11 +223,6 @@ class SetupPermissions extends MasterRepo {
   }
   
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
-    return 0;
-  }
-  
-  @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all table permissions to the creator
     SecurityOperation security = AuditedSecurityOperation.getInstance();
