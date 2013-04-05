@@ -605,7 +605,7 @@ public class TabletLocatorImplTest extends TestCase {
     }
   }
   
-  static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke, String location) {
+  static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke, String location, String instance) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
     if (tablets == null) {
       tablets = new HashMap<KeyExtent,SortedMap<Key,Value>>();
@@ -622,15 +622,20 @@ public class TabletLocatorImplTest extends TestCase {
     Value per = KeyExtent.encodePrevEndRow(ke.getPrevEndRow());
     
     if (location != null) {
-      Key lk = new Key(mr, Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY, new Text());
+      if (instance == null)
+        instance = "";
+      Key lk = new Key(mr, Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY, new Text(instance));
       tabletData.put(lk, new Value(location.getBytes()));
     }
     
     Key pk = new Key(mr, Constants.METADATA_PREV_ROW_COLUMN.getColumnFamily(), Constants.METADATA_PREV_ROW_COLUMN.getColumnQualifier());
     tabletData.put(pk, per);
-    
   }
   
+  static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke, String location) {
+    setLocation(tservers, server, tablet, ke, location, "");
+  }
+
   static void deleteServer(TServers tservers, String server) {
     tservers.tservers.remove(server);
     
@@ -1268,5 +1273,26 @@ public class TabletLocatorImplTest extends TestCase {
     
     locateTabletTest(tab0TabletCache, "a", ke1, "tserver7", credential);
     
+  }
+  
+  public void testAccumulo1248() throws Exception {
+    TServers tservers = new TServers();
+    TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
+    
+    KeyExtent ke1 = nke("foo", null, null);
+    
+    // set two locations for a tablet, this is not supposed to happen. The metadata cache should throw an exception if it sees this rather than caching one of
+    // the locations.
+    setLocation(tservers, "tserver2", MTE, ke1, "L1", "I1");
+    setLocation(tservers, "tserver2", MTE, ke1, "L2", "I2");
+    
+    try {
+      metaCache.locateTablet(new Text("a"), false, false, credential);
+      assertTrue(false);
+    } catch (Exception e) {
+      
+    }
+
+
   }
 }
