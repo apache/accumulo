@@ -49,6 +49,8 @@ public class ZooKeeperMain {
       opts.servers = instance.getZooKeepers();
     }
     System.out.println("The accumulo instance id is " + instance.getInstanceID());
+    if (!opts.servers.contains("/"))
+      opts.servers += "/accumulo/"+instance.getInstanceID(); 
     org.apache.zookeeper.ZooKeeperMain.main(new String[]{"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
   }
 }
