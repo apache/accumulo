@@ -297,18 +297,18 @@ public class InMemoryMapTest extends TestCase {
   }
   
   private static final Logger log = Logger.getLogger(InMemoryMapTest.class);
-
+  
   static long sum(long[] counts) {
     long result = 0;
-    for (int i = 0; i < counts.length; i++) 
-      result  += counts[i];
+    for (int i = 0; i < counts.length; i++)
+      result += counts[i];
     return result;
   }
   
   // @Test - hard to get this timing test to run well on apache build machines
   public void parallelWriteSpeed() throws InterruptedException {
     List<Double> timings = new ArrayList<Double>();
-    for (int threads: new int[]{1, 2, 16, /* 64, 256*/} ) {
+    for (int threads : new int[] {1, 2, 16, /* 64, 256 */}) {
       final long now = System.currentTimeMillis();
       final long counts[] = new long[threads];
       final InMemoryMap imm = new InMemoryMap(false, "/tmp");
@@ -333,16 +333,16 @@ public class InMemoryMapTest extends TestCase {
       e.shutdown();
       e.awaitTermination(10, TimeUnit.SECONDS);
       imm.delete(10000);
-      double mutationsPerSecond = sum(counts)/((System.currentTimeMillis() - now)/1000.);
+      double mutationsPerSecond = sum(counts) / ((System.currentTimeMillis() - now) / 1000.);
       timings.add(mutationsPerSecond);
       log.info(String.format("%.1f mutations per second with %d threads", mutationsPerSecond, threads));
     }
     // verify that more threads doesn't go a lot faster, or a lot slower than one thread
     for (int i = 0; i < timings.size(); i++) {
-      double ratioFirst = timings.get(0) / timings.get(i); 
+      double ratioFirst = timings.get(0) / timings.get(i);
       assertTrue(ratioFirst < 3);
       assertTrue(ratioFirst > 0.3);
     }
   }
-
+  
 }

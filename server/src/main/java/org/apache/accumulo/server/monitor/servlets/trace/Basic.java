@@ -18,8 +18,8 @@ package org.apache.accumulo.server.monitor.servlets.trace;
 
 import java.util.Date;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -66,20 +66,24 @@ abstract class Basic extends BasicServlet {
     return TraceFormatter.formatDate(new Date(millis));
   }
   
-  @SuppressWarnings("deprecation")
   protected Scanner getScanner(StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
     AccumuloConfiguration conf = Monitor.getSystemConfiguration();
     String principal = conf.get(Property.TRACE_PRINCIPAL);
-    if (principal == null)
-      principal = conf.get(Property.TRACE_USER);
+    if (principal == null) {
+      @SuppressWarnings("deprecation")
+      Property p = Property.TRACE_USER;
+      principal = conf.get(p);
+    }
     AuthenticationToken at;
-    Map<String, String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_LOGIN_PROPERTIES);
-    if (loginMap.isEmpty())
-      at = new PasswordToken(conf.get(Property.TRACE_PASSWORD).getBytes());
-    else{
+    Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_LOGIN_PROPERTIES);
+    if (loginMap.isEmpty()) {
+      @SuppressWarnings("deprecation")
+      Property p = Property.TRACE_PASSWORD;
+      at = new PasswordToken(conf.get(p).getBytes());
+    } else {
       Properties props = new Properties();
-      int prefixLength = Property.TRACE_LOGIN_PROPERTIES.getKey().length()+1;
-      for (Entry<String, String> entry : loginMap.entrySet()) {
+      int prefixLength = Property.TRACE_LOGIN_PROPERTIES.getKey().length() + 1;
+      for (Entry<String,String> entry : loginMap.entrySet()) {
         props.put(entry.getKey().substring(prefixLength), entry.getValue());
       }
       if (!props.containsKey("principal"))

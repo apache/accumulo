@@ -20,14 +20,10 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.thrift.RemoteSpan;
-import org.apache.accumulo.trace.thrift.SpanReceiver.Iface;
-import org.apache.accumulo.trace.thrift.SpanReceiver.Processor;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -53,6 +49,10 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.thrift.RemoteSpan;
+import org.apache.accumulo.trace.thrift.SpanReceiver.Iface;
+import org.apache.accumulo.trace.thrift.SpanReceiver.Processor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -70,7 +70,6 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
-
 public class TraceServer implements Watcher {
   
   final private static Logger log = Logger.getLogger(TraceServer.class);
@@ -79,7 +78,7 @@ public class TraceServer implements Watcher {
   private BatchWriter writer = null;
   private Connector connector;
   final String table;
-
+  
   private static void put(Mutation m, String cf, String cq, byte[] bytes, int len) {
     m.put(new Text(cf), new Text(cq), new Value(bytes, 0, len));
   }
@@ -155,7 +154,6 @@ public class TraceServer implements Watcher {
     
   }
   
-  @SuppressWarnings("deprecation")
   public TraceServer(ServerConfiguration serverConfiguration, String hostname) throws Exception {
     this.serverConfiguration = serverConfiguration;
     AccumuloConfiguration conf = serverConfiguration.getConfiguration();
@@ -163,16 +161,21 @@ public class TraceServer implements Watcher {
     while (true) {
       try {
         String principal = conf.get(Property.TRACE_PRINCIPAL);
-        if (principal == null)
-          principal = conf.get(Property.TRACE_USER);
+        if (principal == null) {
+          @SuppressWarnings("deprecation")
+          Property p = Property.TRACE_USER;
+          principal = conf.get(p);
+        }
         AuthenticationToken at;
-        Map<String, String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_LOGIN_PROPERTIES);
-        if (loginMap == null)
-          at = new PasswordToken(conf.get(Property.TRACE_PASSWORD).getBytes());
-        else{
+        Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_LOGIN_PROPERTIES);
+        if (loginMap == null) {
+          @SuppressWarnings("deprecation")
+          Property p = Property.TRACE_PASSWORD;
+          at = new PasswordToken(conf.get(p).getBytes());
+        } else {
           Properties props = new Properties();
-          int prefixLength = Property.TRACE_LOGIN_PROPERTIES.getKey().length()+1;
-          for (Entry<String, String> entry : loginMap.entrySet()) {
+          int prefixLength = Property.TRACE_LOGIN_PROPERTIES.getKey().length() + 1;
+          for (Entry<String,String> entry : loginMap.entrySet()) {
             props.put(entry.getKey().substring(prefixLength), entry.getValue());
           }
           at = serverConfiguration.getInstance().getAuthenticator().login(principal, props);

@@ -15,50 +15,55 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
-	<parent>
-		<groupId>org.apache.accumulo</groupId>
-		<artifactId>accumulo</artifactId>
-		<version>1.5.0-SNAPSHOT</version>
-	</parent>
-
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.apache.accumulo</groupId>
+    <artifactId>accumulo</artifactId>
+    <version>1.5.0-SNAPSHOT</version>
+  </parent>
   <artifactId>accumulo-assemble</artifactId>
-  <name>Assemble</name>
-
   <packaging>pom</packaging>
-
-  <!-- NOTE: These dependency declarations are only required to sort this project to the end of the line in the multimodule build. Since we only include the child1 
-    module in our assembly, we only need to ensure this distribution project builds AFTER that one... -->
+  <name>Assemble</name>
+  <properties>
+    <accumulo-top>..</accumulo-top>
+    <jnilib>**/*.jnilib</jnilib>
+    <so>**/*.so</so>
+  </properties>
+  <!-- NOTE: These dependency declarations are only required to sort this project to the end of the line in the multimodule build. Since we only include the child 
+    modules in our assembly, we only need to ensure this distribution project builds AFTER those... -->
   <dependencies>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-server</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-start</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-examples-simple</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-trace</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-proxy</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-server</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-start</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-trace</artifactId>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
@@ -66,11 +71,11 @@
         <artifactId>exec-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>config webpage</id>
-            <phase>package</phase>
+            <id>config-webpage</id>
             <goals>
               <goal>exec</goal>
             </goals>
+            <phase>package</phase>
             <configuration>
               <executable>bash</executable>
               <arguments>
@@ -82,45 +87,38 @@
       </plugin>
     </plugins>
   </build>
-
-  <properties>
-    <so>**/*.so</so>
-    <jnilib>**/*.jnilib</jnilib>
-    <accumulo-top>..</accumulo-top>
-  </properties>
-
   <profiles>
     <profile>
       <id>assemble</id>
       <build>
-      <plugins>
-        <plugin>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <configuration>
-            <finalName>apache-${project.parent.artifactId}-${project.version}</finalName>
-            <descriptors>
-              <descriptor>dist.xml</descriptor>
-            </descriptors>
-            <tarLongFileMode>gnu</tarLongFileMode>
-          </configuration>
-          <executions>
-            <execution>
-              <id>distro-assembly</id>
-              <phase>package</phase>
-              <goals>
-                <goal>single</goal>
-              </goals>
-            </execution>
-          </executions>
-      </plugin>
-      </plugins>
+        <plugins>
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <configuration>
+              <finalName>apache-${project.parent.artifactId}-${project.version}</finalName>
+              <descriptors>
+                <descriptor>dist.xml</descriptor>
+              </descriptors>
+              <tarLongFileMode>gnu</tarLongFileMode>
+            </configuration>
+            <executions>
+              <execution>
+                <id>distro-assembly</id>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <phase>package</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
       </build>
     </profile>
     <profile>
       <id>dist</id>
       <properties>
-        <so></so>
         <jnilib></jnilib>
+        <so></so>
       </properties>
     </profile>
     <profile>
@@ -131,22 +129,12 @@
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>rpm-maven-plugin</artifactId>
             <inherited>false</inherited>
-            <executions>
-              <execution>
-                <phase>package</phase>
-                <goals>
-                  <goal>rpm</goal>
-                </goals>
-              </execution>
-            </executions>
             <configuration>
               <name>accumulo</name>
               <projversion>${project.version}</projversion>
               <summary>Apache Accumulo BigTable clone</summary>
-              <description>
-                Apache Accumulo is a large distributed structured store based on
-                Google's BigTable design.
-              </description>
+              <description>Apache Accumulo is a large distributed structured store based on
+                Google's BigTable design.</description>
               <copyright>2011 The Apache Software Foundation.</copyright>
               <url>http://accumulo.apache.org</url>
               <needarch>true</needarch>
@@ -228,7 +216,7 @@
                 </mapping>
                 <mapping>
                   <directory>/opt/accumulo/accumulo-${project.version}/lib</directory>
-                  <dependency />
+                  <dependency></dependency>
                   <sources>
                     <source>
                       <location>${accumulo-top}/lib</location>
@@ -237,6 +225,14 @@
                 </mapping>
               </mappings>
             </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>rpm</goal>
+                </goals>
+                <phase>package</phase>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
@@ -246,17 +242,17 @@
       <build>
         <plugins>
           <plugin>
-            <artifactId>jdeb</artifactId>
             <groupId>org.vafer</groupId>
+            <artifactId>jdeb</artifactId>
             <version>0.10</version>
             <inherited>false</inherited>
             <executions>
               <execution>
                 <id>accumulo</id>
-                <phase>install</phase>
                 <goals>
                   <goal>jdeb</goal>
                 </goals>
+                <phase>install</phase>
                 <configuration>
                   <deb>${project.build.directory}/${project.artifactId}_${project.version}.deb</deb>
                   <attach>false</attach>
@@ -277,7 +273,7 @@
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
-                      <prefix>/usr/lib/accumulo</prefix>
+                        <prefix>/usr/lib/accumulo</prefix>
                       </mapper>
                     </data>
                     <data>
@@ -285,7 +281,7 @@
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
-                      <prefix>/usr/lib/accumulo</prefix>
+                        <prefix>/usr/lib/accumulo</prefix>
                       </mapper>
                     </data>
                     <data>
@@ -293,7 +289,7 @@
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
-                      <prefix>/usr/lib/accumulo</prefix>
+                        <prefix>/usr/lib/accumulo</prefix>
                       </mapper>
                     </data>
                     <data>
@@ -338,10 +334,10 @@
               </execution>
               <execution>
                 <id>accumulo-native</id>
-                <phase>install</phase>
                 <goals>
                   <goal>jdeb</goal>
                 </goals>
+                <phase>install</phase>
                 <configuration>
                   <attach>false</attach>
                   <controlDir>assemble/deb/accumulo-native</controlDir>
@@ -378,10 +374,10 @@
               </execution>
               <execution>
                 <id>accumulo-test</id>
-                <phase>install</phase>
                 <goals>
                   <goal>jdeb</goal>
                 </goals>
+                <phase>install</phase>
                 <configuration>
                   <attach>false</attach>
                   <controlDir>assemble/deb/accumulo-test</controlDir>
@@ -415,10 +411,10 @@
             <executions>
               <execution>
                 <id>developer-manual</id>
-                <phase>prepare-package</phase>
                 <goals>
                   <goal>exec</goal>
                 </goals>
+                <phase>prepare-package</phase>
                 <configuration>
                   <executable>bash</executable>
                   <arguments>
@@ -428,10 +424,10 @@
               </execution>
               <execution>
                 <id>user-manual</id>
-                <phase>prepare-package</phase>
                 <goals>
                   <goal>exec</goal>
                 </goals>
+                <phase>prepare-package</phase>
                 <configuration>
                   <executable>bash</executable>
                   <arguments>
