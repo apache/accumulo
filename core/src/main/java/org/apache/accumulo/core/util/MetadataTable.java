@@ -150,10 +150,14 @@ public class MetadataTable {
       colq = key.getColumnQualifier(colq);
       
       // interpret the row id as a key extent
-      if (colf.equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) || colf.equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY))
+      if (colf.equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) || colf.equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
+        if (location != null) {
+          throw new IllegalStateException("Tablet has multiple locations : " + lastRowFromKey);
+        }
         location = new Text(val.toString());
-      else if (Constants.METADATA_PREV_ROW_COLUMN.equals(colf, colq))
+      } else if (Constants.METADATA_PREV_ROW_COLUMN.equals(colf, colq)) {
         prevRow = new Value(val);
+      }
       
       if (prevRow != null) {
         ke = new KeyExtent(key.getRow(), prevRow);

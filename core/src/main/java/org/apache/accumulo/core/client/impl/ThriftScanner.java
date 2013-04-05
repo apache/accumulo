@@ -27,10 +27,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -59,9 +55,12 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
+import org.apache.accumulo.trace.instrument.Tracer;
+import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -71,7 +70,6 @@ import org.apache.thrift.TServiceClient;
 
 
 public class ThriftScanner {
-  private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Logger log = Logger.getLogger(ThriftScanner.class);
   
   public static final Map<TabletType,Set<String>> serversWaitedForWrites = new EnumMap<TabletType,Set<String>>(TabletType.class);
@@ -82,38 +80,9 @@ public class ThriftScanner {
     }
   }
   
-  public static boolean getBatchFromServer(TCredentials credentials, Text startRow, KeyExtent extent, String server, SortedMap<Key,Value> results,
-      SortedSet<Column> fetchedColumns, boolean skipStartKey, int size, Authorizations authorizations, boolean retry, AccumuloConfiguration conf)
-      throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
-    Key startKey;
-    
-    if (fetchedColumns.size() > 0) {
-      byte[] cf = fetchedColumns.first().columnFamily;
-      byte[] cq = fetchedColumns.first().columnQualifier;
-      byte[] cv = fetchedColumns.first().columnVisibility;
-      
-      startKey = new Key(TextUtil.getBytes(startRow), cf, cq == null ? EMPTY_BYTES : cq, cv == null ? EMPTY_BYTES : cv, Long.MAX_VALUE);
-      
-    } else
-      startKey = new Key(startRow);
-    
-    if (skipStartKey)
-      startKey = startKey.followingKey(PartialKey.ROW);
-    else
-      startKey.setTimestamp(Long.MAX_VALUE);
-    
-    return getBatchFromServer(credentials, startKey, (Key) null, extent, server, results, fetchedColumns, size, authorizations, retry, conf);
-  }
-  
-  static boolean getBatchFromServer(TCredentials credentials, Key key, Key endKey, KeyExtent extent, String server, SortedMap<Key,Value> results,
-      SortedSet<Column> fetchedColumns, int size, Authorizations authorizations, boolean retry, AccumuloConfiguration conf) throws AccumuloException,
-      AccumuloSecurityException, NotServingTabletException {
-    return getBatchFromServer(credentials, new Range(key, true, endKey, true), extent, server, results, fetchedColumns, size, authorizations, retry, conf);
-  }
-  
   static boolean getBatchFromServer(TCredentials credentials, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
-      SortedSet<Column> fetchedColumns, int size, Authorizations authorizations, boolean retry, AccumuloConfiguration conf) throws AccumuloException,
-      AccumuloSecurityException, NotServingTabletException {
+      SortedSet<Column> fetchedColumns, List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, int size,
+      Authorizations authorizations, boolean retry, AccumuloConfiguration conf) throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
     if (server == null)
       throw new AccumuloException(new IOException());
     
@@ -121,10 +90,9 @@ public class ThriftScanner {
       TInfo tinfo = Tracer.traceInfo();
       TabletClientService.Client client = ThriftUtil.getTServerClient(server, conf);
       try {
-        List<IterInfo> emptyList = Collections.emptyList();
-        Map<String,Map<String,String>> emptyMap = Collections.emptyMap();
         // not reading whole rows (or stopping on row boundries) so there is no need to enable isolation below
-        ScanState scanState = new ScanState(credentials, extent.getTableId(), authorizations, range, fetchedColumns, size, emptyList, emptyMap, false);
+        ScanState scanState = new ScanState(credentials, extent.getTableId(), authorizations, range, fetchedColumns, size, serverSideIteratorList,
+            serverSideIteratorOptions, false);
         
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);

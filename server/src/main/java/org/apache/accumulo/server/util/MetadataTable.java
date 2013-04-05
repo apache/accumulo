@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
@@ -47,10 +46,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.BatchWriterImpl;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
-import org.apache.accumulo.core.client.impl.ThriftScanner;
 import org.apache.accumulo.core.client.impl.Writer;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -61,7 +57,6 @@ import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
-import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
@@ -322,21 +317,6 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       }
     }
     return results;
-  }
-  
-  public static boolean getBatchFromRootTablet(AccumuloConfiguration conf, TCredentials credentials, Text startRow, SortedMap<Key,Value> results,
-      SortedSet<Column> columns, boolean skipStartRow, int size) throws AccumuloSecurityException {
-    while (true) {
-      try {
-        return ThriftScanner.getBatchFromServer(credentials, startRow, Constants.ROOT_TABLET_EXTENT, HdfsZooInstance.getInstance().getRootTabletLocation(),
-            results, columns, skipStartRow, size, Constants.NO_AUTHS, true, conf);
-      } catch (NotServingTabletException e) {
-        UtilWaitThread.sleep(100);
-      } catch (AccumuloException e) {
-        UtilWaitThread.sleep(100);
-      }
-    }
-    
   }
   
   public static boolean recordRootTabletLocation(String address) {
