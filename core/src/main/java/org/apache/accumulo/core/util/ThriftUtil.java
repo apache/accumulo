@@ -80,7 +80,7 @@ public class ThriftUtil {
   }
   
   static private TProtocolFactory protocolFactory = new TraceProtocolFactory();
-  static private TTransportFactory transportFactory = new TFramedTransport.Factory();
+  static private TTransportFactory transportFactory = new TFramedTransport.Factory(Integer.MAX_VALUE);
   
   static public <T extends TServiceClient> T createClient(TServiceClientFactory<T> factory, TTransport transport) {
     return factory.getClient(protocolFactory.getProtocol(transport), protocolFactory.getProtocol(transport));
