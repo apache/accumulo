@@ -46,7 +46,5 @@ if [ "$COUNT" -ne $EXPECTED ]
 then
    fail expected $EXPECTED files missing licenses, but saw "$COUNT"
 fi
-#need to run mvn package twice to properly build docs/config.html
-run mvn package
 run mvn package javadoc:aggregate javadoc:jar source:jar -Pdist
 run mvn -P assemble

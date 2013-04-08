@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.conf;
 
 import java.io.File;
+import java.lang.annotation.Annotation;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -26,6 +27,7 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.log4j.Logger;
 
 public enum Property {
   
@@ -39,7 +41,10 @@ public enum Property {
       "Fully qualified class name of the class that implements the CryptoModule interface, to be used in setting up encryption at rest for the WAL and (future) other parts of the code.",
       true),
   CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING, "Describes the cipher suite to use for the write-ahead log", true),
-  CRYPTO_CIPHER_ALGORITHM_NAME("crypto.cipher.algorithm.name", "NullCipher", PropertyType.STRING,
+  CRYPTO_CIPHER_ALGORITHM_NAME(
+      "crypto.cipher.algorithm.name",
+      "NullCipher",
+      PropertyType.STRING,
       "States the name of the algorithm used in the corresponding cipher suite.  Do not make these different, unless you enjoy mysterious exceptions and bugs.",
       true),
   CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
@@ -105,8 +110,8 @@ public enum Property {
   MASTER_THREADCHECK("master.server.threadcheck.time", "1s", PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool."),
   MASTER_RECOVERY_DELAY("master.recovery.delay", "10s", PropertyType.TIMEDURATION,
       "When a tablet server's lock is deleted, it takes time for it to completely quit. This delay gives it time before log recoveries begin."),
-  MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation", "org.apache.accumulo.server.master.recovery.HadoopLogCloser",
-      PropertyType.CLASSNAME, "A class that implements a mechansim to steal write access to a file"),
+  MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation", "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
+      "A class that implements a mechansim to steal write access to a file"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run FAult-Tolerant Executions.  These are primarily table operations like merge."),
   
@@ -228,7 +233,8 @@ public enum Property {
   TRACE_USER("trace.user", "root", PropertyType.STRING, "DEPRECATED SINCE 1.5, USE trace.principal. The name of the user to store distributed traces"),
   TRACE_PRINCIPAL("trace.principal", "root", PropertyType.STRING, "The principal to store distributed traces"),
   @Deprecated
-  TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING, "DEPRECATED SINCE 1.5, USE trace.login. The password for the user used to store distributed traces"),
+  TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING,
+      "DEPRECATED SINCE 1.5, USE trace.login. The password for the user used to store distributed traces"),
   TRACE_LOGIN_PROPERTIES("trace.login", null, PropertyType.PREFIX, "The login credentials prefix for the principal used to store distributed traces"),
   
   // per table properties
@@ -339,15 +345,14 @@ public enum Property {
       "Properties in this category are define a classpath. These properties start  with the category prefix, followed by a context name.  "
           + "The value is a comma seperated list of URIs. Supports full regex on filename alone. For example general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar.  "
           + "You can enable post delegation for a context, which will load classes from the context first instead of the parent first.  "
-          + "Do this by setting general.vfs.context.classpath.<name>.delegation=post, where <name> is your context name.  "
+          + "Do this by setting general.vfs.context.classpath.&lt;name&gt;.delegation=post, where &lt;name&gt; is your context name.  "
           + "If delegation is not specified, it defaults to loading from parent classloader first."),
- VFS_CLASSLOADER_CACHE_DIR(
-	    AccumuloVFSClassLoader.VFS_CACHE_DIR,
-      new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name", "nouser"))
-		    .getAbsolutePath(),
-	    PropertyType.ABSOLUTEPATH,
-	    "Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM. This should be on local disk on each node with sufficient space. It defaults to /tmp",
-	    false);
+  VFS_CLASSLOADER_CACHE_DIR(
+      AccumuloVFSClassLoader.VFS_CACHE_DIR,
+      new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name", "nouser")).getAbsolutePath(),
+      PropertyType.ABSOLUTEPATH,
+      "Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM. This should be on local disk on each node with sufficient space. It defaults to /tmp",
+      false);
   
   private String key, defaultValue, description;
   private PropertyType type;
@@ -360,11 +365,12 @@ public enum Property {
     this.type = type;
     this.experimental = experimental;
   }
-
+  
   private Property(String name, String defaultValue, PropertyType type, String description) {
     this(name, defaultValue, type, description, false);
   }
   
+  @Override
   public String toString() {
     return this.key;
   }
@@ -388,7 +394,7 @@ public enum Property {
   public boolean isExperimental() {
     return experimental;
   }
-
+  
   private static HashSet<String> validTableProperties = null;
   private static HashSet<String> validProperties = null;
   private static HashSet<String> validPrefixes = null;
@@ -468,5 +474,19 @@ public enum Property {
     return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()) && key.substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length == 1)
         || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) && key.substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length == 2)
         || key.equals(Property.TABLE_LOAD_BALANCER.getKey());
+  }
+  
+  public boolean isDeprecated() {
+    Logger log = Logger.getLogger(getClass());
+    try {
+      for (Annotation a : getClass().getField(name()).getAnnotations())
+        if (a instanceof Deprecated)
+          return true;
+    } catch (SecurityException e) {
+      log.error(e, e);
+    } catch (NoSuchFieldException e) {
+      log.error(e, e);
+    }
+    return false;
   }
 }

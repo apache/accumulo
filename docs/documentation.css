@@ -34,6 +34,10 @@ h2 {
     background-color: rgb(206,244,181);
 }
 
+.deprecated {
+    text-decoration: line-through;
+}
+
 table {
     min-width: 60%;
     border: 1px #333333 solid;
