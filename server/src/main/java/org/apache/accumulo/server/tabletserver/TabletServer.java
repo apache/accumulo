@@ -147,6 +147,7 @@ import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
@@ -2369,7 +2370,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       try {
         TServerInstance instance = new TServerInstance(clientAddress, getLock().getSessionId());
-        TabletLocationState tls = new TabletLocationState(extent, null, instance, null, null, false);
+        TabletLocationState tls = null;
+        try {
+          tls = new TabletLocationState(extent, null, instance, null, null, false);
+        } catch (BadLocationStateException e) {
+          log.error("Unexpected error ", e);
+        }
         log.debug("Unassigning " + tls);
         TabletStateStore.unassign(tls);
       } catch (DistributedStoreException ex) {

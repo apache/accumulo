@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -187,7 +188,13 @@ public class MergeStats {
     KeyExtent prevExtent = null;
 
     for (Entry<Key,Value> entry : scanner) {
-      TabletLocationState tls = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
+      TabletLocationState tls;
+      try {
+        tls = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
+      } catch (BadLocationStateException e) {
+        log.error(e, e);
+        return false;
+      }
       if (!tls.extent.getTableId().equals(tableId)) {
         break;
       }

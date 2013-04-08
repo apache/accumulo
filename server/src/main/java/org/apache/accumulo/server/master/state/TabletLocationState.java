@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.log4j.Logger;
 
 /**
  * When a tablet is assigned, we mark its future location. When the tablet is opened, we set its current location. A tablet should never have both a future and
@@ -32,10 +31,14 @@ import org.apache.log4j.Logger;
  */
 public class TabletLocationState {
   
-  private static final Logger log = Logger.getLogger(TabletLocationState.class);
+  static public class BadLocationStateException extends Exception {
+    private static final long serialVersionUID = 1L;
+
+    BadLocationStateException(String msg) { super(msg); }
+  }
   
   public TabletLocationState(KeyExtent extent, TServerInstance future, TServerInstance current, TServerInstance last, Collection<Collection<String>> walogs,
-      boolean chopped) {
+      boolean chopped) throws BadLocationStateException {
     this.extent = extent;
     this.future = future;
     this.current = current;
@@ -45,7 +48,7 @@ public class TabletLocationState {
     this.walogs = walogs;
     this.chopped = chopped;
     if (current != null && future != null) {
-      log.error(extent + " is both assigned and hosted, which should never happen: " + this);
+      throw new BadLocationStateException(extent + " is both assigned and hosted, which should never happen: " + this);
     }
   }
   
