@@ -35,6 +35,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.StringUtil;
+import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -115,7 +116,13 @@ public class TabletStateChangeIterator extends SkippingIterator {
       if (onlineTables == null || current == null)
         return;
 
-      TabletLocationState tls = MetaDataTableScanner.createTabletLocationState(k, v);
+      TabletLocationState tls;
+      try {
+        tls = MetaDataTableScanner.createTabletLocationState(k, v);
+      } catch (BadLocationStateException e) {
+        // maybe the master can do something with a tablet with bad/inconsistent state
+        return;
+      }
       // we always want data about merges
       MergeInfo merge = merges.get(tls.extent.getTableId());
       if (merge != null && merge.getRange() != null && merge.getRange().overlaps(tls.extent)) {

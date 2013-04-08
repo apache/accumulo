@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.server.master.state;
 
-import org.junit.Assert;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,13 +30,9 @@ import java.util.List;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.server.master.state.Assignment;
-import org.apache.accumulo.server.master.state.DistributedStore;
-import org.apache.accumulo.server.master.state.DistributedStoreException;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class RootTabletStateStoreTest {
@@ -172,7 +168,12 @@ public class RootTabletStateStoreTest {
       count++;
     }
     assertEquals(count, 1);
-    TabletLocationState assigned = new TabletLocationState(root, server, null, null, null, false);
+    TabletLocationState assigned = null;
+    try {
+      assigned = new TabletLocationState(root, server, null, null, null, false);
+    } catch (BadLocationStateException e) {
+      fail("Unexpected error " + e);
+    }
     tstore.unassign(Collections.singletonList(assigned));
     count = 0;
     for (TabletLocationState location : tstore) {
@@ -194,7 +195,12 @@ public class RootTabletStateStoreTest {
       Assert.fail("should not get here");
     } catch (IllegalArgumentException ex) {}
     
-    TabletLocationState broken = new TabletLocationState(notRoot, server, null, null, null, false);
+    TabletLocationState broken = null;
+    try {
+      broken = new TabletLocationState(notRoot, server, null, null, null, false);
+    } catch (BadLocationStateException e) {
+      fail("Unexpected error " + e);
+    }
     try {
       tstore.unassign(Collections.singletonList(broken));
       Assert.fail("should not get here");
