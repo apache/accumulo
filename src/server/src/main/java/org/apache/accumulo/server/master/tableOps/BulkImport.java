@@ -513,7 +513,7 @@ class LoadFiles extends MasterRepo {
     }
     fs.delete(writable, false);
     
-    final List<String> filesToLoad = Collections.synchronizedList(new ArrayList<String>());
+    final Set<String> filesToLoad = Collections.synchronizedSet(new HashSet<String>());
     for (FileStatus f : files)
       filesToLoad.add(f.getPath().toString());
     
@@ -529,6 +529,7 @@ class LoadFiles extends MasterRepo {
       }
       
       // Use the threadpool to assign files one-at-a-time to the server
+      final List<String> loaded = Collections.synchronizedList(new ArrayList<String>());
       for (final String file : filesToLoad) {
         results.add(threadPool.submit(new Callable<List<String>>() {
           @Override
@@ -548,7 +549,7 @@ class LoadFiles extends MasterRepo {
               log.debug("Asking " + pair.getFirst() + " to bulk import " + file);
               List<String> fail = client.bulkImportFiles(null, SecurityConstants.getSystemCredentials(), tid, tableId, attempt, errorDir, setTime);
               if (fail.isEmpty()) {
-                filesToLoad.remove(file);
+                loaded.add(file);
               } else {
                 failures.addAll(fail);
               }
@@ -564,6 +565,7 @@ class LoadFiles extends MasterRepo {
       Set<String> failures = new HashSet<String>();
       for (Future<List<String>> f : results)
         failures.addAll(f.get());
+      filesToLoad.removeAll(loaded);
       if (filesToLoad.size() > 0) {
         log.debug("tid " + tid + " attempt " + (attempt + 1) + " " + sampleList(filesToLoad, 10) + " failed");
         UtilWaitThread.sleep(100);
