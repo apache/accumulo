@@ -51,9 +51,9 @@ public class MetadataBulkLoadFilter extends Filter {
       if (status == null) {
         try {
           if (arbitrator.transactionComplete(Constants.BULK_ARBITRATOR_TYPE, txid)) {
-            status = Status.ACTIVE;
-          } else {
             status = Status.INACTIVE;
+          } else {
+            status = Status.ACTIVE;
           }
         } catch (Exception e) {
           // TODO log
