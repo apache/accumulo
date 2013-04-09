@@ -29,20 +29,38 @@ import org.junit.Test;
 public class TransactionWatcherTest {
   
   static class SimpleArbitrator implements TransactionWatcher.Arbitrator {
-    Map<String,List<Long>> map = new HashMap<String,List<Long>>();
+    Map<String,List<Long>> started = new HashMap<String,List<Long>>();
+    Map<String,List<Long>> cleanedUp = new HashMap<String,List<Long>>();
     
     public synchronized void start(String txType, Long txid) throws Exception {
-      List<Long> txids = map.get(txType);
+      List<Long> txids = started.get(txType);
       if (txids == null)
         txids = new ArrayList<Long>();
       if (txids.contains(txid))
         throw new Exception("transaction already started");
       txids.add(txid);
-      map.put(txType, txids);
+      started.put(txType, txids);
+      
+      txids = cleanedUp.get(txType);
+      if (txids == null)
+        txids = new ArrayList<Long>();
+      if (txids.contains(txid))
+        throw new IllegalStateException("transaction was started but not cleaned up");
+      txids.add(txid);
+      cleanedUp.put(txType, txids);
     }
     
     public synchronized void stop(String txType, Long txid) throws Exception {
-      List<Long> txids = map.get(txType);
+      List<Long> txids = started.get(txType);
+      if (txids != null && txids.contains(txid)) {
+        txids.remove(txids.indexOf(txid));
+        return;
+      }
+      throw new Exception("transaction does not exist");
+    }
+    
+    public synchronized void cleanup(String txType, Long txid) throws Exception {
+      List<Long> txids = cleanedUp.get(txType);
       if (txids != null && txids.contains(txid)) {
         txids.remove(txids.indexOf(txid));
         return;
@@ -52,10 +70,18 @@ public class TransactionWatcherTest {
     
     @Override
     synchronized public boolean transactionAlive(String txType, long tid) throws Exception {
-      List<Long> txids = map.get(txType);
+      List<Long> txids = started.get(txType);
       if (txids == null)
         return false;
       return txids.contains(tid);
+    }
+
+    @Override
+    public boolean transactionComplete(String txType, long tid) throws Exception {
+      List<Long> txids = cleanedUp.get(txType);
+      if (txids == null)
+        return true;
+      return !txids.contains(tid);
     }
     
   }
@@ -83,8 +109,12 @@ public class TransactionWatcherTest {
       }
     });
     Assert.assertFalse(txw.isActive(txid));
+    Assert.assertFalse(sa.transactionComplete(txType,  txid));
     sa.stop(txType, txid);
     Assert.assertFalse(sa.transactionAlive(txType, txid));
+    Assert.assertFalse(sa.transactionComplete(txType,  txid));
+    sa.cleanup(txType, txid);
+    Assert.assertTrue(sa.transactionComplete(txType,  txid));
     try {
       txw.run(txType, txid, new Callable<Object>() {
         @Override
