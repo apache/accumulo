@@ -303,6 +303,8 @@ class CleanUpBulkImport extends MasterRepo {
     Utils.unreserveHdfsDirectory(source, tid);
     Utils.unreserveHdfsDirectory(error, tid);
     Utils.getReadLock(tableId, tid).unlock();
+    log.debug("completing bulk import transaction " + tid);
+    ZooArbitrator.cleanup(Constants.BULK_ARBITRATOR_TYPE, tid);
     return null;
   }
 }
