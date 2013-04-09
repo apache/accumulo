@@ -256,7 +256,7 @@ service AccumuloProxy
   void exportTable (1:binary login, 2:string tableName, 3:string exportDir)                            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void flushTable (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow, 
                    5:bool wait)
-                                                                                                       throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+                                                                                                       throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   map<string,set<string>> getLocalityGroups (1:binary login, 2:string tableName)                       throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);
   IteratorSetting getIteratorSetting (1:binary login, 2:string tableName, 
                                       3:string iteratorName, 4:IteratorScope scope) 
@@ -309,7 +309,7 @@ service AccumuloProxy
   void grantSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)                throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void grantTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm)  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   bool hasSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)                  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  bool hasTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm)    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  bool hasTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm)    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   set<string> listLocalUsers (1:binary login)                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void revokeSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void revokeTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);

@@ -18,6 +18,7 @@ package org.apache.accumulo.proxy;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -115,8 +116,191 @@ public class SimpleTest {
     creds = client.login(principal, properties);
   }
 
+  
+  @Test(timeout = 10000)
+  public void tableNotFound() throws Exception {
+    final String doesNotExist = "doesNotExists";
+    try {
+      client.addConstraint(creds, doesNotExist, NumericValueConstraint.class.getName());
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.addSplits(creds, doesNotExist, Collections.<ByteBuffer>emptySet());
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    final IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
+    try {
+      client.attachIterator(creds, doesNotExist, setting, EnumSet.allOf(IteratorScope.class));
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.cancelCompaction(creds, doesNotExist);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.checkIteratorConflicts(creds, doesNotExist, setting, EnumSet.allOf(IteratorScope.class));
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.clearLocatorCache(creds, doesNotExist);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.cloneTable(creds, doesNotExist, TABLE_TEST, false, null, null);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.compactTable(creds, doesNotExist, null, null, null, true, false);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.createBatchScanner(creds, doesNotExist, new BatchScanOptions());
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.createScanner(creds, doesNotExist, new ScanOptions());
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.createWriter(creds, doesNotExist, new WriterOptions());
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.deleteRows(creds, doesNotExist, null, null);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.deleteTable(creds, doesNotExist);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.exportTable(creds, doesNotExist, "/tmp");
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.flushTable(creds, doesNotExist, null, null, false);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.getIteratorSetting(creds, doesNotExist, "foo", IteratorScope.SCAN);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.getLocalityGroups(creds, doesNotExist);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.getMaxRow(creds, doesNotExist, Collections.<ByteBuffer>emptySet(), null, false, null, false);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.getTableProperties(creds, doesNotExist);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.grantTablePermission(creds, "root", doesNotExist, TablePermission.WRITE);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.hasTablePermission(creds, "root", doesNotExist, TablePermission.WRITE);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      File newFolder = folder.newFolder();
+      client.importDirectory(creds, doesNotExist, "/tmp", newFolder.getAbsolutePath(), true);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.listConstraints(creds, doesNotExist);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.listSplits(creds, doesNotExist, 10000);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.mergeTablets(creds, doesNotExist, null, null);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.offlineTable(creds, doesNotExist);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.onlineTable(creds, doesNotExist);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.removeConstraint(creds, doesNotExist, 0);
+      fail("exception not thrown");
+    } catch (AccumuloException ex) {
+    }
+    try {
+      client.removeIterator(creds, doesNotExist, "name", EnumSet.allOf(IteratorScope.class));
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.removeTableProperty(creds, doesNotExist, Property.TABLE_FILE_MAX.getKey());
+      fail("exception not thrown");
+    } catch (AccumuloException ex) {
+    }
+    try {
+      client.renameTable(creds, doesNotExist, "someTableName");
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.revokeTablePermission(creds, "root", doesNotExist, TablePermission.ALTER_TABLE);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.setTableProperty(creds, doesNotExist, Property.TABLE_FILE_MAX.getKey(), "0");
+      fail("exception not thrown");
+    } catch (AccumuloException ex) {
+    }
+    try {
+      client.splitRangeByTablets(creds, doesNotExist, client.getRowRange(ByteBuffer.wrap("row".getBytes())), 10);
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+    try {
+      client.updateAndFlush(creds, doesNotExist, new HashMap<ByteBuffer,List<ColumnUpdate>>());
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {
+    }
+  }
+  
 
-    @Test(timeout = 10000)
+  @Test(timeout = 10000)
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
     for (String tserver : client.getTabletServers(creds)) {
