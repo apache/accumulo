@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -174,6 +175,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
       return new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
     } catch (AccumuloSecurityException e) {
       logger.debug(e,e);
+      if (e.getErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+        return new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
       return new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
     } catch (TableNotFoundException e) {
       logger.debug(e,e);
