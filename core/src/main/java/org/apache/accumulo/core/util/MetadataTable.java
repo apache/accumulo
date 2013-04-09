@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -173,13 +172,7 @@ public class MetadataTable {
     
     return new Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>>(results, locationless);
   }
-  
-  public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(Instance instance, KeyExtent ke, List<ColumnFQ> columns, TCredentials credentials) {
-    TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
-    getTabletAndPrevTabletKeyValues(instance, tkv, ke, columns, credentials);
-    return getTabletEntries(tkv, columns);
-  }
-  
+
   public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
     TreeMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries = new TreeMap<Text,SortedMap<ColumnFQ,Value>>();
     
@@ -207,40 +200,7 @@ public class MetadataTable {
     
     return tabletEntries;
   }
-  
-  public static void getTabletAndPrevTabletKeyValues(Instance instance, SortedMap<Key,Value> tkv, KeyExtent ke, List<ColumnFQ> columns, TCredentials credentials) {
-    Text startRow;
-    Text endRow = ke.getMetadataEntry();
     
-    if (ke.getPrevEndRow() == null) {
-      startRow = new Text(KeyExtent.getMetadataEntry(ke.getTableId(), new Text()));
-    } else {
-      startRow = new Text(KeyExtent.getMetadataEntry(ke.getTableId(), ke.getPrevEndRow()));
-    }
-    
-    Scanner scanner = new ScannerImpl(instance, credentials, Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);
-    
-    if (columns != null) {
-      for (ColumnFQ column : columns)
-        column.fetch(scanner);
-    }
-    
-    scanner.setRange(new Range(new Key(startRow), true, new Key(endRow).followingKey(PartialKey.ROW), false));
-    
-    tkv.clear();
-    boolean successful = false;
-    try {
-      for (Entry<Key,Value> entry : scanner) {
-        tkv.put(entry.getKey(), entry.getValue());
-      }
-      successful = true;
-    } finally {
-      if (!successful) {
-        tkv.clear();
-      }
-    }
-  }
-  
   public static void getEntries(Instance instance, TCredentials credentials, String table, boolean isTid, Map<KeyExtent,String> locations,
       SortedSet<KeyExtent> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableId = isTid ? table : Tables.getNameToIdMap(instance).get(table);

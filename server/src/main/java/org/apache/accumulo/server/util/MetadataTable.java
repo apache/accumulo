@@ -339,7 +339,6 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     TreeMap<String,DataFileValue> sizes = new TreeMap<String,DataFileValue>();
     
     Scanner mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), credentials, Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);
-    mdScanner.setRange(Constants.METADATA_KEYSPACE);
     mdScanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
     Text row = extent.getMetadataEntry();
     
@@ -386,6 +385,14 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     update(credentials, zooLock, m);
   }
   
+  public static void rollBackSplit(Text metadataEntry, Text oldPrevEndRow, TCredentials credentials, ZooLock zooLock) {
+    KeyExtent ke = new KeyExtent(metadataEntry, oldPrevEndRow);
+    Mutation m = ke.getPrevRowUpdateMutation();
+    Constants.METADATA_SPLIT_RATIO_COLUMN.putDelete(m);
+    Constants.METADATA_OLD_PREV_ROW_COLUMN.putDelete(m);
+    update(credentials, zooLock, m);
+  }
+
   public static void splitTablet(KeyExtent extent, Text oldPrevEndRow, double splitRatio, TCredentials credentials, ZooLock zooLock) {
     Mutation m = extent.getPrevRowUpdateMutation(); //
     
@@ -490,14 +497,6 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     update(credentials, zooLock, m);
   }
   
-  public static void getTabletAndPrevTabletKeyValues(SortedMap<Key,Value> tkv, KeyExtent ke, List<ColumnFQ> columns, TCredentials credentials) {
-    getTabletAndPrevTabletKeyValues(HdfsZooInstance.getInstance(), tkv, ke, columns, credentials);
-  }
-  
-  public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(KeyExtent ke, List<ColumnFQ> columns, TCredentials credentials) {
-    return getTabletEntries(HdfsZooInstance.getInstance(), ke, columns, credentials);
-  }
-  
   private static KeyExtent fixSplit(Text table, Text metadataEntry, Text metadataPrevEndRow, Value oper, double splitRatio, TServerInstance tserver,
       TCredentials credentials, String time, long initFlushID, long initCompactID, ZooLock lock) throws AccumuloException {
     if (metadataPrevEndRow == null)
@@ -505,51 +504,45 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       // prev end row....
       throw new AccumuloException("Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
     
-    KeyExtent low = null;
-    
-    List<String> highDatafilesToRemove = new ArrayList<String>();
-    
-    String lowDirectory = TabletOperations.createTabletDirectory(ServerConstants.getTablesDir() + "/" + table, metadataPrevEndRow);
-    
-    Text prevPrevEndRow = KeyExtent.decodePrevEndRow(oper);
-    
-    low = new KeyExtent(table, metadataPrevEndRow, prevPrevEndRow);
-    
-    Scanner scanner3 = new ScannerImpl(HdfsZooInstance.getInstance(), credentials, Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);
-    Key rowKey = new Key(metadataEntry);
-    
-    SortedMap<String,DataFileValue> origDatafileSizes = new TreeMap<String,DataFileValue>();
-    SortedMap<String,DataFileValue> highDatafileSizes = new TreeMap<String,DataFileValue>();
-    SortedMap<String,DataFileValue> lowDatafileSizes = new TreeMap<String,DataFileValue>();
-    scanner3.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-    scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));
-    
-    for (Entry<Key,Value> entry : scanner3) {
-      if (entry.getKey().compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
-        origDatafileSizes.put(entry.getKey().getColumnQualifier().toString(), new DataFileValue(entry.getValue().get()));
-      }
-    }
-    
-    splitDatafiles(table, metadataPrevEndRow, splitRatio, new HashMap<String,FileUtil.FileInfo>(), origDatafileSizes, lowDatafileSizes, highDatafileSizes,
-        highDatafilesToRemove);
-    
     // check to see if prev tablet exist in metadata tablet
     Key prevRowKey = new Key(new Text(KeyExtent.getMetadataEntry(table, metadataPrevEndRow)));
-    
+
     ScannerImpl scanner2 = new ScannerImpl(HdfsZooInstance.getInstance(), credentials, Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);
     scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
     
     if (!scanner2.iterator().hasNext()) {
-      log.debug("Prev tablet " + prevRowKey + " does not exist, need to create it " + metadataPrevEndRow + " " + prevPrevEndRow + " " + splitRatio);
-      Map<String,Long> bulkFiles = getBulkFilesLoaded(credentials, metadataEntry);
-      MetadataTable.addNewTablet(low, lowDirectory, tserver, lowDatafileSizes, bulkFiles, credentials, time, initFlushID, initCompactID, lock);
+      log.info("Rolling back incomplete split " + metadataEntry + " " + metadataPrevEndRow);
+      rollBackSplit(metadataEntry, KeyExtent.decodePrevEndRow(oper), credentials, lock);
+      return new KeyExtent(metadataEntry, KeyExtent.decodePrevEndRow(oper));
     } else {
-      log.debug("Prev tablet " + prevRowKey + " exist, do not need to add it");
+      log.info("Finishing incomplete split " + metadataEntry + " " + metadataPrevEndRow);
+
+      List<String> highDatafilesToRemove = new ArrayList<String>();
+
+      Scanner scanner3 = new ScannerImpl(HdfsZooInstance.getInstance(), credentials, Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);
+      Key rowKey = new Key(metadataEntry);
+      
+      SortedMap<String,DataFileValue> origDatafileSizes = new TreeMap<String,DataFileValue>();
+      SortedMap<String,DataFileValue> highDatafileSizes = new TreeMap<String,DataFileValue>();
+      SortedMap<String,DataFileValue> lowDatafileSizes = new TreeMap<String,DataFileValue>();
+      scanner3.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+      scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));
+      
+      for (Entry<Key,Value> entry : scanner3) {
+        if (entry.getKey().compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
+          origDatafileSizes.put(entry.getKey().getColumnQualifier().toString(), new DataFileValue(entry.getValue().get()));
+        }
+      }
+      
+      splitDatafiles(table, metadataPrevEndRow, splitRatio, new HashMap<String,FileUtil.FileInfo>(), origDatafileSizes, lowDatafileSizes, highDatafileSizes,
+          highDatafilesToRemove);
+    
+      MetadataTable.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove, credentials, lock);
+      
+      return new KeyExtent(metadataEntry, KeyExtent.encodePrevEndRow(metadataPrevEndRow));
     }
-    
-    MetadataTable.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove, credentials, lock);
-    
-    return low;
+
+
   }
   
   public static void splitDatafiles(Text table, Text midRow, double splitRatio, Map<String,FileUtil.FileInfo> firstAndLastRows,
@@ -597,13 +590,12 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   
   public static KeyExtent fixSplit(Text metadataEntry, SortedMap<ColumnFQ,Value> columns, TServerInstance tserver, TCredentials credentials, ZooLock lock)
       throws AccumuloException {
-    log.warn("Incomplete split " + metadataEntry + " attempting to fix");
+    log.info("Incomplete split " + metadataEntry + " attempting to fix");
     
     Value oper = columns.get(Constants.METADATA_OLD_PREV_ROW_COLUMN);
     
     if (columns.get(Constants.METADATA_SPLIT_RATIO_COLUMN) == null) {
-      log.warn("Metadata entry does not have split ratio (" + metadataEntry + ")");
-      return null;
+      throw new IllegalArgumentException("Metadata entry does not have split ratio (" + metadataEntry + ")");
     }
     
     double splitRatio = Double.parseDouble(new String(columns.get(Constants.METADATA_SPLIT_RATIO_COLUMN).get()));
@@ -611,15 +603,13 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     Value prevEndRowIBW = columns.get(Constants.METADATA_PREV_ROW_COLUMN);
     
     if (prevEndRowIBW == null) {
-      log.warn("Metadata entry does not have prev row (" + metadataEntry + ")");
-      return null;
+      throw new IllegalArgumentException("Metadata entry does not have prev row (" + metadataEntry + ")");
     }
     
     Value time = columns.get(Constants.METADATA_TIME_COLUMN);
     
     if (time == null) {
-      log.warn("Metadata entry does not have time (" + metadataEntry + ")");
-      return null;
+      throw new IllegalArgumentException("Metadata entry does not have time (" + metadataEntry + ")");
     }
     
     Value flushID = columns.get(Constants.METADATA_FLUSH_COLUMN);

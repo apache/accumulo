@@ -68,6 +68,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -2442,10 +2443,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       log.debug("Loading extent: " + extent);
       
       // check Metadata table before accepting assignment
-      SortedMap<KeyExtent,Text> tabletsInRange = null;
+      Text locationToOpen = null;
       SortedMap<Key,Value> tabletsKeyValues = new TreeMap<Key,Value>();
       try {
-        tabletsInRange = verifyTabletInformation(extent, TabletServer.this.getTabletSession(), tabletsKeyValues, getClientAddressString(), getLock());
+        locationToOpen = verifyTabletInformation(extent, TabletServer.this.getTabletSession(), tabletsKeyValues, getClientAddressString(), getLock());
       } catch (Exception e) {
         synchronized (openingTablets) {
           openingTablets.remove(extent);
@@ -2454,131 +2455,92 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         log.warn("Failed to verify tablet " + extent, e);
         throw new RuntimeException(e);
       }
-      
-      if (tabletsInRange == null) {
-        log.info("Reporting tablet " + extent + " assignment failure: unable to verify Tablet Information");
+
+      if (locationToOpen == null) {
+        log.debug("Reporting tablet " + extent + " assignment failure: unable to verify Tablet Information");
         enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
         synchronized (openingTablets) {
           openingTablets.remove(extent);
           openingTablets.notifyAll();
         }
+        
         return;
       }
-      // If extent given is not the one to be opened, update
-      if (tabletsInRange.size() != 1 || !tabletsInRange.containsKey(extent)) {
-        synchronized (openingTablets) {
-          openingTablets.remove(extent);
-          openingTablets.notifyAll();
-          for (KeyExtent e : tabletsInRange.keySet())
-            openingTablets.add(e);
+
+      Tablet tablet = null;
+      boolean successful = false;
+      
+      try {
+        TabletResourceManager trm = resourceManager.createTabletResourceManager();
+        
+        // this opens the tablet file and fills in the endKey in the
+        // extent
+        tablet = new Tablet(TabletServer.this, locationToOpen, extent, trm, tabletsKeyValues);
+        /*
+         * If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.
+         * 
+         * There are three reasons to wait for this minor compaction to finish before placing the tablet in online tablets.
+         * 
+         * 1) The log recovery code does not handle data written to the tablet on multiple tablet servers. 2) The log recovery code does not block if memory is
+         * full. Therefore recovering lots of tablets that use a lot of memory could run out of memory. 3) The minor compaction finish event did not make it to
+         * the logs (the file will be in !METADATA, preventing replay of compacted data)... but do not want a majc to wipe the file out from !METADATA and then
+         * have another process failure... this could cause duplicate data to replay
+         */
+        if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.SYSTEM)) {
+          throw new RuntimeException("Minor compaction after recovery fails for " + extent);
         }
-      } else {
-        // remove any metadata entries for the previous tablet
-        Iterator<Key> iter = tabletsKeyValues.keySet().iterator();
-        Text row = extent.getMetadataEntry();
-        while (iter.hasNext()) {
-          Key key = iter.next();
-          if (!key.getRow().equals(row)) {
-            iter.remove();
+
+        Assignment assignment = new Assignment(extent, getTabletSession());
+        TabletStateStore.setLocation(assignment);
+        
+        synchronized (openingTablets) {
+          synchronized (onlineTablets) {
+            openingTablets.remove(extent);
+            onlineTablets.put(extent, tablet);
+            openingTablets.notifyAll();
+            recentlyUnloadedCache.remove(tablet);
           }
         }
-      }
-      if (tabletsInRange.size() > 1) {
-        log.debug("Master didn't know " + extent + " was split, letting it know about " + tabletsInRange.keySet());
-        enqueueMasterMessage(new SplitReportMessage(extent, tabletsInRange));
+        tablet = null; // release this reference
+        successful = true;
+      } catch (Throwable e) {
+        log.warn("exception trying to assign tablet " + extent + " " + locationToOpen, e);
+        if (e.getMessage() != null)
+          log.warn(e.getMessage());
+        String table = extent.getTableId().toString();
+        ProblemReports.getInstance().report(new ProblemReport(table, TABLET_LOAD, extent.getUUID().toString(), getClientAddressString(), e));
       }
       
-      // create the tablet object
-      for (Entry<KeyExtent,Text> entry : tabletsInRange.entrySet()) {
-        Tablet tablet = null;
-        boolean successful = false;
-        
-        final KeyExtent extentToOpen = entry.getKey();
-        Text locationToOpen = entry.getValue();
-        
-        if (onlineTablets.containsKey(extentToOpen)) {
-          // know this was from fixing a split, because initial check
-          // would have caught original extent
-          log.warn("Something is screwy!  Already serving tablet " + extentToOpen + " derived from fixing split. Original extent = " + extent);
+      if (!successful) {
+        synchronized (unopenedTablets) {
           synchronized (openingTablets) {
-            openingTablets.remove(extentToOpen);
+            openingTablets.remove(extent);
+            unopenedTablets.add(extent);
             openingTablets.notifyAll();
           }
-          continue;
         }
-        
-        try {
-          TabletResourceManager trm = resourceManager.createTabletResourceManager();
-          
-          // this opens the tablet file and fills in the endKey in the
-          // extent
-          tablet = new Tablet(TabletServer.this, locationToOpen, extentToOpen, trm, tabletsKeyValues);
-          /*
-           * If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.
-           * 
-           * There are three reasons to wait for this minor compaction to finish before placing the tablet in online tablets.
-           * 
-           * 1) The log recovery code does not handle data written to the tablet on multiple tablet servers. 2) The log recovery code does not block if memory
-           * is full. Therefore recovering lots of tablets that use a lot of memory could run out of memory. 3) The minor compaction finish event did not make
-           * it to the logs (the file will be in !METADATA, preventing replay of compacted data)... but do not want a majc to wipe the file out from !METADATA
-           * and then have another process failure... this could cause duplicate data to replay
-           */
-          if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.SYSTEM)) {
-            throw new RuntimeException("Minor compaction after recovery fails for " + extentToOpen);
-          }
-          
-          Assignment assignment = new Assignment(extentToOpen, getTabletSession());
-          TabletStateStore.setLocation(assignment);
-          
-          synchronized (openingTablets) {
-            synchronized (onlineTablets) {
-              openingTablets.remove(extentToOpen);
-              onlineTablets.put(extentToOpen, tablet);
-              openingTablets.notifyAll();
-              recentlyUnloadedCache.remove(tablet);
-            }
-          }
-          tablet = null; // release this reference
-          successful = true;
-        } catch (Throwable e) {
-          log.warn("exception trying to assign tablet " + extentToOpen + " " + locationToOpen, e);
-          if (e.getMessage() != null)
-            log.warn(e.getMessage());
-          String table = extent.getTableId().toString();
-          ProblemReports.getInstance().report(new ProblemReport(table, TABLET_LOAD, extentToOpen.getUUID().toString(), getClientAddressString(), e));
-        }
-        
-        if (!successful) {
-          synchronized (unopenedTablets) {
-            synchronized (openingTablets) {
-              openingTablets.remove(extentToOpen);
-              unopenedTablets.add(extentToOpen);
-              openingTablets.notifyAll();
-            }
-          }
-          log.warn("failed to open tablet " + extentToOpen + " reporting failure to master");
-          enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extentToOpen));
-          long reschedule = Math.min((1l << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000l);
-          log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
-          SimpleTimer.getInstance().schedule(new TimerTask() {
-            @Override
-            public void run() {
-              log.info("adding tablet " + extent + " back to the assignment pool (retry " + retryAttempt + ")");
-              AssignmentHandler handler = new AssignmentHandler(extentToOpen, retryAttempt + 1);
-              if (extent.isMeta()) {
-                if (extent.isRootTablet()) {
-                  new Daemon(new LoggingRunnable(log, handler), "Root tablet assignment retry").start();
-                } else {
-                  resourceManager.addMetaDataAssignment(handler);
-                }
+        log.warn("failed to open tablet " + extent + " reporting failure to master");
+        enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
+        long reschedule = Math.min((1l << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000l);
+        log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
+        SimpleTimer.getInstance().schedule(new TimerTask() {
+          @Override
+          public void run() {
+            log.info("adding tablet " + extent + " back to the assignment pool (retry " + retryAttempt + ")");
+            AssignmentHandler handler = new AssignmentHandler(extent, retryAttempt + 1);
+            if (extent.isMeta()) {
+              if (extent.isRootTablet()) {
+                new Daemon(new LoggingRunnable(log, handler), "Root tablet assignment retry").start();
               } else {
-                resourceManager.addAssignment(handler);
+                resourceManager.addMetaDataAssignment(handler);
               }
+            } else {
+              resourceManager.addAssignment(handler);
             }
-          }, reschedule);
-        } else {
-          enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOADED, extentToOpen));
-        }
+          }
+        }, reschedule);
+      } else {
+        enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
       }
     }
   }
@@ -2890,148 +2852,141 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   private long totalMinorCompactions;
   
-  public static SortedMap<KeyExtent,Text> verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues,
-      String clientAddress, ZooLock lock) throws AccumuloSecurityException, DistributedStoreException {
-    for (int tries = 0; tries < 3; tries++) {
-      try {
-        log.debug("verifying extent " + extent);
-        if (extent.isRootTablet()) {
-          ZooTabletStateStore store = new ZooTabletStateStore();
-          if (!store.iterator().hasNext()) {
-            log.warn("Illegal state: location is not set in zookeeper");
-            return null;
-          }
-          TabletLocationState next = store.iterator().next();
-          if (!instance.equals(next.future)) {
-            log.warn("Future location is not to this server for the root tablet");
-            return null;
-          }
-          TreeMap<KeyExtent,Text> set = new TreeMap<KeyExtent,Text>();
-          set.put(extent, new Text(Constants.ZROOT_TABLET));
-          return set;
-        }
-        
-        List<ColumnFQ> columnsToFetch = Arrays.asList(new ColumnFQ[] {Constants.METADATA_DIRECTORY_COLUMN, Constants.METADATA_PREV_ROW_COLUMN,
-            Constants.METADATA_SPLIT_RATIO_COLUMN, Constants.METADATA_OLD_PREV_ROW_COLUMN, Constants.METADATA_TIME_COLUMN});
-        
-        if (tabletsKeyValues == null) {
-          tabletsKeyValues = new TreeMap<Key,Value>();
-        }
-        MetadataTable.getTabletAndPrevTabletKeyValues(tabletsKeyValues, extent, null, SecurityConstants.getSystemCredentials());
-        
-        SortedMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries;
-        tabletEntries = MetadataTable.getTabletEntries(tabletsKeyValues, columnsToFetch);
-        
-        if (tabletEntries.size() == 0) {
-          log.warn("Failed to find any metadata entries for " + extent);
-          return null;
-        }
-        
-        // ensure last key in map is same as extent that was passed in
-        if (!tabletEntries.lastKey().equals(extent.getMetadataEntry())) {
-          log.warn("Failed to find metadata entry for " + extent + " found " + tabletEntries.lastKey());
-          return null;
-        }
-        
-        TServerInstance future = null;
-        Text metadataEntry = extent.getMetadataEntry();
-        for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
-          Key key = entry.getKey();
-          if (!metadataEntry.equals(key.getRow()))
-            continue;
-          Text cf = key.getColumnFamily();
-          if (cf.equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
-            future = new TServerInstance(entry.getValue(), key.getColumnQualifier());
-          } else if (cf.equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
-            log.error("Tablet seems to be already assigned to " + new TServerInstance(entry.getValue(), key.getColumnQualifier()));
-            return null;
-          }
-        }
-        if (future == null) {
-          log.warn("The master has not assigned " + extent + " to " + instance);
-          return null;
-        }
-        if (!instance.equals(future)) {
-          log.warn("Table " + extent + " has been assigned to " + future + " which is not " + instance);
-          return null;
-        }
-        
-        // look for incomplete splits
-        int splitsFixed = 0;
-        for (Entry<Text,SortedMap<ColumnFQ,Value>> entry : tabletEntries.entrySet()) {
-          
-          if (extent.getPrevEndRow() != null) {
-            Text prevRowMetadataEntry = new Text(KeyExtent.getMetadataEntry(extent.getTableId(), extent.getPrevEndRow()));
-            if (entry.getKey().compareTo(prevRowMetadataEntry) <= 0) {
-              continue;
-            }
-          }
-          
-          if (entry.getValue().containsKey(Constants.METADATA_OLD_PREV_ROW_COLUMN)) {
-            KeyExtent fixedke = MetadataTable.fixSplit(entry.getKey(), entry.getValue(), instance, SecurityConstants.getSystemCredentials(), lock);
-            if (fixedke != null) {
-              if (fixedke.getPrevEndRow() == null || fixedke.getPrevEndRow().compareTo(extent.getPrevEndRow()) < 0) {
-                extent = new KeyExtent(extent);
-                extent.setPrevEndRow(fixedke.getPrevEndRow());
-              }
-              splitsFixed++;
-            }
-          }
-        }
-        
-        if (splitsFixed > 0) {
-          // reread and reverify metadata entries now that metadata
-          // entries were fixed
-          tabletsKeyValues.clear();
-          return verifyTabletInformation(extent, instance, tabletsKeyValues, clientAddress, lock);
-        }
-        
-        SortedMap<KeyExtent,Text> children = new TreeMap<KeyExtent,Text>();
-        
-        for (Entry<Text,SortedMap<ColumnFQ,Value>> entry : tabletEntries.entrySet()) {
-          if (extent.getPrevEndRow() != null) {
-            Text prevRowMetadataEntry = new Text(KeyExtent.getMetadataEntry(extent.getTableId(), extent.getPrevEndRow()));
-            
-            if (entry.getKey().compareTo(prevRowMetadataEntry) <= 0) {
-              continue;
-            }
-          }
-          
-          Value prevEndRowIBW = entry.getValue().get(Constants.METADATA_PREV_ROW_COLUMN);
-          if (prevEndRowIBW == null) {
-            log.warn("Metadata entry does not have prev row (" + entry.getKey() + ")");
-            return null;
-          }
-          
-          Value dirIBW = entry.getValue().get(Constants.METADATA_DIRECTORY_COLUMN);
-          if (dirIBW == null) {
-            log.warn("Metadata entry does not have directory (" + entry.getKey() + ")");
-            return null;
-          }
-          
-          Text dir = new Text(dirIBW.get());
-          
-          KeyExtent child = new KeyExtent(entry.getKey(), prevEndRowIBW);
-          children.put(child, dir);
-        }
-        
-        if (!MetadataTable.isContiguousRange(extent, new TreeSet<KeyExtent>(children.keySet()))) {
-          log.warn("For extent " + extent + " metadata entries " + children + " do not form a contiguous range.");
-          return null;
-        }
-        return children;
-      } catch (AccumuloException e) {
-        log.error("error verifying metadata information. retrying ...");
-        log.error(e.toString());
-        UtilWaitThread.sleep(1000);
-      } catch (AccumuloSecurityException e) {
-        // if it's a security exception, retrying won't work either.
-        log.error(e.toString());
-        throw e;
+  private static Text verifyRootTablet(KeyExtent extent, TServerInstance instance) throws DistributedStoreException, AccumuloException {
+    ZooTabletStateStore store = new ZooTabletStateStore();
+    if (!store.iterator().hasNext()) {
+      throw new AccumuloException("Illegal state: location is not set in zookeeper");
+    }
+    TabletLocationState next = store.iterator().next();
+    if (!instance.equals(next.future)) {
+      throw new AccumuloException("Future location is not to this server for the root tablet");
+    }
+    
+    if (next.current != null) {
+      throw new AccumuloException("Root tablet already has a location set");
+    }
+    
+    return new Text(Constants.ZROOT_TABLET);
+  }
+  
+  public static Text verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues, String clientAddress,
+      ZooLock lock) throws AccumuloSecurityException, DistributedStoreException, AccumuloException {
+    
+    log.debug("verifying extent " + extent);
+    if (extent.isRootTablet()) {
+      return verifyRootTablet(extent, instance);
+    }
+    
+    List<ColumnFQ> columnsToFetch = Arrays.asList(new ColumnFQ[] {Constants.METADATA_DIRECTORY_COLUMN, Constants.METADATA_PREV_ROW_COLUMN,
+        Constants.METADATA_SPLIT_RATIO_COLUMN, Constants.METADATA_OLD_PREV_ROW_COLUMN, Constants.METADATA_TIME_COLUMN});
+    
+    ScannerImpl scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), Constants.METADATA_TABLE_ID,
+        Constants.NO_AUTHS);
+    scanner.setRange(extent.toMetadataRange());
+
+    TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
+    for (Entry<Key,Value> entry : scanner)
+      tkv.put(entry.getKey(), entry.getValue());
+
+    // only populate map after success
+    if (tabletsKeyValues == null) {
+      tabletsKeyValues = tkv;
+    } else {
+      tabletsKeyValues.clear();
+      tabletsKeyValues.putAll(tkv);
+    }
+    
+    Text metadataEntry = extent.getMetadataEntry();
+    
+    Value dir = checkTabletMetadata(extent, instance, tabletsKeyValues, metadataEntry);
+    if (dir == null)
+      return null;
+    
+    Value oldPrevEndRow = null;
+    for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
+      if (Constants.METADATA_OLD_PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+        oldPrevEndRow = entry.getValue();
       }
     }
-    // default is to accept
-    return null;
+    
+    if (oldPrevEndRow != null) {
+      SortedMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries;
+      tabletEntries = MetadataTable.getTabletEntries(tabletsKeyValues, columnsToFetch);
+      
+      KeyExtent fke = MetadataTable.fixSplit(metadataEntry, tabletEntries.get(metadataEntry), instance, SecurityConstants.getSystemCredentials(), lock);
+      
+      if (!fke.equals(extent)) {
+        return null;
+      }
+      
+      // reread and reverify metadata entries now that metadata entries were fixed
+      tabletsKeyValues.clear();
+      return verifyTabletInformation(fke, instance, tabletsKeyValues, clientAddress, lock);
+    }
+    
+    return new Text(dir.get());
+  }
+  
+  static Value checkTabletMetadata(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues, Text metadataEntry)
+      throws AccumuloException {
+    
+    TServerInstance future = null;
+    Value prevEndRow = null;
+    Value dir = null;
+    Value time = null;
+    for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
+      Key key = entry.getKey();
+      if (!metadataEntry.equals(key.getRow())) {
+        log.info("Unexpected row in tablet metadata " + metadataEntry + " " + key.getRow());
+        return null;
+      }
+      Text cf = key.getColumnFamily();
+      if (cf.equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
+        if (future != null) {
+          throw new AccumuloException("Tablet has multiple future locations " + extent);
+        }
+        future = new TServerInstance(entry.getValue(), key.getColumnQualifier());
+      } else if (cf.equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
+        log.info("Tablet seems to be already assigned to " + new TServerInstance(entry.getValue(), key.getColumnQualifier()));
+        return null;
+      } else if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key)) {
+        prevEndRow = entry.getValue();
+      } else if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(key)) {
+        dir = entry.getValue();
+      } else if (Constants.METADATA_TIME_COLUMN.hasColumns(key)) {
+        time = entry.getValue();
+      }
+    }
+    
+    if (prevEndRow == null) {
+      throw new AccumuloException("Metadata entry does not have prev row (" + metadataEntry + ")");
+    } else {
+      KeyExtent ke2 = new KeyExtent(metadataEntry, prevEndRow);
+      if (!extent.equals(ke2)) {
+        log.info("Tablet prev end row mismatch " + extent + " " + ke2.getPrevEndRow());
+        return null;
+      }
+    }
+
+    if (dir == null) {
+      throw new AccumuloException("Metadata entry does not have directory (" + metadataEntry + ")");
+    }
+
+    if (time == null) {
+      throw new AccumuloException("Metadata entry does not have time (" + metadataEntry + ")");
+    }
+
+    if (future == null) {
+      log.info("The master has not assigned " + extent + " to " + instance);
+      return null;
+    }
+
+    if (!instance.equals(future)) {
+      log.info("Table " + extent + " has been assigned to " + future + " which is not " + instance);
+      return null;
+    }
+    
+    return dir;
   }
   
   public String getClientAddressString() {

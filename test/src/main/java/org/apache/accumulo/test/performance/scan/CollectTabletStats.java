@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.Set;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -36,7 +34,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -67,12 +64,12 @@ import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -378,16 +375,8 @@ public class CollectTabletStats {
   private static List<String> getTabletFiles(TCredentials token, Instance zki, String tableId, KeyExtent ke) {
     List<String> files = new ArrayList<String>();
     
-    SortedMap<Key,Value> tkv = new TreeMap<Key,Value>();
-    MetadataTable.getTabletAndPrevTabletKeyValues(zki, tkv, ke, null, token);
-    
-    Set<Entry<Key,Value>> es = tkv.entrySet();
-    for (Entry<Key,Value> entry : es) {
-      if (entry.getKey().compareRow(ke.getMetadataEntry()) == 0) {
-        if (entry.getKey().compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
-          files.add(ServerConstants.getTablesDir() + "/" + tableId + entry.getKey().getColumnQualifier());
-        }
-      }
+    for (String cq : MetadataTable.getDataFileSizes(ke, token).keySet()) {
+      files.add(ServerConstants.getTablesDir() + "/" + tableId + cq);
     }
     return files;
   }
