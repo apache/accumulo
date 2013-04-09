@@ -50,10 +50,10 @@ public class MetadataBulkLoadFilter extends Filter {
       Status status = bulkTxStatusCache.get(txid);
       if (status == null) {
         try {
-          if (arbitrator.transactionAlive(Constants.BULK_ARBITRATOR_TYPE, txid)) {
-            status = Status.ACTIVE;
-          } else {
+          if (arbitrator.transactionComplete(Constants.BULK_ARBITRATOR_TYPE, txid)) {
             status = Status.INACTIVE;
+          } else {
+            status = Status.ACTIVE;
           }
         } catch (Exception e) {
           // TODO log
