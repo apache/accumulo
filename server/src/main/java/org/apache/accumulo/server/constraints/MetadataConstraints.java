@@ -178,8 +178,8 @@ public class MetadataConstraints implements Constraint {
           // See ACCUMULO-1230. 
           boolean isLocationMutation = false;
           for (ColumnUpdate update : mutation.getUpdates()) {
-            if (new ColumnFQ(update).equals(Constants.METADATA_TIME_COLUMN)) {
-              isSplitMutation = true;
+            if (new ColumnFQ(update).equals(Constants.METADATA_SPLIT_RATIO_COLUMN)) {
+              isSplitMutation = update.isDeleted();
             }
             if (update.getColumnFamily().equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
               isLocationMutation = true;

@@ -31,6 +31,7 @@ public class TransactionWatcher {
   
   public interface Arbitrator {
     boolean transactionAlive(String type, long tid) throws Exception;
+    boolean transactionComplete(String type, long tid) throws Exception;
   }
   
   public TransactionWatcher(Arbitrator arbitrator) {
