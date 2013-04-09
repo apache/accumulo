@@ -32,9 +32,9 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -178,8 +178,8 @@ public class MetadataConstraints implements Constraint {
           // See ACCUMULO-1230. 
           boolean isLocationMutation = false;
           for (ColumnUpdate update : mutation.getUpdates()) {
-            if (new ColumnFQ(update).equals(Constants.METADATA_SPLIT_RATIO_COLUMN)) {
-              isSplitMutation = update.isDeleted();
+            if (new ColumnFQ(update).equals(Constants.METADATA_DIRECTORY_COLUMN)) {
+              isSplitMutation = true;
             }
             if (update.getColumnFamily().equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
               isLocationMutation = true;
