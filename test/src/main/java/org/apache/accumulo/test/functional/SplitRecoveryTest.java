@@ -28,6 +28,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -176,34 +178,32 @@ public class SplitRecoveryTest extends FunctionalTest {
     if (steps >= 2)
       MetadataTable.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SecurityConstants.getSystemCredentials(), zl);
     
-    SortedMap<KeyExtent,Text> vtiRet = TabletServer.verifyTabletInformation(extent, instance, null, "127.0.0.1:0", zl);
     
-    if (vtiRet.size() != 2) {
-      throw new Exception("verifyTabletInformation did not return two tablets, " + vtiRet.size());
-    }
+    TabletServer.verifyTabletInformation(high, instance, null, "127.0.0.1:0", zl);
+
+    if (steps >= 1) {
+      ensureTabletHasNoUnexpectedMetadataEntries(low, lowDatafileSizes);
+      ensureTabletHasNoUnexpectedMetadataEntries(high, highDatafileSizes);
     
-    if (!vtiRet.containsKey(high) || !vtiRet.containsKey(low)) {
-      throw new Exception("verifyTabletInformation did not return correct tablets, " + vtiRet.keySet());
-    }
+      Map<String,Long> lowBulkFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), low);
+      Map<String,Long> highBulkFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), high);
     
-    ensureTabletHasNoUnexpectedMetadataEntries(low, lowDatafileSizes);
-    ensureTabletHasNoUnexpectedMetadataEntries(high, highDatafileSizes);
+      if (!lowBulkFiles.equals(highBulkFiles)) {
+        throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
+      }
     
-    Map<String,Long> lowBulkFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), low);
-    Map<String,Long> highBulkFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), high);
-    
-    if (!lowBulkFiles.equals(highBulkFiles)) {
-      throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
-    }
-    
-    if (lowBulkFiles.size() == 0) {
-      throw new Exception(" no bulk files " + low);
+      if (lowBulkFiles.size() == 0) {
+        throw new Exception(" no bulk files " + low);
+      }
+    } else {
+      ensureTabletHasNoUnexpectedMetadataEntries(extent, mapFiles);
     }
   }
   
   private void ensureTabletHasNoUnexpectedMetadataEntries(KeyExtent extent, SortedMap<String,DataFileValue> expectedMapFiles) throws Exception {
-    SortedMap<Key,Value> tkv = new TreeMap<Key,Value>();
-    MetadataTable.getTabletAndPrevTabletKeyValues(tkv, extent, null, SecurityConstants.getSystemCredentials());
+    Scanner scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), Constants.METADATA_TABLE_ID,
+        Constants.NO_AUTHS);
+    scanner.setRange(extent.toMetadataRange());
     
     HashSet<ColumnFQ> expectedColumns = new HashSet<ColumnFQ>();
     expectedColumns.add(Constants.METADATA_DIRECTORY_COLUMN);
@@ -218,12 +218,12 @@ public class SplitRecoveryTest extends FunctionalTest {
     expectedColumnFamilies.add(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY);
     expectedColumnFamilies.add(Constants.METADATA_BULKFILE_COLUMN_FAMILY);
     
-    Iterator<Key> iter = tkv.keySet().iterator();
+    Iterator<Entry<Key,Value>> iter = scanner.iterator();
     while (iter.hasNext()) {
-      Key key = iter.next();
+      Key key = iter.next().getKey();
       
       if (!key.getRow().equals(extent.getMetadataEntry())) {
-        continue;
+        throw new Exception("Tablet " + extent + " contained unexpected " + Constants.METADATA_TABLE_NAME + " entry " + key);
       }
       
       if (expectedColumnFamilies.contains(key.getColumnFamily())) {
