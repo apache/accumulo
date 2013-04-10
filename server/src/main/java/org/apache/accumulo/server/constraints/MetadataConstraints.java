@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.accumulo.server.zookeeper.ZooCache;
@@ -139,6 +140,8 @@ public class MetadataConstraints implements Constraint {
       violations = addViolation(violations, 5);
     }
     
+    boolean checkedBulk = false;
+
     for (ColumnUpdate columnUpdate : colUpdates) {
       Text columnFamily = new Text(columnUpdate.getColumnFamily());
       
@@ -168,7 +171,7 @@ public class MetadataConstraints implements Constraint {
       } else if (columnFamily.equals(Constants.METADATA_SCANFILE_COLUMN_FAMILY)) {
         
       } else if (columnFamily.equals(Constants.METADATA_BULKFILE_COLUMN_FAMILY)) {
-        if (!columnUpdate.isDeleted()) {
+        if (!columnUpdate.isDeleted() && !checkedBulk) {
           // splits, which also write the time reference, are allowed to write this reference even when
           // the transaction is not running because the other half of the tablet is holding a reference
           // to the file.
@@ -177,26 +180,42 @@ public class MetadataConstraints implements Constraint {
           // but it writes everything.  We allow it to re-write the bulk information if it is setting the location. 
           // See ACCUMULO-1230. 
           boolean isLocationMutation = false;
+          
+          HashSet<Text> dataFiles = new HashSet<Text>();
+          HashSet<Text> loadedFiles = new HashSet<Text>();
+
+          String tidString = new String(columnUpdate.getValue());
+          int otherTidCount = 0;
+
           for (ColumnUpdate update : mutation.getUpdates()) {
             if (new ColumnFQ(update).equals(Constants.METADATA_DIRECTORY_COLUMN)) {
               isSplitMutation = true;
-            }
-            if (update.getColumnFamily().equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
+            } else if (new Text(update.getColumnFamily()).equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
               isLocationMutation = true;
+            } else if (new Text(update.getColumnFamily()).equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
+              dataFiles.add(new Text(update.getColumnQualifier()));
+            } else if (new Text(update.getColumnFamily()).equals(Constants.METADATA_BULKFILE_COLUMN_FAMILY)) {
+              loadedFiles.add(new Text(update.getColumnQualifier()));
+              
+              if (!new String(update.getValue()).equals(tidString)) {
+                otherTidCount++;
+              }
             }
           }
           
           if (!isSplitMutation && !isLocationMutation) {
-            String tidString = new String(columnUpdate.getValue());
             long tid = Long.parseLong(tidString);
+            
             try {
-              if (!new ZooArbitrator().transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
+              if (otherTidCount > 0 || !dataFiles.equals(loadedFiles) || !getArbitrator().transactionAlive(Constants.BULK_ARBITRATOR_TYPE, tid)) {
                 violations = addViolation(violations, 8);
               }
             } catch (Exception ex) {
               violations = addViolation(violations, 8);
             }
           }
+          
+          checkedBulk = true;
         }
       } else {
         if (!isValidColumn(columnUpdate)) {
@@ -248,6 +267,10 @@ public class MetadataConstraints implements Constraint {
     return violations;
   }
   
+  protected Arbitrator getArbitrator() {
+    return new ZooArbitrator();
+  }
+
   public String getViolationDescription(short violationCode) {
     switch (violationCode) {
       case 1:

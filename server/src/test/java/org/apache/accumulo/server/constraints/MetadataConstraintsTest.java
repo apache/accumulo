@@ -18,6 +18,7 @@ package org.apache.accumulo.server.constraints;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.util.List;
 
@@ -25,6 +26,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -32,6 +34,26 @@ import org.junit.Test;
 
 public class MetadataConstraintsTest {
   
+  static class TestMetadataConstraints extends MetadataConstraints {
+    @Override
+    protected Arbitrator getArbitrator() {
+      return new Arbitrator() {
+        
+        @Override
+        public boolean transactionAlive(String type, long tid) throws Exception {
+          if (tid == 9)
+            throw new RuntimeException("txid 9 reserved for future use");
+          return tid == 5 || tid == 7;
+        }
+        
+        @Override
+        public boolean transactionComplete(String type, long tid) throws Exception {
+          return tid != 5 && tid != 7;
+        }
+      };
+    }
+  }
+
   @Test
   public void testCheck() {
     Logger.getLogger(AccumuloConfiguration.class).setLevel(Level.ERROR);
@@ -106,13 +128,112 @@ public class MetadataConstraintsTest {
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 4), violations.get(0));
 
+  }
+  
+  @Test
+  public void testBulkFileCheck() {
+    MetadataConstraints mc = new TestMetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    // inactive txid
     m = new Mutation(new Text("0;foo"));
     m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("12345".getBytes()));
+    m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("1,1".getBytes()));
     violations = mc.check(null, m);
-    
     assertNotNull(violations);
     assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short)8), violations.get(0));
+    
+    // txid that throws exception
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("9".getBytes()));
+    m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("1,1".getBytes()));
+    violations = mc.check(null, m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 8), violations.get(0));
+    
+    // active txid w/ file
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
+    m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("1,1".getBytes()));
+    violations = mc.check(null, m);
+    assertNull(violations);
+    
+    // active txid w/o file
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
+    violations = mc.check(null, m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 8), violations.get(0));
+    
+    // two active txids w/ files
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
+    m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("1,1".getBytes()));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile2"), new Value("7".getBytes()));
+    m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text("/someFile2"), new Value("1,1".getBytes()));
+    violations = mc.check(null, m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 8), violations.get(0));
+
+    // two files w/ one active txid
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
+    m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("1,1".getBytes()));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile2"), new Value("5".getBytes()));
+    m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text("/someFile2"), new Value("1,1".getBytes()));
+    violations = mc.check(null, m);
+    assertNull(violations);
+
+    // two loaded w/ one active txid and one file
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
+    m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("1,1".getBytes()));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile2"), new Value("5".getBytes()));
+    violations = mc.check(null, m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 8), violations.get(0));
+
+    // active txid, mutation that looks like split
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
+    Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value("/t1".getBytes()));
+    violations = mc.check(null, m);
+    assertNull(violations);
+    
+    // inactive txid, mutation that looks like split
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("12345".getBytes()));
+    Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value("/t1".getBytes()));
+    violations = mc.check(null, m);
+    assertNull(violations);
+    
+    // active txid, mutation that looks like a load
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("5".getBytes()));
+    m.put(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY, new Text("789"), new Value("127.0.0.1:9997".getBytes()));
+    violations = mc.check(null, m);
+    assertNull(violations);
+    
+    // inactive txid, mutation that looks like a load
+    m = new Mutation(new Text("0;foo"));
+    m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"), new Value("12345".getBytes()));
+    m.put(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY, new Text("789"), new Value("127.0.0.1:9997".getBytes()));
+    violations = mc.check(null, m);
+    assertNull(violations);
+    
+    // deleting a load flag
+    m = new Mutation(new Text("0;foo"));
+    m.putDelete(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text("/someFile"));
+    violations = mc.check(null, m);
+    assertNull(violations);
+
+
   }
   
 }
