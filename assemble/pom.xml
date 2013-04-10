@@ -73,13 +73,15 @@
           <execution>
             <id>config-webpage</id>
             <goals>
-              <goal>exec</goal>
+              <goal>java</goal>
             </goals>
-            <phase>package</phase>
+            <phase>prepare-package</phase>
             <configuration>
-              <executable>bash</executable>
+              <mainClass>org.apache.accumulo.core.conf.DefaultConfiguration</mainClass>
+              <classpathScope>compile</classpathScope>
               <arguments>
-                <argument>docgen.sh</argument>
+                <argument>--generate-doc</argument>
+                <argument>${project.build.directory}/../../docs/config.html</argument>
               </arguments>
             </configuration>
           </execution>

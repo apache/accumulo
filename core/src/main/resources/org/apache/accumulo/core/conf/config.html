@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -14,7 +15,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Accumulo Configuration</title>
   <link rel='stylesheet' type='text/css' href='documentation.css' media='screen'/>
@@ -27,22 +28,22 @@
   below (from highest to lowest):</p>
   <table>
    <tr><th>Location</th><th>Description</th></tr>
-   <tr class='highlight'><td><b>Zookeeper<br/>table properties</td>
+   <tr class='highlight'><td><b>Zookeeper<br/>table properties</b></td>
        <td>Table properties are applied to the entire cluster when set in zookeeper using the accumulo API or shell.  While table properties take precedent over system properties, both will override properties set in accumulo-site.xml<br/><br/>
            Table properties consist of all properties with the table.* prefix.  Table properties are configured on a per-table basis using the following shell commmand:
 		    <pre>config -t TABLE -s PROPERTY=VALUE</pre></td>
    </tr>
-   <tr><td><b>Zookeeper<br/>system properties</td>
+   <tr><td><b>Zookeeper<br/>system properties</b></td>
 	    <td>System properties are applied to the entire cluster when set in zookeeper using the accumulo API or shell.  System properties consist of all properties with a 'yes' in the 'Zookeeper Mutable' column in the table below.  They are set with the following shell command:
 		    <pre>config -s PROPERTY=VALUE</pre>
 			If a table.* property is set using this method, the value will apply to all tables except those configured on per-table basis (which have higher precedence).<br/><br/>
 			While most system properties take effect immediately, some require a restart of the process which is indicated in 'Zookeeper Mutable'.</td>
    </tr>
-   <tr class='highlight'><td><b>accumulo-site.xml</td>
+   <tr class='highlight'><td><b>accumulo-site.xml</b></td>
        <td>Accumulo processes (master, tserver, etc) read their local accumulo-site.xml on start up.  Therefore, changes made to accumulo-site.xml must rsynced across the cluster and processes must be restarted to apply changes.<br/><br/>
            Certain properties (indicated by a 'no' in 'Zookeeper Mutable') cannot be set in zookeeper and only set in this file.  The accumulo-site.xml also allows you to configure tablet servers with different settings.</td>
    </tr>
-   <tr><td><b>Default</td>
+   <tr><td><b>Default</b></td>
    	   <td>All properties have a default value in the source code.  This value has the lowest precedence and is overriden if set in accumulo-site.xml or zookeeper.<br/><br/>While the default value is usually optimal, there are cases where a change can increase query and ingest performance.</td>
    </tr>
   </table>

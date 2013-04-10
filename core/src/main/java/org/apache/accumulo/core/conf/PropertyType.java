@@ -34,7 +34,7 @@ public enum PropertyType {
       "A positive integer optionally followed by a unit of memory (whitespace disallowed), as in 2G.<br />"
           + "If no unit is specified, bytes are assumed. Valid units are 'B', 'K', 'M', 'G', for bytes, kilobytes, megabytes, and gigabytes.<br />"
           + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G'.<br />"
-          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G', '1,024K', '', and 'a'.<br .>"
+          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G', '1,024K', '', and 'a'.<br />"
           + "Unless otherwise stated, the max value for the memory represented in bytes is " + Long.MAX_VALUE),
   
   HOSTLIST("host list", "[\\w-]+(?:\\.[\\w-]+)*(?:\\:\\d{1,5})?(?:,[\\w-]+(?:\\.[\\w-]+)*(?:\\:\\d{1,5})?)*",
@@ -53,6 +53,7 @@ public enum PropertyType {
       "A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property."),
   ABSOLUTEPATH("absolute path", null,
       "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified.") {
+    @Override
     public boolean isValidFormat(String value) {
       return new Path(value).isAbsolute();
     }
@@ -75,6 +76,7 @@ public enum PropertyType {
     this.regex = regex == null ? null : Pattern.compile(regex, Pattern.DOTALL);
   }
   
+  @Override
   public String toString() {
     return shortname;
   }
