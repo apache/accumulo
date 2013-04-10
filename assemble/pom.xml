@@ -34,6 +34,11 @@
     modules in our assembly, we only need to ensure this distribution project builds AFTER those... -->
   <dependencies>
     <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
       <scope>provided</scope>
