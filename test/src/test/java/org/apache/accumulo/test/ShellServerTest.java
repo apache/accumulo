@@ -242,13 +242,32 @@ public class ShellServerTest {
     exec("deletetable -f t");
   }
   
+  @Test(timeout = 1000)
+  public void debug() throws Exception {
+    exec("debug", true, "off", true);
+    exec("debug on", true);
+    exec("debug", true, "on", true);
+    exec("debug off", true);
+    exec("debug", true, "off", true);
+    exec("debug debug", false);
+    exec("debug debug debug", false);
+  }
+  
   @Test(timeout = 30000)
   public void user() throws Exception {
-    // createuser, deleteuser, user, users, droptable
+    // createuser, deleteuser, user, users, droptable, grant, revoke
     shell.getReader().setInput(new ByteArrayInputStream("secret\nsecret\n".getBytes()));
     exec("createuser xyzzy", true);
     exec("users", true, "xyzzy", true);
+    String perms = exec("userpermissions -u xyzzy", true);
+    assertTrue(perms.contains("Table permissions (!METADATA): Table.READ"));
     exec("grant -u xyzzy -s System.CREATE_TABLE", true);
+    perms = exec("userpermissions -u xyzzy", true);
+    assertTrue(perms.contains(""));
+    exec("grant -u root -t !METADATA Table.WRITE", true);
+    exec("grant -u root -t !METADATA Table.GOOFY", false);
+    exec("grant -u root -s foo", false);
+    exec("grant -u xyzzy -t !METADATA foo", false);
     shell.getReader().setInput(new ByteArrayInputStream("secret\nsecret\n".getBytes()));
     exec("user xyzzy", true);
     exec("createtable t", true, "xyzzy@", true);
@@ -258,6 +277,12 @@ public class ShellServerTest {
     exec("deleteuser xyzzy", false, "delete yourself", true);
     shell.getReader().setInput(new ByteArrayInputStream((secret + "\n" + secret + "\n").getBytes()));
     exec("user root", true);
+    exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
+    exec("revoke -u xyzzy -s System.GOOFY", false);
+    exec("revoke -u xyzzy -s foo", false);
+    exec("revoke -u xyzzy -t !METADATA Table.WRITE", true);
+    exec("revoke -u xyzzy -t !METADATA Table.GOOFY", false);
+    exec("revoke -u xyzzy -t !METADATA foo", false);
     exec("deleteuser xyzzy", true);
     exec("users", true, "xyzzy", false);
   }
@@ -485,6 +510,20 @@ public class ShellServerTest {
     exec("help -np", true, "Help Commands", true);
     shell.getReader().setInput(new ByteArrayInputStream("\n\n".getBytes()));
     exec("?", true, "Help Commands", true);
+    for (String c : (
+        "bye exit quit " +
+            "about help info ? " + 
+            "deleteiter deletescaniter listiter setiter setscaniter " +
+            "grant revoke systempermissions tablepermissions userpermissions " +
+            "execfile history " +
+            "authenticate cls clear notable sleep table user whoami " +
+            "clonetable config createtable deletetable droptable du exporttable importtable offline online renametable tables " +
+            "addsplits compact constraint flush getgropus getsplits merge setgroups " +
+            "addauths createuser deleteuser dropuser getauths passwd setauths users " +
+            "delete deletemany deleterows egrep formatter interpreter grep importdirectory insert maxrow scan"
+        ).split(" ")) {
+      exec("help " + c, true);
+    }
   }
   
   // @Test(timeout = 30000)
@@ -621,6 +660,8 @@ public class ShellServerTest {
   public void systempermission() throws Exception {
     exec("systempermissions");
     assertEquals(8, output.get().split("\n").length - 1);
+    exec("tablepermissions", true);
+    assertEquals(6, output.get().split("\n").length - 1);
   }
   
   @Test(timeout = 30000)
