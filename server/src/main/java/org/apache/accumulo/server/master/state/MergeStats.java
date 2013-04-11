@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -182,11 +183,14 @@ public class MergeStats {
     Text tableId = extent.getTableId();
     Text first = KeyExtent.getMetadataEntry(tableId, start);
     Range range = new Range(first, false, null, true);
-    if (extent.isMeta())
-      range = new Range(Constants.METADATA_ROOT_TABLET_KEYSPACE);
+    if (extent.isMeta()) {
+      // don't go off the root tablet
+      range = new Range(new Key(first).followingKey(PartialKey.ROW), false, Constants.METADATA_ROOT_TABLET_KEYSPACE.getEndKey(), false);
+    }
     scanner.setRange(range);
     KeyExtent prevExtent = null;
 
+    log.debug("Scanning range " + range);
     for (Entry<Key,Value> entry : scanner) {
       TabletLocationState tls;
       try {
@@ -195,24 +199,30 @@ public class MergeStats {
         log.error(e, e);
         return false;
       }
+      log.debug("consistency check: " + tls + " walogs " + tls.walogs.size());
       if (!tls.extent.getTableId().equals(tableId)) {
         break;
       }
 
       if (!tls.walogs.isEmpty() && verify.getMergeInfo().needsToBeChopped(tls.extent)) {
+        log.debug("failing consistency: needs to be chopped" + tls.extent);
         return false;
       }
 
       if (prevExtent == null) {
         // this is the first tablet observed, it must be offline and its prev row must be less than the start of the merge range
         if (tls.extent.getPrevEndRow() != null && tls.extent.getPrevEndRow().compareTo(start) > 0) {
+          log.debug("failing consistency: prev row is too high " + start);
           return false;
         }
         
-        if (tls.getState(master.onlineTabletServers()) != TabletState.UNASSIGNED)
+        if (tls.getState(master.onlineTabletServers()) != TabletState.UNASSIGNED) {
+          log.debug("failing consistency: assigned or hosted " + tls);
           return false;
+        }
         
       } else if (!tls.extent.isPreviousExtent(prevExtent)) {
+        log.debug("hole in !METADATA");
         return false;
       }
       
@@ -224,6 +234,9 @@ public class MergeStats {
         break;
       }
     }
+    log.debug("chopped " + chopped + " v.chopped " + verify.chopped + 
+        " unassigned " + unassigned + " v.unassigned " + verify.unassigned +
+        " verify.total " + verify.total);
     return chopped == verify.chopped && unassigned == verify.unassigned && unassigned == verify.total;
   }
   

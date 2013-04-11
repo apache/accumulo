@@ -1203,6 +1203,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
       // Handle merge transitions
       if (mergeInfo.getRange() != null) {
+        log.debug("mergeInfo overlaps: " + extent + " " + mergeInfo.overlaps(extent));
         if (mergeInfo.overlaps(extent)) {
           switch (mergeInfo.getState()) {
             case NONE:
@@ -2094,8 +2095,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     });
     
     TCredentials systemAuths = SecurityConstants.getSystemCredentials();
-    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
-        new MetaDataStateStore(instance, systemAuths, this)};
+    final TabletStateStore stores[] = {
+        new ZooTabletStateStore(new ZooStore(zroot)), 
+        new RootTabletStateStore(instance, systemAuths, this),
+        new MetaDataStateStore(instance, systemAuths, this)
+    };
     watchers.add(new TabletGroupWatcher(stores[2], null));
     watchers.add(new TabletGroupWatcher(stores[1], watchers.get(0)));
     watchers.add(new TabletGroupWatcher(stores[0], watchers.get(1)));
