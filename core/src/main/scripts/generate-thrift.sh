@@ -47,8 +47,7 @@ if [ "$VERSION" -ne 1 ] ; then
   echo "*** thrift is not available"
   echo "***   expecting 'thrift -version' to return ${REQUIRED_THRIFT_VERSION}"
   echo "*** generated code will not be updated"
-  echo "****************************************************"
-  exit 0
+  fail "****************************************************"
 fi
 
 # Include thrift sources from additional modules
