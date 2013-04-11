@@ -227,7 +227,6 @@ abstract public class BasicServlet extends HttpServlet {
    * Allow the concrete servlet implementation to provide attributes on the body HTML tag,
    * such as 'onload', which can be used to call Javascript methods on page load.
    * By default, nothing is specified.
-   * @return
    */
   protected String getBodyAttributes() {
     return "";
