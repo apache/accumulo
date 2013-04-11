@@ -16,11 +16,13 @@
  */
 package org.apache.accumulo.test.randomwalk.concurrent;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -38,7 +40,8 @@ public class Merge extends Test {
     
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    
+    tableNames = new ArrayList<String>(tableNames);
+    tableNames.add(Constants.METADATA_TABLE_NAME);
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
     // TODO need to sometimes do null start and end ranges
