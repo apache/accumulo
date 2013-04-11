@@ -386,7 +386,6 @@
           <configuration>
             <encoding>UTF-8</encoding>
             <quiet>true</quiet>
-            <jarOutputDirectory>lib</jarOutputDirectory>
             <reportOutputDirectory>docs</reportOutputDirectory>
             <javadocVersion>1.6</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>

@@ -94,7 +94,7 @@ public class SecurityOperation {
   
   /**
    * 
-   * @Deprecated not for client use
+   * @deprecated not for client use
    */
   public SecurityOperation(String instanceId) {
     ZKUserPath = Constants.ZROOT + "/" + instanceId + "/users";

@@ -57,7 +57,7 @@ public class HdfsFileSystem extends AbstractFileSystem
     }
 
     /**
-     * @see org.apache.commons.vfs2.provider.AbstractFileSystem#addCapabilities(java .util.Collection)
+     * @see org.apache.commons.vfs2.provider.AbstractFileSystem#addCapabilities(java.util.Collection)
      */
     @Override
     protected void addCapabilities(final Collection<Capability> capabilities)
@@ -86,8 +86,7 @@ public class HdfsFileSystem extends AbstractFileSystem
     }
 
     /**
-     * @see org.apache.commons.vfs2.provider.AbstractFileSystem#createFile(org.apache
-     *      .commons.vfs2.provider.AbstractFileName)
+     * @see org.apache.commons.vfs2.provider.AbstractFileSystem#createFile(org.apache.commons.vfs2.provider.AbstractFileName)
      */
     @Override
     protected FileObject createFile(final AbstractFileName name) throws Exception
@@ -96,7 +95,7 @@ public class HdfsFileSystem extends AbstractFileSystem
     }
 
     /**
-     * @see org.apache.commons.vfs2.provider.AbstractFileSystem#resolveFile(org.apache .commons.vfs2.FileName)
+     * @see org.apache.commons.vfs2.provider.AbstractFileSystem#resolveFile(org.apache.commons.vfs2.FileName)
      */
     @Override
     public FileObject resolveFile(final FileName name) throws FileSystemException
