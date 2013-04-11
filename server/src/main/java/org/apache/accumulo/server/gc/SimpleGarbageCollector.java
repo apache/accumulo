@@ -110,8 +110,6 @@ public class SimpleGarbageCollector implements Iface {
     boolean offline = false;
     @Parameter(names={"-a", "--address"}, description="specify our local address")
     String address = null;
-    @Parameter(names={"--no-trash"}, description="do not use the Trash, even if it is configured")
-    boolean noTrash = false;
   }
 
   // how much of the JVM's available memory should it use gathering candidates
@@ -157,7 +155,7 @@ public class SimpleGarbageCollector implements Iface {
     if (opts.address != null)
       gc.useAddress(address);
     
-    gc.init(fs, instance, SecurityConstants.getSystemCredentials(), opts.noTrash);
+    gc.init(fs, instance, SecurityConstants.getSystemCredentials(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
     Accumulo.enableTracing(address, "gc");
     gc.run();
   }
