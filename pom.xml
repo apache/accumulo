@@ -104,6 +104,7 @@
     </site>
   </distributionManagement>
   <properties>
+    <autoVersionSubmodules>true</autoVersionSubmodules>
     <maven.min-version>3.0.3</maven.min-version>
     <powermock.version>1.5</powermock.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -378,7 +379,6 @@
                 <Sealed>${sealJars}</Sealed>
               </manifestEntries>
             </archive>
-            <outputDirectory>../lib</outputDirectory>
           </configuration>
         </plugin>
         <plugin>
@@ -533,7 +533,7 @@
             <goals>
               <goal>copy-dependencies</goal>
             </goals>
-            <phase>process-resources</phase>
+            <phase>prepare-package</phase>
             <configuration>
               <outputDirectory>../lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->

@@ -30,42 +30,50 @@
     <jnilib>**/*.jnilib</jnilib>
     <so>**/*.so</so>
   </properties>
-  <!-- NOTE: These dependency declarations are only required to sort this project to the end of the line in the multimodule build. Since we only include the child 
-    modules in our assembly, we only need to ensure this distribution project builds AFTER those... -->
   <dependencies>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <scope>provided</scope>
-    </dependency>
+    <!--
+       NOTE: These dependency declarations are required to sort
+       this project to the end of the line in the multimodule
+       build.
+       Further, the dependencies for Accumulo artifacts must be
+       here so they will be copied into the lib directory for
+       the binary distribution assemblies.
+   -->
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-examples-simple</artifactId>
-      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-fate</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-proxy</artifactId>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-server</artifactId>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
-      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-test</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-trace</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
       <scope>provided</scope>
     </dependency>
   </dependencies>
