@@ -842,7 +842,7 @@
       <id>apache-release</id>
       <activation>
         <property>
-          <name>skipJars</name>
+          <name>skipTests</name>
           <value>!false</value>
         </property>
       </activation>
