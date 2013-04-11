@@ -50,7 +50,7 @@
         <include>**/*.pl</include>
         <include>**/*.sh</include>
         <include>**/*.example</include>
-        <include>${so}</include>
+        <include>**/*.so</include>
       </includes>
       <excludes>
         <exclude>**/target</exclude>
@@ -109,8 +109,6 @@
         <exclude>**/randomwalk/conf/logger.xml</exclude>
         <exclude>**/randomwalk/conf/randomwalk.conf</exclude>
         <exclude>**/randomwalk/conf/walkers</exclude>
-        <exclude>${so}</exclude>
-        <exclude>${jnilib}</exclude>
       </excludes>
       <fileMode>0644</fileMode>
       <directoryMode>0755</directoryMode>
