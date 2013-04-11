@@ -837,7 +837,15 @@
       </dependencyManagement>
     </profile>
     <profile>
-      <id>release</id>
+      <!-- Seal jars when either the apache-release profile is
+           activated or when tests are skipped -->
+      <id>apache-release</id>
+      <activation>
+        <property>
+          <name>skipTests</name>
+          <value>!false</value>
+        </property>
+      </activation>
       <properties>
         <sealJars>true</sealJars>
         <skipTests>true</skipTests>
