@@ -80,7 +80,7 @@ logger)  export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_LOGGER_OPTS}"
 esac
 
 XML_FILES=${ACCUMULO_HOME}/conf
-LOG4J_JAR=$(ls $HADOOP_PREFIX/lib/log4j-*.jar | head -1)
+LOG4J_JAR=$(find $HADOOP_PREFIX/lib $HADOOP_PREFIX/share/hadoop/common/lib -name 'log4j*.jar' -print 2>/dev/null | head -1)
 CLASSPATH=${XML_FILES}:${START_JAR}:${LOG4J_JAR}
 
 if [ -z "$JAVA_HOME" -o ! -d "$JAVA_HOME" ]; then
