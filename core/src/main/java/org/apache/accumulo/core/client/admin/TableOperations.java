@@ -175,7 +175,7 @@ public interface TableOperations {
    *          specifies the maximum number of splits to return
    * @return the split points (end-row names) for the table's current split profile, grouped into fewer splits so as not to exceed maxSplits
    * @throws TableNotFoundException
-   * @deprecated since 1.5.0; use {@link #listSplits(String, int))} instead.
+   * @deprecated since 1.5.0; use {@link #listSplits(String, int)} instead.
    */
   @Deprecated
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException;
