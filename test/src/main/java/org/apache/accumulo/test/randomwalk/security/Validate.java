@@ -21,8 +21,8 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -64,7 +64,7 @@ public class Validate extends Test {
           accuHasSp = conn.securityOperations().hasSystemPermission(user, sp);
           log.debug("Just checked to see if user " + user + " has system perm " + sp.name() + " with answer " + accuHasSp);
         } catch (AccumuloSecurityException ae) {
-          if (ae.getErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
+          if (ae.getSecurityErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
             if (tableUserExists)
               throw new AccumuloException("Got user DNE error when they should", ae);
             else
@@ -83,12 +83,12 @@ public class Validate extends Test {
           accuHasTp = conn.securityOperations().hasTablePermission(user, WalkingSecurity.get(state).getTableName(), tp);
           log.debug("Just checked to see if user " + user + " has table perm " + tp.name() + " with answer " + accuHasTp);
         } catch (AccumuloSecurityException ae) {
-          if (ae.getErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
+          if (ae.getSecurityErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
             if (tableUserExists)
               throw new AccumuloException("Got user DNE error when they should", ae);
             else
               continue;
-          } else if (ae.getErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST)) {
+          } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST)) {
             if (tableExists)
               throw new AccumuloException("Got table DNE when it should", ae);
             else

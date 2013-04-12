@@ -62,7 +62,7 @@ public class AlterSystemPerm extends Test {
       try {
         conn.securityOperations().revokeSystemPermission(targetUser, sysPerm);
       } catch (AccumuloSecurityException ae) {
-        switch (ae.getErrorCode()) {
+        switch (ae.getSecurityErrorCode()) {
           case GRANT_INVALID:
             if (sysPerm.equals(SystemPermission.GRANT))
               return;
@@ -80,7 +80,7 @@ public class AlterSystemPerm extends Test {
       try {
         conn.securityOperations().grantSystemPermission(targetUser, sysPerm);
       } catch (AccumuloSecurityException ae) {
-        switch (ae.getErrorCode()) {
+        switch (ae.getSecurityErrorCode()) {
           case GRANT_INVALID:
             if (sysPerm.equals(SystemPermission.GRANT))
               return;

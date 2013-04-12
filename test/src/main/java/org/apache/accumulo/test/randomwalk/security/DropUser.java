@@ -38,7 +38,7 @@ public class DropUser extends Test {
     try {
       conn.securityOperations().dropLocalUser(tableUserName);
     } catch (AccumuloSecurityException ae) {
-      switch (ae.getErrorCode()) {
+      switch (ae.getSecurityErrorCode()) {
         case PERMISSION_DENIED:
           if (hasPermission)
             throw new AccumuloException("Got a security exception when I should have had permission.", ae);

@@ -38,7 +38,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -119,7 +119,7 @@ public class PermissionsTest {
             test_user_conn.tableOperations().create(tableName);
             throw new IllegalStateException("Should NOT be able to create a table");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.tableOperations().list().contains(tableName))
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.tableOperations().list().contains(tableName))
               throw e;
           }
           break;
@@ -130,7 +130,7 @@ public class PermissionsTest {
             test_user_conn.tableOperations().delete(tableName);
             throw new IllegalStateException("Should NOT be able to delete a table");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableOperations().list().contains(tableName))
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableOperations().list().contains(tableName))
               throw e;
           }
           break;
@@ -142,7 +142,7 @@ public class PermissionsTest {
             test_user_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
             throw new IllegalStateException("Should NOT be able to set a table property");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
                 || ServerConfiguration.getTableConfiguration(root_conn.getInstance(), tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
               throw e;
           }
@@ -151,7 +151,7 @@ public class PermissionsTest {
             test_user_conn.tableOperations().removeProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey());
             throw new IllegalStateException("Should NOT be able to remove a table property");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
                 || !ServerConfiguration.getTableConfiguration(root_conn.getInstance(), tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
               throw e;
           }
@@ -160,7 +160,7 @@ public class PermissionsTest {
             test_user_conn.tableOperations().rename(tableName, table2);
             throw new IllegalStateException("Should NOT be able to rename a table");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableOperations().list().contains(tableName)
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableOperations().list().contains(tableName)
                 || root_conn.tableOperations().list().contains(table2))
               throw e;
           }
@@ -171,7 +171,8 @@ public class PermissionsTest {
             test_user_conn.securityOperations().createLocalUser(user, new PasswordToken(password));
             throw new IllegalStateException("Should NOT be able to create a user");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.securityOperations().authenticateUser(user, new PasswordToken(password)))
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+                || root_conn.securityOperations().authenticateUser(user, new PasswordToken(password)))
               throw e;
           }
           break;
@@ -182,7 +183,8 @@ public class PermissionsTest {
             test_user_conn.securityOperations().dropLocalUser(user);
             throw new IllegalStateException("Should NOT be able to delete a user");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().authenticateUser(user, new PasswordToken(password)))
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+                || !root_conn.securityOperations().authenticateUser(user, new PasswordToken(password)))
               throw e;
           }
           break;
@@ -193,7 +195,7 @@ public class PermissionsTest {
             test_user_conn.securityOperations().changeUserAuthorizations(user, new Authorizations("A", "B"));
             throw new IllegalStateException("Should NOT be able to alter a user");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().getUserAuthorizations(user).isEmpty())
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().getUserAuthorizations(user).isEmpty())
               throw e;
           }
           break;
@@ -376,7 +378,7 @@ public class PermissionsTest {
               throw new IllegalStateException("Should NOT be able to read from the table");
           } catch (RuntimeException e) {
             AccumuloSecurityException se = (AccumuloSecurityException) e.getCause();
-            if (se.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            if (se.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
               throw se;
           }
           break;
@@ -390,11 +392,12 @@ public class PermissionsTest {
               writer.close();
             } catch (MutationsRejectedException e1) {
               if (e1.getAuthorizationFailuresMap().size() > 0)
-                throw new AccumuloSecurityException(test_user_conn.whoami(), SecurityErrorCode.PERMISSION_DENIED, e1);
+                throw new AccumuloSecurityException(test_user_conn.whoami(), org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.PERMISSION_DENIED,
+                    e1);
             }
             throw new IllegalStateException("Should NOT be able to write to a table");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
               throw e;
           }
           break;
@@ -408,7 +411,7 @@ public class PermissionsTest {
             test_user_conn.tableOperations().setLocalityGroups(TEST_TABLE, groups);
             throw new IllegalStateException("User should not be able to set locality groups");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
               throw e;
           }
           break;
@@ -417,7 +420,7 @@ public class PermissionsTest {
             test_user_conn.tableOperations().delete(TEST_TABLE);
             throw new IllegalStateException("User should not be able delete the table");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
               throw e;
           }
           break;
@@ -426,7 +429,7 @@ public class PermissionsTest {
             test_user_conn.securityOperations().grantTablePermission("root", TEST_TABLE, TablePermission.GRANT);
             throw new IllegalStateException("User should not be able grant permissions");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
               throw e;
           }
           break;

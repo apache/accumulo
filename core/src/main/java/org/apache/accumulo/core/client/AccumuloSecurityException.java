@@ -156,9 +156,20 @@ public class AccumuloSecurityException extends Exception {
   
   /**
    * @return the specific reason for this exception
+   * @since 1.5.0
    */
-  public SecurityErrorCode getErrorCode() {
-    return errorCode;
+
+  public org.apache.accumulo.core.client.security.SecurityErrorCode getSecurityErrorCode() {
+    return org.apache.accumulo.core.client.security.SecurityErrorCode.valueOf(errorCode.name());
+  }
+
+  /**
+   * @return the specific reason for this exception
+   * 
+   * @deprecated since 1.5.0; Use {@link #getSecurityErrorCode()} instead.
+   */
+  public org.apache.accumulo.core.security.thrift.SecurityErrorCode getErrorCode() {
+    return org.apache.accumulo.core.security.thrift.SecurityErrorCode.valueOf(errorCode.name());
   }
   
   public String getMessage() {

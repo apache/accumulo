@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -99,13 +99,13 @@ public class TableOp extends Test {
             throw new AccumuloException("Accumulo and test suite out of sync: table " + tableName, tnfe);
           return;
         } catch (AccumuloSecurityException ae) {
-          if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
+          if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
             if (canRead && !ambiguousZone)
               throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, ae);
             else
               return;
           }
-          if (ae.getErrorCode().equals(SecurityErrorCode.BAD_AUTHORIZATIONS)) {
+          if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_AUTHORIZATIONS)) {
             if (ambiguousAuths)
               return;
             else
@@ -114,14 +114,14 @@ public class TableOp extends Test {
           throw new AccumuloException("Unexpected exception!", ae);
         } catch (RuntimeException re) {
           if (re.getCause() instanceof AccumuloSecurityException
-              && ((AccumuloSecurityException) re.getCause()).getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
+              && ((AccumuloSecurityException) re.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
             if (canRead && !ambiguousZone)
               throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, re.getCause());
             else
               return;
           }
           if (re.getCause() instanceof AccumuloSecurityException
-              && ((AccumuloSecurityException) re.getCause()).getErrorCode().equals(SecurityErrorCode.BAD_AUTHORIZATIONS)) {
+              && ((AccumuloSecurityException) re.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.BAD_AUTHORIZATIONS)) {
             if (ambiguousAuths)
               return;
             else
@@ -213,11 +213,11 @@ public class TableOp extends Test {
             throw new AccumuloException("Table didn't exist when it should have: " + tableName);
           return;
         } catch (AccumuloSecurityException ae) {
-          if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
+          if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
             if (WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableName))
               throw new AccumuloException("Bulk Import failed when it should have worked: " + tableName);
             return;
-          } else if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
+          } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
             if (WalkingSecurity.get(state).userPassTransient(conn.whoami()))
               return;
           }

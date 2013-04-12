@@ -62,7 +62,7 @@ public class Authenticate extends Test {
     try {
       result = conn.securityOperations().authenticateUser(target, new PasswordToken(password));
     } catch (AccumuloSecurityException ae) {
-      switch (ae.getErrorCode()) {
+      switch (ae.getSecurityErrorCode()) {
         case PERMISSION_DENIED:
           if (exists && hasPermission)
             throw new AccumuloException("Got a security exception when I should have had permission.", ae);

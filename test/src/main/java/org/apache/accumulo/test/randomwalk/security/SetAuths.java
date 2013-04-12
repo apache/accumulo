@@ -75,7 +75,7 @@ public class SetAuths extends Test {
     try {
       conn.securityOperations().changeUserAuthorizations(target, auths);
     } catch (AccumuloSecurityException ae) {
-      switch (ae.getErrorCode()) {
+      switch (ae.getSecurityErrorCode()) {
         case PERMISSION_DENIED:
           if (hasPermission)
             throw new AccumuloException("Got a security exception when I should have had permission.", ae);

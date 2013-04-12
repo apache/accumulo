@@ -90,7 +90,7 @@ public class AlterTablePerm extends Test {
         else
           action = "give";
       } catch (AccumuloSecurityException ae) {
-        switch (ae.getErrorCode()) {
+        switch (ae.getSecurityErrorCode()) {
           case USER_DOESNT_EXIST:
             if (exists)
               throw new AccumuloException("Framework and Accumulo are out of sync, we think user exists", ae);
@@ -112,7 +112,7 @@ public class AlterTablePerm extends Test {
       try {
         conn.securityOperations().revokeTablePermission(target, tableName, tabPerm);
       } catch (AccumuloSecurityException ae) {
-        switch (ae.getErrorCode()) {
+        switch (ae.getSecurityErrorCode()) {
           case GRANT_INVALID:
             throw new AccumuloException("Got a grant invalid on non-System.GRANT option", ae);
           case PERMISSION_DENIED:
@@ -140,7 +140,7 @@ public class AlterTablePerm extends Test {
       try {
         conn.securityOperations().grantTablePermission(target, tableName, tabPerm);
       } catch (AccumuloSecurityException ae) {
-        switch (ae.getErrorCode()) {
+        switch (ae.getSecurityErrorCode()) {
           case GRANT_INVALID:
             throw new AccumuloException("Got a grant invalid on non-System.GRANT option", ae);
           case PERMISSION_DENIED:
