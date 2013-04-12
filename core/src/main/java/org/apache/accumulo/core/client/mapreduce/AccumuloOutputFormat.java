@@ -45,8 +45,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -65,7 +63,7 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, String, AuthenticationToken)} OR {@link AccumuloOutputFormat#setConnectorInfo(Job, Path)}
+ * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, String, AuthenticationToken)}
  * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(Job, String)}
  * </ul>
  * 
@@ -97,23 +95,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
-   * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
-   * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
-   * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link CredentialHelper#asBase64String(org.apache.accumulo.core.security.thrift.TCredentials)}.
-   * 
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AuthenticationToken} with the user's
-   *          authentication
-   * @since 1.5.0
-   */
-  public static void setConnectorInfo(Job job, Path path) {
-    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), path);
-  }
-  
-  /**
    * Determines if the connector has been configured.
    * 
    * @param context
@@ -121,7 +102,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
-   * @see #setConnectorInfo(Job, Path)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
     return OutputConfigurator.isConnectorInfoSet(CLASS, context.getConfiguration());
@@ -135,7 +115,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @return the user name
    * @since 1.5.0
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
-   * @see #setConnectorInfo(Job, Path)
    */
   protected static String getPrincipal(JobContext context) {
     return OutputConfigurator.getPrincipal(CLASS, context.getConfiguration());
@@ -149,7 +128,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @return the user name
    * @since 1.5.0
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
-   * @see #setConnectorInfo(Job, Path)
    */
   protected static String getTokenClass(JobContext context) {
     return OutputConfigurator.getTokenClass(CLASS, context.getConfiguration());
@@ -544,8 +522,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   // ----------------------------------------------------------------------------------------------------
   
   /**
-   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, String, AuthenticationToken)}, {@link #setConnectorInfo(Job, Path)},
-   *             {@link #setCreateTables(Job, boolean)}, and {@link #setDefaultTableName(Job, String)} instead.
+   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, String, AuthenticationToken)}, {@link #setCreateTables(Job, boolean)}, and
+   *             {@link #setDefaultTableName(Job, String)} instead.
    */
   @Deprecated
   public static void setOutputInfo(Configuration conf, String user, byte[] passwd, boolean createTables, String defaultTable) {

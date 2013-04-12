@@ -70,8 +70,6 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -119,23 +117,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
-   * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
-   * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link CredentialHelper#asBase64String(TCredentials)}.
-   * 
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AuthenticationToken} with the user's
-   *          authentication
-   * @since 1.5.0
-   */
-  public static void setConnectorInfo(Job job, Path path) {
-    InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), path);
-  }
-  
-  /**
    * Determines if the connector has been configured.
    * 
    * @param context
@@ -143,7 +124,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
-   * @see #setConnectorInfo(Job, Path)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
     return InputConfigurator.isConnectorInfoSet(CLASS, context.getConfiguration());
@@ -157,7 +137,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @return the user name
    * @since 1.5.0
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
-   * @see #setConnectorInfo(Job, Path)
    */
   protected static String getPrincipal(JobContext context) {
     return InputConfigurator.getPrincipal(CLASS, context.getConfiguration());
@@ -171,7 +150,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @return the user name
    * @since 1.5.0
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
-   * @see #setConnectorInfo(Job, Path)
    */
   protected static String getTokenClass(JobContext context) {
     return InputConfigurator.getTokenClass(CLASS, context.getConfiguration());

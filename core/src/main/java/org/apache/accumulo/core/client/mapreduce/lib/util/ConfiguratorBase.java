@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
-import java.net.URI;
 import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -28,8 +27,6 @@ import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -45,7 +42,7 @@ public class ConfiguratorBase {
    * @since 1.5.0
    */
   public static enum ConnectorInfo {
-    IS_CONFIGURED, PRINCIPAL, TOKEN, CREDENTIALS_IN_CACHE_FILE, TOKEN_CLASS
+    IS_CONFIGURED, PRINCIPAL, TOKEN, TOKEN_CLASS
   }
   
   /**
@@ -111,33 +108,6 @@ public class ConfiguratorBase {
   }
   
   /**
-   * Sets the connector information needed to communicate with Accumulo in this job. The authentication information will be read from the specified file when
-   * the job runs. This prevents the user's token from being exposed on the Job Tracker web page. The specified path will be placed in the
-   * {@link DistributedCache}, for better performance during job execution. Users can create the contents of this file using
-   * {@link CredentialHelper#asBase64String(org.apache.accumulo.core.security.thrift.TCredentials)}.
-   * 
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param path
-   *          the path to a file in the configured file system, containing the serialized, base-64 encoded {@link AuthenticationToken} with the user's
-   *          authentication
-   * @since 1.5.0
-   */
-  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, Path path) {
-    if (isConnectorInfoSet(implementingClass, conf))
-      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
-    
-    ArgumentChecker.notNull(path);
-    URI uri = path.toUri();
-    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
-    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.CREDENTIALS_IN_CACHE_FILE), true);
-    DistributedCache.addCacheFile(uri, conf);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), uri.getPath());
-  }
-  
-  /**
    * Determines if the connector info has already been set for this instance.
    * 
    * @param implementingClass
@@ -147,7 +117,6 @@ public class ConfiguratorBase {
    * @return true if the connector info has already been set, false otherwise
    * @since 1.5.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
-   * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static Boolean isConnectorInfoSet(Class<?> implementingClass, Configuration conf) {
     return conf.getBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), false);
@@ -163,7 +132,6 @@ public class ConfiguratorBase {
    * @return the principal
    * @since 1.5.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
-   * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
     return conf.get(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL));
@@ -179,7 +147,6 @@ public class ConfiguratorBase {
    * @return the principal
    * @since 1.5.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
-   * @see #setConnectorInfo(Class, Configuration, Path)
    */
   public static String getTokenClass(Class<?> implementingClass, Configuration conf) {
     return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS));
