@@ -587,14 +587,16 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   final static String METADATA_TABLE_DIR = "/" + Constants.METADATA_TABLE_ID;
-  private static Mutation getMarkerDeleteMutation(final String delete) {
-    String prefix = Constants.METADATA_DELETE_FLAG_PREFIX;
-    if (delete.startsWith(METADATA_TABLE_DIR))
-      prefix = Constants.METADATA_DELETE_FLAG_FOR_METADATA_PREFIX;
-
-    Mutation m = new Mutation(new Text(prefix + delete));
-    m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
-    return m;
+  private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer, final BatchWriter rootWriter) throws MutationsRejectedException {
+    if (delete.startsWith(METADATA_TABLE_DIR)) {
+      Mutation m = new Mutation(new Text(Constants.METADATA_DELETE_FLAG_FOR_METADATA_PREFIX + delete));
+      m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
+      rootWriter.addMutation(m);
+    } else {
+      Mutation m = new Mutation(new Text(Constants.METADATA_DELETE_FLAG_PREFIX + delete));
+      m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
+      writer.addMutation(m);
+    }
   }
 
   /**
@@ -602,13 +604,15 @@ public class SimpleGarbageCollector implements Iface {
    */
   private void deleteFiles(SortedSet<String> confirmedDeletes) {
     // create a batchwriter to remove the delete flags for successful
-    // deletes
+    // deletes; Need separate writer for the root tablet.
     BatchWriter writer = null;
+    BatchWriter rootWriter = null;
     if (!offline) {
       Connector c;
       try {
         c = instance.getConnector(SecurityConstants.SYSTEM_PRINCIPAL, SecurityConstants.getSystemToken());
         writer = c.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+        rootWriter = c.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
       } catch (Exception e) {
         log.error("Unable to create writer to remove file from the !METADATA table", e);
       }
@@ -626,7 +630,7 @@ public class SimpleGarbageCollector implements Iface {
         if (delete.startsWith(lastDir)) {
           log.debug("Ignoring " + delete + " because " + lastDir + " exist");
           try {
-            writer.addMutation(getMarkerDeleteMutation(delete));
+            putMarkerDeleteMutation(delete, writer, rootWriter);
           } catch (MutationsRejectedException e) {
             throw new RuntimeException(e);
           }
@@ -639,6 +643,7 @@ public class SimpleGarbageCollector implements Iface {
     }
     
     final BatchWriter finalWriter = writer;
+    final BatchWriter finalRootWriter = rootWriter;
     
     ExecutorService deleteThreadPool = Executors.newFixedThreadPool(numDeleteThreads, new NamingThreadFactory("deleting"));
     
@@ -695,7 +700,7 @@ public class SimpleGarbageCollector implements Iface {
             // proceed to clearing out the flags for successful deletes and
             // non-existent files
             if (removeFlag && finalWriter != null) {
-              finalWriter.addMutation(getMarkerDeleteMutation(delete));
+              putMarkerDeleteMutation(delete, finalWriter, finalRootWriter);
             }
           } catch (Exception e) {
             log.error(e, e);
