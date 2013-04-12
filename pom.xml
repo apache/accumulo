@@ -842,7 +842,6 @@
       <activation>
         <property>
           <name>skipTests</name>
-          <value>!false</value>
         </property>
       </activation>
       <properties>
