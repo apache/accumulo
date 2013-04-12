@@ -64,6 +64,8 @@ public class MergeStats {
   }
 
   public void update(KeyExtent ke, TabletState state, boolean chopped, boolean hasWALs) {
+    if (ke.isRootTablet())
+      return;
     if (info.getState().equals(MergeState.NONE))
       return;
     if (!upperSplit && info.getRange().getEndRow().equals(ke.getPrevEndRow())) {
@@ -103,11 +105,6 @@ public class MergeStats {
     }
     if (total == 0) {
       log.info("failed to see any tablets for this range, ignoring " + info.getRange());
-      return state;
-    }
-    if (total == 1 && info.getRange().isMeta()) {
-      // root tablet watcher trying to merge metadata tablets it won't even scan
-      log.debug("ignoring merge of " + info.getRange());
       return state;
     }
     if (state == MergeState.SPLITTING) {
