@@ -691,13 +691,8 @@
     </profile>
     <profile>
       <!-- Automatically check for licenses.
-           Deactivate with -DskipLicenseCheck -->
+           Activate with -P check-licenses -->
       <id>check-licenses</id>
-      <activation>
-        <property>
-          <name>!skipLicenseCheck</name>
-        </property>
-      </activation>
       <build>
         <plugins>
           <plugin>
@@ -836,18 +831,29 @@
       </dependencyManagement>
     </profile>
     <profile>
-      <!-- Seal jars when either the apache-release profile is
-           activated or when tests are skipped -->
+      <!-- Seal jars, skip tests, and do license checks when
+           the apache-release profile is activated. -->
       <id>apache-release</id>
-      <activation>
-        <property>
-          <name>skipTests</name>
-        </property>
-      </activation>
       <properties>
         <sealJars>true</sealJars>
         <skipTests>true</skipTests>
       </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.rat</groupId>
+            <artifactId>apache-rat-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+                <phase>verify</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>
