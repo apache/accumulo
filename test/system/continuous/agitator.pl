@@ -133,7 +133,7 @@ while(1){
 	print STDERR "$t Running tup\n";
 	system("$ACCUMULO_HOME/bin/tup.sh");
 	print STDERR "$t Running start-dfs\n";
-	system("$HADOOP_PREFIX/bin/start-dfs.sh");
+	system("$HADOOP_PREFIX/*bin/start-dfs.sh");
 
   $nextsleep1 = int(rand($sleep1max - $sleep1)) + $sleep1;
   sleep($nextsleep1 * 60);
