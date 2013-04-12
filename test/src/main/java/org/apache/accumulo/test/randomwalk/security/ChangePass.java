@@ -67,7 +67,7 @@ public class ChangePass extends Test {
     try {
       conn.securityOperations().changeLocalUserPassword(target, newPass);
     } catch (AccumuloSecurityException ae) {
-      switch (ae.getErrorCode()) {
+      switch (ae.getSecurityErrorCode()) {
         case PERMISSION_DENIED:
           if (hasPerm)
             throw new AccumuloException("Change failed when it should have succeeded to change " + target + "'s password", ae);

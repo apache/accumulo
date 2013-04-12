@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -49,12 +49,12 @@ public class AlterTable extends Test {
     try {
       conn.tableOperations().rename(oldName, newName);
     } catch (AccumuloSecurityException ae) {
-      if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
+      if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
         if (hasPermission)
           throw new AccumuloException("Got a security exception when I should have had permission.", ae);
         else
           return;
-      } else if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
+      } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
         if (WalkingSecurity.get(state).userPassTransient(conn.whoami()))
           return;
       }
