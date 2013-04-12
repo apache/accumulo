@@ -407,7 +407,7 @@ public class Initialize {
       return opts.cliUser;
     }
     String rootuser;
-    rootuser = getConsoleReader().readLine("Enter name for initial root user ( " + DEFAULT_ROOT_USER + "): ", '*');
+    rootuser = getConsoleReader().readLine("Enter name for initial root user (" + DEFAULT_ROOT_USER + "): ", '*');
     if (rootuser == null)
       System.exit(0);
     if (rootuser.equals(""))
