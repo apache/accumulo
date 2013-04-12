@@ -20,8 +20,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -438,23 +442,37 @@ public class SimpleGarbageCollector implements Iface {
       }
       return candidates;
     }
-    
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
 
+    checkForBulkProcessingFiles = false;
+    Range range = Constants.METADATA_DELETES_FOR_METADATA_KEYSPACE;
+    candidates.addAll(getBatch(Constants.METADATA_DELETE_FLAG_FOR_METADATA_PREFIX, range));
+    if (candidateMemExceeded)
+      return candidates;
+    
+    range = Constants.METADATA_DELETES_KEYSPACE;
+    candidates.addAll(getBatch(Constants.METADATA_DELETE_FLAG_PREFIX, range));
+    return candidates;
+  }
+
+  private Collection<String> getBatch(String prefix, Range range) throws Exception {
+    // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them, 
+    // then will never inspect deletes after N
     if (continueKey != null) {
-      // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them, then will never inspect deletes after N
-      scanner.setRange(new Range(continueKey, true, Constants.METADATA_DELETES_KEYSPACE.getEndKey(), Constants.METADATA_DELETES_KEYSPACE.isEndKeyInclusive()));
+      if (!range.contains(continueKey)) {
+        // continue key is for some other range
+        return Collections.emptyList();
+      }
+      range = new Range(continueKey, true, range.getEndKey(), range.isEndKeyInclusive());
       continueKey = null;
-    } else {
-      // scan the reserved keyspace for deletes
-      scanner.setRange(Constants.METADATA_DELETES_KEYSPACE);
     }
     
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    scanner.setRange(range);
+    List<String> result = new ArrayList<String>();
     // find candidates for deletion; chop off the prefix
-    checkForBulkProcessingFiles = false;
     for (Entry<Key,Value> entry : scanner) {
-      String cand = entry.getKey().getRow().toString().substring(Constants.METADATA_DELETE_FLAG_PREFIX.length());
-      candidates.add(cand);
+      String cand = entry.getKey().getRow().toString().substring(prefix.length());
+      result.add(cand);
       checkForBulkProcessingFiles |= cand.toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
       if (almostOutOfMemory()) {
         candidateMemExceeded = true;
@@ -464,7 +482,7 @@ public class SimpleGarbageCollector implements Iface {
       }
     }
     
-    return candidates;
+    return result;
   }
   
   static public boolean almostOutOfMemory() {
@@ -567,7 +585,18 @@ public class SimpleGarbageCollector implements Iface {
       }
     }
   }
-  
+
+  final static String METADATA_TABLE_DIR = "/" + Constants.METADATA_TABLE_ID;
+  private static Mutation getMarkerDeleteMutation(final String delete) {
+    String prefix = Constants.METADATA_DELETE_FLAG_PREFIX;
+    if (delete.startsWith(METADATA_TABLE_DIR))
+      prefix = Constants.METADATA_DELETE_FLAG_FOR_METADATA_PREFIX;
+
+    Mutation m = new Mutation(new Text(prefix + delete));
+    m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
+    return m;
+  }
+
   /**
    * This method attempts to do its best to remove files from the filesystem that have been confirmed for deletion.
    */
@@ -584,7 +613,6 @@ public class SimpleGarbageCollector implements Iface {
         log.error("Unable to create writer to remove file from the !METADATA table", e);
       }
     }
-    
     // when deleting a dir and all files in that dir, only need to delete the dir
     // the dir will sort right before the files... so remove the files in this case
     // to minimize namenode ops
@@ -597,10 +625,8 @@ public class SimpleGarbageCollector implements Iface {
       } else if (lastDir != null) {
         if (delete.startsWith(lastDir)) {
           log.debug("Ignoring " + delete + " because " + lastDir + " exist");
-          Mutation m = new Mutation(new Text(Constants.METADATA_DELETE_FLAG_PREFIX + delete));
-          m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
           try {
-            writer.addMutation(m);
+            writer.addMutation(getMarkerDeleteMutation(delete));
           } catch (MutationsRejectedException e) {
             throw new RuntimeException(e);
           }
@@ -623,10 +649,11 @@ public class SimpleGarbageCollector implements Iface {
         public void run() {
           boolean removeFlag;
           
-          log.debug("Deleting " + ServerConstants.getTablesDir() + delete);
+          String fullPath = ServerConstants.getTablesDir() + delete;
+          log.debug("Deleting " + fullPath);
           try {
             
-            Path p = new Path(ServerConstants.getTablesDir() + delete);
+            Path p = new Path(fullPath);
             
             if (moveToTrash(p) || fs.delete(p, true)) {
               // delete succeeded, still want to delete
@@ -668,15 +695,14 @@ public class SimpleGarbageCollector implements Iface {
             // proceed to clearing out the flags for successful deletes and
             // non-existent files
             if (removeFlag && finalWriter != null) {
-              Mutation m = new Mutation(new Text(Constants.METADATA_DELETE_FLAG_PREFIX + delete));
-              m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
-              finalWriter.addMutation(m);
+              finalWriter.addMutation(getMarkerDeleteMutation(delete));
             }
           } catch (Exception e) {
             log.error(e, e);
           }
           
         }
+
       };
       
       deleteThreadPool.execute(deleteTask);

@@ -101,8 +101,10 @@ public class MetadataConstraints implements Constraint {
     
     byte[] row = mutation.getRow();
     
-    // always allow rows that fall within reserved area
+    // always allow rows that fall within reserved areas
     if (row.length > 0 && row[0] == '~')
+      return null;
+    if (row.length > 2 && row[0] == '!' && row[1] == '!' && row[2] == '~')
       return null;
     
     for (byte b : row) {

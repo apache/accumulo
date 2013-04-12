@@ -97,7 +97,9 @@ public class Constants {
   public static final Key METADATA_RESERVED_KEYSPACE_STOP_KEY = new Key(new Text(new byte[] {'~' + 1}));
   public static final Range METADATA_RESERVED_KEYSPACE = new Range(METADATA_RESERVED_KEYSPACE_START_KEY, true, METADATA_RESERVED_KEYSPACE_STOP_KEY, false);
   public static final String METADATA_DELETE_FLAG_PREFIX = "~del";
+  public static final String METADATA_DELETE_FLAG_FOR_METADATA_PREFIX = "!!" + METADATA_DELETE_FLAG_PREFIX;
   public static final Range METADATA_DELETES_KEYSPACE = new Range(new Key(new Text(METADATA_DELETE_FLAG_PREFIX)), true, new Key(new Text("~dem")), false);
+  public static final Range METADATA_DELETES_FOR_METADATA_KEYSPACE = new Range(new Key(new Text(METADATA_DELETE_FLAG_FOR_METADATA_PREFIX)), true, new Key(new Text("!!~dem")), false);
   public static final String METADATA_BLIP_FLAG_PREFIX = "~blip"; // BLIP = bulk load in progress
   public static final Range METADATA_BLIP_KEYSPACE = new Range(new Key(new Text(METADATA_BLIP_FLAG_PREFIX)), true, new Key(new Text("~bliq")), false);
   
