@@ -108,6 +108,7 @@
     <maven.min-version>3.0.3</maven.min-version>
     <powermock.version>1.5</powermock.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <sealJars>false</sealJars>
     <!-- ZooKeeper 3.4.x works also, but we're not using new features yet; this ensures 3.3.x compatibility. -->
     <zookeeper.version>3.3.6</zookeeper.version>
@@ -559,6 +560,26 @@
                 </requireMavenVersion>
               </rules>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>run-integration-tests</id>
+            <goals>
+              <goal>integration-test</goal>
+            </goals>
+            <phase>integration-test</phase>
+          </execution>
+          <execution>
+            <id>verify-integration-tests</id>
+            <goals>
+              <goal>verify</goal>
+            </goals>
+            <phase>verify</phase>
           </execution>
         </executions>
       </plugin>
