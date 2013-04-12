@@ -479,11 +479,15 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   
   public static Mutation createDeleteMutation(String tableId, String pathToRemove) {
     Mutation delFlag;
+    String prefix = Constants.METADATA_DELETE_FLAG_PREFIX;
+    if (tableId.equals(Constants.METADATA_TABLE_ID))
+      prefix = Constants.METADATA_DELETE_FLAG_FOR_METADATA_PREFIX;
+
     if (pathToRemove.startsWith("../"))
-      delFlag = new Mutation(new Text(Constants.METADATA_DELETE_FLAG_PREFIX + pathToRemove.substring(2)));
+      delFlag = new Mutation(new Text(prefix + pathToRemove.substring(2)));
     else
-      delFlag = new Mutation(new Text(Constants.METADATA_DELETE_FLAG_PREFIX + "/" + tableId + pathToRemove));
-    
+      delFlag = new Mutation(new Text(prefix + "/" + tableId + pathToRemove));
+
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, new Value(new byte[] {}));
     return delFlag;
   }
