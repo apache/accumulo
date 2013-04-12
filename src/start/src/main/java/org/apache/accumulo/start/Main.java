@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.start;
 
+import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
 public class Main {
   
@@ -50,6 +50,8 @@ public class Main {
         runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.util.Admin");
       } else if (args[0].equals("gc")) {
         runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.gc.SimpleGarbageCollector");
+      } else if (args[0].equals("proxy")) {
+          runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.proxy.Proxy");
       } else if (args[0].equals("monitor")) {
         runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.monitor.Monitor");
       } else if (args[0].equals("logger")) {

@@ -16,15 +16,15 @@
  */
 package org.apache.accumulo.core.client.mock;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 
@@ -109,7 +109,6 @@ public class MockInstanceOperations implements InstanceOperations {
     try {
       AccumuloClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {
-      e.printStackTrace();
       return false;
     }
     return true;
