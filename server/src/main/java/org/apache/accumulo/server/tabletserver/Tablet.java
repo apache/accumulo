@@ -682,15 +682,7 @@ public class Tablet {
       if (extent.isRootTablet()) {
         throw new IllegalArgumentException("Can not import files to root tablet");
       }
-      
-      long bulkTime = 0;
-      if (setTime) {
-        for (DataFileValue dfv : paths.values()) {
-          bulkTime = tabletTime.getAndUpdateTime();
-          dfv.setTime(bulkTime);
-        }
-      }
-      
+
       synchronized (bulkFileImportLock) {
         TCredentials auths = SecurityConstants.getSystemCredentials();
         Connector conn;
@@ -705,13 +697,25 @@ public class Tablet {
           if (paths.keySet().remove(new Path(ServerConstants.getTablesDir() + "/" + extent.getTableId() + file)))
             log.debug("Ignoring request to re-import a file already imported: " + extent + ": " + file);
         
-        synchronized (timeLock) {
-          if (bulkTime > persistedTime)
-            persistedTime = bulkTime;
+        if (paths.size() > 0) {
+          long bulkTime = Long.MIN_VALUE;
+          if (setTime) {
+            for (DataFileValue dfv : paths.values()) {
+              long nextTime = tabletTime.getAndUpdateTime();
+              if (nextTime < bulkTime)
+                throw new IllegalStateException("Time went backwards unexpectedly " + nextTime + " " + bulkTime);
+              bulkTime = nextTime;
+              dfv.setTime(bulkTime);
+            }
+          }
+
+          synchronized (timeLock) {
+            if (bulkTime > persistedTime)
+              persistedTime = bulkTime;
           
-          MetadataTable.updateTabletDataFile(tid, extent, abs2rel(paths), tabletTime.getMetadataValue(persistedTime), auths, tabletServer.getLock());
+            MetadataTable.updateTabletDataFile(tid, extent, abs2rel(paths), tabletTime.getMetadataValue(persistedTime), auths, tabletServer.getLock());
+          }
         }
-        
       }
       
       synchronized (Tablet.this) {
