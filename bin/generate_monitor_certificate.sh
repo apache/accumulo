@@ -28,8 +28,8 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 . "$bin"/config.sh
 
 ALIAS="default"
-KEYPASS=$(cat /dev/random | head -c33 | uuencode -m foo | head -2 | tail +2)
-STOREPASS=$(cat /dev/random | head -c33 | uuencode -m foo | head -2 | tail +2)
+KEYPASS=$(tr -dc '#-~' < /dev/urandom | tr -d '<>' | head -c 20)
+STOREPASS=$(tr -dc '#-~' < /dev/urandom | tr -d '<>' | head -c 20)
 KEYSTOREPATH="$ACCUMULO_HOME/conf/keystore.jks"
 TRUSTSTOREPATH="$ACCUMULO_HOME/conf/cacerts.jks"
 CERTPATH="$ACCUMULO_HOME/conf/server.cer"
