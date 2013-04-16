@@ -204,6 +204,7 @@ public class LiveTServerSet implements Watcher {
   
   // Map from tserver master service to server information
   private Map<String,TServerInfo> current = new HashMap<String,TServerInfo>();
+  private Map<String,Long> locklessServers = new HashMap<String,Long>();
 
   public LiveTServerSet(Instance instance, AccumuloConfiguration conf, Listener cback) {
     this.cback = cback;
@@ -238,6 +239,8 @@ public class LiveTServerSet implements Watcher {
       HashSet<String> all = new HashSet<String>(current.keySet());
       all.addAll(getZooCache().getChildren(path));
       
+      locklessServers.keySet().retainAll(all);
+
       for (String server : all) {
         checkServer(updates, doomed, path, server);
       }
@@ -275,8 +278,15 @@ public class LiveTServerSet implements Watcher {
         current.remove(server);
       }
       
-      deleteServerNode(path + "/" + server);
+      Long firstSeen = locklessServers.get(server);
+      if (firstSeen == null) {
+        locklessServers.put(server, System.currentTimeMillis());
+      } else if (System.currentTimeMillis() - firstSeen > 600000) {
+        deleteServerNode(path + "/" + server);
+        locklessServers.remove(server);
+      }
     } else {
+      locklessServers.remove(server);
       ServerServices services = new ServerServices(new String(lockData));
       InetSocketAddress client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
       InetSocketAddress addr = AddressUtil.parseAddress(server, Property.TSERV_CLIENTPORT);
