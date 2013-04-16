@@ -301,6 +301,15 @@ public class SimpleGarbageCollector implements Iface {
       waLogs.stop();
       gcSpan.stop();
       
+      // we just made a lot of changes to the !METADATA table: flush them out
+      try {
+        AuthInfo creds = SecurityConstants.getSystemCredentials();
+        Connector connector = instance.getConnector(creds.getUser(), creds.getPassword());
+        connector.tableOperations().compact(Constants.METADATA_TABLE_NAME, null, null, true, true);
+      } catch (Exception e) {
+        log.warn(e, e);
+      }
+      
       Trace.offNoFlush();
       try {
         long gcDelay = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
