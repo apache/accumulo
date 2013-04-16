@@ -44,7 +44,6 @@ ACCUMULO_HOME = os.path.realpath(ACCUMULO_HOME)
 ACCUMULO_DIR = "/user/" + os.getenv('LOGNAME') + "/accumulo-" + ID
 SITE = "test-" + ID
 
-WALOG = os.path.join(ACCUMULO_HOME, 'walogs', ID)
 LOG_PROPERTIES= os.path.join(ACCUMULO_HOME, 'conf', 'log4j.properties')
 LOG_GENERIC = os.path.join(ACCUMULO_HOME, 'conf', 'generic_logger.xml')
 LOG_MONITOR = os.path.join(ACCUMULO_HOME, 'conf', 'monitor_logger.xml')
@@ -117,12 +116,14 @@ class TestUtilsMixin:
             os.environ['ACCUMULO_TSERVER_OPTS']='-Xmx800m -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75 '
             os.environ['ACCUMULO_GENERAL_OPTS']=('-Dorg.apache.accumulo.config.file=%s' % (SITE))
             os.environ['ACCUMULO_LOG_DIR']= ACCUMULO_HOME + '/logs/' + ID
+            os.environ['ACCUMULO_TEST']= "TEST"
             return Popen(cmd, stdout=PIPE, stderr=PIPE, **opts)
         else:
             cp = 'HADOOP_CLASSPATH=%s' % os.environ.get('HADOOP_CLASSPATH','')
             jo = "ACCUMULO_TSERVER_OPTS='-Xmx700m -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75 '"
             go = ("ACCUMULO_GENERAL_OPTS='-Dorg.apache.accumulo.config.file=%s'" % (SITE))
             ld = 'ACCUMULO_LOG_DIR=%s/logs/%s' % (ACCUMULO_HOME, ID)
+            os.environ['ACCUMULO_TEST']= "TEST"
             execcmd = ['ssh', '-q', host, cp, jo, go, ld] + quote(cmd)
             log.debug(repr(execcmd))
             return Popen(execcmd, stdout=PIPE, stderr=PIPE, **opts)
@@ -254,7 +255,6 @@ class TestUtilsMixin:
                           'master.port.client':  41000 + FUZZ,
                           'monitor.port.client': 50099,
                           'gc.port.client':      45000 + FUZZ,
-                          'logger.dir.walog': WALOG,
                           'general.classpaths' :General_CLASSPATH,
                           'instance.secret': 'secret',
                          })
@@ -271,10 +271,6 @@ class TestUtilsMixin:
         self.create_config_file(self.settings.copy())
 
         os.system('rm -rf %s/logs/%s/*.log' % (ACCUMULO_HOME, ID))
-        if not os.path.exists(WALOG):
-           os.mkdir(WALOG)
-        else:
-           os.system("rm -f '%s'/*" % WALOG)
 
         self.wait(self.runOn(host,
                              ['hadoop', 'fs', '-rmr', ACCUMULO_DIR]))
@@ -437,7 +433,6 @@ class TestUtilsMixin:
           self.wait(self.runClassOn(self.masterHost(),
                                     'org.apache.accumulo.server.util.DeleteZooInstance',
                                     ['-i', INSTANCE_NAME]))
-          self.wait(self.runOn(self.masterHost(), ['rm', '-rf', WALOG]))
           self.wait(self.runOn(self.masterHost(), ['rm', '-rf', ACCUMULO_HOME + '/logs/' + ID]))
           self.clean_logging() 
           os.unlink(os.path.join(ACCUMULO_HOME, 'conf', SITE))

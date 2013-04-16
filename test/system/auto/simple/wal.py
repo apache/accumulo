@@ -18,7 +18,7 @@ import os
 import unittest
 import logging
 from simple.readwrite import SunnyDayTest
-from TestUtils import WALOG, ACCUMULO_HOME
+from TestUtils import ACCUMULO_HOME
 
 log = logging.getLogger('test.auto')
 
