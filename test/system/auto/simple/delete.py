@@ -26,7 +26,7 @@ log = logging.getLogger('test.auto')
 import readwrite
 
 class DeleteTest(readwrite.SunnyDayTest):
-    "Injest some data, delete it, re-injest it, look for it"
+    "Ingest some data, delete it, re-ingest it, look for it"
 
     order = 25
 
