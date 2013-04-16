@@ -737,6 +737,13 @@ public class SimpleGarbageCollector implements Iface {
         log.error("Problem removing entries from the metadata table: ", e);
       }
     }
+    if (rootWriter != null) {
+      try {
+        rootWriter.close();
+      } catch (MutationsRejectedException e) {
+        log.error("Problem removing entries from the metadata table: ", e);
+      }
+    }
   }
   
   private boolean isDir(String delete) {

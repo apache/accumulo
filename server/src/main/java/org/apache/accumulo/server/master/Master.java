@@ -304,6 +304,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           @Override
           public void run() {
             try {
+              MetadataTable.moveMetaDeleteMarkers(instance, SecurityConstants.getSystemCredentials());
               Accumulo.updateAccumuloVersion(fs);
               
               log.info("Upgrade complete");
