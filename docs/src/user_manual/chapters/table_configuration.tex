@@ -40,7 +40,7 @@ fam>}} [-?] -t <table>
 
 user@myinstance mytable> setgroups group_one=colf1,colf2 -t mytable
 
-user@myinstance mytable> getgroups group_one=colf1,colf2 -t mytable
+user@myinstance mytable> getgroups -t mytable
 \end{verbatim}
 \normalsize
 
@@ -94,15 +94,10 @@ Constraints can be enabled by setting a table property as follows:
 
 \small
 \begin{verbatim}
-user@myinstance mytable> config -t mytable -s table.constraint.1=com.test.ExampleConstraint
-user@myinstance mytable> config -t mytable -s table.constraint.2=com.test.AnotherConstraint
-user@myinstance mytable> config -t mytable -f constraint
----------+--------------------------------+----------------------------
-SCOPE    | NAME                           | VALUE
----------+--------------------------------+----------------------------
-table    | table.constraint.1............ | com.test.ExampleConstraint
-table    | table.constraint.2............ | com.test.AnotherConstraint
----------+--------------------------------+----------------------------
+user@myinstance mytable> constraint -t mytable -a com.test.ExampleConstraint com.test.AnotherConstraint
+user@myinstance mytable> constraint -l
+com.test.ExampleConstraint=1
+com.test.AnotherConstraint=2
 \end{verbatim}
 \normalsize
 
@@ -219,14 +214,11 @@ table as follows:
 
 \small
 \begin{verbatim}
-user@myinstance mytable> config -t mytable -s
-table.iterator.scan.vers.opt.maxVersions=3
+user@myinstance mytable> config -t mytable -s table.iterator.scan.vers.opt.maxVersions=3
 
-user@myinstance mytable> config -t mytable -s
-table.iterator.minc.vers.opt.maxVersions=3
+user@myinstance mytable> config -t mytable -s table.iterator.minc.vers.opt.maxVersions=3
 
-user@myinstance mytable> config -t mytable -s
-table.iterator.majc.vers.opt.maxVersions=3
+user@myinstance mytable> config -t mytable -s table.iterator.majc.vers.opt.maxVersions=3
 \end{verbatim}
 \normalsize
 

@@ -46,8 +46,8 @@ machines.
 
 \section{Components}
 
-An instance of Accumulo includes many TabletServers, write-ahead Logger
-servers, one Garbage Collector process, one Master server and many Clients.
+An instance of Accumulo includes many TabletServers, one Garbage Collector process, 
+one Master server and many Clients.
 
 \subsection{Tablet Server}
 
@@ -72,10 +72,13 @@ delete them.
 
 The Accumulo Master is responsible for detecting and responding to TabletServer
 failure. It tries to balance the load across TabletServer by assigning tablets carefully
-and instructing TabletServers to migrate tablets when necessary. The Master ensures all
+and instructing TabletServers to unload tablets when necessary. The Master ensures all
 tablets are assigned to one TabletServer each, and handles table creation, alteration,
 and deletion requests from clients. The Master also coordinates startup, graceful
 shutdown and recovery of changes in write-ahead logs when Tablet servers fail.
+
+Multiple masters may be run.  The masters will choose among themselves a single master,
+and the others will become backups if the master should fail.
 
 \subsection{Client}
 
@@ -149,8 +152,7 @@ Log to prevent any loss of data.
 
 The Master will coordinate the copying of write-ahead logs to HDFS so the logs
 are available to all tablet servers. To make recovery efficient, the updates
-within a log are grouped by tablet.  The sorting process can be performed by
-Hadoops MapReduce or the Logger server. TabletServers can quickly apply the
+within a log are grouped by tablet.  TabletServers can quickly apply the
 mutations from the sorted logs that are destined for the tablets they have now
 been assigned.
 
