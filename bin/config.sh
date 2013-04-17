@@ -31,7 +31,7 @@ export ACCUMULO_HOME
 
 if [ -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
    . $ACCUMULO_HOME/conf/accumulo-env.sh
-else
+elif [ -z "$ACCUMULO_TEST" ] ; then
    #
    # Attempt to bootstrap configuration and continue
    #
