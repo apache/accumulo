@@ -37,6 +37,7 @@
     <module>src/start</module>
     <module>src/examples</module>
     <module>src/proxy</module>
+    <module>src/test</module>
   </modules>
 
   <build>
@@ -647,7 +648,7 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.4</version>
+        <version>4.11</version>
         <scope>test</scope>
       </dependency>
 
