@@ -685,8 +685,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       
       RowIterator rowIter = new RowIterator(scanner);
       
-      // TODO check that extents match prev extent
-      
       KeyExtent lastExtent = null;
       
       while (rowIter.hasNext()) {

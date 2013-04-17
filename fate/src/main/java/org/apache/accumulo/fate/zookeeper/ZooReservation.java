@@ -58,7 +58,7 @@ public class ZooReservation {
     try {
       zooData = zk.getData(path, stat);
     } catch (NoNodeException e) {
-      // TODO log warning? this may happen as a normal course of business.... could return a boolean...
+      // Just logging a warning, if data is gone then our work here is done.
       Logger.getLogger(ZooReservation.class).debug("Node does not exist " + path);
       return;
     }

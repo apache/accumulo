@@ -20,7 +20,7 @@
 package org.apache.accumulo.core.file.blockfile.cache;
 
 /**
- * Block cache interface. TODO: Add filename or hash of filename to block cache key.
+ * Block cache interface.
  */
 public interface BlockCache {
   /**

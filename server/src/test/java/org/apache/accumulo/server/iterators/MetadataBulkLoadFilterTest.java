@@ -107,19 +107,15 @@ public class MetadataBulkLoadFilterTest {
       
       @Override
       public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
-        // TODO Auto-generated method stub
         return null;
       }
       
       @Override
       public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-        // TODO Auto-generated method stub
-        
       }
       
       @Override
       public boolean isFullMajorCompaction() {
-        // TODO Auto-generated method stub
         return false;
       }
       

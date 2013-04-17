@@ -287,7 +287,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent, List<String> absFiles) throws TableNotFoundException, AccumuloException,
       IOException {
     
-    // TODO share code w/ tablet
+    // TODO share code w/ tablet - ACCUMULO-1303
     AccumuloConfiguration acuTableConf = AccumuloConfiguration.getTableConfiguration(conn, tableId);
     
     Configuration conf = CachedConfiguration.getInstance();
@@ -300,7 +300,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     readers.clear();
     
-    // TODO need to close files
+    // TODO need to close files - ACCUMULO-1303
     for (String file : absFiles) {
       FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, acuTableConf, null, null);
       readers.add(reader);

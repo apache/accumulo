@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.monitor.servlets;
 
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
 import javax.servlet.http.HttpServletRequest;

@@ -185,7 +185,7 @@ public class AccumuloVFSClassLoader {
     if (dynamicCPath == null || dynamicCPath.equals(""))
       return wrapper;
 
-    // TODO monitor time for lib/ext was 1 sec... should this be configurable?
+    // TODO monitor time for lib/ext was 1 sec... should this be configurable? - ACCUMULO-1301
     return new AccumuloReloadingVFSClassLoader(dynamicCPath, vfs, wrapper, 1000, true);
   }
 

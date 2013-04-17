@@ -52,7 +52,7 @@ import org.apache.hadoop.io.Text;
 class MakeDeleteEntries extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
-
+  
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.info("creating delete entries for merged metadata tablets");
@@ -60,7 +60,7 @@ class MakeDeleteEntries extends MasterRepo {
     BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     String tableDir = Constants.getMetadataTableDir(master.getConfiguration().getConfiguration());
     for (FileStatus fs : master.getFileSystem().listStatus(new Path(tableDir))) {
-      // TODO: add the entries only if there are no !METADATA table references
+      // TODO: add the entries only if there are no !METADATA table references - ACCUMULO-1308
       if (fs.isDir() && fs.getPath().getName().matches("^" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + ".*")) {
         bw.addMutation(MetadataTable.createDeleteMutation(Constants.METADATA_TABLE_ID, "/" + fs.getPath().getName()));
       }

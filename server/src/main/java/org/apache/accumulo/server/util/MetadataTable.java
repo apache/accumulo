@@ -468,7 +468,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     
     String tableId = extent.getTableId().toString();
     
-    // TODO could use batch writer,would need to handle failure and retry like update does
+    // TODO could use batch writer,would need to handle failure and retry like update does - ACCUMULO-1294
     for (String pathToRemove : datafilesToDelete)
       update(credentials, createDeleteMutation(tableId, pathToRemove));
   }

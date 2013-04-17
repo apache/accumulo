@@ -1473,7 +1473,7 @@ public class Tablet {
     String contextName = acuTableConf.get(Property.TABLE_CLASSPATH);
     if (contextName != null && !contextName.equals("")) {
       // initialize context classloader, instead of possibly waiting for it to initialize for a scan
-      // TODO this could hang causing other tablets to fail to load
+      // TODO this could hang, causing other tablets to fail to load - ACCUMULO-1292
       AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
     }
 
@@ -2834,7 +2834,7 @@ public class Tablet {
       throw new RuntimeException(msg);
     }
     
-    // TODO check lastFlushID and lostCompactID
+    // TODO check lastFlushID and lostCompactID - ACCUMULO-1290
   }
   
   /**
@@ -3674,7 +3674,7 @@ public class Tablet {
         throw new IOException("tablet " + extent + " is closed");
       }
       
-      // TODO check seems uneeded now
+      // TODO check seems uneeded now - ACCUMULO-1291
       long lockWait = System.currentTimeMillis() - now;
       if (lockWait > tabletServer.getSystemConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
         throw new IOException("Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock");

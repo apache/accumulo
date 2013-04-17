@@ -30,7 +30,6 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
 public enum Property {
-  
   // Crypto-related properties
   CRYPTO_PREFIX("crypto.", null, PropertyType.PREFIX, "Properties in this category related to the configuration of both default and custom crypto modules.",
       true),
@@ -358,7 +357,9 @@ public enum Property {
   private String key, defaultValue, description;
   private PropertyType type;
   private boolean experimental;
+  static Logger log = Logger.getLogger(Property.class);
   
+
   private Property(String name, String defaultValue, PropertyType type, String description, boolean experimental) {
     this.key = name;
     this.defaultValue = defaultValue;
@@ -489,5 +490,24 @@ public enum Property {
       log.error(e, e);
     }
     return false;
+  }
+  
+  public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
+    String clazzName = conf.get(property);
+    T instance = null;
+    
+    try {
+      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
+      instance = clazz.newInstance();
+      log.info("Loaded class : " + clazzName);
+    } catch (Exception e) {
+      log.warn("Failed to load class ", e);
+    }
+    
+    if (instance == null) {
+      log.info("Using " + defaultInstance.getClass().getName());
+      instance = defaultInstance;
+    }
+    return instance;
   }
 }

@@ -63,7 +63,7 @@ public class ShutdownTServer extends MasterRepo {
       return null;
     }
     
-    // TODO move this to isReady() and drop while loop?
+    // TODO move this to isReady() and drop while loop? - ACCUMULO-1259
     Listener listener = master.getEventCoordinator().getListener();
     master.shutdownTServer(server);
     while (master.onlineTabletServers().contains(server)) {

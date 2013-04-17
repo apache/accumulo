@@ -165,7 +165,6 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     try {
       populateChildren((DefaultMutableTreeNode) event.getPath().getLastPathComponent());
     } catch (TableNotFoundException e) {
-      // TODO Auto-generated catch block
       e.printStackTrace();
     }
   }

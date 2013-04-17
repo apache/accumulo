@@ -513,11 +513,11 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       sources = new TermSource[1];
     } else {
       // allocate space for node, and copy current tree.
-      // TODO: Should we change this to an ArrayList so that we can just add() ?
+      // TODO: Should we change this to an ArrayList so that we can just add() ? - ACCUMULO-1309
       TermSource[] localSources = new TermSource[sources.length + 1];
       int currSource = 0;
       for (TermSource myTerm : sources) {
-        // TODO: Do I need to call new here? or can I just re-use the term?
+        // TODO: Do I need to call new here? or can I just re-use the term? - ACCUMULO-1309
         localSources[currSource] = new TermSource(myTerm);
         currSource++;
       }

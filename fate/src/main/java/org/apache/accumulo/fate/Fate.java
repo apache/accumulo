@@ -140,7 +140,7 @@ public class Fate<T> {
     this.environment = environment;
     
     for (int i = 0; i < numTreads; i++) {
-      // TODO: use a ExecutorService, maybe a utility to do these steps throughout the server packages
+      // TODO: use an ExecutorService, maybe a utility to do these steps throughout the server packages - ACCUMULO-1311
       Thread thread = new Daemon(new LoggingRunnable(log, new TransactionRunner()), "Repo runner " + i);
       thread.start();
     }

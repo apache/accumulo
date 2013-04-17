@@ -192,7 +192,6 @@ public class ClientServiceHandler implements ClientService.Iface {
     
     Map<String,String> result = new HashMap<String,String>();
     for (Entry<String,String> entry : conf) {
-      // TODO: do we need to send any instance information?
       if (entry.getKey().equals(Property.INSTANCE_SECRET.getKey()))
         continue;
       if (entry.getKey().toLowerCase().contains("password"))
