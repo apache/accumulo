@@ -29,12 +29,14 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
+import org.apache.log4j.Logger;
 
 /**
  * A special iterator for the metadata table that removes inactive bulk load flags
  * 
  */
 public class MetadataBulkLoadFilter extends Filter {
+  private static Logger log = Logger.getLogger(MetadataBulkLoadFilter.class);
   
   enum Status {
     ACTIVE, INACTIVE
@@ -57,8 +59,8 @@ public class MetadataBulkLoadFilter extends Filter {
             status = Status.ACTIVE;
           }
         } catch (Exception e) {
-          // TODO log
           status = Status.ACTIVE;
+          log.error(e, e);
         }
         
         bulkTxStatusCache.put(txid, status);

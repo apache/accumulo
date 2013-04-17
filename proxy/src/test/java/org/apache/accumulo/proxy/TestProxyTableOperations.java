@@ -67,7 +67,11 @@ public class TestProxyTableOperations {
     };
     thread.start();
     tpc = new TestProxyClient("localhost", port);
-    userpass = tpc.proxy().login("root", new TreeMap<String, String>() {{put("password",""); }});
+    userpass = tpc.proxy().login("root", new TreeMap<String,String>() {
+      {
+        put("password", "");
+      }
+    });
   }
   
   @AfterClass
@@ -106,7 +110,7 @@ public class TestProxyTableOperations {
   }
   
   // This test does not yet function because the backing Mock instance does not yet support merging
-  // TODO: add back in as a test when Mock is improved
+  // TODO: add back in as a test when Mock is improved - ACCUMULO-1306
   // @Test
   public void merge() throws TException {
     Set<ByteBuffer> splits = new HashSet<ByteBuffer>();
@@ -152,9 +156,7 @@ public class TestProxyTableOperations {
     assertNull(constraints.get("org.apache.accumulo.TestConstraint"));
   }
   
-  // This test does not yet function because the backing Mock instance does not yet support locality groups
-  // TODO: add back in as a test when Mock is improved
-  // @Test
+  @Test
   public void localityGroups() throws TException {
     Map<String,Set<String>> groups = new HashMap<String,Set<String>>();
     Set<String> group1 = new HashSet<String>();
@@ -202,7 +204,7 @@ public class TestProxyTableOperations {
     
     assertEquals(tpc.proxy().getMaxRow(userpass, testtable, null, null, true, null, true), ByteBuffer.wrap("9".getBytes()));
     
-    tpc.proxy().deleteRows(userpass,testtable,ByteBuffer.wrap("51".getBytes()), ByteBuffer.wrap("99".getBytes()));
+    tpc.proxy().deleteRows(userpass, testtable, ByteBuffer.wrap("51".getBytes()), ByteBuffer.wrap("99".getBytes()));
     assertEquals(tpc.proxy().getMaxRow(userpass, testtable, null, null, true, null, true), ByteBuffer.wrap("5".getBytes()));
   }
   

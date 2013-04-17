@@ -102,7 +102,6 @@ class CompactionDriver extends MasterRepo {
     Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     
-    // TODO since not using tablet iterator, are there any issues w/ splits merges?
     long t1 = System.currentTimeMillis();
     RowIterator ri = new RowIterator(scanner);
     

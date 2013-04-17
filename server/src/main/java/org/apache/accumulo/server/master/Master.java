@@ -429,7 +429,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     listener.waitForEvents(ONE_SECOND);
   }
   
-  // @TODO: maybe move this to Property? We do this in TabletServer, Master, TableLoadBalancer, etc.
+  // TODO: maybe move this to Property? We do this in TabletServer, Master, TableLoadBalancer, etc. - ACCUMULO-1295
   public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
     T instance = null;
@@ -549,7 +549,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
           scanner.setRange(new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange());
           
-          // TODO this used to be TabletIterator... any problems with splits/merges?
           RowIterator ri = new RowIterator(scanner);
           
           int tabletsToWaitFor = 0;
@@ -601,7 +600,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           if (tabletsToWaitFor == 0)
             break;
           
-          // TODO detect case of table offline AND tablets w/ logs?
+          // TODO detect case of table offline AND tablets w/ logs? - ACCUMULO-1296
           
           if (tabletCount == 0 && !Tables.exists(instance, tableId))
             throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
@@ -2060,7 +2059,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     tserverSet.startListeningForTabletServerChanges();
     
-    // TODO: add shutdown for fate object
+    // TODO: add shutdown for fate object - ACCUMULO-1307
     try {
       final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
           ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);

@@ -37,8 +37,8 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 public class AccumuloDFSBase {
-
-  //Turn off the MiniDFSCluster logging
+  
+  // Turn off the MiniDFSCluster logging
   static {
     System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
   }
@@ -49,20 +49,18 @@ public class AccumuloDFSBase {
   
   // Choose an IANA unassigned port
   // http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
-  // TODO Given that the URI for the NameNode is statically declared in config files
-  // in src/test/resources, we have to assert the given port. It would be better to let
-  // MiniDFSCluster find a free port to use and then update the URI to be used in the VFS tests
+  // TODO Given that the URI for the NameNode is statically declared in config files in src/test/resources, we have to assert the given port. It would be better
+  // to let MiniDFSCluster find a free port to use and then update the URI to be used in the VFS tests - ACCUMULO-1299
   protected static final Integer HDFS_PORT = 8620;
   protected static final URI HDFS_URI;
-  
   
   static {
     Logger.getRootLogger().setLevel(Level.ERROR);
     
-    //Put the MiniDFSCluster directory in the target directory
+    // Put the MiniDFSCluster directory in the target directory
     System.setProperty("test.build.data", "target/build/test/data");
     
-    //Setup HDFS
+    // Setup HDFS
     conf = new Configuration();
     conf.set("hadoop.security.token.service.use_ip", "true");
     
@@ -71,23 +69,22 @@ public class AccumuloDFSBase {
     // the appropriate Hadoop property so that the data directories will be created
     // with the correct permissions.
     try {
-	Process p = Runtime.getRuntime().exec("/bin/sh -c umask");
-	BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
-	String line = bri.readLine();
-	p.waitFor();
-//	System.out.println("umask response: " + line);
-	Short umask = Short.parseShort(line.trim(), 8);
-	//Need to set permission to 777 xor umask
-	// leading zero makes java interpret as base 8
-	int newPermission = 0777 ^ umask;
-//	System.out.println("Umask is: " + String.format("%03o", umask));
-//	System.out.println("Perm is: " + String.format("%03o", newPermission));
-	conf.set("dfs.datanode.data.dir.perm", String.format("%03o", newPermission));
+      Process p = Runtime.getRuntime().exec("/bin/sh -c umask");
+      BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+      String line = bri.readLine();
+      p.waitFor();
+      
+      Short umask = Short.parseShort(line.trim(), 8);
+      // Need to set permission to 777 xor umask
+      // leading zero makes java interpret as base 8
+      int newPermission = 0777 ^ umask;
+      
+      conf.set("dfs.datanode.data.dir.perm", String.format("%03o", newPermission));
     } catch (Exception e) {
-	throw new RuntimeException("Error getting umask from O/S", e);
+      throw new RuntimeException("Error getting umask from O/S", e);
     }
     
-    conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 100); //100K blocksize
+    conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 100); // 100K blocksize
     
     try {
       cluster = new MiniDFSCluster(HDFS_PORT, conf, 1, true, true, true, null, null, null, null);
@@ -99,7 +96,7 @@ public class AccumuloDFSBase {
       throw new RuntimeException("Error setting up mini cluster", e);
     }
     
-    //Set up the VFS
+    // Set up the VFS
     vfs = new DefaultFileSystemManager();
     try {
       vfs.setFilesCache(new DefaultFilesCache());
@@ -143,7 +140,7 @@ public class AccumuloDFSBase {
     } catch (FileSystemException e) {
       throw new RuntimeException("Error setting up VFS", e);
     }
-
+    
   }
   
 }

@@ -44,7 +44,7 @@ public class Merge extends Test {
     tableNames.add(Constants.METADATA_TABLE_NAME);
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
-    // TODO need to sometimes do null start and end ranges
+    // TODO need to sometimes do null start and end ranges - ACCUMULO-1304
     
     TreeSet<Text> range = new TreeSet<Text>();
     range.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));

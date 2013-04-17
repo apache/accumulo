@@ -79,8 +79,7 @@ public class Search extends Test {
     for (Entry<Key,Value> entry2 : bs) {
       if (entry2.getKey().getColumnQualifier().equals(docID)) {
         sawDocID = true;
-        // TODO breaking w/o reading all data causes batch reader to spew exceptions
-        // break;
+        break;
       }
     }
     

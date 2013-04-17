@@ -164,7 +164,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       while (returnTime > now) {
         if (tryLock())
           return true;
-        // TODO: do something better than poll
+        // TODO: do something better than poll - ACCUMULO-1310
         UtilWaitThread.sleep(100);
         now = System.currentTimeMillis();
       }

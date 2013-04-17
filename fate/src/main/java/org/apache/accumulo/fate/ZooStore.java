@@ -39,9 +39,9 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 
-//TODO use zoocache?
-//TODO handle zookeeper being down gracefully
-//TODO document zookeeper layout
+//TODO use zoocache? - ACCUMULO-1297
+//TODO handle zookeeper being down gracefully - ACCUMULO-1297
+//TODO document zookeeper layout - ACCUMULO-1298
 
 public class ZooStore<T> implements TStore<T> {
   
@@ -66,7 +66,6 @@ public class ZooStore<T> implements TStore<T> {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
   }
   
   private Object deserialize(byte ser[]) {
