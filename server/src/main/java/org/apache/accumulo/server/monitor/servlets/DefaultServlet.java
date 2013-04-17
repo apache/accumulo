@@ -313,10 +313,14 @@ public class DefaultServlet extends BasicServlet {
       try {
         Path path = new Path(Monitor.getSystemConfiguration().get(Property.INSTANCE_DFS_DIR));
         log.debug("Reading the content summary for " + path);
-        ContentSummary acu = fs.getContentSummary(path);
-        ContentSummary rootSummary = fs.getContentSummary(new Path("/"));
-        consumed = String.format("%.2f%%", acu.getSpaceConsumed() * 100. / rootSummary.getSpaceConsumed());
-        diskUsed = bytes(acu.getSpaceConsumed());
+        try {
+          ContentSummary acu = fs.getContentSummary(path);
+          ContentSummary rootSummary = fs.getContentSummary(new Path("/"));
+          consumed = String.format("%.2f%%", acu.getSpaceConsumed() * 100. / rootSummary.getSpaceConsumed());
+          diskUsed = bytes(acu.getSpaceConsumed());
+        } catch (Exception ex) {
+          log.trace("Unable to get disk usage information from hdfs", ex);
+        }
         
         boolean highlight = false;
         tableRow(sb, (highlight = !highlight), "Disk&nbsp;Used", diskUsed);
