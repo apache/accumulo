@@ -310,7 +310,6 @@ public class SimpleGarbageCollector implements Iface {
       
       // we just made a lot of changes to the !METADATA table: flush them out
       try {
-        TCredentials creds = SecurityConstants.getSystemCredentials();
         Connector connector = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
         connector.tableOperations().compact(Constants.METADATA_TABLE_NAME, null, null, true, true);
       } catch (Exception e) {
