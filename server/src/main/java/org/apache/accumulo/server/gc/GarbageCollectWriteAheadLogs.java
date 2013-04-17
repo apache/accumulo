@@ -143,6 +143,7 @@ public class GarbageCollectWriteAheadLogs {
             Path path = new Path(Constants.getWalDirectory(conf), filename);
             if (trash == null || !trash.moveToTrash(path))
               fs.delete(path, true);
+            status.currentLog.deleted++;
           } catch (FileNotFoundException ex) {
             // ignored
           } catch (IOException ex) {
@@ -159,6 +160,7 @@ public class GarbageCollectWriteAheadLogs {
               Path path = new Path(serverPath, filename);
               if (trash == null || !trash.moveToTrash(path))
                 fs.delete(path, true);
+              status.currentLog.deleted++;
             } catch (FileNotFoundException ex) {
               // ignored
             } catch (IOException ex) {
