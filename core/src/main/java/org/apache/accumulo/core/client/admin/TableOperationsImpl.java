@@ -63,6 +63,7 @@ import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -814,6 +815,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
       }
     } catch (ThriftSecurityException e) {
+      if (e.getCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST)) {
+        throw new TableNotFoundException(tableId, null, e.getMessage(), e);
+      }
       log.debug("flush security exception on table id " + tableId);
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (ThriftTableOperationException e) {
