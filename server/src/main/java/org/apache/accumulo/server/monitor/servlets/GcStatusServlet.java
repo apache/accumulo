@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.monitor.servlets;
 
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -42,7 +43,7 @@ public class GcStatusServlet extends BasicServlet {
     if (status != null) {
       Table gcActivity = new Table("gcActivity", "Collection&nbsp;Activity");
       gcActivity.addSortableColumn("Activity");
-      gcActivity.addSortableColumn("Finished", new DateTimeType(DateFormat.MEDIUM, DateFormat.SHORT), null);
+      gcActivity.addSortableColumn("Finished", new DateTimeType(new SimpleDateFormat("MMM dd, yyyy kk:mm")), null);
       gcActivity.addSortableColumn("Candidates", new NumberType<Long>(), null);
       gcActivity.addSortableColumn("Deleted", new NumberType<Long>(), null);
       gcActivity.addSortableColumn("In&nbsp;Use", new NumberType<Long>(), null);
