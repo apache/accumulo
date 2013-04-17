@@ -193,8 +193,7 @@ public class SecurityHelper {
       try {
         fs = FileSystem.get(CachedConfiguration.getInstance());
       } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        throw new RuntimeException(e);
       }
       state.set(filesystem, fs);
     }
