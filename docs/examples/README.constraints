@@ -38,8 +38,8 @@ the end shows the inserts were not allowed.
     - type 'help' for a list of available commands
     - 
     username@instance> createtable testConstraints
-    username@instance testConstraints> config -t testConstraints -s table.constraint.1=org.apache.accumulo.examples.simple.constraints.NumericValueConstraint
-    username@instance testConstraints> config -t testConstraints -s table.constraint.2=org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint
+    username@instance testConstraints> constraint -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint
+    username@instance testConstraints> constraint -a org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint
     username@instance testConstraints> insert r1 cf1 cq1 1111
     username@instance testConstraints> insert r1 cf1 cq1 ABC
       Constraint Failures:
