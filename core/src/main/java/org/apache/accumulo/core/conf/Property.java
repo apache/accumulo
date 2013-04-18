@@ -22,6 +22,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
@@ -229,13 +230,11 @@ public enum Property {
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of distributed tracing."),
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT, "The listening port for the trace server"),
   TRACE_TABLE("trace.table", "trace", PropertyType.STRING, "The name of the table to store distributed traces"),
-  @Deprecated
-  TRACE_USER("trace.user", "root", PropertyType.STRING, "DEPRECATED SINCE 1.5, USE trace.principal. The name of the user to store distributed traces"),
-  TRACE_PRINCIPAL("trace.principal", "root", PropertyType.STRING, "The principal to store distributed traces"),
-  @Deprecated
-  TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING,
-      "DEPRECATED SINCE 1.5, USE trace.login. The password for the user used to store distributed traces"),
-  TRACE_LOGIN_PROPERTIES("trace.login", null, PropertyType.PREFIX, "The login credentials prefix for the principal used to store distributed traces"),
+  TRACE_USER("trace.user", "root", PropertyType.STRING, "The name of the user to store distributed traces"),
+  TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING, "The password for the user used to store distributed traces"),
+  TRACE_TOKEN_PROPERTY_PREFIX("trace.token.property", null, PropertyType.PREFIX,
+      "The prefix used to create a token for storing distributed traces.  For each propetry required by trace.token.type, place this prefix in front of it."),
+  TRACE_TOKEN_TYPE("trace.token.type", PasswordToken.class.getName(), PropertyType.CLASSNAME, "An AuthenticationToken type supported by the authorizer"),
   
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX, "Properties in this category affect tablet server treatment of tablets, but can be configured "

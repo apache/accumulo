@@ -612,8 +612,4 @@ public class SecurityOperation {
     authenticate(credentials);
     return hasSystemPermission(credentials.getPrincipal(), SystemPermission.CREATE_TABLE, false);
   }
-  
-  public String getTokenLoginClass() {
-    return authenticator.getTokenLoginClass();
-  }
 }

@@ -28,7 +28,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
  * should throw an AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
  */
 
-public interface Authenticator extends org.apache.accumulo.core.security.handler.Authenticator {
+public interface Authenticator {
   
   public void initialize(String instanceId, boolean initialize);
   
@@ -48,7 +48,7 @@ public interface Authenticator extends org.apache.accumulo.core.security.handler
   
   public boolean userExists(String user) throws AccumuloSecurityException;
   
-  public String getTokenLoginClass();
+  public Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes();
   
   /**
    * Returns true if the given token is appropriate for this Authenticator

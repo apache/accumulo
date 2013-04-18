@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -32,8 +31,6 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.security.handler.Authenticator;
-import org.apache.accumulo.core.security.handler.ZKAuthenticator;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
@@ -154,11 +151,6 @@ public class MockInstance implements Instance {
   }
   
   @Override
-  public String getAuthenticatorClassName() throws AccumuloException {
-    return ZKAuthenticator.class.getCanonicalName();
-  }
-  
-  @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     Connector conn = new MockConnector(principal, acu, this);
     if (!acu.users.containsKey(principal))
@@ -166,15 +158,5 @@ public class MockInstance implements Instance {
     else if (!acu.users.get(principal).token.equals(token))
       throw new AccumuloSecurityException(principal, SecurityErrorCode.BAD_CREDENTIALS);
     return conn;
-  }
-  
-  @Override
-  public Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(principal, getAuthenticator().login(principal, props));
-  }
-  
-  @Override
-  public Authenticator getAuthenticator() throws AccumuloException, AccumuloSecurityException {
-    return new ZKAuthenticator();
   }
 }

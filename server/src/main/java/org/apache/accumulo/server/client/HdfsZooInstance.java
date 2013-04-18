@@ -19,7 +19,6 @@ package org.apache.accumulo.server.client;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -28,16 +27,12 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
-import org.apache.accumulo.core.client.impl.ServerClient;
-import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.handler.Authenticator;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
@@ -202,38 +197,5 @@ public class HdfsZooInstance implements Instance {
   @Override
   public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
     return getConnector(auth.user, auth.getPassword());
-  }
-  
-  @Override
-  public String getAuthenticatorClassName() throws AccumuloException, AccumuloSecurityException {
-    return ServerClient.execute(this, new ClientExecReturn<String,ClientService.Client>() {
-      @Override
-      public String execute(ClientService.Client iface) throws Exception {
-        return iface.getAuthenticatorClassName();
-      }
-    });
-  }
-  
-  @Override
-  public Authenticator getAuthenticator() throws AccumuloException, AccumuloSecurityException {
-    String authenticatorName = getAuthenticatorClassName();
-    try {
-      Class<?> clazz = Class.forName(authenticatorName);
-      Class<? extends Authenticator> authClass = clazz.asSubclass(Authenticator.class);
-      Authenticator authenticator = authClass.newInstance();
-      return authenticator;
-    } catch (ClassNotFoundException e) {
-      throw new AccumuloException(e);
-    } catch (InstantiationException e) {
-      throw new AccumuloException(e);
-    } catch (IllegalAccessException e) {
-      throw new AccumuloException(e);
-    }
-  }
-  
-  public Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException {
-    Authenticator authenticator = getAuthenticator();
-    AuthenticationToken authToken = authenticator.login(principal, props);
-    return getConnector(principal, authToken);
   }
 }

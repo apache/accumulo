@@ -65,7 +65,7 @@
     </property>
     
     <property>
-      <name>trace.login.password</name>
+      <name>trace.token.property.password</name>
       <!-- 
         change this to the root user's password, and/or change the user below 
        -->
@@ -73,7 +73,7 @@
     </property>
     
     <property>
-      <name>trace.principal</name>
+      <name>trace.user</name>
       <value>root</value>
     </property>
     

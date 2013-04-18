@@ -112,10 +112,14 @@ public class ClientOpts extends Help {
   @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
   public Password securePassword = null;
   
+  @Parameter(names = {"-tc", "--tokenClass"}, description = "Token class")
+  public String tokenClassName = PasswordToken.class.getName();
+
   @DynamicParameter(names = "-l",
       description = "login properties in the format key=value. Reuse -l for each property (prompt for properties if this option is missing")
   public Map<String,String> loginProps = new LinkedHashMap<String,String>();
   
+
   public AuthenticationToken getToken() {
     if (!loginProps.isEmpty()) {
       Properties props = new Properties();
@@ -123,12 +127,13 @@ public class ClientOpts extends Help {
         props.put(loginOption.getKey(), loginOption.getValue());
       
       try {
-        return getInstance().getAuthenticator().login(principal, props);
-      } catch (AccumuloSecurityException e) {
-        throw new RuntimeException(e);
-      } catch (AccumuloException e) {
+        AuthenticationToken token = Class.forName(tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
+        token.init(props);
+        return token;
+      } catch (Exception e) {
         throw new RuntimeException(e);
       }
+
     }
     
     if (securePassword != null)

@@ -18,11 +18,10 @@ package org.apache.accumulo.core.client;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Properties;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.security.handler.Authenticator;
 
 /**
  * This class represents the information a client needs to know to connect to an instance of accumulo.
@@ -83,7 +82,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, Properties)}
+   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
    */
   @Deprecated
   public abstract Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException;
@@ -98,7 +97,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, Properties)}
+   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
    */
   @Deprecated
   public abstract Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException;
@@ -115,7 +114,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, Properties)}
+   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
    */
   @Deprecated
   public abstract Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException;
@@ -132,7 +131,7 @@ public interface Instance {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, Properties)}
+   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
    */
   @Deprecated
   public abstract Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException;
@@ -153,42 +152,15 @@ public interface Instance {
   public abstract void setConfiguration(AccumuloConfiguration conf);
   
   /**
-   * @return the canonical name of the helper class for the security token from the authenticator, if one exists.
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
-   * @since 1.5.0
-   */
-  public abstract String getAuthenticatorClassName() throws AccumuloException, AccumuloSecurityException;
-  
-  /**
-   * @param principal
-   * @param token
-   *          A known SecurityToken type. If uncertain which should be provided, use {@link #getAuthenticatorClassName()} and
-   *          {@link Authenticator#login(String, Properties)}
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
-   * @since 1.5.0
-   */
-  Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
-  
-  /**
-   * @param principal
-   *          The principal the authentication token corresponds to
-   * @param props
-   *          The properties necessary to construct an AuthenticationToken in the current security configuration
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
-   * @since 1.5.0
-   */
-  Connector getConnector(String principal, Properties props) throws AccumuloException, AccumuloSecurityException;
-  
-  /**
+   * Returns a connection to this instance of accumulo.
    * 
-   * @return Returns the corresponding Authenticator class, which can be used to create a token ({@link Authenticator#login(String, Properties)} or get a list of
-   *         required properties {@link Authenticator#getProperties()}
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
+   * @param principal
+   *          a valid accumulo user
+   * @param token
+   *          Use the token type configured for the Accumulo instance you are connecting to. An Accumulo instance with default configurations will use
+   *          {@link PasswordToken}
    * @since 1.5.0
    */
-  Authenticator getAuthenticator() throws AccumuloException, AccumuloSecurityException;
+  public abstract Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
+  
 }

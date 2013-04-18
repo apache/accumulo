@@ -49,6 +49,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.accumulo.trace.thrift.SpanReceiver.Iface;
@@ -160,25 +161,25 @@ public class TraceServer implements Watcher {
     table = conf.get(Property.TRACE_TABLE);
     while (true) {
       try {
-        String principal = conf.get(Property.TRACE_PRINCIPAL);
-        if (principal == null) {
-          @SuppressWarnings("deprecation")
-          Property p = Property.TRACE_USER;
-          principal = conf.get(p);
-        }
+        String principal = conf.get(Property.TRACE_USER);
         AuthenticationToken at;
-        Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_LOGIN_PROPERTIES);
-        if (loginMap == null) {
-          @SuppressWarnings("deprecation")
+        Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+        if (loginMap.isEmpty()) {
           Property p = Property.TRACE_PASSWORD;
           at = new PasswordToken(conf.get(p).getBytes());
         } else {
           Properties props = new Properties();
-          int prefixLength = Property.TRACE_LOGIN_PROPERTIES.getKey().length() + 1;
+          AuthenticationToken token = AccumuloClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class)
+              .newInstance();
+
+          int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length() + 1;
           for (Entry<String,String> entry : loginMap.entrySet()) {
             props.put(entry.getKey().substring(prefixLength), entry.getValue());
           }
-          at = serverConfiguration.getInstance().getAuthenticator().login(principal, props);
+
+          token.init(props);
+          
+          at = token;
         }
         
         connector = serverConfiguration.getInstance().getConnector(principal, at);
