@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.security.handler;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -28,7 +29,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
  * This is an Authenticator implementation that doesn't actually do any security. Any principal will authenticate if a NullToken is provided. It's existence is
  * primarily for testing, but can also be used for any system where user space management is not a concern.
  */
-public class InsecureAuthenticator extends org.apache.accumulo.core.security.handler.InsecureAuthenticator implements Authenticator {
+public class InsecureAuthenticator implements Authenticator {
   
   @Override
   public void initialize(String instanceId, boolean initialize) {
@@ -76,13 +77,15 @@ public class InsecureAuthenticator extends org.apache.accumulo.core.security.han
   }
   
   @Override
-  public String getTokenLoginClass() {
-    return this.getClass().getSuperclass().getName();
-  }
-  
-  @Override
   public boolean validTokenClass(String tokenClass) {
     return tokenClass.equals(NullToken.class.getName());
+  }
+
+  @Override
+  public Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes() {
+    Set<Class<? extends AuthenticationToken>> cs = new HashSet<Class<? extends AuthenticationToken>>();
+    cs.add(NullToken.class);
+    return cs;
   }
   
 }

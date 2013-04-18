@@ -263,7 +263,7 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TSERV_MAXMEM, "50M", siteConfig);
     appendProp(fileWriter, Property.TSERV_WALOG_MAX_SIZE, "100M", siteConfig);
     appendProp(fileWriter, Property.TSERV_NATIVEMAP_ENABLED, "false", siteConfig);
-    appendProp(fileWriter, Property.TRACE_LOGIN_PROPERTIES  + ".password", config.getRootPassword(), siteConfig);
+    appendProp(fileWriter, Property.TRACE_TOKEN_PROPERTY_PREFIX + ".password", config.getRootPassword(), siteConfig);
     appendProp(fileWriter, Property.TRACE_PORT, "" + getRandomFreePort(), siteConfig);
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);

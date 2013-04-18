@@ -196,6 +196,8 @@ public class ClientServiceHandler implements ClientService.Iface {
         continue;
       if (entry.getKey().toLowerCase().contains("password"))
         continue;
+      if (entry.getKey().startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey()))
+        continue;
       result.put(entry.getKey(), entry.getValue());
     }
     return result;
@@ -268,10 +270,5 @@ public class ClientServiceHandler implements ClientService.Iface {
       log.warn("Error checking object types", e);
       return false;
     }
-  }
-  
-  @Override
-  public String getAuthenticatorClassName() throws TException {
-    return security.getTokenLoginClass();
   }
 }

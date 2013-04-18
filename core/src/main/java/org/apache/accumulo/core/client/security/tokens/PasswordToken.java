@@ -21,6 +21,9 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Properties;
+import java.util.Set;
 
 import javax.security.auth.DestroyFailedException;
 
@@ -118,5 +121,20 @@ public class PasswordToken implements AuthenticationToken {
     } catch (CloneNotSupportedException e) {
       throw new RuntimeException(e);
     }
+  }
+  
+  @Override
+  public void init(Properties properties) {
+    if (properties.containsKey("password"))
+      this.password = properties.getProperty("password").getBytes(Constants.UTF8);
+    else
+      throw new IllegalArgumentException("Missing 'password' property");
+  }
+  
+  @Override
+  public Set<TokenProperty> getProperties() {
+    Set<TokenProperty> internal = new LinkedHashSet<TokenProperty>();
+    internal.add(new TokenProperty("password", "the password for the principal", true));
+    return internal;
   }
 }

@@ -36,6 +36,7 @@ import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.monitor.servlets.BasicServlet;
+import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
 abstract class Basic extends BasicServlet {
   
@@ -68,27 +69,28 @@ abstract class Basic extends BasicServlet {
   
   protected Scanner getScanner(StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
     AccumuloConfiguration conf = Monitor.getSystemConfiguration();
-    String principal = conf.get(Property.TRACE_PRINCIPAL);
-    if (principal == null) {
-      @SuppressWarnings("deprecation")
-      Property p = Property.TRACE_USER;
-      principal = conf.get(p);
-    }
+    String principal = conf.get(Property.TRACE_USER);
     AuthenticationToken at;
-    Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_LOGIN_PROPERTIES);
+    Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     if (loginMap.isEmpty()) {
-      @SuppressWarnings("deprecation")
       Property p = Property.TRACE_PASSWORD;
       at = new PasswordToken(conf.get(p).getBytes());
     } else {
       Properties props = new Properties();
-      int prefixLength = Property.TRACE_LOGIN_PROPERTIES.getKey().length() + 1;
+      int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length() + 1;
       for (Entry<String,String> entry : loginMap.entrySet()) {
         props.put(entry.getKey().substring(prefixLength), entry.getValue());
       }
-      if (!props.containsKey("principal"))
-        props.put("principal", principal);
-      at = HdfsZooInstance.getInstance().getAuthenticator().login(principal, props);
+      
+      AuthenticationToken token;
+      try {
+        token = AccumuloClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class).newInstance();
+      } catch (Exception e) {
+        throw new AccumuloException(e);
+      }
+      
+      token.init(props);
+      at = token;
     }
     
     String table = conf.get(Property.TRACE_TABLE);

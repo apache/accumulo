@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.client.security.tokens;
 
+import java.util.Properties;
+import java.util.Set;
+
 import javax.security.auth.Destroyable;
 
 import org.apache.hadoop.io.Writable;
@@ -24,5 +27,51 @@ import org.apache.hadoop.io.Writable;
  * @since 1.5.0
  */
 public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
+  
+  public static class TokenProperty implements Comparable<TokenProperty> {
+    private String key, description;
+    private boolean masked;
+    
+    public TokenProperty(String name, String description, boolean mask) {
+      this.key = name;
+      this.description = description;
+      this.masked = mask;
+    }
+    
+    public String toString() {
+      return this.key + " - " + description;
+    }
+    
+    public String getKey() {
+      return this.key;
+    }
+    
+    public String getDescription() {
+      return this.description;
+    }
+    
+    public boolean getMask() {
+      return this.masked;
+    }
+    
+    public int hashCode() {
+      return key.hashCode();
+    }
+    
+    public boolean equals(Object o) {
+      if (o instanceof TokenProperty)
+        return ((TokenProperty) o).key.equals(key);
+      return false;
+    }
+    
+    @Override
+    public int compareTo(TokenProperty o) {
+      return key.compareTo(o.key);
+    }
+  }
+  
+  public void init(Properties properties);
+  
+  public Set<TokenProperty> getProperties();
   public AuthenticationToken clone();
 }

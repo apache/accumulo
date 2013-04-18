@@ -18,10 +18,8 @@ package org.apache.accumulo.test.randomwalk.security;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -400,27 +398,18 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   @Override
-  public AuthenticationToken login(String principal, Properties properties) throws AccumuloSecurityException {
-    if (properties.containsKey("password"))
-      return new PasswordToken(properties.getProperty("password"));
-    throw new AccumuloSecurityException(principal, SecurityErrorCode.INSUFFICIENT_PROPERTIES);
-  }
-  
-  @Override
   public boolean validTokenClass(String tokenClass) {
     return tokenClass.equals(PasswordToken.class.getCanonicalName());
   }
 
-  @Override
-  public List<Set<AuthProperty>> getProperties() {
-    List<Set<AuthProperty>> toRet = new LinkedList<Set<AuthProperty>>();
-    Set<AuthProperty> internal = new TreeSet<AuthProperty>();
-    internal.add(new AuthProperty("password", "the password for the principal", true));
-    toRet.add(internal);
-    return toRet;
-  }
-
   public static void clearInstance() {
     instance = null;
+  }
+  
+  @Override
+  public Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes() {
+    Set<Class<? extends AuthenticationToken>> cs = new HashSet<Class<? extends AuthenticationToken>>();
+    cs.add(PasswordToken.class);
+    return cs;
   }
 }

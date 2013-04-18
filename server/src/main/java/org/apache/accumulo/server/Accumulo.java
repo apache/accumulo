@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -127,7 +128,8 @@ public class Accumulo {
       sortedProps.put(entry.getKey(), entry.getValue());
     
     for (Entry<String,String> entry : sortedProps.entrySet()) {
-      if (entry.getKey().toLowerCase().contains("password") || entry.getKey().toLowerCase().contains("secret"))
+      if (entry.getKey().toLowerCase().contains("password") || entry.getKey().toLowerCase().contains("secret")
+          || entry.getKey().startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey()))
         log.info(entry.getKey() + " = <hidden>");
       else
         log.info(entry.getKey() + " = " + entry.getValue());

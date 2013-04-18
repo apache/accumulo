@@ -16,7 +16,31 @@
  */
 package org.apache.accumulo.proxy;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeMap;
+
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Value;
@@ -27,8 +51,30 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
+import org.apache.accumulo.proxy.thrift.AccumuloException;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
-import org.apache.accumulo.proxy.thrift.*;
+import org.apache.accumulo.proxy.thrift.ActiveCompaction;
+import org.apache.accumulo.proxy.thrift.ActiveScan;
+import org.apache.accumulo.proxy.thrift.BatchScanOptions;
+import org.apache.accumulo.proxy.thrift.ColumnUpdate;
+import org.apache.accumulo.proxy.thrift.CompactionReason;
+import org.apache.accumulo.proxy.thrift.CompactionType;
+import org.apache.accumulo.proxy.thrift.IteratorScope;
+import org.apache.accumulo.proxy.thrift.IteratorSetting;
+import org.apache.accumulo.proxy.thrift.Key;
+import org.apache.accumulo.proxy.thrift.MutationsRejectedException;
+import org.apache.accumulo.proxy.thrift.PartialKey;
+import org.apache.accumulo.proxy.thrift.Range;
+import org.apache.accumulo.proxy.thrift.ScanColumn;
+import org.apache.accumulo.proxy.thrift.ScanOptions;
+import org.apache.accumulo.proxy.thrift.ScanResult;
+import org.apache.accumulo.proxy.thrift.ScanState;
+import org.apache.accumulo.proxy.thrift.ScanType;
+import org.apache.accumulo.proxy.thrift.SystemPermission;
+import org.apache.accumulo.proxy.thrift.TableNotFoundException;
+import org.apache.accumulo.proxy.thrift.TablePermission;
+import org.apache.accumulo.proxy.thrift.TimeType;
+import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
@@ -44,14 +90,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
-import java.util.*;
-
-import static org.junit.Assert.*;
 
 /**
  * Call every method on the proxy and try to verify that it works.
@@ -96,6 +134,7 @@ public class SimpleTest {
     Properties props = new Properties();
     props.put("org.apache.accumulo.proxy.ProxyServer.instancename", accumulo.getInstanceName());
     props.put("org.apache.accumulo.proxy.ProxyServer.zookeepers", accumulo.getZooKeepers());
+    props.put("org.apache.accumulo.proxy.ProxyServer.tokenClass", PasswordToken.class.getName());
     
     protocolClass = getRandomProtocol();
     System.out.println(protocolClass.getName());

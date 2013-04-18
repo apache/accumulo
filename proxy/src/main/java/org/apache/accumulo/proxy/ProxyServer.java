@@ -99,6 +99,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   public static final Logger logger = Logger.getLogger(ProxyServer.class);
   protected Instance instance;
+  protected Class<? extends AuthenticationToken> tokenClass;
   
   static protected class ScannerPlusIterator {
     public ScannerBase scanner;
@@ -151,6 +152,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
       instance = new ZooKeeperInstance(props.getProperty("org.apache.accumulo.proxy.ProxyServer.instancename"),
           props.getProperty("org.apache.accumulo.proxy.ProxyServer.zookeepers"));
     
+    try {
+      tokenClass = Class.forName(props.getProperty("org.apache.accumulo.proxy.ProxyServer.tokenClass")).asSubclass(AuthenticationToken.class);
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+
     scannerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseScanner()).build();
     
     writerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseWriter()).build();
@@ -1231,6 +1238,15 @@ public class ProxyServer implements AccumuloProxy.Iface {
   private AuthenticationToken getToken(String principal, Map<String, String> properties) throws AccumuloSecurityException, AccumuloException {
     Properties props = new Properties();
     props.putAll(properties);
-    return instance.getAuthenticator().login(principal, props);
+    AuthenticationToken token;
+    try {
+      token = tokenClass.newInstance();
+    } catch (InstantiationException e) {
+      throw new AccumuloException(e);
+    } catch (IllegalAccessException e) {
+      throw new AccumuloException(e);
+    }
+    token.init(props);
+    return token;
   }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -35,7 +36,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 // Utility class for adding all authentication info into ZK
-public final class ZKAuthenticator extends org.apache.accumulo.core.security.handler.ZKAuthenticator implements Authenticator {
+public final class ZKAuthenticator implements Authenticator {
   static final Logger log = Logger.getLogger(ZKAuthenticator.class);
   private static Authenticator zkAuthenticatorInstance = null;
   
@@ -199,8 +200,10 @@ public final class ZKAuthenticator extends org.apache.accumulo.core.security.han
   }
   
   @Override
-  public String getTokenLoginClass() {
-    return this.getClass().getSuperclass().getName();
+  public Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes() {
+    Set<Class<? extends AuthenticationToken>> cs = new HashSet<Class<? extends AuthenticationToken>>();
+    cs.add(PasswordToken.class);
+    return cs;
   }
 
   @Override
