@@ -256,6 +256,18 @@ public class Shell extends ShellOptions {
     
     // process default parameters if unspecified
     try {
+      if (loginOptions != null && !cl.hasOption(tokenOption.getOpt()))
+        throw new IllegalArgumentException("Must supply '-" + tokenOption.getOpt() + "' option with '-" + loginOption.getOpt() + "' option");
+      
+      if (loginOptions == null && cl.hasOption(tokenOption.getOpt()))
+        throw new IllegalArgumentException("Must supply '-" + loginOption.getOpt() + "' option with '-" + tokenOption.getOpt() + "' option");
+
+      if (passw != null && cl.hasOption(tokenOption.getOpt()))
+        throw new IllegalArgumentException("Can not supply '-" + passwOption.getOpt() + "' option with '-" + tokenOption.getOpt() + "' option");
+
+      if (user == null)
+        throw new MissingArgumentException(usernameOption);
+
       if (loginOptions != null && cl.hasOption(tokenOption.getOpt())) {
         Properties props = new Properties();
         for (String loginOption : loginOptions)
@@ -285,9 +297,14 @@ public class Shell extends ShellOptions {
       }
       
       if (this.token == null) {
+        passw = readMaskedLine("Password: ", '*');
+        if (passw != null)
+          this.token = new PasswordToken(passw);
+      }
+      
+      if (this.token == null) {
         reader.printNewline();
-        configError = true;
-        return true;
+        throw new MissingArgumentException("No password or token option supplied");
       } // user canceled
       
       this.setTableName("");
