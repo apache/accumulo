@@ -276,14 +276,14 @@ service AccumuloProxy
   void mergeTablets (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow)           throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void offlineTable (1:binary login, 2:string tableName)                                               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void onlineTable (1:binary login, 2:string tableName)                                                throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void removeConstraint (1:binary login, 2:string tableName, 3:i32 constraint)                         throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void removeConstraint (1:binary login, 2:string tableName, 3:i32 constraint)                         throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void removeIterator (1:binary login, 2:string tableName, 3:string iterName, 
                        4:set<IteratorScope> scopes)
                                                                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void removeTableProperty (1:binary login, 2:string tableName, 3:string property)                     throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void removeTableProperty (1:binary login, 2:string tableName, 3:string property)                     throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void renameTable (1:binary login, 2:string oldTableName, 3:string newTableName)                      throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3, 4:TableExistsException ouch4);
   void setLocalityGroups (1:binary login, 2:string tableName, 3:map<string,set<string>> groups)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void setTableProperty (1:binary login, 2:string tableName, 3:string property, 4:string value)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void setTableProperty (1:binary login, 2:string tableName, 3:string property, 4:string value)        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   set<Range> splitRangeByTablets (1:binary login, 2:string tableName, 3:Range range, 4:i32 maxSplits)  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   bool tableExists (1:binary login, 2:string tableName);
   map<string,string> tableIdMap (1:binary login);

@@ -50,6 +50,8 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -144,7 +146,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   protected Cache<UUID,BatchWriterPlusException> writerCache;
   
   public ProxyServer(Properties props) {
-
+    
     String useMock = props.getProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance");
     if (useMock != null && Boolean.parseBoolean(useMock))
       instance = new MockInstance();
@@ -157,7 +159,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-
+    
     scannerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseScanner()).build();
     
     writerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseWriter()).build();
@@ -175,21 +177,27 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       throw ex;
     } catch (MutationsRejectedException e) {
-        logger.debug(e,e);
-        return new org.apache.accumulo.proxy.thrift.MutationsRejectedException(e.toString());
+      logger.debug(e, e);
+      return new org.apache.accumulo.proxy.thrift.MutationsRejectedException(e.toString());
     } catch (AccumuloException e) {
-      logger.debug(e,e);
+      if (e.getCause() instanceof ThriftTableOperationException) {
+        ThriftTableOperationException ttoe = (ThriftTableOperationException) e.getCause();
+        if (ttoe.type == TableOperationExceptionType.NOTFOUND) {
+          return new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
+        }
+      }
+      logger.debug(e, e);
       return new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
     } catch (AccumuloSecurityException e) {
-      logger.debug(e,e);
+      logger.debug(e, e);
       if (e.getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
         return new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
       return new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
     } catch (TableNotFoundException e) {
-      logger.debug(e,e);
+      logger.debug(e, e);
       return new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
     } catch (TableExistsException e) {
-      logger.debug(e,e);
+      logger.debug(e, e);
       return new org.apache.accumulo.proxy.thrift.TableExistsException(e.toString());
     } catch (RuntimeException e) {
       if (e.getCause() != null) {
@@ -628,7 +636,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public boolean authenticateUser(ByteBuffer login, String principal, Map<String, String> properties) throws TException {
+  public boolean authenticateUser(ByteBuffer login, String principal, Map<String,String> properties) throws TException {
     try {
       return getConnector(login).securityOperations().authenticateUser(principal, getToken(principal, properties));
     } catch (Exception e) {
@@ -840,7 +848,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
           }
         }
         scanner.setRanges(ranges);
-
+        
         if (opts.columns != null) {
           for (ScanColumn col : opts.columns) {
             if (col.isSetColQualifier())
@@ -850,7 +858,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
           }
         }
       }
-
+      
       UUID uuid = UUID.randomUUID();
       
       ScannerPlusIterator spi = new ScannerPlusIterator();
@@ -1235,7 +1243,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
   }
   
-  private AuthenticationToken getToken(String principal, Map<String, String> properties) throws AccumuloSecurityException, AccumuloException {
+  private AuthenticationToken getToken(String principal, Map<String,String> properties) throws AccumuloSecurityException, AccumuloException {
     Properties props = new Properties();
     props.putAll(properties);
     AuthenticationToken token;

@@ -51,8 +51,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
-import org.apache.accumulo.proxy.thrift.AccumuloException;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
+import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
 import org.apache.accumulo.proxy.thrift.ActiveCompaction;
 import org.apache.accumulo.proxy.thrift.ActiveScan;
 import org.apache.accumulo.proxy.thrift.BatchScanOptions;
@@ -83,7 +83,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServer;
 import org.junit.AfterClass;
@@ -97,9 +96,9 @@ import org.junit.rules.TemporaryFolder;
 public class SimpleTest {
   
   public static TemporaryFolder folder = new TemporaryFolder();
-
+  
   public static final String TABLE_TEST = "test";
-
+  
   private static MiniAccumuloCluster accumulo;
   private static String secret = "superSecret";
   private static Random random = new Random();
@@ -109,11 +108,15 @@ public class SimpleTest {
   private static org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
   private static String principal = "root";
   @SuppressWarnings("serial")
-  private static Map<String, String> properties = new TreeMap<String, String>() {{ put("password",secret);}}; 
+  private static Map<String,String> properties = new TreeMap<String,String>() {
+    {
+      put("password", secret);
+    }
+  };
   private static ByteBuffer creds = null;
-
+  
   private static Class<? extends TProtocolFactory> protocolClass;
-
+  
   static Class<? extends TProtocolFactory> getRandomProtocol() {
     List<Class<? extends TProtocolFactory>> protocolFactories = new ArrayList<Class<? extends TProtocolFactory>>();
     protocolFactories.add(org.apache.thrift.protocol.TJSONProtocol.Factory.class);
@@ -124,13 +127,13 @@ public class SimpleTest {
     Random rand = new Random();
     return protocolFactories.get(rand.nextInt(protocolFactories.size()));
   }
-
+  
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
     folder.create();
     accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
     accumulo.start();
-  
+    
     Properties props = new Properties();
     props.put("org.apache.accumulo.proxy.ProxyServer.instancename", accumulo.getInstanceName());
     props.put("org.apache.accumulo.proxy.ProxyServer.zookeepers", accumulo.getZooKeepers());
@@ -138,7 +141,7 @@ public class SimpleTest {
     
     protocolClass = getRandomProtocol();
     System.out.println(protocolClass.getName());
-
+    
     proxyPort = 40000 + random.nextInt(20000);
     proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
         protocolClass, props);
@@ -154,7 +157,6 @@ public class SimpleTest {
     client = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
     creds = client.login(principal, properties);
   }
-
   
   @Test(timeout = 10000)
   public void tableNotFound() throws Exception {
@@ -162,183 +164,147 @@ public class SimpleTest {
     try {
       client.addConstraint(creds, doesNotExist, NumericValueConstraint.class.getName());
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
-      client.addSplits(creds, doesNotExist, Collections.<ByteBuffer>emptySet());
+      client.addSplits(creds, doesNotExist, Collections.<ByteBuffer> emptySet());
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     final IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
     try {
       client.attachIterator(creds, doesNotExist, setting, EnumSet.allOf(IteratorScope.class));
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.cancelCompaction(creds, doesNotExist);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.checkIteratorConflicts(creds, doesNotExist, setting, EnumSet.allOf(IteratorScope.class));
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.clearLocatorCache(creds, doesNotExist);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.cloneTable(creds, doesNotExist, TABLE_TEST, false, null, null);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.compactTable(creds, doesNotExist, null, null, null, true, false);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.createBatchScanner(creds, doesNotExist, new BatchScanOptions());
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.createScanner(creds, doesNotExist, new ScanOptions());
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.createWriter(creds, doesNotExist, new WriterOptions());
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.deleteRows(creds, doesNotExist, null, null);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.deleteTable(creds, doesNotExist);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.exportTable(creds, doesNotExist, "/tmp");
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.flushTable(creds, doesNotExist, null, null, false);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.getIteratorSetting(creds, doesNotExist, "foo", IteratorScope.SCAN);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.getLocalityGroups(creds, doesNotExist);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
-      client.getMaxRow(creds, doesNotExist, Collections.<ByteBuffer>emptySet(), null, false, null, false);
+      client.getMaxRow(creds, doesNotExist, Collections.<ByteBuffer> emptySet(), null, false, null, false);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.getTableProperties(creds, doesNotExist);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.grantTablePermission(creds, "root", doesNotExist, TablePermission.WRITE);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.hasTablePermission(creds, "root", doesNotExist, TablePermission.WRITE);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       File newFolder = folder.newFolder();
       client.importDirectory(creds, doesNotExist, "/tmp", newFolder.getAbsolutePath(), true);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.listConstraints(creds, doesNotExist);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.listSplits(creds, doesNotExist, 10000);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.mergeTablets(creds, doesNotExist, null, null);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.offlineTable(creds, doesNotExist);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.onlineTable(creds, doesNotExist);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.removeConstraint(creds, doesNotExist, 0);
       fail("exception not thrown");
-    } catch (AccumuloException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.removeIterator(creds, doesNotExist, "name", EnumSet.allOf(IteratorScope.class));
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.removeTableProperty(creds, doesNotExist, Property.TABLE_FILE_MAX.getKey());
       fail("exception not thrown");
-    } catch (AccumuloException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.renameTable(creds, doesNotExist, "someTableName");
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.revokeTablePermission(creds, "root", doesNotExist, TablePermission.ALTER_TABLE);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.setTableProperty(creds, doesNotExist, Property.TABLE_FILE_MAX.getKey(), "0");
       fail("exception not thrown");
-    } catch (AccumuloException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.splitRangeByTablets(creds, doesNotExist, client.getRowRange(ByteBuffer.wrap("row".getBytes())), 10);
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
     try {
       client.updateAndFlush(creds, doesNotExist, new HashMap<ByteBuffer,List<ColumnUpdate>>());
       fail("exception not thrown");
-    } catch (TableNotFoundException ex) {
-    }
+    } catch (TableNotFoundException ex) {}
   }
   
-
   @Test(timeout = 10000)
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
@@ -359,7 +325,7 @@ public class SimpleTest {
     for (int i = 0; i < 5; i++) {
       cfg = client.getSystemConfiguration(creds);
       if ("500M".equals(cfg.get("table.split.threshold")))
-          break;
+        break;
       UtilWaitThread.sleep(200);
     }
     assertEquals("500M", cfg.get("table.split.threshold"));
@@ -369,7 +335,7 @@ public class SimpleTest {
     for (int i = 0; i < 5; i++) {
       cfg = client.getSystemConfiguration(creds);
       if (!"500M".equals(cfg.get("table.split.threshold")))
-          break;
+        break;
       UtilWaitThread.sleep(200);
     }
     assertNotEquals("500M", cfg.get("table.split.threshold"));
@@ -377,7 +343,7 @@ public class SimpleTest {
     // try to load some classes via the proxy
     assertTrue(client.testClassLoad(creds, DevNull.class.getName(), SortedKeyValueIterator.class.getName()));
     assertFalse(client.testClassLoad(creds, "foo.bar", SortedKeyValueIterator.class.getName()));
-
+    
     // create a table that's very slow, so we can look for scans/compactions
     client.createTable(creds, "slow", true, TimeType.MILLIS);
     IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
@@ -405,13 +371,12 @@ public class SimpleTest {
     t.start();
     // look for the scan
     List<ActiveScan> scans = Collections.emptyList();
-    loop:
-    for (int i = 0; i < 100; i++) {
-      for (String tserver: client.getTabletServers(creds)) {
-       scans = client.getActiveScans(creds, tserver);
-       if (!scans.isEmpty())
-         break loop;
-       UtilWaitThread.sleep(10);
+    loop: for (int i = 0; i < 100; i++) {
+      for (String tserver : client.getTabletServers(creds)) {
+        scans = client.getActiveScans(creds, tserver);
+        if (!scans.isEmpty())
+          break loop;
+        UtilWaitThread.sleep(10);
       }
     }
     t.join();
@@ -442,9 +407,8 @@ public class SimpleTest {
     
     // try to catch it in the act
     List<ActiveCompaction> compactions = Collections.emptyList();
-    loop2:
-    for (int i = 0; i < 100; i++) {
-      for (String tserver: client.getTabletServers(creds)) {
+    loop2: for (int i = 0; i < 100; i++) {
+      for (String tserver : client.getTabletServers(creds)) {
         compactions = client.getActiveCompactions(creds, tserver);
         if (!compactions.isEmpty())
           break loop2;
@@ -468,13 +432,13 @@ public class SimpleTest {
     // check password
     assertTrue(client.authenticateUser(creds, "root", s2pp(secret)));
     assertFalse(client.authenticateUser(creds, "root", s2pp("")));
-
+    
     // create a user
     client.createLocalUser(creds, "stooge", s2bb("password"));
     // change auths
     Set<String> users = client.listLocalUsers(creds);
     assertEquals(new HashSet<String>(Arrays.asList("root", "stooge")), users);
-    HashSet<ByteBuffer> auths = new HashSet<ByteBuffer>(Arrays.asList(s2bb("A"),s2bb("B")));
+    HashSet<ByteBuffer> auths = new HashSet<ByteBuffer>(Arrays.asList(s2bb("A"), s2bb("B")));
     client.changeUserAuthorizations(creds, "stooge", auths);
     List<ByteBuffer> update = client.getUserAuthorizations(creds, "stooge");
     assertEquals(auths, new HashSet<ByteBuffer>(update));
@@ -485,12 +449,16 @@ public class SimpleTest {
     
     // check permission failure
     @SuppressWarnings("serial")
-    ByteBuffer stooge = client.login("stooge", new TreeMap<String,String>() {{put("password",""); }});
+    ByteBuffer stooge = client.login("stooge", new TreeMap<String,String>() {
+      {
+        put("password", "");
+      }
+    });
     
     try {
       client.createTable(stooge, "fail", true, TimeType.MILLIS);
       fail("should not create the table");
-    } catch (TException ex) {
+    } catch (AccumuloSecurityException ex) {
       assertFalse(client.listTables(creds).contains("fail"));
     }
     // grant permissions and test
@@ -506,7 +474,7 @@ public class SimpleTest {
     try {
       client.createTable(stooge, "fail", true, TimeType.MILLIS);
       fail("should not create the table");
-    } catch (TException ex) {
+    } catch (AccumuloSecurityException ex) {
       assertFalse(client.listTables(creds).contains("fail"));
     }
     // create a table to test table permissions
@@ -516,8 +484,7 @@ public class SimpleTest {
       String scanner = client.createScanner(stooge, TABLE_TEST, null);
       client.nextK(scanner, 100);
       fail("stooge should not read table test");
-    } catch (TException ex) {
-    }
+    } catch (AccumuloSecurityException ex) {}
     // grant
     assertFalse(client.hasTablePermission(creds, "stooge", TABLE_TEST, TablePermission.READ));
     client.grantTablePermission(creds, "stooge", TABLE_TEST, TablePermission.READ);
@@ -532,8 +499,7 @@ public class SimpleTest {
       scanner = client.createScanner(stooge, TABLE_TEST, null);
       client.nextK(scanner, 100);
       fail("stooge should not read table test");
-    } catch (TException ex) {
-    }
+    } catch (AccumuloSecurityException ex) {}
     
     // delete user
     client.dropLocalUser(creds, "stooge");
@@ -541,53 +507,53 @@ public class SimpleTest {
     assertEquals(1, users.size());
     
   }
-
+  
   @Test
   public void testBatchWriter() throws Exception {
-      if (client.tableExists(creds, TABLE_TEST))
-          client.deleteTable(creds, TABLE_TEST);
-
-      client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
-      client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
-
-      WriterOptions writerOptions = new WriterOptions();
-      writerOptions.setLatencyMs(10000);
-      writerOptions.setMaxMemory(2);
-      writerOptions.setThreads(1);
-      writerOptions.setTimeoutMs(100000);
-
-      String batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
-      client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
-      client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
-      try {
-          client.flush(batchWriter);
-          fail("constraint did not fire");
-      } catch (MutationsRejectedException ex) {}
-      try {
-          client.closeWriter(batchWriter);
-          fail("constraint did not fire");
-      } catch(MutationsRejectedException e) {}
-
-      client.removeConstraint(creds, TABLE_TEST, 1);
-
-      writerOptions = new WriterOptions();
-      writerOptions.setLatencyMs(10000);
-      writerOptions.setMaxMemory(3000);
-      writerOptions.setThreads(1);
-      writerOptions.setTimeoutMs(100000);
-
-      batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
-
-      client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
-      client.flush(batchWriter);
-      client.closeWriter(batchWriter);
-
-      String scanner = client.createScanner(creds, TABLE_TEST, null);
-      ScanResult more = client.nextK(scanner, 2);
-      assertEquals(1, more.getResults().size());
-      client.closeScanner(scanner);
-
+    if (client.tableExists(creds, TABLE_TEST))
       client.deleteTable(creds, TABLE_TEST);
+    
+    client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
+    client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
+    
+    WriterOptions writerOptions = new WriterOptions();
+    writerOptions.setLatencyMs(10000);
+    writerOptions.setMaxMemory(2);
+    writerOptions.setThreads(1);
+    writerOptions.setTimeoutMs(100000);
+    
+    String batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
+    client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
+    client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
+    try {
+      client.flush(batchWriter);
+      fail("constraint did not fire");
+    } catch (MutationsRejectedException ex) {}
+    try {
+      client.closeWriter(batchWriter);
+      fail("constraint did not fire");
+    } catch (MutationsRejectedException e) {}
+    
+    client.removeConstraint(creds, TABLE_TEST, 1);
+    
+    writerOptions = new WriterOptions();
+    writerOptions.setLatencyMs(10000);
+    writerOptions.setMaxMemory(3000);
+    writerOptions.setThreads(1);
+    writerOptions.setTimeoutMs(100000);
+    
+    batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
+    
+    client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
+    client.flush(batchWriter);
+    client.closeWriter(batchWriter);
+    
+    String scanner = client.createScanner(creds, TABLE_TEST, null);
+    ScanResult more = client.nextK(scanner, 2);
+    assertEquals(1, more.getResults().size());
+    client.closeScanner(scanner);
+    
+    client.deleteTable(creds, TABLE_TEST);
   }
   
   @Test
@@ -598,12 +564,12 @@ public class SimpleTest {
     // constraints
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));
-
+    
     try {
       client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
       fail("constraint did not fire");
     } catch (MutationsRejectedException ex) {}
-
+    
     client.removeConstraint(creds, TABLE_TEST, 1);
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
     String scanner = client.createScanner(creds, TABLE_TEST, null);
@@ -626,7 +592,7 @@ public class SimpleTest {
     // iterators
     client.deleteTable(creds, TABLE_TEST);
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
-    HashMap<String, String> options = new HashMap<String, String>();
+    HashMap<String,String> options = new HashMap<String,String>();
     options.put("type", "STRING");
     options.put("columns", "cf");
     IteratorSetting setting = new IteratorSetting(10, TABLE_TEST, SummingCombiner.class.getName(), options);
@@ -641,12 +607,11 @@ public class SimpleTest {
     try {
       client.checkIteratorConflicts(creds, TABLE_TEST, setting, EnumSet.allOf(IteratorScope.class));
       fail("checkIteratorConflicts did not throw and exception");
-    } catch (Exception ex) {
-    }
+    } catch (Exception ex) {}
     client.deleteRows(creds, TABLE_TEST, null, null);
     client.removeIterator(creds, TABLE_TEST, "test", EnumSet.allOf(IteratorScope.class));
     for (int i = 0; i < 10; i++) {
-      client.updateAndFlush(creds, TABLE_TEST, mutation("row"+i, "cf", "cq", ""+i));
+      client.updateAndFlush(creds, TABLE_TEST, mutation("row" + i, "cf", "cq", "" + i));
       client.flushTable(creds, TABLE_TEST, null, null, true);
     }
     scanner = client.createScanner(creds, TABLE_TEST, null);
@@ -694,7 +659,7 @@ public class SimpleTest {
     
     // Locality groups
     client.createTable(creds, "test", true, TimeType.MILLIS);
-    Map<String, Set<String>> groups = new HashMap<String, Set<String>>();
+    Map<String,Set<String>> groups = new HashMap<String,Set<String>>();
     groups.put("group1", Collections.singleton("cf1"));
     groups.put("group2", Collections.singleton("cf2"));
     client.setLocalityGroups(creds, "test", groups);
@@ -705,7 +670,7 @@ public class SimpleTest {
     Map<String,String> update = client.getTableProperties(creds, "test");
     for (int i = 0; i < 5; i++) {
       if (update.get("table.split.threshold").equals("500M"))
-          break;
+        break;
       UtilWaitThread.sleep(200);
     }
     assertEquals(update.get("table.split.threshold"), "500M");
@@ -758,27 +723,27 @@ public class SimpleTest {
     }
     return result;
   }
-
+  
   private Map<ByteBuffer,List<ColumnUpdate>> mutation(String row, String cf, String cq, String value) {
     ColumnUpdate upd = new ColumnUpdate(s2bb(cf), s2bb(cq));
     upd.setValue(value.getBytes());
     return Collections.singletonMap(s2bb(row), Collections.singletonList(upd));
   }
-
+  
   private ByteBuffer s2bb(String cf) {
     return ByteBuffer.wrap(cf.getBytes());
   }
-
-  private Map<String, String> s2pp(String cf) {
-    Map<String, String> toRet = new TreeMap<String, String>();
+  
+  private Map<String,String> s2pp(String cf) {
+    Map<String,String> toRet = new TreeMap<String,String>();
     toRet.put("password", cf);
     return toRet;
   }
-
+  
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
-    // folder.delete();
+    folder.delete();
   }
   
 }
