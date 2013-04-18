@@ -19,7 +19,6 @@ package org.apache.accumulo.test.randomwalk.concurrent;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
-import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -41,20 +40,16 @@ public class Compact extends Test {
     
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
-    // TODO need to sometimes do null start and end ranges - ACCUMULO-1304
-    
-    TreeSet<Text> range = new TreeSet<Text>();
-    range.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));
-    range.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));
+    List<Text> range = ConcurrentFixture.generateRange(rand);
     
     try {
       boolean wait = rand.nextBoolean();
-      conn.tableOperations().compact(tableName, range.first(), range.last(), false, wait);
-      log.debug((wait ? "compacted " : "initiated compaction ") + tableName);
+      conn.tableOperations().compact(tableName, range.get(0), range.get(1), false, wait);
+      log.debug((wait ? "compacted " : "initiated compaction ") + tableName + " from " + range.get(0) + " to " + range.get(1));
     } catch (TableNotFoundException tne) {
-      log.debug("compact " + tableName + " failed, doesnt exist");
+      log.debug("compact " + tableName + " from " + range.get(0) + " to " + range.get(1) + " failed, doesnt exist");
     } catch (TableOfflineException toe) {
-      log.debug("compact " + tableName + " failed, offline");
+      log.debug("compact " + tableName + " from " + range.get(0) + " to " + range.get(1) + " failed, offline");
     }
     
   }
