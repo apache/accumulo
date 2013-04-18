@@ -158,7 +158,6 @@ public class Initialize {
       log.fatal("Failed to talk to zookeeper", e);
       return false;
     }
-    opts.rootuser = getRootUser(opts);
     opts.rootpass = getRootPassword(opts);
     return initialize(opts, instanceNamePath, fs);
   }
@@ -401,20 +400,7 @@ public class Initialize {
     } while (exists);
     return instanceNamePath;
   }
-  
-  private static String getRootUser(Opts opts) throws IOException {
-    if (opts.cliUser != null) {
-      return opts.cliUser;
-    }
-    String rootuser;
-    rootuser = getConsoleReader().readLine("Enter name for initial root user (" + DEFAULT_ROOT_USER + "): ");
-    if (rootuser == null)
-      System.exit(0);
-    if (rootuser.equals(""))
-      return DEFAULT_ROOT_USER;
-    return rootuser;
-  }
-  
+
   private static byte[] getRootPassword(Opts opts) throws IOException {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes();
@@ -422,10 +408,10 @@ public class Initialize {
     String rootpass;
     String confirmpass;
     do {
-      rootpass = getConsoleReader().readLine("Enter initial password for " + opts.rootuser + " (this may not be applicable for your security setup): ", '*');
+      rootpass = getConsoleReader().readLine("Enter initial password for " + DEFAULT_ROOT_USER + " (this may not be applicable for your security setup): ", '*');
       if (rootpass == null)
         System.exit(0);
-      confirmpass = getConsoleReader().readLine("Confirm initial password for " + opts.rootuser + ": ", '*');
+      confirmpass = getConsoleReader().readLine("Confirm initial password for " + DEFAULT_ROOT_USER + ": ", '*');
       if (confirmpass == null)
         System.exit(0);
       if (!rootpass.equals(confirmpass))
@@ -435,7 +421,7 @@ public class Initialize {
   }
   
   private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {
-    AuditedSecurityOperation.getInstance(iid, true).initializeSecurity(SecurityConstants.getSystemCredentials(), opts.rootuser, opts.rootpass);
+    AuditedSecurityOperation.getInstance(iid, true).initializeSecurity(SecurityConstants.getSystemCredentials(), DEFAULT_ROOT_USER, opts.rootpass);
   }
   
   protected static void initMetadataConfig() throws IOException {
@@ -486,7 +472,6 @@ public class Initialize {
     String cliUser;
     
     byte[] rootpass = null;
-    String rootuser = null;
   }
   
   public static void main(String[] args) {
@@ -501,7 +486,6 @@ public class Initialize {
       
       if (opts.resetSecurity) {
         if (isInitialized(fs)) {
-          opts.rootuser = getRootUser(opts);
           opts.rootpass = getRootPassword(opts);
           initSecurity(opts, HdfsZooInstance.getInstance().getInstanceID());
         } else {
