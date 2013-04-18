@@ -112,8 +112,7 @@ public class TestProxyTableOperations {
   }
   
   // This test does not yet function because the backing Mock instance does not yet support merging
-  // TODO: add back in as a test when Mock is improved - ACCUMULO-1306
-  // @Test
+  @Test
   public void merge() throws TException {
     Set<ByteBuffer> splits = new HashSet<ByteBuffer>();
     splits.add(ByteBuffer.wrap("a".getBytes()));
