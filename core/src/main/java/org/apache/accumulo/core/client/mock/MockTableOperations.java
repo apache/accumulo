@@ -303,6 +303,7 @@ public class MockTableOperations extends TableOperationsHelper {
   public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
+    acu.merge(tableName, start, end);
   }
   
   @Override

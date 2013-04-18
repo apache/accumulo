@@ -132,4 +132,13 @@ public class MockTable {
   public Map<String,Set<Text>> getLocalityGroups() {
     return localityGroups;
   }
+  
+  public void merge(Text start, Text end) {
+    boolean reAdd = false;
+    if (splits.contains(start))
+      reAdd = true;
+    splits.removeAll(splits.subSet(start, end));
+    if (reAdd)
+      splits.add(start);
+  }
 }

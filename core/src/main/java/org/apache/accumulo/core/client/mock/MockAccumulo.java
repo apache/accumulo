@@ -88,4 +88,8 @@ public class MockAccumulo {
   public Collection<Text> getSplits(String tableName) {
     return tables.get(tableName).getSplits();
   }
+
+  public void merge(String tableName, Text start, Text end) {
+    tables.get(tableName).merge(start, end);
+  }  
 }
