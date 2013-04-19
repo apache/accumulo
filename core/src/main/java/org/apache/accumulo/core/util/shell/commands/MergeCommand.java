@@ -46,7 +46,7 @@ public class MergeCommand extends Command {
       force = true;
     }
     if (cl.hasOption(allOpt.getOpt())) {
-      force = true;
+      all = true;
     }
     if (cl.hasOption(sizeOpt.getOpt())) {
       size = AccumuloConfiguration.getMemoryInBytes(cl.getOptionValue(sizeOpt.getOpt()));
