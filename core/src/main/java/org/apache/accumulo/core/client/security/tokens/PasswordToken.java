@@ -20,9 +20,9 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.Properties;
 import java.util.Set;
 
 import javax.security.auth.DestroyFailedException;
@@ -125,9 +125,11 @@ public class PasswordToken implements AuthenticationToken {
   
   @Override
   public void init(Properties properties) {
-    if (properties.containsKey("password"))
-      this.password = properties.getProperty("password").getBytes(Constants.UTF8);
-    else
+    if (properties.containsKey("password")){
+      // encode() kicks back a C-string, which is not compatible with the old passwording system
+      this.password = new byte[properties.get("password").length];
+      Constants.UTF8.encode(CharBuffer.wrap(properties.get("password"))).get(this.password, 0, this.password.length);
+    }else
       throw new IllegalArgumentException("Missing 'password' property");
   }
   

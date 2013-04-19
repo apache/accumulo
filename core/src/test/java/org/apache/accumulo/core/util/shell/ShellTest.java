@@ -83,7 +83,7 @@ public class ShellTest {
     output = new TestOutputStream();
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
     shell.setLogErrorsToConsole();
-    shell.config("--fake", "-p", "");
+    shell.config("--fake", "-u", "test", "-p", "secret");
   }
   
   void assertGoodExit(String s, boolean stringPresent) {
@@ -150,10 +150,10 @@ public class ShellTest {
     exec("setauths x,y,z", false, "Missing required option");
     exec("setauths -s x,y,z -u notauser", false, "user does not exist");
     exec("setauths -s x,y,z", true);
-    exec("getauths -u notauser", false,"user does not exist");
-    exec("getauths", true,"y,z,x");
-    exec("addauths -u notauser", false,"Missing required option");
-    exec("addauths -u notauser -s foo", false,"user does not exist");
+    exec("getauths -u notauser", false, "user does not exist");
+    exec("getauths", true, "y,z,x");
+    exec("addauths -u notauser", false, "Missing required option");
+    exec("addauths -u notauser -s foo", false, "user does not exist");
     exec("addauths -s a", true);
     exec("getauths", true, "y,z,a,x");
     exec("setauths -c", true);
@@ -162,7 +162,8 @@ public class ShellTest {
   @Test
   public void userTest() throws Exception {
     Shell.log.debug("Starting user test --------------------------");
-    //exec("createuser root", false, "user exists");
+    // Test cannot be done via junit because createuser only prompts for password
+    //    exec("createuser root", false, "user exists");
   }
   
   @Test
@@ -172,7 +173,7 @@ public class ShellTest {
     exec("du", true, "0 [t]");
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
-
+  
   @Test
   public void duTest() throws IOException {
     Shell.log.debug("Starting DU test --------------------------");

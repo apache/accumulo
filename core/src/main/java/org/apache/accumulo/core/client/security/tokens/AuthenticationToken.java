@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.core.client.security.tokens;
 
-import java.util.Properties;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
+import javax.security.auth.DestroyFailedException;
 import javax.security.auth.Destroyable;
 
 import org.apache.hadoop.io.Writable;
@@ -27,6 +30,38 @@ import org.apache.hadoop.io.Writable;
  * @since 1.5.0
  */
 public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
+  public class Properties extends HashMap<String, char[]> implements Destroyable {
+    private static final long serialVersionUID = 507486847276806489L;
+    boolean destroyed = false;
+    
+    public char[] put(String key, CharSequence value) {
+      char[] toPut = new char[value.length()];
+      for (int i = 0; i < value.length(); i++)
+        toPut[i] = value.charAt(i);
+      return this.put(key, toPut);
+    }
+    
+    public void putAllStrings(Map<String, ? extends CharSequence> map) {
+      for (Map.Entry<String,? extends CharSequence> entry : map.entrySet()) {
+        put(entry.getKey(), entry.getValue());
+      }
+    }
+
+    @Override
+    public void destroy() throws DestroyFailedException {
+      for (String key : this.keySet()) {
+        char[] val = this.get(key);
+        Arrays.fill(val, (char) 0);
+      }
+      this.clear();
+      destroyed = true;
+    }
+
+    @Override
+    public boolean isDestroyed() {
+      return destroyed;
+    }
+  }
   
   public static class TokenProperty implements Comparable<TokenProperty> {
     private String key, description;

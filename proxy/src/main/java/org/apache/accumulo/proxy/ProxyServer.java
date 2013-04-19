@@ -1247,8 +1247,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   private AuthenticationToken getToken(String principal, Map<String,String> properties) throws AccumuloSecurityException, AccumuloException {
-    Properties props = new Properties();
-    props.putAll(properties);
+    AuthenticationToken.Properties props = new AuthenticationToken.Properties();
+    props.putAllStrings(properties);
     AuthenticationToken token;
     try {
       token = tokenClass.newInstance();
