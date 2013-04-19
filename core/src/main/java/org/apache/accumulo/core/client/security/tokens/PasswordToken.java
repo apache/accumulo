@@ -55,7 +55,7 @@ public class PasswordToken implements AuthenticationToken {
    * Password tokens created with this constructor will store the password as UTF-8 bytes.
    */
   public PasswordToken(CharSequence password) {
-    this.password = password.toString().getBytes(Constants.UTF8);
+    setPassword(CharBuffer.wrap(password));
   }
   
   /**
@@ -123,15 +123,29 @@ public class PasswordToken implements AuthenticationToken {
     }
   }
   
+  private void setPassword(CharBuffer charBuffer) {
+    // encode() kicks back a C-string, which is not compatible with the old passwording system
+    ByteBuffer bb = Constants.UTF8.encode(charBuffer);
+    // create array using byter buffer length
+    this.password = new byte[bb.remaining()];
+    bb.get(this.password);
+    if (!bb.isReadOnly()) {
+      // clear byte buffer
+      bb.rewind();
+      while (bb.remaining() > 0) {
+        bb.put((byte) 0);
+      }
+    }
+  }
+
   @Override
   public void init(Properties properties) {
     if (properties.containsKey("password")){
-      // encode() kicks back a C-string, which is not compatible with the old passwording system
-      this.password = new byte[properties.get("password").length];
-      Constants.UTF8.encode(CharBuffer.wrap(properties.get("password"))).get(this.password, 0, this.password.length);
+      setPassword(CharBuffer.wrap(properties.get("password")));
     }else
       throw new IllegalArgumentException("Missing 'password' property");
   }
+
   
   @Override
   public Set<TokenProperty> getProperties() {
