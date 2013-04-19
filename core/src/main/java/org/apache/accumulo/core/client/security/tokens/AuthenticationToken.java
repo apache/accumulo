@@ -98,7 +98,6 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     @Override
     public char[] get(Object key) {
       checkDestroyed();
-      // TODO Auto-generated method stub
       return map.get(key);
     }
     
