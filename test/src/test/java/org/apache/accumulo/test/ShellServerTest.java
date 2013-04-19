@@ -622,12 +622,12 @@ public class ShellServerTest {
     exec("createtable t");
     exec("addsplits a m z");
     exec("getsplits", true, "z", true);
-    exec("merge -f", true);
+    exec("merge --all", true);
     exec("getsplits", true, "z", false);
     exec("deletetable -f t");
     exec("getsplits -t !METADATA", true);
     assertEquals(3, output.get().split("\n").length);
-    exec("merge -f -t !METADATA");
+    exec("merge --all -t !METADATA");
     exec("getsplits -t !METADATA", true);
     assertEquals(2, output.get().split("\n").length);
   }
