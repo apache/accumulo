@@ -20,7 +20,6 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Properties;
 import java.util.Set;
 
 import javax.security.auth.DestroyFailedException;

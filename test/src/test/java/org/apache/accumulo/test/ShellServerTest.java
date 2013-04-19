@@ -707,7 +707,6 @@ public class ShellServerTest {
     exec("deletetable -f t");
     exec("sleep 1");
     String trace = exec("trace off");
-    //System.out.println("trace: " + trace);
     assertTrue(trace.contains("binMutations"));
     assertTrue(trace.contains("update"));
     assertTrue(trace.contains("DeleteTable"));
