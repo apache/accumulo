@@ -124,6 +124,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
@@ -2446,24 +2447,39 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       Text locationToOpen = null;
       SortedMap<Key,Value> tabletsKeyValues = new TreeMap<Key,Value>();
       try {
-        locationToOpen = verifyTabletInformation(extent, TabletServer.this.getTabletSession(), tabletsKeyValues, getClientAddressString(), getLock());
+        Pair<Text,KeyExtent> pair = verifyTabletInformation(extent, TabletServer.this.getTabletSession(), tabletsKeyValues, getClientAddressString(), getLock());
+        locationToOpen = pair.getFirst();
+        if (pair.getSecond() != null) {
+          synchronized (openingTablets) {
+            openingTablets.remove(extent);
+            openingTablets.notifyAll();
+            // it expected that the new extent will overlap the old one... if it does not, it should not be added to unopenedTablets
+            if (!KeyExtent.findOverlapping(extent, new TreeSet<KeyExtent>(Arrays.asList(pair.getSecond()))).contains(pair.getSecond())) {
+              throw new IllegalStateException("Fixed split does not overlap " + extent + " " + pair.getSecond());
+            }
+            unopenedTablets.add(pair.getSecond());
+          }
+          // split was rolled back... try again
+          new AssignmentHandler(pair.getSecond()).run();
+          return;
+        }
       } catch (Exception e) {
         synchronized (openingTablets) {
           openingTablets.remove(extent);
           openingTablets.notifyAll();
         }
         log.warn("Failed to verify tablet " + extent, e);
+        enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
         throw new RuntimeException(e);
       }
 
       if (locationToOpen == null) {
         log.debug("Reporting tablet " + extent + " assignment failure: unable to verify Tablet Information");
-        enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
         synchronized (openingTablets) {
           openingTablets.remove(extent);
           openingTablets.notifyAll();
         }
-        
+        enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
         return;
       }
 
@@ -2852,7 +2868,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   private long totalMinorCompactions;
   
-  private static Text verifyRootTablet(KeyExtent extent, TServerInstance instance) throws DistributedStoreException, AccumuloException {
+  private static Pair<Text,KeyExtent> verifyRootTablet(KeyExtent extent, TServerInstance instance) throws DistributedStoreException, AccumuloException {
     ZooTabletStateStore store = new ZooTabletStateStore();
     if (!store.iterator().hasNext()) {
       throw new AccumuloException("Illegal state: location is not set in zookeeper");
@@ -2866,10 +2882,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       throw new AccumuloException("Root tablet already has a location set");
     }
     
-    return new Text(Constants.ZROOT_TABLET);
+    return new Pair<Text,KeyExtent>(new Text(Constants.ZROOT_TABLET), null);
   }
   
-  public static Text verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues, String clientAddress,
+  public static Pair<Text,KeyExtent> verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues,
+      String clientAddress,
       ZooLock lock) throws AccumuloSecurityException, DistributedStoreException, AccumuloException {
     
     log.debug("verifying extent " + extent);
@@ -2916,7 +2933,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       KeyExtent fke = MetadataTable.fixSplit(metadataEntry, tabletEntries.get(metadataEntry), instance, SecurityConstants.getSystemCredentials(), lock);
       
       if (!fke.equals(extent)) {
-        return null;
+        return new Pair<Text,KeyExtent>(null, fke);
       }
       
       // reread and reverify metadata entries now that metadata entries were fixed
@@ -2924,7 +2941,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       return verifyTabletInformation(fke, instance, tabletsKeyValues, clientAddress, lock);
     }
     
-    return new Text(dir.get());
+    return new Pair<Text,KeyExtent>(new Text(dir.get()), null);
   }
   
   static Value checkTabletMetadata(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues, Text metadataEntry)
