@@ -333,7 +333,6 @@
           <artifactId>maven-changes-plugin</artifactId>
           <version>2.9</version>
           <configuration>
-            <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
             <issueManagementSystems>
               <issueManagementSystem>JIRA</issueManagementSystem>
             </issueManagementSystems>
