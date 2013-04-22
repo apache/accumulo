@@ -329,6 +329,21 @@
           </configuration>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-changes-plugin</artifactId>
+          <version>2.9</version>
+          <configuration>
+            <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
+            <issueManagementSystems>
+              <issueManagementSystem>JIRA</issueManagementSystem>
+            </issueManagementSystems>
+            <onlyCurrentVersion>true</onlyCurrentVersion>
+            <statusIds>Closed,Resolved</statusIds>
+            <maxEntries>10000</maxEntries>
+            <useJql>true</useJql>
+          </configuration>
+        </plugin>
+        <plugin>
           <artifactId>maven-clean-plugin</artifactId>
           <configuration>
             <filesets>
@@ -383,6 +398,7 @@
           </configuration>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
             <encoding>UTF-8</encoding>
@@ -608,17 +624,10 @@
   </build>
   <reporting>
     <plugins>
-      <!--
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-changes-plugin</artifactId>
         <version>2.9</version>
-        <configuration>
-          <onlyCurrentVersion>true</onlyCurrentVersion>
-          <statusIds>resolved</statusIds>
-          <maxEntries>10000</maxEntries>
-          <useJql>true</useJql>
-        </configuration>
         <reportSets>
           <reportSet>
             <reports>
@@ -627,7 +636,6 @@
           </reportSet>
         </reportSets>
       </plugin>
-      -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
