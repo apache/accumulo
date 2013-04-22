@@ -89,12 +89,12 @@ class SimpleBalancerFairness(SunnyDayTest):
         # will be split evenly on both servers, not just one
         table = ''
         for line in out.split('\n'):
-            if line.find(' Name ') == 0:
-                server = line[6:]
+            if line.find(' Name: ') == 0:
+                server = line[7:]
                 servers.setdefault(server, 0)
-            if line.find('Table ') >= 0:
+            if line.find('Table: ') >= 0:
                 table = line.split(' ')[-1]
-            if line.find('    Tablets ') == 0:
+            if line.find('    Tablets: ') == 0:
                 if table == '1':
                    servers[server] += int(line.split()[-1])
         log.info("Tablet counts " + repr(servers))
