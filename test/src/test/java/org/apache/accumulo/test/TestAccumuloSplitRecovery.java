@@ -78,7 +78,7 @@ public class TestAccumuloSplitRecovery {
     return true;
   }
   
-  @Test
+  @Test(timeout = 60000)
   public void test() throws Exception {
     
     for (int tn = 0; tn < 2; tn++) {
