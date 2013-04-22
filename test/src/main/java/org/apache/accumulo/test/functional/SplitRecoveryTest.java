@@ -51,8 +51,10 @@ import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.tabletserver.TabletServer;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.io.Text;
 
 public class SplitRecoveryTest extends FunctionalTest {
@@ -140,8 +142,9 @@ public class SplitRecoveryTest extends FunctionalTest {
       if (i == extentToSplit) {
         splitMapFiles = mapFiles;
       }
-      
-      MetadataTable.updateTabletDataFile(0, extent, mapFiles, "L0", SecurityConstants.getSystemCredentials(), zl);
+      int tid = 0;
+      TransactionWatcher.ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
+      MetadataTable.updateTabletDataFile(tid, extent, mapFiles, "L0", SecurityConstants.getSystemCredentials(), zl);
     }
     
     KeyExtent extent = extents[extentToSplit];
