@@ -275,7 +275,7 @@ class TestUtilsMixin:
         self.wait(self.runOn(host,
                              ['hadoop', 'fs', '-rmr', ACCUMULO_DIR]))
         handle = self.runOn(host, [self.accumulo_sh(), 'init','--clear-instance-name'], stdin=PIPE)
-        out, err = handle.communicate(INSTANCE_NAME+"\nroot\n"+ROOT_PASSWORD + "\n" + ROOT_PASSWORD+"\n")
+        out, err = handle.communicate(INSTANCE_NAME+"\n"+ROOT_PASSWORD + "\n" + ROOT_PASSWORD+"\n")
         self.processResult(out, err, handle.returncode)
 
     def setup_logging(self):

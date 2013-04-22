@@ -65,7 +65,7 @@ public class FindOfflineTablets {
     while (scanner.hasNext()) {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state != TabletState.HOSTED && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
+      if (state != null && state != TabletState.HOSTED && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
         if (!locationState.extent.equals(Constants.ROOT_TABLET_EXTENT))
           System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
     }

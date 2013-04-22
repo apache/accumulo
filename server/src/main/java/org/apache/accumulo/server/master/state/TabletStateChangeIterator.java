@@ -119,6 +119,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
       TabletLocationState tls;
       try {
         tls = MetaDataTableScanner.createTabletLocationState(k, v);
+        if (tls == null)
+          return;
       } catch (BadLocationStateException e) {
         // maybe the master can do something with a tablet with bad/inconsistent state
         return;

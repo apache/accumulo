@@ -1047,6 +1047,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
   }
   
+  public MergeInfo getMergeInfo(KeyExtent tablet) {
+    if (tablet.isRootTablet())
+      return new MergeInfo();
+    return getMergeInfo(tablet.getTableId());
+  }
+  
   public MergeInfo getMergeInfo(Text tableId) {
     synchronized (mergeLock) {
       try {
@@ -1320,7 +1326,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             Text tableId = tls.extent.getTableId();
             MergeStats mergeStats = mergeStatsCache.get(tableId);
             if (mergeStats == null) {
-              mergeStatsCache.put(tableId, mergeStats = new MergeStats(getMergeInfo(tableId)));
+              mergeStatsCache.put(tableId, mergeStats = new MergeStats(getMergeInfo(tls.extent)));
             }
             TabletGoalState goal = getGoalState(tls, mergeStats.getMergeInfo());
             TServerInstance server = tls.getServer();
@@ -1514,7 +1520,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       for (MergeStats stats : mergeStatsCache.values()) {
         try {
           MergeState update = stats.nextMergeState(getConnector(), Master.this);
-          
           // when next state is MERGING, its important to persist this before
           // starting the merge... the verification check that is done before
           // moving into the merging state could fail if merge starts but does

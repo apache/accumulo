@@ -99,13 +99,13 @@ public class MergeStats {
     MergeState state = info.getState();
     if (state == MergeState.NONE)
       return state;
+    if (total == 0) {
+      log.trace("failed to see any tablets for this range, ignoring " + info.getRange());
+      return state;
+    }
     log.info("Computing next merge state for " + info.getRange() + " which is presently " + state + " isDelete : " + info.isDelete());
     if (state == MergeState.STARTED) {
       state = MergeState.SPLITTING;
-    }
-    if (total == 0) {
-      log.info("failed to see any tablets for this range, ignoring " + info.getRange());
-      return state;
     }
     if (state == MergeState.SPLITTING) {
       log.info(hosted + " are hosted, total " + total);
