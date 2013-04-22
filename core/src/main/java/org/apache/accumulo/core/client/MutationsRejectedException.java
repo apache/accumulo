@@ -70,7 +70,7 @@ public class MutationsRejectedException extends AccumuloException {
    * @return the internal list of authorization failures
    * @deprecated since 1.5, see {@link #getAuthorizationFailuresMap()}
    */
-  List<KeyExtent> getAuthorizationFailures() {
+  public List<KeyExtent> getAuthorizationFailures() {
     return new ArrayList<KeyExtent>(af.keySet());
   }
   
