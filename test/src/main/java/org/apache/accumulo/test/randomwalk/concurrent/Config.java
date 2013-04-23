@@ -80,6 +80,7 @@ public class Config extends Test {
       s(Property.MASTER_BULK_TIMEOUT, 10, 600),
       s(Property.MASTER_FATE_THREADPOOL_SIZE, 1, 100),
       s(Property.MASTER_RECOVERY_DELAY, 0, 100),
+      s(Property.MASTER_LEASE_RECOVERY_WAITING_PERIOD, 0, 10),
       s(Property.MASTER_RECOVERY_MAXTIME, 10, 1000),
       s(Property.MASTER_THREADCHECK, 100, 10000),
       s(Property.MASTER_MINTHREADS, 1, 200),
