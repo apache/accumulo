@@ -28,6 +28,7 @@ import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TProcessor;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TServer;
@@ -70,21 +71,33 @@ public class Proxy {
     Opts opts = new Opts();
     opts.parseArgs(Proxy.class.getName(), args);
     
-    String api = ProxyServer.class.getName();
+    boolean useMini = Boolean.parseBoolean(opts.prop.getProperty("useMiniAccumulo", "false"));
+    boolean useMock = Boolean.parseBoolean(opts.prop.getProperty("useMockInstance", "false"));
+    String instance = opts.prop.getProperty("instance");
+    String zookeepers = opts.prop.getProperty("zookeepers");
     
-    if (!opts.prop.containsKey(api + ".port")) {
-      System.err.println("No port in the " + api + ".port property");
+    if (!useMini && !useMock && instance == null) {
+      System.err.println("Properties file must contain one of : useMiniAccumulo=true, useMockInstance=true, or instance=<instance name>");
       System.exit(1);
     }
     
-    String useMini = opts.prop.getProperty(api + ".useMiniAccumulo"); 
-    if (useMini != null && Boolean.parseBoolean(useMini)) {
+    if (instance != null && zookeepers == null) {
+      System.err.println("When instance is set in properties file, zookeepers must also be set.");
+      System.exit(1);
+    }
+    
+    if (!opts.prop.containsKey("port")) {
+      System.err.println("No port property");
+      System.exit(1);
+    }
+    
+    if (useMini) {
       log.info("Creating mini cluster");
       final File folder = Files.createTempDir();
       final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
       accumulo.start();
-      opts.prop.setProperty(api+".instancename", accumulo.getInstanceName());
-      opts.prop.setProperty(api+".zookeepers", accumulo.getZooKeepers());
+      opts.prop.setProperty("instance", accumulo.getInstanceName());
+      opts.prop.setProperty("zookeepers", accumulo.getZooKeepers());
       Runtime.getRuntime().addShutdownHook(new Thread() {
         public void start() {
           try {
@@ -98,8 +111,9 @@ public class Proxy {
       });
     }
 
-    Class<? extends TProtocolFactory> protoFactoryClass = Class.forName(opts.prop.getProperty(api + ".protocolFactory")).asSubclass(TProtocolFactory.class);
-    int port = Integer.parseInt(opts.prop.getProperty(api + ".port"));
+    Class<? extends TProtocolFactory> protoFactoryClass = Class.forName(opts.prop.getProperty("protocolFactory", TCompactProtocol.Factory.class.getName()))
+        .asSubclass(TProtocolFactory.class);
+    int port = Integer.parseInt(opts.prop.getProperty("port"));
     TServer server = createProxyServer(AccumuloProxy.class, ProxyServer.class, port, protoFactoryClass, opts.prop);
     server.serve();
   }
@@ -110,7 +124,7 @@ public class Proxy {
     
     // create the implementor
     Object impl = implementor.getConstructor(Properties.class).newInstance(properties);
-    
+
     Class<?> proxyProcClass = Class.forName(api.getName() + "$Processor");
     Class<?> proxyIfaceClass = Class.forName(api.getName() + "$Iface");
     @SuppressWarnings("unchecked")
@@ -124,5 +138,4 @@ public class Proxy {
     args.protocolFactory(protoClass.newInstance());
     return new THsHaServer(args);
   }
-  
 }

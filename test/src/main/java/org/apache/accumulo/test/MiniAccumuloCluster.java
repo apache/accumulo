@@ -99,7 +99,6 @@ public class MiniAccumuloCluster {
         }
         
       } catch (IOException e) {
-        e.printStackTrace();
       }
     }
   }
