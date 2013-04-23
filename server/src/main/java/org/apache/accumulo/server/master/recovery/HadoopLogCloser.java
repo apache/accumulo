@@ -19,6 +19,8 @@ package org.apache.accumulo.server.master.recovery;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.server.master.Master;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
@@ -30,14 +32,14 @@ public class HadoopLogCloser implements LogCloser {
   private static Logger log = Logger.getLogger(HadoopLogCloser.class);
 
   @Override
-  public long close(FileSystem fs, Path source) throws IOException {
+  public long close(Master master, FileSystem fs, Path source) throws IOException {
     
     if (fs instanceof DistributedFileSystem) {
       DistributedFileSystem dfs = (DistributedFileSystem) fs;
       try {
         if (!dfs.recoverLease(source)) {
           log.info("Waiting for file to be closed " + source.toString());
-          return 1000;
+          return master.getConfiguration().getConfiguration().getTimeInMillis(Property.MASTER_LEASE_RECOVERY_WAITING_PERIOD);
         }
         log.info("Recovered lease on " + source.toString());
         return 0;
