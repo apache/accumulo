@@ -38,10 +38,10 @@ fi
 
 install -m 0755 -o root -g root init.d/accumulo-gc /etc/init.d/
 
-if [ -e "`which update-rc.d`" ]; then 
+if which update-rc.d >>/dev/null 2>&1; then 
   update-rc.d accumulo-gc start 21 2 3 4 5 . stop 20 0 1 6 .
-elif [ -e "`which chkconfig`" ]; then
-  chkconfig --add accumulo-gc
+elif which chkconfig >>/dev/null 2>&1; then
+  chkconfig --add accumulo-gc 
 else
   echo "No update-rc.d or chkconfig, rc levels not set for accumulo-gc"
 fi
