@@ -53,7 +53,7 @@ public class CleanZookeeper {
     String root = Constants.ZROOT;
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     if (opts.auth != null) {
-      zk.getZooKeeper().addAuthInfo("digest", opts.auth.getBytes());
+      zk.getZooKeeper().addAuthInfo("digest", ("accumulo:"+opts.auth).getBytes());
     }
     
     try {
