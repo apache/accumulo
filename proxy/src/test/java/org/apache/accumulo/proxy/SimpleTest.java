@@ -630,7 +630,6 @@ public class SimpleTest {
     client.clearLocatorCache(creds, TABLE_TEST);
     
     // compact
-    assertTrue(countFiles(TABLE_TEST) > 1);
     client.compactTable(creds, TABLE_TEST, null, null, null, true, true);
     assertEquals(1, countFiles(TABLE_TEST));
     
