@@ -113,7 +113,7 @@ public class SimpleTest {
   static Class<? extends TProtocolFactory> getRandomProtocol() {
     List<Class<? extends TProtocolFactory>> protocolFactories = new ArrayList<Class<? extends TProtocolFactory>>();
     protocolFactories.add(org.apache.thrift.protocol.TJSONProtocol.Factory.class);
-    // protocolFactories.add(org.apache.thrift.protocol.TBinaryProtocol.Factory.class); // This consistently fails for some reason
+    protocolFactories.add(org.apache.thrift.protocol.TBinaryProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TCompactProtocol.Factory.class);
     
     Random rand = new Random();

@@ -165,74 +165,55 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   protected Connector getConnector(ByteBuffer login) throws Exception {
-    AuthInfo user = CredentialHelper.fromByteArray(login.array());
+    AuthInfo user = CredentialHelper.fromByteArray(ByteBufferUtil.toBytes(login));
     if (user == null)
       throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException("unknown user");
     Connector connector = instance.getConnector(user.getUser(), user.getPassword());
     return connector;
   }
   
+  private void handleAccumuloException(AccumuloException e) throws org.apache.accumulo.proxy.thrift.TableNotFoundException,
+      org.apache.accumulo.proxy.thrift.AccumuloException {
+    if (e.getCause() instanceof ThriftTableOperationException) {
+      ThriftTableOperationException ttoe = (ThriftTableOperationException) e.getCause();
+      if (ttoe.type == TableOperationExceptionType.NOTFOUND) {
+        throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
+      }
+    }
+    throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
+  }
+  
+  private void handleAccumuloSecurityException(AccumuloSecurityException e) throws org.apache.accumulo.proxy.thrift.TableNotFoundException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException {
+    if (e.getErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+      throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
+    throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
+  }
+
   private void handleExceptionTNF(Exception ex) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       throw ex;
     } catch (AccumuloException e) {
-      if (e.getCause() instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) e.getCause();
-        if (ttoe.type == TableOperationExceptionType.NOTFOUND) {
-          throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
-        }
-      }
-      throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
+      handleAccumuloException(e);
     } catch (AccumuloSecurityException e) {
-      if (e.getErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
-        throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
-      throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
+      handleAccumuloSecurityException(e);
     } catch (TableNotFoundException e) {
       throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(ex.toString());
     } catch (Exception e) {
       throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
     }
   }
-  
-  private void handleExceptionTNFNoSecurity(Exception ex) throws org.apache.accumulo.proxy.thrift.AccumuloException,
-      org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
-    try {
-      throw ex;
-    } catch (AccumuloException e) {
-      if (e.getCause() instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) e.getCause();
-        if (ttoe.type == TableOperationExceptionType.NOTFOUND)
-          throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
-      }
-      throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
-    } catch (AccumuloSecurityException e) {
-      if (e.getErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
-        throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
-      throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
-    } catch (TableNotFoundException e) {
-      throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(ex.toString());
-    } catch (Exception e) {
-      throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
-    }
-  }
-  
+
   private void handleExceptionTEE(Exception ex) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException,
       org.apache.accumulo.proxy.thrift.TableExistsException, TException {
     try {
       throw ex;
     } catch (AccumuloException e) {
-      if (e.getCause() instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) e.getCause();
-        if (ttoe.type == TableOperationExceptionType.NOTFOUND)
-          throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
-      }
-      throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
+      handleAccumuloException(e);
     } catch (AccumuloSecurityException e) {
-      if (e.getErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
-        throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
-      throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
+      handleAccumuloSecurityException(e);
     } catch (TableNotFoundException e) {
       throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(ex.toString());
     } catch (TableExistsException e) {
@@ -250,16 +231,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
     } catch (MutationsRejectedException e) {
       throw new org.apache.accumulo.proxy.thrift.MutationsRejectedException(ex.toString());
     } catch (AccumuloException e) {
-      if (e.getCause() instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) e.getCause();
-        if (ttoe.type == TableOperationExceptionType.NOTFOUND)
-          throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
-      }
-      throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
+      handleAccumuloException(e);
     } catch (AccumuloSecurityException e) {
-      if (e.getErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
-        throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
-      throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
+      handleAccumuloSecurityException(e);
     } catch (TableNotFoundException e) {
       throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(ex.toString());
     } catch (Exception e) {
@@ -279,7 +253,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
     }
   }
-  
+
   @Override
   public int addConstraint(ByteBuffer login, String tableName, String constraintClassName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
@@ -349,6 +323,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throws org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException,
       org.apache.accumulo.proxy.thrift.AccumuloException, TException {
     try {
+      if (iterators != null && iterators.size() > 0)
+        throw new UnsupportedOperationException("compactTable does not support passing iterators until Accumulo 1.5.0");
       getConnector(login).tableOperations().compact(tableName, ByteBufferUtil.toText(startRow), ByteBufferUtil.toText(endRow), flush, wait);
     } catch (Exception e) {
       handleExceptionTNF(e);
@@ -405,7 +381,6 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      checkTableExists(getConnector(login), tableName);
       getConnector(login).tableOperations().flush(tableName, ByteBufferUtil.toText(startRow), ByteBufferUtil.toText(endRow), wait);
     } catch (Exception e) {
       handleExceptionTNF(e);
@@ -414,7 +389,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   @Override
   public Map<String,Set<String>> getLocalityGroups(ByteBuffer login, String tableName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
-      org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       checkTableExists(getConnector(login), tableName);
       Map<String,Set<Text>> groups = getConnector(login).tableOperations().getLocalityGroups(tableName);
@@ -427,7 +402,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       }
       return ret;
     } catch (Exception e) {
-      handleExceptionTNFNoSecurity(e);
+      handleExceptionTNF(e);
       return null;
     }
   }
@@ -456,7 +431,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   @Override
   public Map<String,String> getTableProperties(ByteBuffer login, String tableName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
-      org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       checkTableExists(getConnector(login), tableName);
       Map<String,String> ret = new HashMap<String,String>();
@@ -466,7 +441,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       }
       return ret;
     } catch (Exception e) {
-      handleExceptionTNFNoSecurity(e);
+      handleExceptionTNF(e);
       return null;
     }
   }
@@ -498,7 +473,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   @Override
   public Map<String,Integer> listConstraints(ByteBuffer login, String tableName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
-      org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       checkTableExists(getConnector(login), tableName);
       Connector connector = getConnector(login);
@@ -518,7 +493,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       }
       return constraints;
     } catch (Exception e) {
-      handleExceptionTNFNoSecurity(e);
+      handleExceptionTNF(e);
       return null;
     }
   }
@@ -559,7 +534,6 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     
     try {
-      checkTableExists(getConnector(login), tableName);
       getConnector(login).tableOperations().removeProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.toString() + constraint);
     } catch (Exception e) {
       handleExceptionTNF(e);
@@ -570,7 +544,6 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public void removeTableProperty(ByteBuffer login, String tableName, String property) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      checkTableExists(getConnector(login), tableName);
       getConnector(login).tableOperations().removeProperty(tableName, property);
     } catch (Exception e) {
       handleExceptionTNF(e);
@@ -610,7 +583,6 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public void setTableProperty(ByteBuffer login, String tableName, String property, String value) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      checkTableExists(getConnector(login), tableName);
       getConnector(login).tableOperations().setProperty(tableName, property, value);
     } catch (Exception e) {
       handleExceptionTNF(e);
@@ -766,7 +738,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public void changeLocalUserPassword(ByteBuffer login, String user, ByteBuffer password) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
     try {
-      getConnector(login).securityOperations().changeUserPassword(user, password.array());
+      getConnector(login).securityOperations().changeUserPassword(user, ByteBufferUtil.toBytes(password));
     } catch (Exception e) {
       handleException(e);
     }
@@ -776,7 +748,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public void createLocalUser(ByteBuffer login, String user, ByteBuffer password) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
     try {
-      getConnector(login).securityOperations().createUser(user, password.array(), new Authorizations());
+      getConnector(login).securityOperations().createUser(user, ByteBufferUtil.toBytes(password), new Authorizations());
     } catch (Exception e) {
       handleException(e);
     }
@@ -818,9 +790,6 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      
-      checkTableExists(getConnector(login), table);
-      
       getConnector(login).securityOperations().grantTablePermission(user, table, TablePermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
       handleExceptionTNF(e);
@@ -843,7 +812,6 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      checkTableExists(getConnector(login), table);
       return getConnector(login).securityOperations().hasTablePermission(user, table, TablePermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
       handleExceptionTNF(e);
@@ -877,7 +845,6 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      checkTableExists(getConnector(login), table);
       getConnector(login).securityOperations().revokeTablePermission(user, table, TablePermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
       handleExceptionTNF(e);
@@ -1242,11 +1209,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void checkIteratorConflicts(ByteBuffer login, String tableName, org.apache.accumulo.proxy.thrift.IteratorSetting setting,
       Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes) throws org.apache.accumulo.proxy.thrift.AccumuloException,
-      org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       getConnector(login).tableOperations().checkIteratorConflicts(tableName, getIteratorSetting(setting), getIteratorScopes(scopes));
     } catch (Exception e) {
-      handleExceptionTNFNoSecurity(e);
+      handleExceptionTNF(e);
     }
   }
   
