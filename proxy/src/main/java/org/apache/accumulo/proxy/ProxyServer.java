@@ -1004,12 +1004,25 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
   }
   
-  @Override
-  public boolean hasNext(String scanner) throws UnknownScanner, TException {
-    ScannerPlusIterator spi = scannerCache.getIfPresent(UUID.fromString(scanner));
+  private ScannerPlusIterator getScanner(String scanner) throws UnknownScanner {
+    
+    UUID uuid = null;
+    try {
+      uuid = UUID.fromString(scanner);
+    } catch (IllegalArgumentException e) {
+      throw new UnknownScanner(e.getMessage());
+    }
+    
+    ScannerPlusIterator spi = scannerCache.getIfPresent(uuid);
     if (spi == null) {
       throw new UnknownScanner("Scanner never existed or no longer exists");
     }
+    return spi;
+  }
+  
+  @Override
+  public boolean hasNext(String scanner) throws UnknownScanner, TException {
+    ScannerPlusIterator spi = getScanner(scanner);
     
     return (spi.iterator.hasNext());
   }
@@ -1031,10 +1044,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       TException {
     
     // fetch the scanner
-    ScannerPlusIterator spi = scannerCache.getIfPresent(UUID.fromString(scanner));
-    if (spi == null) {
-      throw new UnknownScanner("Scanner never existed or no longer exists");
-    }
+    ScannerPlusIterator spi = getScanner(scanner);
     Iterator<Map.Entry<Key,Value>> batchScanner = spi.iterator;
     // synchronized to prevent race conditions
     synchronized (batchScanner) {
@@ -1055,7 +1065,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       return ret;
     }
   }
-  
+
   @Override
   public void closeScanner(String scanner) throws UnknownScanner, TException {
     try {
@@ -1143,10 +1153,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void update(String writer, Map<ByteBuffer,List<ColumnUpdate>> cells) throws TException {
     try {
-      BatchWriterPlusException bwpe = writerCache.getIfPresent(UUID.fromString(writer));
-      if (bwpe == null) {
-        throw new UnknownWriter("Writer never existed or no longer exists");
-      }
+      BatchWriterPlusException bwpe = getWriter(writer);
       addCellsToWriter(cells, bwpe);
     } catch (Exception e) {
       throw new TException(e);
@@ -1156,15 +1163,14 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void flush(String writer) throws UnknownWriter, org.apache.accumulo.proxy.thrift.MutationsRejectedException, TException {
     try {
-      BatchWriterPlusException bwpe = writerCache.getIfPresent(UUID.fromString(writer));
-      if (bwpe == null) {
-        throw new UnknownWriter("Writer never existed or no longer exists");
-      }
+      BatchWriterPlusException bwpe = getWriter(writer);
       if (bwpe.exception != null)
         throw bwpe.exception;
       bwpe.writer.flush();
     } catch (MutationsRejectedException e) {
       throw new org.apache.accumulo.proxy.thrift.MutationsRejectedException(e.toString());
+    } catch (UnknownWriter uw) {
+      throw uw;
     } catch (Exception e) {
       throw new TException(e);
     }
@@ -1173,19 +1179,33 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void closeWriter(String writer) throws UnknownWriter, org.apache.accumulo.proxy.thrift.MutationsRejectedException, TException {
     try {
-      BatchWriterPlusException bwpe = writerCache.getIfPresent(UUID.fromString(writer));
-      if (bwpe == null) {
-        throw new UnknownWriter("Writer never existed or no longer exists");
-      }
+      BatchWriterPlusException bwpe = getWriter(writer);
       if (bwpe.exception != null)
         throw bwpe.exception;
       bwpe.writer.close();
       writerCache.invalidate(UUID.fromString(writer));
+    } catch (UnknownWriter uw) {
+      throw uw;
     } catch (MutationsRejectedException e) {
       throw new org.apache.accumulo.proxy.thrift.MutationsRejectedException(e.toString());
     } catch (Exception e) {
       throw new TException(e);
     }
+  }
+
+  private BatchWriterPlusException getWriter(String writer) throws UnknownWriter {
+    UUID uuid = null;
+    try {
+      uuid = UUID.fromString(writer);
+    } catch (IllegalArgumentException iae) {
+      throw new UnknownWriter(iae.getMessage());
+    }
+    
+    BatchWriterPlusException bwpe = writerCache.getIfPresent(uuid);
+    if (bwpe == null) {
+      throw new UnknownWriter("Writer never existed or no longer exists");
+    }
+    return bwpe;
   }
   
   private BatchWriterPlusException getWriter(ByteBuffer login, String tableName, WriterOptions opts) throws Exception {

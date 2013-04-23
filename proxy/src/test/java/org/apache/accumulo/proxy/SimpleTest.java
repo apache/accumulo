@@ -38,6 +38,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -71,9 +72,12 @@ import org.apache.accumulo.proxy.thrift.ScanResult;
 import org.apache.accumulo.proxy.thrift.ScanState;
 import org.apache.accumulo.proxy.thrift.ScanType;
 import org.apache.accumulo.proxy.thrift.SystemPermission;
+import org.apache.accumulo.proxy.thrift.TableExistsException;
 import org.apache.accumulo.proxy.thrift.TableNotFoundException;
 import org.apache.accumulo.proxy.thrift.TablePermission;
 import org.apache.accumulo.proxy.thrift.TimeType;
+import org.apache.accumulo.proxy.thrift.UnknownScanner;
+import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -303,6 +307,60 @@ public class SimpleTest {
       client.updateAndFlush(creds, doesNotExist, new HashMap<ByteBuffer,List<ColumnUpdate>>());
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
+  }
+  
+  @Test(timeout = 10000)
+  public void testExists() throws Exception {
+    client.createTable(creds, "ett1", false, TimeType.MILLIS);
+    client.createTable(creds, "ett2", false, TimeType.MILLIS);
+    try {
+      client.createTable(creds, "ett1", false, TimeType.MILLIS);
+      fail("exception not thrown");
+    } catch (TableExistsException tee) {}
+    try {
+      client.renameTable(creds, "ett1", "ett2");
+      fail("exception not thrown");
+    } catch (TableExistsException tee) {}
+    try {
+      client.cloneTable(creds, "ett1", "ett2", false, new HashMap<String,String>(), new HashSet<String>());
+      fail("exception not thrown");
+    } catch (TableExistsException tee) {}
+  }
+  
+  @Test(timeout = 10000)
+  public void testUnknownScanner() throws Exception {
+    try {
+      client.nextEntry("99999999");
+      fail("exception not thrown");
+    } catch (UnknownScanner us) {}
+    try {
+      client.nextK("99999999", 6);
+      fail("exception not thrown");
+    } catch (UnknownScanner us) {}
+    try {
+      client.hasNext("99999999");
+      fail("exception not thrown");
+    } catch (UnknownScanner us) {}
+    try {
+      client.hasNext(UUID.randomUUID().toString());
+      fail("exception not thrown");
+    } catch (UnknownScanner us) {}
+  }
+  
+  @Test(timeout = 10000)
+  public void testUnknownWriter() throws Exception {
+    try {
+      client.flush("99999");
+      fail("exception not thrown");
+    } catch (UnknownWriter uw) {}
+    try {
+      client.flush(UUID.randomUUID().toString());
+      fail("exception not thrown");
+    } catch (UnknownWriter uw) {}
+    try {
+      client.closeWriter("99999");
+      fail("exception not thrown");
+    } catch (UnknownWriter uw) {}
   }
   
   @Test(timeout = 10000)
