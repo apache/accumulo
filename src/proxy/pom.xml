@@ -80,7 +80,7 @@
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-test</artifactId>
         <version>${project.version}</version>
-        <scope>test</scope>
+        <scope>compile</scope>
     </dependency>
     <dependency>
         <groupId>org.apache.hadoop</groupId>

@@ -16,18 +16,39 @@
  */
 package org.apache.accumulo.proxy;
 
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.iterators.user.RegExFilter;
-import org.apache.accumulo.proxy.thrift.*;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.server.TServer;
-import org.junit.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.proxy.thrift.BatchScanOptions;
+import org.apache.accumulo.proxy.thrift.ColumnUpdate;
+import org.apache.accumulo.proxy.thrift.IteratorSetting;
+import org.apache.accumulo.proxy.thrift.Key;
+import org.apache.accumulo.proxy.thrift.KeyValue;
+import org.apache.accumulo.proxy.thrift.MutationsRejectedException;
+import org.apache.accumulo.proxy.thrift.Range;
+import org.apache.accumulo.proxy.thrift.ScanColumn;
+import org.apache.accumulo.proxy.thrift.ScanOptions;
+import org.apache.accumulo.proxy.thrift.ScanResult;
+import org.apache.accumulo.proxy.thrift.TimeType;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.server.TServer;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 
 public class TestProxyReadWrite {
@@ -43,7 +64,7 @@ public class TestProxyReadWrite {
   public static void setup() throws Exception {
 
     Properties prop = new Properties();
-    prop.setProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance", "true");
+    prop.setProperty("useMockInstance", "true");
 
     proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"), Class.forName("org.apache.accumulo.proxy.ProxyServer"),
         port, TCompactProtocol.Factory.class, prop);

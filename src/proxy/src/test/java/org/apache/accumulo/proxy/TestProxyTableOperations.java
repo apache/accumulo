@@ -16,16 +16,36 @@
  */
 package org.apache.accumulo.proxy;
 
-import org.apache.accumulo.proxy.thrift.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
+
+import org.apache.accumulo.proxy.thrift.AccumuloException;
+import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
+import org.apache.accumulo.proxy.thrift.ColumnUpdate;
+import org.apache.accumulo.proxy.thrift.MutationsRejectedException;
+import org.apache.accumulo.proxy.thrift.TableExistsException;
+import org.apache.accumulo.proxy.thrift.TableNotFoundException;
+import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
-import org.junit.*;
-
-import java.nio.ByteBuffer;
-import java.util.*;
-
-import static org.junit.Assert.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class TestProxyTableOperations {
   
@@ -40,7 +60,8 @@ public class TestProxyTableOperations {
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
-    prop.setProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance", "true");
+    prop.setProperty("useMockInstance", "true");
+
     
     proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"), Class.forName("org.apache.accumulo.proxy.ProxyServer"),
         port, TCompactProtocol.Factory.class, prop);

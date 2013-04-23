@@ -16,6 +16,14 @@
  */
 package org.apache.accumulo.proxy;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.nio.ByteBuffer;
+import java.util.Properties;
+import java.util.TreeMap;
+
 import org.apache.accumulo.proxy.thrift.AccumuloException;
 import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
 import org.apache.thrift.TException;
@@ -24,12 +32,6 @@ import org.apache.thrift.server.TServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.nio.ByteBuffer;
-import java.util.Properties;
-import java.util.TreeMap;
-
-import static org.junit.Assert.*;
 
 public class TestProxyInstanceOperations {
   protected static TServer proxy;
@@ -42,7 +44,7 @@ public class TestProxyInstanceOperations {
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
-    prop.setProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance", "true");
+    prop.setProperty("useMockInstance", "true");
     
     proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"), Class.forName("org.apache.accumulo.proxy.ProxyServer"),
         port, TCompactProtocol.Factory.class, prop);

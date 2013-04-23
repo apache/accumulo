@@ -152,12 +152,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   public ProxyServer(Properties props) {
     
-    String useMock = props.getProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance");
+    String useMock = props.getProperty("useMockInstance");
     if (useMock != null && Boolean.parseBoolean(useMock))
       instance = new MockInstance();
     else
-      instance = new ZooKeeperInstance(props.getProperty("org.apache.accumulo.proxy.ProxyServer.instancename"),
-          props.getProperty("org.apache.accumulo.proxy.ProxyServer.zookeepers"));
+      instance = new ZooKeeperInstance(props.getProperty("instance"), props.getProperty("zookeepers"));
     
     scannerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseScanner()).build();
     
