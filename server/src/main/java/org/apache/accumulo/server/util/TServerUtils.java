@@ -216,6 +216,7 @@ public class TServerUtils {
     THsHaServer.Args options = new THsHaServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
+    options.stopTimeoutVal(5);
     /*
      * Create our own very special thread pool.
      */
