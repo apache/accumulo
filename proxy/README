@@ -30,7 +30,7 @@ This will compile the thrift and java files, and will provide C++, python and ru
 
 Please note that the proxy can only function correctly when connected to an Accumulo 1.5 instance, or when run standalone in the Mock configuration.
 To run the server, edit the configuration file with parameters suited for your Accumulo installation. If you wish to instead use an in-memory Mock instance, set:
-org.apache.accumulo.proxy.ProxyServer.useMockInstance=true
+ useMockInstance=true
 This option will override any "real" Accumulo instance information.
 
 Once the properties file is configured correctly, run this command:

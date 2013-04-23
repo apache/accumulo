@@ -152,17 +152,14 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   public ProxyServer(Properties props) {
     
-    String useMock = props.getProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance");
+    String useMock = props.getProperty("useMockInstance");
     if (useMock != null && Boolean.parseBoolean(useMock))
       instance = new MockInstance();
     else
-      instance = new ZooKeeperInstance(props.getProperty("org.apache.accumulo.proxy.ProxyServer.instancename"),
-          props.getProperty("org.apache.accumulo.proxy.ProxyServer.zookeepers"));
+      instance = new ZooKeeperInstance(props.getProperty("instance"), props.getProperty("zookeepers"));
     
     try {
-      String tokenProp = props.getProperty("org.apache.accumulo.proxy.ProxyServer.tokenClass");
-      if (tokenProp == null)
-        throw new IllegalArgumentException("Missing property : org.apache.accumulo.proxy.ProxyServer.tokenClass");
+      String tokenProp = props.getProperty("tokenClass", PasswordToken.class.getName());
       tokenClass = Class.forName(tokenProp).asSubclass(AuthenticationToken.class);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
