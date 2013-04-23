@@ -32,8 +32,8 @@ class GCTest(SunnyDayTest):
 
     settings = SunnyDayTest.settings.copy()
     settings.update({
-        'gc.cycle.start': 5,
-        'gc.cycle.delay': 15,
+        'gc.cycle.start': 1,
+        'gc.cycle.delay': 1,
         'tserver.memory.maps.max':'5K',
         'tserver.compaction.major.delay': 1,
         })
@@ -58,13 +58,12 @@ class GCTest(SunnyDayTest):
             count = update
 
     def runTest(self):
-        self.waitForStop(self.ingester, 60)
-        self.shell(self.masterHost(), 'flush -t test_ingest')
         self.stop_gc(self.masterHost())
+        self.waitForStop(self.ingester, 60)
+        self.shell(self.masterHost(), 'flush -t test_ingest -w')
 
         count = self.waitForFileCountToStabilize()
-        gc = self.runOn(self.masterHost(),
-                        [self.accumulo_sh(), 'gc'])
+        gc = self.runOn(self.masterHost(), [self.accumulo_sh(), 'gc'])
         self.sleep(10)
         collected = self.fileCount()
         self.assert_(count > collected)
