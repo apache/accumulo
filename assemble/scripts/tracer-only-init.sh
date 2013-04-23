@@ -36,9 +36,9 @@ if ! id -u accumulo_tracer >/dev/null 2>&1; then
 fi
 
 install -m 0755 -o root -g root init.d/accumulo-tracer /etc/init.d/
-if [ -e "`which update-rc.d`" ]; then 
+if which update-rc.d >>/dev/null 2>&1; then 
   update-rc.d accumulo-tracer start 22 2 3 4 5 . stop 20 0 1 6 .
-elif [ -e "`which chkconfig`" ]; then
+elif which chkconfig >>/dev/null 2>&1; then
   chkconfig --add accumulo-tracer
 else
   echo "No update-rc.d or chkconfig, rc levels not set for accumulo-tracer"

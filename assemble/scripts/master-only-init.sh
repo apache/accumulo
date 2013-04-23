@@ -37,10 +37,10 @@ if ! id -u accumulo >/dev/null 2>&1; then
 fi
 
 install -m 0755 -o root -g root init.d/accumulo-master /etc/init.d/
-if [ -e "`which update-rc.d`" ]; then 
+if which update-rc.d >>/dev/null 2>&1; then 
   update-rc.d accumulo-master start 21 2 3 4 5 . stop 19 0 1 6 .
-elif [ -e "`which chkconfig`" ]; then
-  chkconfig --add accumulo-master
+elif which chkconfig >>/dev/null 2>&1; then
+  chkconfig --add accumulo-master 
 else
   echo "No update-rc.d or chkconfig, rc levels not set for accumulo-master"
 fi
