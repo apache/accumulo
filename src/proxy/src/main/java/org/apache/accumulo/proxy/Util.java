@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.proxy;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
 
@@ -54,6 +56,9 @@ public class Util {
   }
 
 
+  public static ByteBuffer encodeUserPrincipal(String principal, String token, String instanceId) throws AccumuloSecurityException {
+    return ByteBuffer.wrap(CredentialHelper.asByteArray(new AuthInfo(principal, ByteBuffer.wrap(token.getBytes()), instanceId)));
+  }
 
   protected static byte[] deNullify(byte[] in) {
     if (in == null)
