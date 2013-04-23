@@ -85,7 +85,7 @@ public class RecoveryManager {
         if (localFs instanceof TraceFileSystem)
           localFs = ((TraceFileSystem) localFs).getImplementation();
       
-        long time = closer.close(localFs, getSource(host, filename));
+        long time = closer.close(master, localFs, getSource(host, filename));
       
         if (time > 0) {
           executor.schedule(this, time, TimeUnit.MILLISECONDS);
