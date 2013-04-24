@@ -1065,8 +1065,19 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   @Override
   public void closeScanner(String scanner) throws UnknownScanner, TException {
+    UUID uuid = null;
     try {
-      scannerCache.invalidate(scanner);
+      uuid = UUID.fromString(scanner);
+    } catch (IllegalArgumentException e) {
+      throw new UnknownScanner(e.getMessage());
+    }
+
+    try {
+      if (scannerCache.asMap().remove(uuid) == null) {
+        throw new UnknownScanner("Scanner never existed or no longer exists");
+      }
+    } catch (UnknownScanner e) {
+      throw e;
     } catch (Exception e) {
       throw new TException(e.toString());
     }
@@ -1090,7 +1101,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
   
-  private void addCellsToWriter(Map<ByteBuffer,List<ColumnUpdate>> cells, BatchWriterPlusException bwpe) throws MutationsRejectedException {
+  private void addCellsToWriter(Map<ByteBuffer,List<ColumnUpdate>> cells, BatchWriterPlusException bwpe) {
     if (bwpe.exception != null)
       return;
     
@@ -1152,8 +1163,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       BatchWriterPlusException bwpe = getWriter(writer);
       addCellsToWriter(cells, bwpe);
-    } catch (Exception e) {
-      throw new TException(e);
+    } catch (UnknownWriter e) {
+      // just drop it, this is a oneway thrift call and throwing a TException seems to make all subsequent thrift calls fail
     }
   }
   

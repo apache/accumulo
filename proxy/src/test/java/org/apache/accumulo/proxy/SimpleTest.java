@@ -329,6 +329,25 @@ public class SimpleTest {
   
   @Test(timeout = 10000)
   public void testUnknownScanner() throws Exception {
+    if (client.tableExists(creds, TABLE_TEST))
+      client.deleteTable(creds, TABLE_TEST);
+    
+    client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
+    
+    String scanner = client.createScanner(creds, TABLE_TEST, null);
+    assertFalse(client.hasNext(scanner));
+    client.closeScanner(scanner);
+    
+    try {
+      client.hasNext(scanner);
+      fail("exception not thrown");
+    } catch (UnknownScanner us) {}
+
+    try {
+      client.closeScanner(scanner);
+      fail("exception not thrown");
+    } catch (UnknownScanner us) {}
+    
     try {
       client.nextEntry("99999999");
       fail("exception not thrown");
@@ -349,6 +368,25 @@ public class SimpleTest {
   
   @Test(timeout = 10000)
   public void testUnknownWriter() throws Exception {
+    
+    if (client.tableExists(creds, TABLE_TEST))
+      client.deleteTable(creds, TABLE_TEST);
+    
+    client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
+    
+    String writer = client.createWriter(creds, TABLE_TEST, null);
+    client.update(writer, mutation("row0", "cf", "cq", "value"));
+    client.flush(writer);
+    client.update(writer, mutation("row2", "cf", "cq", "value2"));
+    client.closeWriter(writer);
+    
+    // this is a oneway call, so it does not throw exceptions
+    client.update(writer, mutation("row2", "cf", "cq", "value2"));
+
+    try {
+      client.flush(writer);
+      fail("exception not thrown");
+    } catch (UnknownWriter uw) {}
     try {
       client.flush("99999");
       fail("exception not thrown");
