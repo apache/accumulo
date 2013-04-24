@@ -1065,8 +1065,19 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   @Override
   public void closeScanner(String scanner) throws UnknownScanner, TException {
+    UUID uuid = null;
     try {
-      scannerCache.invalidate(scanner);
+      uuid = UUID.fromString(scanner);
+    } catch (IllegalArgumentException e) {
+      throw new UnknownScanner(e.getMessage());
+    }
+
+    try {
+      if (scannerCache.asMap().remove(uuid) == null) {
+        throw new UnknownScanner("Scanner never existed or no longer exists");
+      }
+    } catch (UnknownScanner e) {
+      throw e;
     } catch (Exception e) {
       throw new TException(e.toString());
     }
