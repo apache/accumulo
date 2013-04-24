@@ -23,7 +23,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.RuntimeException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -268,6 +267,7 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TSERV_NATIVEMAP_ENABLED, "false", siteConfig);
     appendProp(fileWriter, Property.TRACE_PORT, "" + getRandomFreePort(), siteConfig);
     appendProp(fileWriter, Property.LOGGER_SORT_BUFFER_SIZE, "50M", siteConfig);
+    appendProp(fileWriter, Property.LOGGER_PORTSEARCH, "true", siteConfig);
     
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);
