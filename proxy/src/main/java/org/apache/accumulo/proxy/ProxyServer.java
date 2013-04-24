@@ -1101,7 +1101,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
   
-  private void addCellsToWriter(Map<ByteBuffer,List<ColumnUpdate>> cells, BatchWriterPlusException bwpe) throws MutationsRejectedException {
+  private void addCellsToWriter(Map<ByteBuffer,List<ColumnUpdate>> cells, BatchWriterPlusException bwpe) {
     if (bwpe.exception != null)
       return;
     
@@ -1163,8 +1163,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       BatchWriterPlusException bwpe = getWriter(writer);
       addCellsToWriter(cells, bwpe);
-    } catch (Exception e) {
-      throw new TException(e);
+    } catch (UnknownWriter e) {
+      // just drop it, this is a oneway thrift call and throwing a TException seems to make all subsequent thrift calls fail
     }
   }
   

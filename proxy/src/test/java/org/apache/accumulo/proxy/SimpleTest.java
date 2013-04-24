@@ -380,6 +380,9 @@ public class SimpleTest {
     client.update(writer, mutation("row2", "cf", "cq", "value2"));
     client.closeWriter(writer);
     
+    // this is a oneway call, so it does not throw exceptions
+    client.update(writer, mutation("row2", "cf", "cq", "value2"));
+
     try {
       client.flush(writer);
       fail("exception not thrown");
