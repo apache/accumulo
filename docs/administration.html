@@ -98,5 +98,51 @@ false, then accumulo will only use memory managed by Java and the process will
 not use more than what -Xmx is set to.  In this case the
 tserver.memory.maps.max setting should be 75% of the -Xmx setting. 
 
+<h3>Swappiness</h3>
+
+<p>The linux kernel will swap out memory of running programs to increase
+the size of the disk buffers.  This tendency to swap out is controlled by
+a kernel setting called "swappiness."  This behavior does not work well for
+large java servers.  When a java process runs a garbage collection, it touches
+lots of pages forcing all swapped out pages back into memory.  It is suggested
+that swappiness be set to zero.
+
+<pre>
+ # sysctl -w vm.swappiness=0
+ # echo "vm.swappiness = 0" &gt;&gt; /etc/sysctl.conf
+</pre>
+
+<h3>Hadoop timeouts</h3>
+
+<p>In order to detect failed datanodes, use shorter timeouts.  Add the following to your
+hdfs-site.xml file:
+
+<pre>
+
+  &lt;property&gt;
+    &lt;name&gt;dfs.socket.timeout&lt;/name&gt;
+    &lt;value&gt;3000&lt;/value&gt;
+  &lt;/property&gt;
+
+  &lt;property&gt;
+    &lt;name&gt;dfs.socket.write.timeout&lt;/name&gt;
+    &lt;value&gt;5000&lt;/value&gt;
+  &lt;/property&gt;
+
+  &lt;property&gt;
+    &lt;name&gt;ipc.client.connect.timeout&lt;/name&gt;
+    &lt;value&gt;1000&lt;/value&gt;
+  &lt;/property&gt;
+
+  &lt;property&gt;
+    &lt;name&gt;ipc.clident.connect.max.retries.on.timeouts&lt;/name&gt;
+    &lt;value&gt;2&lt;/value&gt;
+  &lt;/property&gt;
+
+
+
+</pre>
+
+
 </body>
 </html>
