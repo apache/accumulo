@@ -162,6 +162,8 @@ public class Shell extends ShellOptions {
   
   public static final String CHARSET = "ISO-8859-1";
   public static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
+  public static final String HISTORY_DIR_NAME = ".accumulo";
+  public static final String HISTORY_FILE_NAME = "shell_history.txt";
   private static final String SHELL_DESCRIPTION = "Shell - Apache Accumulo Interactive Shell";
   private static final String DEFAULT_AUTH_TIMEOUT = "60"; // in minutes
   
@@ -426,8 +428,8 @@ public class Shell extends ShellOptions {
     String home = System.getProperty("HOME");
     if (home == null)
       home = System.getenv("HOME");
-    String configDir = home + "/.accumulo";
-    String historyPath = configDir + "/shell_history.txt";
+    String configDir = home + "/" + HISTORY_DIR_NAME;
+    String historyPath = configDir + "/" + HISTORY_FILE_NAME;
     File accumuloDir = new File(configDir);
     if (!accumuloDir.exists() && !accumuloDir.mkdirs())
       log.warn("Unable to make directory for history at " + accumuloDir);
@@ -518,7 +520,6 @@ public class Shell extends ShellOptions {
     return connector.whoami() + "@" + connector.getInstance().getInstanceName() + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
   
-  @SuppressWarnings("deprecation")
   public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt) throws IOException {
     audit.log(AuditLevel.AUDIT, getDefaultPrompt() + input);
     if (echoPrompt) {
