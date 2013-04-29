@@ -16,11 +16,10 @@
   limitations under the License.
 -->
 <assembly>
-  <id>dist</id>
+  <id>bin</id>
   <formats>
     <format>tar.gz</format>
   </formats>
-  <baseDirectory>apache-accumulo-${project.version}</baseDirectory>
   <fileSets>
     <fileSet>
       <directory>../bin</directory>

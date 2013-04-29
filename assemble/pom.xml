@@ -36,7 +36,7 @@
        Further, the dependencies for Accumulo artifacts must be
        here so they will be copied into the lib directory for
        the binary distribution assemblies.
-   -->
+    -->
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
@@ -106,14 +106,8 @@
       <build>
         <plugins>
           <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-assembly-plugin</artifactId>
-            <configuration>
-              <finalName>apache-${project.parent.artifactId}-${project.version}</finalName>
-              <descriptors>
-                <descriptor>dist.xml</descriptor>
-              </descriptors>
-              <tarLongFileMode>gnu</tarLongFileMode>
-            </configuration>
             <executions>
               <execution>
                 <id>distro-assembly</id>
@@ -121,6 +115,11 @@
                   <goal>single</goal>
                 </goals>
                 <phase>package</phase>
+                <configuration>
+                  <descriptors>
+                    <descriptor>src/main/assemblies/bin.xml</descriptor>
+                  </descriptors>
+                </configuration>
               </execution>
             </executions>
           </plugin>
@@ -136,12 +135,21 @@
             <artifactId>rpm-maven-plugin</artifactId>
             <inherited>false</inherited>
             <configuration>
-              <name>accumulo</name>
-              <projversion>${project.version}</projversion>
+              <!--
+                The following is a trick to get the plugin to sign the rpm.
+                However, these values are ignored, and gpg-agent is used instead.
+                Requires copying contrib/dotfiles-rpmmacros to $HOME/.rpmmacros
+                This is a workaround for bug http://jira.codehaus.org/browse/MRPM-139
+              -->
+              <keyname>dummy</keyname>
+              <keyPassphrase>
+                <passphrase>dummy</passphrase>
+              </keyPassphrase>
+              <classifier>bin</classifier>
               <summary>Apache Accumulo BigTable clone</summary>
-              <description>Apache Accumulo is a large distributed structured store based on
-                Google's BigTable design.</description>
-              <copyright>2011 The Apache Software Foundation.</copyright>
+              <description>Apache Accumulo is a large distributed structured store based on Google's BigTable design.</description>
+              <!-- This populates the license field of the RPM. -->
+              <copyright>Apache License, Version 2.0 and others (see included LICENSE file)</copyright>
               <url>http://accumulo.apache.org</url>
               <group>Utilities</group>
               <requires>
@@ -158,6 +166,12 @@
                 <mapping>
                   <directory>/opt/accumulo/accumulo-${project.version}</directory>
                   <sources>
+                    <source>
+                      <location>${accumulo-top}/LICENSE</location>
+                    </source>
+                    <source>
+                      <location>${accumulo-top}/NOTICE</location>
+                    </source>
                     <source>
                       <location>${accumulo-top}/README</location>
                     </source>
@@ -272,8 +286,7 @@
                 </goals>
                 <phase>package</phase>
                 <configuration>
-                  <classifier>deb</classifier>
-                  <deb>${project.build.directory}/${project.artifactId}_${project.version}.deb</deb>
+                  <classifier>bin</classifier>
                   <controlDir>assemble/deb/accumulo</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <dataSet>
@@ -359,8 +372,7 @@
                 <configuration>
                   <controlDir>assemble/deb/accumulo-native</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
-                  <classifier>native-deb</classifier>
-                  <deb>${project.build.directory}/${project.artifactId}-native_${project.version}-${os.arch}.deb</deb>
+                  <classifier>native-libs</classifier>
                   <dataSet>
                     <data>
                       <src>${accumulo-top}/server/src/main/c++</src>
@@ -399,8 +411,7 @@
                 <configuration>
                   <controlDir>assemble/deb/accumulo-test</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
-                  <classifier>test-deb</classifier>
-                  <deb>${project.build.directory}/${project.artifactId}-test_${project.version}-${os.arch}.deb</deb>
+                  <classifier>tests</classifier>
                   <dataSet>
                     <data>
                       <src>${accumulo-top}/test</src>

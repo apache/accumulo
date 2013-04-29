@@ -44,7 +44,7 @@ easier to install.
 
 Copy the accumulo tar file produced by mvn package from the assemble/target/
 directory to the desired destination, then untar it (e.g. 
-tar xzf apache-accumulo-1.6.0-SNAPSHOT-dist.tar.gz).
+tar xzf accumulo-assemble-1.6.0-bin.tar.gz).
 
 If you are using the RPM, install the RPM on every machine that will run
 accumulo.
