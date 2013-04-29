@@ -17,7 +17,10 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -26,23 +29,38 @@ import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.collections.iterators.AbstractIteratorDecorator;
 
 public class TablesCommand extends Command {
   private Option tableIdOption;
+  private Option disablePaginationOpt;
   
+  @SuppressWarnings("unchecked")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     if (cl.hasOption(tableIdOption.getOpt())) {
-      final Map<String,String> tableIds = shellState.getConnector().tableOperations().tableIdMap();
-      for (String tableName : shellState.getConnector().tableOperations().list()) {
-        shellState.getReader().printString(String.format("%-15s => %10s%n", tableName, tableIds.get(tableName)));
-      }
+      final Map<String,String> tableIds = new TreeMap<String,String>(shellState.getConnector().tableOperations().tableIdMap());
+      shellState.printLines(new TableIdIterator(tableIds.entrySet().iterator()), !cl.hasOption(disablePaginationOpt.getOpt()));
     } else {
-      for (String table : shellState.getConnector().tableOperations().list()) {
-        shellState.getReader().printString(table + "\n");
-      }
+      shellState.printLines(shellState.getConnector().tableOperations().list().iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
     }
     return 0;
+  }
+  
+  /**
+   * Decorator that formats table id and name for display.
+   */
+  private static final class TableIdIterator extends AbstractIteratorDecorator {
+    public TableIdIterator(Iterator<Entry<String,String>> iterator) {
+      super(iterator);
+    }
+    
+    @SuppressWarnings("rawtypes")
+    @Override
+    public Object next() {
+      Entry entry = (Entry) super.next();
+      return String.format("%-15s => %10s%n", entry.getKey(), entry.getValue());
+    }
   }
   
   @Override
@@ -55,6 +73,8 @@ public class TablesCommand extends Command {
     final Options o = new Options();
     tableIdOption = new Option("l", "list-ids", false, "display internal table ids along with the table name");
     o.addOption(tableIdOption);
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
+    o.addOption(disablePaginationOpt);
     return o;
   }
   
