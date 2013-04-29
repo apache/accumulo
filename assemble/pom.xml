@@ -435,33 +435,41 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
             <executions>
               <execution>
-                <id>developer-manual</id>
+                <id>copy-pdf-manuals</id>
                 <goals>
-                  <goal>exec</goal>
+                  <goal>copy-resources</goal>
                 </goals>
                 <phase>prepare-package</phase>
                 <configuration>
-                  <executable>bash</executable>
-                  <arguments>
-                    <argument>../docs/src/developer_manual/build.sh</argument>
-                  </arguments>
+                  <outputDirectory>../docs</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.build.directory}</directory>
+                      <includes>
+                        <include>*.pdf</include>
+                      </includes>
+                    </resource>
+                  </resources>
                 </configuration>
               </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>latex-maven-plugin</artifactId>
+            <executions>
               <execution>
-                <id>user-manual</id>
+                <id>build-pdf-manuals</id>
                 <goals>
-                  <goal>exec</goal>
+                  <goal>latex</goal>
                 </goals>
-                <phase>prepare-package</phase>
+                <phase>compile</phase>
                 <configuration>
-                  <executable>bash</executable>
-                  <arguments>
-                    <argument>../docs/src/user_manual/build.sh</argument>
-                  </arguments>
+                  <docsRoot>../docs/src/main/latex</docsRoot>
                 </configuration>
               </execution>
             </executions>
