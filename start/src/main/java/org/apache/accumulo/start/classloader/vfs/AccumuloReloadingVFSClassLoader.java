@@ -38,7 +38,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   private static final Logger log = Logger.getLogger(AccumuloReloadingVFSClassLoader.class);
 
   /* 5 minute timeout */
-  private static final int DEFAULT_TIMEOUT = 300000;
+  private static final int DEFAULT_TIMEOUT = 1000;
   
   private String uris;
   private FileObject[] files;
@@ -47,13 +47,28 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   private DefaultFileMonitor monitor = null;
   private VFSClassLoader cl = null;
   private boolean preDelegate;
+  public String stringify(FileObject[] files) {
+    StringBuilder sb = new StringBuilder();
+    sb.append('[');
+    String delim = "";
+    for (FileObject file : files) {
+      sb.append(delim);
+      delim = ", ";
+      sb.append(file.getName());
+    }
+    sb.append(']');
+    return sb.toString();
+  }
 
   @Override
   public synchronized ClassLoader getClassLoader() {
     if (cl == null || cl.getParent() != parent.getClassLoader()) {
       try {
+        vfs = AccumuloVFSClassLoader.generateVfs(true);
         files = AccumuloVFSClassLoader.resolve(vfs, uris);
-        
+
+        log.debug("Rebuilding dynamic classloader using files- " + stringify(files));
+
         if (preDelegate)
           cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
         else
