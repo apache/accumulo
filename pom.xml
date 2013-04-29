@@ -104,12 +104,25 @@
     </site>
   </distributionManagement>
   <properties>
+    <!-- used for filtering the java source with the current version -->
+    <accumulo.release.version>${project.version}</accumulo.release.version>
+    <!-- arguments for the release plugin goals;
+         these are in addition to apache-release defined in the parent POM -->
+    <arguments>-P seal-jars,check-licenses,thrift,dist,assemble,docs,rpm,deb</arguments>
+    <!-- only prompt once for the next version -->
     <autoVersionSubmodules>true</autoVersionSubmodules>
-    <maven.min-version>3.0.3</maven.min-version>
+    <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
+    <maven.min-version>3.0.4</maven.min-version>
     <powermock.version>1.5</powermock.version>
+    <!-- for the release plugin -->
+    <preparationGoals>clean compile javadoc:aggregate install</preparationGoals>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <sealJars>false</sealJars>
+    <!-- include the tarball, as well as the zip, for the Apache source-release artifact -->
+    <sourceReleaseAssemblyDescriptor>source-release-zip-tar</sourceReleaseAssemblyDescriptor>
+    <!-- stage the RC in the tags directory -->
+    <tagNameFormat>@{project.version}-RC</tagNameFormat>
     <!-- ZooKeeper 3.4.x works also, but we're not using new features yet; this ensures 3.3.x compatibility. -->
     <zookeeper.version>3.3.6</zookeeper.version>
   </properties>
@@ -330,6 +343,13 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <configuration>
+            <tarLongFileMode>gnu</tarLongFileMode>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-changes-plugin</artifactId>
           <version>2.9</version>
           <configuration>
@@ -419,6 +439,20 @@
           <configuration>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <configuration>
+            <excludes>
+              <exclude>docs/apidocs/package-list</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.8</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -718,6 +752,15 @@
       </build>
     </profile>
     <profile>
+      <!-- Seal jars and skip tests when the
+           apache-release profile is activated. -->
+      <id>seal-jars</id>
+      <properties>
+        <sealJars>true</sealJars>
+        <skipTests>true</skipTests>
+      </properties>
+    </profile>
+    <profile>
       <!-- Automatically check for licenses.
            Activate with -P check-licenses -->
       <id>check-licenses</id>
@@ -857,31 +900,6 @@
           </dependency>
         </dependencies>
       </dependencyManagement>
-    </profile>
-    <profile>
-      <!-- Seal jars, skip tests, and do license checks when
-           the apache-release profile is activated. -->
-      <id>apache-release</id>
-      <properties>
-        <sealJars>true</sealJars>
-        <skipTests>true</skipTests>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.rat</groupId>
-            <artifactId>apache-rat-plugin</artifactId>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-                <phase>verify</phase>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
   </profiles>
 </project>

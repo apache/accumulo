@@ -38,13 +38,48 @@ runAt() {
   ( cd $1 ; echo in `pwd`; shift ; run $@ ) || fail 
 }
 
-run mvn -U clean 
-mvn rat:check 
-COUNT=`grep '!????' target/rat.txt | wc -l`
-EXPECTED=53
-if [ "$COUNT" -ne $EXPECTED ]
-then
-   fail expected $EXPECTED files missing licenses, but saw "$COUNT"
+# Allow skipping tests; This option is not possible
+# with the --create-release-candidate option
+if [[ $1 != '--skipTests' ]]; then
+  # Run all tests with Hadoop 1.0.x
+  run mvn clean
+  run mvn verify
+
+  # Run all tests with Hadoop 2.0.x
+  run mvn clean
+  run mvn verify -Dhadoop.profile=2.0
 fi
-run mvn package javadoc:aggregate javadoc:jar source:jar -Pdist
-run mvn -P assemble
+
+# Build and stage release artifacts; dryRun is assumed, unless
+# this script is executed with --create-release-candidate flag.
+DRYRUN='-DdryRun'
+if [[ $1 = '--create-release-candidate' ]]; then
+  DRYRUN=''
+fi
+
+# make sure gpg agent has key cached; TODO prompt for key instead of using default
+# if you want the RPM signed, copy contrib/dotfiles-rpmmacros to $HOME/.rpmmacros
+TESTFILE=/tmp/${USER}-gpgTestFile.txt
+touch "${TESTFILE}" && gpg --sign "${TESTFILE}" && rm -f "${TESTFILE}" "${TESTFILE}.gpg"
+
+run mvn clean release:clean release:prepare $DRYRUN
+run mvn release:perform $DRYRUN
+
+if [[ $DRYRUN = '-DdryRun' ]]; then
+  echo '**************************************************'
+  echo '  You performed a dryRun release. To tag and'
+  echo '  stage a real release candidate for a vote,'
+  echo '  execute this script as:'
+  echo "    $0 --create-release-candidate"
+  echo '**************************************************'
+else
+  echo '**************************************************'
+  echo '  You\'ve successfully tagged and staged a'
+  echo '  release candidate. If the vote succeeds, rename'
+  echo '  the release candidate to its final name,'
+  echo '  promote the staging repository, copy the'
+  echo '  artifacts to the dist svn, update the web page,'
+  echo '  and create a release announcement for the'
+  echo '  mailing lists.'
+  echo '**************************************************'
+fi
