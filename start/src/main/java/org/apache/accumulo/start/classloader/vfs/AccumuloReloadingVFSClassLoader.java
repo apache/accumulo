@@ -38,7 +38,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   private static final Logger log = Logger.getLogger(AccumuloReloadingVFSClassLoader.class);
 
   /* 5 minute timeout */
-  private static final int DEFAULT_TIMEOUT = 1000;
+  private static final int DEFAULT_TIMEOUT = 600000;
   
   private String uris;
   private FileObject[] files;
