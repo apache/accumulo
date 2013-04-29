@@ -162,6 +162,7 @@ public class Shell extends ShellOptions {
   
   public static final String CHARSET = "ISO-8859-1";
   public static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
+  public static final String COMMENT_PREFIX = "#";
   public static final String HISTORY_DIR_NAME = ".accumulo";
   public static final String HISTORY_FILE_NAME = "shell_history.txt";
   private static final String SHELL_DESCRIPTION = "Shell - Apache Accumulo Interactive Shell";
@@ -526,6 +527,10 @@ public class Shell extends ShellOptions {
       reader.printString(getDefaultPrompt());
       reader.printString(input);
       reader.printNewline();
+    }
+    
+    if (input.startsWith(COMMENT_PREFIX)) {
+      return;
     }
     
     String fields[];

@@ -206,4 +206,12 @@ public class ShellTest {
     exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st", true, expected);
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
+  
+  @Test
+  public void commentTest() throws IOException {
+    Shell.log.debug("Starting comment test --------------------------");
+    exec("#", true, "Unknown command", false);
+    exec("# foo", true, "Unknown command", false);
+    exec("- foo", true, "Unknown command", true);
+  }
 }
