@@ -435,6 +435,30 @@
       <build>
         <plugins>
           <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-pdf-manuals</id>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <phase>prepare-package</phase>
+                <configuration>
+                  <outputDirectory>../docs</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.build.directory}</directory>
+                      <includes>
+                        <include>*.pdf</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>latex-maven-plugin</artifactId>
             <executions>
@@ -450,30 +474,6 @@
               </execution>
             </executions>
           </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>copy-pdf-manuals</id>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <phase>prepare-package</phase>
-            <configuration>
-              <outputDirectory>../docs</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>${project.build.directory}</directory>
-                  <includes>
-                    <include>*.pdf</include>
-                  </includes>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
         </plugins>
       </build>
     </profile>
