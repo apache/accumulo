@@ -124,7 +124,7 @@ public class MiniAccumuloCluster {
   private MiniAccumuloConfig config;
   private Process[] tabletServerProcesses;
   
-  private int getRandomFreePort() {
+  static public int getRandomFreePort() {
     Random r = new Random();
     int count = 0;
     
