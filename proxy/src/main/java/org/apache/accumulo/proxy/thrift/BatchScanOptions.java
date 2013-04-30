@@ -720,13 +720,13 @@ import org.slf4j.LoggerFactory;
           case 1: // AUTHORIZATIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
               {
-                org.apache.thrift.protocol.TSet _set42 = iprot.readSetBegin();
-                struct.authorizations = new HashSet<ByteBuffer>(2*_set42.size);
-                for (int _i43 = 0; _i43 < _set42.size; ++_i43)
+                org.apache.thrift.protocol.TSet _set50 = iprot.readSetBegin();
+                struct.authorizations = new HashSet<ByteBuffer>(2*_set50.size);
+                for (int _i51 = 0; _i51 < _set50.size; ++_i51)
                 {
-                  ByteBuffer _elem44; // required
-                  _elem44 = iprot.readBinary();
-                  struct.authorizations.add(_elem44);
+                  ByteBuffer _elem52; // required
+                  _elem52 = iprot.readBinary();
+                  struct.authorizations.add(_elem52);
                 }
                 iprot.readSetEnd();
               }
@@ -738,14 +738,14 @@ import org.slf4j.LoggerFactory;
           case 2: // RANGES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list45 = iprot.readListBegin();
-                struct.ranges = new ArrayList<Range>(_list45.size);
-                for (int _i46 = 0; _i46 < _list45.size; ++_i46)
+                org.apache.thrift.protocol.TList _list53 = iprot.readListBegin();
+                struct.ranges = new ArrayList<Range>(_list53.size);
+                for (int _i54 = 0; _i54 < _list53.size; ++_i54)
                 {
-                  Range _elem47; // required
-                  _elem47 = new Range();
-                  _elem47.read(iprot);
-                  struct.ranges.add(_elem47);
+                  Range _elem55; // required
+                  _elem55 = new Range();
+                  _elem55.read(iprot);
+                  struct.ranges.add(_elem55);
                 }
                 iprot.readListEnd();
               }
@@ -757,14 +757,14 @@ import org.slf4j.LoggerFactory;
           case 3: // COLUMNS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list48 = iprot.readListBegin();
-                struct.columns = new ArrayList<ScanColumn>(_list48.size);
-                for (int _i49 = 0; _i49 < _list48.size; ++_i49)
+                org.apache.thrift.protocol.TList _list56 = iprot.readListBegin();
+                struct.columns = new ArrayList<ScanColumn>(_list56.size);
+                for (int _i57 = 0; _i57 < _list56.size; ++_i57)
                 {
-                  ScanColumn _elem50; // required
-                  _elem50 = new ScanColumn();
-                  _elem50.read(iprot);
-                  struct.columns.add(_elem50);
+                  ScanColumn _elem58; // required
+                  _elem58 = new ScanColumn();
+                  _elem58.read(iprot);
+                  struct.columns.add(_elem58);
                 }
                 iprot.readListEnd();
               }
@@ -776,14 +776,14 @@ import org.slf4j.LoggerFactory;
           case 4: // ITERATORS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list51 = iprot.readListBegin();
-                struct.iterators = new ArrayList<IteratorSetting>(_list51.size);
-                for (int _i52 = 0; _i52 < _list51.size; ++_i52)
+                org.apache.thrift.protocol.TList _list59 = iprot.readListBegin();
+                struct.iterators = new ArrayList<IteratorSetting>(_list59.size);
+                for (int _i60 = 0; _i60 < _list59.size; ++_i60)
                 {
-                  IteratorSetting _elem53; // required
-                  _elem53 = new IteratorSetting();
-                  _elem53.read(iprot);
-                  struct.iterators.add(_elem53);
+                  IteratorSetting _elem61; // required
+                  _elem61 = new IteratorSetting();
+                  _elem61.read(iprot);
+                  struct.iterators.add(_elem61);
                 }
                 iprot.readListEnd();
               }
@@ -820,9 +820,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
           {
             oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.authorizations.size()));
-            for (ByteBuffer _iter54 : struct.authorizations)
+            for (ByteBuffer _iter62 : struct.authorizations)
             {
-              oprot.writeBinary(_iter54);
+              oprot.writeBinary(_iter62);
             }
             oprot.writeSetEnd();
           }
@@ -834,9 +834,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(RANGES_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.ranges.size()));
-            for (Range _iter55 : struct.ranges)
+            for (Range _iter63 : struct.ranges)
             {
-              _iter55.write(oprot);
+              _iter63.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -848,9 +848,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(COLUMNS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.columns.size()));
-            for (ScanColumn _iter56 : struct.columns)
+            for (ScanColumn _iter64 : struct.columns)
             {
-              _iter56.write(oprot);
+              _iter64.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -862,9 +862,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(ITERATORS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.iterators.size()));
-            for (IteratorSetting _iter57 : struct.iterators)
+            for (IteratorSetting _iter65 : struct.iterators)
             {
-              _iter57.write(oprot);
+              _iter65.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -913,36 +913,36 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetAuthorizations()) {
         {
           oprot.writeI32(struct.authorizations.size());
-          for (ByteBuffer _iter58 : struct.authorizations)
+          for (ByteBuffer _iter66 : struct.authorizations)
           {
-            oprot.writeBinary(_iter58);
+            oprot.writeBinary(_iter66);
           }
         }
       }
       if (struct.isSetRanges()) {
         {
           oprot.writeI32(struct.ranges.size());
-          for (Range _iter59 : struct.ranges)
+          for (Range _iter67 : struct.ranges)
           {
-            _iter59.write(oprot);
+            _iter67.write(oprot);
           }
         }
       }
       if (struct.isSetColumns()) {
         {
           oprot.writeI32(struct.columns.size());
-          for (ScanColumn _iter60 : struct.columns)
+          for (ScanColumn _iter68 : struct.columns)
           {
-            _iter60.write(oprot);
+            _iter68.write(oprot);
           }
         }
       }
       if (struct.isSetIterators()) {
         {
           oprot.writeI32(struct.iterators.size());
-          for (IteratorSetting _iter61 : struct.iterators)
+          for (IteratorSetting _iter69 : struct.iterators)
           {
-            _iter61.write(oprot);
+            _iter69.write(oprot);
           }
         }
       }
@@ -957,55 +957,55 @@ import org.slf4j.LoggerFactory;
       BitSet incoming = iprot.readBitSet(5);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TSet _set62 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.authorizations = new HashSet<ByteBuffer>(2*_set62.size);
-          for (int _i63 = 0; _i63 < _set62.size; ++_i63)
+          org.apache.thrift.protocol.TSet _set70 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.authorizations = new HashSet<ByteBuffer>(2*_set70.size);
+          for (int _i71 = 0; _i71 < _set70.size; ++_i71)
           {
-            ByteBuffer _elem64; // required
-            _elem64 = iprot.readBinary();
-            struct.authorizations.add(_elem64);
+            ByteBuffer _elem72; // required
+            _elem72 = iprot.readBinary();
+            struct.authorizations.add(_elem72);
           }
         }
         struct.setAuthorizationsIsSet(true);
       }
       if (incoming.get(1)) {
         {
-          org.apache.thrift.protocol.TList _list65 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.ranges = new ArrayList<Range>(_list65.size);
-          for (int _i66 = 0; _i66 < _list65.size; ++_i66)
+          org.apache.thrift.protocol.TList _list73 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.ranges = new ArrayList<Range>(_list73.size);
+          for (int _i74 = 0; _i74 < _list73.size; ++_i74)
           {
-            Range _elem67; // required
-            _elem67 = new Range();
-            _elem67.read(iprot);
-            struct.ranges.add(_elem67);
+            Range _elem75; // required
+            _elem75 = new Range();
+            _elem75.read(iprot);
+            struct.ranges.add(_elem75);
           }
         }
         struct.setRangesIsSet(true);
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TList _list68 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.columns = new ArrayList<ScanColumn>(_list68.size);
-          for (int _i69 = 0; _i69 < _list68.size; ++_i69)
+          org.apache.thrift.protocol.TList _list76 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.columns = new ArrayList<ScanColumn>(_list76.size);
+          for (int _i77 = 0; _i77 < _list76.size; ++_i77)
           {
-            ScanColumn _elem70; // required
-            _elem70 = new ScanColumn();
-            _elem70.read(iprot);
-            struct.columns.add(_elem70);
+            ScanColumn _elem78; // required
+            _elem78 = new ScanColumn();
+            _elem78.read(iprot);
+            struct.columns.add(_elem78);
           }
         }
         struct.setColumnsIsSet(true);
       }
       if (incoming.get(3)) {
         {
-          org.apache.thrift.protocol.TList _list71 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.iterators = new ArrayList<IteratorSetting>(_list71.size);
-          for (int _i72 = 0; _i72 < _list71.size; ++_i72)
+          org.apache.thrift.protocol.TList _list79 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.iterators = new ArrayList<IteratorSetting>(_list79.size);
+          for (int _i80 = 0; _i80 < _list79.size; ++_i80)
           {
-            IteratorSetting _elem73; // required
-            _elem73 = new IteratorSetting();
-            _elem73.read(iprot);
-            struct.iterators.add(_elem73);
+            IteratorSetting _elem81; // required
+            _elem81 = new IteratorSetting();
+            _elem81.read(iprot);
+            struct.iterators.add(_elem81);
           }
         }
         struct.setIteratorsIsSet(true);

@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.mock;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
 import org.apache.accumulo.core.client.admin.TableOperationsHelper;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -298,7 +300,20 @@ public class MockTableOperations extends TableOperationsHelper {
     }
     return result;
   }
-  
+
+  @Override
+  public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException {
+
+    List<DiskUsage> diskUsages = new ArrayList<DiskUsage>();
+    for(String table : tables) {
+      TreeSet<String> tree = new TreeSet<String>();
+      tree.add(table);
+      diskUsages.add(new DiskUsage(tree, 1l));
+    }
+
+    return diskUsages;
+  }
+
   @Override
   public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!exists(tableName))

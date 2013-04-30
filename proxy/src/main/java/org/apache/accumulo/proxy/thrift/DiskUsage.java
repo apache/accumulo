@@ -46,25 +46,25 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class ScanResult implements org.apache.thrift.TBase<ScanResult, ScanResult._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ScanResult");
+@SuppressWarnings("all") public class DiskUsage implements org.apache.thrift.TBase<DiskUsage, DiskUsage._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("DiskUsage");
 
-  private static final org.apache.thrift.protocol.TField RESULTS_FIELD_DESC = new org.apache.thrift.protocol.TField("results", org.apache.thrift.protocol.TType.LIST, (short)1);
-  private static final org.apache.thrift.protocol.TField MORE_FIELD_DESC = new org.apache.thrift.protocol.TField("more", org.apache.thrift.protocol.TType.BOOL, (short)2);
+  private static final org.apache.thrift.protocol.TField TABLES_FIELD_DESC = new org.apache.thrift.protocol.TField("tables", org.apache.thrift.protocol.TType.LIST, (short)1);
+  private static final org.apache.thrift.protocol.TField USAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("usage", org.apache.thrift.protocol.TType.I64, (short)2);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new ScanResultStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new ScanResultTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new DiskUsageStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new DiskUsageTupleSchemeFactory());
   }
 
-  public List<KeyValue> results; // required
-  public boolean more; // required
+  public List<String> tables; // required
+  public long usage; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    RESULTS((short)1, "results"),
-    MORE((short)2, "more");
+    TABLES((short)1, "tables"),
+    USAGE((short)2, "usage");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -79,10 +79,10 @@ import org.slf4j.LoggerFactory;
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // RESULTS
-          return RESULTS;
-        case 2: // MORE
-          return MORE;
+        case 1: // TABLES
+          return TABLES;
+        case 2: // USAGE
+          return USAGE;
         default:
           return null;
       }
@@ -123,136 +123,136 @@ import org.slf4j.LoggerFactory;
   }
 
   // isset id assignments
-  private static final int __MORE_ISSET_ID = 0;
+  private static final int __USAGE_ISSET_ID = 0;
   private byte __isset_bitfield = 0;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.RESULTS, new org.apache.thrift.meta_data.FieldMetaData("results", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.TABLES, new org.apache.thrift.meta_data.FieldMetaData("tables", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, KeyValue.class))));
-    tmpMap.put(_Fields.MORE, new org.apache.thrift.meta_data.FieldMetaData("more", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+    tmpMap.put(_Fields.USAGE, new org.apache.thrift.meta_data.FieldMetaData("usage", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ScanResult.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(DiskUsage.class, metaDataMap);
   }
 
-  public ScanResult() {
+  public DiskUsage() {
   }
 
-  public ScanResult(
-    List<KeyValue> results,
-    boolean more)
+  public DiskUsage(
+    List<String> tables,
+    long usage)
   {
     this();
-    this.results = results;
-    this.more = more;
-    setMoreIsSet(true);
+    this.tables = tables;
+    this.usage = usage;
+    setUsageIsSet(true);
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public ScanResult(ScanResult other) {
+  public DiskUsage(DiskUsage other) {
     __isset_bitfield = other.__isset_bitfield;
-    if (other.isSetResults()) {
-      List<KeyValue> __this__results = new ArrayList<KeyValue>();
-      for (KeyValue other_element : other.results) {
-        __this__results.add(new KeyValue(other_element));
+    if (other.isSetTables()) {
+      List<String> __this__tables = new ArrayList<String>();
+      for (String other_element : other.tables) {
+        __this__tables.add(other_element);
       }
-      this.results = __this__results;
+      this.tables = __this__tables;
     }
-    this.more = other.more;
+    this.usage = other.usage;
   }
 
-  public ScanResult deepCopy() {
-    return new ScanResult(this);
+  public DiskUsage deepCopy() {
+    return new DiskUsage(this);
   }
 
   @Override
   public void clear() {
-    this.results = null;
-    setMoreIsSet(false);
-    this.more = false;
+    this.tables = null;
+    setUsageIsSet(false);
+    this.usage = 0;
   }
 
-  public int getResultsSize() {
-    return (this.results == null) ? 0 : this.results.size();
+  public int getTablesSize() {
+    return (this.tables == null) ? 0 : this.tables.size();
   }
 
-  public java.util.Iterator<KeyValue> getResultsIterator() {
-    return (this.results == null) ? null : this.results.iterator();
+  public java.util.Iterator<String> getTablesIterator() {
+    return (this.tables == null) ? null : this.tables.iterator();
   }
 
-  public void addToResults(KeyValue elem) {
-    if (this.results == null) {
-      this.results = new ArrayList<KeyValue>();
+  public void addToTables(String elem) {
+    if (this.tables == null) {
+      this.tables = new ArrayList<String>();
     }
-    this.results.add(elem);
+    this.tables.add(elem);
   }
 
-  public List<KeyValue> getResults() {
-    return this.results;
+  public List<String> getTables() {
+    return this.tables;
   }
 
-  public ScanResult setResults(List<KeyValue> results) {
-    this.results = results;
+  public DiskUsage setTables(List<String> tables) {
+    this.tables = tables;
     return this;
   }
 
-  public void unsetResults() {
-    this.results = null;
+  public void unsetTables() {
+    this.tables = null;
   }
 
-  /** Returns true if field results is set (has been assigned a value) and false otherwise */
-  public boolean isSetResults() {
-    return this.results != null;
+  /** Returns true if field tables is set (has been assigned a value) and false otherwise */
+  public boolean isSetTables() {
+    return this.tables != null;
   }
 
-  public void setResultsIsSet(boolean value) {
+  public void setTablesIsSet(boolean value) {
     if (!value) {
-      this.results = null;
+      this.tables = null;
     }
   }
 
-  public boolean isMore() {
-    return this.more;
+  public long getUsage() {
+    return this.usage;
   }
 
-  public ScanResult setMore(boolean more) {
-    this.more = more;
-    setMoreIsSet(true);
+  public DiskUsage setUsage(long usage) {
+    this.usage = usage;
+    setUsageIsSet(true);
     return this;
   }
 
-  public void unsetMore() {
-    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __MORE_ISSET_ID);
+  public void unsetUsage() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __USAGE_ISSET_ID);
   }
 
-  /** Returns true if field more is set (has been assigned a value) and false otherwise */
-  public boolean isSetMore() {
-    return EncodingUtils.testBit(__isset_bitfield, __MORE_ISSET_ID);
+  /** Returns true if field usage is set (has been assigned a value) and false otherwise */
+  public boolean isSetUsage() {
+    return EncodingUtils.testBit(__isset_bitfield, __USAGE_ISSET_ID);
   }
 
-  public void setMoreIsSet(boolean value) {
-    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __MORE_ISSET_ID, value);
+  public void setUsageIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __USAGE_ISSET_ID, value);
   }
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case RESULTS:
+    case TABLES:
       if (value == null) {
-        unsetResults();
+        unsetTables();
       } else {
-        setResults((List<KeyValue>)value);
+        setTables((List<String>)value);
       }
       break;
 
-    case MORE:
+    case USAGE:
       if (value == null) {
-        unsetMore();
+        unsetUsage();
       } else {
-        setMore((Boolean)value);
+        setUsage((Long)value);
       }
       break;
 
@@ -261,11 +261,11 @@ import org.slf4j.LoggerFactory;
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case RESULTS:
-      return getResults();
+    case TABLES:
+      return getTables();
 
-    case MORE:
-      return Boolean.valueOf(isMore());
+    case USAGE:
+      return Long.valueOf(getUsage());
 
     }
     throw new IllegalStateException();
@@ -278,10 +278,10 @@ import org.slf4j.LoggerFactory;
     }
 
     switch (field) {
-    case RESULTS:
-      return isSetResults();
-    case MORE:
-      return isSetMore();
+    case TABLES:
+      return isSetTables();
+    case USAGE:
+      return isSetUsage();
     }
     throw new IllegalStateException();
   }
@@ -290,30 +290,30 @@ import org.slf4j.LoggerFactory;
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof ScanResult)
-      return this.equals((ScanResult)that);
+    if (that instanceof DiskUsage)
+      return this.equals((DiskUsage)that);
     return false;
   }
 
-  public boolean equals(ScanResult that) {
+  public boolean equals(DiskUsage that) {
     if (that == null)
       return false;
 
-    boolean this_present_results = true && this.isSetResults();
-    boolean that_present_results = true && that.isSetResults();
-    if (this_present_results || that_present_results) {
-      if (!(this_present_results && that_present_results))
+    boolean this_present_tables = true && this.isSetTables();
+    boolean that_present_tables = true && that.isSetTables();
+    if (this_present_tables || that_present_tables) {
+      if (!(this_present_tables && that_present_tables))
         return false;
-      if (!this.results.equals(that.results))
+      if (!this.tables.equals(that.tables))
         return false;
     }
 
-    boolean this_present_more = true;
-    boolean that_present_more = true;
-    if (this_present_more || that_present_more) {
-      if (!(this_present_more && that_present_more))
+    boolean this_present_usage = true;
+    boolean that_present_usage = true;
+    if (this_present_usage || that_present_usage) {
+      if (!(this_present_usage && that_present_usage))
         return false;
-      if (this.more != that.more)
+      if (this.usage != that.usage)
         return false;
     }
 
@@ -325,30 +325,30 @@ import org.slf4j.LoggerFactory;
     return 0;
   }
 
-  public int compareTo(ScanResult other) {
+  public int compareTo(DiskUsage other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    ScanResult typedOther = (ScanResult)other;
+    DiskUsage typedOther = (DiskUsage)other;
 
-    lastComparison = Boolean.valueOf(isSetResults()).compareTo(typedOther.isSetResults());
+    lastComparison = Boolean.valueOf(isSetTables()).compareTo(typedOther.isSetTables());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetResults()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.results, typedOther.results);
+    if (isSetTables()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tables, typedOther.tables);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetMore()).compareTo(typedOther.isSetMore());
+    lastComparison = Boolean.valueOf(isSetUsage()).compareTo(typedOther.isSetUsage());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMore()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.more, typedOther.more);
+    if (isSetUsage()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.usage, typedOther.usage);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -370,19 +370,19 @@ import org.slf4j.LoggerFactory;
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("ScanResult(");
+    StringBuilder sb = new StringBuilder("DiskUsage(");
     boolean first = true;
 
-    sb.append("results:");
-    if (this.results == null) {
+    sb.append("tables:");
+    if (this.tables == null) {
       sb.append("null");
     } else {
-      sb.append(this.results);
+      sb.append(this.tables);
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("more:");
-    sb.append(this.more);
+    sb.append("usage:");
+    sb.append(this.usage);
     first = false;
     sb.append(")");
     return sb.toString();
@@ -411,15 +411,15 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  private static class ScanResultStandardSchemeFactory implements SchemeFactory {
-    public ScanResultStandardScheme getScheme() {
-      return new ScanResultStandardScheme();
+  private static class DiskUsageStandardSchemeFactory implements SchemeFactory {
+    public DiskUsageStandardScheme getScheme() {
+      return new DiskUsageStandardScheme();
     }
   }
 
-  private static class ScanResultStandardScheme extends StandardScheme<ScanResult> {
+  private static class DiskUsageStandardScheme extends StandardScheme<DiskUsage> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, ScanResult struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, DiskUsage struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -429,29 +429,28 @@ import org.slf4j.LoggerFactory;
           break;
         }
         switch (schemeField.id) {
-          case 1: // RESULTS
+          case 1: // TABLES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
-                struct.results = new ArrayList<KeyValue>(_list8.size);
-                for (int _i9 = 0; _i9 < _list8.size; ++_i9)
+                org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
+                struct.tables = new ArrayList<String>(_list0.size);
+                for (int _i1 = 0; _i1 < _list0.size; ++_i1)
                 {
-                  KeyValue _elem10; // required
-                  _elem10 = new KeyValue();
-                  _elem10.read(iprot);
-                  struct.results.add(_elem10);
+                  String _elem2; // required
+                  _elem2 = iprot.readString();
+                  struct.tables.add(_elem2);
                 }
                 iprot.readListEnd();
               }
-              struct.setResultsIsSet(true);
+              struct.setTablesIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // MORE
-            if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
-              struct.more = iprot.readBool();
-              struct.setMoreIsSet(true);
+          case 2: // USAGE
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.usage = iprot.readI64();
+              struct.setUsageIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -467,24 +466,24 @@ import org.slf4j.LoggerFactory;
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, ScanResult struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, DiskUsage struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.results != null) {
-        oprot.writeFieldBegin(RESULTS_FIELD_DESC);
+      if (struct.tables != null) {
+        oprot.writeFieldBegin(TABLES_FIELD_DESC);
         {
-          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.results.size()));
-          for (KeyValue _iter11 : struct.results)
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.tables.size()));
+          for (String _iter3 : struct.tables)
           {
-            _iter11.write(oprot);
+            oprot.writeString(_iter3);
           }
           oprot.writeListEnd();
         }
         oprot.writeFieldEnd();
       }
-      oprot.writeFieldBegin(MORE_FIELD_DESC);
-      oprot.writeBool(struct.more);
+      oprot.writeFieldBegin(USAGE_FIELD_DESC);
+      oprot.writeI64(struct.usage);
       oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -492,60 +491,59 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  private static class ScanResultTupleSchemeFactory implements SchemeFactory {
-    public ScanResultTupleScheme getScheme() {
-      return new ScanResultTupleScheme();
+  private static class DiskUsageTupleSchemeFactory implements SchemeFactory {
+    public DiskUsageTupleScheme getScheme() {
+      return new DiskUsageTupleScheme();
     }
   }
 
-  private static class ScanResultTupleScheme extends TupleScheme<ScanResult> {
+  private static class DiskUsageTupleScheme extends TupleScheme<DiskUsage> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, ScanResult struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, DiskUsage struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
-      if (struct.isSetResults()) {
+      if (struct.isSetTables()) {
         optionals.set(0);
       }
-      if (struct.isSetMore()) {
+      if (struct.isSetUsage()) {
         optionals.set(1);
       }
       oprot.writeBitSet(optionals, 2);
-      if (struct.isSetResults()) {
+      if (struct.isSetTables()) {
         {
-          oprot.writeI32(struct.results.size());
-          for (KeyValue _iter12 : struct.results)
+          oprot.writeI32(struct.tables.size());
+          for (String _iter4 : struct.tables)
           {
-            _iter12.write(oprot);
+            oprot.writeString(_iter4);
           }
         }
       }
-      if (struct.isSetMore()) {
-        oprot.writeBool(struct.more);
+      if (struct.isSetUsage()) {
+        oprot.writeI64(struct.usage);
       }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, ScanResult struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, DiskUsage struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list13 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.results = new ArrayList<KeyValue>(_list13.size);
-          for (int _i14 = 0; _i14 < _list13.size; ++_i14)
+          org.apache.thrift.protocol.TList _list5 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.tables = new ArrayList<String>(_list5.size);
+          for (int _i6 = 0; _i6 < _list5.size; ++_i6)
           {
-            KeyValue _elem15; // required
-            _elem15 = new KeyValue();
-            _elem15.read(iprot);
-            struct.results.add(_elem15);
+            String _elem7; // required
+            _elem7 = iprot.readString();
+            struct.tables.add(_elem7);
           }
         }
-        struct.setResultsIsSet(true);
+        struct.setTablesIsSet(true);
       }
       if (incoming.get(1)) {
-        struct.more = iprot.readBool();
-        struct.setMoreIsSet(true);
+        struct.usage = iprot.readI64();
+        struct.setUsageIsSet(true);
       }
     }
   }

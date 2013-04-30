@@ -23,7 +23,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.tabletserver.thrift.DiskUsage;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.Instance;
@@ -207,6 +210,11 @@ public class NullTserver {
     @Override
     public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return new ArrayList<ActiveCompaction>();
+    }
+
+    @Override
+    public List<DiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials) throws ThriftSecurityException, ThriftTableOperationException, TException {
+      return null;
     }
   }
   

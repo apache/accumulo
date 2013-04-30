@@ -76,6 +76,7 @@ import org.apache.accumulo.proxy.thrift.BatchScanOptions;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.CompactionReason;
 import org.apache.accumulo.proxy.thrift.CompactionType;
+import org.apache.accumulo.proxy.thrift.DiskUsage;
 import org.apache.accumulo.proxy.thrift.KeyValue;
 import org.apache.accumulo.proxy.thrift.KeyValueAndPeek;
 import org.apache.accumulo.proxy.thrift.NoMoreEntriesException;
@@ -305,7 +306,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloException, TException {
     try {
       getConnector(login).tableOperations().compact(tableName, ByteBufferUtil.toText(startRow), ByteBufferUtil.toText(endRow), getIteratorSettings(iterators),
-          flush, wait);
+              flush, wait);
     } catch (Exception e) {
       handleExceptionTNF(e);
     }
@@ -579,6 +580,25 @@ public class ProxyServer implements AccumuloProxy.Iface {
       return getConnector(login).tableOperations().tableIdMap();
     } catch (Exception e) {
       throw new TException(e);
+    }
+  }
+
+  @Override
+  public List<DiskUsage> getDiskUsage(ByteBuffer login, Set<String> tables) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+          org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
+    try {
+      List<org.apache.accumulo.core.client.admin.DiskUsage> diskUsages = getConnector(login).tableOperations().getDiskUsage(tables);
+      List<DiskUsage> retUsages = new ArrayList<DiskUsage>();
+      for(org.apache.accumulo.core.client.admin.DiskUsage diskUsage : diskUsages) {
+        DiskUsage usage = new DiskUsage();
+        usage.setTables(new ArrayList<String>(diskUsage.getTables()));
+        usage.setUsage(diskUsage.getUsage());
+        retUsages.add(usage);
+      }
+      return retUsages;
+    } catch(Exception e) {
+      handleExceptionTNF(e);
+      return null;
     }
   }
   

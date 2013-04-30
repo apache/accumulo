@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -680,4 +681,17 @@ public interface TableOperations {
    * @since 1.5.0
    */
   public Map<String,Integer> listConstraints(String tableName) throws AccumuloException, TableNotFoundException;
+
+
+  /**
+   * Gets the number of bytes being used in the files for a set of tables
+   *
+   * @param tables
+   *          a set of tables
+   * @return  a list of disk usage objects containing linked table names and sizes
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+
 }

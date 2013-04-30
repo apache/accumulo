@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -45,6 +46,7 @@ import java.util.zip.ZipInputStream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -538,7 +540,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
     Map<KeyExtent,String> locations = new TreeMap<KeyExtent,String>();
-
+    
     while (true) {
       try {
         tablets.clear();
@@ -552,11 +554,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (!Tables.exists(instance, tableId)) {
           throw new TableNotFoundException(tableId, tableName, null);
         }
-
+        
         if (t instanceof RuntimeException && t.getCause() instanceof AccumuloSecurityException) {
           throw (AccumuloSecurityException) t.getCause();
         }
-
+        
         log.info(t.getMessage() + " ... retrying ...");
         UtilWaitThread.sleep(3000);
       }
@@ -579,7 +581,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new RuntimeException(e);
     }
   }
-
+  
   /**
    * @param tableName
    *          the name of the table
@@ -621,7 +623,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new RuntimeException(e);
     }
   }
-
+  
   /**
    * Delete a table
    * 
@@ -1096,7 +1098,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new AccumuloException("Bulk import directory " + failPath + " is a file");
       throw new AccumuloException("Bulk import failure directory " + failPath + " is not empty");
     }
-
+    
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(dirPath.toString().getBytes()),
         ByteBuffer.wrap(failPath.toString().getBytes()), ByteBuffer.wrap((setTime + "").getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
@@ -1191,6 +1193,40 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArgumentChecker.notNull(tableName, auths);
     Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
+  }
+  
+  @Override
+  public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    
+    Random rand = new Random();
+    
+    Connector conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
+    List<String> tservers = conn.instanceOperations().getTabletServers();
+
+    List<Integer> triedServers = new ArrayList<Integer>();
+    List<org.apache.accumulo.core.tabletserver.thrift.DiskUsage> diskUsages = null;
+    while (diskUsages == null && triedServers.size() < tservers.size()) {
+      try {
+        int randServer = rand.nextInt(tservers.size());
+        while (triedServers.contains(randServer))
+          randServer = rand.nextInt();
+        TabletClientService.Client client = ThriftUtil.getTServerClient(tservers.get(randServer), instance.getConfiguration());
+        diskUsages = client.getDiskUsage(tables, credentials);
+      } catch (ThriftTableOperationException e) {
+        throw new TableNotFoundException(e.getTableId(), e.getTableName(), e.getDescription(), e.getCause());
+      } catch (ThriftSecurityException e) {
+        throw new AccumuloSecurityException(e.getUser(), e.getCode());
+      } catch (TException e) {
+        // If failure was not related to above exceptions, we should choose a new server and try again
+      }
+    }
+
+    List<DiskUsage> finalUsages = new ArrayList<DiskUsage>();
+    for (org.apache.accumulo.core.tabletserver.thrift.DiskUsage diskUsage : diskUsages) {
+      finalUsages.add(new DiskUsage(new TreeSet<String>(diskUsage.getTables()), diskUsage.getUsage()));
+    }
+    
+    return finalUsages;
   }
   
   public static Map<String,String> getExportedProps(FileSystem fs, Path path) throws IOException {

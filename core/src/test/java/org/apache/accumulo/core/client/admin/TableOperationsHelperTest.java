@@ -184,7 +184,12 @@ public class TableOperationsHelperTest {
     public Map<String,String> tableIdMap() {
       return null;
     }
-    
+
+    @Override
+    public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      return null;
+    }
+
     void check(String tablename, String[] values) {
       Map<String,String> expected = new TreeMap<String,String>();
       for (String value : values) {

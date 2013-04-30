@@ -1112,13 +1112,13 @@ import org.slf4j.LoggerFactory;
           case 3: // INPUT_FILES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list98 = iprot.readListBegin();
-                struct.inputFiles = new ArrayList<String>(_list98.size);
-                for (int _i99 = 0; _i99 < _list98.size; ++_i99)
+                org.apache.thrift.protocol.TList _list106 = iprot.readListBegin();
+                struct.inputFiles = new ArrayList<String>(_list106.size);
+                for (int _i107 = 0; _i107 < _list106.size; ++_i107)
                 {
-                  String _elem100; // required
-                  _elem100 = iprot.readString();
-                  struct.inputFiles.add(_elem100);
+                  String _elem108; // required
+                  _elem108 = iprot.readString();
+                  struct.inputFiles.add(_elem108);
                 }
                 iprot.readListEnd();
               }
@@ -1178,14 +1178,14 @@ import org.slf4j.LoggerFactory;
           case 10: // ITERATORS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list101 = iprot.readListBegin();
-                struct.iterators = new ArrayList<IteratorSetting>(_list101.size);
-                for (int _i102 = 0; _i102 < _list101.size; ++_i102)
+                org.apache.thrift.protocol.TList _list109 = iprot.readListBegin();
+                struct.iterators = new ArrayList<IteratorSetting>(_list109.size);
+                for (int _i110 = 0; _i110 < _list109.size; ++_i110)
                 {
-                  IteratorSetting _elem103; // required
-                  _elem103 = new IteratorSetting();
-                  _elem103.read(iprot);
-                  struct.iterators.add(_elem103);
+                  IteratorSetting _elem111; // required
+                  _elem111 = new IteratorSetting();
+                  _elem111.read(iprot);
+                  struct.iterators.add(_elem111);
                 }
                 iprot.readListEnd();
               }
@@ -1221,9 +1221,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(INPUT_FILES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.inputFiles.size()));
-          for (String _iter104 : struct.inputFiles)
+          for (String _iter112 : struct.inputFiles)
           {
-            oprot.writeString(_iter104);
+            oprot.writeString(_iter112);
           }
           oprot.writeListEnd();
         }
@@ -1259,9 +1259,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(ITERATORS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.iterators.size()));
-          for (IteratorSetting _iter105 : struct.iterators)
+          for (IteratorSetting _iter113 : struct.iterators)
           {
-            _iter105.write(oprot);
+            _iter113.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1325,9 +1325,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetInputFiles()) {
         {
           oprot.writeI32(struct.inputFiles.size());
-          for (String _iter106 : struct.inputFiles)
+          for (String _iter114 : struct.inputFiles)
           {
-            oprot.writeString(_iter106);
+            oprot.writeString(_iter114);
           }
         }
       }
@@ -1352,9 +1352,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetIterators()) {
         {
           oprot.writeI32(struct.iterators.size());
-          for (IteratorSetting _iter107 : struct.iterators)
+          for (IteratorSetting _iter115 : struct.iterators)
           {
-            _iter107.write(oprot);
+            _iter115.write(oprot);
           }
         }
       }
@@ -1375,13 +1375,13 @@ import org.slf4j.LoggerFactory;
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TList _list108 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.inputFiles = new ArrayList<String>(_list108.size);
-          for (int _i109 = 0; _i109 < _list108.size; ++_i109)
+          org.apache.thrift.protocol.TList _list116 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.inputFiles = new ArrayList<String>(_list116.size);
+          for (int _i117 = 0; _i117 < _list116.size; ++_i117)
           {
-            String _elem110; // required
-            _elem110 = iprot.readString();
-            struct.inputFiles.add(_elem110);
+            String _elem118; // required
+            _elem118 = iprot.readString();
+            struct.inputFiles.add(_elem118);
           }
         }
         struct.setInputFilesIsSet(true);
@@ -1412,14 +1412,14 @@ import org.slf4j.LoggerFactory;
       }
       if (incoming.get(9)) {
         {
-          org.apache.thrift.protocol.TList _list111 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.iterators = new ArrayList<IteratorSetting>(_list111.size);
-          for (int _i112 = 0; _i112 < _list111.size; ++_i112)
+          org.apache.thrift.protocol.TList _list119 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.iterators = new ArrayList<IteratorSetting>(_list119.size);
+          for (int _i120 = 0; _i120 < _list119.size; ++_i120)
           {
-            IteratorSetting _elem113; // required
-            _elem113 = new IteratorSetting();
-            _elem113.read(iprot);
-            struct.iterators.add(_elem113);
+            IteratorSetting _elem121; // required
+            _elem121 = new IteratorSetting();
+            _elem121.read(iprot);
+            struct.iterators.add(_elem121);
           }
         }
         struct.setIteratorsIsSet(true);

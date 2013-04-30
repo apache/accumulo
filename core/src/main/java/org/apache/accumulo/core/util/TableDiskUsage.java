@@ -117,7 +117,7 @@ public class TableDiskUsage {
   }
   
   public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn) throws TableNotFoundException,
-  IOException {
+      IOException {
     printDiskUsage(acuConf, tables, fs, conn, new Printer() {
       @Override
       public void print(String line) {
@@ -125,9 +125,9 @@ public class TableDiskUsage {
       }
     });
   }
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, Printer printer) throws TableNotFoundException,
-  IOException {
   
+  public static Map<TreeSet<String>,Long> getDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn)
+      throws TableNotFoundException, IOException {
     TableDiskUsage tdu = new TableDiskUsage();
     
     HashSet<String> tableIds = new HashSet<String>();
@@ -151,7 +151,7 @@ public class TableDiskUsage {
       mdScanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
       mdScanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
       
-      if(!mdScanner.iterator().hasNext()) {
+      if (!mdScanner.iterator().hasNext()) {
         emptyTableIds.add(tableId);
       }
       
@@ -220,8 +220,8 @@ public class TableDiskUsage {
       
       usage.put(tableNames, entry.getValue());
     }
-
-    if(!emptyTableIds.isEmpty()) {
+    
+    if (!emptyTableIds.isEmpty()) {
       TreeSet<String> emptyTables = new TreeSet<String>();
       for (String tableId : emptyTableIds) {
         emptyTables.add(reverseTableIdMap.get(tableId));
@@ -229,9 +229,15 @@ public class TableDiskUsage {
       usage.put(emptyTables, 0L);
     }
     
-    for (Entry<TreeSet<String>,Long> entry : usage.entrySet())
-      printer.print(String.format("%,24d %s", entry.getValue(), entry.getKey()));
-    
+    return usage;
   }
   
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, Printer printer)
+      throws TableNotFoundException, IOException {
+    
+    Map<TreeSet<String>,Long> usage = getDiskUsage(acuConf, tables, fs, conn);
+    
+    for (Entry<TreeSet<String>,Long> entry : usage.entrySet())
+      printer.print(String.format("%,24d %s", entry.getValue(), entry.getKey()));
+  }
 }

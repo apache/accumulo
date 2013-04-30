@@ -67,12 +67,16 @@ import javax.management.StandardMBean;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Constraint.Environment;
@@ -105,11 +109,14 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SecurityUtil;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.tabletserver.thrift.DiskUsage;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
@@ -129,6 +136,7 @@ import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.Stat;
+import org.apache.accumulo.core.util.TableDiskUsage;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -882,7 +890,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     @Override
     public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime)
         throws ThriftSecurityException {
-
+      
       if (!security.canPerformSystemActions(credentials))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       
@@ -1648,7 +1656,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     @Override
     public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
         ConstraintViolationException, ThriftSecurityException {
-
+      
       if (!security.canWrite(credentials, new String(tkeyExtent.getTable())))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       KeyExtent keyExtent = new KeyExtent(tkeyExtent);
@@ -1695,8 +1703,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, ByteBuffer splitPoint)
-        throws NotServingTabletException, ThriftSecurityException {
+    public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, ByteBuffer splitPoint) throws NotServingTabletException,
+        ThriftSecurityException {
       
       String tableId = new String(ByteBufferUtil.toBytes(tkeyExtent.table));
       if (!security.canSplitTablet(credentials, tableId))
@@ -1753,8 +1761,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     private ZooCache masterLockCache = new ZooCache();
     
-    private void checkPermission(TCredentials credentials, String lock, boolean requiresSystemPermission, final String request)
-        throws ThriftSecurityException {
+    private void checkPermission(TCredentials credentials, String lock, boolean requiresSystemPermission, final String request) throws ThriftSecurityException {
       if (requiresSystemPermission) {
         boolean fatal = false;
         try {
@@ -1957,7 +1964,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     @Override
     public void halt(TInfo tinfo, TCredentials credentials, String lock) throws ThriftSecurityException {
       
-        checkPermission(credentials, lock, true, "halt");
+      checkPermission(credentials, lock, true, "halt");
       
       Halt.halt(0, new Runnable() {
         @Override
@@ -2018,8 +2025,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow)
-        throws TException {
+    public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
       try {
         checkPermission(credentials, lock, true, "compact");
       } catch (ThriftSecurityException e) {
@@ -2114,13 +2120,40 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
+    public List<DiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials) throws ThriftTableOperationException, ThriftSecurityException, TException {
+      try {
+        Connector conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
+        
+        for (String table : tables) {
+          if (conn.tableOperations().exists(table) && !conn.securityOperations().hasTablePermission(credentials.getPrincipal(), table, TablePermission.READ))
+            throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
+        
+        Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(getServerConfig().getConfiguration(), tables, fs, conn);
+        List<DiskUsage> retUsages = new ArrayList<DiskUsage>();
+        for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
+          retUsages.add(new DiskUsage(new ArrayList<String>(usageItem.getKey()), usageItem.getValue()));
+        }
+        return retUsages;
+        
+      } catch (AccumuloSecurityException e) {
+        // *.security.thrift.SecurityErrorCode is deprecated- let's assume the two stay in sync...
+        throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.valueOf(e.getSecurityErrorCode().name()));
+      } catch (TableNotFoundException e) {
+        throw new ThriftTableOperationException(null, e.getTableName(), null, TableOperationExceptionType.NOTFOUND, "Table was not found");
+      } catch (Exception e) {
+        throw new TException(e);
+      }
+    }
+    
+    @Override
     public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       try {
         checkPermission(credentials, null, true, "getActiveCompactions");
       } catch (ThriftSecurityException e) {
         log.error(e, e);
         throw new RuntimeException(e);
-      } 
+      }
       
       List<CompactionInfo> compactions = Compactor.getRunningCompactions();
       List<ActiveCompaction> ret = new ArrayList<ActiveCompaction>(compactions.size());
@@ -2181,7 +2214,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           Iterator<Entry<KeyExtent,Tablet>> iter = copyOnlineTablets.entrySet().iterator();
           
           // bail early now if we're shutting down
-          while (iter.hasNext() && !majorCompactorDisabled) { 
+          while (iter.hasNext() && !majorCompactorDisabled) {
             
             Entry<KeyExtent,Tablet> entry = iter.next();
             
@@ -2472,7 +2505,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
         throw new RuntimeException(e);
       }
-
+      
       if (locationToOpen == null) {
         log.debug("Reporting tablet " + extent + " assignment failure: unable to verify Tablet Information");
         synchronized (openingTablets) {
@@ -2482,7 +2515,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
         return;
       }
-
+      
       Tablet tablet = null;
       boolean successful = false;
       
@@ -2505,7 +2538,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.SYSTEM)) {
           throw new RuntimeException("Minor compaction after recovery fails for " + extent);
         }
-
+        
         Assignment assignment = new Assignment(extent, getTabletSession());
         TabletStateStore.setLocation(assignment);
         
@@ -2886,8 +2919,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
   
   public static Pair<Text,KeyExtent> verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues,
-      String clientAddress,
-      ZooLock lock) throws AccumuloSecurityException, DistributedStoreException, AccumuloException {
+      String clientAddress, ZooLock lock) throws AccumuloSecurityException, DistributedStoreException, AccumuloException {
     
     log.debug("verifying extent " + extent);
     if (extent.isRootTablet()) {
@@ -2900,11 +2932,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     ScannerImpl scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), Constants.METADATA_TABLE_ID,
         Constants.NO_AUTHS);
     scanner.setRange(extent.toMetadataRange());
-
+    
     TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
     for (Entry<Key,Value> entry : scanner)
       tkv.put(entry.getKey(), entry.getValue());
-
+    
     // only populate map after success
     if (tabletsKeyValues == null) {
       tabletsKeyValues = tkv;
@@ -2984,20 +3016,20 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         return null;
       }
     }
-
+    
     if (dir == null) {
       throw new AccumuloException("Metadata entry does not have directory (" + metadataEntry + ")");
     }
-
+    
     if (time == null) {
       throw new AccumuloException("Metadata entry does not have time (" + metadataEntry + ")");
     }
-
+    
     if (future == null) {
       log.info("The master has not assigned " + extent + " to " + instance);
       return null;
     }
-
+    
     if (!instance.equals(future)) {
       log.info("Table " + extent + " has been assigned to " + future + " which is not " + instance);
       return null;

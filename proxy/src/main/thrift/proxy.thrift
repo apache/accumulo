@@ -43,6 +43,11 @@ struct ColumnUpdate {
   6:optional bool deleteCell
 }
 
+struct DiskUsage {
+  1:list<string> tables,
+  2:i64 usage
+}
+
 struct KeyValue {
   1:Key key,
   2:binary value
@@ -287,6 +292,7 @@ service AccumuloProxy
   set<Range> splitRangeByTablets (1:binary login, 2:string tableName, 3:Range range, 4:i32 maxSplits)  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   bool tableExists (1:binary login, 2:string tableName);
   map<string,string> tableIdMap (1:binary login);
+  list<DiskUsage> getDiskUsage(1:binary login, 2:set<string> tables)                                     throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
 
   // instance operations
   void pingTabletServer(1:binary login, 2:string tserver)                                            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
@@ -313,7 +319,6 @@ service AccumuloProxy
   set<string> listLocalUsers (1:binary login)                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void revokeSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void revokeTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-
 
   // scanning
   string createBatchScanner(1:binary login, 2:string tableName, 3:BatchScanOptions options)          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);

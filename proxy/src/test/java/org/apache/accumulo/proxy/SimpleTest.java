@@ -60,6 +60,7 @@ import org.apache.accumulo.proxy.thrift.BatchScanOptions;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.CompactionReason;
 import org.apache.accumulo.proxy.thrift.CompactionType;
+import org.apache.accumulo.proxy.thrift.DiskUsage;
 import org.apache.accumulo.proxy.thrift.IteratorScope;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
@@ -305,6 +306,10 @@ public class SimpleTest {
     } catch (TableNotFoundException ex) {}
     try {
       client.updateAndFlush(creds, doesNotExist, new HashMap<ByteBuffer,List<ColumnUpdate>>());
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {}
+    try {
+      client.getDiskUsage(creds, Collections.singleton(doesNotExist));
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
   }
@@ -721,14 +726,34 @@ public class SimpleTest {
     client.closeScanner(scanner);
     assertEquals(10, more.getResults().size());
     client.deleteTable(creds, "test2");
-    
+
     // don't know how to test this, call it just for fun
     client.clearLocatorCache(creds, TABLE_TEST);
-    
+
     // compact
     client.compactTable(creds, TABLE_TEST, null, null, null, true, true);
     assertEquals(1, countFiles(TABLE_TEST));
-    
+
+    // get disk usage
+    client.cloneTable(creds, TABLE_TEST, "test2", true, null, null);
+    Set<String> tablesToScan = new HashSet<String>();
+    tablesToScan.add(TABLE_TEST);
+    tablesToScan.add("test2");
+    tablesToScan.add("foo");
+    client.createTable(creds, "foo", true, TimeType.MILLIS);
+    List<DiskUsage> diskUsage = (client.getDiskUsage(creds, tablesToScan));
+    assertEquals(2, diskUsage.size());
+    assertEquals(1, diskUsage.get(0).getTables().size());
+    assertEquals(2, diskUsage.get(1).getTables().size());
+    client.compactTable(creds, "test2", null, null, null, true, true);
+    diskUsage = (client.getDiskUsage(creds, tablesToScan));
+    assertEquals(3, diskUsage.size());
+    assertEquals(1, diskUsage.get(0).getTables().size());
+    assertEquals(1, diskUsage.get(1).getTables().size());
+    assertEquals(1, diskUsage.get(2).getTables().size());
+    client.deleteTable(creds, "foo");
+    client.deleteTable(creds, "test2");
+
     // export/import
     String dir = folder.getRoot() + "/test";
     String destDir = folder.getRoot() + "/test_dest";
