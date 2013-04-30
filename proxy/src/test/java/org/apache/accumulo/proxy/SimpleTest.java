@@ -129,8 +129,7 @@ public class SimpleTest {
     protocolFactories.add(org.apache.thrift.protocol.TTupleProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TCompactProtocol.Factory.class);
     
-    Random rand = new Random();
-    return protocolFactories.get(rand.nextInt(protocolFactories.size()));
+    return protocolFactories.get(random.nextInt(protocolFactories.size()));
   }
   
   @BeforeClass
@@ -147,7 +146,7 @@ public class SimpleTest {
     protocolClass = getRandomProtocol();
     System.out.println(protocolClass.getName());
     
-    proxyPort = 40000 + random.nextInt(20000);
+    proxyPort = MiniAccumuloCluster.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
         protocolClass, props);
     thread = new Thread() {
