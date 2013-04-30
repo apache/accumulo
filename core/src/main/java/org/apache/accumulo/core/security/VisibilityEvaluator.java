@@ -79,6 +79,8 @@ public class VisibilityEvaluator {
   }
   
   private final boolean evaluate(final byte[] expression, final Node root) throws VisibilityParseException {
+    if(expression.length == 0)
+      return true;
     switch (root.type) {
       case TERM:
         return auths.contains(root.getTerm(expression));

@@ -35,6 +35,9 @@ public class VisibilityEvaluatorTest {
   public void testVisibilityEvaluator() throws VisibilityParseException {
     VisibilityEvaluator ct = new VisibilityEvaluator(ByteArraySet.fromStrings("one", "two", "three", "four"));
     
+    // test for empty vis
+    assertTrue(ct.evaluate(new ColumnVisibility(new byte[0])));
+    
     // test for and
     assertTrue("'and' test", ct.evaluate(new ColumnVisibility("one&two")));
     
