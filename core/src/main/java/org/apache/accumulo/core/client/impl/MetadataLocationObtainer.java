@@ -71,12 +71,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
   
   @Override
-  public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials) throws AccumuloSecurityException,
-      AccumuloException {
-
+  public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials)
+      throws AccumuloSecurityException, AccumuloException {
+    
     try {
       ArrayList<TabletLocation> list = new ArrayList<TabletLocation>();
-
+      
       OpTimer opTimer = null;
       if (log.isTraceEnabled())
         opTimer = new OpTimer(log, Level.TRACE).start("Looking up in " + src.tablet_extent.getTableId() + " row=" + TextUtil.truncate(row) + "  extent="
@@ -95,9 +95,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       
       boolean more = ThriftScanner.getBatchFromServer(credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols,
           serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Constants.NO_AUTHS, false, instance.getConfiguration());
-
+      
       decodeRows(encodedResults, results);
-
+      
       if (more && results.size() == 1) {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME), true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
@@ -119,7 +119,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
       
       return new TabletLocations(list, metadata.getSecond());
-
+      
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled())
         log.trace(src.tablet_extent.getTableId() + " lookup failed, " + src.tablet_location + " server side exception");
@@ -136,7 +136,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     
     return null;
   }
-
+  
   private void decodeRows(TreeMap<Key,Value> encodedResults, TreeMap<Key,Value> results) throws AccumuloException {
     for (Entry<Key,Value> entry : encodedResults.entrySet()) {
       try {
@@ -193,7 +193,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       log.trace("lookupTablets failed server=" + tserver, e);
       throw e;
     }
-
+    
     SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results).getFirst();
     
     for (Entry<KeyExtent,Text> entry : metadata.entrySet()) {
