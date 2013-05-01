@@ -79,6 +79,7 @@ import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UnknownScanner;
 import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
+import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
@@ -145,7 +146,7 @@ public class SimpleTest {
     protocolClass = getRandomProtocol();
     System.out.println(protocolClass.getName());
     
-    proxyPort = MiniAccumuloCluster.getRandomFreePort();
+    proxyPort = PortUtils.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
         protocolClass, props);
     thread = new Thread() {
