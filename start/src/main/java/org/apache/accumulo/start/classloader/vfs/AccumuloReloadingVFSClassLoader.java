@@ -37,7 +37,8 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   
   private static final Logger log = Logger.getLogger(AccumuloReloadingVFSClassLoader.class);
 
-  private static final int DEFAULT_TIMEOUT = 1000; // millis
+  // set to 5 mins. The rational behind this large time is to avoid a gazillion tservers all asking the name node for info too frequently.
+  private static final int DEFAULT_TIMEOUT = 300000;
   
   private String uris;
   private FileObject[] files;
