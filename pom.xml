@@ -446,6 +446,11 @@
           <configuration>
             <excludes>
               <exclude>docs/apidocs/package-list</exclude>
+              <exclude>conf/slaves</exclude>
+              <exclude>conf/masters</exclude>
+              <exclude>conf/gc</exclude>
+              <exclude>conf/tracers</exclude>
+              <exclude>conf/monitor</exclude>
             </excludes>
           </configuration>
         </plugin>

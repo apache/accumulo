@@ -116,17 +116,18 @@ public class TableDiskUsage {
     void print(String line);
   }
   
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn) throws TableNotFoundException,
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, boolean humanReadable) 
+      throws TableNotFoundException,
       IOException {
     printDiskUsage(acuConf, tables, fs, conn, new Printer() {
       @Override
       public void print(String line) {
         System.out.println(line);
       }
-    });
+    }, humanReadable);
   }
   
-  public static Map<TreeSet<String>,Long> getDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn)
+  public static Map<TreeSet<String>,Long> getDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, boolean humanReadable)
       throws TableNotFoundException, IOException {
     TableDiskUsage tdu = new TableDiskUsage();
     
@@ -232,12 +233,24 @@ public class TableDiskUsage {
     return usage;
   }
   
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, Printer printer)
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, Printer printer, boolean humanReadable)
       throws TableNotFoundException, IOException {
     
-    Map<TreeSet<String>,Long> usage = getDiskUsage(acuConf, tables, fs, conn);
+    Map<TreeSet<String>,Long> usage = getDiskUsage(acuConf, tables, fs, conn, humanReadable);
     
-    for (Entry<TreeSet<String>,Long> entry : usage.entrySet())
-      printer.print(String.format("%,24d %s", entry.getValue(), entry.getKey()));
+    for (Entry<TreeSet<String>,Long> entry : usage.entrySet()) {
+      String valueFormat = humanReadable ? "%s" : "%,24d";
+      Object value = humanReadable ? humanReadableBytes(entry.getValue()) : entry.getValue();
+      printer.print(String.format(valueFormat + " %s", value, entry.getKey()));
+    }
   }
+  
+  public static String humanReadableBytes(long bytes) {
+    if (bytes < 1024) return String.format("%4dB", bytes);
+    int exp = (int) (Math.log(bytes) / Math.log(1024));
+    String pre = "KMGTPE".charAt(exp-1) + "";
+    double val = bytes / Math.pow(1024, exp);
+    return String.format(val >= 1000 ? "%4.0f%s" : " %3.1f%s", val, pre);
+  }
+
 }
