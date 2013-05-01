@@ -31,9 +31,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -45,14 +43,13 @@ import org.junit.rules.TemporaryFolder;
 public class TableOperationsIT {
   
   static TemporaryFolder tempFolder = new TemporaryFolder();
+  static final String ROOT = "root";
   static final String ROOT_PASS = "password";
   
   static MiniAccumuloCluster accumuloCluster;
   
   static Connector connector;
   static TabletClientService.Client client;
-  
-  static TCredentials creds;
   
   @BeforeClass
   public static void startUp() throws IOException, AccumuloException, AccumuloSecurityException, TTransportException, InterruptedException {
@@ -62,8 +59,7 @@ public class TableOperationsIT {
     accumuloCluster.start();
     
     ZooKeeperInstance instance = new ZooKeeperInstance(accumuloCluster.getInstanceName(), accumuloCluster.getZooKeepers());
-    connector = instance.getConnector("root", ROOT_PASS.getBytes());
-    creds = CredentialHelper.create("root", new PasswordToken("password"), connector.getInstance().getInstanceID());
+    connector = instance.getConnector(ROOT, new PasswordToken(ROOT_PASS.getBytes()));
   }
   
   @Test
@@ -74,7 +70,7 @@ public class TableOperationsIT {
     assertEquals(0, (long) diskUsage.get(0).getUsage());
     assertEquals("table1", diskUsage.get(0).getTables().iterator().next());
 
-    connector.securityOperations().revokeTablePermission(creds.getPrincipal(), "table1", TablePermission.READ);
+    connector.securityOperations().revokeTablePermission(ROOT, "table1", TablePermission.READ);
     try {
       connector.tableOperations().getDiskUsage(Collections.singleton("table1"));
       fail("Should throw securityexception");

@@ -2129,7 +2129,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
         }
         
-        Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(getServerConfig().getConfiguration(), tables, fs, conn);
+        Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(getServerConfig().getConfiguration(), tables, fs, conn, false);
         List<DiskUsage> retUsages = new ArrayList<DiskUsage>();
         for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
           retUsages.add(new DiskUsage(new ArrayList<String>(usageItem.getKey()), usageItem.getValue()));

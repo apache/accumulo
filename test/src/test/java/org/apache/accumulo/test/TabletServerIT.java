@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.test;
 
-import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -69,7 +69,7 @@ public class TabletServerIT {
     accumuloCluster.start();
     
     ZooKeeperInstance instance = new ZooKeeperInstance(accumuloCluster.getInstanceName(), accumuloCluster.getZooKeepers());
-    connector = instance.getConnector("root", ROOT_PASS.getBytes());
+    connector = instance.getConnector("root", new PasswordToken(ROOT_PASS.getBytes()));
     
     List<String> tservers = connector.instanceOperations().getTabletServers();
     client = ThriftUtil.getTServerClient(tservers.get(0), instance.getConfiguration());

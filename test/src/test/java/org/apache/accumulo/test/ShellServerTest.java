@@ -112,10 +112,11 @@ public class ShellServerTest {
   static void assertGoodExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertEquals(shell.getExitCode(), 0);
-    if (s.length() > 0)
-      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
-  }
-  
+
+  if (s.length() > 0)
+  assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
+}
+
   static void assertBadExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertTrue(shell.getExitCode() > 0);
@@ -123,16 +124,16 @@ public class ShellServerTest {
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
     shell.resetExitCode();
   }
-  
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     folder.create();
     MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
-    
+
     System.setProperty("HOME", folder.getRoot().getAbsolutePath());
-    
+
     // start the shell
     output = new TestOutputStream();
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
@@ -145,14 +146,14 @@ public class ShellServerTest {
     // give the tracer some time to start
     UtilWaitThread.sleep(1000);
   }
-  
+
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
     traceProcess.destroy();
     folder.delete();
   }
-  
+
   @Test(timeout = 30000)
   public void exporttableImporttable() throws Exception {
     // exporttable / importtable
@@ -174,7 +175,6 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
     exec("deletetable -f t2", true);
   }
-  
   private DistCp newDistCp() {
     try {
       @SuppressWarnings("unchecked")
@@ -221,7 +221,7 @@ public class ShellServerTest {
     exec("execfile " + file.getAbsolutePath(), true, Constants.VERSION, true);
     
   }
-  
+
   @Test(timeout = 30000)
   public void egrep() throws Exception {
     // egrep
@@ -239,6 +239,10 @@ public class ShellServerTest {
     make10();
     exec("flush -t t -w");
     exec("du t", true, " [t]", true);
+    output.clear();
+    shell.execCommand("du -h", false, false);
+    String o = output.get();
+    assertTrue(o.matches(".*\\s26[0-9]B\\s\\[t\\]\\n"));  // for some reason, there's 1-2 bytes of fluctuation
     exec("deletetable -f t");
   }
   
