@@ -21,7 +21,7 @@ import java.io.File;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
-import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
+import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -34,7 +34,7 @@ import org.junit.rules.TemporaryFolder;
 public class AccumuloReloadingVFSClassLoaderTest {
 
   private TemporaryFolder folder1 = new TemporaryFolder();
-  private DefaultFileSystemManager vfs;
+  private FileSystemManager vfs;
 
   @Before
   public void setup() throws Exception {
@@ -120,6 +120,60 @@ public class AccumuloReloadingVFSClassLoaderTest {
     arvcl.close();
   }
   
+
+  @Test
+  public void testModifiedClass() throws Exception {
+
+    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
+    FileObject[] dirContents = testDir.getChildren();
+    
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folder1.getRoot().toURI().toString(), vfs, new ReloadingClassLoader() {
+      @Override
+      public ClassLoader getClassLoader() {
+        return ClassLoader.getSystemClassLoader();
+      }
+    }, 1000, true);
+    
+    FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
+    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    
+    ClassLoader loader1 = arvcl.getClassLoader();
+    Class<?> clazz1 = loader1.loadClass("test.HelloWorld");
+    Object o1 = clazz1.newInstance();
+    Assert.assertEquals("Hello World!", o1.toString());
+    
+    // Check that the class is the same before the update
+    Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
+    Assert.assertEquals(clazz1, clazz1_5);
+    
+    // java does aggressive caching of jar files. When using java code to read jar files that are created in the same second, it will only see the first jar
+    // file
+    Thread.sleep(1000);
+
+    new File(folder1.getRoot(), "HelloWorld.jar").delete();
+
+    // Update the class
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld2.jar"), folder1.newFile("HelloWorld.jar"));
+    
+    // Wait for the monitor to notice
+    Thread.sleep(2000);
+    
+
+    Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
+    Object o2 = clazz2.newInstance();
+    Assert.assertEquals("Hallo Welt", o2.toString());
+    
+    // This is false because they are loaded by a different classloader
+    Assert.assertFalse(clazz1.equals(clazz2));
+    Assert.assertFalse(o1.equals(o2));
+    
+    Class<?> clazz3 = loader1.loadClass("test.HelloWorld");
+    Object o3 = clazz3.newInstance();
+    Assert.assertEquals("Hello World!", o3.toString());
+
+    arvcl.close();
+  }
+
   @After
   public void tearDown() throws Exception {
     folder1.delete();

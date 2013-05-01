@@ -64,7 +64,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   public synchronized ClassLoader getClassLoader() {
     if (cl == null || cl.getParent() != parent.getClassLoader()) {
       try {
-        vfs = AccumuloVFSClassLoader.generateVfs(true);
+        vfs = AccumuloVFSClassLoader.generateVfs();
         files = AccumuloVFSClassLoader.resolve(vfs, uris);
 
         log.debug("Rebuilding dynamic classloader using files- " + stringify(files));
