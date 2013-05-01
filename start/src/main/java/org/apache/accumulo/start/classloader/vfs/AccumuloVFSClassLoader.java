@@ -18,10 +18,12 @@ package org.apache.accumulo.start.classloader.vfs;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileProvider;
@@ -31,7 +33,6 @@ import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.cache.SoftRefFilesCache;
-import org.apache.commons.vfs2.impl.DefaultFileReplicator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
@@ -70,6 +71,9 @@ public class AccumuloVFSClassLoader {
     
   }
   
+  private static List<WeakReference<DefaultFileSystemManager>> vfsInstances = Collections
+      .synchronizedList(new ArrayList<WeakReference<DefaultFileSystemManager>>());
+
   public static final String DYNAMIC_CLASSPATH_PROPERTY_NAME = "general.dynamic.classpaths";
   
   public static final String DEFAULT_DYNAMIC_CLASSPATH_VALUE = "$ACCUMULO_HOME/lib/ext/[^.].*.jar\n";
@@ -80,7 +84,6 @@ public class AccumuloVFSClassLoader {
   
   public static final String VFS_CACHE_DIR = "general.vfs.cache.dir";
   
-  private static DefaultFileSystemManager vfs = null;
   private static ClassLoader parent = null;
   private static volatile ReloadingClassLoader loader = null;
   private static final Object lock = new Object();
@@ -186,7 +189,7 @@ public class AccumuloVFSClassLoader {
       return wrapper;
     
     // TODO monitor time for lib/ext was 1 sec... should this be configurable? - ACCUMULO-1301
-    return new AccumuloReloadingVFSClassLoader(dynamicCPath, vfs, wrapper, 1000, true);
+    return new AccumuloReloadingVFSClassLoader(dynamicCPath, generateVfs(), wrapper, 1000, true);
   }
   
   public static ClassLoader getClassLoader() throws IOException {
@@ -195,10 +198,9 @@ public class AccumuloVFSClassLoader {
       synchronized (lock) {
         if (null == loader) {
           
-          if (null == vfs) {
-            vfs = generateVfs(false);
-          }
           
+          FileSystemManager vfs = generateVfs();
+
           // Set up the 2nd tier class loader
           if (null == parent) {
             parent = AccumuloClassLoader.getClassLoader();
@@ -213,7 +215,7 @@ public class AccumuloVFSClassLoader {
           }
           
           // Create the Accumulo Context ClassLoader using the DEFAULT_CONTEXT
-          localLoader = createDynamicClassloader(new VFSClassLoader(vfsCP, generateVfs(true), parent));
+          localLoader = createDynamicClassloader(new VFSClassLoader(vfsCP, vfs, parent));
           loader = localLoader;
         }
       }
@@ -222,8 +224,8 @@ public class AccumuloVFSClassLoader {
     return localLoader.getClassLoader();
   }
   
-  public static FinalCloseDefaultFileSystemManager generateVfs(boolean reloading) throws FileSystemException {
-    FinalCloseDefaultFileSystemManager vfs = new FinalCloseDefaultFileSystemManager();
+  public static FileSystemManager generateVfs() throws FileSystemException {
+    DefaultFileSystemManager vfs = new FinalCloseDefaultFileSystemManager();
     vfs.addProvider("res", new org.apache.commons.vfs2.provider.res.ResourceFileProvider());
     vfs.addProvider("zip", new org.apache.commons.vfs2.provider.zip.ZipFileProvider());
     vfs.addProvider("gz", new org.apache.commons.vfs2.provider.gzip.GzipFileProvider());
@@ -258,12 +260,13 @@ public class AccumuloVFSClassLoader {
     vfs.setFileContentInfoFactory(new FileContentInfoFilenameFactory());
     vfs.setFilesCache(new SoftRefFilesCache());
     String cacheDirPath = AccumuloClassLoader.getAccumuloString(VFS_CACHE_DIR, "");
-    File cacheDir = new File(System.getProperty("java.io.tmpdir"), (reloading? "accumulo-vfs-reloading-cache":"accumulo-vfs-cache-") + System.getProperty("user.name", "nouser"));
+    File cacheDir = new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name", "nouser"));
     if (!("".equals(cacheDirPath)))
       cacheDir = new File(cacheDirPath);
-    vfs.setReplicator(new DefaultFileReplicator(cacheDir));
+    vfs.setReplicator(new UniqueFileReplicator(cacheDir));
     vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
     vfs.init();
+    vfsInstances.add(new WeakReference<DefaultFileSystemManager>(vfs));
     return vfs;
   }
   
@@ -327,7 +330,7 @@ public class AccumuloVFSClassLoader {
   public static synchronized ContextManager getContextManager() throws IOException {
     if (contextManager == null) {
       getClassLoader();
-      contextManager = new ContextManager(vfs, new ReloadingClassLoader() {
+      contextManager = new ContextManager(generateVfs(), new ReloadingClassLoader() {
         @Override
         public ClassLoader getClassLoader() {
           try {
@@ -343,7 +346,10 @@ public class AccumuloVFSClassLoader {
   }
   
   public static void close() {
-    if (null != vfs)
-      vfs.close();
+    for (WeakReference<DefaultFileSystemManager> vfsInstance : vfsInstances) {
+      DefaultFileSystemManager ref = vfsInstance.get();
+      if (ref != null)
+        ref.close();
+    }
   }
 }
