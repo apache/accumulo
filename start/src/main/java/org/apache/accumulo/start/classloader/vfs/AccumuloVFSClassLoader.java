@@ -222,8 +222,8 @@ public class AccumuloVFSClassLoader {
     return localLoader.getClassLoader();
   }
   
-  public static DefaultFileSystemManager generateVfs(boolean reloading) throws FileSystemException {
-    DefaultFileSystemManager vfs = new DefaultFileSystemManager();
+  public static FinalCloseDefaultFileSystemManager generateVfs(boolean reloading) throws FileSystemException {
+    FinalCloseDefaultFileSystemManager vfs = new FinalCloseDefaultFileSystemManager();
     vfs.addProvider("res", new org.apache.commons.vfs2.provider.res.ResourceFileProvider());
     vfs.addProvider("zip", new org.apache.commons.vfs2.provider.zip.ZipFileProvider());
     vfs.addProvider("gz", new org.apache.commons.vfs2.provider.gzip.GzipFileProvider());
