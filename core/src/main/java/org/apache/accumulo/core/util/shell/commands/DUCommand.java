@@ -36,11 +36,14 @@ import org.apache.hadoop.fs.FileSystem;
 
 public class DUCommand extends Command {
   
-  private Option optTablePattern;
+  private Option optTablePattern, optHumanReadble;
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, TableNotFoundException {
     
     final SortedSet<String> tablesToFlush = new TreeSet<String>(Arrays.asList(cl.getArgs()));
+
+    boolean prettyPrint = cl.hasOption(optHumanReadble.getOpt()) ? true : false;
+
     if (cl.hasOption(optTablePattern.getOpt())) {
       for (String table : shellState.getConnector().tableOperations().list()) {
         if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
@@ -63,7 +66,7 @@ public class DUCommand extends Command {
           }
         }
         
-      });
+      }, prettyPrint);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
@@ -82,7 +85,11 @@ public class DUCommand extends Command {
     optTablePattern = new Option("p", "pattern", true, "regex pattern of table names");
     optTablePattern.setArgName("pattern");
     
+    optHumanReadble = new Option("h", "human-readable", false, "format large sizes to human readable units");
+    optHumanReadble.setArgName("human readable output");
+
     o.addOption(optTablePattern);
+    o.addOption(optHumanReadble);
     
     return o;
   }

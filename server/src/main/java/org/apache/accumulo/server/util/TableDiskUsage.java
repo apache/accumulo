@@ -42,7 +42,7 @@ public class TableDiskUsage {
     Opts opts = new Opts();
     opts.parseArgs(TableDiskUsage.class.getName(), args);
     Connector conn = opts.getConnector();
-    org.apache.accumulo.core.util.TableDiskUsage.printDiskUsage(DefaultConfiguration.getInstance(), opts.tables, fs, conn);
+    org.apache.accumulo.core.util.TableDiskUsage.printDiskUsage(DefaultConfiguration.getInstance(), opts.tables, fs, conn, false);
   }
   
 }

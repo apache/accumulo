@@ -111,7 +111,8 @@ public class ShellServerTest {
   
   static void assertGoodExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
-    assertEquals(shell.getExitCode(), 0);
+    assertEquals(0, shell.getExitCode());
+
     if (s.length() > 0)
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
   }
@@ -174,7 +175,6 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
     exec("deletetable -f t2", true);
   }
-  
   private DistCp newDistCp() {
     try {
       @SuppressWarnings("unchecked")
@@ -239,6 +239,11 @@ public class ShellServerTest {
     make10();
     exec("flush -t t -w");
     exec("du t", true, " [t]", true);
+    output.clear();
+    shell.execCommand("du -h", false, false);
+    String o = output.get();
+    System.out.println("XX" + o + "XX");
+    assertTrue(o.matches(".*\\s26[4-6]B\\s\\[t\\]\\n"));  // for some reason, there's 1-2 bytes of fluctuation
     exec("deletetable -f t");
   }
   

@@ -116,18 +116,19 @@ public class TableDiskUsage {
     void print(String line);
   }
   
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn) throws TableNotFoundException,
-  IOException {
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, boolean humanReadable)
+      throws TableNotFoundException, IOException {
     printDiskUsage(acuConf, tables, fs, conn, new Printer() {
       @Override
       public void print(String line) {
         System.out.println(line);
       }
-    });
+    }, humanReadable);
   }
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, Printer printer) throws TableNotFoundException,
-  IOException {
   
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, Printer printer,
+      boolean humanReadable) throws TableNotFoundException, IOException {
+    
     TableDiskUsage tdu = new TableDiskUsage();
     
     HashSet<String> tableIds = new HashSet<String>();
@@ -220,7 +221,7 @@ public class TableDiskUsage {
       
       usage.put(tableNames, entry.getValue());
     }
-
+    
     if(!emptyTableIds.isEmpty()) {
       TreeSet<String> emptyTables = new TreeSet<String>();
       for (String tableId : emptyTableIds) {
@@ -229,9 +230,20 @@ public class TableDiskUsage {
       usage.put(emptyTables, 0L);
     }
     
-    for (Entry<TreeSet<String>,Long> entry : usage.entrySet())
-      printer.print(String.format("%,24d %s", entry.getValue(), entry.getKey()));
-    
+    for (Entry<TreeSet<String>,Long> entry : usage.entrySet()) {
+      String valueFormat = humanReadable ? "%s" : "%,24d";
+      Object value = humanReadable ? humanReadableBytes(entry.getValue()) : entry.getValue();
+      printer.print(String.format(valueFormat + " %s", value, entry.getKey()));
+    }
   }
   
+  static final String[] SUFFIXES = {"K", "M", "G", "T", "P", "E", "Z"};
+  
+  public static String humanReadableBytes(long bytes) {
+    if (bytes < 1024) return String.format("%4dB", bytes);
+    int exp = (int) (Math.log(bytes) / Math.log(1024));
+    String suffix = SUFFIXES[exp-1];
+    double val = bytes / Math.pow(1024, exp);
+    return String.format(val >= 1000 ? "%4.0f%s" : " %3.1f%s", val, suffix);
+  }
 }
