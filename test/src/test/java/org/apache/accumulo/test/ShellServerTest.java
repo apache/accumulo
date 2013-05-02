@@ -113,10 +113,10 @@ public class ShellServerTest {
     Shell.log.debug(output.get());
     assertEquals(0, shell.getExitCode());
 
-  if (s.length() > 0)
-  assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
-}
-
+    if (s.length() > 0)
+      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
+  }
+  
   static void assertBadExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertTrue(shell.getExitCode() > 0);

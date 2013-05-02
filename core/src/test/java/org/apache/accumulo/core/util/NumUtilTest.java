@@ -20,7 +20,6 @@ import static org.apache.accumulo.core.util.NumUtil.bigNumberForQuantity;
 import static org.apache.accumulo.core.util.NumUtil.bigNumberForSize;
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.util.NumUtil;
 import org.junit.Test;
 
 public class NumUtilTest {
