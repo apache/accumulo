@@ -69,7 +69,7 @@ then
 fi
 if [ ! -d "$HADOOP_PREFIX" ]
 then
-   echo "$HADOOP_PREFIX is not a directory"
+   echo "HADOOP_PREFIX, which has a value of $HADOOP_PREFIX, is not a directory."
    exit 1
 fi
 export HADOOP_PREFIX
