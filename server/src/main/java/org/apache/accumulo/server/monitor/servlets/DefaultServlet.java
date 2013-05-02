@@ -44,6 +44,7 @@ import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Duration;
+import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.monitor.Monitor;
@@ -357,10 +358,8 @@ public class DefaultServlet extends BasicServlet {
     sb.append("</table>\n");
   }
   
-  private static final String BYTES[] = {"", "K", "M", "G", "T", "P", "E", "Z"};
-  
   private static String bytes(long big) {
-    return NumberType.bigNumber(big, BYTES, 1024);
+    return NumUtil.bigNumberForSize(big);
   }
   
   public static void tableRow(StringBuilder sb, boolean highlight, Object... cells) {

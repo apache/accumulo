@@ -237,20 +237,11 @@ public class TableDiskUsage {
       throws TableNotFoundException, IOException {
     
     Map<TreeSet<String>,Long> usage = getDiskUsage(acuConf, tables, fs, conn, humanReadable);
-    
+
+    String valueFormat = humanReadable ? "%9s" : "%,24d";
     for (Entry<TreeSet<String>,Long> entry : usage.entrySet()) {
-      String valueFormat = humanReadable ? "%s" : "%,24d";
-      Object value = humanReadable ? humanReadableBytes(entry.getValue()) : entry.getValue();
+      Object value = humanReadable ? NumUtil.bigNumberForSize(entry.getValue()) : entry.getValue();
       printer.print(String.format(valueFormat + " %s", value, entry.getKey()));
     }
   }
-  
-  public static String humanReadableBytes(long bytes) {
-    if (bytes < 1024) return String.format("%4dB", bytes);
-    int exp = (int) (Math.log(bytes) / Math.log(1024));
-    String pre = "KMGTPE".charAt(exp-1) + "";
-    double val = bytes / Math.pow(1024, exp);
-    return String.format(val >= 1000 ? "%4.0f%s" : " %3.1f%s", val, pre);
-  }
-
 }

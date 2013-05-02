@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.monitor.util.celltypes;
 
+import static org.apache.accumulo.core.util.NumUtil.bigNumberForQuantity;
+
 public class NumberType<T extends Number> extends CellType<T> {
   
   private T warnMin, warnMax, errMin, errMax;
@@ -74,77 +76,43 @@ public class NumberType<T extends Number> extends CellType<T> {
   }
   
   public static String commas(long i) {
-    return bigNumber(i);
+    return bigNumberForQuantity(i);
   }
   
   public static String commas(long i, long errMin, long errMax) {
     if (i < errMin || i > errMax)
-      return String.format("<span class='error'>%s</span>", bigNumber(i));
-    return bigNumber(i);
+      return String.format("<span class='error'>%s</span>", bigNumberForQuantity(i));
+    return bigNumberForQuantity(i);
   }
   
   public static String commas(double i) {
-    return bigNumber((long) i);
+    return bigNumberForQuantity((long) i);
   }
   
   public static String commas(double d, double errMin, double errMax) {
     if (d < errMin || d > errMax)
-      return String.format("<span class='error'>%s</span>", bigNumber(d));
-    return bigNumber(d);
+      return String.format("<span class='error'>%s</span>", bigNumberForQuantity(d));
+    return bigNumberForQuantity(d);
   }
   
   public static String commas(long i, long warnMin, long warnMax, long errMin, long errMax) {
     if (i < errMin || i > errMax)
-      return String.format("<span class='error'>%s</span>", bigNumber(i));
+      return String.format("<span class='error'>%s</span>", bigNumberForQuantity(i));
     if (i < warnMin || i > warnMax)
-      return String.format("<span class='warning'>%s</span>", bigNumber(i));
-    return bigNumber(i);
+      return String.format("<span class='warning'>%s</span>", bigNumberForQuantity(i));
+    return bigNumberForQuantity(i);
   }
   
   public static String commas(double d, double warnMin, double warnMax, double errMin, double errMax) {
     if (d < errMin || d > errMax)
-      return String.format("<span class='error'>%s</span>", bigNumber(d));
+      return String.format("<span class='error'>%s</span>", bigNumberForQuantity(d));
     if (d < warnMin || d > warnMax)
-      return String.format("<span class='warning'>%s</span>", bigNumber(d));
-    return bigNumber(d);
-  }
-  
-  private static final String COUNTS[] = {"", "K", "M", "B", "T", "e15", "e18", "e21"};
-  
-  public static String bigNumber(long big) {
-    return bigNumber(big, COUNTS, 1000);
-  }
-  
-  public static String bigNumber(double big) {
-    return bigNumber(big, COUNTS, 1000);
-  }
-  
-  public static String bigNumber(long big, String[] SUFFIXES, long base) {
-    float divisor = 1;
-    for (int i = 0; i < SUFFIXES.length; i++) {
-      if (big / divisor < 1024) {
-        if (i == 0)
-          return String.format("%,d", big);
-        return String.format("%,.2f%s", big / divisor, SUFFIXES[i]);
-      }
-      divisor *= base;
-    }
-    return String.format("%,.2f%s", big / divisor, SUFFIXES[SUFFIXES.length - 1]);
-  }
-  
-  public static String bigNumber(double big, String[] SUFFIXES, long base) {
-    float divisor = 1;
-    for (int i = 0; i < SUFFIXES.length; i++) {
-      if (big / divisor < 1024)
-        return String.format("%,.2f%s", big / divisor, SUFFIXES[i]);
-      divisor *= base;
-    }
-    return String.format("%,.2f%s", big / divisor, SUFFIXES[SUFFIXES.length - 1]);
+      return String.format("<span class='warning'>%s</span>", bigNumberForQuantity(d));
+    return bigNumberForQuantity(d);
   }
   
   @Override
   public String alignment() {
     return "right";
   }
-  
 }
