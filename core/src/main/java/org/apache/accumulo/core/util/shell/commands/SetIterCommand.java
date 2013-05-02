@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
@@ -42,10 +43,12 @@ import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.ShellCommandException.ErrorCode;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.vfs2.FileSystemException;
 
 public class SetIterCommand extends Command {
   
@@ -75,10 +78,49 @@ public class SetIterCommand extends Command {
       classname = ReqVisFilter.class.getName();
     }
     
-    final String name = cl.getOptionValue(nameOpt.getOpt(), setUpOptions(shellState.getReader(), classname, options));
+    ClassLoader classloader = getClassLoader(cl, shellState);
+
+    final String name = cl.getOptionValue(nameOpt.getOpt(), setUpOptions(classloader, shellState.getReader(), classname, options));
     
     setTableProperties(cl, shellState, priority, options, classname, name);
     return 0;
+  }
+
+  private ClassLoader getClassLoader(final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      IOException, FileSystemException {
+    String classpath = null;
+    Iterable<Entry<String,String>> tableProps = shellState.getConnector().tableOperations().getProperties(OptUtil.getTableOpt(cl, shellState));
+    for (Entry<String,String> entry : tableProps) {
+      if (entry.getKey().equals(Property.TABLE_CLASSPATH.getKey())) {
+        classpath = entry.getValue();
+      }
+    }
+    
+    ClassLoader classloader;
+
+    if (classpath != null && !classpath.equals("")) {
+      shellState.getConnector().instanceOperations().getSystemConfiguration().get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
+      
+      try {
+        AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Map.Entry<String,String>>() {
+          @Override
+          public Iterator<Entry<String,String>> iterator() {
+            try {
+              return shellState.getConnector().instanceOperations().getSystemConfiguration().entrySet().iterator();
+            } catch (AccumuloException e) {
+              throw new RuntimeException(e);
+            } catch (AccumuloSecurityException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        }));
+      } catch (IllegalStateException ise) {}
+
+      classloader = AccumuloVFSClassLoader.getContextManager().getClassLoader(classpath);
+    } else {
+      classloader = AccumuloVFSClassLoader.getClassLoader();
+    }
+    return classloader;
   }
   
   protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
@@ -87,7 +129,7 @@ public class SetIterCommand extends Command {
     
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
-    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) {
+    if (!shellState.getConnector().tableOperations().testClassLoad(tableName, classname, SortedKeyValueIterator.class.getName())) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
           + SortedKeyValueIterator.class.getName());
     }
@@ -95,7 +137,7 @@ public class SetIterCommand extends Command {
     final String aggregatorClass = options.get("aggregatorClass");
     @SuppressWarnings("deprecation")
     String deprecatedAggregatorClassName = org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
-    if (aggregatorClass != null && !shellState.getConnector().instanceOperations().testClassLoad(aggregatorClass, deprecatedAggregatorClassName)) {
+    if (aggregatorClass != null && !shellState.getConnector().tableOperations().testClassLoad(tableName, aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + aggregatorClass + " as type "
           + deprecatedAggregatorClassName);
     }
@@ -123,13 +165,14 @@ public class SetIterCommand extends Command {
     shellState.getConnector().tableOperations().attachIterator(tableName, setting, scopes);
   }
   
-  private static String setUpOptions(final ConsoleReader reader, final String className, final Map<String,String> options) throws IOException,
+  private static String setUpOptions(ClassLoader classloader, final ConsoleReader reader, final String className, final Map<String,String> options)
+      throws IOException,
       ShellCommandException {
     String input;
     OptionDescriber skvi;
     Class<? extends OptionDescriber> clazz;
     try {
-      clazz = AccumuloVFSClassLoader.loadClass(className, OptionDescriber.class);
+      clazz = classloader.loadClass(className).asSubclass(OptionDescriber.class);
       skvi = clazz.newInstance();
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException(e.getMessage());

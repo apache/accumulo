@@ -287,6 +287,8 @@ service AccumuloProxy
   set<Range> splitRangeByTablets (1:binary login, 2:string tableName, 3:Range range, 4:i32 maxSplits)  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   bool tableExists (1:binary login, 2:string tableName);
   map<string,string> tableIdMap (1:binary login);
+  bool testTableClassLoad (1:binary login, 2:string tableName, 3:string className                     
+                           , 4:string asTypeName)                                                      throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
 
   // instance operations
   void pingTabletServer(1:binary login, 2:string tserver)                                            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);

@@ -101,7 +101,8 @@ public interface InstanceOperations {
   public void ping(String tserver) throws AccumuloException;
   
   /**
-   * Test to see if the instance can load the given class as the given type.
+   * Test to see if the instance can load the given class as the given type. This check does not consider per table classpaths, see
+   * {@link TableOperations#testClassLoad(String, String, String)}
    * 
    * @param className
    * @param asTypeName

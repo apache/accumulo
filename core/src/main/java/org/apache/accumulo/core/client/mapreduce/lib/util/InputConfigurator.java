@@ -515,7 +515,7 @@ public class InputConfigurator extends ConfiguratorBase {
       if (!conf.getBoolean(enumToConfKey(implementingClass, Features.USE_LOCAL_ITERATORS), false)) {
         // validate that any scan-time iterators can be loaded by the the tablet servers
         for (IteratorSetting iter : getIterators(implementingClass, conf)) {
-          if (!c.instanceOperations().testClassLoad(iter.getIteratorClass(), SortedKeyValueIterator.class.getName()))
+          if (!c.tableOperations().testClassLoad(getInputTableName(implementingClass, conf), iter.getIteratorClass(), SortedKeyValueIterator.class.getName()))
             throw new AccumuloException("Servers are unable to load " + iter.getIteratorClass() + " as a " + SortedKeyValueIterator.class.getName());
         }
       }
@@ -523,6 +523,8 @@ public class InputConfigurator extends ConfiguratorBase {
     } catch (AccumuloException e) {
       throw new IOException(e);
     } catch (AccumuloSecurityException e) {
+      throw new IOException(e);
+    } catch (TableNotFoundException e) {
       throw new IOException(e);
     }
   }

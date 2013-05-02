@@ -35,7 +35,7 @@ public class ConstraintCommand extends Command {
     switch (OptUtil.getAldOpt(cl)) {
       case ADD:
         for (String constraint : cl.getArgs()) {
-          if (!shellState.getConnector().instanceOperations().testClassLoad(constraint, Constraint.class.getName())) {
+          if (!shellState.getConnector().tableOperations().testClassLoad(tableName, constraint, Constraint.class.getName())) {
             throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + constraint + " as type "
                 + Constraint.class.getName());
           }

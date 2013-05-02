@@ -106,6 +106,8 @@ public class InsertCommand extends Command {
       }
       
       shellState.printLines(lines.iterator(), false);
+      
+      return 1;
     }
     return 0;
   }

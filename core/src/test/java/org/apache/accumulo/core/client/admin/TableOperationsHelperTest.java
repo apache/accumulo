@@ -202,6 +202,12 @@ public class TableOperationsHelperTest {
     
     @Override
     public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {}
+    
+    @Override
+    public boolean testClassLoad(String tableName, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException,
+        TableNotFoundException {
+      return false;
+    }
   }
   
   @Test
