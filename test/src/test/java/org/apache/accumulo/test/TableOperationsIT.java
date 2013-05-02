@@ -17,11 +17,14 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -31,6 +34,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.thrift.TException;
@@ -69,18 +74,35 @@ public class TableOperationsIT {
     assertEquals(1, diskUsage.size());
     assertEquals(0, (long) diskUsage.get(0).getUsage());
     assertEquals("table1", diskUsage.get(0).getTables().iterator().next());
-
+    
     connector.securityOperations().revokeTablePermission(ROOT, "table1", TablePermission.READ);
     try {
       connector.tableOperations().getDiskUsage(Collections.singleton("table1"));
       fail("Should throw securityexception");
-    } catch(AccumuloSecurityException e) {}
-
+    } catch (AccumuloSecurityException e) {}
+    
     connector.tableOperations().delete("table1");
     try {
       connector.tableOperations().getDiskUsage(Collections.singleton("table1"));
       fail("Should throw tablenotfound");
     } catch (TableNotFoundException e) {}
+  }
+  
+  @Test
+  public void createTable() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    connector.tableOperations().create("table1");
+    Iterable<Map.Entry<String,String>> itrProps = connector.tableOperations().getProperties("table1");
+    Map<String,String> props = propsToMap(itrProps);
+    assertEquals(DefaultKeySizeConstraint.class.getName(), props.get(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1"));
+    connector.tableOperations().delete("table1");
+  }
+
+  private Map<String,String> propsToMap(Iterable<Map.Entry<String,String>> props) {
+    Map<String,String> map = new HashMap<String,String>();
+    for (Map.Entry<String,String> prop : props) {
+      map.put(prop.getKey(), prop.getValue());
+    }
+    return map;
   }
   
   @AfterClass

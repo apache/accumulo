@@ -635,7 +635,7 @@ public class SimpleTest {
       fail("constraint did not fire");
     } catch (MutationsRejectedException e) {}
     
-    client.removeConstraint(creds, TABLE_TEST, 1);
+    client.removeConstraint(creds, TABLE_TEST, 2);
     
     writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
@@ -671,7 +671,7 @@ public class SimpleTest {
       fail("constraint did not fire");
     } catch (MutationsRejectedException ex) {}
     
-    client.removeConstraint(creds, TABLE_TEST, 1);
+    client.removeConstraint(creds, TABLE_TEST, 2);
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
     String scanner = client.createScanner(creds, TABLE_TEST, null);
     ScanResult more = client.nextK(scanner, 2);

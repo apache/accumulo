@@ -111,7 +111,7 @@ public class ShellServerTest {
   
   static void assertGoodExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
-    assertEquals(shell.getExitCode(), 0);
+    assertEquals(0, shell.getExitCode());
 
   if (s.length() > 0)
   assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
@@ -170,7 +170,7 @@ public class ShellServerTest {
     exec("importtable t2 " + import_, true);
     exec("config -t t2 -np", true, "345M", true);
     exec("getsplits -t t2", true, "row5", true);
-    exec("constraint --list -t t2", true, "VisibilityConstraint=1", true);
+    exec("constraint --list -t t2", true, "VisibilityConstraint=2", true);
     exec("onlinetable t", true);
     exec("deletetable -f t", true);
     exec("deletetable -f t2", true);
@@ -404,7 +404,7 @@ public class ShellServerTest {
     exec("scan", true, "value", true);
     exec("clonetable orig clone");
     // verify constraint, config, and splits were cloned
-    exec("constraint --list -t clone", true, "VisibilityConstraint=1", true);
+    exec("constraint --list -t clone", true, "VisibilityConstraint=2", true);
     exec("config -t clone -np", true, "123M", true);
     exec("getsplits -t clone", true, "a\nb\nc\n");
     // compact
@@ -444,9 +444,9 @@ public class ShellServerTest {
     // constraint
     exec("constraint -l -t !METADATA", true, "MetadataConstraints=1", true);
     exec("createtable c -evc");
-    exec("constraint -l -t c", true, "VisibilityConstraint=1", true);
-    exec("constraint -t c -d 1", true, "Removed constraint 1 from table c");
-    exec("constraint -l -t c", true, "VisibilityConstraint=1", false);
+    exec("constraint -l -t c", true, "VisibilityConstraint=2", true);
+    exec("constraint -t c -d 2", true, "Removed constraint 2 from table c");
+    exec("constraint -l -t c", true, "VisibilityConstraint=2", false);
     exec("deletetable -f c");
   }
   
