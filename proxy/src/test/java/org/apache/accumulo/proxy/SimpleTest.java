@@ -50,6 +50,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
@@ -310,6 +311,10 @@ public class SimpleTest {
     } catch (TableNotFoundException ex) {}
     try {
       client.getDiskUsage(creds, Collections.singleton(doesNotExist));
+      fail("exception not thrown");
+    } catch (TableNotFoundException ex) {}
+    try {
+      client.testTableClassLoad(creds, doesNotExist, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName());
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
   }
@@ -819,6 +824,9 @@ public class SimpleTest {
     assertEquals(1, more.results.size());
     ByteBuffer maxRow = client.getMaxRow(creds, "bar", null, null, false, null, false);
     assertEquals(s2bb("a"), maxRow);
+    
+    assertFalse(client.testTableClassLoad(creds, "bar", "abc123", SortedKeyValueIterator.class.getName()));
+    assertTrue(client.testTableClassLoad(creds, "bar", VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName()));
   }
   
   // scan !METADATA table for file entries for the given table

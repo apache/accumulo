@@ -250,6 +250,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public boolean checkClass(TInfo tinfo, TCredentials credentials, String className, String interfaceMatch) throws TException {
+    security.authenticateUser(credentials, credentials);
+    
     ClassLoader loader = getClass().getClassLoader();
     Class shouldMatch;
     try {
@@ -267,6 +269,41 @@ public class ClientServiceHandler implements ClientService.Iface {
       log.warn("Error checking object types", e);
       return false;
     } catch (IllegalAccessException e) {
+      log.warn("Error checking object types", e);
+      return false;
+    }
+  }
+  
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  @Override
+  public boolean checkTableClass(TInfo tinfo, TCredentials credentials, String tableName, String className, String interfaceMatch) throws TException,
+      ThriftTableOperationException, ThriftSecurityException {
+    
+    security.authenticateUser(credentials, credentials);
+    
+    String tableId = checkTableId(tableName, null);
+
+    ClassLoader loader = getClass().getClassLoader();
+    Class shouldMatch;
+    try {
+      shouldMatch = loader.loadClass(interfaceMatch);
+      
+      new ServerConfiguration(instance).getTableConfiguration(tableId);
+      
+      String context = new ServerConfiguration(instance).getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
+      
+      ClassLoader currentLoader;
+      
+      if (context != null && !context.equals("")) {
+        currentLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
+      } else {
+        currentLoader = AccumuloVFSClassLoader.getClassLoader();
+      }
+      
+      Class test = currentLoader.loadClass(className).asSubclass(shouldMatch);
+      test.newInstance();
+      return true;
+    } catch (Exception e) {
       log.warn("Error checking object types", e);
       return false;
     }

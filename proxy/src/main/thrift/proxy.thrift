@@ -262,6 +262,7 @@ service AccumuloProxy
   void flushTable (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow, 
                    5:bool wait)
                                                                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  list<DiskUsage> getDiskUsage(1:binary login, 2:set<string> tables)                                   throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   map<string,set<string>> getLocalityGroups (1:binary login, 2:string tableName)                       throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   IteratorSetting getIteratorSetting (1:binary login, 2:string tableName, 
                                       3:string iteratorName, 4:IteratorScope scope) 
@@ -292,7 +293,8 @@ service AccumuloProxy
   set<Range> splitRangeByTablets (1:binary login, 2:string tableName, 3:Range range, 4:i32 maxSplits)  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   bool tableExists (1:binary login, 2:string tableName);
   map<string,string> tableIdMap (1:binary login);
-  list<DiskUsage> getDiskUsage(1:binary login, 2:set<string> tables)                                     throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  bool testTableClassLoad (1:binary login, 2:string tableName, 3:string className                     
+                           , 4:string asTypeName)                                                      throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
 
   // instance operations
   void pingTabletServer(1:binary login, 2:string tserver)                                            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);

@@ -681,7 +681,6 @@ public interface TableOperations {
    */
   public Map<String,Integer> listConstraints(String tableName) throws AccumuloException, TableNotFoundException;
 
-
   /**
    * Gets the number of bytes being used in the files for a set of tables
    *
@@ -692,5 +691,18 @@ public interface TableOperations {
    * @throws AccumuloSecurityException
    */
   public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
-
+  
+  /**
+   * Test to see if the instance can load the given class as the given type. This check uses the table classpath if it is set.
+   * 
+   * @param className
+   * @param asTypeName
+   * @return true if the instance can load the given class as the given type, false otherwise
+   * @throws AccumuloException
+   * 
+   * 
+   * @since 1.5.0
+   */
+  public boolean testClassLoad(String tableName, final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException;
 }

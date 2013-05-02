@@ -1476,4 +1476,16 @@ public class ProxyServer implements AccumuloProxy.Iface {
     token.init(props);
     return token;
   }
+  
+  @Override
+  public boolean testTableClassLoad(ByteBuffer login, String tableName, String className, String asTypeName)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
+      org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
+    try {
+      return getConnector(login).tableOperations().testClassLoad(tableName, className, asTypeName);
+    } catch (Exception e) {
+      handleExceptionTNF(e);
+      return false;
+    }
+  }
 }

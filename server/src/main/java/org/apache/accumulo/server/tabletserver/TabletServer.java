@@ -208,7 +208,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.Platform;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
-import org.apache.accumulo.start.classloader.vfs.ContextManager.ContextConfig;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
@@ -3079,32 +3078,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     try {
-      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.ContextsConfig() {
+      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
         @Override
-        public ContextConfig getContextConfig(String context) {
-          String key = Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + context;
-          
-          String uris = null;
-          boolean preDelegate = true;
-          
-          Iterator<Entry<String,String>> iter = getSystemConfiguration().iterator();
-          while (iter.hasNext()) {
-            Entry<String,String> entry = iter.next();
-            if (entry.getKey().equals(key)) {
-              uris = entry.getValue();
-            }
-            
-            if (entry.getKey().equals(key + ".delegation") && entry.getValue().trim().equalsIgnoreCase("post")) {
-              preDelegate = false;
-            }
-          }
-          
-          if (uris != null)
-            return new ContextConfig(uris, preDelegate);
-          
-          return null;
+        public Iterator<Entry<String,String>> iterator() {
+          return getSystemConfiguration().iterator();
         }
-      });
+      }));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
