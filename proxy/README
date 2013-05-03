@@ -16,33 +16,58 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            specific language governing permissions and limitations
            under the License.
 
-This is a thrift proxy server to interact with the Accumulo database.
+This module provides proxy server for Accumulo. It enables using languages 
+other than Java to interact with the database.
 
 1. Building
 
-To compile, you must first install Thrift 0.9.0. 
+The proxy server is built by the Accumulo build process. Read ../README
+for more information.
 
-After thrift is installed, compile the project with:
-mvn clean install
-This will compile the thrift and java files, and will provide C++, python and ruby bindings.
+2. Installation
 
-2. Proxy Server Execution
+The proxy server is installed during the Accumulo install. Read ../README
+for more information.
 
-Please note that the proxy can only function correctly when connected to an Accumulo 1.5 instance, or when run standalone in the Mock configuration.
-To run the server, edit the configuration file with parameters suited for your Accumulo installation. If you wish to instead use an in-memory Mock instance, set:
- useMockInstance=true
-This option will override any "real" Accumulo instance information.
+3. Configuration
 
-Once the properties file is configured correctly, run this command:
-./bin/accumulo proxy -p proxy/proxy.properties
+Please note the Proxy Server only functions correctly when connected to an 
+Accumulo 1.5 instance, or when run standalone in the Mock configuration.
 
-3. Clients
+ - connect to the Accumulo installation directory.
 
-An example java client is incuded with this distribution in the class TestProxyClient. Also the unit tests included show how to use the proxy. Normal Accumulo APIs are emulated whereever possible.
+ - copy the proxy.properties file so that you have a backup.
 
-Additional client examples can be found in the examples directory. These clients are tested and function, however, the setup for each language is beyond the scope of this document currently.
+ - edit the proxy.properties file.
+    - change the useMockInstance value to 'true' if you wish to use an in-memory Mock instance.
+    - change the useMiniAccumulo value to 'true' if you wish to use a Mini Accumulo Cluster.
+    - change the instance value as needed.
+    - change the zookeepers value as needed.
 
-In general, to create a client for a new language one must compile the proxy.thrift API (along with the accumulo core data.thrift API) to the language of choice. 
-Then one includes the resulting generated code along with the thrift core library for that language to use the proxy.
+4. Execution
 
-As a note, many of the clients here assume "secret" is your root password. Protip: to make the examples work, change this code to your password, do not change your root password to "secret".
+Connect to the Accumulo installation directory and run the following command.
+
+ ./bin/accumulo proxy -p proxy/proxy.properties
+
+5. Clients
+
+You need the language-specific library for Thrift installed to be able to use said thrift client 
+code in that language. In other words, you need the python thrift library installed to use the python 
+example.
+
+An example java client is incuded with this distribution in the class TestProxyClient. Also the 
+unit tests included show how to use the proxy. Normal Accumulo APIs are emulated whereever possible.
+
+Additional client examples can be found in the examples directory. These clients are tested and 
+function, however, the setup for each language is beyond the scope of this document currently.
+
+In general, to create a client for a new language, you must compile the proxy.thrift API (along 
+with the accumulo core data.thrift API) to the language of choice. Then you include the resulting 
+generated code along with the thrift core library for that language to use the proxy.
+
+6. Special Note
+
+Many of the example clients assume "secret" is your root password.  To make the examples 
+work, change the example code to match your password, do not change your root password 
+to "secret".
