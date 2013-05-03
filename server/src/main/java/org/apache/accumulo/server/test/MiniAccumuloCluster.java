@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.server.test;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -120,7 +120,7 @@ public class MiniAccumuloCluster {
   private MiniAccumuloConfig config;
   private Process[] tabletServerProcesses;
   
-  Process exec(Class<? extends Object> clazz, String... args) throws IOException {
+  private Process exec(Class<? extends Object> clazz, String... args) throws IOException {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
     String classpath = System.getProperty("java.class.path");

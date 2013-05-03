@@ -79,11 +79,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-test</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-trace</artifactId>
       <scope>provided</scope>
     </dependency>
@@ -105,6 +100,11 @@
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-examples-simple</artifactId>
+      <scope>test</scope>
+    </dependency>
+   <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-test</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
