@@ -44,9 +44,9 @@ Accumulo 1.5 instance, or when run standalone in the Mock configuration.
 
 4. Execution
 
-Connect to the Accumulo installation directory and run the following command.
+Run the following command.
 
- ${ACCUMULO_HOME}/bin/accumulo proxy -p proxy/proxy.properties
+ ${ACCUMULO_HOME}/bin/accumulo proxy -p ${ACCUMULO_HOME}/proxy/proxy.properties
 
 5. Clients
 
