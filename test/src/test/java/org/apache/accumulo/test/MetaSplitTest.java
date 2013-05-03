@@ -27,6 +27,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.server.test.MiniAccumuloCluster;
+import org.apache.accumulo.server.test.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

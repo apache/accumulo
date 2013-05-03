@@ -22,7 +22,7 @@ import java.util.List;
 
 import org.apache.accumulo.fate.zookeeper.ZooLock.AsyncLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
-import org.apache.accumulo.test.MiniAccumuloCluster;
+import org.apache.accumulo.server.test.MiniAccumuloCluster;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;

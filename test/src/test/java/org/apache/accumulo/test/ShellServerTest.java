@@ -29,6 +29,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.Map.Entry;
 
 import jline.ConsoleReader;
@@ -46,6 +47,8 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.shell.Shell;
+import org.apache.accumulo.server.test.MiniAccumuloCluster;
+import org.apache.accumulo.server.test.MiniAccumuloConfig;
 import org.apache.accumulo.server.trace.TraceServer;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -144,7 +147,12 @@ public class ShellServerTest {
     exec("quit", true);
     shell.start();
     shell.setExit(false);
-    traceProcess = cluster.exec(TraceServer.class);
+
+    // use reflection to call this method so it does not need to be made public
+    Method method = cluster.getClass().getDeclaredMethod("exec", Class.class, String[].class);
+    method.setAccessible(true);
+    traceProcess = (Process) method.invoke(cluster, TraceServer.class, new String[0]);
+
     // give the tracer some time to start
     UtilWaitThread.sleep(1000);
   }
