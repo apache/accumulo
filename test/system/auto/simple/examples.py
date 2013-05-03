@@ -43,9 +43,9 @@ class Examples(TestUtilsMixin, unittest.TestCase):
     def runExample(self, cmd):
         return self.wait(self.runOn(self.masterHost(), [self.accumulo_sh(),] + cmd))
 
-    def ashell(self, input):
+    def ashell(self, input, expected = 0):
         out, err, code = self.shell(self.masterHost(), input + '\n')
-        self.assert_(code == 0)
+        self.assert_(code == expected)
         return out
 
     def comment(self, description):
@@ -262,7 +262,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             'insert r1 cf1 cq1 ABC',
             'scan',
             'quit'
-            ]))
+            ]), 1)
         self.comment("Performing some row operations")
         self.runExample(['org.apache.accumulo.simple.examples.client.RowOperations', 
                         '-i', INSTANCE_NAME,
