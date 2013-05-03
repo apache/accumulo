@@ -17,16 +17,21 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -35,8 +40,11 @@ import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.junit.AfterClass;
@@ -67,7 +75,7 @@ public class TableOperationsIT {
   }
   
   @Test
-  public void getDiskUsage() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
+  public void getDiskUsageErrors() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
     connector.tableOperations().create("table1");
     List<DiskUsage> diskUsage = connector.tableOperations().getDiskUsage(Collections.singleton("table1"));
     assertEquals(1, diskUsage.size());
@@ -85,6 +93,61 @@ public class TableOperationsIT {
       connector.tableOperations().getDiskUsage(Collections.singleton("table1"));
       fail("Should throw tablenotfound");
     } catch (TableNotFoundException e) {}
+  }
+  
+  @Test
+  public void getDiskUsage() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
+    
+    connector.tableOperations().create("table1");
+    
+    // verify 0 disk usage
+    List<DiskUsage> diskUsages = connector.tableOperations().getDiskUsage(Collections.singleton("table1"));
+    assertEquals(1, diskUsages.size());
+    assertEquals(1, diskUsages.get(0).getTables().size());
+    assertEquals(new Long(0), diskUsages.get(0).getUsage());
+    assertEquals("table1", diskUsages.get(0).getTables().first());
+    
+    // add some data
+    BatchWriter bw = connector.createBatchWriter("table1", new BatchWriterConfig());
+    Mutation m = new Mutation("a");
+    m.put("b", "c", new Value("abcde".getBytes()));
+    bw.addMutation(m);
+    bw.flush();
+    bw.close();
+    
+    connector.tableOperations().compact("table1", new Text("A"), new Text("z"), true, true);
+    
+    // verify we have usage
+    diskUsages = connector.tableOperations().getDiskUsage(Collections.singleton("table1"));
+    assertEquals(1, diskUsages.size());
+    assertEquals(1, diskUsages.get(0).getTables().size());
+    assertTrue(diskUsages.get(0).getUsage() > 0);
+    assertEquals("table1", diskUsages.get(0).getTables().first());
+    
+    // clone table
+    connector.tableOperations().clone("table1", "table2", false, null, null);
+    
+    // verify tables are exactly the same
+    Set<String> tables = new HashSet<String>();
+    tables.add("table1");
+    tables.add("table2");
+    diskUsages = connector.tableOperations().getDiskUsage(tables);
+    assertEquals(1, diskUsages.size());
+    assertEquals(2, diskUsages.get(0).getTables().size());
+    assertTrue(diskUsages.get(0).getUsage() > 0);
+    
+    connector.tableOperations().compact("table1", new Text("A"), new Text("z"), true, true);
+    connector.tableOperations().compact("table2", new Text("A"), new Text("z"), true, true);
+    
+    // verify tables have differences
+    diskUsages = connector.tableOperations().getDiskUsage(tables);
+    assertEquals(2, diskUsages.size());
+    assertEquals(1, diskUsages.get(0).getTables().size());
+    assertEquals(1, diskUsages.get(1).getTables().size());
+    assertTrue(diskUsages.get(0).getUsage() > 0);
+    assertTrue(diskUsages.get(1).getUsage() > 0);
+    
+    connector.tableOperations().delete("table1");
   }
   
   @Test

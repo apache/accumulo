@@ -20,7 +20,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.tabletserver.thrift;
+package org.apache.accumulo.core.client.impl.thrift;
 
 import org.apache.thrift.scheme.IScheme;
 import org.apache.thrift.scheme.SchemeFactory;
@@ -46,16 +46,16 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class DiskUsage implements org.apache.thrift.TBase<DiskUsage, DiskUsage._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("DiskUsage");
+@SuppressWarnings("all") public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsage._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TDiskUsage");
 
   private static final org.apache.thrift.protocol.TField TABLES_FIELD_DESC = new org.apache.thrift.protocol.TField("tables", org.apache.thrift.protocol.TType.LIST, (short)1);
   private static final org.apache.thrift.protocol.TField USAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("usage", org.apache.thrift.protocol.TType.I64, (short)2);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new DiskUsageStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new DiskUsageTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new TDiskUsageStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new TDiskUsageTupleSchemeFactory());
   }
 
   public List<String> tables; // required
@@ -134,13 +134,13 @@ import org.slf4j.LoggerFactory;
     tmpMap.put(_Fields.USAGE, new org.apache.thrift.meta_data.FieldMetaData("usage", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(DiskUsage.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TDiskUsage.class, metaDataMap);
   }
 
-  public DiskUsage() {
+  public TDiskUsage() {
   }
 
-  public DiskUsage(
+  public TDiskUsage(
     List<String> tables,
     long usage)
   {
@@ -153,7 +153,7 @@ import org.slf4j.LoggerFactory;
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public DiskUsage(DiskUsage other) {
+  public TDiskUsage(TDiskUsage other) {
     __isset_bitfield = other.__isset_bitfield;
     if (other.isSetTables()) {
       List<String> __this__tables = new ArrayList<String>();
@@ -165,8 +165,8 @@ import org.slf4j.LoggerFactory;
     this.usage = other.usage;
   }
 
-  public DiskUsage deepCopy() {
-    return new DiskUsage(this);
+  public TDiskUsage deepCopy() {
+    return new TDiskUsage(this);
   }
 
   @Override
@@ -195,7 +195,7 @@ import org.slf4j.LoggerFactory;
     return this.tables;
   }
 
-  public DiskUsage setTables(List<String> tables) {
+  public TDiskUsage setTables(List<String> tables) {
     this.tables = tables;
     return this;
   }
@@ -219,7 +219,7 @@ import org.slf4j.LoggerFactory;
     return this.usage;
   }
 
-  public DiskUsage setUsage(long usage) {
+  public TDiskUsage setUsage(long usage) {
     this.usage = usage;
     setUsageIsSet(true);
     return this;
@@ -290,12 +290,12 @@ import org.slf4j.LoggerFactory;
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof DiskUsage)
-      return this.equals((DiskUsage)that);
+    if (that instanceof TDiskUsage)
+      return this.equals((TDiskUsage)that);
     return false;
   }
 
-  public boolean equals(DiskUsage that) {
+  public boolean equals(TDiskUsage that) {
     if (that == null)
       return false;
 
@@ -325,13 +325,13 @@ import org.slf4j.LoggerFactory;
     return 0;
   }
 
-  public int compareTo(DiskUsage other) {
+  public int compareTo(TDiskUsage other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    DiskUsage typedOther = (DiskUsage)other;
+    TDiskUsage typedOther = (TDiskUsage)other;
 
     lastComparison = Boolean.valueOf(isSetTables()).compareTo(typedOther.isSetTables());
     if (lastComparison != 0) {
@@ -370,7 +370,7 @@ import org.slf4j.LoggerFactory;
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("DiskUsage(");
+    StringBuilder sb = new StringBuilder("TDiskUsage(");
     boolean first = true;
 
     sb.append("tables:");
@@ -411,15 +411,15 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  private static class DiskUsageStandardSchemeFactory implements SchemeFactory {
-    public DiskUsageStandardScheme getScheme() {
-      return new DiskUsageStandardScheme();
+  private static class TDiskUsageStandardSchemeFactory implements SchemeFactory {
+    public TDiskUsageStandardScheme getScheme() {
+      return new TDiskUsageStandardScheme();
     }
   }
 
-  private static class DiskUsageStandardScheme extends StandardScheme<DiskUsage> {
+  private static class TDiskUsageStandardScheme extends StandardScheme<TDiskUsage> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, DiskUsage struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, TDiskUsage struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -432,13 +432,13 @@ import org.slf4j.LoggerFactory;
           case 1: // TABLES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list52 = iprot.readListBegin();
-                struct.tables = new ArrayList<String>(_list52.size);
-                for (int _i53 = 0; _i53 < _list52.size; ++_i53)
+                org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
+                struct.tables = new ArrayList<String>(_list0.size);
+                for (int _i1 = 0; _i1 < _list0.size; ++_i1)
                 {
-                  String _elem54; // required
-                  _elem54 = iprot.readString();
-                  struct.tables.add(_elem54);
+                  String _elem2; // required
+                  _elem2 = iprot.readString();
+                  struct.tables.add(_elem2);
                 }
                 iprot.readListEnd();
               }
@@ -466,7 +466,7 @@ import org.slf4j.LoggerFactory;
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, DiskUsage struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, TDiskUsage struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -474,9 +474,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(TABLES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.tables.size()));
-          for (String _iter55 : struct.tables)
+          for (String _iter3 : struct.tables)
           {
-            oprot.writeString(_iter55);
+            oprot.writeString(_iter3);
           }
           oprot.writeListEnd();
         }
@@ -491,16 +491,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  private static class DiskUsageTupleSchemeFactory implements SchemeFactory {
-    public DiskUsageTupleScheme getScheme() {
-      return new DiskUsageTupleScheme();
+  private static class TDiskUsageTupleSchemeFactory implements SchemeFactory {
+    public TDiskUsageTupleScheme getScheme() {
+      return new TDiskUsageTupleScheme();
     }
   }
 
-  private static class DiskUsageTupleScheme extends TupleScheme<DiskUsage> {
+  private static class TDiskUsageTupleScheme extends TupleScheme<TDiskUsage> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, DiskUsage struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, TDiskUsage struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
       if (struct.isSetTables()) {
@@ -513,9 +513,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetTables()) {
         {
           oprot.writeI32(struct.tables.size());
-          for (String _iter56 : struct.tables)
+          for (String _iter4 : struct.tables)
           {
-            oprot.writeString(_iter56);
+            oprot.writeString(_iter4);
           }
         }
       }
@@ -525,18 +525,18 @@ import org.slf4j.LoggerFactory;
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, DiskUsage struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, TDiskUsage struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list57 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.tables = new ArrayList<String>(_list57.size);
-          for (int _i58 = 0; _i58 < _list57.size; ++_i58)
+          org.apache.thrift.protocol.TList _list5 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.tables = new ArrayList<String>(_list5.size);
+          for (int _i6 = 0; _i6 < _list5.size; ++_i6)
           {
-            String _elem59; // required
-            _elem59 = iprot.readString();
-            struct.tables.add(_elem59);
+            String _elem7; // required
+            _elem7 = iprot.readString();
+            struct.tables.add(_elem7);
           }
         }
         struct.setTablesIsSet(true);

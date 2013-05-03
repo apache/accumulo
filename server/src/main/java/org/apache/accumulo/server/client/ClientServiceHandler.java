@@ -16,21 +16,28 @@
  */
 package org.apache.accumulo.server.client;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -38,17 +45,21 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.TableDiskUsage;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.trace.thrift.TInfo;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
@@ -306,6 +317,41 @@ public class ClientServiceHandler implements ClientService.Iface {
     } catch (Exception e) {
       log.warn("Error checking object types", e);
       return false;
+    }
+  }
+  
+  @Override
+  public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials) throws ThriftTableOperationException, ThriftSecurityException, TException {
+    try {
+      Connector conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
+      
+      HashSet<String> tableIds = new HashSet<String>();
+      
+      for (String table : tables) {
+        // ensure that table table exists
+        String tableId = checkTableId(table, null);
+        tableIds.add(tableId);
+        if (!security.canScan(credentials, tableId))
+          throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+      }
+      
+      AccumuloConfiguration conf = new ServerConfiguration(instance).getConfiguration();
+      FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), conf);
+      
+      // use the same set of tableIds that were validated above to avoid race conditions
+      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(new ServerConfiguration(instance).getConfiguration(), tableIds, fs, conn, false);
+      List<TDiskUsage> retUsages = new ArrayList<TDiskUsage>();
+      for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
+        retUsages.add(new TDiskUsage(new ArrayList<String>(usageItem.getKey()), usageItem.getValue()));
+      }
+      return retUsages;
+      
+    } catch (AccumuloSecurityException e) {
+      throw e.asThriftException();
+    } catch (AccumuloException e) {
+      throw new TException(e);
+    } catch (IOException e) {
+      throw new TException(e);
     }
   }
 }

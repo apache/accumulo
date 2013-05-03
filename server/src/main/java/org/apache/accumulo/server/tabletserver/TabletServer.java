@@ -67,16 +67,12 @@ import javax.management.StandardMBean;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Constraint.Environment;
@@ -109,14 +105,11 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SecurityUtil;
-import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
-import org.apache.accumulo.core.tabletserver.thrift.DiskUsage;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
@@ -136,7 +129,6 @@ import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.Stat;
-import org.apache.accumulo.core.util.TableDiskUsage;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -2117,34 +2109,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       }
     }
-    
-    @Override
-    public List<DiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials) throws ThriftTableOperationException, ThriftSecurityException, TException {
-      try {
-        Connector conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
         
-        for (String table : tables) {
-          if (conn.tableOperations().exists(table) && !conn.securityOperations().hasTablePermission(credentials.getPrincipal(), table, TablePermission.READ))
-            throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-        }
-        
-        Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(getServerConfig().getConfiguration(), tables, fs, conn, false);
-        List<DiskUsage> retUsages = new ArrayList<DiskUsage>();
-        for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
-          retUsages.add(new DiskUsage(new ArrayList<String>(usageItem.getKey()), usageItem.getValue()));
-        }
-        return retUsages;
-        
-      } catch (AccumuloSecurityException e) {
-        // *.security.thrift.SecurityErrorCode is deprecated- let's assume the two stay in sync...
-        throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.valueOf(e.getSecurityErrorCode().name()));
-      } catch (TableNotFoundException e) {
-        throw new ThriftTableOperationException(null, e.getTableName(), null, TableOperationExceptionType.NOTFOUND, "Table was not found");
-      } catch (Exception e) {
-        throw new TException(e);
-      }
-    }
-    
     @Override
     public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       try {

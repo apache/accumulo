@@ -90,6 +90,11 @@ exception ThriftTableOperationException {
     5:string description
 }
 
+struct TDiskUsage {
+    1:list<string> tables
+    2:i64 usage
+}
+
 service ClientService {
 
     // system management methods
@@ -102,6 +107,8 @@ service ClientService {
     bool isActive(1:trace.TInfo tinfo, 2:i64 tid),
 
     void ping(2:security.TCredentials credentials) throws (1:ThriftSecurityException sec)
+
+    list<TDiskUsage> getDiskUsage(2:set<string> tables, 1:security.TCredentials credentials) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException toe)
 
     // user management methods
     set<string> listLocalUsers(2:trace.TInfo tinfo, 3:security.TCredentials credentials) throws (1:ThriftSecurityException sec)

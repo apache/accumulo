@@ -31,7 +31,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -47,7 +46,6 @@ import java.util.zip.ZipInputStream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -64,6 +62,8 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
+import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
+import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
@@ -93,6 +93,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -1200,33 +1201,43 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
   
   @Override
-  public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public List<DiskUsage> getDiskUsage(Set<String> tableNames) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
-    Random rand = new Random();
-    
-    Connector conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
-    List<String> tservers = conn.instanceOperations().getTabletServers();
 
-    List<Integer> triedServers = new ArrayList<Integer>();
-    List<org.apache.accumulo.core.tabletserver.thrift.DiskUsage> diskUsages = null;
-    while (diskUsages == null && triedServers.size() < tservers.size()) {
+    List<TDiskUsage> diskUsages = null;
+    while (diskUsages == null) {
+      Pair<String,Client> pair = null;
       try {
-        int randServer = rand.nextInt(tservers.size());
-        while (triedServers.contains(randServer))
-          randServer = rand.nextInt();
-        TabletClientService.Client client = ThriftUtil.getTServerClient(tservers.get(randServer), instance.getConfiguration());
-        diskUsages = client.getDiskUsage(tables, credentials);
+        // this operation may us a lot of memory... its likely that connections to tabletservers hosting metadata tablets will be cached, so do not use cached
+        // connections
+        pair = ServerClient.getConnection(instance, false);
+        diskUsages = pair.getSecond().getDiskUsage(tableNames, credentials);
       } catch (ThriftTableOperationException e) {
-        throw new TableNotFoundException(e.getTableId(), e.getTableName(), e.getDescription(), e.getCause());
+        switch (e.getType()) {
+          case NOTFOUND:
+            throw new TableNotFoundException(e);
+          case OTHER:
+          default:
+            throw new AccumuloException(e.description, e);
+        }
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.getUser(), e.getCode());
+      } catch (TTransportException e) {
+        // some sort of communication error occurred, retry
+        log.debug("disk usage request failed " + pair.getFirst() + ", retrying ... ", e);
+        UtilWaitThread.sleep(100);
       } catch (TException e) {
-        // If failure was not related to above exceptions, we should choose a new server and try again
+        // may be a TApplicationException which indicates error on the server side
+        throw new AccumuloException(e);
+      } finally {
+        // must always return thrift connection
+        if (pair != null)
+          ServerClient.close(pair.getSecond());
       }
     }
 
     List<DiskUsage> finalUsages = new ArrayList<DiskUsage>();
-    for (org.apache.accumulo.core.tabletserver.thrift.DiskUsage diskUsage : diskUsages) {
+    for (TDiskUsage diskUsage : diskUsages) {
       finalUsages.add(new DiskUsage(new TreeSet<String>(diskUsage.getTables()), diskUsage.getUsage()));
     }
     

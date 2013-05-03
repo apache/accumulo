@@ -87,11 +87,6 @@ struct ActiveScan {
     13:list<binary> authorizations
 }
 
-struct DiskUsage {
-    1:list<string> tables
-    2:i64 usage
-}
-
 enum CompactionType {
    MINOR,
    MERGE,
@@ -192,7 +187,6 @@ service TabletClientService extends client.ClientService {
   
   list<ActiveScan> getActiveScans(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
   list<ActiveCompaction> getActiveCompactions(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
-  list<DiskUsage> getDiskUsage(2:set<string> tables, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException toe)
   oneway void removeLogs(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:list<string> filenames)
 }
 
