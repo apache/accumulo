@@ -16,7 +16,7 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            specific language governing permissions and limitations
            under the License.
 
-This module provides proxy server for Accumulo. It enables using languages 
+This module provides proxy server for Apache Accumulo. It enables using languages 
 other than Java to interact with the database.
 
 1. Building
@@ -26,48 +26,37 @@ for more information.
 
 2. Installation
 
-The proxy server is installed during the Accumulo install. Read ../README
+The proxy server is installed during the Accumulo installation process. Read ../README
 for more information.
 
 3. Configuration
 
-Please note the Proxy Server only functions correctly when connected to an 
+Please note the proxy server only functions correctly when connected to an 
 Accumulo 1.5 instance, or when run standalone in the Mock configuration.
 
- - connect to the Accumulo installation directory.
-
- - copy the proxy.properties file so that you have a backup.
-
- - edit the proxy.properties file.
-    - change the useMockInstance value to 'true' if you wish to use an in-memory Mock instance.
-    - change the useMiniAccumulo value to 'true' if you wish to use a Mini Accumulo Cluster.
-    - change the instance value as needed.
-    - change the zookeepers value as needed.
+ - Edit the proxy.properties file.
+    - Change the useMockInstance value to 'true' if you wish to use an in-memory Mock instance.
+    - Change the useMiniAccumulo value to 'true' if you wish to use a Mini Accumulo Cluster.
+    - When using a "real" Accumulo instance:
+        - Ensure useMockInstance and useMiniAccumulo are both set to 'false'
+        - Set the instance name
+        - Set the list of ZooKeepers
 
 4. Execution
 
 Connect to the Accumulo installation directory and run the following command.
 
- ./bin/accumulo proxy -p proxy/proxy.properties
+ ${ACCUMULO_HOME}/bin/accumulo proxy -p proxy/proxy.properties
 
 5. Clients
 
-You need the language-specific library for Thrift installed to be able to use said thrift client 
-code in that language. In other words, you need the python thrift library installed to use the python 
-example.
+You need the language-specific library for Thrift installed to be able to use said Thrift client 
+code in that language. In other words, you need to install the Python Thrift library to use the Python 
+example. Typically, your operating system's package manager will be able to automatically install
+these for you in an expected location such as /usr/lib/python/site-packages/thrift.
 
-An example java client is incuded with this distribution in the class TestProxyClient. Also the 
-unit tests included show how to use the proxy. Normal Accumulo APIs are emulated whereever possible.
+An example Java client is incuded with this distribution in the class TestProxyClient. Also the 
+unit tests included show how to use the proxy. Normal Accumulo APIs are emulated wherever possible.
 
 Additional client examples can be found in the examples directory. These clients are tested and 
-function, however, the setup for each language is beyond the scope of this document currently.
-
-In general, to create a client for a new language, you must compile the proxy.thrift API (along 
-with the accumulo core data.thrift API) to the language of choice. Then you include the resulting 
-generated code along with the thrift core library for that language to use the proxy.
-
-6. Special Note
-
-Many of the example clients assume "secret" is your root password.  To make the examples 
-work, change the example code to match your password, do not change your root password 
-to "secret".
+functional; however, the setup for each language is beyond the scope of this document currently.
