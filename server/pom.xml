@@ -110,7 +110,7 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
-    </dependency>    
+    </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
@@ -139,7 +139,7 @@
   </build>
   <profiles>
     <profile>
-      <id>dist</id>
+      <id>native</id>
       <build>
         <plugins>
           <plugin>
@@ -151,7 +151,7 @@
                 <goals>
                   <goal>exec</goal>
                 </goals>
-                <phase>package</phase>
+                <phase>compile</phase>
                 <configuration>
                   <executable>make</executable>
                   <workingDirectory>${basedir}/src/main/c++</workingDirectory>

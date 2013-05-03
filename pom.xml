@@ -108,7 +108,7 @@
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- arguments for the release plugin goals;
          these are in addition to apache-release defined in the parent POM -->
-    <arguments>-P seal-jars,check-licenses,thrift,dist,assemble,docs,rpm,deb</arguments>
+    <arguments>-P seal-jars,check-licenses,thrift,native,assemble,docs,rpm,deb</arguments>
     <!-- only prompt once for the next version -->
     <autoVersionSubmodules>true</autoVersionSubmodules>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
