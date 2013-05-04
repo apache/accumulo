@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.test;
+package org.apache.accumulo.server.mini;
 
 import java.util.Collections;
 import java.util.Map.Entry;
@@ -36,7 +36,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.test.MiniAccumuloCluster;
+import org.apache.accumulo.server.mini.MiniAccumuloCluster;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
