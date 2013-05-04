@@ -167,7 +167,7 @@ public class ShellTest {
   public void userTest() throws Exception {
     Shell.log.debug("Starting user test --------------------------");
     // Test cannot be done via junit because createuser only prompts for password
-    //    exec("createuser root", false, "user exists");
+    // exec("createuser root", false, "user exists");
   }
   
   @Test
@@ -213,5 +213,13 @@ public class ShellTest {
     exec("#", true, "Unknown command", false);
     exec("# foo", true, "Unknown command", false);
     exec("- foo", true, "Unknown command", true);
+  }
+  
+  @Test
+  public void execFileTest() throws IOException {
+    Shell.log.debug("Starting exec file test --------------------------");
+    shell.config("--fake", "-u", "test", "-p", "secret", "-f", "src/test/resources/shelltest.txt");
+    assertEquals(0, shell.start());
+    assertGoodExit("Unknown command", false);
   }
 }
