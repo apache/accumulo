@@ -246,7 +246,7 @@ public class Shell extends ShellOptions {
     if (sysUser == null)
       sysUser = "root";
     String user = cl.getOptionValue(usernameOption.getOpt(), sysUser);
-
+    
     String passw = cl.getOptionValue(passwOption.getOpt(), null);
     tabCompletion = !cl.hasOption(tabCompleteOption.getLongOpt());
     String[] loginOptions = cl.getOptionValues(loginOption.getOpt());
@@ -261,13 +261,13 @@ public class Shell extends ShellOptions {
       
       if (loginOptions == null && cl.hasOption(tokenOption.getOpt()))
         throw new IllegalArgumentException("Must supply '-" + loginOption.getOpt() + "' option with '-" + tokenOption.getOpt() + "' option");
-
+      
       if (passw != null && cl.hasOption(tokenOption.getOpt()))
         throw new IllegalArgumentException("Can not supply '-" + passwOption.getOpt() + "' option with '-" + tokenOption.getOpt() + "' option");
-
+      
       if (user == null)
         throw new MissingArgumentException(usernameOption);
-
+      
       if (loginOptions != null && cl.hasOption(tokenOption.getOpt())) {
         Properties props = new Properties();
         for (String loginOption : loginOptions)
@@ -279,7 +279,7 @@ public class Shell extends ShellOptions {
         this.token = Class.forName(cl.getOptionValue(tokenOption.getOpt())).asSubclass(AuthenticationToken.class).newInstance();
         this.token.init(props);
       }
-
+      
       if (!cl.hasOption(fakeOption.getLongOpt())) {
         DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), "shell", InetAddress.getLocalHost()
             .getHostName());
@@ -438,8 +438,13 @@ public class Shell extends ShellOptions {
     
     if (execFile != null) {
       java.util.Scanner scanner = new java.util.Scanner(new File(execFile));
-      while (scanner.hasNextLine())
-        execCommand(scanner.nextLine(), true, isVerbose());
+      try {
+        while (scanner.hasNextLine() && !hasExited()) {
+          execCommand(scanner.nextLine(), true, isVerbose());
+        }
+      } finally {
+        scanner.close();
+      }
     } else if (execCommand != null) {
       for (String command : execCommand.split("\n")) {
         execCommand(command, true, isVerbose());

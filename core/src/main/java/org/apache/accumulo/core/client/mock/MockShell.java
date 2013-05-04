@@ -78,8 +78,13 @@ public class MockShell extends Shell {
     
     if (execFile != null) {
       java.util.Scanner scanner = new java.util.Scanner(new File(execFile));
-      while (scanner.hasNextLine())
-        execCommand(scanner.nextLine(), true, isVerbose());
+      try {
+        while (scanner.hasNextLine() && !hasExited()) {
+          execCommand(scanner.nextLine(), true, isVerbose());
+        }
+      } finally {
+        scanner.close();
+      }
     } else if (execCommand != null) {
       for (String command : execCommand.split("\n")) {
         execCommand(command, true, isVerbose());
