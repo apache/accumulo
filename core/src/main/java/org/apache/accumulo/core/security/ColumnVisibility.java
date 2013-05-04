@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.security;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -96,7 +96,7 @@ public class ColumnVisibility {
     public ByteSequence getTerm(byte expression[]) {
       if (type != NodeType.TERM)
         throw new RuntimeException();
-
+      
       if (expression[start] == '"') {
         // its a quoted term
         int qStart = start + 1;
@@ -138,26 +138,29 @@ public class ColumnVisibility {
       return 0;
     }
   }
-
-  /* Convience method that delegates to normalize with a new
-   * NodeComparator constructed using the supplied expression.
+  
+  /*
+   * Convience method that delegates to normalize with a new NodeComparator constructed using the supplied expression.
    */
   private static Node normalize(Node root, byte[] expression) {
     return normalize(root, expression, new NodeComparator(expression));
-  } 
-
-  /* Walks an expression's AST in order to:
+  }
+  
+  // @formatter:off
+  /*
+   * Walks an expression's AST in order to:
    *  1) roll up expressions with the same operant (`a&(b&c) becomes a&b&c`)
    *  2) sorts labels lexicographically (permutations of `a&b&c` are re-ordered to appear as `a&b&c`)
    *  3) dedupes labels (`a&b&a` becomes `a&b`)
    */
+  // @formatter:on
   private static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
-    if(root.type != NodeType.TERM) {
+    if (root.type != NodeType.TERM) {
       TreeSet<Node> rolledUp = new TreeSet<Node>(comparator);
       java.util.Iterator<Node> itr = root.children.iterator();
-      while(itr.hasNext()) { 
+      while (itr.hasNext()) {
         Node c = normalize(itr.next(), expression, comparator);
-        if(c.type == root.type) {
+        if (c.type == root.type) {
           rolledUp.addAll(c.children);
           itr.remove();
         }
@@ -166,23 +169,22 @@ public class ColumnVisibility {
       root.children.clear();
       root.children.addAll(rolledUp);
       
-      //need to promote a child if it's an only child
-      if(root.children.size() == 1) {
+      // need to promote a child if it's an only child
+      if (root.children.size() == 1) {
         return root.children.get(0);
       }
     }
-
+    
     return root;
   }
-
-  /* Walks an expression's AST and appends a string representation to a supplied
-   * StringBuilder. This method adds parens where necessary.
+  
+  /*
+   * Walks an expression's AST and appends a string representation to a supplied StringBuilder. This method adds parens where necessary.
    */
   private static void stringify(Node root, byte[] expression, StringBuilder out) {
     if (root.type == NodeType.TERM) {
       out.append(new String(expression, root.start, root.end - root.start));
-    }
-    else {
+    } else {
       String sep = "";
       for (Node c : root.children) {
         out.append(sep);
@@ -196,11 +198,10 @@ public class ColumnVisibility {
       }
     }
   }
-
+  
   /**
-   * Generates a byte[] that represents a normalized, but logically equivalent,
-   * form of the supplied expression.
-   *
+   * Generates a byte[] that represents a normalized, but logically equivalent, form of the supplied expression.
+   * 
    * @return normalized expression in byte[] form
    */
   public byte[] flatten() {
@@ -208,7 +209,7 @@ public class ColumnVisibility {
     StringBuilder builder = new StringBuilder(expression.length);
     stringify(normRoot, expression, builder);
     return builder.toString().getBytes();
-  } 
+  }
   
   private static class ColumnVisibilityParser {
     private int index = 0;
@@ -246,7 +247,7 @@ public class ColumnVisibility {
       Node expr = null;
       int termStart = index;
       boolean termComplete = false;
-
+      
       while (index < expression.length) {
         switch (expression[index++]) {
           case '&': {
@@ -304,7 +305,7 @@ public class ColumnVisibility {
           case '"': {
             if (termStart != index - 1)
               throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
-
+            
             while (index < expression.length && expression[index] != '"') {
               if (expression[index] == '\\') {
                 index++;
@@ -319,17 +320,17 @@ public class ColumnVisibility {
             
             if (termStart + 1 == index)
               throw new BadArgumentException("empty term", new String(expression), termStart);
-
+            
             index++;
             
             termComplete = true;
-
+            
             break;
           }
           default: {
             if (termComplete)
               throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
-
+            
             byte c = expression[index - 1];
             if (!Authorizations.isValidAuthChar(c))
               throw new BadArgumentException("bad character (" + c + ")", new String(expression), index - 1);
@@ -358,34 +359,11 @@ public class ColumnVisibility {
   
   /**
    * Empty visibility. Normally, elements with empty visibility can be seen by everyone. Though, one could change this behavior with filters.
+   * 
+   * @see #ColumnVisibility(String)
    */
   public ColumnVisibility() {
     expression = new byte[0];
-  }
-  
-  /**
-   * See {@link #ColumnVisibility(byte[])}
-   * 
-   * @param expression
-   */
-  public ColumnVisibility(String expression) {
-    this(expression.getBytes());
-  }
-  
-  /**
-   * See {@link #ColumnVisibility(byte[])}
-   * 
-   * @param expression
-   * @param encoding
-   *          uses this encoding to convert the expression to a byte array
-   * @throws UnsupportedEncodingException
-   */
-  public ColumnVisibility(String expression, String encoding) throws UnsupportedEncodingException {
-    this(expression.getBytes(encoding));
-  }
-
-  public ColumnVisibility(Text expression) {
-    this(TextUtil.getBytes(expression));
   }
   
   /**
@@ -422,9 +400,27 @@ public class ColumnVisibility {
    *          them with '\'. The {@link #quote(String)} method will properly quote and escape terms for you.
    * 
    *          <pre>
-   * &quot;A#C&quot;&B
+   * &quot;A#C&quot;<span />&amp;<span />B
    * </pre>
    * 
+   */
+  public ColumnVisibility(String expression) {
+    this(expression.getBytes(Constants.UTF8));
+  }
+  
+  /**
+   * A convenience method for constructing from a string already encoded in UTF-8 bytes and contained in a {@link Text} object.
+   * 
+   * @see #ColumnVisibility(String)
+   */
+  public ColumnVisibility(Text expression) {
+    this(TextUtil.getBytes(expression));
+  }
+  
+  /**
+   * A convenience method for constructing from a string already encoded in UTF-8 bytes.
+   * 
+   * @see #ColumnVisibility(String)
    */
   public ColumnVisibility(byte[] expression) {
     validate(expression);
@@ -432,7 +428,7 @@ public class ColumnVisibility {
   
   @Override
   public String toString() {
-    return "[" + new String(expression) + "]";
+    return "[" + new String(expression, Constants.UTF8) + "]";
   }
   
   /**
@@ -462,26 +458,6 @@ public class ColumnVisibility {
   }
   
   /**
-   * see {@link #quote(byte[])}
-   * 
-   */
-  public static String quote(String term) {
-    return quote(term, "UTF-8");
-  }
-  
-  /**
-   * see {@link #quote(byte[])}
-   * 
-   */
-  public static String quote(String term, String encoding) {
-    try {
-      return new String(quote(term.getBytes(encoding)), encoding);
-    } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException(e);
-    }
-  }
-  
-  /**
    * Use to properly quote terms in a column visibility expression. If no quoting is needed, then nothing is done.
    * 
    * <p>
@@ -496,7 +472,15 @@ public class ColumnVisibility {
    * </pre>
    * 
    */
-
+  public static String quote(String term) {
+    return new String(quote(term.getBytes(Constants.UTF8)), Constants.UTF8);
+  }
+  
+  /**
+   * A convenience method to quote terms which are already encoded as UTF-8 bytes.
+   * 
+   * @see #quote(String)
+   */
   public static byte[] quote(byte[] term) {
     boolean needsQuote = false;
     

@@ -41,6 +41,12 @@ public class AuthorizationsTest {
     array = a.getAuthorizationsArray();
     b = new Authorizations(array);
     assertEquals(a, b);
+    
+    // test encoding multi-byte auths
+    a = new Authorizations("五", "b", "c", "九");
+    array = a.getAuthorizationsArray();
+    b = new Authorizations(array);
+    assertEquals(a, b);
   }
   
 }
