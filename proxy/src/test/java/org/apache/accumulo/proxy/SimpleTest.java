@@ -81,7 +81,7 @@ import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UnknownScanner;
 import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
-import org.apache.accumulo.server.test.MiniAccumuloCluster;
+import org.apache.accumulo.server.mini.MiniAccumuloCluster;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
