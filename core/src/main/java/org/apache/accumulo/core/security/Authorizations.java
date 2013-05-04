@@ -17,9 +17,7 @@
 package org.apache.accumulo.core.security;
 
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -46,7 +45,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   private static final boolean[] validAuthChars = new boolean[256];
   
   public static final String HEADER = "!AUTH1:";
-
+  
   static {
     for (int i = 0; i < 256; i++) {
       validAuthChars[i] = false;
@@ -87,6 +86,11 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
     }
   }
   
+  /**
+   * A convenience constructor that accepts a collection of string authorizations that have each already been encoded as UTF-8 bytes.
+   * 
+   * @see #Authorizations(String...)
+   */
   public Authorizations(Collection<byte[]> authorizations) {
     ArgumentChecker.notNull(authorizations);
     for (byte[] auth : authorizations)
@@ -94,6 +98,11 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
     checkAuths();
   }
   
+  /**
+   * A convenience constructor that accepts a collection of string authorizations that have each already been encoded as UTF-8 bytes.
+   * 
+   * @see #Authorizations(String...)
+   */
   public Authorizations(List<ByteBuffer> authorizations) {
     ArgumentChecker.notNull(authorizations);
     for (ByteBuffer buffer : authorizations) {
@@ -103,102 +112,124 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   }
   
   /**
+   * Constructs an authorizations object a serialized form. This is NOT a constructor for a set of authorizations of size one.
+   * 
    * @param authorizations
-   *          a serialized authorizations string produced by {@link #getAuthorizationsArray()} or {@link #serialize()}
+   *          a serialized authorizations string produced by {@link #getAuthorizationsArray()} or {@link #serialize()} (converted to UTF-8 bytes)
    */
-
   public Authorizations(byte[] authorizations) {
     
     ArgumentChecker.notNull(authorizations);
-
-    String authsString = new String(authorizations);
+    
+    String authsString = new String(authorizations, Constants.UTF8);
     if (authsString.startsWith(HEADER)) {
-      // its the new format
+      // it's the new format
       authsString = authsString.substring(HEADER.length());
       if (authsString.length() > 0) {
         for (String encAuth : authsString.split(",")) {
-          byte[] auth = Base64.decodeBase64(encAuth.getBytes());
+          byte[] auth = Base64.decodeBase64(encAuth.getBytes(Constants.UTF8));
           auths.add(new ArrayByteSequence(auth));
         }
         checkAuths();
       }
     } else {
-      // its the old format
+      // it's the old format
       ArgumentChecker.notNull(authorizations);
       if (authorizations.length > 0)
         setAuthorizations(authsString.split(","));
     }
   }
   
+  /**
+   * Constructs an empty set of authorizations.
+   * 
+   * @see #Authorizations(String...)
+   */
   public Authorizations() {}
   
   /**
+   * Constructs an authorizations object from a set of human-readable authorizations.
    * 
-   * @param charset
-   *          used to convert each authorization to a byte array
    * @param authorizations
    *          array of authorizations
    */
-  
-  public Authorizations(Charset charset, String... authorizations) {
-    setAuthorizations(charset, authorizations);
-  }
-
   public Authorizations(String... authorizations) {
     setAuthorizations(authorizations);
   }
   
   private void setAuthorizations(String... authorizations) {
-    setAuthorizations(Charset.defaultCharset(), authorizations);
-  }
-  
-  private void setAuthorizations(Charset charset, String... authorizations) {
     ArgumentChecker.notNull(authorizations);
     auths.clear();
     for (String str : authorizations) {
       str = str.trim();
-      try {
-        auths.add(new ArrayByteSequence(str.getBytes(charset.name())));
-      } catch (UnsupportedEncodingException e) {
-        throw new RuntimeException(e);
-      }
+      auths.add(new ArrayByteSequence(str.getBytes(Constants.UTF8)));
     }
     
     checkAuths();
   }
   
+  /**
+   * Retrieve a serialized form of the underlying set of authorizations.
+   * 
+   * @see #Authorizations(byte[])
+   */
   public byte[] getAuthorizationsArray() {
-    return serialize().getBytes();
+    return serialize().getBytes(Constants.UTF8);
   }
   
+  /**
+   * Retrieve authorizations as a list of strings that have been encoded as UTF-8 bytes.
+   * 
+   * @see #Authorizations(Collection)
+   */
   public List<byte[]> getAuthorizations() {
     return immutableList;
   }
   
+  /**
+   * Retrieve authorizations as a list of strings that have been encoded as UTF-8 bytes.
+   * 
+   * @see #Authorizations(List)
+   */
   public List<ByteBuffer> getAuthorizationsBB() {
     return ByteBufferUtil.toByteBuffers(immutableList);
   }
   
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     String sep = "";
     for (ByteSequence auth : auths) {
       sb.append(sep);
       sep = ",";
-      sb.append(new String(auth.toArray()));
+      sb.append(new String(auth.toArray(), Constants.UTF8));
     }
     
     return sb.toString();
   }
   
+  /**
+   * Checks for the existence of this UTF-8 encoded authorization.
+   */
   public boolean contains(byte[] auth) {
     return auths.contains(new ArrayByteSequence(auth));
   }
   
+  /**
+   * Checks for the existence of this UTF-8 encoded authorization.
+   */
   public boolean contains(ByteSequence auth) {
     return auths.contains(auth);
   }
   
+  /**
+   * Checks for the existence of this authorization.
+   */
+  public boolean contains(String auth) {
+    return auths.contains(auth.getBytes(Constants.UTF8));
+  }
+  
+  @Override
   public boolean equals(Object o) {
     if (o == null) {
       return false;
@@ -213,6 +244,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
     return false;
   }
   
+  @Override
   public int hashCode() {
     int result = 0;
     for (ByteSequence b : auths)
@@ -233,13 +265,16 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
     return immutableList.iterator();
   }
   
+  /**
+   * Returns a serialized form of these authorizations. Convert to UTF-8 bytes to deserialize with {@link #Authorizations(byte[])}
+   */
   public String serialize() {
     StringBuilder sb = new StringBuilder(HEADER);
     String sep = "";
     for (byte[] auth : immutableList) {
       sb.append(sep);
       sep = ",";
-      sb.append(new String(Base64.encodeBase64(auth)));
+      sb.append(new String(Base64.encodeBase64(auth), Constants.UTF8));
     }
     
     return sb.toString();

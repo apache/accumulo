@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.core.security;
 
+import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.junit.Test;
@@ -84,7 +86,7 @@ public class ColumnVisibilityTest {
     normalized("a", "a", "(a)", "a", "b|a", "a|b", "(b)|a", "a|b", "(b|(a|c))&x", "x&(a|b|c)", "(((a)))", "a");
     final String normForm = "a&b&c";
     normalized("b&c&a", normForm, "c&b&a", normForm, "a&(b&c)", normForm, "(a&c)&b", normForm);
-
+    
     // this an expression that's basically `expr | expr`
     normalized("(d&c&b&a)|(b&c&a&d)", "a&b&c&d");
   }
@@ -132,5 +134,15 @@ public class ColumnVisibilityTest {
     shouldNotThrow("A&\"B.D\"");
     shouldNotThrow("A&\"B\\\\D\"");
     shouldNotThrow("A&\"B\\\"D\"");
+  }
+  
+  @Test
+  public void testToString() {
+    ColumnVisibility cv = new ColumnVisibility(quote("a"));
+    assertEquals("[a]", cv.toString());
+    
+    // multi-byte
+    cv = new ColumnVisibility(quote("五"));
+    assertEquals("[\"五\"]", cv.toString());
   }
 }

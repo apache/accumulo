@@ -332,7 +332,7 @@
                 </goals>
                 <phase>package</phase>
                 <configuration>
-                  <deb>${project.build.directory}/accumulo-${version}.deb</deb>
+                  <deb>${project.build.directory}/accumulo-${project.version}.deb</deb>
                   <classifier>bin</classifier>
                   <controlDir>assemble/deb/accumulo</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
@@ -417,7 +417,7 @@
                 </goals>
                 <phase>package</phase>
                 <configuration>
-                  <deb>${project.build.directory}/accumulo-native-${version}.deb</deb>
+                  <deb>${project.build.directory}/accumulo-native-${project.version}.deb</deb>
                   <controlDir>assemble/deb/accumulo-native</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <classifier>native</classifier>
@@ -457,7 +457,7 @@
                 </goals>
                 <phase>package</phase>
                 <configuration>
-                  <deb>${project.build.directory}/accumulo-test-${version}.deb</deb>
+                  <deb>${project.build.directory}/accumulo-test-${project.version}.deb</deb>
                   <controlDir>assemble/deb/accumulo-test</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <classifier>test</classifier>

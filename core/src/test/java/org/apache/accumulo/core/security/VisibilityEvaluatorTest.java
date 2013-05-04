@@ -22,9 +22,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.Test;
@@ -116,14 +113,14 @@ public class VisibilityEvaluatorTest {
   }
   
   @Test
-  public void testNonAscii() throws VisibilityParseException, UnsupportedEncodingException {
-    VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations(Charset.forName("UTF-8"), "五", "六", "八", "九", "五十"));
+  public void testNonAscii() throws VisibilityParseException {
+    VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations("五", "六", "八", "九", "五十"));
     
-    assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "|" + quote("四"), "UTF-8")));
-    assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&" + quote("四"), "UTF-8")));
-    assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("九") + ")", "UTF-8")));
-    assertTrue(ct.evaluate(new ColumnVisibility("\"五\"&(\"四\"|\"五十\")", "UTF-8")));
-    assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("三") + ")", "UTF-8")));
-    assertFalse(ct.evaluate(new ColumnVisibility("\"五\"&(\"四\"|\"三\")", "UTF-8")));
+    assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "|" + quote("四"))));
+    assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&" + quote("四"))));
+    assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("九") + ")")));
+    assertTrue(ct.evaluate(new ColumnVisibility("\"五\"&(\"四\"|\"五十\")")));
+    assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("三") + ")")));
+    assertFalse(ct.evaluate(new ColumnVisibility("\"五\"&(\"四\"|\"三\")")));
   }
 }
