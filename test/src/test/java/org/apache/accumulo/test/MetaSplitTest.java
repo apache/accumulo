@@ -67,7 +67,7 @@ public class MetaSplitTest {
   
   @Test(timeout = 60000)
   public void testMetaSplit() throws Exception {
-    Instance instance = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
+    Instance instance = new ZooKeeperInstance(cluster.getConfig().getInstanceName(), cluster.getConfig().getZooKeepers());
     Connector connector = instance.getConnector("root", new PasswordToken(secret));
     TableOperations opts = connector.tableOperations();
     for (int i = 1; i <= 10; i++) {

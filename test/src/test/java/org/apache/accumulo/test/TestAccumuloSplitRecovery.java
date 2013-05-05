@@ -84,7 +84,7 @@ public class TestAccumuloSplitRecovery {
     
     for (int tn = 0; tn < 2; tn++) {
     
-      ZooKeeperInstance instance = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
+      ZooKeeperInstance instance = new ZooKeeperInstance(accumulo.getConfig().getInstanceName(), accumulo.getConfig().getZooKeepers());
       Connector connector = instance.getConnector("root", new PasswordToken(secret));
       // create a table and put some data in it
       connector.tableOperations().create(TABLE);

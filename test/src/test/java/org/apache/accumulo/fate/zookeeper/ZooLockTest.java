@@ -101,16 +101,16 @@ public class ZooLockTest {
 
   @Test(timeout = 10000)
   public void testDeleteParent() throws Exception {
-    accumulo.getZooKeepers();
+    accumulo.getConfig().getZooKeepers();
     
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
 
     
-    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getConfig().getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
 
     Assert.assertFalse(zl.isLocked());
 
-    ZooReaderWriter zk = ZooReaderWriter.getInstance(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes());
+    ZooReaderWriter zk = ZooReaderWriter.getInstance(accumulo.getConfig().getZooKeepers(), 30000, "digest", "secret".getBytes());
     
     // intentionally created parent after lock
     zk.mkdirs(parent);
@@ -135,11 +135,11 @@ public class ZooLockTest {
   
   @Test(timeout = 10000)
   public void testNoParent() throws Exception {
-    accumulo.getZooKeepers();
+    accumulo.getConfig().getZooKeepers();
     
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
     
-    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getConfig().getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
 
     Assert.assertFalse(zl.isLocked());
     
@@ -157,14 +157,14 @@ public class ZooLockTest {
 
   @Test(timeout = 10000)
   public void testDeleteLock() throws Exception {
-    accumulo.getZooKeepers();
+    accumulo.getConfig().getZooKeepers();
     
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
     
-    ZooReaderWriter zk = ZooReaderWriter.getInstance(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes());
+    ZooReaderWriter zk = ZooReaderWriter.getInstance(accumulo.getConfig().getZooKeepers(), 30000, "digest", "secret".getBytes());
     zk.mkdirs(parent);
     
-    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getConfig().getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
 
     Assert.assertFalse(zl.isLocked());
     
@@ -190,14 +190,14 @@ public class ZooLockTest {
   
   @Test(timeout = 10000)
   public void testDeleteWaiting() throws Exception {
-    accumulo.getZooKeepers();
+    accumulo.getConfig().getZooKeepers();
     
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
     
-    ZooReaderWriter zk = ZooReaderWriter.getInstance(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes());
+    ZooReaderWriter zk = ZooReaderWriter.getInstance(accumulo.getConfig().getZooKeepers(), 30000, "digest", "secret".getBytes());
     zk.mkdirs(parent);
     
-    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getConfig().getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
 
     Assert.assertFalse(zl.isLocked());
     
@@ -213,7 +213,7 @@ public class ZooLockTest {
     Assert.assertNull(lw.reason);
     
     
-    ZooLock zl2 = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl2 = new ZooLock(accumulo.getConfig().getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
     
     TestALW lw2 = new TestALW();
     
@@ -222,7 +222,7 @@ public class ZooLockTest {
     Assert.assertFalse(lw2.locked);
     Assert.assertFalse(zl2.isLocked());
     
-    ZooLock zl3 = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl3 = new ZooLock(accumulo.getConfig().getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
     
     TestALW lw3 = new TestALW();
     
@@ -259,16 +259,16 @@ public class ZooLockTest {
   
   @Test(timeout = 10000)
   public void testUnexpectedEvent() throws Exception {
-    accumulo.getZooKeepers();
+    accumulo.getConfig().getZooKeepers();
     
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
     
-    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 30000, null);
+    ZooKeeper zk = new ZooKeeper(accumulo.getConfig().getZooKeepers(), 30000, null);
     zk.addAuthInfo("digest", "secret".getBytes());
     
     zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     
-    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getConfig().getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
     
     Assert.assertFalse(zl.isLocked());
     
@@ -302,9 +302,9 @@ public class ZooLockTest {
   public void testTryLock() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
     
-    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "digest", "secret".getBytes(), parent);
+    ZooLock zl = new ZooLock(accumulo.getConfig().getZooKeepers(), 1000, "digest", "secret".getBytes(), parent);
 
-    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, null);
+    ZooKeeper zk = new ZooKeeper(accumulo.getConfig().getZooKeepers(), 1000, null);
     zk.addAuthInfo("digest", "secret".getBytes());
     
     for (int i = 0; i < 10; i++) {

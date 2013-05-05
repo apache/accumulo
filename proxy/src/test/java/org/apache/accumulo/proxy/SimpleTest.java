@@ -141,8 +141,8 @@ public class SimpleTest {
     accumulo.start();
     
     Properties props = new Properties();
-    props.put("instance", accumulo.getInstanceName());
-    props.put("zookeepers", accumulo.getZooKeepers());
+    props.put("instance", accumulo.getConfig().getInstanceName());
+    props.put("zookeepers", accumulo.getConfig().getZooKeepers());
     props.put("tokenClass", PasswordToken.class.getName());
     
     protocolClass = getRandomProtocol();
@@ -873,5 +873,4 @@ public class SimpleTest {
     accumulo.stop();
     folder.delete();
   }
-  
 }

@@ -143,7 +143,7 @@ public class ShellServerTest {
     output = new TestOutputStream();
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
     shell.setLogErrorsToConsole();
-    shell.config("-u", "root", "-p", secret, "-z", cluster.getInstanceName(), cluster.getZooKeepers());
+    shell.config("-u", "root", "-p", secret, "-z", cluster.getConfig().getInstanceName(), cluster.getConfig().getZooKeepers());
     exec("quit", true);
     shell.start();
     shell.setExit(false);
@@ -690,7 +690,7 @@ public class ShellServerTest {
     Thread thread = new Thread() {
       public void run() {
         try {
-          ZooKeeperInstance instance = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
+          ZooKeeperInstance instance = new ZooKeeperInstance(cluster.getConfig().getInstanceName(), cluster.getConfig().getZooKeepers());
           Connector connector = instance.getConnector("root", new PasswordToken(secret));
           Scanner s = connector.createScanner("t", Constants.NO_AUTHS);
           for (@SuppressWarnings("unused") Entry<Key,Value> kv : s)

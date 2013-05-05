@@ -71,7 +71,7 @@ public class TableOperationsIT {
     
     accumuloCluster.start();
     
-    ZooKeeperInstance instance = new ZooKeeperInstance(accumuloCluster.getInstanceName(), accumuloCluster.getZooKeepers());
+    ZooKeeperInstance instance = new ZooKeeperInstance(accumuloCluster.getConfig().getInstanceName(), accumuloCluster.getConfig().getZooKeepers());
     connector = instance.getConnector(ROOT, new PasswordToken(ROOT_PASS.getBytes()));
   }
   
@@ -159,7 +159,7 @@ public class TableOperationsIT {
     assertEquals(DefaultKeySizeConstraint.class.getName(), props.get(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1"));
     connector.tableOperations().delete("table1");
   }
-
+  
   private Map<String,String> propsToMap(Iterable<Map.Entry<String,String>> props) {
     Map<String,String> map = new HashMap<String,String>();
     for (Map.Entry<String,String> prop : props) {

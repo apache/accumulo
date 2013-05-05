@@ -41,7 +41,7 @@ import com.google.common.io.Files;
 
 public class Proxy {
   
-  private static final Logger log = Logger.getLogger(Proxy.class); 
+  private static final Logger log = Logger.getLogger(Proxy.class);
   
   public static class PropertiesConverter implements IStringConverter<Properties> {
     @Override
@@ -96,8 +96,8 @@ public class Proxy {
       final File folder = Files.createTempDir();
       final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
       accumulo.start();
-      opts.prop.setProperty("instance", accumulo.getInstanceName());
-      opts.prop.setProperty("zookeepers", accumulo.getZooKeepers());
+      opts.prop.setProperty("instance", accumulo.getConfig().getInstanceName());
+      opts.prop.setProperty("zookeepers", accumulo.getConfig().getZooKeepers());
       Runtime.getRuntime().addShutdownHook(new Thread() {
         public void start() {
           try {
@@ -110,7 +110,7 @@ public class Proxy {
         }
       });
     }
-
+    
     Class<? extends TProtocolFactory> protoFactoryClass = Class.forName(opts.prop.getProperty("protocolFactory", TCompactProtocol.Factory.class.getName()))
         .asSubclass(TProtocolFactory.class);
     int port = Integer.parseInt(opts.prop.getProperty("port"));
@@ -124,7 +124,7 @@ public class Proxy {
     
     // create the implementor
     Object impl = implementor.getConstructor(Properties.class).newInstance(properties);
-
+    
     Class<?> proxyProcClass = Class.forName(api.getName() + "$Processor");
     Class<?> proxyIfaceClass = Class.forName(api.getName() + "$Iface");
     @SuppressWarnings("unchecked")
