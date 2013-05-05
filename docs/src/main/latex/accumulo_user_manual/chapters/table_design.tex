@@ -111,6 +111,50 @@ com.google.mail_201004
 Appending dates provides the additional capability of restricting a scan to a given
 date range.
 
+\section{Lexicoders}
+Since Keys in Accumulo are sorted lexicographically by default, it's often useful to encode
+common data types into a byte format in which their sort order corresponds to the sort order
+in their native form. An example of this is encoding dates and numerical data so that they can
+be better seeked or searched in ranges.
+
+The lexicoders are a standard and extensible way of encoding Java types. Here's an example
+of a lexicoder that encodes a java Date object so that it sorts lexicographically:
+
+\small
+\begin{verbatim}
+// create new date lexicoder
+DateLexicoder dateEncoder = new DateLexicoder();
+
+// truncate time to hours
+long epoch = System.currentTimeMillis();
+Date hour = new Date(epoch - (epoch % 3600000));
+
+// encode the rowId so that it is sorted lexicographically
+Mutation mutation = new Mutation(dateEncoder.encode(hour));
+mutation.put(new Text("colf"), new Text("colq"), new Value(new byte[]{}));
+\end{verbatim}
+\normalsize
+
+If we want to return the most recent date first, we can reverse the sort order
+with the reverse lexicoder:
+
+\small
+\begin{verbatim}
+// create new date lexicoder and reverse lexicoder
+DateLexicoder dateEncoder = new DateLexicoder();
+ReverseLexicoder reverseEncoder = new ReverseLexicoder(dateEncoder);
+
+// truncate date to hours
+long epoch = System.currentTimeMillis();
+Date hour = new Date(epoch - (epoch % 3600000));
+
+// encode the rowId so that it sorts in reverse lexicographic order
+Mutation mutation = new Mutation(reverseEncoder.encode(hour));
+mutation.put(new Text("colf"), new Text("colq"), new Value(new byte[]{}));
+\end{verbatim}
+\normalsize
+
+
 \section{Indexing}
 In order to support lookups via more than one attribute of an entity, additional
 indexes can be built. However, because Accumulo tables can support any number of
