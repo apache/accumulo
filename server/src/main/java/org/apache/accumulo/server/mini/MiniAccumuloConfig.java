@@ -65,7 +65,7 @@ public class MiniAccumuloConfig {
   /**
    * Set directories and fully populate site config
    */
-  public MiniAccumuloConfig initialize() {
+  MiniAccumuloConfig initialize() {
     if (!initialized) {
       libDir = new File(dir, "lib");
       confDir = new File(dir, "conf");
@@ -144,6 +144,8 @@ public class MiniAccumuloConfig {
   
   /**
    * Calling this method is optional. If not set, defaults to 'miniInstance'
+   * 
+   * @since 1.6.0
    */
   public MiniAccumuloConfig setInstanceName(String instanceName) {
     this.instanceName = instanceName;
@@ -166,6 +168,8 @@ public class MiniAccumuloConfig {
    * 
    * @param zooKeeperPort
    *          A valid (and unused) port to use for the zookeeper
+   * 
+   * @since 1.6.0
    */
   public MiniAccumuloConfig setZooKeeperPort(int zooKeeperPort) {
     this.zooKeeperPort = zooKeeperPort;
@@ -181,6 +185,8 @@ public class MiniAccumuloConfig {
   
   /**
    * @return name of configured instance
+   * 
+   * @since 1.6.0
    */
   public String getInstanceName() {
     return instanceName;
@@ -188,68 +194,44 @@ public class MiniAccumuloConfig {
   
   /**
    * @return The configured zookeeper port
+   * 
+   * @since 1.6.0
    */
   public int getZooKeeperPort() {
     return zooKeeperPort;
   }
   
-  public File getLibDir() {
+  File getLibDir() {
     return libDir;
   }
   
-  public File getConfDir() {
+  File getConfDir() {
     return confDir;
   }
   
-  public File getZooKeeperDir() {
+  File getZooKeeperDir() {
     return zooKeeperDir;
   }
   
-  public File getAccumuloDir() {
+  File getAccumuloDir() {
     return accumuloDir;
   }
   
-  public File getLogDir() {
+  File getLogDir() {
     return logDir;
   }
   
-  public File getWalogDir() {
+  File getWalogDir() {
     return walogDir;
   }
   
   /**
    * @return zookeeper connection string
+   * 
+   * @since 1.6.0
    */
   public String getZooKeepers() {
     return siteConfig.get(Property.INSTANCE_ZK_HOST.getKey());
-  }
-  
-  /**
-   * @return master client port
-   */
-  public String getMasterClientPort() {
-    return siteConfig.get(Property.MASTER_CLIENTPORT.getKey());
-  }
-  
-  /**
-   * @return trace port
-   */
-  public String getTracePort() {
-    return siteConfig.get(Property.TRACE_PORT.getKey());
-  }
-  
-  /**
-   * @return tablet server client port
-   */
-  public String getTabletServerClientPort() {
-    return siteConfig.get(Property.TSERV_CLIENTPORT.getKey());
-  }
-  
-  /**
-   * @return Has the current instance been initialized?
-   */
-  public boolean isInitialized() {
-    return initialized;
   }
   
   public File getDir() {
