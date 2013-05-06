@@ -16,12 +16,17 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.concat;
-import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.escape;
-import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.split;
-import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.unescape;
+import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.concat;
+import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.escape;
+import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.split;
+import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
 
 import org.apache.accumulo.core.util.ComparablePair;
+
+/**
+ * 
+ * @since 1.6.0
+ */
 
 public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>> implements Lexicoder<ComparablePair<A,B>> {
   

@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.lexicoder;
 
 /**
  * 
+ * @since 1.6.0
  */
 public interface Encoder<T> extends org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder<T> {
   

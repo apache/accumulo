@@ -22,8 +22,13 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.lexicoder.util.FixedByteArrayOutputStream;
+import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream;
 import org.apache.accumulo.core.iterators.ValueFormatException;
+
+/**
+ * 
+ * @since 1.6.0
+ */
 
 public class UUIDLexicoder implements Lexicoder<UUID> {
   

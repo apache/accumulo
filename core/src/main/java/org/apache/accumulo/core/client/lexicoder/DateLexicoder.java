@@ -20,6 +20,7 @@ import java.util.Date;
 
 /**
  * 
+ * @since 1.6.0
  */
 public class DateLexicoder implements Lexicoder<Date> {
   

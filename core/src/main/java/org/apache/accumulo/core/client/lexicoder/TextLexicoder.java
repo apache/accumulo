@@ -19,6 +19,11 @@ package org.apache.accumulo.core.client.lexicoder;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
+/**
+ * 
+ * @since 1.6.0
+ */
+
 public class TextLexicoder implements Lexicoder<Text> {
   
   @Override

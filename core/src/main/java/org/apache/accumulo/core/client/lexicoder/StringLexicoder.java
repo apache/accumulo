@@ -18,6 +18,11 @@ package org.apache.accumulo.core.client.lexicoder;
 
 import java.io.UnsupportedEncodingException;
 
+/**
+ * 
+ * @since 1.6.0
+ */
+
 public class StringLexicoder implements Lexicoder<String> {
   
   @Override

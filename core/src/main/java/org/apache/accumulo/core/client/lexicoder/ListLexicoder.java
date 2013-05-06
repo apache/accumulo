@@ -16,13 +16,18 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.concat;
-import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.escape;
-import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.split;
-import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.unescape;
+import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.concat;
+import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.escape;
+import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.split;
+import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
 
 import java.util.ArrayList;
 import java.util.List;
+
+/**
+ * 
+ * @since 1.6.0
+ */
 
 public class ListLexicoder<LT> implements Lexicoder<List<LT>> {
   

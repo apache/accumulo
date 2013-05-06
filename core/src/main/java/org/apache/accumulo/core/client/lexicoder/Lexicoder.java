@@ -18,6 +18,8 @@ package org.apache.accumulo.core.client.lexicoder;
 
 /**
  * An encoder that produces byte arrays in which the lexicographic sort order corresponds to the types sort order.
+ * 
+ * @since 1.6.0
  */
 public interface Lexicoder<T> extends Encoder<T> {
   

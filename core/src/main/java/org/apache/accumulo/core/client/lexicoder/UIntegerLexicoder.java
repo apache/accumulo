@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.lexicoder;
 
 /**
  * 
+ * @since 1.6.0
  */
 public class UIntegerLexicoder implements Lexicoder<Integer> {
   

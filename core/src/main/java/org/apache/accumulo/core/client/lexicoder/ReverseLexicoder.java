@@ -16,8 +16,13 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.escape;
-import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.unescape;
+import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.escape;
+import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
+
+/**
+ * 
+ * @since 1.6.0
+ */
 
 public class ReverseLexicoder<T> implements Lexicoder<T> {
   
