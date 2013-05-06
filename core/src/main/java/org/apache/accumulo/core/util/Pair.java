@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
-public class Pair<A,B> implements Comparable<Pair<A,B>> {
+public class Pair<A,B> {
   A first;
   B second;
   
@@ -60,18 +60,9 @@ public class Pair<A,B> implements Comparable<Pair<A,B>> {
     return second;
   }
   
+  @Override
   public String toString() {
     return "(" + first + "," + second + ")";
   }
-
-
-  @Override
-  public int compareTo(Pair<A, B> abPair) {
-    int cmp = ((Comparable<A>) first).compareTo(abPair.first);
-    if (cmp == 0) {
-      cmp = ((Comparable<B>) second).compareTo(abPair.second);
-    }
-
-    return cmp;
-  }
+  
 }

@@ -14,20 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.lexicoder;
+package org.apache.accumulo.core.util;
 
 /**
- * Signed long encoder. The lexicographic encoding sorts Long.MIN_VALUE first and Long.MAX_VALUE last. The lexicographic encoding sorts -2l before -1l. It
- * corresponds to the sort order of Long.
+ * 
  */
-public class LongLexicoder extends ULongLexicoder {
-  @Override
-  public byte[] encode(Long l) {
-    return super.encode(l ^ 0x8000000000000000l);
+public class ComparablePair<A extends Comparable<A>,B extends Comparable<B>> extends Pair<A,B> implements Comparable<ComparablePair<A,B>> {
+  
+  public ComparablePair(A f, B s) {
+    super(f, s);
   }
   
   @Override
-  public Long decode(byte[] data) {
-    return super.decode(data) ^ 0x8000000000000000l;
+  public int compareTo(ComparablePair<A,B> abPair) {
+    int cmp = first.compareTo(abPair.first);
+    if (cmp == 0) {
+      cmp = second.compareTo(abPair.second);
+    }
+    
+    return cmp;
   }
+  
 }

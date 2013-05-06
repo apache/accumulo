@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -43,7 +43,7 @@ public class ReverseLexicoderTest extends LexicoderTest {
   @Test
   public void testReverseSortDates() throws UnsupportedEncodingException {
     
-    ReverseLexicoder revLex = new ReverseLexicoder(new DateLexicoder());
+    ReverseLexicoder<Date> revLex = new ReverseLexicoder<Date>(new DateLexicoder());
     
     Date date1 = new Date();
     Date date2 = new Date(System.currentTimeMillis() + 10000);
@@ -51,11 +51,11 @@ public class ReverseLexicoderTest extends LexicoderTest {
     
     Comparator<Date> comparator = Collections.reverseOrder();
     assertSortOrder(revLex, comparator, date1, date2, date3);
-
+    
     // truncate date to hours
     long time = System.currentTimeMillis() - (System.currentTimeMillis() % 3600000);
     Date date = new Date(time);
-
+    
     System.out.println(date);
     
   }

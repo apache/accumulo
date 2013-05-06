@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -22,8 +22,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 
-import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.client.lexicoder.util.FixedByteArrayOutputStream;
+import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
  * 
@@ -51,13 +51,13 @@ public class BigIntegerLexicoder implements Lexicoder<BigInteger> {
       
       dos.writeInt(len);
       dos.write(bytes);
+      dos.close();
       
       return ret;
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }
     
-
   }
   
   @Override

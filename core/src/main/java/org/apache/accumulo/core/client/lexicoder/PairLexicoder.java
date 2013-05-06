@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -21,9 +21,9 @@ import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.escape;
 import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.split;
 import static org.apache.accumulo.core.client.lexicoder.util.ByteUtils.unescape;
 
-import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.ComparablePair;
 
-public class PairLexicoder<A,B> implements Lexicoder<Pair<A,B>> {
+public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>> implements Lexicoder<ComparablePair<A,B>> {
   
   private Lexicoder<A> firstLexicoder;
   private Lexicoder<B> secondLexicoder;
@@ -34,19 +34,19 @@ public class PairLexicoder<A,B> implements Lexicoder<Pair<A,B>> {
   }
   
   @Override
-  public byte[] encode(Pair<A,B> data) {
+  public byte[] encode(ComparablePair<A,B> data) {
     return concat(escape(firstLexicoder.encode(data.getFirst())), escape(secondLexicoder.encode(data.getSecond())));
   }
   
   @Override
-  public Pair<A,B> decode(byte[] data) {
+  public ComparablePair<A,B> decode(byte[] data) {
     
     byte[][] fields = split(data);
     if (fields.length != 2) {
       throw new RuntimeException("Data does not have 2 fields, it has " + fields.length);
     }
     
-    return new Pair<A,B>(firstLexicoder.decode(unescape(fields[0])), secondLexicoder.decode(unescape(fields[1])));
+    return new ComparablePair<A,B>(firstLexicoder.decode(unescape(fields[0])), secondLexicoder.decode(unescape(fields[1])));
   }
   
 }

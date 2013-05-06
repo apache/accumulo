@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,21 +16,23 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.ComparablePair;
 
 /**
  * 
  */
 public class PairLexicoderTest extends LexicoderTest {
+  @SuppressWarnings("unchecked")
   public void testSortOrder() {
     PairLexicoder<String,String> plexc = new PairLexicoder<String,String>(new StringLexicoder(), new StringLexicoder());
     
-    assertSortOrder(plexc, new Pair<String,String>("a", "b"), new Pair<String,String>("a", "bc"), new Pair<String,String>("a", "c"), new Pair<String,String>(
-        "ab", "c"), new Pair<String,String>("ab", ""), new Pair<String,String>("ab", "d"), new Pair<String,String>("b", "f"), new Pair<String,String>("b", "a"));
+    assertSortOrder(plexc, new ComparablePair<String,String>("a", "b"), new ComparablePair<String,String>("a", "bc"), new ComparablePair<String,String>("a",
+        "c"), new ComparablePair<String,String>("ab", "c"), new ComparablePair<String,String>("ab", ""), new ComparablePair<String,String>("ab", "d"),
+        new ComparablePair<String,String>("b", "f"), new ComparablePair<String,String>("b", "a"));
     
     PairLexicoder<Long,String> plexc2 = new PairLexicoder<Long,String>(new LongLexicoder(), new StringLexicoder());
     
-    assertSortOrder(plexc2, new Pair<Long,String>(0x100l, "a"), new Pair<Long,String>(0x100l, "ab"), new Pair<Long,String>(0xf0l, "a"), new Pair<Long,String>(
-        0xf0l, "ab"));
+    assertSortOrder(plexc2, new ComparablePair<Long,String>(0x100l, "a"), new ComparablePair<Long,String>(0x100l, "ab"), new ComparablePair<Long,String>(0xf0l,
+        "a"), new ComparablePair<Long,String>(0xf0l, "ab"));
   }
 }

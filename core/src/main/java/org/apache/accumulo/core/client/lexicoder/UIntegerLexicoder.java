@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -45,7 +45,7 @@ public class UIntegerLexicoder implements Lexicoder<Integer> {
       ret[0] = (byte) (8 - ret[0]);
     
     return ret;
-
+    
   }
   
   @Override
@@ -53,7 +53,7 @@ public class UIntegerLexicoder implements Lexicoder<Integer> {
     
     if (data[0] < 0 || data[0] > 8)
       throw new IllegalArgumentException("Unexpected length " + (0xff & data[0]));
-
+    
     int i = 0;
     int shift = 0;
     
