@@ -252,6 +252,22 @@ public class MiniAccumuloCluster {
   }
   
   /**
+   * @return Accumulo instance name
+   */
+  
+  public String getInstanceName() {
+    return config.getInstanceName();
+  }
+  
+  /**
+   * @return zookeeper connection string
+   */
+  
+  public String getZooKeepers() {
+    return config.getZooKeepers();
+  }
+  
+  /**
    * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. However its probably best to
    * call stop in a finally block as soon as possible.
    * 
@@ -273,6 +289,11 @@ public class MiniAccumuloCluster {
       lw.flush();
   }
   
+  /**
+   * 
+   * @since 1.6.0
+   */
+
   public MiniAccumuloConfig getConfig() {
     return config;
   }
