@@ -108,6 +108,12 @@
 /fate/.classpath
 /fate/.project
 
+# /proxy/
+/proxy/target
+/proxy/.settings
+/proxy/.classpath
+/proxy/.project
+
 # /server/
 /server/target
 /server/.project
