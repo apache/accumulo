@@ -48,7 +48,8 @@ public class PrintInfo {
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     @SuppressWarnings("deprecation")
-    FileSystem fs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
+    FileSystem hadoopFs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
+    FileSystem localFs  = FileSystem.getLocal(conf);
     Opts opts = new Opts();
     opts.parseArgs(PrintInfo.class.getName(), args);
     if (opts.files.isEmpty()) {
@@ -63,6 +64,7 @@ public class PrintInfo {
     for (String arg : opts.files) {
       
       Path path = new Path(arg);
+      FileSystem fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
       Reader iter = new RFile.Reader(_rdr);
       
