@@ -42,8 +42,8 @@ public class LargeRowTest extends FunctionalTest {
   private static final String PRE_SPLIT_TABLE_NAME = "lrps";
   private static final int NUM_ROWS = 100;
   private static final int ROW_SIZE = 1 << 17;
-  private static final int SPLIT_THRESH = ROW_SIZE * NUM_ROWS / 5;
   private static final int NUM_PRE_SPLITS = 9;
+  private static final int SPLIT_THRESH = ROW_SIZE * NUM_ROWS / NUM_PRE_SPLITS;
   
   @Override
   public void cleanup() {}
@@ -95,7 +95,7 @@ public class LargeRowTest extends FunctionalTest {
     
     UtilWaitThread.sleep(10000);
     
-    checkSplits(REG_TABLE_NAME, 1, 9);
+    checkSplits(REG_TABLE_NAME, NUM_PRE_SPLITS / 2, NUM_PRE_SPLITS);
     
     verify(REG_TABLE_NAME);
   }
