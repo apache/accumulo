@@ -175,14 +175,23 @@ public class SetIterCommand extends Command {
       clazz = classloader.loadClass(className).asSubclass(OptionDescriber.class);
       skvi = clazz.newInstance();
     } catch (ClassNotFoundException e) {
-      throw new IllegalArgumentException(e.getMessage());
+      StringBuilder msg = new StringBuilder("Unable to load ").append(className);
+      if (className.indexOf('.') < 0) {
+        msg.append("; did you use a fully qualified package name?");
+      } else {
+        msg.append("; class not found.");
+      }
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, msg.toString());
     } catch (InstantiationException e) {
       throw new IllegalArgumentException(e.getMessage());
     } catch (IllegalAccessException e) {
       throw new IllegalArgumentException(e.getMessage());
     } catch (ClassCastException e) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Unable to load " + className + " as type " + OptionDescriber.class.getName()
-          + "; configure with 'config' instead");
+      StringBuilder msg = new StringBuilder("Loaded ");
+      msg.append(className).append(" but it does not implement ");
+      msg.append(OptionDescriber.class.getSimpleName());
+      msg.append("; use 'config -s' instead.");
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, msg.toString());
     }
     
     final IteratorOptions itopts = skvi.describeOptions();
