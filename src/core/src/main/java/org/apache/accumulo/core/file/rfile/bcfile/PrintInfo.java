@@ -48,8 +48,10 @@ public class PrintInfo {
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     @SuppressWarnings("deprecation")
-    FileSystem fs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
+    FileSystem hadoopFs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
+    FileSystem localFs = FileSystem.getLocal(conf);
     Path path = new Path(args[0]);
+    FileSystem fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
     printMetaBlockInfo(conf, fs, path);
   }
 }

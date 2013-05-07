@@ -38,7 +38,8 @@ public class PrintInfo {
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     @SuppressWarnings("deprecation")
-    FileSystem fs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
+    FileSystem hadoopFs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
+    FileSystem localFs  = FileSystem.getLocal(conf);
     
     Options opts = new Options();
     Option dumpKeys = new Option("d", "dump", false, "dump the key/value pairs");
@@ -57,6 +58,7 @@ public class PrintInfo {
     for (String arg : commandLine.getArgs()) {
       
       Path path = new Path(arg);
+      FileSystem fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
       Reader iter = new RFile.Reader(_rdr);
       
