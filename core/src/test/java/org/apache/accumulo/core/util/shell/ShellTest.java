@@ -222,4 +222,23 @@ public class ShellTest {
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
   }
+  
+  @Test
+  public void setIterTest() throws IOException {
+    Shell.log.debug("Starting setiter test --------------------------");
+    exec("createtable t", true);
+    
+    String cmdJustClass = "setiter -class VersioningIterator -p 1";
+    exec(cmdJustClass, false, "java.lang.IllegalArgumentException", false);
+    exec(cmdJustClass, false, "fully qualified package name", true);
+    
+    String cmdFullPackage = "setiter -class o.a.a.foo -p 1";
+    exec(cmdFullPackage, false, "java.lang.IllegalArgumentException", false);
+    exec(cmdFullPackage, false, "class not found", true);
+    
+    String cmdNoOption = "setiter -class java.lang.String -p 1";
+    exec(cmdNoOption, false, "Loaded", true);
+    
+    exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
 }
