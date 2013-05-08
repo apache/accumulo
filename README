@@ -143,17 +143,15 @@ It is advisable to change the instance secret (instance.secret) to some new
 value.  Also ensure that the accumulo-site.xml file is not readable by other
 users on the machine.
 
-Create the write-ahead log directory on all slaves.  The directory is set in 
-the accumulo-site.xml as the "logger.dir.walog" parameter.  It is a local 
-directory that will be used to log updates which will be used in the event of
-tablet server failure, so it is important that it have sufficient space and
-reliability.  It is possible to specify a comma-separated list of directories 
-to use for write-ahead logs, in which case each directory in the list must be
-created on all slaves.
-
 Synchronize your accumulo conf directory across the cluster.  As a precaution
 against mis-configured systems, servers using different configuration files
 will not communicate with the rest of the cluster.
+
+Accumulo requires the hadoop "commons-io" java package.  This is normally
+distributed with hadoop.  However, it was not distributed with hadoop-0.20.
+If your hadoop distribution does not provide this package, you will need
+to obtain it and put the commons-io jar file in $ACCUMULO_HOME/lib. See the
+pom.xml file for version information.
 
 ******************************************************************************
 5. Running Apache Accumulo
