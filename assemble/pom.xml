@@ -179,7 +179,7 @@
                     <provide>accumulo-trace</provide>
                   </provides>
                   <requires>
-                    <require>jdk</require>
+                    <require>jre</require>
                     <require>hadoop</require>
                     <require>zookeeper</require>
                   </requires>
