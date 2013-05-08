@@ -34,7 +34,7 @@ SLAVE_HOSTS=$(egrep -v '(^#|^\s*$)' "${SLAVES}")
 echo "Stopping unresponsive tablet servers (if any)..."
 for server in ${SLAVE_HOSTS}; do
    # only start if there's not one already running
-   $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/.*/accumulo-start.*.jar" tserver TERM & 
+   $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/lib/accumulo-start.jar" tserver TERM & 
 done
 
 sleep 10
@@ -42,7 +42,7 @@ sleep 10
 echo "Stopping unresponsive tablet servers hard (if any)..."
 for server in ${SLAVE_HOSTS}; do
    # only start if there's not one already running
-   $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/.*/accumulo-start.*.jar" tserver KILL & 
+   $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/lib/accumulo-start.jar" tserver KILL & 
 done
 
 echo "Cleaning tablet server entries from zookeeper"

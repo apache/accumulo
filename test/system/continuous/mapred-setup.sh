@@ -21,11 +21,4 @@
 . continuous-env.sh
 . $ACCUMULO_HOME/conf/accumulo-env.sh
 
-SERVER_CMD='ls -1 $ACCUMULO_HOME/lib/accumulo-test-*[!javadoc\|sources].jar'
-
-if [ `eval $SERVER_CMD | wc -l` != "1" ] ; then
-    echo "Not exactly one accumulo-test jar in $ACCUMULO_HOME/lib"
-    exit 1
-fi
-
-SERVER_LIBJAR=`eval $SERVER_CMD`
+SERVER_LIBJAR="$ACCUMULO_HOME/lib/accumulo-test.jar"

@@ -52,10 +52,6 @@ mkdir -p $ACCUMULO_LOG_DIR 2>/dev/null
 
 export ACCUMULO_LOG_DIR
 
-if [ -z "${ACCUMULO_VERSION}" ]; then
-   ACCUMULO_VERSION=1.6.0-SNAPSHOT
-fi
-
 if [ -z "$HADOOP_PREFIX" ]
 then
    HADOOP_PREFIX="`which hadoop`"

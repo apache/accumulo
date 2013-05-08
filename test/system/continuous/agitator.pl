@@ -119,7 +119,7 @@ while(1){
 	
 		print STDERR "$t Killing $server $kill_tserver $kill_datanode\n";
 	        if($kill_tserver) {
-			system("$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.*.jar\" tserver KILL");
+			system("$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.jar\" tserver KILL");
 		}
 
 	        if($kill_datanode) {

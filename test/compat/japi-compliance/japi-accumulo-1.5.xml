@@ -15,11 +15,11 @@
   limitations under the License.
 -->
 <version>
-  1.6.0-SNAPSHOT
+  1.6.0
 </version>
 
 <archives>
-  ../../../lib/accumulo-core-1.6.0-SNAPSHOT.jar
+  ../../../lib/accumulo-core.jar
 </archives>
 
 <skip_packages>
