@@ -1454,7 +1454,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       AuthenticationToken token = getToken(principal, loginProperties);
       TCredentials credential = CredentialHelper.create(principal, token, instance.getInstanceID());
-      return ByteBuffer.wrap(CredentialHelper.asByteArray(credential));
+      ByteBuffer login = ByteBuffer.wrap(CredentialHelper.asByteArray(credential));
+      getConnector(login); // check to make sure user exists
+      return login;
     } catch (AccumuloSecurityException e) {
       throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
     } catch (Exception e) {
