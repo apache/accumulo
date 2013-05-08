@@ -232,6 +232,8 @@ server, but you can also glob them if you wish.
 Place this file in $ACCUMULO_HOME/conf for every host. It should be owned by
 the accumulo user and chmodded to 400. Add the following to the accumulo-env.sh
 
+  kinit -kt $ACCUMULO_HOME/conf/accumulo.keytab accumulo/`hostname -f`
+
 In the accumulo-site.xml file on each node, add settings for general.kerberos.keytab
 and general.kerberos.principal, where the keytab setting is the absolute path
 to the keytab file ($ACCUMULO_HOME is valid to use) and principal is set to
