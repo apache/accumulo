@@ -50,9 +50,15 @@ If you are using the RPM, install the RPM on every machine that will run
 accumulo.
 
 ******************************************************************************
-3. Upgrading from 1.3 to 1.4
+3. Upgrading from 1.4 to 1.5
 
-There are no steps for upgrading from 1.3 to 1.4.
+ This happens automatically the first time Accumulo 1.5 is started.  
+
+  * Stop the 1.4 instance.  
+  * Configure 1.5 to use the hdfs directory, walog directories, and zookeepers
+    that 1.4 was using.
+  * Copy other 1.4 configuration options as needed.
+  * Start Accumulo 1.5. 
 
 ******************************************************************************
 4. Configuring
@@ -283,12 +289,14 @@ redirected to the log dir.
 ******************************************************************************
 9. API
 
-The public accumulo API is composed of everything in the 
-org.apache.accumulo.core.client package (excluding the 
-org.apache.accumulo.core.client.impl package) and the following classes from 
-org.apache.accumulo.core.data : Key, Mutation, Value, and Range.  To get
-started using accumulo review the example and the javadoc for the packages and
-classes mentioned above. 
+The public accumulo API is composed of :
+  
+ * everything under org.apache.accumulo.core.client, excluding impl packages  
+ * Key, Mutation, Value, and Range  in org.apache.accumulo.core.data.
+ * org.apache.accumulo.server.mini  
+ 
+To get started using accumulo review the example and the javadoc for the
+packages and classes mentioned above. 
 
 ******************************************************************************
 10. Performance Tuning
