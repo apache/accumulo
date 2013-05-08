@@ -31,7 +31,7 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 . "$bin"/config.sh
 
-ACCUMULO="$ACCUMULO_HOME/.*/accumulo-start.*.jar"
+ACCUMULO="$ACCUMULO_HOME/lib/accumulo-start.jar"
 
 if egrep -q localhost\|127.0.0.1 $ACCUMULO_HOME/conf/slaves; then
    $bin/accumulo admin stop localhost

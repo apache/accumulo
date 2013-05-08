@@ -591,6 +591,7 @@
             <configuration>
               <outputDirectory>../lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->
+              <stripVersion>true</stripVersion>
               <includeScope>runtime</includeScope>
               <excludeTransitive>true</excludeTransitive>
               <excludeClassifiers>sources,test-sources</excludeClassifiers>

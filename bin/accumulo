@@ -28,7 +28,7 @@ script=$( basename "$SOURCE" )
 
 . "$bin"/config.sh
 
-START_JAR=$ACCUMULO_HOME/lib/accumulo-start-$ACCUMULO_VERSION.jar
+START_JAR=$ACCUMULO_HOME/lib/accumulo-start.jar
 
 #
 # Resolve a program to its installation directory
