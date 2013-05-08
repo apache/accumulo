@@ -89,6 +89,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServer;
 import org.junit.AfterClass;
@@ -161,6 +162,275 @@ public class SimpleTest {
       UtilWaitThread.sleep(100);
     client = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
     creds = client.login(principal, properties);
+  }
+  
+  @Test(timeout = 10000)
+  public void security() throws Exception {
+    client.createLocalUser(creds, "user", s2bb(secret));
+    ByteBuffer badLogin = client.login("user", properties);
+    client.dropLocalUser(creds, "user");
+    String table = "test1";
+    client.createTable(creds, table, false, TimeType.MILLIS);
+    
+    final IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
+    
+    try {
+      client.addConstraint(badLogin, table, NumericValueConstraint.class.getName());
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.addSplits(badLogin, table, Collections.singleton(s2bb("1")));
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.clearLocatorCache(badLogin, table);
+      fail("exception not thrown");
+    } catch (TException ex) {}
+    try {
+      client.compactTable(badLogin, table, null, null, null, true, false);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.cancelCompaction(badLogin, table);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.createTable(badLogin, table, false, TimeType.MILLIS);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.deleteTable(badLogin, table);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.deleteRows(badLogin, table, null, null);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.tableExists(badLogin, table);
+      fail("exception not thrown");
+    } catch (TException ex) {}
+    try {
+      client.flushTable(badLogin, table, null, null, false);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.getLocalityGroups(badLogin, table);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.getMaxRow(badLogin, table, Collections.<ByteBuffer> emptySet(), null, false, null, false);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.getTableProperties(badLogin, table);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.listSplits(badLogin, table, 10000);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.listTables(badLogin);
+      fail("exception not thrown");
+    } catch (TException ex) {}
+    try {
+      client.listConstraints(badLogin, table);
+      fail("exception not thrown");
+    } catch (TException ex) {}
+    try {
+      client.mergeTablets(badLogin, table, null, null);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.offlineTable(badLogin, table);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.onlineTable(badLogin, table);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.removeConstraint(badLogin, table, 0);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.removeTableProperty(badLogin, table, Property.TABLE_FILE_MAX.getKey());
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.renameTable(badLogin, table, "someTableName");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      Map<String,Set<String>> groups = new HashMap<String,Set<String>>();
+      groups.put("group1", Collections.singleton("cf1"));
+      groups.put("group2", Collections.singleton("cf2"));
+      client.setLocalityGroups(badLogin, table, groups);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.setTableProperty(badLogin, table, Property.TABLE_FILE_MAX.getKey(), "0");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.tableIdMap(badLogin);
+      fail("exception not thrown");
+    } catch (TException ex) {}
+    try {
+      client.getSiteConfiguration(badLogin);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.getSystemConfiguration(badLogin);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.getTabletServers(badLogin);
+      fail("exception not thrown");
+    } catch (TException ex) {}
+    try {
+      client.getActiveScans(badLogin, "fake");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.getActiveCompactions(badLogin, "fakse");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.removeProperty(badLogin, "table.split.threshold");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.setProperty(badLogin, "table.split.threshold", "500M");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.testClassLoad(badLogin, DevNull.class.getName(), SortedKeyValueIterator.class.getName());
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.authenticateUser(badLogin, "root", s2pp(secret));
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      HashSet<ByteBuffer> auths = new HashSet<ByteBuffer>(Arrays.asList(s2bb("A"), s2bb("B")));
+      client.changeUserAuthorizations(badLogin, "stooge", auths);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.changeLocalUserPassword(badLogin, "stooge", s2bb(""));
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.createLocalUser(badLogin, "stooge", s2bb("password"));
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.dropLocalUser(badLogin, "stooge");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.getUserAuthorizations(badLogin, "stooge");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.grantSystemPermission(badLogin, "stooge", SystemPermission.CREATE_TABLE);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.grantTablePermission(badLogin, "root", table, TablePermission.WRITE);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.hasSystemPermission(badLogin, "stooge", SystemPermission.CREATE_TABLE);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.hasTablePermission(badLogin, "root", table, TablePermission.WRITE);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.listLocalUsers(badLogin);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.revokeSystemPermission(badLogin, "stooge", SystemPermission.CREATE_TABLE);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.revokeTablePermission(badLogin, "root", table, TablePermission.ALTER_TABLE);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.createScanner(badLogin, table, new ScanOptions());
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.createBatchScanner(badLogin, table, new BatchScanOptions());
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.updateAndFlush(badLogin, table, new HashMap<ByteBuffer,List<ColumnUpdate>>());
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.createWriter(badLogin, table, new WriterOptions());
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.attachIterator(badLogin, "slow", setting, EnumSet.allOf(IteratorScope.class));
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.checkIteratorConflicts(badLogin, table, setting, EnumSet.allOf(IteratorScope.class));
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.cloneTable(badLogin, table, TABLE_TEST, false, null, null);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.exportTable(badLogin, table, "/tmp");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.importTable(badLogin, "testify", "/tmp");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.getIteratorSetting(badLogin, table, "foo", IteratorScope.SCAN);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.listIterators(badLogin, table);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.removeIterator(badLogin, table, "name", EnumSet.allOf(IteratorScope.class));
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.splitRangeByTablets(badLogin, table, client.getRowRange(ByteBuffer.wrap("row".getBytes())), 10);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      File newFolder = folder.newFolder();
+      client.importDirectory(badLogin, table, "/tmp", newFolder.getAbsolutePath(), true);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.pingTabletServer(badLogin, "fake");
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.login("badUser", properties);
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      client.testTableClassLoad(badLogin, table, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName());
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
   }
   
   @Test(timeout = 10000)
