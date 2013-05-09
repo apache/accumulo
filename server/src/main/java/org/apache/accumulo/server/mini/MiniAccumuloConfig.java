@@ -36,7 +36,7 @@ public class MiniAccumuloConfig {
   private String rootPassword = null;
   private Map<String,String> siteConfig = new HashMap<String,String>();
   private int numTservers = 2;
-  private Map<ServerType,String> memoryConfig = new HashMap<ServerType,String>();
+  private Map<ServerType,Long> memoryConfig = new HashMap<ServerType,Long>();
   
   private boolean debug = false;
   
@@ -50,7 +50,7 @@ public class MiniAccumuloConfig {
   private File walogDir;
   
   private Integer zooKeeperPort;
-  private String defaultMemorySize = "128M";
+  private long defaultMemorySize = 128 * 1024 * 1024;
   
   private boolean initialized = false;
   
@@ -189,7 +189,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public MiniAccumuloConfig setMemory(ServerType serverType, long memory, MemoryUnit memoryUnit) {
-    this.memoryConfig.put(serverType, memoryUnit.getPrintVal(memory));
+    this.memoryConfig.put(serverType, memoryUnit.toBytes(memory));
     return this;
   }
   
@@ -204,8 +204,8 @@ public class MiniAccumuloConfig {
    * 
    * @since 1.6.0
    */
-  public MiniAccumuloConfig setDefaultMemorySize(long memory, MemoryUnit memoryUnit) {
-    this.defaultMemorySize = memoryUnit.getPrintVal(memory);
+  public MiniAccumuloConfig setDefaultMemory(long memory, MemoryUnit memoryUnit) {
+    this.defaultMemorySize = memoryUnit.toBytes(memory);
     return this;
   }
   
@@ -258,11 +258,23 @@ public class MiniAccumuloConfig {
     return walogDir;
   }
   
-  String getMemoryConfig(ServerType serverType) {
+  /**
+   * @param serverType get configuration for this server type
+   * 
+   * @return memory configured in bytes, returns default if this server type is not configured
+   * 
+   * @since 1.6.0
+   */
+  public long getMemory(ServerType serverType) {
     return memoryConfig.containsKey(serverType) ? memoryConfig.get(serverType) : defaultMemorySize;
   }
   
-  String getDefaultMemorySize() {
+  /**
+   * @return memory configured in bytes
+   * 
+   * @since 1.6.0
+   */
+  public long getDefaultMemory() {
     return defaultMemorySize;
   }
   

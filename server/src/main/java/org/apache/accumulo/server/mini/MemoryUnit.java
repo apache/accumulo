@@ -16,17 +16,22 @@
  */
 package org.apache.accumulo.server.mini;
 
+/**
+ * 
+ * @since 1.6.0
+ */
+
 public enum MemoryUnit {
   
-  BYTE(""), KILOBYTE("K"), MEGABYTE("M"), GIGABYTE("G"), TERABYTE("T");
+  BYTE(1l), KILOBYTE(1024l), MEGABYTE(1024 * 1024l), GIGABYTE(1024 * 1024 * 1024l);
   
-  private final String printVal;
+  private final long multiplier;
   
-  private MemoryUnit(String printVal) {
-    this.printVal = printVal;
+  private MemoryUnit(long multiplier) {
+    this.multiplier = multiplier;
   }
   
-  public String getPrintVal(long memory) {
-    return memory + printVal;
+  public long toBytes(long memory) {
+    return memory * multiplier;
   }
 }

@@ -16,18 +16,18 @@
  */
 package org.apache.accumulo.server.mini;
 
-import org.apache.accumulo.core.conf.Property;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.accumulo.core.conf.Property;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class MiniAccumuloConfigTest {
 
@@ -64,10 +64,14 @@ public class MiniAccumuloConfigTest {
   public void testMemoryConfig() {
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(tempFolder.getRoot(), "password").initialize();
-    config.setDefaultMemorySize(128, MemoryUnit.MEGABYTE);
-    assertEquals("128M", config.getMemoryConfig(ServerType.MASTER));
+    config.setDefaultMemory(96, MemoryUnit.MEGABYTE);
+    assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.MASTER));
+    assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.TABLET_SERVER));
+    assertEquals(96 * 1024 * 1024l, config.getDefaultMemory());
     config.setMemory(ServerType.MASTER, 256, MemoryUnit.MEGABYTE);
-    assertEquals("256M", config.getMemoryConfig(ServerType.MASTER));
+    assertEquals(256 * 1024 * 1024l, config.getMemory(ServerType.MASTER));
+    assertEquals(96 * 1024 * 1024l, config.getDefaultMemory());
+    assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.TABLET_SERVER));
   }
 
   @AfterClass

@@ -112,7 +112,7 @@ public class MiniAccumuloCluster {
   private MiniAccumuloConfig config;
   
   private Process exec(Class<? extends Object> clazz, String... args) throws IOException {
-    return exec(clazz, Collections.singletonList("-Xmx" + config.getDefaultMemorySize()), args);
+    return exec(clazz, Collections.singletonList("-Xmx" + config.getDefaultMemory()), args);
   }
   
   private Process exec(Class<? extends Object> clazz, List<String> extraJvmOpts, String... args) throws IOException {
@@ -159,7 +159,7 @@ public class MiniAccumuloCluster {
   private Process exec(Class<? extends Object> clazz, ServerType serverType, String... args) throws IOException {
     
     List<String> jvmOpts = new ArrayList<String>();
-    jvmOpts.add("-Xmx" + config.getMemoryConfig(serverType));
+    jvmOpts.add("-Xmx" + config.getMemory(serverType));
     
     if (config.isDebug()) {
       Integer port = PortUtils.getRandomFreePort();

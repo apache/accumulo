@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.server.mini;
 
+/**
+ * 
+ * @since 1.6.0
+ */
+
 public enum ServerType {
   MASTER, ZOOKEEPER, TABLET_SERVER
 }
