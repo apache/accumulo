@@ -25,14 +25,19 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.tabletserver.TabletServer;
 import org.apache.accumulo.server.util.Initialize;
+import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.Main;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
@@ -98,6 +103,8 @@ public class MiniAccumuloCluster {
   private Process masterProcess;
   private Process[] tabletServerProcesses;
   
+  private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<Pair<ServerType,Integer>>();
+  
   private File zooCfgFile;
   
   private List<LogWriter> logWriters = new ArrayList<MiniAccumuloCluster.LogWriter>();
@@ -105,6 +112,10 @@ public class MiniAccumuloCluster {
   private MiniAccumuloConfig config;
   
   private Process exec(Class<? extends Object> clazz, String... args) throws IOException {
+    return exec(clazz, Collections.singletonList("-Xmx" + config.getDefaultMemorySize()), args);
+  }
+  
+  private Process exec(Class<? extends Object> clazz, List<String> extraJvmOpts, String... args) throws IOException {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
     String classpath = System.getProperty("java.class.path");
@@ -114,10 +125,9 @@ public class MiniAccumuloCluster {
     String className = clazz.getCanonicalName();
     
     ArrayList<String> argList = new ArrayList<String>();
-    
-    argList.addAll(Arrays.asList(javaBin, "-cp", classpath, "-Xmx128m", "-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75",
-        Main.class.getName(), className));
-    
+    argList.addAll(Arrays.asList(javaBin, "-cp", classpath));
+    argList.addAll(extraJvmOpts);
+    argList.addAll(Arrays.asList("-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", Main.class.getName(), className));
     argList.addAll(Arrays.asList(args));
     
     ProcessBuilder builder = new ProcessBuilder(argList);
@@ -144,6 +154,19 @@ public class MiniAccumuloCluster {
     lw.start();
     
     return process;
+  }
+  
+  private Process exec(Class<? extends Object> clazz, ServerType serverType, String... args) throws IOException {
+    
+    List<String> jvmOpts = new ArrayList<String>();
+    jvmOpts.add("-Xmx" + config.getMemoryConfig(serverType));
+    
+    if (config.isDebug()) {
+      Integer port = PortUtils.getRandomFreePort();
+      jvmOpts.addAll(buildRemoteDebugParams(port));
+      debugPorts.add(new Pair<ServerType,Integer>(serverType, port));
+    }
+    return exec(clazz, jvmOpts, args);
   }
   
   /**
@@ -232,7 +255,7 @@ public class MiniAccumuloCluster {
       }
     });
     
-    zooKeeperProcess = exec(Main.class, ZooKeeperServerMain.class.getName(), zooCfgFile.getAbsolutePath());
+    zooKeeperProcess = exec(Main.class, ServerType.ZOOKEEPER, ZooKeeperServerMain.class.getName(), zooCfgFile.getAbsolutePath());
     
     // sleep a little bit to let zookeeper come up before calling init, seems to work better
     UtilWaitThread.sleep(250);
@@ -245,16 +268,28 @@ public class MiniAccumuloCluster {
     
     tabletServerProcesses = new Process[config.getNumTservers()];
     for (int i = 0; i < config.getNumTservers(); i++) {
-      tabletServerProcesses[i] = exec(TabletServer.class);
+      tabletServerProcesses[i] = exec(TabletServer.class, ServerType.TABLET_SERVER);
     }
     
-    masterProcess = exec(Master.class);
+    masterProcess = exec(Master.class, ServerType.MASTER);
+  }
+  
+  private List<String> buildRemoteDebugParams(int port) {
+    return Arrays.asList(new String[] {"-Xdebug", String.format("-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=%d", port)});
+  }
+  
+  /**
+   * @return generated remote debug ports if in debug mode.
+   * 
+   * @since 1.6.0
+   */
+  public Set<Pair<ServerType,Integer>> getDebugPorts() {
+    return debugPorts;
   }
   
   /**
    * @return Accumulo instance name
    */
-  
   public String getInstanceName() {
     return config.getInstanceName();
   }
@@ -262,7 +297,6 @@ public class MiniAccumuloCluster {
   /**
    * @return zookeeper connection string
    */
-  
   public String getZooKeepers() {
     return config.getZooKeepers();
   }
@@ -290,10 +324,8 @@ public class MiniAccumuloCluster {
   }
   
   /**
-   * 
    * @since 1.6.0
    */
-
   public MiniAccumuloConfig getConfig() {
     return config;
   }

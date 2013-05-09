@@ -60,6 +60,16 @@ public class MiniAccumuloConfigTest {
     assertEquals("hdfs://", config.getSiteConfig().get(Property.INSTANCE_DFS_URI.getKey()));
   }
 
+  @Test
+  public void testMemoryConfig() {
+
+    MiniAccumuloConfig config = new MiniAccumuloConfig(tempFolder.getRoot(), "password").initialize();
+    config.setDefaultMemorySize(128, MemoryUnit.MEGABYTE);
+    assertEquals("128M", config.getMemoryConfig(ServerType.MASTER));
+    config.setMemory(ServerType.MASTER, 256, MemoryUnit.MEGABYTE);
+    assertEquals("256M", config.getMemoryConfig(ServerType.MASTER));
+  }
+
   @AfterClass
   public static void tearDown() {
     tempFolder.delete();

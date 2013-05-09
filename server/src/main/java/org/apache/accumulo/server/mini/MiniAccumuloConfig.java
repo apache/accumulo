@@ -36,6 +36,9 @@ public class MiniAccumuloConfig {
   private String rootPassword = null;
   private Map<String,String> siteConfig = new HashMap<String,String>();
   private int numTservers = 2;
+  private Map<ServerType,String> memoryConfig = new HashMap<ServerType,String>();
+  
+  private boolean debug = false;
   
   private String instanceName = "miniInstance";
   
@@ -47,12 +50,13 @@ public class MiniAccumuloConfig {
   private File walogDir;
   
   private Integer zooKeeperPort;
+  private String defaultMemorySize = "128M";
   
   private boolean initialized = false;
   
   /**
    * @param dir
-   *          An empty or nonexistant directoy that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava, and
+   *          An empty or nonexistant directory that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava, and
    *          Junit provide methods for creating temporary directories.
    * @param rootPassword
    *          The initial password for the Accumulo root user
@@ -108,9 +112,6 @@ public class MiniAccumuloConfig {
   
   /**
    * Set a given key/value on the site config if it doesn't already exist
-   * 
-   * @param key
-   * @param value
    */
   private void mergeProp(String key, String value) {
     if (!siteConfig.containsKey(key)) {
@@ -120,8 +121,6 @@ public class MiniAccumuloConfig {
   
   /**
    * Sets a given key with a random port for the value on the site config if it doesn't already exist.
-   * 
-   * @param key
    */
   private void mergePropWithRandomPort(String key) {
     if (!siteConfig.containsKey(key)) {
@@ -177,6 +176,40 @@ public class MiniAccumuloConfig {
   }
   
   /**
+   * Sets the amount of memory to use in the master process. Calling this method is optional. Default memory is 128M
+   * 
+   * @param serverType
+   *          the type of server to apply the memory settings
+   * @param memory
+   *          amount of memory to set
+   * 
+   * @param memoryUnit
+   *          the units for which to apply with the memory size
+   * 
+   * @since 1.6.0
+   */
+  public MiniAccumuloConfig setMemory(ServerType serverType, long memory, MemoryUnit memoryUnit) {
+    this.memoryConfig.put(serverType, memoryUnit.getPrintVal(memory));
+    return this;
+  }
+  
+  /**
+   * Sets the default memory size to use. This value is also used when a ServerType has not been configured explicitly. Calling this method is optional. Default
+   * memory is 128M
+   * 
+   * @param memory
+   *          amount of memory to set
+   * 
+   * @memoryUnit the units for which to apply with the memory size
+   * 
+   * @since 1.6.0
+   */
+  public MiniAccumuloConfig setDefaultMemorySize(long memory, MemoryUnit memoryUnit) {
+    this.defaultMemorySize = memoryUnit.getPrintVal(memory);
+    return this;
+  }
+  
+  /**
    * @return a copy of the site config
    */
   public Map<String,String> getSiteConfig() {
@@ -225,6 +258,14 @@ public class MiniAccumuloConfig {
     return walogDir;
   }
   
+  String getMemoryConfig(ServerType serverType) {
+    return memoryConfig.containsKey(serverType) ? memoryConfig.get(serverType) : defaultMemorySize;
+  }
+  
+  String getDefaultMemorySize() {
+    return defaultMemorySize;
+  }
+  
   /**
    * @return zookeeper connection string
    * 
@@ -234,16 +275,46 @@ public class MiniAccumuloConfig {
     return siteConfig.get(Property.INSTANCE_ZK_HOST.getKey());
   }
   
+  /**
+   * @return the base directory of the cluster configuration
+   */
   public File getDir() {
     return dir;
   }
   
+  /**
+   * @return the root password of this cluster configuration
+   */
   public String getRootPassword() {
     return rootPassword;
   }
   
+  /**
+   * @return the number of tservers configured for this cluster
+   */
   public int getNumTservers() {
     return numTservers;
+  }
+  
+  /**
+   * @return is the current configuration in debug mode?
+   * 
+   * @since 1.6.0
+   */
+  public boolean isDebug() {
+    return debug;
+  }
+  
+  /**
+   * @param debug
+   *          should the processes run remote debug servers?
+   * @return the current instance
+   * 
+   * @since 1.6.0
+   */
+  public MiniAccumuloConfig setDebug(boolean debug) {
+    this.debug = debug;
+    return this;
   }
   
 }

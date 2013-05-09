@@ -19,6 +19,7 @@ package org.apache.accumulo.server.mini;
 import java.io.File;
 import java.util.Collections;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -37,7 +38,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.server.mini.MiniAccumuloCluster;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -55,15 +56,12 @@ public class MiniAccumuloClusterTest {
   
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
-    
-    folder.create();
-    
     Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
     
-    accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
-    
+    folder.create();
+    MiniAccumuloConfig config = new MiniAccumuloConfig(folder.getRoot(), "superSecret").setDebug(true);
+    accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
-    
   }
   
   @Test(timeout = 30000)
@@ -184,10 +182,20 @@ public class MiniAccumuloClusterTest {
     conn.tableOperations().delete("table2");
   }
   
+  @Test(timeout = 10000)
+  public void testDebugPorts() {
+    
+    Set<Pair<ServerType,Integer>> debugPorts = accumulo.getDebugPorts();
+    Assert.assertEquals(4, debugPorts.size());
+    for (Pair<ServerType,Integer> debugPort : debugPorts) {
+      Assert.assertTrue(debugPort.getSecond() > 0);
+    }
+  }
+  
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
-    // folder.delete();
+    folder.delete();
   }
   
 }
