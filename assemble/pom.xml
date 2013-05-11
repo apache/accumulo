@@ -117,7 +117,7 @@
                 <phase>package</phase>
                 <configuration>
                   <descriptors>
-                    <descriptor>src/main/assemblies/bin.xml</descriptor>
+                    <descriptor>src/main/assemblies/binary-release.xml</descriptor>
                   </descriptors>
                 </configuration>
               </execution>
@@ -169,14 +169,6 @@
                   <classifier>bin</classifier>
                   <provides>
                     <provide>accumulo</provide>
-                    <provide>accumulo-core</provide>
-                    <provide>accumulo-examples</provide>
-                    <provide>accumulo-fate</provide>
-                    <provide>accumulo-proxy</provide>
-                    <provide>accumulo-server</provide>
-                    <provide>accumulo-start</provide>
-                    <provide>accumulo-test</provide>
-                    <provide>accumulo-trace</provide>
                   </provides>
                   <requires>
                     <require>jre</require>
@@ -187,6 +179,9 @@
                     <mapping>
                       <directory>/opt/accumulo/accumulo-${project.version}</directory>
                       <sources>
+                        <source>
+                          <location>${accumulo-top}/CHANGES</location>
+                        </source>
                         <source>
                           <location>${accumulo-top}/LICENSE</location>
                         </source>
@@ -210,25 +205,6 @@
                       </sources>
                     </mapping>
                     <mapping>
-                      <directory>/opt/accumulo/accumulo-${project.version}/test</directory>
-                      <sources>
-                        <source>
-                          <location>${accumulo-top}/test</location>
-                          <excludes>
-                            <exclude>src/**</exclude>
-                            <exclude>target/**</exclude>
-                            <exclude>**/walkers.txt</exclude>
-                            <exclude>**/ingesters.txt</exclude>
-                            <exclude>**/continuous-env.sh</exclude>
-                            <exclude>.*/**</exclude>
-                            <exclude>**/*.pyc</exclude>
-                            <exclude>**/*.pyo</exclude>
-                            <exclude>pom.xml</exclude>
-                          </excludes>
-                        </source>
-                      </sources>
-                    </mapping>
-                    <mapping>
                       <directory>/opt/accumulo/accumulo-${project.version}/bin</directory>
                     </mapping>
                     <mapping>
@@ -245,25 +221,21 @@
                     </mapping>
                     <mapping>
                       <directory>/opt/accumulo/accumulo-${project.version}/conf</directory>
+                      <recurseDirectories>true</recurseDirectories>
                       <sources>
                         <source>
                           <location>${accumulo-top}/conf</location>
-                          <excludes>
-                            <exclude>${accumulo-top}/**/accumulo-site.xml</exclude>
-                            <exclude>${accumulo-top}/**/accumulo-env.sh</exclude>
-                            <exclude>${accumulo-top}/**/accumulo-metrics.xml</exclude>
-                            <exclude>${accumulo-top}/**/test-*</exclude>
-                            <exclude>${accumulo-top}/**/slaves</exclude>
-                            <exclude>${accumulo-top}/**/masters</exclude>
-                            <exclude>${accumulo-top}/**/tracers</exclude>
-                            <exclude>${accumulo-top}/**/gc</exclude>
-                            <exclude>${accumulo-top}/**/monitor</exclude>
-                          </excludes>
+                          <includes>
+                            <include>accumulo.policy.example</include>
+                            <include>examples/**/*</include>
+                            <include>examples/**/*.*</include>
+                          </includes>
                         </source>
                       </sources>
                     </mapping>
                     <mapping>
                       <directory>/opt/accumulo/accumulo-${project.version}/lib</directory>
+                      <recurseDirectories>true</recurseDirectories>
                       <sources>
                         <source>
                           <location>${accumulo-top}/lib</location>
@@ -293,7 +265,7 @@
                     <provide>accumulo-native</provide>
                   </provides>
                   <requires>
-                    <require>accumulo-server</require>
+                    <require>accumulo</require>
                   </requires>
                   <mappings>
                     <mapping>
@@ -304,6 +276,45 @@
                           <includes>
                             <include>libNativeMap-Linux-amd64-64.so</include>
                           </includes>
+                        </source>
+                      </sources>
+                    </mapping>
+                  </mappings>
+                </configuration>
+              </execution>
+              <execution>
+                <id>build-tests-rpm</id>
+                <goals>
+                  <goal>attached-rpm</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <name>accumulo-test</name>
+                  <classifier>test</classifier>
+                  <provides>
+                    <provide>accumulo-test</provide>
+                  </provides>
+                  <requires>
+                    <require>accumulo</require>
+                    <require>python</require>
+                  </requires>
+                  <mappings>
+                    <mapping>
+                      <directory>/opt/accumulo/accumulo-${project.version}/test</directory>
+                      <sources>
+                        <source>
+                          <location>${accumulo-top}/test</location>
+                          <excludes>
+                            <exclude>src/**</exclude>
+                            <exclude>target/**</exclude>
+                            <exclude>**/walkers.txt</exclude>
+                            <exclude>**/ingesters.txt</exclude>
+                            <exclude>**/continuous-env.sh</exclude>
+                            <exclude>.*/**</exclude>
+                            <exclude>**/*.pyc</exclude>
+                            <exclude>**/*.pyo</exclude>
+                            <exclude>pom.xml</exclude>
+                          </excludes>
                         </source>
                       </sources>
                     </mapping>
@@ -344,7 +355,7 @@
                         <type>perm</type>
                         <prefix>/usr/lib/accumulo/lib</prefix>
                       </mapper>
-                      <excludes>**/.svn/**,**/lib/native/**</excludes>
+                      <excludes>**/.svn/**,native/**</excludes>
                     </data>
                     <data>
                       <src>${accumulo-top}/NOTICE</src>
@@ -371,13 +382,21 @@
                       </mapper>
                     </data>
                     <data>
+                      <src>${accumulo-top}/LICENSE</src>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo</prefix>
+                      </mapper>
+                    </data>
+                    <data>
                       <src>${accumulo-top}/docs</src>
                       <type>directory</type>
                       <mapper>
                         <type>perm</type>
                         <prefix>/usr/lib/accumulo/docs</prefix>
                       </mapper>
-                      <excludes>**/.svn/**</excludes>
+                      <excludes>**/.svn/**,src/**</excludes>
                     </data>
                     <data>
                       <src>${accumulo-top}/bin</src>
@@ -396,15 +415,7 @@
                         <type>perm</type>
                         <prefix>/usr/lib/accumulo/conf</prefix>
                       </mapper>
-                      <excludes>**/.svn/**,**/accumulo-site.xml,**/accumulo-env.sh,**/accumulo-metrics.xml,**/test-*,**/slaves,**/masters,**/tracers,**/gc,**/monitor</excludes>
-                    </data>
-                    <data>
-                      <src>${accumulo-top}/conf/examples</src>
-                      <type>directory</type>
-                      <mapper>
-                        <type>perm</type>
-                        <prefix>/usr/lib/accumulo/conf/examples</prefix>
-                      </mapper>
+                      <includes>accumulo.policy.example,examples/**</includes>
                       <excludes>**/.svn/**</excludes>
                     </data>
                   </dataSet>
@@ -469,7 +480,7 @@
                         <type>perm</type>
                         <prefix>/usr/lib/accumulo/test</prefix>
                       </mapper>
-                      <excludes>**/.svn/**,**/*.pyc</excludes>
+                      <excludes>**/.svn/**,**/*.pyc,src/**,target/**,**/walkers.txt,**/ingesters.txt,**/continuous-env.sh,.*/**,**/*.pyc,**/*.pyo,pom.xml</excludes>
                     </data>
                   </dataSet>
                 </configuration>

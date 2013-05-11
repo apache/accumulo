@@ -106,23 +106,14 @@
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
-    <!-- arguments for the release plugin goals;
-         these are in addition to apache-release defined in the parent POM -->
-    <arguments>-P seal-jars,check-licenses,thrift,native,assemble,docs,rpm,deb</arguments>
-    <!-- only prompt once for the next version -->
-    <autoVersionSubmodules>true</autoVersionSubmodules>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
     <maven.min-version>3.0.4</maven.min-version>
     <powermock.version>1.5</powermock.version>
-    <!-- for the release plugin -->
-    <preparationGoals>clean compile javadoc:aggregate install</preparationGoals>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <sealJars>false</sealJars>
     <!-- include the tarball, as well as the zip, for the Apache source-release artifact -->
     <sourceReleaseAssemblyDescriptor>source-release-zip-tar</sourceReleaseAssemblyDescriptor>
-    <!-- stage the RC in the tags directory -->
-    <tagNameFormat>@{project.version}-RC</tagNameFormat>
     <!-- ZooKeeper 3.4.x works also, but we're not using new features yet; this ensures 3.3.x compatibility. -->
     <zookeeper.version>3.3.6</zookeeper.version>
   </properties>
@@ -335,6 +326,7 @@
           <configuration>
             <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             <lineSeparator>\n</lineSeparator>
+            <expandEmptyElements>false</expandEmptyElements>
             <nrOfIndentSpace>2</nrOfIndentSpace>
             <sortDependencies>scope,groupId,artifactId</sortDependencies>
             <sortProperties>true</sortProperties>
@@ -429,6 +421,18 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-release-plugin</artifactId>
+          <configuration>
+            <arguments>-P apache-release,seal-jars,check-licenses,thrift,native,assemble,docs,rpm,deb</arguments>
+            <autoVersionSubmodules>true</autoVersionSubmodules>
+            <goals>clean compile javadoc:aggregate deploy</goals>
+            <preparationGoals>clean compile javadoc:aggregate verify</preparationGoals>
+            <tagNameFormat>@{project.version}-RC</tagNameFormat>
+            <useReleaseProfile>false</useReleaseProfile>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
           <configuration>
             <skipDeploy>true</skipDeploy>
@@ -507,7 +511,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore></ignore>
+                    <ignore />
                   </action>
                 </pluginExecution>
                 <pluginExecution>
@@ -520,7 +524,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore></ignore>
+                    <ignore />
                   </action>
                 </pluginExecution>
                 <pluginExecution>
@@ -533,7 +537,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore></ignore>
+                    <ignore />
                   </action>
                 </pluginExecution>
                 <pluginExecution>
@@ -546,7 +550,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore></ignore>
+                    <ignore />
                   </action>
                 </pluginExecution>
                 <pluginExecution>
@@ -559,7 +563,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore></ignore>
+                    <ignore />
                   </action>
                 </pluginExecution>
               </pluginExecutions>
