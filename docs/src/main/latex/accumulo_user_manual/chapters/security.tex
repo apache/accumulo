@@ -139,12 +139,15 @@ deprecation cycle.
 Authentication simply handles the ability for a user to verify their integrity. A combination of 
 principal and authentication token are used to verify a user is who they say they are. An 
 authentication token should be constructed, either directly through it's constructor, but it is 
-advised to use the init(Property) method to populate an authentication token. Once a user is 
-authenticated by the Authenticator, the user has access to the other actions within Accumulo. All 
-actions in Accumulo are ACLed, and this ACL check is handled by the Permission Handler. This is what 
-manages all of the permissions, which are divided in system and per table level. From there, if a 
-user is doing an action which requires authorizations, the Authorizor is queried to determine what 
-authorizations the user has.
+advised to use the init(Property) method to populate an authentication token. It is expected that a 
+user knows what the appropriate token to use for their system is. The default token is 
+PasswordToken. 
+
+Once a user is authenticated by the Authenticator, the user has access to the other actions within 
+Accumulo. All actions in Accumulo are ACLed, and this ACL check is handled by the Permission 
+Handler. This is what manages all of the permissions, which are divided in system and per table 
+level. From there, if a user is doing an action which requires authorizations, the Authorizor is 
+queried to determine what authorizations the user has.
 
 This setup allows a variety of different mechanisms to be used for handling different aspects of 
 Accumulo's security. A system like Kerberos can be used for authentication, then a system like LDAP 
