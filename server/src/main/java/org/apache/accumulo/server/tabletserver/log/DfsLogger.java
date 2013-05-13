@@ -25,9 +25,11 @@ import static org.apache.accumulo.server.logger.LogEvents.OPEN;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,10 +48,15 @@ import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.tabletserver.TabletMutations;
+import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+//import org.apache.hadoop.fs.CreateFlag;
+//import org.apache.hadoop.fs.Syncable;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
 /**
@@ -106,8 +113,8 @@ public class DfsLogger {
         synchronized (closeLock) {
           if (!closed) {
             try {
-              logFile.sync();
-            } catch (IOException ex) {
+              sync.invoke(logFile);
+            } catch (Exception ex) {
               log.warn("Exception syncing " + ex);
               for (DfsLogger.LogWork logWork : work) {
                 logWork.exception = ex;
@@ -202,6 +209,7 @@ public class DfsLogger {
   private final ServerResources conf;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
+  private Method sync;
   private Path logPath;
   private String logger;
   
@@ -257,7 +265,23 @@ public class DfsLogger {
       int checkSum = fs.getConf().getInt("io.bytes.per.checksum", 512);
       blockSize -= blockSize % checkSum;
       blockSize = Math.max(blockSize, checkSum);
-      logFile = fs.create(logPath, true, fs.getConf().getInt("io.file.buffer.size", 4096), replication, blockSize);
+      if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC))
+        logFile = create(fs, logPath, true, fs.getConf().getInt("io.file.buffer.size", 4096), replication, blockSize);
+      else
+        logFile = fs.create(logPath, true, fs.getConf().getInt("io.file.buffer.size", 4096), replication, blockSize);
+      
+      try {
+        // sync: send data to datanodes
+        sync = logFile.getClass().getMethod("sync");
+        try {
+          // hsych: send data to datanodes and sync the data to disk
+          sync = logFile.getClass().getMethod("hsync");
+        } catch (NoSuchMethodException ex) {
+        }
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+      
       
       // Initialize the crypto operations.
       @SuppressWarnings("deprecation")
@@ -304,6 +328,43 @@ public class DfsLogger {
     t.start();
   }
   
+  private FSDataOutputStream create(FileSystem fs, Path logPath, boolean b, int buffersize, short replication, long blockSize) throws IOException {
+    try {
+      // This... 
+      //    EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
+      //    return fs.create(logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
+      // Becomes this:
+      Class<?> createFlags = Class.forName("org.apache.hadoop.fs.CreateFlag");
+      List<Enum<?>> flags = new ArrayList<Enum<?>>();
+      if (createFlags.isEnum()) {
+        for (Object constant : createFlags.getEnumConstants()) {
+          if (constant.toString().equals("SYNC_BLOCK")) {
+            flags.add((Enum<?>)constant);
+            log.debug("Found synch enum " + constant);
+          }
+          if (constant.toString().equals("CREATE")) {
+            flags.add((Enum<?>)constant);
+            log.debug("Found CREATE enum " + constant);
+          }
+        }
+      }
+      Object set = EnumSet.class.getMethod("of", java.lang.Enum.class, java.lang.Enum.class).invoke(null, flags.get(0), flags.get(1));
+      log.debug("CreateFlag set: " + set);
+      if (fs instanceof TraceFileSystem) {
+        fs = ((TraceFileSystem)fs).getImplementation();
+      }
+      Method create = fs.getClass().getMethod("create", Path.class, FsPermission.class, EnumSet.class, Integer.TYPE, Short.TYPE, Long.TYPE, Progressable.class);
+      log.debug("creating " + logPath + " with SYNCH_BLOCK flag");
+      return (FSDataOutputStream)create.invoke(fs, logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
+    } catch (ClassNotFoundException ex) {
+      // Expected in hadoop 1.0
+      return fs.create(logPath, b, buffersize, replication, blockSize);
+    } catch (Exception ex) {
+      log.debug(ex, ex);
+      return fs.create(logPath, b, buffersize, replication, blockSize);
+    }
+  }
+
   /*
    * (non-Javadoc)
    * 
