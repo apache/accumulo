@@ -50,27 +50,27 @@ MockAccumulo:
 
 \small
 \begin{verbatim}
-$ ./bin/accumulo shell --fake -u root -p nonsense
+$ ./bin/accumulo shell --fake -u root -p ''
 
 Shell - Apache Accumulo Interactive Shell
 -
 - version: 1.5
-- instance name: mock-instance
+- instance name: fake
 - instance id: mock-instance-id
 -
 - type 'help' for a list of available commands
 -
-root@mock-instance> createtable test
-root@mock-instance test> insert row1 cf cq value
-root@mock-instance test> insert row2 cf cq value2
-root@mock-instance test> insert row3 cf cq value3
-root@mock-instance test> scan
+root@fake> createtable test
+root@fake test> insert row1 cf cq value
+root@fake test> insert row2 cf cq value2
+root@fake test> insert row3 cf cq value3
+root@fake test> scan
 row1 cf:cq []    value
 row2 cf:cq []    value2
 row3 cf:cq []    value3
-root@mock-instance test> scan -b row2 -e row2
+root@fake test> scan -b row2 -e row2
 row2 cf:cq []    value2
-root@mock-instance test>
+root@fake test>
 \end{verbatim}
 \normalsize
 
