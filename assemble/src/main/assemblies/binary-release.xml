@@ -37,6 +37,15 @@
       </includes>
     </fileSet>
     <fileSet>
+      <directory>../examples/simple</directory>
+      <outputDirectory>/examples/simple</outputDirectory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>src/main/**</include>
+      </includes>
+    </fileSet>
+    <fileSet>
       <directory>../lib/native</directory>
       <directoryMode>0755</directoryMode>
       <includes>
@@ -128,13 +137,18 @@
       <outputDirectory>proxy/thrift</outputDirectory>
       <includes>
         <include>gen-cpp/**</include>
-        <include>gen-java/**</include>
         <include>gen-py/**</include>
         <include>gen-rb/**</include>
       </includes>
-      <excludes>
-        <exclude>*</exclude>
-      </excludes>
+    </fileSet>
+    <fileSet>
+      <directory>../proxy/src/main/thrift</directory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <outputDirectory>proxy/thrift</outputDirectory>
+      <includes>
+        <include>*.thrift</include>
+      </includes>
     </fileSet>
   </fileSets>
   <files>
