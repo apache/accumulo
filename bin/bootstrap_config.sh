@@ -76,4 +76,9 @@ echo "Initializing default configuration from '${CONF_DIR}'"
 #
 # Perform a copy with update here to not overwrite existing files
 #
-cp -vu ${CONF_DIR}/* ${ACCUMULO_HOME}/conf
+if ! `type -p "cp -u"`; then
+  CP=rsync
+else
+  CP=cp
+fi
+$CP -vu ${CONF_DIR}/* ${ACCUMULO_HOME}/conf
