@@ -1,10 +1,10 @@
 
 % Licensed to the Apache Software Foundation (ASF) under one or more
-% contributor license agreements.  See the NOTICE file distributed with
+% contributor license agreements. See the NOTICE file distributed with
 % this work for additional information regarding copyright ownership.
 % The ASF licenses this file to You under the Apache License, Version 2.0
 % (the "License"); you may not use this file except in compliance with
-% the License.  You may obtain a copy of the License at
+% the License. You may obtain a copy of the License at
 %
 %     http://www.apache.org/licenses/LICENSE-2.0
 %
@@ -202,7 +202,7 @@ Accumulo provides the capability to manage versioned data through the use of
 timestamps within the Key. If a timestamp is not specified in the key created by the
 client then the system will set the timestamp to the current time. Two keys with
 identical rowIDs and columns but different timestamps are considered two versions
-of the same key. If two inserts are made into accumulo with the same rowID,
+of the same key. If two inserts are made into Accumulo with the same rowID,
 column, and timestamp, then the behavior is non-deterministic.
 
 Timestamps are sorted in descending order, so the most recent data comes first.
@@ -223,8 +223,8 @@ user@myinstance mytable> config -t mytable -s table.iterator.majc.vers.opt.maxVe
 \normalsize
 
 When a table is created, by default its configured to use the
-VersioningIterator and keep one version.  A table can be created without the
-VersioningIterator with the -ndi option in the shell.  Also the Java API
+VersioningIterator and keep one version. A table can be created without the
+VersioningIterator with the -ndi option in the shell. Also the Java API
 has the following method 
 
 \small
@@ -237,11 +237,11 @@ connector.tableOperations.create(String tableName, boolean limitVersion).
 \subsubsection{Logical Time}
 
 Accumulo 1.2 introduces the concept of logical time. This ensures that timestamps
-set by accumulo always move forward. This helps avoid problems caused by
+set by Accumulo always move forward. This helps avoid problems caused by
 TabletServers that have different time settings. The per tablet counter gives unique
 one up time stamps on a per mutation basis. When using time in milliseconds, if
 two things arrive within the same millisecond then both receive the same
-timestamp.  When using time in milliseconds, accumulo set times will still
+timestamp. When using time in milliseconds, Accumulo set times will still
 always move forward and never backwards.
 
 A table can be configured to use logical timestamps at creation time as follows:
@@ -253,8 +253,8 @@ user@myinstance> createtable -tl logical
 \normalsize
 
 \subsubsection{Deletes}
-Deletes are special keys in accumulo that get sorted along will all the other data.
-When a delete key is inserted, accumulo will not show anything that has a
+Deletes are special keys in Accumulo that get sorted along will all the other data.
+When a delete key is inserted, Accumulo will not show anything that has a
 timestamp less than or equal to the delete key. During major compaction, any keys
 older than a delete key are omitted from the new file created, and the omitted keys
 are removed from disk as part of the regular garbage collection process.
@@ -341,7 +341,7 @@ rowID1  colfA  colqA     -          2
 \end{verbatim}
 \normalsize
 
-Combiners can be enabled for a table using the setiter command in the shell.  Below is an example.
+Combiners can be enabled for a table using the setiter command in the shell. Below is an example.
 
 \small
 \begin{verbatim}
@@ -366,7 +366,7 @@ foo day:20080103 []    1
 \end{verbatim}
 \normalsize
 
-Accumulo includes some useful Combiners out of the box.  To find these look in
+Accumulo includes some useful Combiners out of the box. To find these look in
 the\\ \texttt{org.apache.accumulo.core.iterators.user} package.
 
 Additional Combiners can be added by creating a Java class that extends\\
@@ -401,22 +401,22 @@ It is enabled by default for the !METADATA table.
 
 \section{Compaction}
 
-As data is written to Accumulo it is buffered in memory.  The data buffered in
-memory is eventually written to HDFS on a per tablet basis.  Files can also be
-added to tablets directly by bulk import.  In the background tablet servers run
-major compactions to merge multiple files into one.  The tablet server has to
+As data is written to Accumulo it is buffered in memory. The data buffered in
+memory is eventually written to HDFS on a per tablet basis. Files can also be
+added to tablets directly by bulk import. In the background tablet servers run
+major compactions to merge multiple files into one. The tablet server has to
 decide which tablets to compact and which files within a tablet to compact.
 This decision is made using the compaction ratio, which is configurable on a
-per table basis.  To configure this ratio modify the following property:
+per table basis. To configure this ratio modify the following property:
 
 \begin{verbatim}
 table.compaction.major.ratio
 \end{verbatim}  
 
 Increasing this ratio will result in more files per tablet and less compaction
-work.  More files per tablet means more higher query latency.  So adjusting
-this ratio is a trade off between ingest and query performance.  The ratio
-defaults to 3.  
+work. More files per tablet means more higher query latency. So adjusting
+this ratio is a trade off between ingest and query performance. The ratio
+defaults to 3. 
 
 The way the ratio works is that a set of files is compacted into one file if the
 sum of the sizes of the files in the set is larger than the ratio multiplied by
@@ -426,35 +426,35 @@ remaining files are considered for compaction. This is repeated until a
 compaction is triggered or there are no files left to consider.
 
 The number of background threads tablet servers use to run major compactions is
-configurable.  To configure this modify the following property:
+configurable. To configure this modify the following property:
 
 \begin{verbatim}
 tserver.compaction.major.concurrent.max
 \end{verbatim}
 
 Also, the number of threads tablet servers use for minor compactions is
-configurable.  To configure this modify the following property:
+configurable. To configure this modify the following property:
 
 \begin{verbatim}
 tserver.compaction.minor.concurrent.max
 \end{verbatim}
 
 The numbers of minor and major compactions running and queued is visible on the
-Accumulo monitor page.  This allows you to see if compactions are backing up
-and adjustments to the above settings are needed.  When adjusting the number of
+Accumulo monitor page. This allows you to see if compactions are backing up
+and adjustments to the above settings are needed. When adjusting the number of
 threads available for compactions, consider the number of cores and other tasks
 running on the nodes such as maps and reduces.
 
 If major compactions are not keeping up, then the number of files per tablet
 will grow to a point such that query performance starts to suffer. One way to
-handle this situation is to increase the compaction ratio.  For example, if the
+handle this situation is to increase the compaction ratio. For example, if the
 compaction ratio were set to 1, then every new file added to a tablet by minor
 compaction would immediately queue the tablet for major compaction. So if a
 tablet has a 200M file and minor compaction writes a 1M file, then the major
-compaction will attempt to merge the 200M and 1M file.  If the tablet server
+compaction will attempt to merge the 200M and 1M file. If the tablet server
 has lots of tablets trying to do this sort of thing, then major compactions
 will back up and the number of files per tablet will start to grow, assuming
-data is being continuously written.  Increasing the compaction ratio will
+data is being continuously written. Increasing the compaction ratio will
 alleviate backups by lowering the amount of major compaction work that needs to
 be done.
 
@@ -466,12 +466,12 @@ table.file.max
 \end{verbatim}
 
 When a tablet reaches this number of files and needs to flush its in-memory
-data to disk, it will choose to do a merging minor compaction.  A merging minor
+data to disk, it will choose to do a merging minor compaction. A merging minor
 compaction will merge the tablet's smallest file with the data in memory at
-minor compaction time.  Therefore the number of files will not grow beyond this
-limit.  This will make minor compactions take longer, which will cause ingest
-performance to decrease.  This can cause ingest to slow down until major
-compactions have enough time to catch up.   When adjusting this property, also
+minor compaction time. Therefore the number of files will not grow beyond this
+limit. This will make minor compactions take longer, which will cause ingest
+performance to decrease. This can cause ingest to slow down until major
+compactions have enough time to catch up. When adjusting this property, also
 consider adjusting the compaction ratio. Ideally, merging minor compactions
 never need to occur and major compactions will keep up. It is possible to
 configure the file max and compaction ratio such that only merging minor
@@ -480,20 +480,20 @@ because doing only merging minor compactions causes $O(N^2)$ work to be done.
 The amount of work done by major compactions is $O(N*\log_R(N))$ where
 \textit{R} is the compaction ratio.
 
-Compactions can be initiated manually for a table.  To initiate a minor
-compaction, use the flush command in the shell.  To initiate a major compaction,
-use the compact command in the shell.  The compact command will compact all
-tablets in a table to one file.  Even tablets with one file are compacted.  This
+Compactions can be initiated manually for a table. To initiate a minor
+compaction, use the flush command in the shell. To initiate a major compaction,
+use the compact command in the shell. The compact command will compact all
+tablets in a table to one file. Even tablets with one file are compacted. This
 is useful for the case where a major compaction filter is configured for a
-table. In 1.4 the ability to compact a range of a table was added.  To use this
-feature specify start and stop rows for the compact command.  This will only
+table. In 1.4 the ability to compact a range of a table was added. To use this
+feature specify start and stop rows for the compact command. This will only
 compact tablets that overlap the given row range.
 
 \section{Pre-splitting tables}
 
 Accumulo will balance and distribute tables across servers. Before a
 table gets large, it will be maintained as a single tablet on a single
-server.  This limits the speed at which data can be added or queried
+server. This limits the speed at which data can be added or queried
 to the speed of a single node. To improve performance when the a table
 is new, or small, you can add split points and generate new tablets.
 
@@ -506,26 +506,26 @@ root@myinstance> addsplits -t newTable g n t
 \end{verbatim}
 \normalsize
 
-This will create a new table with 4 tablets.  The table will be split
+This will create a new table with 4 tablets. The table will be split
 on the letters ``g'', ``n'', and ``t'' which will work nicely if the
-row data start with lower-case alphabetic characters.  If your row
+row data start with lower-case alphabetic characters. If your row
 data includes binary information or numeric information, or if the
 distribution of the row information is not flat, then you would pick
-different split points.  Now ingest and query can proceed on 4 nodes
+different split points. Now ingest and query can proceed on 4 nodes
 which can improve performance.
 
 \section{Merging tablets}
 
 Over time, a table can get very large, so large that it has hundreds
-of thousands of split points.  Once there are enough tablets to spread
+of thousands of split points. Once there are enough tablets to spread
 a table across the entire cluster, additional splits may not improve
-performance, and may create unnecessary bookkeeping.  The distribution
-of data may change over time.  For example, if row data contains date
+performance, and may create unnecessary bookkeeping. The distribution
+of data may change over time. For example, if row data contains date
 information, and data is continually added and removed to maintain a
 window of current information, tablets for older rows may be empty.
 
 Accumulo supports tablet merging, which can be used to reduce 
-the number of split points.  The following command will merge all rows
+the number of split points. The following command will merge all rows
 from ``A'' to ``Z'' into a single tablet:
 
 \small
@@ -545,7 +545,7 @@ root@myinstance> config -t myTable -s table.split.threshold=2G
 \end{verbatim}
 \normalsize
 
-In order to merge small tablets, you can ask accumulo to merge
+In order to merge small tablets, you can ask Accumulo to merge
 sections of a table smaller than a given size.
 
 \small
@@ -555,8 +555,8 @@ root@myinstance> merge -t myTable -s 100M
 \normalsize
 
 By default, small tablets will not be merged into tablets that are
-already larger than the given size.  This can leave isolated small
-tablets.  To force small tablets to be merged into larger tablets use
+already larger than the given size. This can leave isolated small
+tablets. To force small tablets to be merged into larger tablets use
 the ``--{}--force'' option:
 
 \small
@@ -565,7 +565,7 @@ root@myinstance> merge -t myTable -s 100M --force
 \end{verbatim}
 \normalsize
 
-Merging away small tablets works on one section at a time.  If your
+Merging away small tablets works on one section at a time. If your
 table contains many sections of small split points, or you are
 attempting to change the split size of the entire table, it will be
 faster to set the split point and merge the entire table:
@@ -581,10 +581,10 @@ root@myinstance> merge -t myTable
 
 Consider an indexing scheme that uses date information in each row.
 For example ``20110823-15:20:25.013'' might be a row that specifies a
-date and time.  In some cases, we might like to delete rows based on
+date and time. In some cases, we might like to delete rows based on
 this date, say to remove all the data older than the current year.
 Accumulo supports a delete range operation which efficiently
-removes data between two rows.  For example:
+removes data between two rows. For example:
 
 \small
 \begin{verbatim}
@@ -593,7 +593,7 @@ root@myinstance> deleterange -t myTable -s 2010 -e 2011
 \normalsize
 
 This will delete all rows starting with ``2010'' and it will stop at
-any row starting ``2011''.  You can delete any data prior to 2011
+any row starting ``2011''. You can delete any data prior to 2011
 with:
 
 \small
@@ -610,23 +610,23 @@ positions, and will affect the number of splits in the table.
 
 \section{Cloning Tables}
 
-A new table can be created that points to an existing table's data.  This is a
-very quick metadata operation, no data is actually copied.  The cloned table
-and the source table can change independently after the clone operation.  One
-use case for this feature is testing.  For example to test a new filtering
+A new table can be created that points to an existing table's data. This is a
+very quick metadata operation, no data is actually copied. The cloned table
+and the source table can change independently after the clone operation. One
+use case for this feature is testing. For example to test a new filtering
 iterator, clone the table, add the filter to the clone, and force a major
-compaction.  To perform a test on less data, clone a table and then use delete
-range to efficiently remove a lot of data from the clone.  Another use case is
-generating a snapshot to guard against human error.  To create a snapshot,
+compaction. To perform a test on less data, clone a table and then use delete
+range to efficiently remove a lot of data from the clone. Another use case is
+generating a snapshot to guard against human error. To create a snapshot,
 clone a table and then disable write permissions on the clone.
 
-The clone operation will point to the source table's files.  This is why the
-flush option is present and is enabled by default in the shell.  If the flush
+The clone operation will point to the source table's files. This is why the
+flush option is present and is enabled by default in the shell. If the flush
 option is not enabled, then any data the source table currently has in memory
 will not exist in the clone.
 
-A cloned table copies the configuration of the source table.  However the
-permissions of the source table are not copied to the clone.  After a clone is
+A cloned table copies the configuration of the source table. However the
+permissions of the source table are not copied to the clone. After a clone is
 created, only the user that created the clone can read and write to it.
 
 In the following example we see that data inserted after the clone operation is
@@ -655,10 +655,10 @@ root@a14 test>
 
 The du command in the shell shows how much space a table is using in HDFS.
 This command can also show how much overlapping space two cloned tables have in
-HDFS.  In the example below du shows table ci is using 428M.  Then ci is cloned
-to cic and du shows that both tables share 428M.  After three entries are
+HDFS. In the example below du shows table ci is using 428M. Then ci is cloned
+to cic and du shows that both tables share 428M. After three entries are
 inserted into cic and its flushed, du shows the two tables still share 428M but
-cic has 226 bytes to itself.  Finally, table cic is compacted and then du shows
+cic has 226 bytes to itself. Finally, table cic is compacted and then du shows
 that each table uses 428M.
 
 \small
@@ -690,9 +690,9 @@ root@a14 cic>
 \section{Exporting Tables}
 
 Accumulo supports exporting tables for the purpose of copying tables to another
-cluster.  Exporting and importing tables preserves the tables configuration,
-splits, and logical time.  Tables are exported and then copied via the hadoop
-distcp command.  To export a table, it must be offline and stay offline while
-discp runs.  The reason it needs to stay offline is to prevent files from being
-deleted.  A table can be cloned and the clone taken offline inorder to avoid
-losing access to the table.  See docs/examples/README.export for an example.
+cluster. Exporting and importing tables preserves the tables configuration,
+splits, and logical time. Tables are exported and then copied via the hadoop
+distcp command. To export a table, it must be offline and stay offline while
+discp runs. The reason it needs to stay offline is to prevent files from being
+deleted. A table can be cloned and the clone taken offline inorder to avoid
+losing access to the table. See docs/examples/README.export for an example.

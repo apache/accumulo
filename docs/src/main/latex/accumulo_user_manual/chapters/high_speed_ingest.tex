@@ -1,10 +1,10 @@
 
 % Licensed to the Apache Software Foundation (ASF) under one or more
-% contributor license agreements.  See the NOTICE file distributed with
+% contributor license agreements. See the NOTICE file distributed with
 % this work for additional information regarding copyright ownership.
 % The ASF licenses this file to You under the Apache License, Version 2.0
 % (the "License"); you may not use this file except in compliance with
-% the License.  You may obtain a copy of the License at
+% the License. You may obtain a copy of the License at
 %
 %     http://www.apache.org/licenses/LICENSE-2.0
 %
@@ -112,7 +112,7 @@ accumulo/docs/examples/README.bulkIngest
 
 Logical time is important for bulk imported data, for which the client code may
 be choosing a timestamp. At bulk import time, the user can choose to enable
-logical time for the set of files being imported.  When its enabled, Accumulo
+logical time for the set of files being imported. When its enabled, Accumulo
 uses a specialized system iterator to lazily set times in a bulk imported file.
 This mechanism guarantees that times set by unsynchronized multi-node
 applications (such as those running on MapReduce) will maintain some semblance
@@ -122,9 +122,9 @@ file is imported, but whenever it is read by scans or compactions. At import, a
 time is obtained and always used by the specialized system iterator to set that
 time.
 
-The timestamp assigned by accumulo will be the same for every key in the file.
+The timestamp assigned by Accumulo will be the same for every key in the file.
 This could cause problems if the file contains multiple keys that are identical
-except for the timestamp.  In this case, the sort order of the keys will be
+except for the timestamp. In this case, the sort order of the keys will be
 undefined. This could occur if an insert and an update were in the same bulk
 import file.
 
