@@ -3256,6 +3256,16 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         log.fatal(msg);
         System.exit(-1);
       }
+      try {
+        // if this class exists
+        Class.forName("org.apache.hadoop.fs.CreateFlag");
+        // we're running hadoop 2.0, 1.1
+        if (!fs.getConf().getBoolean("dfs.datanode.synconclose", false)) {
+          log.warn("dfs.datanode.synconclose set to false: data loss is possible on system reset or power loss");
+        }
+      } catch (ClassNotFoundException ex) {
+        // hadoop 1.0
+      }
     }
     
   }
