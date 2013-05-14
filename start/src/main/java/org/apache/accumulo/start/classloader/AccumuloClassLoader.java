@@ -220,7 +220,7 @@ public class AccumuloClassLoader {
     if (classloader == null) {
       ArrayList<URL> urls = findAccumuloURLs();
       
-      ClassLoader parentClassLoader = ClassLoader.getSystemClassLoader();
+      ClassLoader parentClassLoader = AccumuloClassLoader.class.getClassLoader();
       
       log.debug("Create 2nd tier ClassLoader using URLs: " + urls.toString());
       URLClassLoader aClassLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]), parentClassLoader) {
