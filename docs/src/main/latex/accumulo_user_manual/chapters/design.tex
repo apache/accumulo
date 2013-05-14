@@ -1,10 +1,10 @@
 
 % Licensed to the Apache Software Foundation (ASF) under one or more
-% contributor license agreements.  See the NOTICE file distributed with
+% contributor license agreements. See the NOTICE file distributed with
 % this work for additional information regarding copyright ownership.
 % The ASF licenses this file to You under the Apache License, Version 2.0
 % (the "License"); you may not use this file except in compliance with
-% the License.  You may obtain a copy of the License at
+% the License. You may obtain a copy of the License at
 %
 %     http://www.apache.org/licenses/LICENSE-2.0
 %
@@ -64,7 +64,7 @@ found in the write-ahead log to the tablet.
 
 \subsection{Garbage Collector}
 
-Accumulo processes will share files stored in HDFS.  Periodically, the Garbage
+Accumulo processes will share files stored in HDFS. Periodically, the Garbage
 Collector will identify files that are no longer needed by any process, and
 delete them.
 
@@ -77,7 +77,7 @@ tablets are assigned to one TabletServer each, and handles table creation, alter
 and deletion requests from clients. The Master also coordinates startup, graceful
 shutdown and recovery of changes in write-ahead logs when Tablet servers fail.
 
-Multiple masters may be run.  The masters will choose among themselves a single master,
+Multiple masters may be run. The masters will choose among themselves a single master,
 and the others will become backups if the master should fail.
 
 \subsection{Client}
@@ -108,7 +108,7 @@ When a write arrives at a TabletServer it is written to a Write-Ahead Log and
 then inserted into a sorted data structure in memory called a MemTable. When the
 MemTable reaches a certain size the TabletServer writes out the sorted key-value
 pairs to a file in HDFS called Indexed Sequential Access Method (ISAM)
-file. This process is called a minor compaction.  A new MemTable is then created
+file. This process is called a minor compaction. A new MemTable is then created
 and the fact of the compaction is recorded in the Write-Ahead Log.
 
 When a request to read data arrives at a TabletServer, the TabletServer does a
@@ -128,20 +128,20 @@ delete entry when the new file is created.
 
 \section{Splitting}
 
-When a table is created it has one tablet.  As the table grows its initial
-tablet eventually splits into two tablets.   Its likely that one of these
-tablets will migrate to another tablet server.  As the table continues to grow,
-its tablets will continue to split and be migrated.  The decision to
-automatically split a tablet is based on the size of a tablets files.   The
-size threshold at which a tablet splits is configurable per table.  In addition
+When a table is created it has one tablet. As the table grows its initial
+tablet eventually splits into two tablets. Its likely that one of these
+tablets will migrate to another tablet server. As the table continues to grow,
+its tablets will continue to split and be migrated. The decision to
+automatically split a tablet is based on the size of a tablets files. The
+size threshold at which a tablet splits is configurable per table. In addition
 to automatic splitting, a user can manually add split points to a table to
-create new tablets.  Manually splitting a new table can parallelize reads and
+create new tablets. Manually splitting a new table can parallelize reads and
 writes giving better initial performance without waiting for automatic
 splitting.
 
-As data is deleted from a table, tablets may shrink.  Over time this can lead
-to small or empty tablets.   To deal with this, merging of tablets was
-introduced in Accumulo 1.4.  This is discussed in more detail later.
+As data is deleted from a table, tablets may shrink. Over time this can lead
+to small or empty tablets. To deal with this, merging of tablets was
+introduced in Accumulo 1.4. This is discussed in more detail later.
 
 \section{Fault-Tolerance}
 
@@ -152,7 +152,7 @@ Log to prevent any loss of data.
 
 The Master will coordinate the copying of write-ahead logs to HDFS so the logs
 are available to all tablet servers. To make recovery efficient, the updates
-within a log are grouped by tablet.  TabletServers can quickly apply the
+within a log are grouped by tablet. TabletServers can quickly apply the
 mutations from the sorted logs that are destined for the tablets they have now
 been assigned.
 

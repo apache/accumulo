@@ -1,10 +1,10 @@
 
 % Licensed to the Apache Software Foundation (ASF) under one or more
-% contributor license agreements.  See the NOTICE file distributed with
+% contributor license agreements. See the NOTICE file distributed with
 % this work for additional information regarding copyright ownership.
 % The ASF licenses this file to You under the Apache License, Version 2.0
 % (the "License"); you may not use this file except in compliance with
-% the License.  You may obtain a copy of the License at
+% the License. You may obtain a copy of the License at
 %
 %     http://www.apache.org/licenses/LICENSE-2.0
 %
@@ -18,7 +18,7 @@
 
 \section{Running Client Code}
 
-There are multiple ways to run Java code that uses Accumulo.  Below is a list
+There are multiple ways to run Java code that uses Accumulo. Below is a list
 of the different ways to execute client code.
 
 \begin{itemize} 
@@ -28,11 +28,11 @@ of the different ways to execute client code.
 \end{itemize}
 
 In order to run client code written to run against Accumulo, you will need to
-include the jars that Accumulo depends on in your classpath.  Accumulo client
-code depends on Hadoop and Zookeeper.  For Hadoop add the hadoop core jar, all
+include the jars that Accumulo depends on in your classpath. Accumulo client
+code depends on Hadoop and Zookeeper. For Hadoop add the hadoop core jar, all
 of the jars in the Hadoop lib directory, and the conf directory to the
 classpath. For Zookeeper 3.3 you only need to add the Zookeeper jar, and not
-what is in the Zookeeper lib directory.  You can run the following command on a
+what is in the Zookeeper lib directory. You can run the following command on a
 configured Accumulo system to see what its using for its classpath.
 
 \small 
@@ -42,13 +42,13 @@ $ACCUMULO_HOME/bin/accumulo classpath
 \normalsize
 
 Another option for running your code is to put a jar file in
-\texttt{\$ACCUMULO\_HOME/lib/ext}.  After doing this you can use the accumulo
-script to execute your code.  For example if you create a jar containing the
+\texttt{\$ACCUMULO\_HOME/lib/ext}. After doing this you can use the accumulo
+script to execute your code. For example if you create a jar containing the
 class com.foo.Client and placed that in lib/ext, then you could use the command
 \texttt{\$ACCUMULO\_HOME/bin/accumulo com.foo.Client} to execute your code.
 
 If you are writing map reduce job that access Accumulo, then you can use the
-bin/tool.sh script to run those jobs.  See the map reduce example.
+bin/tool.sh script to run those jobs. See the map reduce example.
 
 \section{Connecting}
 
@@ -61,7 +61,7 @@ String instanceName = "myinstance";
 String zooServers = "zooserver-one,zooserver-two"
 Instance inst = new ZooKeeperInstance(instanceName, zooServers);
 
-Connector conn = inst.getConnector("user", "passwd");
+Connector conn = inst.getConnector("user", new PasswordToken("passwd"));
 \end{verbatim}
 \normalsize
 
@@ -148,7 +148,7 @@ for(Entry<Key,Value> entry : scan) {
 \subsection{Isolated Scanner}
 
 Accumulo supports the ability to present an isolated view of rows when
-scanning.  There are three possible ways that a row could change in accumulo :
+scanning. There are three possible ways that a row could change in Accumulo :
 
 \begin{itemize}
  \item a mutation applied to a table
@@ -157,14 +157,14 @@ scanning.  There are three possible ways that a row could change in accumulo :
 \end{itemize}
 
 Isolation guarantees that either all or none of the changes made by these
-operations on a row are seen.  Use the IsolatedScanner to obtain an isolated
-view of an accumulo table.  When using the regular scanner it is possible to see
-a non isolated view of a row.  For example if a mutation modifies three
+operations on a row are seen. Use the IsolatedScanner to obtain an isolated
+view of an Accumulo table. When using the regular scanner it is possible to see
+a non isolated view of a row. For example if a mutation modifies three
 columns, it is possible that you will only see two of those modifications.
 With the isolated scanner either all three of the changes are seen or none.
 
 The IsolatedScanner buffers rows on the client side so a large row will not
-crash a tablet server.  By default rows are buffered in memory, but the user
+crash a tablet server. By default rows are buffered in memory, but the user
 can easily supply their own buffer if they wish to buffer to disk when rows are
 large.
 
