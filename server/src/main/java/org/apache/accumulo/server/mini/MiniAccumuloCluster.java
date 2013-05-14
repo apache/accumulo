@@ -44,7 +44,7 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
 
 /**
  * A utility class that will create Zookeeper and Accumulo processes that write all of their data to a single local directory. This class makes it easy to test
- * code against a real Accumulo instance. Its much more accurate for testing than MockAccumulo, but much slower than MockAccumulo.
+ * code against a real Accumulo instance. Its much more accurate for testing than {@link org.apache.accumulo.core.client.mock.MockAccumulo}, but much slower.
  * 
  * @since 1.5.0
  */
@@ -161,7 +161,7 @@ public class MiniAccumuloCluster {
     List<String> jvmOpts = new ArrayList<String>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     
-    if (config.isDebug()) {
+    if (config.isJWDPEnabled()) {
       Integer port = PortUtils.getRandomFreePort();
       jvmOpts.addAll(buildRemoteDebugParams(port));
       debugPorts.add(new Pair<ServerType,Integer>(serverType, port));

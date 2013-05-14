@@ -17,10 +17,19 @@
 package org.apache.accumulo.server.mini;
 
 /**
- * 
  * @since 1.6.0
  */
 
 public enum ServerType {
-  MASTER, ZOOKEEPER, TABLET_SERVER
+  MASTER("Master"), ZOOKEEPER("ZooKeeper"), TABLET_SERVER("TServer");
+
+  private final String prettyPrint;
+
+  public String prettyPrint() {
+    return prettyPrint;
+  }
+
+  ServerType(String prettyPrint) {
+    this.prettyPrint = prettyPrint;
+  }
 }

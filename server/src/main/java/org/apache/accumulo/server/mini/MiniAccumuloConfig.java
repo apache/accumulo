@@ -38,7 +38,7 @@ public class MiniAccumuloConfig {
   private int numTservers = 2;
   private Map<ServerType,Long> memoryConfig = new HashMap<ServerType,Long>();
   
-  private boolean debug = false;
+  private boolean jwdpEnabled = false;
   
   private String instanceName = "miniInstance";
   
@@ -200,7 +200,7 @@ public class MiniAccumuloConfig {
    * @param memory
    *          amount of memory to set
    * 
-   * @memoryUnit the units for which to apply with the memory size
+   * @param memoryUnit the units for which to apply with the memory size
    * 
    * @since 1.6.0
    */
@@ -309,23 +309,23 @@ public class MiniAccumuloConfig {
   }
   
   /**
-   * @return is the current configuration in debug mode?
+   * @return is the current configuration in jwdpEnabled mode?
    * 
    * @since 1.6.0
    */
-  public boolean isDebug() {
-    return debug;
+  public boolean isJWDPEnabled() {
+    return jwdpEnabled;
   }
   
   /**
-   * @param debug
-   *          should the processes run remote debug servers?
+   * @param jwdpEnabled
+   *          should the processes run remote jwdpEnabled servers?
    * @return the current instance
    * 
    * @since 1.6.0
    */
-  public MiniAccumuloConfig setDebug(boolean debug) {
-    this.debug = debug;
+  public MiniAccumuloConfig setJWDPEnabled(boolean jwdpEnabled) {
+    this.jwdpEnabled = jwdpEnabled;
     return this;
   }
   
