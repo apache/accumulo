@@ -1,1 +1,123 @@
-% Licensed to the Apache Software Foundation (ASF) under one or more% contributor license agreements.  See the NOTICE file distributed with% this work for additional information regarding copyright ownership.% The ASF licenses this file to You under the Apache License, Version 2.0% (the "License"); you may not use this file except in compliance with% the License.  You may obtain a copy of the License at%%     http://www.apache.org/licenses/LICENSE-2.0%% Unless required by applicable law or agreed to in writing, software% distributed under the License is distributed on an "AS IS" BASIS,% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.% See the License for the specific language governing permissions and% limitations under the License.\chapter{Development Clients}Normally, Accumulo consists of lots of moving parts.  Even a stand-alone version ofAccumulo requires Hadoop, Zookeeper, the Accumulo master, a tablet server, etc. Ifyou want to write a unit test that uses Accumulo, you need a lot of infrastructurein place before your test can run.\section{Mock Accumulo}Mock Accumulo supplies mock implementations for much of the client API. It presentlydoes not enforce users, logins, permissions, etc. It does support Iterators and Combiners.Note that MockAccumulo holds all data in memory, and will not retain any data orsettings between runs.While normal interaction with the Accumulo client looks like this:\small\begin{verbatim}Instance instance = new ZooKeeperInstance(...);Connector conn = instance.getConnector(user, passwd);\end{verbatim}\normalsizeTo interact with the MockAccumulo, just replace the ZooKeeperInstance with MockInstance:\small\begin{verbatim}Instance instance = new MockInstance();\end{verbatim}\normalsizeIn fact, you can use the "--fake" option to the Accumulo shell and interact withMockAccumulo:\small\begin{verbatim}$ ./bin/accumulo shell --fake -u root -p nonsenseShell - Apache Accumulo Interactive Shell-- version: 1.4.4- instance name: mock-instance- instance id: mock-instance-id-- type 'help' for a list of available commands-root@mock-instance> createtable testroot@mock-instance test> insert row1 cf cq valueroot@mock-instance test> insert row2 cf cq value2root@mock-instance test> insert row3 cf cq value3root@mock-instance test> scanrow1 cf:cq []    valuerow2 cf:cq []    value2row3 cf:cq []    value3root@mock-instance test> scan -b row2 -e row2row2 cf:cq []    value2root@mock-instance test>\end{verbatim}\normalsizeWhen testing Map Reduce jobs, you can also set the Mock Accumulo on the AccumuloInputFormatand AccumuloOutputFormat classes:\small\begin{verbatim}// ... set up job configurationAccumuloInputFormat.setMockInstance(job, "mockInstance");AccumuloOutputFormat.setMockInstance(job, "mockInstance");\end{verbatim}\normalsize\section{Mini Accumulo Cluster}While the Mock Accumulo provides a lightweight implementation of the client API for unittesting, it is often necessary to write more realistic end-to-end integration tests thattake advantage of the entire ecosystem. The Mini Accumulo Cluster makes this possible byconfiguring and starting Zookeeper, initializing Accumulo, and starting the Master as wellas some Tablet Servers. It runs against the local filesystem instead of having to startup HDFS.To start it up, you will need to supply an empty directory and a root password as arguments:\small\begin{verbatim}File tempDirectory = // JUnit and Guava supply mechanisms for creating temp directoriesMiniAccumuloCluster accumulo = new MiniAccumuloCluster(tempDirectory, "password");accumulo.start();\end{verbatim}\normalsizeOnce we have our mini cluster running, we will want to interact with the Accumulo client API:\small\begin{verbatim}Instance instance = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());Connector conn = instance.getConnector("root", "password");\end{verbatim}\normalsizeUpon completion of our development code, we will want to shutdown our MiniAccumuloCluster:\small\begin{verbatim}accumulo.stop()// delete your temporary folder\end{verbatim}\normalsize
+
+% Licensed to the Apache Software Foundation (ASF) under one or more
+% contributor license agreements.  See the NOTICE file distributed with
+% this work for additional information regarding copyright ownership.
+% The ASF licenses this file to You under the Apache License, Version 2.0
+% (the "License"); you may not use this file except in compliance with
+% the License.  You may obtain a copy of the License at
+%
+%     http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+
+\chapter{Development Clients}
+
+Normally, Accumulo consists of lots of moving parts.  Even a stand-alone version of
+Accumulo requires Hadoop, Zookeeper, the Accumulo master, a tablet server, etc. If
+you want to write a unit test that uses Accumulo, you need a lot of infrastructure
+in place before your test can run.
+
+\section{Mock Accumulo}
+
+Mock Accumulo supplies mock implementations for much of the client API. It presently
+does not enforce users, logins, permissions, etc. It does support Iterators and Combiners.
+Note that MockAccumulo holds all data in memory, and will not retain any data or
+settings between runs.
+
+While normal interaction with the Accumulo client looks like this:
+
+\small
+\begin{verbatim}
+Instance instance = new ZooKeeperInstance(...);
+Connector conn = instance.getConnector(user, passwd);
+\end{verbatim}
+\normalsize
+
+To interact with the MockAccumulo, just replace the ZooKeeperInstance with MockInstance:
+
+\small
+\begin{verbatim}
+Instance instance = new MockInstance();
+\end{verbatim}
+\normalsize
+
+In fact, you can use the "--fake" option to the Accumulo shell and interact with
+MockAccumulo:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo shell --fake -u root -p nonsense
+
+Shell - Apache Accumulo Interactive Shell
+-
+- version: 1.4.4
+- instance name: mock-instance
+- instance id: mock-instance-id
+-
+- type 'help' for a list of available commands
+-
+root@mock-instance> createtable test
+root@mock-instance test> insert row1 cf cq value
+root@mock-instance test> insert row2 cf cq value2
+root@mock-instance test> insert row3 cf cq value3
+root@mock-instance test> scan
+row1 cf:cq []    value
+row2 cf:cq []    value2
+row3 cf:cq []    value3
+root@mock-instance test> scan -b row2 -e row2
+row2 cf:cq []    value2
+root@mock-instance test>
+\end{verbatim}
+\normalsize
+
+When testing Map Reduce jobs, you can also set the Mock Accumulo on the AccumuloInputFormat
+and AccumuloOutputFormat classes:
+
+\small
+\begin{verbatim}
+// ... set up job configuration
+AccumuloInputFormat.setMockInstance(job, "mockInstance");
+AccumuloOutputFormat.setMockInstance(job, "mockInstance");
+\end{verbatim}
+\normalsize
+
+\section{Mini Accumulo Cluster}
+
+While the Mock Accumulo provides a lightweight implementation of the client API for unit
+testing, it is often necessary to write more realistic end-to-end integration tests that
+take advantage of the entire ecosystem. The Mini Accumulo Cluster makes this possible by
+configuring and starting Zookeeper, initializing Accumulo, and starting the Master as well
+as some Tablet Servers. It runs against the local filesystem instead of having to start
+up HDFS.
+
+To start it up, you will need to supply an empty directory and a root password as arguments:
+
+\small
+\begin{verbatim}
+File tempDirectory = // JUnit and Guava supply mechanisms for creating temp directories
+MiniAccumuloCluster accumulo = new MiniAccumuloCluster(tempDirectory, "password");
+accumulo.start();
+\end{verbatim}
+\normalsize
+
+Once we have our mini cluster running, we will want to interact with the Accumulo client API:
+
+\small
+\begin{verbatim}
+Instance instance = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
+Connector conn = instance.getConnector("root", "password");
+\end{verbatim}
+\normalsize
+
+Upon completion of our development code, we will want to shutdown our MiniAccumuloCluster:
+
+\small
+\begin{verbatim}
+accumulo.stop()
+// delete your temporary folder
+\end{verbatim}
+\normalsize
