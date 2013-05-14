@@ -46,7 +46,7 @@ by the environment variable \texttt{\$ACCUMULO\_HOME}. Run the following:
 \small
 \begin{verbatim}
 $ tar xzf accumulo-assemble-1.5.0-bin.tar.gz    # unpack to subdirectory
-$ mv accumulo-assemble-1.5.0-bin $ACCUMULO_HOME # move to desired location
+$ mv accumulo-1.5.0 $ACCUMULO_HOME # move to desired location
 \end{verbatim}
 \normalsize
 
@@ -74,7 +74,7 @@ and specify the following:
 \begin{enumerate}
 \item{Enter the location of the installation directory of Accumulo for \texttt{\$ACCUMULO\_HOME}}
 \item{Enter your system's Java home for \texttt{\$JAVA\_HOME}}
-\item{Enter the location of Hadoop for \texttt{\$HADOOP\_HOME}}
+\item{Enter the location of Hadoop for \texttt{\$HADOOP\_PREFIX}}
 \item{Choose a location for Accumulo logs and enter it for \texttt{\$ACCUMULO\_LOG\_DIR}}
 \item{Enter the location of ZooKeeper for \texttt{\$ZOOKEEPER\_HOME}}
 \end{enumerate}
@@ -128,21 +128,6 @@ Specify appropriate values for the following settings in\\
 This enables Accumulo to find ZooKeeper. Accumulo uses ZooKeeper to coordinate
 settings between processes and helps finalize TabletServer failure.
 
-
-\small
-\begin{verbatim}
-<property>
-    <name>walog</name>
-    <value>/var/accumulo/walogs</value>
-    <description>local directory for write ahead logs</description>
-</property>
-\end{verbatim}
-\normalsize
-
-Accumulo records all changes to tables to a write-ahead log before committing
-them to the table. The `walog' setting specifies the local directory on each machine
-to which write-ahead logs are written. This directory should exist on all machines
-acting as TabletServers.
 
 \small
 \begin{verbatim}
@@ -220,9 +205,8 @@ either when the tablets from the failed server are reassigned by the Master, in 
 case of a single TabletServer failure or the next time Accumulo starts, in the event of
 failure during shutdown.
 
-Recovery is performed by asking the loggers to copy their write-ahead logs into HDFS.
-As the logs are copied, they are also sorted, so that tablets can easily find their missing
-updates. The copy/sort status of each file is displayed on
+Recovery is performed by asking a tablet server to sort the logs so that tablets can easily find their missing
+updates. The sort status of each file is displayed on
 Accumulo monitor status page. Once the recovery is complete any
 tablets involved should return to an ``online" state. Until then those tablets will be
 unavailable to clients.
