@@ -1,10 +1,10 @@
 
 % Licensed to the Apache Software Foundation (ASF) under one or more
-% contributor license agreements. See the NOTICE file distributed with
+% contributor license agreements.  See the NOTICE file distributed with
 % this work for additional information regarding copyright ownership.
 % The ASF licenses this file to You under the Apache License, Version 2.0
 % (the "License"); you may not use this file except in compliance with
-% the License. You may obtain a copy of the License at
+% the License.  You may obtain a copy of the License at
 %
 %     http://www.apache.org/licenses/LICENSE-2.0
 %
@@ -16,7 +16,7 @@
 
 \chapter{Development Clients}
 
-Normally, Accumulo consists of lots of moving parts. Even a stand-alone version of
+Normally, Accumulo consists of lots of moving parts.  Even a stand-alone version of
 Accumulo requires Hadoop, Zookeeper, the Accumulo master, a tablet server, etc. If
 you want to write a unit test that uses Accumulo, you need a lot of infrastructure
 in place before your test can run.
@@ -33,7 +33,7 @@ While normal interaction with the Accumulo client looks like this:
 \small
 \begin{verbatim}
 Instance instance = new ZooKeeperInstance(...);
-Connector conn = instance.getConnector(user, passwordToken);
+Connector conn = instance.getConnector(user, passwd);
 \end{verbatim}
 \normalsize
 
@@ -109,7 +109,7 @@ Once we have our mini cluster running, we will want to interact with the Accumul
 \small
 \begin{verbatim}
 Instance instance = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
-Connector conn = instance.getConnector("root", new PasswordToken("password"));
+Connector conn = instance.getConnector("root", "password");
 \end{verbatim}
 \normalsize
 
