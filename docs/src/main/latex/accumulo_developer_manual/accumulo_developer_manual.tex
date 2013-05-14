@@ -1,10 +1,10 @@
 
 % Licensed to the Apache Software Foundation (ASF) under one or more
-% contributor license agreements.  See the NOTICE file distributed with
+% contributor license agreements. See the NOTICE file distributed with
 % this work for additional information regarding copyright ownership.
 % The ASF licenses this file to You under the Apache License, Version 2.0
 % (the "License"); you may not use this file except in compliance with
-% the License.  You may obtain a copy of the License at
+% the License. You may obtain a copy of the License at
 %
 %     http://www.apache.org/licenses/LICENSE-2.0
 %
@@ -75,7 +75,7 @@ Each of the aforementioned internal components is described by a series of illus
 % introduce read/write operations
 Figure \ref{fig_ts_rw} shows the Tablet Server data flow during regular read/write operations.
 All of the descriptions in this section will refer to the data flows shown in figure \ref{fig_ts_rw}.
-In (1) and (8), the Client contacts RPCs within the Thrift service hosted on the TabletServer.  
+In (1) and (8), the Client contacts RPCs within the Thrift service hosted on the TabletServer. 
 These RPCs are all the org.apache.accumulo.server.tabletserver.TabletServer.ThriftClientHandler, that implements the org.apache.accumulo.core.tabletserver.thrift.ThriftClientHandler.Iface interface.
 Methods within this interface are divided into read and write methods.
 
@@ -101,7 +101,7 @@ closeUpdate(long) returns the list of tablets that had errors, and how many muta
 
 When mutations arrive at the tablet server (1), they are cached briefly to queue up many streamed mutations for the same session.
 If cache memory fills, or a session is closed, the Mutations are flushed (2) through to a local Logger component which 
-forwards the updates to a remote Logger service (4) using a RPC interface.  
+forwards the updates to a remote Logger service (4) using a RPC interface. 
 In order to provide redundancy, the mutations are sent to two different Logger servers in the cluster.
 The Tablet Server records what logs are used (3) by each tablet in the Metadata Table describing the tablet.
 When a Tablet Server fails, its Tablets are reassigned by the Master, 

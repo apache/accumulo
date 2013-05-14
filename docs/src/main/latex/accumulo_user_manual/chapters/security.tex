@@ -1,10 +1,10 @@
 
 % Licensed to the Apache Software Foundation (ASF) under one or more
-% contributor license agreements.  See the NOTICE file distributed with
+% contributor license agreements. See the NOTICE file distributed with
 % this work for additional information regarding copyright ownership.
 % The ASF licenses this file to You under the Apache License, Version 2.0
 % (the "License"); you may not use this file except in compliance with
-% the License.  You may obtain a copy of the License at
+% the License. You may obtain a copy of the License at
 %
 %     http://www.apache.org/licenses/LICENSE-2.0
 %
@@ -104,18 +104,18 @@ Scanner s = connector.createScanner("table", auths);
 
 \section{User Authorizations}
 
-Each accumulo user has a set of associated security labels.  To manipulate
-these in the shell use the setuaths and getauths commands.  These may also be
-modified using the java security operations API.   
+Each Accumulo user has a set of associated security labels. To manipulate
+these in the shell while using the default authorizor, use the setuaths and getauths commands.
+These may also be modified for the default authorizor using the java security operations API. 
 
-When a user creates a scanner a set of Authorizations is passed.  If the
+When a user creates a scanner a set of Authorizations is passed. If the
 authorizations passed to the scanner are not a subset of the users
 authorizations, then an exception will be thrown.
 
 To prevent users from writing data they can not read, add the visibility
-constraint to a table.  Use the -evc option in the createtable shell command to
-enable this constraint.  For existing tables use the following shell command to
-enable the visibility constraint.  Ensure the constraint number does not
+constraint to a table. Use the -evc option in the createtable shell command to
+enable this constraint. For existing tables use the following shell command to
+enable the visibility constraint. Ensure the constraint number does not
 conflict with any existing constraints.
   
 \small
@@ -128,13 +128,40 @@ Any user with the alter table permission can add or remove this constraint.
 This constraint is not applied to bulk imported data, if this a concern then
 disable the bulk import permission.
 
+\section{Pluggable Security}
+
+New in 1.5 of Accumulo is a pluggable security mechanism. It can be broken into three actions-
+authentication, authorization, and permission handling. By default all of these are handled in
+Zookeeper, which is how things were handled in Accumulo 1.4 and before. It is worth noting at this
+point, that it is a new feature in 1.5 and may be adjusted in future releases without the standard
+deprecation cycle.
+
+Authentication simply handles the ability for a user to verify their integrity. A combination of 
+principal and authentication token are used to verify a user is who they say they are. An 
+authentication token should be constructed, either directly through it's constructor, but it is 
+advised to use the init(Property) method to populate an authentication token. It is expected that a 
+user knows what the appropriate token to use for their system is. The default token is 
+PasswordToken. 
+
+Once a user is authenticated by the Authenticator, the user has access to the other actions within 
+Accumulo. All actions in Accumulo are ACLed, and this ACL check is handled by the Permission 
+Handler. This is what manages all of the permissions, which are divided in system and per table 
+level. From there, if a user is doing an action which requires authorizations, the Authorizor is 
+queried to determine what authorizations the user has.
+
+This setup allows a variety of different mechanisms to be used for handling different aspects of 
+Accumulo's security. A system like Kerberos can be used for authentication, then a system like LDAP 
+could be used to determine if a user has a specific permission, and then it may default back to the 
+default ZookeeperAuthorizor to determine what Authorizations a user is ultimately allowed to use. 
+This is a pluggable system so custom components can be created depending on your need.
+
 \section{Secure Authorizations Handling}
 
-For applications serving many users, it is not expected that an accumulo user
-will be created for each application user.  In this case an accumulo user with
-all authorizations needed by any of the applications users must be created.  To
+For applications serving many users, it is not expected that an Accumulo user
+will be created for each application user. In this case an Accumulo user with
+all authorizations needed by any of the applications users must be created. To
 service queries, the application should create a scanner with the application
-user's authorizations.  These authorizations could be obtained from a trusted 3rd
+user's authorizations. These authorizations could be obtained from a trusted 3rd
 party.
 
 Often production systems will integrate with Public-Key Infrastructure (PKI) and
