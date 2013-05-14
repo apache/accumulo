@@ -34,6 +34,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
@@ -62,6 +63,9 @@ public class MockInstance implements Instance {
   
   static FileSystem getDefaultFileSystem() {
     try {
+      Configuration conf = CachedConfiguration.getInstance();
+      conf.set("fs.file.impl", "org.apache.hadoop.fs.LocalFileSystem");
+      conf.set("fs.default.name", "file:///");
       return FileSystem.get(CachedConfiguration.getInstance());
     } catch (IOException ex) {
       throw new RuntimeException(ex);
