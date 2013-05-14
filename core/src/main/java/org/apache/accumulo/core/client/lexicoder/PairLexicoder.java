@@ -24,6 +24,25 @@ import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
 import org.apache.accumulo.core.util.ComparablePair;
 
 /**
+ * This class is a lexicoder that sorts a ComparablePair. Each item in the pair is encoded with the given lexicoder and concatenated together.
+ * This makes it easy to construct a sortable key based on two components. There are many examples of this- but a key/value relationship is a great one.
+ *
+ * If we decided we wanted a two-component key where the first component is a string and the second component a date which is reverse sorted, we can do so with
+ * the following example:
+ *
+ * <pre>
+ * {@code
+ * StringLexicoder stringEncoder = new StringLexicoder();
+ * ReverseLexicoder<Date> dateEncoder = new ReverseLexicoder<Date>(new DateLexicoder());
+ * PairLexicoder<String,Date> pairLexicoder = new PairLexicoder<String,Date>(stringEncoder, dateEncoder);
+ * byte[] pair1 = pairLexicoder.encode(new ComparablePair<String,Date>("com.google", new Date()));
+ * byte[] pair2 = pairLexicoder.encode(new ComparablePair<String,Date>("com.google", new Date(System.currentTimeMillis() + 500)));
+ * byte[] pair3 = pairLexicoder.encode(new ComparablePair<String,Date>("org.apache", new Date(System.currentTimeMillis() + 1000)));
+ * }
+ * </pre>
+ * 
+ * In the example, pair2 will be sorted before pair1. pair3 will occur last since 'org' is sorted after 'com'. If we just used a {@link DateLexicoder} instead
+ * of a {@link ReverseLexicoder}, pair1 would have been sorted before pair2.
  * 
  * @since 1.6.0
  */

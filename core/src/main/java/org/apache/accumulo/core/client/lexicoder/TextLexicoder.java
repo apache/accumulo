@@ -20,6 +20,8 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
 /**
+ * A lexicoder that preserves a Text's native sort order. It can be combined with other encoders like the {@link ReverseLexicoder} to flip the default sort
+ * order.
  * 
  * @since 1.6.0
  */

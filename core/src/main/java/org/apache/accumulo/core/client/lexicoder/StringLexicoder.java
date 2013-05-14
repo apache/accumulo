@@ -19,6 +19,8 @@ package org.apache.accumulo.core.client.lexicoder;
 import java.io.UnsupportedEncodingException;
 
 /**
+ * This lexicoder encodes/decodes a given String to/from bytes without further processing. It can be combined with other encoders like the
+ * {@link ReverseLexicoder} to flip the default sort order.
  * 
  * @since 1.6.0
  */

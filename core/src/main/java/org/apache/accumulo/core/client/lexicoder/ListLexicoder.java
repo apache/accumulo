@@ -25,10 +25,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * A lexicoder to encode/decode a Java List to/from a byte array where the concatenation of each encoded element sorts lexicographically.
  * 
  * @since 1.6.0
  */
-
 public class ListLexicoder<LT> implements Lexicoder<List<LT>> {
   
   private Lexicoder<LT> lexicoder;
@@ -37,6 +37,9 @@ public class ListLexicoder<LT> implements Lexicoder<List<LT>> {
     this.lexicoder = lexicoder;
   }
   
+  /**
+   * @return a byte array containing the concatenation of each element in the list encoded.
+   */
   @Override
   public byte[] encode(List<LT> v) {
     byte[][] encElements = new byte[v.size()][];
@@ -61,5 +64,4 @@ public class ListLexicoder<LT> implements Lexicoder<List<LT>> {
     
     return ret;
   }
-  
 }

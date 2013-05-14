@@ -17,7 +17,7 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 /**
- * 
+ * An encoder represents a typed object that can be encoded/decoded to/from a byte array.
  * @since 1.6.0
  */
 public interface Encoder<T> extends org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder<T> {

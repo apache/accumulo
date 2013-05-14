@@ -17,6 +17,8 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 /**
+ * For each of the methods, this lexicoder just passes the input through untouched. It is meant to be combined with other lexicoders like the
+ * {@link ReverseLexicoder}.
  * 
  * @since 1.6.0
  */

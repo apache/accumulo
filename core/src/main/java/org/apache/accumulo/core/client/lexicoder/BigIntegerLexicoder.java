@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream
 import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
- * 
+ * A lexicoder to encode/decode a BigInteger to/from bytes that maintain its native Java sort order.
  * @since 1.6.0
  */
 public class BigIntegerLexicoder implements Lexicoder<BigInteger> {

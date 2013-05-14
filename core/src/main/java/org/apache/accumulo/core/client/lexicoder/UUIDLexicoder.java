@@ -26,12 +26,16 @@ import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream
 import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
+ * A lexicoder for a UUID that maintains its lexicographic sorting order.
  * 
  * @since 1.6.0
  */
-
 public class UUIDLexicoder implements Lexicoder<UUID> {
   
+  /**
+   * @see <a href="http://www.ietf.org/rfc/rfc4122.txt"> RFC 4122: A Universally Unique IDentifier (UUID) URN Namespace</a>, "Rules for Lexical Equivalence" in
+   *      Section 3.
+   */
   @Override
   public byte[] encode(UUID uuid) {
     try {

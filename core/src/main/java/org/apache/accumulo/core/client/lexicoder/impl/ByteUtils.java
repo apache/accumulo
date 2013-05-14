@@ -54,7 +54,10 @@ public class ByteUtils {
     
     return ret;
   }
-  
+
+  /**
+   * Unescapes 0x00 0x01 0x01 with 0x00 and 0x01 0x01 0x2 with 0x01
+   */
   public static byte[] unescape(byte[] in) {
     int escapeCount = 0;
     for (int i = 0; i < in.length; i++) {
@@ -82,7 +85,10 @@ public class ByteUtils {
     
     return ret;
   }
-  
+
+  /**
+   * Splits a byte array by 0x00
+   */
   public static byte[][] split(byte[] data) {
     ArrayList<Integer> offsets = new ArrayList<Integer>();
     
@@ -105,7 +111,10 @@ public class ByteUtils {
     
     return ret;
   }
-  
+
+  /**
+   * Concatenates byte arrays with 0x00 as a delimiter
+   */
   public static byte[] concat(byte[]... fields) {
     int len = 0;
     for (byte[] field : fields) {

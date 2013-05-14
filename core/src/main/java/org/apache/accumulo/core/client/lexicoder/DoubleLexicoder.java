@@ -17,7 +17,8 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 /**
- * 
+ * A lexicoder for preserving the native Java sort order of Double values.
+ *
  * @since 1.6.0
  */
 public class DoubleLexicoder implements Lexicoder<Double> {

@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 /**
- * Signed long encoder. The lexicographic encoding sorts Long.MIN_VALUE first and Long.MAX_VALUE last. The lexicographic encoding sorts -2l before -1l. It
- * corresponds to the sort order of Long.
+ * Signed long lexicoder. The encoding sorts Long.MIN_VALUE first and Long.MAX_VALUE last. The encoding sorts -2l before -1l. It corresponds to the native Java
+ * sort order of Long.
  * 
  * @since 1.6.0
  */

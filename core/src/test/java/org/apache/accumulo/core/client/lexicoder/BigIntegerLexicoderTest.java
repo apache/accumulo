@@ -16,7 +16,10 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.util.ComparablePair;
+
 import java.math.BigInteger;
+import java.util.Date;
 
 /**
  * 
@@ -30,6 +33,7 @@ public class BigIntegerLexicoderTest extends LexicoderTest {
         new BigInteger("-2147483647"), new BigInteger("-2147483649"), new BigInteger("32768"), new BigInteger("32769"), new BigInteger("32767"),
         new BigInteger("-32768"), new BigInteger("-32769"), new BigInteger("-32767"), new BigInteger("126"), new BigInteger("127"), new BigInteger("128"),
         new BigInteger("129"), new BigInteger("-126"), new BigInteger("-127"), new BigInteger("-128"), new BigInteger("-129"));
-    
+
+
   }
 }

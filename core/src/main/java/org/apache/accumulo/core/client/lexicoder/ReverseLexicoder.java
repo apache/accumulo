@@ -20,6 +20,9 @@ import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.escape;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
 
 /**
+ * A lexicoder that flips the sort order from another lexicoder. If this is applied to {@link DateLexicoder}, the most recent date will be sorted first and the
+ * oldest date will be sorted last. If it's applied to {@link LongLexicoder}, the Long.MAX_VALUE will be sorted first and Long.MIN_VALUE will be sorted last,
+ * etc...
  * 
  * @since 1.6.0
  */
@@ -28,6 +31,10 @@ public class ReverseLexicoder<T> implements Lexicoder<T> {
   
   private Lexicoder<T> lexicoder;
   
+  /**
+   * @param lexicoder
+   *          The lexicoder who's sort order will be flipped.
+   */
   public ReverseLexicoder(Lexicoder<T> lexicoder) {
     this.lexicoder = lexicoder;
   }
