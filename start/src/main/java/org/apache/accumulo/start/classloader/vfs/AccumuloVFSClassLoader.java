@@ -73,7 +73,7 @@ public class AccumuloVFSClassLoader {
   
   private static List<WeakReference<DefaultFileSystemManager>> vfsInstances = Collections
       .synchronizedList(new ArrayList<WeakReference<DefaultFileSystemManager>>());
-
+  
   public static final String DYNAMIC_CLASSPATH_PROPERTY_NAME = "general.dynamic.classpaths";
   
   public static final String DEFAULT_DYNAMIC_CLASSPATH_VALUE = "$ACCUMULO_HOME/lib/ext/[^.].*.jar\n";
@@ -198,9 +198,8 @@ public class AccumuloVFSClassLoader {
       synchronized (lock) {
         if (null == loader) {
           
-          
           FileSystemManager vfs = generateVfs();
-
+          
           // Set up the 2nd tier class loader
           if (null == parent) {
             parent = AccumuloClassLoader.getClassLoader();
@@ -302,17 +301,38 @@ public class AccumuloVFSClassLoader {
           out.print("");
         level++;
         
+        String classLoaderDescription;
+        
+        switch (level) {
+          case 1:
+            classLoaderDescription = level + ": Java System Classloader (loads Java)";
+            break;
+          case 2:
+            classLoaderDescription = level + ": Accumulo Start Classloader (loads the classloader)";
+            break;
+          case 3:
+            classLoaderDescription = level + ": Accumulo Classloader (loads everything defined by general.classpaths)";
+            break;
+          case 4:
+            classLoaderDescription = level + ": Accumulo Dynamic Classloader (loads everything defined by general.dynamic.classpaths)";
+            break;
+          default:
+            classLoaderDescription = level + ": Mystery Classloader (someone probably added a classloader and didn't update the switch statement in "
+                + AccumuloVFSClassLoader.class.getName() + ")";
+            break;
+        }
+        
         if (classLoader instanceof URLClassLoader) {
           // If VFS class loader enabled, but no contexts defined.
           URLClassLoader ucl = (URLClassLoader) classLoader;
-          out.print("Level " + level + " URL classpath items are:");
+          out.print("Level " + classLoaderDescription + " URL classpath items are:");
           
           for (URL u : ucl.getURLs()) {
             out.print("\t" + u.toExternalForm());
           }
           
         } else if (classLoader instanceof VFSClassLoader) {
-          out.print("Level " + level + " VFS classpaths items are:");
+          out.print("Level " + classLoaderDescription + " VFS classpaths items are:");
           VFSClassLoader vcl = (VFSClassLoader) classLoader;
           for (FileObject f : vcl.getFileObjects()) {
             out.print("\t" + f.getURL().toExternalForm());
