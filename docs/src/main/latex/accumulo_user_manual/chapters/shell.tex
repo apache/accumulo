@@ -67,6 +67,8 @@ root@myinstance mytable> createtable testtable
 root@myinstance testtable>
 
 root@myinstance testtable> deletetable testtable
+deletetable { testtable } (yes|no)? yes
+Table: [testtable] has been deleted. 
 
 root@myinstance>
 \end{verbatim}
@@ -98,8 +100,7 @@ files are consolidated and deleted entries are removed.
 \small
 \begin{verbatim}
 root@myinstance mytable> compact -t mytable
-07 16:13:53,201 [shell.Shell] INFO : Compaction of table mytable
-scheduled for 20100707161353EDT
+07 16:13:53,201 [shell.Shell] INFO : Compaction of table mytable started for given range
 \end{verbatim}
 \normalsize
 

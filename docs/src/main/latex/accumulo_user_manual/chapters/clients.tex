@@ -100,12 +100,12 @@ Mutations are added to a BatchWriter thus:
 
 \small
 \begin{verbatim}
-long memBuf = 1000000L; // bytes to store before sending a batch
-long timeout = 1000L; // milliseconds to wait before sending
-int numThreads = 10;
+BatchWriterConfig config = new BatchWriterConfig();
+config.setMaxMemory(1000000L); // bytes to store before sending a batch
+config.setMaxLatency(1000L);   // milliseconds to wait before sending
+config.maxWriteThreads(10);    // number of threads used to write to tablet servers
 
-BatchWriter writer =
-    conn.createBatchWriter("table", memBuf, timeout, numThreads)
+BatchWriter writer = conn.createBatchWriter("table", config)
 
 writer.add(mutation);
 
