@@ -52,7 +52,7 @@ import org.apache.commons.vfs2.FileSystemException;
 
 public class SetIterCommand extends Command {
   
-  private Option mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt, priorityOpt;
+  private Option allScopeOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt, priorityOpt;
   private Option aggTypeOpt, ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
   
   @Override
@@ -149,13 +149,13 @@ public class SetIterCommand extends Command {
       }
     }
     final EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
-    if (cl.hasOption(mincScopeOpt.getOpt())) {
+    if (cl.hasOption(allScopeOpt.getOpt()) || cl.hasOption(mincScopeOpt.getOpt())) {
       scopes.add(IteratorScope.minc);
     }
-    if (cl.hasOption(majcScopeOpt.getOpt())) {
+    if (cl.hasOption(allScopeOpt.getOpt()) || cl.hasOption(majcScopeOpt.getOpt())) {
       scopes.add(IteratorScope.majc);
     }
-    if (cl.hasOption(scanScopeOpt.getOpt())) {
+    if (cl.hasOption(allScopeOpt.getOpt()) || cl.hasOption(scanScopeOpt.getOpt())) {
       scopes.add(IteratorScope.scan);
     }
     if (scopes.isEmpty()) {
@@ -281,6 +281,7 @@ public class SetIterCommand extends Command {
     nameOpt = new Option("n", "name", true, "iterator to set");
     nameOpt.setArgName("itername");
     
+    allScopeOpt = new Option("all", "all-scopes", false, "applied at scan time, minor and major compactions");
     mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false, "applied at minor compaction");
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false, "applied at major compaction");
     scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "applied at scan time");
@@ -305,6 +306,7 @@ public class SetIterCommand extends Command {
     o.addOption(OptUtil.tableOpt("table to configure iterators on"));
     o.addOption(priorityOpt);
     o.addOption(nameOpt);
+    o.addOption(allScopeOpt);
     o.addOption(mincScopeOpt);
     o.addOption(majcScopeOpt);
     o.addOption(scanScopeOpt);
