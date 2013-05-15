@@ -24,15 +24,13 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -42,11 +40,11 @@ import com.beust.jcommander.Parameter;
 public class RestoreZookeeper {
   
   private static class Restore extends DefaultHandler {
-    ZooKeeper zk = null;
+    IZooReaderWriter zk = null;
     Stack<String> cwd = new Stack<String>();
     boolean overwrite = false;
     
-    Restore(ZooKeeper zk, boolean overwrite) {
+    Restore(IZooReaderWriter zk, boolean overwrite) {
       this.zk = zk;
       this.overwrite = overwrite;
     }
@@ -82,7 +80,7 @@ public class RestoreZookeeper {
         data = Base64.decodeBase64(value.getBytes());
       try {
         try {
-          ZooUtil.putPersistentData(zk, path, data, overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
+          zk.putPersistentData(path, data, overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
         } catch (KeeperException e) {
           if (e.code().equals(KeeperException.Code.NODEEXISTS))
             throw new RuntimeException(path + " exists.  Remove it first.");
@@ -112,19 +110,14 @@ public class RestoreZookeeper {
     Opts opts = new Opts();
     opts.parseArgs(RestoreZookeeper.class.getName(), args);
     
-    int timeout = 30 * 1000;
     InputStream in = System.in;
     if (opts.file != null) {
       in = new FileInputStream(opts.file);
     }
-    ZooKeeper zk = new ZooKeeper(opts.keepers, timeout, new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {}
-    });
     
     SAXParserFactory factory = SAXParserFactory.newInstance();
     SAXParser parser = factory.newSAXParser();
-    parser.parse(in, new Restore(zk, opts.overwrite));
+    parser.parse(in, new Restore(ZooReaderWriter.getInstance(), opts.overwrite));
     in.close();
   }
 }
