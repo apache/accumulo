@@ -785,7 +785,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
         tl.invalidateCache();
         while (!tl.binRanges(ranges, binnedRanges,
-            new TCredentials(getPrincipal(context), getTokenClass(context), ByteBuffer.wrap(getToken(context)), getInstance(context).getInstanceID())).isEmpty()) {
+            new TCredentials(getPrincipal(context), getTokenClass(context), ByteBuffer.wrap(getToken(context)), getInstance(context).getInstanceID()))
+            .isEmpty()) {
           if (!(instance instanceof MockInstance)) {
             if (tableId == null)
               tableId = Tables.getTableId(instance, tableName);
@@ -1342,14 +1343,14 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     }
     
   }
-
+  
   // use reflection to pull the Configuration out of the JobContext for Hadoop 1 and Hadoop 2 compatibility
   public static Configuration getConfiguration(JobContext context) {
     try {
-      Class c = InputFormatBase.class.getClassLoader().loadClass("org.apache.hadoop.mapreduce.JobContext");
+      Class<?> c = InputFormatBase.class.getClassLoader().loadClass("org.apache.hadoop.mapreduce.JobContext");
       Method m = c.getMethod("getConfiguration");
       Object o = m.invoke(context, new Object[0]);
-      return (Configuration)o;
+      return (Configuration) o;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

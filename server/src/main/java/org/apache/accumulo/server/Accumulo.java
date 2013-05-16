@@ -40,7 +40,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.protocol.FSConstants;
 import org.apache.log4j.Logger;
 import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.xml.DOMConfigurator;
@@ -212,12 +211,12 @@ public class Accumulo {
     }
     log.info("Connected to HDFS");
   }
-
+  
   private static boolean isInSafeMode(FileSystem fs) throws IOException {
     if (!(fs instanceof DistributedFileSystem))
       return false;
     DistributedFileSystem dfs = (DistributedFileSystem) FileSystem.get(CachedConfiguration.getInstance());
-    // So this:  if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
+    // So this: if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
     // Becomes this:
     Class<?> constantClass;
     try {
@@ -252,7 +251,7 @@ public class Accumulo {
     }
     try {
       Method setSafeMode = dfs.getClass().getMethod("setSafeMode", safeModeAction);
-      return (Boolean)setSafeMode.invoke(dfs, get);
+      return (Boolean) setSafeMode.invoke(dfs, get);
     } catch (Exception ex) {
       throw new RuntimeException("cannot find method setSafeMode");
     }
