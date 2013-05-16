@@ -19,12 +19,12 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache.accumulo</groupId>
-    <artifactId>accumulo</artifactId>
+    <artifactId>accumulo-project</artifactId>
     <version>1.6.0-SNAPSHOT</version>
   </parent>
-  <artifactId>accumulo-assemble</artifactId>
+  <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
-  <name>Assemble</name>
+  <name>Assemblies</name>
   <properties>
     <accumulo-top>..</accumulo-top>
   </properties>
@@ -116,6 +116,7 @@
                 </goals>
                 <phase>package</phase>
                 <configuration>
+                  <attach>true</attach>
                   <descriptors>
                     <descriptor>src/main/assemblies/binary-release.xml</descriptor>
                   </descriptors>
@@ -216,6 +217,37 @@
                       <sources>
                         <source>
                           <location>${accumulo-top}/bin</location>
+                        </source>
+                      </sources>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/accumulo/accumulo-${project.version}/proxy/thrift</directory>
+                      <sources>
+                        <source>
+                          <location>${accumulo-top}/proxy/src/main/thrift</location>
+                          <includes>
+                            <include>*.thrift</include>
+                          </includes>
+                        </source>
+                        <source>
+                          <location>${accumulo-top}/proxy/target</location>
+                          <includes>
+                            <include>gen-cpp/**</include>
+                            <include>gen-py/**</include>
+                            <include>gen-rb/**</include>
+                          </includes>
+                        </source>
+                      </sources>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/accumulo/accumulo-${project.version}/examples/simple</directory>
+                      <recurseDirectories>true</recurseDirectories>
+                      <sources>
+                        <source>
+                          <location>${accumulo-top}/examples/simple</location>
+                          <includes>
+                            <include>src/main/**</include>
+                          </includes>
                         </source>
                       </sources>
                     </mapping>
@@ -399,6 +431,24 @@
                       <excludes>**/.svn/**,src/**</excludes>
                     </data>
                     <data>
+                      <src>${accumulo-top}/proxy/src/main/thrift</src>
+                      <type>directory</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/proxy/thrift</prefix>
+                      </mapper>
+                      <includes>*.thrift</includes>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/proxy/target</src>
+                      <type>directory</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/proxy/thrift</prefix>
+                      </mapper>
+                      <includes>gen-cpp/**,gen-py/**,gen-rb/**</includes>
+                    </data>
+                    <data>
                       <src>${accumulo-top}/bin</src>
                       <type>directory</type>
                       <mapper>
@@ -406,6 +456,16 @@
                         <prefix>/usr/lib/accumulo/bin</prefix>
                         <filemode>755</filemode>
                       </mapper>
+                      <excludes>**/.svn/**</excludes>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/examples/simple</src>
+                      <type>directory</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/examples/simple</prefix>
+                      </mapper>
+                      <includes>src/main/**</includes>
                       <excludes>**/.svn/**</excludes>
                     </data>
                     <data>

@@ -17,11 +17,10 @@
 -->
 <assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
-  <id>binary-release</id>
+  <id>bin</id>
   <formats>
     <format>tar.gz</format>
   </formats>
-  <baseDirectory>accumulo-${project.version}</baseDirectory>
   <fileSets>
     <fileSet>
       <directory>../bin</directory>
@@ -34,6 +33,15 @@
       <fileMode>0644</fileMode>
       <includes>
         <include>*.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>../examples/simple</directory>
+      <outputDirectory>/examples/simple</outputDirectory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>src/main/**</include>
       </includes>
     </fileSet>
     <fileSet>
@@ -128,13 +136,18 @@
       <outputDirectory>proxy/thrift</outputDirectory>
       <includes>
         <include>gen-cpp/**</include>
-        <include>gen-java/**</include>
         <include>gen-py/**</include>
         <include>gen-rb/**</include>
       </includes>
-      <excludes>
-        <exclude>*</exclude>
-      </excludes>
+    </fileSet>
+    <fileSet>
+      <directory>../proxy/src/main/thrift</directory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <outputDirectory>proxy/thrift</outputDirectory>
+      <includes>
+        <include>*.thrift</include>
+      </includes>
     </fileSet>
   </fileSets>
   <files>

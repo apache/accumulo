@@ -19,7 +19,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache.accumulo</groupId>
-    <artifactId>accumulo</artifactId>
+    <artifactId>accumulo-project</artifactId>
     <version>1.6.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-examples</artifactId>
@@ -28,4 +28,29 @@
   <modules>
     <module>simple</module>
   </modules>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <phase>prepare-package</phase>
+            <configuration>
+              <outputDirectory>../../lib</outputDirectory>
+              <!-- just grab the non-provided runtime dependencies -->
+              <stripVersion>true</stripVersion>
+              <includeScope>runtime</includeScope>
+              <excludeTransitive>true</excludeTransitive>
+              <excludeClassifiers>sources,test-sources</excludeClassifiers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
