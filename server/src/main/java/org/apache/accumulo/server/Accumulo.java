@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map.Entry;
@@ -199,10 +200,7 @@ public class Accumulo {
     long sleep = 1000;
     while (true) {
       try {
-        if (!(fs instanceof DistributedFileSystem))
-          break;
-        DistributedFileSystem dfs = (DistributedFileSystem) FileSystem.get(CachedConfiguration.getInstance());
-        if (!dfs.setSafeMode(FSConstants.SafeModeAction.SAFEMODE_GET))
+        if (!isInSafeMode(fs))
           break;
         log.warn("Waiting for the NameNode to leave safemode");
       } catch (IOException ex) {
@@ -213,5 +211,50 @@ public class Accumulo {
       sleep = Math.min(60 * 1000, sleep * 2);
     }
     log.info("Connected to HDFS");
+  }
+
+  private static boolean isInSafeMode(FileSystem fs) throws IOException {
+    if (!(fs instanceof DistributedFileSystem))
+      return false;
+    DistributedFileSystem dfs = (DistributedFileSystem) FileSystem.get(CachedConfiguration.getInstance());
+    // So this:  if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
+    // Becomes this:
+    Class<?> constantClass;
+    try {
+      // hadoop 2.0
+      constantClass = Class.forName("org.apache.hadoop.hdfs.protocol.HdfsConstants");
+    } catch (ClassNotFoundException ex) {
+      // hadoop 1.0
+      try {
+        constantClass = Class.forName("org.apache.hadoop.hdfs.protocol.FSConstants");
+      } catch (ClassNotFoundException e) {
+        throw new RuntimeException("Cannot figure out the right class for Constants");
+      }
+    }
+    Class<?> safeModeAction = null;
+    for (Class<?> klass : constantClass.getDeclaredClasses()) {
+      if (klass.getSimpleName().equals("SafeModeAction")) {
+        safeModeAction = klass;
+        break;
+      }
+    }
+    if (safeModeAction == null) {
+      throw new RuntimeException("Cannot find SafeModeAction in constants class");
+    }
+    
+    Object get = null;
+    for (Object obj : safeModeAction.getEnumConstants()) {
+      if (obj.toString().equals("SAFEMODE_GET"))
+        get = obj;
+    }
+    if (get == null) {
+      throw new RuntimeException("cannot find SAFEMODE_GET");
+    }
+    try {
+      Method setSafeMode = dfs.getClass().getMethod("setSafeMode", safeModeAction);
+      return (Boolean)setSafeMode.invoke(dfs, get);
+    } catch (Exception ex) {
+      throw new RuntimeException("cannot find method setSafeMode");
+    }
   }
 }
