@@ -104,7 +104,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
-    return OutputConfigurator.isConnectorInfoSet(CLASS, context.getConfiguration());
+    return OutputConfigurator.isConnectorInfoSet(CLASS, InputFormatBase.getConfiguration(context));
   }
   
   /**
@@ -117,7 +117,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static String getPrincipal(JobContext context) {
-    return OutputConfigurator.getPrincipal(CLASS, context.getConfiguration());
+    return OutputConfigurator.getPrincipal(CLASS, InputFormatBase.getConfiguration(context));
   }
   
   /**
@@ -130,7 +130,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static String getTokenClass(JobContext context) {
-    return OutputConfigurator.getTokenClass(CLASS, context.getConfiguration());
+    return OutputConfigurator.getTokenClass(CLASS, InputFormatBase.getConfiguration(context));
   }
   
   /**
@@ -144,7 +144,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static byte[] getToken(JobContext context) {
-    return OutputConfigurator.getToken(CLASS, context.getConfiguration());
+    return OutputConfigurator.getToken(CLASS, InputFormatBase.getConfiguration(context));
   }
   
   /**
@@ -186,7 +186,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setMockInstance(Job, String)
    */
   protected static Instance getInstance(JobContext context) {
-    return OutputConfigurator.getInstance(CLASS, context.getConfiguration());
+    return OutputConfigurator.getInstance(CLASS, InputFormatBase.getConfiguration(context));
   }
   
   /**
@@ -212,7 +212,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setLogLevel(Job, Level)
    */
   protected static Level getLogLevel(JobContext context) {
-    return OutputConfigurator.getLogLevel(CLASS, context.getConfiguration());
+    return OutputConfigurator.getLogLevel(CLASS, InputFormatBase.getConfiguration(context));
   }
   
   /**
@@ -239,7 +239,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setDefaultTableName(Job, String)
    */
   protected static String getDefaultTableName(JobContext context) {
-    return OutputConfigurator.getDefaultTableName(CLASS, context.getConfiguration());
+    return OutputConfigurator.getDefaultTableName(CLASS, InputFormatBase.getConfiguration(context));
   }
   
   /**
@@ -266,7 +266,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setBatchWriterOptions(Job, BatchWriterConfig)
    */
   protected static BatchWriterConfig getBatchWriterOptions(JobContext context) {
-    return OutputConfigurator.getBatchWriterOptions(CLASS, context.getConfiguration());
+    return OutputConfigurator.getBatchWriterOptions(CLASS, InputFormatBase.getConfiguration(context));
   }
   
   /**
@@ -295,7 +295,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setCreateTables(Job, boolean)
    */
   protected static Boolean canCreateTables(JobContext context) {
-    return OutputConfigurator.canCreateTables(CLASS, context.getConfiguration());
+    return OutputConfigurator.canCreateTables(CLASS, InputFormatBase.getConfiguration(context));
   }
   
   /**
@@ -324,7 +324,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setSimulationMode(Job, boolean)
    */
   protected static Boolean getSimulationMode(JobContext context) {
-    return OutputConfigurator.getSimulationMode(CLASS, context.getConfiguration());
+    return OutputConfigurator.getSimulationMode(CLASS, InputFormatBase.getConfiguration(context));
   }
   
   /**
