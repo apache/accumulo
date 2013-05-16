@@ -218,29 +218,18 @@ public class Accumulo {
     DistributedFileSystem dfs = (DistributedFileSystem) FileSystem.get(CachedConfiguration.getInstance());
     // So this: if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
     // Becomes this:
-    Class<?> constantClass;
+    Class<?> safeModeAction;
     try {
       // hadoop 2.0
-      constantClass = Class.forName("org.apache.hadoop.hdfs.protocol.HdfsConstants");
+      safeModeAction = Class.forName("org.apache.hadoop.hdfs.protocol.HdfsConstants$SafeModeAction");
     } catch (ClassNotFoundException ex) {
       // hadoop 1.0
       try {
-        constantClass = Class.forName("org.apache.hadoop.hdfs.protocol.FSConstants");
+        safeModeAction = Class.forName("org.apache.hadoop.hdfs.protocol.FSConstants$SafeModeAction");
       } catch (ClassNotFoundException e) {
         throw new RuntimeException("Cannot figure out the right class for Constants");
       }
     }
-    Class<?> safeModeAction = null;
-    for (Class<?> klass : constantClass.getDeclaredClasses()) {
-      if (klass.getSimpleName().equals("SafeModeAction")) {
-        safeModeAction = klass;
-        break;
-      }
-    }
-    if (safeModeAction == null) {
-      throw new RuntimeException("Cannot find SafeModeAction in constants class");
-    }
-    
     Object get = null;
     for (Object obj : safeModeAction.getEnumConstants()) {
       if (obj.toString().equals("SAFEMODE_GET"))
