@@ -50,7 +50,7 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
     return newInstance;
   }
   
-  private static final String NEGATE = "negate";
+  protected static final String NEGATE = "negate";
   boolean negate = false;
   
   @Override
