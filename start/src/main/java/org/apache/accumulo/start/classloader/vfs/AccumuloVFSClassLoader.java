@@ -305,10 +305,10 @@ public class AccumuloVFSClassLoader {
         
         switch (level) {
           case 1:
-            classLoaderDescription = level + ": Java System Classloader (loads Java)";
+            classLoaderDescription = level + ": Java System Classloader (loads Java system resources)";
             break;
           case 2:
-            classLoaderDescription = level + ": Accumulo Start Classloader (loads the classloader)";
+            classLoaderDescription = level + ": Java Classloader (loads everything defined by java classpath)";
             break;
           case 3:
             classLoaderDescription = level + ": Accumulo Classloader (loads everything defined by general.classpaths)";
