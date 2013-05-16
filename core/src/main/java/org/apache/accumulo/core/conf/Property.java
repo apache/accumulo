@@ -34,18 +34,12 @@ public enum Property {
   // Crypto-related properties
   CRYPTO_PREFIX("crypto.", null, PropertyType.PREFIX, "Properties in this category related to the configuration of both default and custom crypto modules.",
       true),
-  CRYPTO_MODULE_CLASS(
-      "crypto.module.class",
-      "NullCryptoModule",
-      PropertyType.STRING,
-      "Fully qualified class name of the class that implements the CryptoModule interface, to be used in setting up encryption at rest for the WAL and (future) other parts of the code.",
-      true),
+  CRYPTO_MODULE_CLASS("crypto.module.class", "NullCryptoModule", PropertyType.STRING,
+      "Fully qualified class name of the class that implements the CryptoModule interface, to be used in setting up encryption at rest for the WAL and "
+          + "(future) other parts of the code.", true),
   CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING, "Describes the cipher suite to use for the write-ahead log", true),
-  CRYPTO_CIPHER_ALGORITHM_NAME(
-      "crypto.cipher.algorithm.name",
-      "NullCipher",
-      PropertyType.STRING,
-      "States the name of the algorithm used in the corresponding cipher suite.  Do not make these different, unless you enjoy mysterious exceptions and bugs.",
+  CRYPTO_CIPHER_ALGORITHM_NAME("crypto.cipher.algorithm.name", "NullCipher", PropertyType.STRING,
+      "States the name of the algorithm used in the corresponding cipher suite. Do not make these different, unless you enjoy mysterious exceptions and bugs.",
       true),
   CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
       "Specifies the key length *in bits* to use for the symmetric key, should probably be 128 or 256 unless you really know what you're doing", true),
@@ -138,16 +132,15 @@ public enum Property {
   TSERV_MAJC_THREAD_MAXOPEN("tserver.compaction.major.thread.files.open.max", "10", PropertyType.COUNT,
       "Max number of files a major compaction thread can open at once. "),
   TSERV_SCAN_MAX_OPENFILES("tserver.scan.files.open.max", "100", PropertyType.COUNT,
-      "Maximum total map files that all tablets in a tablet server can open for scans. "),
-  TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION, "Tablet servers leave previously used map files open for future queries. "
-      + "This setting determines how much time an unused map file should be kept open until it is closed."),
+      "Maximum total files that all tablets in a tablet server can open for scans. "),
+  TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION, "Tablet servers leave previously used files open for future queries. "
+      + "This setting determines how much time an unused file should be kept open until it is closed."),
   TSERV_NATIVEMAP_ENABLED("tserver.memory.maps.native.enabled", "true", PropertyType.BOOLEAN,
-      "An in-memory data store for accumulo implemented in c++ that increases the amount of data " + "accumulo can hold in memory and avoids Java GC pauses."),
-  TSERV_MAXMEM(
-      "tserver.memory.maps.max",
-      "1G",
-      PropertyType.MEMORY,
-      "Maximum amount of memory that can be used to buffer data written to a tablet server.  There are two other properties that can effectively limit memory usage table.compaction.minor.logs.threshold and tserver.walog.max.size.  Ensure that table.compaction.minor.logs.threshold * tserver.walog.max.size >= this property."),
+      "An in-memory data store for accumulo implemented in c++ that increases the amount of data accumulo can hold in memory and avoids Java GC pauses."),
+  TSERV_MAXMEM("tserver.memory.maps.max", "1G", PropertyType.MEMORY,
+      "Maximum amount of memory that can be used to buffer data written to a tablet server. There are two other properties that can effectively limit memory"
+          + " usage table.compaction.minor.logs.threshold and tserver.walog.max.size. Ensure that table.compaction.minor.logs.threshold *"
+          + " tserver.walog.max.size >= this property."),
   TSERV_MEM_MGMT("tserver.memory.manager", "org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager", PropertyType.CLASSNAME,
       "An implementation of MemoryManger that accumulo will use."),
   TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION, "maximum idle time for a session"),
@@ -193,15 +186,17 @@ public enum Property {
       "The maximum time for a tablet server to be in the \"memory full\" state.  If the tablet server cannot write out memory"
           + " in this much time, it will assume there is some failure local to its node, and quit.  A value of zero is equivalent to forever."),
   TSERV_WAL_BLOCKSIZE("tserver.wal.blocksize", "0", PropertyType.MEMORY,
-      "The size of the HDFS blocks used to write to the Write-Ahead log.  If zero, it will be 110% of tserver.walog.max.size (that is, try to use just one block)"),
+      "The size of the HDFS blocks used to write to the Write-Ahead log.  If zero, it will be 110% of tserver.walog.max.size (that is, try to use just one"
+          + " block)"),
   TSERV_WAL_REPLICATION("tserver.wal.replication", "0", PropertyType.COUNT,
       "The replication to use when writing the Write-Ahead log to HDFS. If zero, it will use the HDFS default replication setting."),
-  TSERV_RECOVERY_MAX_CONCURRENT("tserver.recovery.concurrent.max", "2", PropertyType.COUNT, "The maximum number of threads to use to sort logs during recovery"),
+  TSERV_RECOVERY_MAX_CONCURRENT("tserver.recovery.concurrent.max", "2", PropertyType.COUNT, "The maximum number of threads to use to sort logs during"
+      + " recovery"),
   TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "200M", PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery."),
   TSERV_ARCHIVE_WALOGS("tserver.archive.walogs", "false", PropertyType.BOOLEAN, "Keep copies of the WALOGs for debugging purposes"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed workq.  These threads are used for copying failed bulk files."),
-  TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN, 
+  TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents problems recovering from sudden system resets."),
   
   // properties that are specific to logger server behavior
@@ -253,9 +248,9 @@ public enum Property {
           + "adjust table.file.max.  Want to avoid the situation where only merging minor compactions occur."),
   TABLE_MAJC_COMPACTALL_IDLETIME("table.compaction.major.everything.idle", "1h", PropertyType.TIMEDURATION,
       "After a tablet has been idle (no mutations) for this time period it may have all "
-          + "of its map file compacted into one.  There is no guarantee an idle tablet will be compacted. "
+          + "of its files compacted into one.  There is no guarantee an idle tablet will be compacted. "
           + "Compactions of idle tablets are only started when regular compactions are not running. Idle "
-          + "compactions only take place for tablets that have one or more map files."),
+          + "compactions only take place for tablets that have one or more files."),
   TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.MEMORY, "When combined size of files exceeds this amount a tablet is split."),
   TABLE_MINC_LOGS_MAX("table.compaction.minor.logs.threshold", "3", PropertyType.COUNT,
       "When there are more than this many write-ahead logs against a tablet, it will be minor compacted.  See comment for property tserver.memory.maps.max"),
@@ -270,33 +265,30 @@ public enum Property {
       "This property can be set to allow the LoadBalanceByTable load balancer to change the called Load Balancer for this table"),
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING, "One of gz,lzo,none"),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.MEMORY,
-      "Overrides the hadoop io.seqfile.compress.blocksize setting so that map files have better query performance. The maximum value for this is "
-          + Integer.MAX_VALUE),
+      "Similar to the hadoop io.seqfile.compress.blocksize setting, so that files have better query performance. The maximum value for this is "
+          + Integer.MAX_VALUE + ". (This setting is the size threshold prior to compression, and applies even compression is disabled.)"),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128K", PropertyType.MEMORY,
-      "Determines how large index blocks can be in files that support multilevel indexes. The maximum value for this is " + Integer.MAX_VALUE),
+      "Determines how large index blocks can be in files that support multilevel indexes. The maximum value for this is " + Integer.MAX_VALUE + "."
+          + " (This setting is the size threshold prior to compression, and applies even compression is disabled.)"),
   TABLE_FILE_BLOCK_SIZE("table.file.blocksize", "0B", PropertyType.MEMORY,
-      "Overrides the hadoop dfs.block.size setting so that map files have better query performance. The maximum value for this is " + Integer.MAX_VALUE),
-  TABLE_FILE_REPLICATION("table.file.replication", "0", PropertyType.COUNT, "Determines how many replicas to keep of a tables map files in HDFS. "
+      "Overrides the hadoop dfs.block.size setting so that files have better query performance. The maximum value for this is " + Integer.MAX_VALUE),
+  TABLE_FILE_REPLICATION("table.file.replication", "0", PropertyType.COUNT, "Determines how many replicas to keep of a tables' files in HDFS. "
       + "When this value is LTE 0, HDFS defaults are used."),
-  TABLE_FILE_MAX(
-      "table.file.max",
-      "15",
-      PropertyType.COUNT,
-      "Determines the max # of files each tablet in a table can have. When adjusting this property you may want to consider adjusting table.compaction.major.ratio also.  Setting this property to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a tablet from having more files than can be opened.  Setting this property low may throttle ingest and increase query performance."),
+  TABLE_FILE_MAX("table.file.max", "15", PropertyType.COUNT,
+      "Determines the max # of files each tablet in a table can have. When adjusting this property you may want to consider adjusting"
+          + " table.compaction.major.ratio also.  Setting this property to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a"
+          + " tablet from having more files than can be opened.  Setting this property low may throttle ingest and increase query performance."),
   TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN, "Use the write-ahead log to prevent the loss of data."),
   TABLE_BLOOM_ENABLED("table.bloom.enabled", "false", PropertyType.BOOLEAN, "Use bloom filters on this table."),
   TABLE_BLOOM_LOAD_THRESHOLD("table.bloom.load.threshold", "1", PropertyType.COUNT,
-      "This number of seeks that would actually use a bloom filter must occur before a "
-          + "map files bloom filter is loaded. Set this to zero to initiate loading of bloom " + "filters when a map file opened."),
+      "This number of seeks that would actually use a bloom filter must occur before a file's bloom filter is loaded."
+          + " Set this to zero to initiate loading of bloom filters when a file is opened."),
   TABLE_BLOOM_SIZE("table.bloom.size", "1048576", PropertyType.COUNT, "Bloom filter size, as number of keys."),
   TABLE_BLOOM_ERRORRATE("table.bloom.error.rate", "0.5%", PropertyType.FRACTION, "Bloom filter error rate."),
-  TABLE_BLOOM_KEY_FUNCTOR(
-      "table.bloom.key.functor",
-      "org.apache.accumulo.core.file.keyfunctor.RowFunctor",
-      PropertyType.CLASSNAME,
+  TABLE_BLOOM_KEY_FUNCTOR("table.bloom.key.functor", "org.apache.accumulo.core.file.keyfunctor.RowFunctor", PropertyType.CLASSNAME,
       "A function that can transform the key prior to insertion and check of bloom filter.  org.apache.accumulo.core.file.keyfunctor.RowFunctor,"
-          + ",org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor are allowable values."
-          + " One can extend any of the above mentioned classes to perform specialized parsing of the key. "),
+          + ",org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor are"
+          + " allowable values. One can extend any of the above mentioned classes to perform specialized parsing of the key. "),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING, "The bloom filter hash type"),
   TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
       "If you want queries for your table to hang or fail when data is missing from the system, "
@@ -341,28 +333,23 @@ public enum Property {
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
       "Configuration for a system level vfs classloader.  Accumulo jar can be configured here and loaded out of HDFS."),
-  VFS_CONTEXT_CLASSPATH_PROPERTY(
-      AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY,
-      null,
-      PropertyType.PREFIX,
+  VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null, PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties start  with the category prefix, followed by a context name.  "
-          + "The value is a comma seperated list of URIs. Supports full regex on filename alone. For example general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar.  "
+          + "The value is a comma seperated list of URIs. Supports full regex on filename alone. For example, "
+          + "general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar.  "
           + "You can enable post delegation for a context, which will load classes from the context first instead of the parent first.  "
           + "Do this by setting general.vfs.context.classpath.&lt;name&gt;.delegation=post, where &lt;name&gt; is your context name.  "
           + "If delegation is not specified, it defaults to loading from parent classloader first."),
-  VFS_CLASSLOADER_CACHE_DIR(
-      AccumuloVFSClassLoader.VFS_CACHE_DIR,
-      new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name", "nouser")).getAbsolutePath(),
-      PropertyType.ABSOLUTEPATH,
-      "Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM. This should be on local disk on each node with sufficient space. It defaults to /tmp",
-      false);
+  VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR, new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-"
+      + System.getProperty("user.name", "nouser")).getAbsolutePath(), PropertyType.ABSOLUTEPATH,
+      "Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM."
+          + " This should be on local disk on each node with sufficient space. It defaults to /tmp", false);
   
   private String key, defaultValue, description;
   private PropertyType type;
   private boolean experimental;
   static Logger log = Logger.getLogger(Property.class);
   
-
   private Property(String name, String defaultValue, PropertyType type, String description, boolean experimental) {
     this.key = name;
     this.defaultValue = defaultValue;
@@ -430,7 +417,6 @@ public enum Property {
     return validProperties.contains(key) || isKeyValidlyPrefixed(key);
   }
   
-  // Is this method still needed?
   public synchronized static boolean isValidTablePropertyKey(String key) {
     if (validTableProperties == null) {
       validTableProperties = new HashSet<String>();
@@ -471,8 +457,6 @@ public enum Property {
   }
   
   /**
-   * 
-   * @param key
    * @return true if this is a property whose value is expected to be a java class
    */
   public static boolean isClassProperty(String key) {
