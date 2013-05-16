@@ -394,7 +394,7 @@ public class ShellServerTest {
   @Test(timeout = 30000)
   public void classpath() throws Exception {
     // classpath
-    exec("classpath", true, "Level 2: Accumulo Start Classloader (loads the classloader) URL classpath items are", true);
+    exec("classpath", true, "Level 2: Java Classloader (loads everything defined by java classpath) URL classpath items are", true);
   }
   
   @Test(timeout = 30000)
