@@ -134,17 +134,14 @@ public class ServerClient {
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
     
     // add tservers
-    
     ZooCache zc = getZooCache(instance);
-    AccumuloConfiguration conf = instance.getConfiguration();
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null && !new String(data).equals("master"))
         servers.add(new ThriftTransportKey(
-            new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), 
-            conf.getPort(Property.TSERV_CLIENTPORT), 
-            rpcTimeout));
+          new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT),
+          rpcTimeout));
     }
     
     boolean opened = false;

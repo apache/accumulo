@@ -25,10 +25,16 @@ class ThriftTransportKey {
   
   private int hash = -1;
   
-  ThriftTransportKey(String location, int port, long timeout) {
+  ThriftTransportKey(String location, long timeout) {
+    
     ArgumentChecker.notNull(location);
-    this.location = location;
-    this.port = port;
+    String[] locationAndPort = location.split(":", 2);
+    if (locationAndPort.length == 2) {
+      this.location = locationAndPort[0];
+      this.port = Integer.parseInt(locationAndPort[1]);
+    } else
+      throw new IllegalArgumentException("Location was expected to contain port but did not. location=" + location);
+    
     this.timeout = timeout;
   }
   

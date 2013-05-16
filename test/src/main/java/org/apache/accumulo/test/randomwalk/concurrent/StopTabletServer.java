@@ -49,7 +49,7 @@ public class StopTabletServer extends Test {
           Stat stat = new Stat();
           byte[] data = rdr.getData(base + "/" + child + "/" + children.get(0), stat);
           if (!"master".equals(new String(data))) {
-            result.add(new TServerInstance(AddressUtil.parseAddress(child, Property.TSERV_CLIENTPORT), stat.getEphemeralOwner()));
+            result.add(new TServerInstance(AddressUtil.parseAddress(child), stat.getEphemeralOwner()));
           }
         }
       } catch (KeeperException.NoNodeException ex) {

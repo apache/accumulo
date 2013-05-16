@@ -544,7 +544,7 @@ public class TabletServerBatchWriter {
   /**
    * Add mutations that previously failed back into the mix
    * 
-   * @param mutationsprivate
+   * @param failedMutations
    *          static final Logger log = Logger.getLogger(TabletServerBatchWriter.class);
    */
   private synchronized void addFailedMutations(MutationSet failedMutations) throws Exception {
@@ -856,7 +856,7 @@ public class TabletServerBatchWriter {
         TabletClientService.Iface client;
         
         if (timeoutTracker.getTimeOut() < instance.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-          client = ThriftUtil.getTServerClient(location, instance.getConfiguration(), timeoutTracker.getTimeOut());
+          client = ThriftUtil.getTServerClient(location, timeoutTracker.getTimeOut());
         else
           client = ThriftUtil.getTServerClient(location, instance.getConfiguration());
         

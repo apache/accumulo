@@ -23,9 +23,7 @@ import org.apache.thrift.transport.TSocket;
 
 public class AddressUtil {
   static public InetSocketAddress parseAddress(String address, int defaultPort) throws NumberFormatException {
-    String[] parts = address.split(":", 2);
-    if (address.contains("+"))
-      parts = address.split("\\+", 2);
+    String[] parts = extractPartsFromAddress(address);
     if (parts.length == 2) {
       if (parts[1].isEmpty())
         return new InetSocketAddress(parts[0], defaultPort);
@@ -33,7 +31,15 @@ public class AddressUtil {
     }
     return new InetSocketAddress(address, defaultPort);
   }
-  
+
+  static public InetSocketAddress parseAddress(String address) throws NumberFormatException {
+    String[] parts = extractPartsFromAddress(address);
+    if (parts.length == 2)
+      return new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
+    else
+      throw new IllegalArgumentException("Address was expected to contain port. address=" + address);
+  }
+
   static public InetSocketAddress parseAddress(Text address, int defaultPort) {
     return parseAddress(address.toString(), defaultPort);
   }
@@ -46,5 +52,12 @@ public class AddressUtil {
   static public String toString(InetSocketAddress addr) {
     return addr.getAddress().getHostAddress() + ":" + addr.getPort();
   }
-  
+
+  static private String[] extractPartsFromAddress(String address) {
+    String[] parts = address.split(":", 2);
+    if (address.contains("+"))
+      parts = address.split("\\+", 2);
+
+    return parts;
+  }
 }

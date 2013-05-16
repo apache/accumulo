@@ -289,7 +289,7 @@ public class LiveTServerSet implements Watcher {
       locklessServers.remove(server);
       ServerServices services = new ServerServices(new String(lockData));
       InetSocketAddress client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
-      InetSocketAddress addr = AddressUtil.parseAddress(server, Property.TSERV_CLIENTPORT);
+      InetSocketAddress addr = AddressUtil.parseAddress(server);
       TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
       
       if (info == null) {

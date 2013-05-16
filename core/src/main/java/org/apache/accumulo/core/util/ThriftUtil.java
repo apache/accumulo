@@ -45,18 +45,17 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 
-
 public class ThriftUtil {
   private static final Logger log = Logger.getLogger(ThriftUtil.class);
-
+  
   public static class TraceProtocol extends TCompactProtocol {
-
+    
     @Override
     public void writeMessageBegin(TMessage message) throws TException {
       Trace.start("client:" + message.name);
       super.writeMessageBegin(message);
     }
-
+    
     @Override
     public void writeMessageEnd() throws TException {
       super.writeMessageEnd();
@@ -64,7 +63,7 @@ public class ThriftUtil {
       if (currentTrace != null)
         currentTrace.stop();
     }
-
+    
     public TraceProtocol(TTransport transport) {
       super(transport);
     }
@@ -72,7 +71,7 @@ public class ThriftUtil {
   
   public static class TraceProtocolFactory extends TCompactProtocol.Factory {
     private static final long serialVersionUID = 1L;
-
+    
     @Override
     public TProtocol getProtocol(TTransport trans) {
       return new TraceProtocol(trans);
@@ -91,22 +90,19 @@ public class ThriftUtil {
     return createClient(factory, ThriftTransportPool.getInstance().getTransportWithDefaultTimeout(address, conf));
   }
   
+  static public <T extends TServiceClient> T getClientNoTimeout(TServiceClientFactory<T> factory, String address) throws TTransportException {
+    return createClient(factory, ThriftTransportPool.getInstance().getTransport(address, 0));
+  }
+  
   static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, Property property, AccumuloConfiguration configuration)
       throws TTransportException {
-    int port = configuration.getPort(property);
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, port);
+    long timeout = configuration.getTimeInMillis(property);
+    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout);
     return createClient(factory, transport);
   }
   
-  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, Property property, Property timeoutProperty,
-      AccumuloConfiguration configuration) throws TTransportException {
-    return getClient(factory, address, property, configuration.getTimeInMillis(timeoutProperty), configuration);
-  }
-  
-  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, Property property, long timeout,
-      AccumuloConfiguration configuration) throws TTransportException {
-    int port = configuration.getPort(property);
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, port, timeout);
+  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, long timeout) throws TTransportException {
+    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout);
     return createClient(factory, transport);
   }
   
@@ -117,13 +113,13 @@ public class ThriftUtil {
   }
   
   static public TabletClientService.Client getTServerClient(String address, AccumuloConfiguration conf) throws TTransportException {
-    return getClient(new TabletClientService.Client.Factory(), address, Property.TSERV_CLIENTPORT, Property.GENERAL_RPC_TIMEOUT, conf);
+    return getClient(new TabletClientService.Client.Factory(), address, Property.GENERAL_RPC_TIMEOUT, conf);
   }
   
-  static public TabletClientService.Client getTServerClient(String address, AccumuloConfiguration conf, long timeout) throws TTransportException {
-    return getClient(new TabletClientService.Client.Factory(), address, Property.TSERV_CLIENTPORT, timeout, conf);
+  static public TabletClientService.Client getTServerClient(String address, long timeout) throws TTransportException {
+    return getClient(new TabletClientService.Client.Factory(), address, timeout);
   }
-
+  
   public static void execute(String address, AccumuloConfiguration conf, ClientExec<TabletClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
@@ -168,12 +164,11 @@ public class ThriftUtil {
   /**
    * create a transport that is not pooled
    */
-  public static TTransport createTransport(String address, int port, AccumuloConfiguration conf) throws TException {
+  public static TTransport createTransport(InetSocketAddress address, AccumuloConfiguration conf) throws TException {
     TTransport transport = null;
     
     try {
-      transport = TTimeoutTransport.create(org.apache.accumulo.core.util.AddressUtil.parseAddress(address, port),
-          conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+      transport = TTimeoutTransport.create(address, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
       transport = ThriftUtil.transportFactory().getTransport(transport);
       transport.open();
       TTransport tmp = transport;
@@ -185,15 +180,6 @@ public class ThriftUtil {
       if (transport != null)
         transport.close();
     }
-    
-
-  }
-
-  /**
-   * create a transport that is not pooled
-   */
-  public static TTransport createTransport(InetSocketAddress address, AccumuloConfiguration conf) throws TException {
-    return createTransport(address.getAddress().getHostAddress(), address.getPort(), conf);
   }
 
   public static TTransportFactory transportFactory() {
@@ -201,22 +187,22 @@ public class ThriftUtil {
   }
   
   private final static Map<Integer,TTransportFactory> factoryCache = new HashMap<Integer,TTransportFactory>();
+  
   synchronized public static TTransportFactory transportFactory(int maxFrameSize) {
     TTransportFactory factory = factoryCache.get(maxFrameSize);
-    if(factory == null)
-    {
+    if (factory == null) {
       factory = new TFramedTransport.Factory(maxFrameSize);
-      factoryCache.put(maxFrameSize,factory);
+      factoryCache.put(maxFrameSize, factory);
     }
     return factory;
   }
-
+  
   synchronized public static TTransportFactory transportFactory(long maxFrameSize) {
-    if(maxFrameSize > Integer.MAX_VALUE || maxFrameSize < 1)
-      throw new RuntimeException("Thrift transport frames are limited to "+Integer.MAX_VALUE);
-    return transportFactory((int)maxFrameSize);
+    if (maxFrameSize > Integer.MAX_VALUE || maxFrameSize < 1)
+      throw new RuntimeException("Thrift transport frames are limited to " + Integer.MAX_VALUE);
+    return transportFactory((int) maxFrameSize);
   }
-
+  
   public static TProtocolFactory protocolFactory() {
     return protocolFactory;
   }

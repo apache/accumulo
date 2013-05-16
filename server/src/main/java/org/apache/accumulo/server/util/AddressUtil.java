@@ -26,5 +26,8 @@ public class AddressUtil {
     final int dfaultPort = ServerConfiguration.getDefaultConfiguration().getPort(portDefaultProperty);
     return org.apache.accumulo.core.util.AddressUtil.parseAddress(address, dfaultPort);
   }
-  
+
+  static public InetSocketAddress parseAddress(String address) {
+    return org.apache.accumulo.core.util.AddressUtil.parseAddress(address);
+  }
 }

@@ -151,7 +151,7 @@ public class GarbageCollectWriteAheadLogs {
           }
         }
       } else {
-        InetSocketAddress address = AddressUtil.parseAddress(entry.getKey(), Property.TSERV_CLIENTPORT);
+        InetSocketAddress address = AddressUtil.parseAddress(entry.getKey());
         if (!holdsLock(address)) {
           Path serverPath = new Path(Constants.getWalDirectory(conf), entry.getKey());
           for (String filename : entry.getValue()) {

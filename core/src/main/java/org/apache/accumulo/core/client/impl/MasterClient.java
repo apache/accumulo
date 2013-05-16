@@ -23,7 +23,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -57,19 +56,16 @@ public class MasterClient {
     }
     
     String master = locations.get(0);
-    int portHint = instance.getConfiguration().getPort(Property.MASTER_CLIENTPORT);
-    
     try {
       // Master requests can take a long time: don't ever time out
-      MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, Property.MASTER_CLIENTPORT,
-          instance.getConfiguration());
+      MasterClientService.Client client = ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master);
       return client;
     } catch (TTransportException tte) {
       if (tte.getCause().getClass().equals(UnknownHostException.class)) {
         // do not expect to recover from this
         throw new RuntimeException(tte);
       }
-      log.debug("Failed to connect to master=" + master + " portHint=" + portHint + ", will retry... ", tte);
+      log.debug("Failed to connect to master=" + master + ", will retry... ", tte);
       return null;
     }
   }

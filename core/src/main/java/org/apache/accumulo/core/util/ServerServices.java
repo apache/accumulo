@@ -24,56 +24,42 @@ import org.apache.accumulo.core.conf.Property;
 
 public class ServerServices implements Comparable<ServerServices> {
   public static enum Service {
-    TSERV_CLIENT, MASTER_CLIENT, GC_CLIENT;
-    
-    // not necessary: everything should be advertizing ports in zookeeper
-    int getDefaultPort() {
-      switch (this) {
-        case TSERV_CLIENT:
-          return AccumuloConfiguration.getDefaultConfiguration().getPort(Property.TSERV_CLIENTPORT);
-        case MASTER_CLIENT:
-          return AccumuloConfiguration.getDefaultConfiguration().getPort(Property.MASTER_CLIENTPORT);
-        case GC_CLIENT:
-          return AccumuloConfiguration.getDefaultConfiguration().getPort(Property.GC_PORT);
-        default:
-          throw new IllegalArgumentException();
-      }
-    }
+    TSERV_CLIENT, GC_CLIENT;
   }
-  
+
   public static final String SERVICE_SEPARATOR = ";";
   public static final String SEPARATOR_CHAR = "=";
-  
+
   private EnumMap<Service,String> services;
   private String stringForm = null;
-  
+
   public ServerServices(String services) {
     this.services = new EnumMap<Service,String>(Service.class);
-    
+
     String[] addresses = services.split(SERVICE_SEPARATOR);
     for (String address : addresses) {
       String[] sa = address.split(SEPARATOR_CHAR, 2);
       this.services.put(Service.valueOf(sa[0]), sa[1]);
     }
   }
-  
+
   public ServerServices(String address, Service service) {
     this(service.name() + SEPARATOR_CHAR + address);
   }
-  
+
   public String getAddressString(Service service) {
     return services.get(service);
   }
-  
+
   public InetSocketAddress getAddress(Service service) {
     String address = getAddressString(service);
     String[] parts = address.split(":", 2);
     if (parts.length == 2) {
       if (parts[1].isEmpty())
-        return new InetSocketAddress(parts[0], service.getDefaultPort());
+        throw new IllegalArgumentException("Address was expected to have port but didn't. address=" + address);
       return new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
     }
-    return new InetSocketAddress(address, service.getDefaultPort());
+    throw new IllegalArgumentException("Address was expected to have port but didn't. address=" + address);
   }
   
   // DON'T CHANGE THIS; WE'RE USING IT FOR SERIALIZATION!!!
@@ -81,7 +67,7 @@ public class ServerServices implements Comparable<ServerServices> {
     if (stringForm == null) {
       StringBuilder sb = new StringBuilder();
       String prefix = "";
-      for (Service service : new Service[] {Service.MASTER_CLIENT, Service.TSERV_CLIENT, Service.GC_CLIENT}) {
+      for (Service service : new Service[] { Service.TSERV_CLIENT, Service.GC_CLIENT}) {
         if (services.containsKey(service)) {
           sb.append(prefix).append(service.name()).append(SEPARATOR_CHAR).append(services.get(service));
           prefix = SERVICE_SEPARATOR;

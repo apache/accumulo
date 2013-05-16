@@ -2639,7 +2639,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (address == null) {
         return null;
       }
-      MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.MASTER_CLIENTPORT,
+      MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address,
           Property.GENERAL_RPC_TIMEOUT, getSystemConfiguration());
       // log.info("Listener API to master has been opened");
       return client;

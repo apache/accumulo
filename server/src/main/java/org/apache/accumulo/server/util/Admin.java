@@ -181,7 +181,7 @@ public class Admin {
   
   private static void stopTabletServer(Instance instance, final TCredentials creds, List<String> servers, final boolean force) throws AccumuloException, AccumuloSecurityException {
     for (String server : servers) {
-      InetSocketAddress address = AddressUtil.parseAddress(server, Property.TSERV_CLIENTPORT);
+      InetSocketAddress address = AddressUtil.parseAddress(server);
       final String finalServer = org.apache.accumulo.core.util.AddressUtil.toString(address);
       log.info("Stopping server " + finalServer);
       MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {

@@ -38,6 +38,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -224,7 +225,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void ping(String tserver) throws AccumuloException {
     TTransport transport = null;
     try {
-      transport = ThriftUtil.createTransport(tserver, instance.getConfiguration().getPort(Property.TSERV_CLIENTPORT), instance.getConfiguration());
+      transport = ThriftUtil.createTransport(AddressUtil.parseAddress(tserver), instance.getConfiguration());
       TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
       client.getTabletServerStatus(Tracer.traceInfo(), credentials);
     } catch (TTransportException e) {

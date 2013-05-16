@@ -699,7 +699,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     public void shutdownTabletServer(TInfo info, TCredentials c, String tabletServer, boolean force) throws ThriftSecurityException, TException {
       security.canPerformSystemActions(c);
       
-      final InetSocketAddress addr = AddressUtil.parseAddress(tabletServer, Property.TSERV_CLIENTPORT);
+      final InetSocketAddress addr = AddressUtil.parseAddress(tabletServer);
       final String addrString = org.apache.accumulo.core.util.AddressUtil.toString(addr);
       final TServerInstance doomed = tserverSet.find(addrString);
       if (!force) {

@@ -358,20 +358,35 @@ public class ThriftTransportPool {
   
   private ThriftTransportPool() {}
   
-  public TTransport getTransport(String location, int port) throws TTransportException {
-    return getTransport(location, port, 0);
-  }
-  
   public TTransport getTransportWithDefaultTimeout(InetSocketAddress addr, AccumuloConfiguration conf) throws TTransportException {
-    return getTransport(addr.getAddress().getHostAddress(), addr.getPort(), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    return getTransport(String.format("%s:%d", addr.getAddress().getHostAddress(), addr.getPort()), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
   }
   
-  public TTransport getTransport(InetSocketAddress addr, long timeout) throws TTransportException {
-    return getTransport(addr.getAddress().getHostAddress(), addr.getPort(), timeout);
+  public TTransport getTransport(String location, long milliseconds) throws TTransportException {
+    return getTransport(new ThriftTransportKey(location, milliseconds));
   }
   
-  public TTransport getTransportWithDefaultTimeout(String location, int port, AccumuloConfiguration conf) throws TTransportException {
-    return getTransport(location, port, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+  private TTransport getTransport(ThriftTransportKey cacheKey) throws TTransportException {
+    synchronized (this) {
+      // atomically reserve location if it exist in cache
+      List<CachedConnection> ccl = cache.get(cacheKey);
+      
+      if (ccl == null) {
+        ccl = new LinkedList<CachedConnection>();
+        cache.put(cacheKey, ccl);
+      }
+      
+      for (CachedConnection cachedConnection : ccl) {
+        if (!cachedConnection.isReserved()) {
+          cachedConnection.setReserved(true);
+          if (log.isTraceEnabled())
+            log.trace("Using existing connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
+          return cachedConnection.transport;
+        }
+      }
+    }
+    
+    return createNewTransport(cacheKey);
   }
   
   Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers, boolean preferCachedConnection) throws TTransportException {
@@ -424,7 +439,7 @@ public class ThriftTransportPool {
           }
         }
       }
-
+      
       try {
         return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), createNewTransport(ttk));
       } catch (TTransportException tte) {
@@ -435,33 +450,6 @@ public class ThriftTransportPool {
     }
     
     throw new TTransportException("Failed to connect to a server");
-  }
-  
-  public TTransport getTransport(String location, int port, long milliseconds) throws TTransportException {
-    return getTransport(new ThriftTransportKey(location, port, milliseconds));
-  }
-  
-  private TTransport getTransport(ThriftTransportKey cacheKey) throws TTransportException {
-    synchronized (this) {
-      // atomically reserve location if it exist in cache
-      List<CachedConnection> ccl = cache.get(cacheKey);
-      
-      if (ccl == null) {
-        ccl = new LinkedList<CachedConnection>();
-        cache.put(cacheKey, ccl);
-      }
-      
-      for (CachedConnection cachedConnection : ccl) {
-        if (!cachedConnection.isReserved()) {
-          cachedConnection.setReserved(true);
-          if (log.isTraceEnabled())
-            log.trace("Using existing connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
-          return cachedConnection.transport;
-        }
-      }
-    }
-    
-    return createNewTransport(cacheKey);
   }
   
   private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
@@ -508,7 +496,7 @@ public class ThriftTransportPool {
     CachedTTransport ctsc = (CachedTTransport) tsc;
     
     ArrayList<CachedConnection> closeList = new ArrayList<ThriftTransportPool.CachedConnection>();
-
+    
     synchronized (this) {
       List<CachedConnection> ccl = cache.get(ctsc.getCacheKey());
       for (Iterator<CachedConnection> iterator = ccl.iterator(); iterator.hasNext();) {
@@ -589,7 +577,7 @@ public class ThriftTransportPool {
     this.killTime = time;
     log.debug("Set thrift transport pool idle time to " + time);
   }
-
+  
   private static ThriftTransportPool instance = new ThriftTransportPool();
   private static final AtomicBoolean daemonStarted = new AtomicBoolean(false);
   

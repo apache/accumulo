@@ -35,6 +35,8 @@ public class AddressUtilTest extends TestCase {
     assertTrue(addr2.equals(new InetSocketAddress("127.0.0.1", 1234)));
     InetSocketAddress addr3 = AddressUtil.parseAddress("127.0.0.1:", 12345);
     assertTrue(addr3.equals(new InetSocketAddress("127.0.0.1", 12345)));
+    InetSocketAddress addr4 = AddressUtil.parseAddress("127.0.0.1+456");
+    assertTrue(addr4.equals(new InetSocketAddress("127.0.0.1", 456)));
     try {
       AddressUtil.parseAddress("127.0.0.1:junk", 12345);
       fail("Number Format Exception Not Thrown");
