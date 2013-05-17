@@ -55,7 +55,7 @@ all : $(INSTALLED_LIBS)
 clean:
 	rm -f $(INSTALLED_LIBS) $(LIBS)
 
-org_apache_accumulo_server_tabletserver_NativeMap.h : ../../../../../lib/accumulo-server.jar
+org_apache_accumulo_server_tabletserver_NativeMap.h :
 	javah -classpath ../../../../../lib/accumulo-server.jar org.apache.accumulo.server.tabletserver.NativeMap
 
 $(INSTALLED_LIBS) : $(INSTALL_DIR) $(LIBS)

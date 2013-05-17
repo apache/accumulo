@@ -112,8 +112,6 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <sealJars>false</sealJars>
-    <!-- include the tarball, as well as the zip, for the Apache source-release artifact -->
-    <sourceReleaseAssemblyDescriptor>source-release-zip-tar</sourceReleaseAssemblyDescriptor>
     <!-- ZooKeeper 3.4.x works also, but we're not using new features yet; this ensures 3.3.x compatibility. -->
     <zookeeper.version>3.3.6</zookeeper.version>
   </properties>
@@ -746,23 +744,51 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>build-helper-maven-plugin</artifactId>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <dependencies>
+              <dependency>
+                <groupId>org.apache.apache.resources</groupId>
+                <artifactId>apache-source-release-assembly-descriptor</artifactId>
+                <version>1.0.4</version>
+              </dependency>
+            </dependencies>
             <executions>
               <execution>
-                <id>attach-source-release-assembly</id>
+                <id>source-release-assembly</id>
                 <goals>
-                  <goal>attach-artifact</goal>
+                  <goal>single</goal>
                 </goals>
+                <phase>validate</phase>
                 <configuration>
                   <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
-                  <artifacts>
-                    <artifact>
-                      <file>${project.build.directory}/${project.artifactId}-${project.version}-source-release.tar.gz</file>
-                      <type>tar.gz</type>
-                      <classifier>src</classifier>
-                    </artifact>
-                  </artifacts>
+                  <finalName>accumulo-${project.version}</finalName>
+                  <descriptorRefs>
+                    <descriptorRef>source-release-zip-tar</descriptorRef>
+                  </descriptorRefs>
+                  <tarLongFileFormat>gnu</tarLongFileFormat>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>rename-source-release-assembly</id>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <phase>validate</phase>
+                <configuration>
+                  <executable>mv</executable>
+                  <workingDirectory>${project.build.directory}</workingDirectory>
+                  <commandlineArgs>-n accumulo-${project.version}-source-release.tar.gz accumulo-${project.version}-src.tar.gz</commandlineArgs>
+                  <successCodes>
+                    <successCode>0</successCode>
+                    <successCode>1</successCode>
+                  </successCodes>
                 </configuration>
               </execution>
             </executions>

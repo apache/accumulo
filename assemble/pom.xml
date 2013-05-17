@@ -102,6 +102,34 @@
   </build>
   <profiles>
     <profile>
+      <id>apache-release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>attach-source-release-assembly</id>
+                <goals>
+                  <goal>attach-artifact</goal>
+                </goals>
+                <configuration>
+                  <artifacts>
+                    <artifact>
+                      <file>${project.parent.build.directory}/${project.artifactId}-${project.version}-src.tar.gz</file>
+                      <type>tar.gz</type>
+                      <classifier>src</classifier>
+                    </artifact>
+                  </artifacts>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <id>assemble</id>
       <build>
         <plugins>
@@ -117,6 +145,7 @@
                 <phase>package</phase>
                 <configuration>
                   <attach>true</attach>
+                  <finalName>${project.artifactId}-${project.version}</finalName>
                   <descriptors>
                     <descriptor>src/main/assemblies/binary-release.xml</descriptor>
                   </descriptors>
