@@ -13,14 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# /
+# global Eclipse, Maven, Python
+target/
+.project
+.classpath
+.settings
+.pydevproject
 *.pyc
+
+# JetBrains IDE
+.idea
+*.iml
+
+# /
 /logs
 /walogs
-/target
-/.project
-/.settings
-/.pydevproject
 
 # /conf/
 /conf/accumulo-metrics.xml
@@ -34,30 +41,11 @@
 /conf/accumulo-site.xml
 /conf/accumulo_user_manual.pdf
 
-# /contrib/accumulo_sample/
-/contrib/accumulo_sample/.settings
-/contrib/accumulo_sample/.project
-/contrib/accumulo_sample/target
-
 # /contrib/accumulo_sample/ingest/
-/contrib/accumulo_sample/ingest/target
-/contrib/accumulo_sample/ingest/.settings
-/contrib/accumulo_sample/ingest/.classpath
-/contrib/accumulo_sample/ingest/.project
 /contrib/accumulo_sample/ingest/lib
 
 # /contrib/accumulo_sample/query/
-/contrib/accumulo_sample/query/target
-/contrib/accumulo_sample/query/.settings
-/contrib/accumulo_sample/query/.classpath
-/contrib/accumulo_sample/query/.project
 /contrib/accumulo_sample/query/lib
-
-# /contrib/accumulo_sample/query-war/
-/contrib/accumulo_sample/query-war/target
-/contrib/accumulo_sample/query-war/.settings
-/contrib/accumulo_sample/query-war/.classpath
-/contrib/accumulo_sample/query-war/.project
 
 # /docs/
 /docs/config.html
@@ -71,55 +59,6 @@
 /lib/native
 /lib/*.jar
 
-# /assemble/
-/assemble/target
-/assemble/.settings
-/assemble/.project
-
-# /core/
-/core/target
-/core/.settings
-/core/.project
-/core/.classpath
-
-# /examples/
-/examples/lib
-/examples/target
-/examples/.settings
-/examples/.classpath
-/examples/.project
-
-# /examples/instamo/
-/examples/instamo/target
-/examples/instamo/.classpath
-/examples/instamo/.project
-/examples/instamo/.settings/
-
-
-# /examples/simple/
-/examples/simple/target
-/examples/simple/.classpath
-/examples/simple/.project
-/examples/simple/.settings/
-
-# /fate/
-/fate/target
-/fate/.settings
-/fate/.classpath
-/fate/.project
-
-# /proxy/
-/proxy/target
-/proxy/.settings
-/proxy/.classpath
-/proxy/.project
-
-# /server/
-/server/target
-/server/.project
-/server/.settings
-/server/.classpath
-
 # /server/src/main/c++/mlock/
 /server/src/main/c++/mlock/*.jnilib
 /server/src/main/c++/mlock/org_apache_accumulo_server_tabletserver_MLock.h
@@ -127,39 +66,11 @@
 # /server/src/main/c++/nativeMap/
 /server/src/main/c++/nativeMap/*.jnilib
 
-# /start/
-/start/target
-/start/.classpath
-/start/.project
-/start/.settings
-
-# /trace/
-/trace/target
-/trace/.classpath
-/trace/.project
-/trace/.settings
-
-# /test/
-/test/target
-/test/.classpath
-/test/.project
-/test/.settings
-
 # /test/system/auto/
-/test/system/auto/*.pyc
 /test/system/auto/fake_disk_failure.so
-
-# /test/system/auto/simple/
-/test/system/auto/simple/*.pyc
-
-# /test/system/auto/stress/
-/test/system/auto/stress/*.pyc
 
 # /test/system/continuous/
 /test/system/continuous/continuous-env.sh
 /test/system/continuous/walkers.txt
 /test/system/continuous/ingesters.txt
 
-# JetBrains IDE
-.idea
-*.iml
