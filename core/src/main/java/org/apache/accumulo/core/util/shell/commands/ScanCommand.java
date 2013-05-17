@@ -129,7 +129,7 @@ public class ScanCommand extends Command {
         throw new IllegalArgumentException("Profile " + profile + " does not exist");
       }
     } else {
-      tableScanIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
+      tableScanIterators = shellState.scanIteratorOptions.get(tableName);
       if (tableScanIterators == null) {
         Shell.log.debug("Found no scan iterators to set");
         return;
