@@ -250,6 +250,25 @@
                       </sources>
                     </mapping>
                     <mapping>
+                      <directory>/opt/accumulo/accumulo-${project.version}/proxy</directory>
+                      <sources>
+                        <source>
+                          <location>${accumulo-top}/proxy/README</location>
+                        </source>
+                        <source>
+                          <location>${accumulo-top}/proxy/proxy.properties</location>
+                        </source>
+                      </sources>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/accumulo/accumulo-${project.version}/proxy/examples</directory>
+                      <sources>
+                        <source>
+                          <location>${accumulo-top}/proxy/examples</location>
+                        </source>
+                      </sources>
+                    </mapping>
+                    <mapping>
                       <directory>/opt/accumulo/accumulo-${project.version}/proxy/thrift</directory>
                       <sources>
                         <source>
@@ -458,6 +477,33 @@
                         <prefix>/usr/lib/accumulo/docs</prefix>
                       </mapper>
                       <excludes>**/.svn/**,src/**</excludes>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/proxy/README</src>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/proxy</prefix>
+                      </mapper>
+                      <includes>*.thrift</includes>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/proxy/proxy.properties</src>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/proxy</prefix>
+                      </mapper>
+                      <includes>*.thrift</includes>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/proxy/examples</src>
+                      <type>directory</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/proxy/examples</prefix>
+                      </mapper>
+                      <excludes>**/.svn/**</excludes>
                     </data>
                     <data>
                       <src>${accumulo-top}/proxy/src/main/thrift</src>

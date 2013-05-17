@@ -141,6 +141,20 @@
       </includes>
     </fileSet>
     <fileSet>
+      <directory>../proxy</directory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>README</include>
+        <include>proxy.properties</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>../proxy/examples</directory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+    </fileSet>
+    <fileSet>
       <directory>../proxy/src/main/thrift</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
