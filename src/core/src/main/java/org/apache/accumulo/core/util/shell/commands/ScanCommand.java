@@ -108,7 +108,7 @@ public class ScanCommand extends Command {
   }
   
   protected void addScanIterators(Shell shellState, Scanner scanner, String tableName) {
-    List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
+    List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
     if (tableScanIterators == null) {
       Shell.log.debug("Found no scan iterators to set");
       return;
