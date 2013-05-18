@@ -107,6 +107,34 @@
   </build>
   <profiles>
     <profile>
+      <id>apache-release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>attach-source-release-assembly</id>
+                <goals>
+                  <goal>attach-artifact</goal>
+                </goals>
+                <configuration>
+                  <artifacts>
+                    <artifact>
+                      <file>${project.parent.build.directory}/${project.artifactId}-${project.version}-src.tar.gz</file>
+                      <type>tar.gz</type>
+                      <classifier>src</classifier>
+                    </artifact>
+                  </artifacts>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <id>assemble</id>
       <build>
         <plugins>
@@ -122,6 +150,7 @@
                 <phase>package</phase>
                 <configuration>
                   <attach>true</attach>
+                  <finalName>${project.artifactId}-${project.version}</finalName>
                   <descriptors>
                     <descriptor>src/main/assemblies/binary-release.xml</descriptor>
                   </descriptors>
@@ -222,6 +251,25 @@
                       <sources>
                         <source>
                           <location>${accumulo-top}/bin</location>
+                        </source>
+                      </sources>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/accumulo/accumulo-${project.version}/proxy</directory>
+                      <sources>
+                        <source>
+                          <location>${accumulo-top}/proxy/README</location>
+                        </source>
+                        <source>
+                          <location>${accumulo-top}/proxy/proxy.properties</location>
+                        </source>
+                      </sources>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/accumulo/accumulo-${project.version}/proxy/examples</directory>
+                      <sources>
+                        <source>
+                          <location>${accumulo-top}/proxy/examples</location>
                         </source>
                       </sources>
                     </mapping>
@@ -434,6 +482,33 @@
                         <prefix>/usr/lib/accumulo/docs</prefix>
                       </mapper>
                       <excludes>**/.svn/**,src/**</excludes>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/proxy/README</src>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/proxy</prefix>
+                      </mapper>
+                      <includes>*.thrift</includes>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/proxy/proxy.properties</src>
+                      <type>file</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/proxy</prefix>
+                      </mapper>
+                      <includes>*.thrift</includes>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/proxy/examples</src>
+                      <type>directory</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/proxy/examples</prefix>
+                      </mapper>
+                      <excludes>**/.svn/**</excludes>
                     </data>
                     <data>
                       <src>${accumulo-top}/proxy/src/main/thrift</src>
