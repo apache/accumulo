@@ -24,7 +24,7 @@ Accumulo compiles against Hadoop 1.0.4.  To compile against a different version
 that is compatible with Hadoop 1.0, specify hadoop.version on the command line,
 e.g. "-Dhadoop.version=0.20.205.0" or "-Dhadoop.version=1.1.0".  To compile 
 against Hadoop 2.0, specify "-Dhadoop.profile=2.0".  By default this uses
-2.0.2-alpha.  To compile against a different 2.0-compatible version, specify
+2.0.4-alpha.  To compile against a different 2.0-compatible version, specify
 the profile and version, e.g. "-Dhadoop.profile=2.0 -Dhadoop.version=0.23.5".
 
 If you are running on another Unix-like operating system (OSX, etc) then
@@ -88,7 +88,7 @@ Apache Hadoop           0.20.205          dfs.support.append    false
 Apache Hadoop            0.23.x           dfs.support.append    true
 Apache Hadoop             1.0.x           dfs.support.append    false
 Apache Hadoop             1.1.x           dfs.durable.sync      true
-Apache Hadoop          2.0.0-2.0.2        dfs.support.append    true
+Apache Hadoop          2.0.0-2.0.4        dfs.support.append    true
 Cloudera CDH             3u0-3u3             ????               true
 Cloudera CDH               3u4            dfs.support.append    true
 Hortonworks HDP           `1.0            dfs.support.append    false
