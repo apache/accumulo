@@ -24,8 +24,8 @@
   <fileSets>
     <fileSet>
       <directory>../bin</directory>
-      <fileMode>0755</fileMode>
       <directoryMode>0755</directoryMode>
+      <fileMode>0755</fileMode>
     </fileSet>
     <fileSet>
       <directory>../lib</directory>
@@ -47,9 +47,20 @@
     <fileSet>
       <directory>../lib/native</directory>
       <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
       <includes>
         <include>**/*.so</include>
+        <include>**/*.jnilib</include>
       </includes>
+    </fileSet>
+    <fileSet>
+      <directory>../server/src/main/c++</directory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <excludes>
+        <exclude>**/*.so</exclude>
+        <exclude>**/*.jnilib</exclude>
+      </excludes>
     </fileSet>
     <fileSet>
       <directory>../lib/ext</directory>
@@ -70,6 +81,7 @@
     <fileSet>
       <directory>../docs</directory>
       <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
       <excludes>
         <exclude>src/**</exclude>
       </excludes>
@@ -77,7 +89,7 @@
     <fileSet>
       <directory>../conf</directory>
       <directoryMode>0755</directoryMode>
-      <fileMode>755</fileMode>
+      <fileMode>0755</fileMode>
       <includes>
         <include>examples/**/*.sh</include>
       </includes>
@@ -85,6 +97,7 @@
     <fileSet>
       <directory>../conf</directory>
       <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
       <includes>
         <include>accumulo.policy.example</include>
         <include>examples/**</include>
@@ -111,6 +124,7 @@
     <fileSet>
       <directory>../test</directory>
       <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
       <excludes>
         <exclude>**/.*/**</exclude>
         <exclude>pom.xml</exclude>
@@ -152,7 +166,20 @@
     <fileSet>
       <directory>../proxy/examples</directory>
       <directoryMode>0755</directoryMode>
+      <fileMode>0755</fileMode>
+      <includes>
+        <include>**/*.py</include>
+        <include>**/*.rb</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>../proxy/examples</directory>
+      <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
+      <excludes>
+        <exclude>**/*.py</exclude>
+        <exclude>**/*.rb</exclude>
+      </excludes>
     </fileSet>
     <fileSet>
       <directory>../proxy/src/main/thrift</directory>
@@ -162,6 +189,11 @@
       <includes>
         <include>*.thrift</include>
       </includes>
+    </fileSet>
+    <fileSet>
+      <directory>scripts</directory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0755</fileMode>
     </fileSet>
   </fileSets>
   <files>
