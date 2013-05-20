@@ -138,7 +138,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
           }
           doc.println(indent(indentDepth) + "<td" + (isDeprecated ? " class='deprecated'" : "") + ">" + zoo + "</td>");
           doc.println(indent(indentDepth) + "<td" + (isDeprecated ? " class='deprecated'" : "") + "><pre>"
-              + (prop.getDefaultValue().isEmpty() ? "&nbsp;" : prop.getDefaultValue().replaceAll(" ", "&nbsp;")) + "</pre></td>");
+              + (prop.getRawDefaultValue().isEmpty() ? "&nbsp;" : prop.getRawDefaultValue().replaceAll(" ", "&nbsp;")) + "</pre></td>");
           doc.println(indent(indentDepth) + "<td" + (isDeprecated ? " class='deprecated'" : "") + ">" + (isDeprecated ? "<b><i>Deprecated.</i></b> " : "")
               + prop.getDescription() + "</td>");
           doc.println(indent(--indentDepth) + "</tr>");
