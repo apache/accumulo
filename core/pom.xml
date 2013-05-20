@@ -127,6 +127,9 @@
           <configuration>
             <excludes>
               <exclude>src/test/resources/shelltest.txt</exclude>
+              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/ver_3.rf</exclude>
+              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/ver_4.rf</exclude>
+              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/ver_6.rf</exclude>
             </excludes>
           </configuration>
         </plugin>
