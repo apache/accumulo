@@ -42,6 +42,11 @@ import org.apache.hadoop.io.Text;
 
 public interface TableOperations {
   
+  /**
+   * Retrieve a list of tables in Accumulo.
+   * 
+   * @return List of tables in accumulo
+   */
   public SortedSet<String> list();
   
   /**
