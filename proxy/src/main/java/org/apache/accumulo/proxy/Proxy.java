@@ -24,6 +24,7 @@ import java.lang.reflect.Constructor;
 import java.util.Properties;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.log4j.Logger;
@@ -135,8 +136,10 @@ public class Proxy {
     
     THsHaServer.Args args = new THsHaServer.Args(socket);
     args.processor(processor);
-    final int maxFrameSize = Integer.parseInt(properties.getProperty("maxFrameSize", "16384000"));
-    args.transportFactory(new TFramedTransport.Factory(maxFrameSize));
+    final long maxFrameSize = AccumuloConfiguration.getMemoryInBytes(properties.getProperty("maxFrameSize", "16M"));
+    if (maxFrameSize > Integer.MAX_VALUE)
+      throw new RuntimeException(maxFrameSize + " is larger than MAX_INT");
+    args.transportFactory(new TFramedTransport.Factory((int)maxFrameSize));
     args.protocolFactory(protoClass.newInstance());
     return new THsHaServer(args);
   }
