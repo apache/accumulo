@@ -53,6 +53,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
 import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
 import org.apache.accumulo.proxy.thrift.ActiveCompaction;
@@ -80,7 +81,6 @@ import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UnknownScanner;
 import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
-import org.apache.accumulo.server.mini.MiniAccumuloCluster;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
@@ -617,7 +617,7 @@ public class SimpleTest {
       client.hasNext(scanner);
       fail("exception not thrown");
     } catch (UnknownScanner us) {}
-
+    
     try {
       client.closeScanner(scanner);
       fail("exception not thrown");
@@ -657,7 +657,7 @@ public class SimpleTest {
     
     // this is a oneway call, so it does not throw exceptions
     client.update(writer, mutation("row2", "cf", "cq", "value2"));
-
+    
     try {
       client.flush(writer);
       fail("exception not thrown");

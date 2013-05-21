@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.mini;
+package org.apache.accumulo.minicluster;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -97,8 +97,7 @@ public class MiniAccumuloCluster {
           in.close();
         }
         
-      } catch (IOException e) {
-      }
+      } catch (IOException e) {}
     }
   }
   
@@ -131,7 +130,8 @@ public class MiniAccumuloCluster {
     
     ArrayList<String> argList = new ArrayList<String>();
     
-    argList.addAll(Arrays.asList(javaBin, "-cp", classpath, "-Xmx128m", "-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", Main.class.getName(), className));
+    argList.addAll(Arrays.asList(javaBin, "-cp", classpath, "-Xmx128m", "-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75",
+        Main.class.getName(), className));
     
     argList.addAll(Arrays.asList(args));
     
@@ -239,15 +239,9 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TRACE_PORT, "" + PortUtils.getRandomFreePort(), siteConfig);
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);
-    String cp = System.getenv("ACCUMULO_HOME")+"/lib/.*.jar,"+
-        "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,"+
-        "$HADOOP_HOME/[^.].*.jar,"+
-        "$HADOOP_HOME/lib/[^.].*.jar,"+
-        "$HADOOP_PREFIX/share/hadoop/common/.*.jar," +
-        "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar," +
-        "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar," +
-        "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar"
-        ; 
+    String cp = System.getenv("ACCUMULO_HOME") + "/lib/.*.jar," + "$ZOOKEEPER_HOME/zookeeper[^.].*.jar," + "$HADOOP_HOME/[^.].*.jar,"
+        + "$HADOOP_HOME/lib/[^.].*.jar," + "$HADOOP_PREFIX/share/hadoop/common/.*.jar," + "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,"
+        + "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar," + "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar";
     appendProp(fileWriter, Property.GENERAL_CLASSPATHS, cp, siteConfig);
     appendProp(fileWriter, Property.GENERAL_DYNAMIC_CLASSPATHS, libDir.getAbsolutePath(), siteConfig);
     
