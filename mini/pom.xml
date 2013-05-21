@@ -82,14 +82,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-  </build>
 </project>
