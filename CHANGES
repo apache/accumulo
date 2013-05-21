@@ -123,7 +123,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1351] - document HDFS timeout settings
     * [ACCUMULO-1352] - filter on !METADATA can prematurely delete loaded flags
     * [ACCUMULO-1353] - check that bulk load is active in metadata table constraint
-    * [ACCUMULO-1360] - Document per table classpath
     * [ACCUMULO-1364] - Silent failure after power outage
     * [ACCUMULO-1369] - Can not configure iterators when per table classpath is configured
     * [ACCUMULO-1380] - Add MiniAccumuloCluster to the Accumulo documentation
@@ -425,7 +424,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1331] - simple.wal.WriteAheadLog test sometimes fails
     * [ACCUMULO-1332] - simple.gc.GCTest sometimes fails
     * [ACCUMULO-1333] - CleanZookeeper requires password with "accumulo:" prefix
-    * [ACCUMULO-1339] - log4j jar is required to be in a specific place
     * [ACCUMULO-1343] - Docs profile doesn't fail when prerequisites aren't available
     * [ACCUMULO-1348] - Accumulo Shell does not respect 'exit' when executing file
     * [ACCUMULO-1358] - Shell's setiter is not informative when using a bad class name
@@ -440,7 +438,13 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1415] - Move SystemToken to server package
     * [ACCUMULO-1421] - use reflection to improve compatibility between Hadoop 1 and 2
     * [ACCUMULO-1423] - Add include for **/*.jnilib in the binary-release.xml for tar.gz artifact
+    * [ACCUMULO-1424] - proxy TFramedTransport max size too small (should be configurable)
+    * [ACCUMULO-1429] - setscaniter doesn't work from different table context
     * [ACCUMULO-1430] - mvn release:prepare doesn't run tests
+    * [ACCUMULO-1436] - Dependencies on sibling modules in Accumulo shouldn't be in the "provided" scope
+    * [ACCUMULO-1440] - Configuration documentation generation (docs/config.html) should not interpolate properties
+    * [ACCUMULO-1441] - Add sample RFiles to excludes for rat check
+    * [ACCUMULO-1443] - TableOperations.list() lacks javadoc
 
 
 
@@ -578,6 +582,7 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1169] - Can't build against CDH3U5
     * [ACCUMULO-1179] - add zookeeper option to accumulo start script
     * [ACCUMULO-1181] - RAT check reports different files missing licenses in OSX than in Linux
+    * [ACCUMULO-1182] - Build/Update Developer Manual
     * [ACCUMULO-1196] - "du" should be context aware
     * [ACCUMULO-1201] - Exclude thift classes from cobertura.
     * [ACCUMULO-1202] - Add integration-test phase to maven build by using maven-failsafe-plugin
@@ -595,6 +600,7 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1381] - Allow PrintInfo to fall back to the local filesystem
     * [ACCUMULO-1394] - Allow RegExFilter subclass to call setNegate.
     * [ACCUMULO-1414] - Add proxy to user manual documentation
+    * [ACCUMULO-1438] - Move MiniAccumuloCluster & Runner packaging to it's own module.
 
 ** New Feature
     * [ACCUMULO-19] - Debian packaging support
@@ -645,7 +651,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-584] - Add constraint configuration methods to table operations
     * [ACCUMULO-595] - Clean up EmbeddedWebServer/Monitor
     * [ACCUMULO-600] - Move wikisearch example to contrib
-    * [ACCUMULO-612] - Write monitor documentation
     * [ACCUMULO-618] - Update trace pom to identify artifact as trace and not cloudtrace
     * [ACCUMULO-647] - Make FATE a separate module
     * [ACCUMULO-653] - Use equals instead of compareTo when comparing Keys
@@ -681,5 +686,4 @@ Release Notes - Accumulo - Version 1.5.0
 
 ** Wish
     * [ACCUMULO-1212] - AUDIT verbosity in build
-
 
