@@ -127,6 +127,7 @@ public class Proxy {
     
     Class<?> proxyProcClass = Class.forName(api.getName() + "$Processor");
     Class<?> proxyIfaceClass = Class.forName(api.getName() + "$Iface");
+
     @SuppressWarnings("unchecked")
     Constructor<? extends TProcessor> proxyProcConstructor = (Constructor<? extends TProcessor>) proxyProcClass.getConstructor(proxyIfaceClass);
     
@@ -134,7 +135,8 @@ public class Proxy {
     
     THsHaServer.Args args = new THsHaServer.Args(socket);
     args.processor(processor);
-    args.transportFactory(new TFramedTransport.Factory());
+    final int maxFrameSize = Integer.parseInt(properties.getProperty("maxFrameSize", "16384000"));
+    args.transportFactory(new TFramedTransport.Factory(maxFrameSize));
     args.protocolFactory(protoClass.newInstance());
     return new THsHaServer(args);
   }
