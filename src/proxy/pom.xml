@@ -77,6 +77,11 @@
         <scope>compile</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-minicluster</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-core</artifactId>
         <scope>compile</scope>

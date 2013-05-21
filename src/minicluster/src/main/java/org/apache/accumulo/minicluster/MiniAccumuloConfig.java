@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.mini;
+package org.apache.accumulo.minicluster;
 
 import java.io.File;
 import java.util.Collections;
