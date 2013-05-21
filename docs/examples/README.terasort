@@ -22,7 +22,7 @@ hadoop terasort benchmark.
 
 To run this example you run it with arguments describing the amount of data:
 
-    $ bin/tool.sh lib/examples-simple*[^cs].jar org.apache.accumulo.examples.simple.mapreduce.TeraSortIngest \
+    $ bin/tool.sh lib/accumulo-examples-simple.jar org.apache.accumulo.examples.simple.mapreduce.TeraSortIngest \
     -i instance -z zookeepers -u user -p password \
     --count 10 \
     --minKeySize 10 \ 

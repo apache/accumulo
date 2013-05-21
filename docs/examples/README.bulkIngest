@@ -27,7 +27,7 @@ accumulo.  Then we verify the 1000 rows are in accumulo.
     $ ARGS="-i instance -z zookeepers -u username -p password"
     $ ./bin/accumulo $PKG.SetupTable $ARGS -t test_bulk row_00000333 row_00000666
     $ ./bin/accumulo $PKG.GenerateTestData --start-row 0 --count 1000 --output bulk/test_1.txt
-    $ ./bin/tool.sh lib/accumulo-examples-simple-*[^cs].jar $PKG.BulkIngestExample $ARGS -t test_bulk --inputDir bulk --workDir tmp/bulkWork
+    $ ./bin/tool.sh lib/accumulo-examples-simple.jar $PKG.BulkIngestExample $ARGS -t test_bulk --inputDir bulk --workDir tmp/bulkWork
     $ ./bin/accumulo $PKG.VerifyIngest $ARGS -t test_bulk --start-row 0 --count 1000
 
 For a high level discussion of bulk ingest, see the docs dir.
