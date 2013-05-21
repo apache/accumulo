@@ -38,7 +38,7 @@ put a trivial amount of data into accumulo using the accumulo shell:
 The RowHash class will insert a hash for each row in the database if it contains a 
 specified colum.  Here's how you run the map/reduce job
 
-    $ bin/tool.sh lib/examples-simple*[^cs].jar org.apache.accumulo.examples.simple.mapreduce.RowHash -u user -p passwd -i instance -t input --column cf:cq 
+    $ bin/tool.sh lib/accumulo-examples-simple.jar org.apache.accumulo.examples.simple.mapreduce.RowHash -u user -p passwd -i instance -t input --column cf:cq 
 
 Now we can scan the table and see the hashes:
 

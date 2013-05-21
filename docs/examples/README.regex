@@ -41,7 +41,7 @@ in parallel and will store the results in files in hdfs.
 
 The following will search for any rows in the input table that starts with "dog":
 
-    $ bin/tool.sh lib/examples-simple*[^cs].jar org.apache.accumulo.examples.simple.mapreduce.RegexExample -u user -p passwd -i instance -t input --rowRegex 'dog.*' --output /tmp/output
+    $ bin/tool.sh lib/accumulo-examples-simple.jar org.apache.accumulo.examples.simple.mapreduce.RegexExample -u user -p passwd -i instance -t input --rowRegex 'dog.*' --output /tmp/output
 
     $ hadoop fs -ls /tmp/output
     Found 3 items
