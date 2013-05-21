@@ -39,7 +39,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-server</artifactId>
+      <artifactId>accumulo-mini</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.thrift</groupId>
