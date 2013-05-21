@@ -115,7 +115,7 @@
     </dependency>
     <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-server</artifactId>
+        <artifactId>accumulo-mini</artifactId>
         <version>${project.version}</version>
     </dependency>
   </dependencies>

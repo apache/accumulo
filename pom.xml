@@ -37,6 +37,7 @@
     <module>src/start</module>
     <module>src/examples</module>
     <module>src/proxy</module>
+    <module>src/mini</module>
   </modules>
 
   <build>
