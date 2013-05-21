@@ -27,8 +27,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.server.mini.MiniAccumuloCluster;
-import org.apache.accumulo.server.mini.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -40,7 +40,6 @@ public class MetaSplitTest {
   private static String secret = "superSecret";
   public static TemporaryFolder folder = new TemporaryFolder();
   public static MiniAccumuloCluster cluster;
-
   
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -48,7 +47,7 @@ public class MetaSplitTest {
     MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
-
+    
   }
   
   @AfterClass
@@ -57,7 +56,7 @@ public class MetaSplitTest {
     folder.delete();
   }
   
-  private void addSplits(TableOperations opts, String ... points) throws Exception {
+  private void addSplits(TableOperations opts, String... points) throws Exception {
     SortedSet<Text> splits = new TreeSet<Text>();
     for (String point : points) {
       splits.add(new Text(point));

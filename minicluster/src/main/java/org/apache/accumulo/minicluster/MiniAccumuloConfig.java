@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.mini;
+package org.apache.accumulo.minicluster;
 
 import java.io.File;
 import java.util.HashMap;
@@ -24,7 +24,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.util.PortUtils;
 
 /**
- * Holds configuration for {@link MiniAccumuloCluster}. Required configurations must be passed to constructor(s) and all other configurations are optional.
+ * Holds configuration for {@link org.apache.accumulo.server.mini.MiniAccumuloCluster}. Required configurations must be passed to constructor(s) and all other
+ * configurations are optional.
  * 
  * @since 1.5.0
  */
@@ -200,7 +201,8 @@ public class MiniAccumuloConfig {
    * @param memory
    *          amount of memory to set
    * 
-   * @param memoryUnit the units for which to apply with the memory size
+   * @param memoryUnit
+   *          the units for which to apply with the memory size
    * 
    * @since 1.6.0
    */
@@ -259,7 +261,8 @@ public class MiniAccumuloConfig {
   }
   
   /**
-   * @param serverType get configuration for this server type
+   * @param serverType
+   *          get configuration for this server type
    * 
    * @return memory configured in bytes, returns default if this server type is not configured
    * 

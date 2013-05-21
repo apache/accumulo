@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.mini.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
@@ -48,7 +48,7 @@ public class TestAccumuloSplitRecovery {
   public static TemporaryFolder folder = new TemporaryFolder();
   private MiniAccumuloCluster accumulo;
   private String secret = "secret";
-
+  
   @Before
   public void setUp() throws Exception {
     folder.create();
@@ -73,8 +73,9 @@ public class TestAccumuloSplitRecovery {
     Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : scanner) {
-        return false;
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : scanner) {
+      return false;
     }
     return true;
   }
@@ -83,7 +84,7 @@ public class TestAccumuloSplitRecovery {
   public void test() throws Exception {
     
     for (int tn = 0; tn < 2; tn++) {
-    
+      
       ZooKeeperInstance instance = new ZooKeeperInstance(accumulo.getConfig().getInstanceName(), accumulo.getConfig().getZooKeepers());
       Connector connector = instance.getConnector("root", new PasswordToken(secret));
       // create a table and put some data in it
@@ -143,9 +144,9 @@ public class TestAccumuloSplitRecovery {
         i++;
       }
       assertEquals(3, i);
-
+      
       connector.tableOperations().delete(TABLE);
-    
+      
     }
   }
   
