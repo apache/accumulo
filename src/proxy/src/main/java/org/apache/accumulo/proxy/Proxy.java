@@ -16,9 +16,14 @@
  */
 package org.apache.accumulo.proxy;
 
-import com.google.common.io.Files;
-import org.apache.accumulo.mini.MiniAccumuloCluster;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.util.Properties;
+
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
+import org.apache.accumulo.server.mini.MiniAccumuloCluster;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -28,11 +33,7 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.util.Properties;
+import com.google.common.io.Files;
 
 public class Proxy {
   
