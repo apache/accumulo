@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.mini.MiniAccumuloCluster;
+import org.apache.accumulo.mini.MiniAccumuloCluster;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
