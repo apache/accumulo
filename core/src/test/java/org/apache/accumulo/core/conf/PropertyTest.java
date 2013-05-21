@@ -16,11 +16,9 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.util.HashSet;
 
 import org.junit.Test;
@@ -100,13 +98,5 @@ public class PropertyTest {
     // this makes the following checks fail
     // typeCheckValidFormat(PropertyType.ABSOLUTEPATH, "d:\\foo12", "c:\\foo\\g", "c:\\foo\\c", "c:\\");
     typeCheckInvalidFormat(PropertyType.ABSOLUTEPATH, "foo12", "foo/g", "foo\\c");
-  }
-  
-  @Test
-  public void testRawDefaultValues() {
-    AccumuloConfiguration conf = AccumuloConfiguration.getDefaultConfiguration();
-    assertEquals("${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}", Property.VFS_CLASSLOADER_CACHE_DIR.getRawDefaultValue());
-    assertEquals(new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name")).getAbsolutePath(),
-        conf.get(Property.VFS_CLASSLOADER_CACHE_DIR));
   }
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.mini;
+package org.apache.accumulo.server.mini;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,7 +36,7 @@ import com.beust.jcommander.Parameter;
 import com.google.common.io.Files;
 
 /**
- * A runner for starting up a {@link org.apache.accumulo.mini.MiniAccumuloCluster} from the command line using an optional configuration properties file. An example property file looks
+ * A runner for starting up a {@link MiniAccumuloCluster} from the command line using an optional configuration properties file. An example property file looks
  * like the following:
  * 
  * <pre>
@@ -86,7 +86,7 @@ public class MiniAccumuloRunner {
   }
   
   /**
-   * Runs the {@link org.apache.accumulo.mini.MiniAccumuloCluster} given a -p argument with a property file. Establishes a shutdown port for asynchronous operation.
+   * Runs the {@link MiniAccumuloCluster} given a -p argument with a property file. Establishes a shutdown port for asynchronous operation.
    * 
    * @param args
    *          An optional -p argument can be specified with the path to a valid properties file.
