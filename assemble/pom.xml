@@ -51,10 +51,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-mini</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-proxy</artifactId>
     </dependency>
     <dependency>
