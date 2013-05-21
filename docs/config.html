@@ -1,1 +1,956 @@
-Classname org.apache.accumulo.core.conf.DefaultConfiguration not found.  Please make sure you use the wholly qualified package name.
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+ <head>
+  <title>Accumulo Configuration</title>
+  <link rel='stylesheet' type='text/css' href='documentation.css' media='screen'/>
+ </head>
+ <body>
+  <h1>Apache Accumulo Configuration Management</h1>
+  <p>All accumulo properties have a default value in the source code.  Properties can also be set
+  in accumulo-site.xml and in zookeeper on per-table or system-wide basis.  If properties are set in more than one location,
+  accumulo will choose the property with the highest precedence.  This order of precedence is described
+  below (from highest to lowest):</p>
+  <table>
+   <tr><th>Location</th><th>Description</th></tr>
+   <tr class='highlight'><td><b>Zookeeper<br/>table properties</td>
+       <td>Table properties are applied to the entire cluster when set in zookeeper using the accumulo API or shell.  While table properties take precedent over system properties, both will override properties set in accumulo-site.xml<br/><br/>
+           Table properties consist of all properties with the table.* prefix.  Table properties are configured on a per-table basis using the following shell commmand:
+		    <pre>config -t TABLE -s PROPERTY=VALUE</pre></td>
+   </tr>
+   <tr><td><b>Zookeeper<br/>system properties</td>
+	    <td>System properties are applied to the entire cluster when set in zookeeper using the accumulo API or shell.  System properties consist of all properties with a 'yes' in the 'Zookeeper Mutable' column in the table below.  They are set with the following shell command:
+		    <pre>config -s PROPERTY=VALUE</pre>
+			If a table.* property is set using this method, the value will apply to all tables except those configured on per-table basis (which have higher precedence).<br/><br/>
+			While most system properties take effect immediately, some require a restart of the process which is indicated in 'Zookeeper Mutable'.</td>
+   </tr>
+   <tr class='highlight'><td><b>accumulo-site.xml</td>
+       <td>Accumulo processes (master, tserver, etc) read their local accumulo-site.xml on start up.  Therefore, changes made to accumulo-site.xml must rsynced across the cluster and processes must be restarted to apply changes.<br/><br/>
+           Certain properties (indicated by a 'no' in 'Zookeeper Mutable') cannot be set in zookeeper and only set in this file.  The accumulo-site.xml also allows you to configure tablet servers with different settings.</td>
+   </tr>
+   <tr><td><b>Default</td>
+   	   <td>All properties have a default value in the source code.  This value has the lowest precedence and is overriden if set in accumulo-site.xml or zookeeper.<br/><br/>While the default value is usually optimal, there are cases where a change can increase query and ingest performance.</td>
+   </tr>
+  </table>
+  
+  <p>The 'config' command in the shell allows you to view the current system configuration.  You can also use the '-t' option to view a table's configuration as below:
+  
+  <pre>
+    $ ./bin/accumulo shell -u root
+    Enter current password for 'root'@'ac14': ******
+
+    Shell - Apache Accumulo Interactive Shell
+    - 
+    - version: 1.4.4-SNAPSHOT
+    - instance name: ac14
+    - instance id: 4f48fa03-f692-43ce-ae03-94c9ea8b7181
+    - 
+    - type 'help' for a list of available commands
+    - 
+    root@ac13> config -t foo
+    ---------+---------------------------------------------+------------------------------------------------------
+    SCOPE    | NAME                                        | VALUE
+    ---------+---------------------------------------------+------------------------------------------------------
+    default  | table.balancer ............................ | org.apache.accumulo.server.master.balancer.DefaultLoadBalancer
+    default  | table.bloom.enabled ....................... | false
+    default  | table.bloom.error.rate .................... | 0.5%
+    default  | table.bloom.hash.type ..................... | murmur
+    default  | table.bloom.key.functor ................... | org.apache.accumulo.core.file.keyfunctor.RowFunctor
+    default  | table.bloom.load.threshold ................ | 1
+    default  | table.bloom.size .......................... | 1048576
+    default  | table.cache.block.enable .................. | false
+    default  | table.cache.index.enable .................. | false
+    default  | table.compaction.major.everything.at ...... | 19700101000000GMT
+    default  | table.compaction.major.everything.idle .... | 1h
+    default  | table.compaction.major.ratio .............. | 1.3
+    site     |    @override .............................. | 1.4
+    system   |    @override .............................. | 1.5
+    table    |    @override .............................. | 1.6
+    default  | table.compaction.minor.idle ............... | 5m
+    default  | table.compaction.minor.logs.threshold ..... | 3
+    default  | table.failures.ignore ..................... | false
+  </pre>
+  
+  <h1>Configuration Properties</h1>
+  
+
+  <p>Jump to: 
+<a href='#INSTANCE_PREFIX'>instance.*</a>&nbsp;|&nbsp;<a href='#GENERAL_PREFIX'>general.*</a>&nbsp;|&nbsp;<a href='#MASTER_PREFIX'>master.*</a>&nbsp;|&nbsp;<a href='#TSERV_PREFIX'>tserver.*</a>&nbsp;|&nbsp;<a href='#LOGGER_PREFIX'>logger.*</a>&nbsp;|&nbsp;<a href='#GC_PREFIX'>gc.*</a>&nbsp;|&nbsp;<a href='#MONITOR_PREFIX'>monitor.*</a>&nbsp;|&nbsp;<a href='#TRACE_PREFIX'>trace.*</a>&nbsp;|&nbsp;<a href='#TABLE_PREFIX'>table.*</a>&nbsp;|&nbsp;<a href='#TABLE_CONSTRAINT_PREFIX'>table.constraint.*</a>&nbsp;|&nbsp;<a href='#TABLE_ITERATOR_PREFIX'>table.iterator.*</a>&nbsp;|&nbsp;<a href='#TABLE_LOCALITY_GROUP_PREFIX'>table.group.*</a>  </p>
+  <table>
+   <tr><td colspan='5'><a name='INSTANCE_PREFIX' class='large'>instance.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category must be consistent throughout a cloud. This is enforced and servers won't be able to communicate if these differ.</i></td></tr>
+   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>
+   <tr class='highlight'>
+    <td>instance.dfs.dir</td>
+    <td><b><a href='#ABSOLUTEPATH'>absolute&nbsp;path</a></b></td>
+    <td>no</td>
+    <td><pre>/accumulo</pre></td>
+    <td>HDFS directory in which accumulo instance will run.  Do not change after accumulo is initialized.</td>
+   </tr>
+   <tr >
+    <td>instance.dfs.uri</td>
+    <td><b><a href='#URI'>uri</a></b></td>
+    <td>no</td>
+    <td><pre>&nbsp;</pre></td>
+    <td>The url accumulo should use to connect to DFS.  If this is empty, accumulo will obtain this information from the hadoop configuration.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>instance.secret</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>no</td>
+    <td><pre>DEFAULT</pre></td>
+    <td>A secret unique to a given instance that all servers must know in order to communicate with one another. Change it before initialization. To change it later use ./bin/accumulo accumulo.server.util.ChangeSecret [oldpasswd] [newpasswd],  and then update conf/accumulo-site.xml everywhere.</td>
+   </tr>
+   <tr >
+    <td>instance.zookeeper.host</td>
+    <td><b><a href='#HOSTLIST'>host&nbsp;list</a></b></td>
+    <td>no</td>
+    <td><pre>localhost:2181</pre></td>
+    <td>Comma separated list of zookeeper servers</td>
+   </tr>
+   <tr class='highlight'>
+    <td>instance.zookeeper.timeout</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>no</td>
+    <td><pre>30s</pre></td>
+    <td>Zookeeper session timeout; max value when represented as milliseconds should be no larger than 2147483647</td>
+   </tr>
+   <tr><td colspan='5'><a name='GENERAL_PREFIX' class='large'>general.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category affect the behavior of accumulo overall, but do not have to be consistent throughout a cloud.</i></td></tr>
+   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>
+   <tr class='highlight'>
+    <td>general.classpaths</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>no</td>
+    <td><pre>$ACCUMULO_HOME/conf,
+$ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar,
+$ACCUMULO_HOME/lib/[^.].*.jar,
+$ZOOKEEPER_HOME/zookeeper[^.].*.jar,
+$HADOOP_HOME/[^.].*.jar,
+$HADOOP_HOME/conf,
+$HADOOP_HOME/lib/[^.].*.jar,
+</pre></td>
+    <td>A list of all of the places to look for a class. Order does matter, as it will look for the jar starting in the first location to the last. Please note, hadoop conf and hadoop lib directories NEED to be here, along with accumulo lib and zookeeper directory. Supports full regex on filename alone.</td>
+   </tr>
+   <tr >
+    <td>general.dynamic.classpaths</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>no</td>
+    <td><pre>$ACCUMULO_HOME/lib/ext/[^.].*.jar
+</pre></td>
+    <td>A list of all of the places where changes in jars or classes will force a reload of the classloader.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>general.kerberos.keytab</td>
+    <td><b><a href='#PATH'>path</a></b></td>
+    <td>no</td>
+    <td><pre>&nbsp;</pre></td>
+    <td>Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs</td>
+   </tr>
+   <tr >
+    <td>general.kerberos.principal</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>no</td>
+    <td><pre>&nbsp;</pre></td>
+    <td>Name of the kerberos principal to use. _HOST will automatically be replaced by the machines hostname in the hostname portion of the principal. Leave blank if not using kerberoized hdfs</td>
+   </tr>
+   <tr class='highlight'>
+    <td>general.rpc.timeout</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>no</td>
+    <td><pre>120s</pre></td>
+    <td>Time to wait on I/O for simple, short RPC calls</td>
+   </tr>
+   <tr><td colspan='5'><a name='MASTER_PREFIX' class='large'>master.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category affect the behavior of the master server</i></td></tr>
+   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>
+   <tr class='highlight'>
+    <td>master.bulk.retries</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>3</pre></td>
+    <td>The number of attempts to bulk-load a file before giving up.</td>
+   </tr>
+   <tr >
+    <td>master.bulk.threadpool.size</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>5</pre></td>
+    <td>The number of threads to use when coordinating a bulk-import.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>master.logger.balancer</td>
+    <td><b><a href='#CLASSNAME'>java&nbsp;class</a></b></td>
+    <td>yes</td>
+    <td><pre>org.apache.accumulo.server.master.balancer.SimpleLoggerBalancer</pre></td>
+    <td>The balancer class that accumulo will use to make logger assignment decisions.</td>
+   </tr>
+   <tr >
+    <td>master.port.client</td>
+    <td><b><a href='#PORT'>port</a></b></td>
+    <td>yes but requires restart of the master</td>
+    <td><pre>9999</pre></td>
+    <td>The port used for handling client connections on the master</td>
+   </tr>
+   <tr class='highlight'>
+    <td>master.recovery.max.age</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>60m</pre></td>
+    <td>Recovery files older than this age will be removed.</td>
+   </tr>
+   <tr >
+    <td>master.recovery.pool</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>recovery</pre></td>
+    <td>Priority queue to use for log recovery map/reduce jobs.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>master.recovery.queue</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>default</pre></td>
+    <td>Priority queue to use for log recovery map/reduce jobs.</td>
+   </tr>
+   <tr >
+    <td>master.recovery.reducers</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>10</pre></td>
+    <td>Number of reducers to use to sort recovery logs (per log)</td>
+   </tr>
+   <tr class='highlight'>
+    <td>master.recovery.sort.mapreduce</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>false</pre></td>
+    <td>If true, use map/reduce to sort write-ahead logs during recovery</td>
+   </tr>
+   <tr >
+    <td>master.recovery.time.max</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>30m</pre></td>
+    <td>The maximum time to attempt recovery before giving up</td>
+   </tr>
+   <tr class='highlight'>
+    <td>master.server.threadcheck.time</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>1s</pre></td>
+    <td>The time between adjustments of the server thread pool.</td>
+   </tr>
+   <tr >
+    <td>master.server.threads.minimum</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>2</pre></td>
+    <td>The minimum number of threads to use to handle incoming requests.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>master.tablet.balancer</td>
+    <td><b><a href='#CLASSNAME'>java&nbsp;class</a></b></td>
+    <td>yes</td>
+    <td><pre>org.apache.accumulo.server.master.balancer.TableLoadBalancer</pre></td>
+    <td>The balancer class that accumulo will use to make tablet assignment and migration decisions.</td>
+   </tr>
+   <tr><td colspan='5'><a name='TSERV_PREFIX' class='large'>tserver.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category affect the behavior of the tablet servers</i></td></tr>
+   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>
+   <tr class='highlight'>
+    <td>tserver.bloom.load.concurrent.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>4</pre></td>
+    <td>The number of concurrent threads that will load bloom filters in the background. Setting this to zero will make bloom filters load in the foreground.</td>
+   </tr>
+   <tr >
+    <td>tserver.bulk.assign.threads</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>1</pre></td>
+    <td>The master delegates bulk file processing and assignment to tablet servers. After the bulk file has been processed, the tablet server will assign the file to the appropriate tablets on all servers.  This property controls the number of threads used to communicate to the other servers.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.bulk.process.threads</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>1</pre></td>
+    <td>The master will task a tablet server with pre-processing a bulk file prior to assigning it to the appropriate tablet servers.  This configuration value controls the number of threads used to process the files.</td>
+   </tr>
+   <tr >
+    <td>tserver.bulk.retry.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>3</pre></td>
+    <td>The number of times the tablet server will attempt to assign a file to a tablet as it migrates and splits.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.cache.data.size</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>100M</pre></td>
+    <td>Specifies the size of the cache for file data blocks.</td>
+   </tr>
+   <tr >
+    <td>tserver.cache.index.size</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>512M</pre></td>
+    <td>Specifies the size of the cache for file indices.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.client.timeout</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>3s</pre></td>
+    <td>Time to wait for clients to continue scans before closing a session.</td>
+   </tr>
+   <tr >
+    <td>tserver.compaction.major.concurrent.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes but requires restart of the tserver</td>
+    <td><pre>3</pre></td>
+    <td>The maximum number of concurrent major compactions for a tablet server</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.compaction.major.delay</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>30s</pre></td>
+    <td>Time a tablet server will sleep between checking which tablets need compaction.</td>
+   </tr>
+   <tr >
+    <td>tserver.compaction.major.thread.files.open.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes but requires restart of the tserver</td>
+    <td><pre>10</pre></td>
+    <td>Max number of files a major compaction thread can open at once. </td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.compaction.minor.concurrent.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>4</pre></td>
+    <td>The maximum number of concurrent minor compactions for a tablet server</td>
+   </tr>
+   <tr >
+    <td>tserver.default.blocksize</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>1M</pre></td>
+    <td>Specifies a default blocksize for the tserver caches</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.dir.memdump</td>
+    <td><b><a href='#PATH'>path</a></b></td>
+    <td>yes</td>
+    <td><pre>/tmp</pre></td>
+    <td>A long running scan could possibly hold memory that has been minor compacted.  To prevent this, the in memory map is dumped to a local file and the scan is switched to that local file.  We can not switch to the minor compacted file because it may have been modified by iterators.  The file dumped to the local dir is an exact copy of what was in memory.</td>
+   </tr>
+   <tr >
+    <td>tserver.files.open.idle</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>1m</pre></td>
+    <td>Tablet servers leave previously used map files open for future queries. This setting determines how much time an unused map file should be kept open until it is closed.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.hold.time.max</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>5m</pre></td>
+    <td>The maximum time for a tablet server to be in the "memory full" state.  If the tablet server cannot write out memory in this much time, it will assume there is some failure local to its node, and quit.  A value of zero is equivalent to forever.</td>
+   </tr>
+   <tr >
+    <td>tserver.logger.count</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes but requires restart of the tserver</td>
+    <td><pre>2</pre></td>
+    <td>The number of loggers that each tablet server should use.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.logger.strategy</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>org.apache.accumulo.server.tabletserver.log.RoundRobinLoggerStrategy</pre></td>
+    <td>The classname used to decide which loggers to use.</td>
+   </tr>
+   <tr >
+    <td>tserver.logger.timeout</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>30s</pre></td>
+    <td>The time to wait for a logger to respond to a write-ahead request</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.memory.lock</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>false</pre></td>
+    <td>The tablet server must communicate with zookeeper frequently to maintain its locks.  If the tablet server's memory is swapped out the java garbage collector can stop all processing for long periods.  Change this property to true and the tablet server will  attempt to lock all of its memory to RAM, which may reduce delays during java garbage collection.  You will have to modify the  system limit for "max locked memory". This feature is only available when running on Linux.  Alternatively you may also  want to set /proc/sys/vm/swappiness to zero (again, this is Linux-specific).</td>
+   </tr>
+   <tr >
+    <td>tserver.memory.manager</td>
+    <td><b><a href='#CLASSNAME'>java&nbsp;class</a></b></td>
+    <td>yes</td>
+    <td><pre>org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager</pre></td>
+    <td>An implementation of MemoryManger that accumulo will use.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.memory.maps.max</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>1G</pre></td>
+    <td>Maximum amount of memory that can be used to buffer data written to a tablet server.  There are two other properties that can effectively limit memory usage table.compaction.minor.logs.threshold and tserver.walog.max.size.  Ensure that table.compaction.minor.logs.threshold * tserver.walog.max.size >= this property.</td>
+   </tr>
+   <tr >
+    <td>tserver.memory.maps.native.enabled</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes but requires restart of the tserver</td>
+    <td><pre>true</pre></td>
+    <td>An in-memory data store for accumulo implemented in c++ that increases the amount of data accumulo can hold in memory and avoids Java GC pauses.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.metadata.readahead.concurrent.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>8</pre></td>
+    <td>The maximum number of concurrent metadata read ahead that will execute.</td>
+   </tr>
+   <tr >
+    <td>tserver.migrations.concurrent.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>1</pre></td>
+    <td>The maximum number of concurrent tablet migrations for a tablet server</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.monitor.fs</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>true</pre></td>
+    <td>When enabled the tserver will monitor file systems and kill itself when one switches from rw to ro.  This is usually and indication that Linux has detected a bad disk.</td>
+   </tr>
+   <tr >
+    <td>tserver.mutation.queue.max</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>256K</pre></td>
+    <td>The amount of memory to use to store write-ahead-log mutations-per-session before flushing them.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.port.client</td>
+    <td><b><a href='#PORT'>port</a></b></td>
+    <td>yes but requires restart of the tserver</td>
+    <td><pre>9997</pre></td>
+    <td>The port used for handling client connections on the tablet servers</td>
+   </tr>
+   <tr >
+    <td>tserver.port.search</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>false</pre></td>
+    <td>if the ports above are in use, search higher ports until one is available</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.readahead.concurrent.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>16</pre></td>
+    <td>The maximum number of concurrent read ahead that will execute.  This effectively limits the number of long running scans that can run concurrently per tserver.</td>
+   </tr>
+   <tr >
+    <td>tserver.scan.files.open.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes but requires restart of the tserver</td>
+    <td><pre>100</pre></td>
+    <td>Maximum total map files that all tablets in a tablet server can open for scans. </td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.server.threadcheck.time</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>1s</pre></td>
+    <td>The time between adjustments of the server thread pool.</td>
+   </tr>
+   <tr >
+    <td>tserver.server.threads.minimum</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>2</pre></td>
+    <td>The minimum number of threads to use to handle incoming requests.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.session.idle.max</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>1m</pre></td>
+    <td>maximum idle time for a session</td>
+   </tr>
+   <tr >
+    <td>tserver.tablet.split.midpoint.files.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>30</pre></td>
+    <td>To find a tablets split points, all index files are opened. This setting determines how many index files can be opened at once. When there are more index files than this setting multiple passes must be made, which is slower. However opening too many files at once can cause problems.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>tserver.walog.max.size</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>1G</pre></td>
+    <td>The maximum size for each write-ahead log.  See comment for property tserver.memory.maps.max</td>
+   </tr>
+   <tr><td colspan='5'><a name='LOGGER_PREFIX' class='large'>logger.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category affect the behavior of the write-ahead logger servers</i></td></tr>
+   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>
+   <tr class='highlight'>
+    <td>logger.archive</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>false</pre></td>
+    <td>determines if logs are archived in hdfs</td>
+   </tr>
+   <tr >
+    <td>logger.archive.replication</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>0</pre></td>
+    <td>determines the replication factor for walogs archived in hdfs, set to zero to use default</td>
+   </tr>
+   <tr class='highlight'>
+    <td>logger.copy.threadpool.size</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>2</pre></td>
+    <td>size of the thread pool used to copy files from the local log area to HDFS</td>
+   </tr>
+   <tr >
+    <td>logger.dir.walog</td>
+    <td><b><a href='#PATH'>path</a></b></td>
+    <td>yes</td>
+    <td><pre>walogs</pre></td>
+    <td>The directory used to store write-ahead logs on the local filesystem. It is possible to specify a comma-separated list of directories.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>logger.monitor.fs</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>true</pre></td>
+    <td>When enabled the logger will monitor file systems and kill itself when one switches from rw to ro.  This is usually and indication that Linux has detected a bad disk.</td>
+   </tr>
+   <tr >
+    <td>logger.port.client</td>
+    <td><b><a href='#PORT'>port</a></b></td>
+    <td>yes but requires restart of the logger</td>
+    <td><pre>11224</pre></td>
+    <td>The port used for write-ahead logger services</td>
+   </tr>
+   <tr class='highlight'>
+    <td>logger.port.search</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>false</pre></td>
+    <td>if the port above is in use, search higher ports until one is available</td>
+   </tr>
+   <tr >
+    <td>logger.recovery.file.replication</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>2</pre></td>
+    <td>When a logger puts a WALOG into HDFS, it will use this as the replication factor.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>logger.server.threadcheck.time</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>1s</pre></td>
+    <td>The time between adjustments of the server thread pool.</td>
+   </tr>
+   <tr >
+    <td>logger.server.threads.minimum</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>2</pre></td>
+    <td>The miniumum number of threads to use to handle incoming requests.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>logger.sort.buffer.size</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>200M</pre></td>
+    <td>The amount of memory to use when sorting logs during recovery. Only used when *not* sorting logs with map/reduce.</td>
+   </tr>
+   <tr><td colspan='5'><a name='GC_PREFIX' class='large'>gc.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category affect the behavior of the accumulo garbage collector.</i></td></tr>
+   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>
+   <tr class='highlight'>
+    <td>gc.cycle.delay</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>5m</pre></td>
+    <td>Time between garbage collection cycles. In each cycle, old files no longer in use are removed from the filesystem.</td>
+   </tr>
+   <tr >
+    <td>gc.cycle.start</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>30s</pre></td>
+    <td>Time to wait before attempting to garbage collect any old files.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>gc.port.client</td>
+    <td><b><a href='#PORT'>port</a></b></td>
+    <td>yes but requires restart of the gc</td>
+    <td><pre>50091</pre></td>
+    <td>The listening port for the garbage collector's monitor service</td>
+   </tr>
+   <tr >
+    <td>gc.threads.delete</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>16</pre></td>
+    <td>The number of threads used to delete files</td>
+   </tr>
+   <tr><td colspan='5'><a name='MONITOR_PREFIX' class='large'>monitor.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category affect the behavior of the monitor web server.</i></td></tr>
+   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>
+   <tr class='highlight'>
+    <td>monitor.banner.background</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>#304065</pre></td>
+    <td>The background color of the banner text displayed on the monitor page.</td>
+   </tr>
+   <tr >
+    <td>monitor.banner.color</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>#c4c4c4</pre></td>
+    <td>The color of the banner text displayed on the monitor page.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>monitor.banner.text</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>&nbsp;</pre></td>
+    <td>The banner text displayed on the monitor page.</td>
+   </tr>
+   <tr >
+    <td>monitor.port.client</td>
+    <td><b><a href='#PORT'>port</a></b></td>
+    <td>no</td>
+    <td><pre>50095</pre></td>
+    <td>The listening port for the monitor's http service</td>
+   </tr>
+   <tr class='highlight'>
+    <td>monitor.port.log4j</td>
+    <td><b><a href='#PORT'>port</a></b></td>
+    <td>no</td>
+    <td><pre>4560</pre></td>
+    <td>The listening port for the monitor's log4j logging collection.</td>
+   </tr>
+   <tr><td colspan='5'><a name='TRACE_PREFIX' class='large'>trace.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category affect the behavior of distributed tracing.</i></td></tr>
+   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>
+   <tr class='highlight'>
+    <td>trace.password</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>no</td>
+    <td><pre>secret</pre></td>
+    <td>The password for the user used to store distributed traces</td>
+   </tr>
+   <tr >
+    <td>trace.port.client</td>
+    <td><b><a href='#PORT'>port</a></b></td>
+    <td>no</td>
+    <td><pre>12234</pre></td>
+    <td>The listening port for the trace server</td>
+   </tr>
+   <tr class='highlight'>
+    <td>trace.table</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>no</td>
+    <td><pre>trace</pre></td>
+    <td>The name of the table to store distributed traces</td>
+   </tr>
+   <tr >
+    <td>trace.user</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>no</td>
+    <td><pre>root</pre></td>
+    <td>The name of the user to store distributed traces</td>
+   </tr>
+   <tr><td colspan='5'><a name='TABLE_PREFIX' class='large'>table.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category affect tablet server treatment of tablets, but can be configured on a per-table basis. Setting these properties in the site file will override the default globally for all tables and not any specific table. However, both the default and the global setting can be overridden per table using the table operations API or in the shell, which sets the overridden value in zookeeper. Restarting accumulo tablet servers after setting these properties in the site file will cause the global setting to take effect. However, you must use the API or the shell to change properties in zookeeper that are set on a table.</i></td></tr>
+   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>
+   <tr class='highlight'>
+    <td>table.balancer</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>org.apache.accumulo.server.master.balancer.DefaultLoadBalancer</pre></td>
+    <td>This property can be set to allow the LoadBalanceByTable load balancer to change the called Load Balancer for this table</td>
+   </tr>
+   <tr >
+    <td>table.bloom.enabled</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>false</pre></td>
+    <td>Use bloom filters on this table.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.bloom.error.rate</td>
+    <td><b><a href='#FRACTION'>fraction/percentage</a></b></td>
+    <td>yes</td>
+    <td><pre>0.5%</pre></td>
+    <td>Bloom filter error rate.</td>
+   </tr>
+   <tr >
+    <td>table.bloom.hash.type</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>murmur</pre></td>
+    <td>The bloom filter hash type</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.bloom.key.functor</td>
+    <td><b><a href='#CLASSNAME'>java&nbsp;class</a></b></td>
+    <td>yes</td>
+    <td><pre>org.apache.accumulo.core.file.keyfunctor.RowFunctor</pre></td>
+    <td>A function that can transform the key prior to insertion and check of bloom filter.  org.apache.accumulo.core.file.keyfunctor.RowFunctor,,org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor are allowable values. One can extend any of the above mentioned classes to perform specialized parsing of the key. </td>
+   </tr>
+   <tr >
+    <td>table.bloom.load.threshold</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>1</pre></td>
+    <td>This number of seeks that would actually use a bloom filter must occur before a map files bloom filter is loaded. Set this to zero to initiate loading of bloom filters when a map file opened.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.bloom.size</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>1048576</pre></td>
+    <td>Bloom filter size, as number of keys.</td>
+   </tr>
+   <tr >
+    <td>table.cache.block.enable</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>false</pre></td>
+    <td>Determines whether file block cache is enabled.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.cache.index.enable</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>true</pre></td>
+    <td>Determines whether index cache is enabled.</td>
+   </tr>
+   <tr >
+    <td>table.compaction.major.everything.idle</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>1h</pre></td>
+    <td>After a tablet has been idle (no mutations) for this time period it may have all of its map file compacted into one.  There is no guarantee an idle tablet will be compacted. Compactions of idle tablets are only started when regular compactions are not running. Idle compactions only take place for tablets that have one or more map files.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.compaction.major.ratio</td>
+    <td><b><a href='#FRACTION'>fraction/percentage</a></b></td>
+    <td>yes</td>
+    <td><pre>3</pre></td>
+    <td>minimum ratio of total input size to maximum input file size for running a major compaction.   When adjusting this property you may want to also adjust table.file.max.  Want to avoid the situation where only merging minor compactions occur.</td>
+   </tr>
+   <tr >
+    <td>table.compaction.minor.idle</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>5m</pre></td>
+    <td>After a tablet has been idle (no mutations) for this time period it may have its in-memory map flushed to disk in a minor compaction.  There is no guarantee an idle tablet will be compacted.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.compaction.minor.logs.threshold</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>3</pre></td>
+    <td>When there are more than this many write-ahead logs against a tablet, it will be minor compacted.  See comment for property tserver.memory.maps.max</td>
+   </tr>
+   <tr >
+    <td>table.failures.ignore</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>false</pre></td>
+    <td>If you want queries for your table to hang or fail when data is missing from the system, then set this to false. When this set to true missing data will be reported but queries will still run possibly returning a subset of the data.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.file.blocksize</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>0B</pre></td>
+    <td>Overrides the hadoop dfs.block.size setting so that map files have better query performance. The maximum value for this is 2147483647</td>
+   </tr>
+   <tr >
+    <td>table.file.compress.blocksize</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>100K</pre></td>
+    <td>Overrides the hadoop io.seqfile.compress.blocksize setting so that map files have better query performance. The maximum value for this is 2147483647</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.file.compress.blocksize.index</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>128K</pre></td>
+    <td>Determines how large index blocks can be in files that support multilevel indexes. The maximum value for this is 2147483647</td>
+   </tr>
+   <tr >
+    <td>table.file.compress.type</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>gz</pre></td>
+    <td>One of gz,lzo,none</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.file.max</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>15</pre></td>
+    <td>Determines the max # of files each tablet in a table can have. When adjusting this property you may want to consider adjusting table.compaction.major.ratio also.  Setting this property to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a tablet from having more files than can be opened.  Setting this property low may throttle ingest and increase query performance.</td>
+   </tr>
+   <tr >
+    <td>table.file.replication</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>0</pre></td>
+    <td>Determines how many replicas to keep of a tables map files in HDFS. When this value is LTE 0, HDFS defaults are used.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.file.type</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>rf</pre></td>
+    <td>Change the type of file a table writes</td>
+   </tr>
+   <tr >
+    <td>table.formatter</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>org.apache.accumulo.core.util.format.DefaultFormatter</pre></td>
+    <td>The Formatter class to apply on results in the shell</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.groups.enabled</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>&nbsp;</pre></td>
+    <td>A comma separated list of locality group names to enable for this table.</td>
+   </tr>
+   <tr >
+    <td>table.scan.max.memory</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>1M</pre></td>
+    <td>The maximum amount of memory that will be used to cache results of a client query/scan. Once this limit is reached, the buffered data is sent to the client.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.security.scan.visibility.default</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>&nbsp;</pre></td>
+    <td>The security label that will be assumed at scan time if an entry does not have a visibility set.<br />Note: An empty security label is displayed as []. The scan results will show an empty visibility even if the visibility from this setting is applied to the entry.<br />CAUTION: If a particular key has an empty security label AND its table's default visibility is also empty, access will ALWAYS be granted for users with permission to that table. Additionally, if this field is changed, all existing data with an empty visibility label will be interpreted with the new label on the next scan.</td>
+   </tr>
+   <tr >
+    <td>table.split.threshold</td>
+    <td><b><a href='#MEMORY'>memory</a></b></td>
+    <td>yes</td>
+    <td><pre>1G</pre></td>
+    <td>When combined size of files exceeds this amount a tablet is split.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>table.walog.enabled</td>
+    <td><b><a href='#BOOLEAN'>boolean</a></b></td>
+    <td>yes</td>
+    <td><pre>true</pre></td>
+    <td>Use the write-ahead log to prevent the loss of data.</td>
+   </tr>
+   <tr><td colspan='5'><a name='TABLE_CONSTRAINT_PREFIX' class='large'>table.constraint.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category are per-table properties that add constraints to a table. These properties start with the category prefix, followed by a number, and their values correspond to a fully qualified Java class that implements the Constraint interface.<br />For example, table.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint and table.constraint.2 = my.package.constraints.MySecondConstraint</i></td></tr>
+   <tr><td colspan='5'><a name='TABLE_ITERATOR_PREFIX' class='large'>table.iterator.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category specify iterators that are applied at various stages (scopes) of interaction with a table. These properties start with the category prefix, followed by a scope (minc, majc, scan, etc.), followed by a period, followed by a name, as in table.iterator.scan.vers, or table.iterator.scan.custom. The values for these properties are a number indicating the ordering in which it is applied, and a class name such as table.iterator.scan.vers = 10,org.apache.accumulo.core.iterators.VersioningIterator<br /> These iterators can take options if additional properties are set that look like this property, but are suffixed with a period, followed by 'opt' followed by another period, and a property name.<br />For example, table.iterator.minc.vers.opt.maxVersions = 3</i></td></tr>
+   <tr><td colspan='5'><a name='TABLE_LOCALITY_GROUP_PREFIX' class='large'>table.group.*</a></td></tr>
+   <tr><td colspan='5'><i>Properties in this category are per-table properties that define locality groups in a table. These properties start with the category prefix, followed by a name, followed by a period, and followed by a property for that group.<br />For example table.group.group1=x,y,z sets the column families for a group called group1. Once configured, group1 can be enabled by adding it to the list of groups in the table.groups.enabled property.<br />Additional group options may be specified for a named group by setting table.group.&lt;name&gt;.opt.&lt;key&gt;=&lt;value&gt;.</i></td></tr>
+  </table>
+  <h1>Property Type Descriptions</h1>
+  <table>
+   <tr><th>Property Type</th><th>Description</th></tr>
+   <tr class='highlight'>
+     <td><h3><a name='TIMEDURATION'>duration</a></td>
+     <td>A non-negative integer optionally followed by a unit of time (whitespace disallowed), as in 30s.<br />If no unit of time is specified, seconds are assumed. Valid units are 'ms', 's', 'm', 'h' for milliseconds, seconds, minutes, and hours.<br />Examples of valid durations are '600', '30s', '45m', '30000ms', '3d', and '1h'.<br />Examples of invalid durations are '1w', '1h30m', '1s 200ms', 'ms', '', and 'a'.<br />Unless otherwise stated, the max value for the duration represented in milliseconds is 9223372036854775807</td>
+    </tr>
+   <tr >
+     <td><h3><a name='DATETIME'>date/time</a></td>
+     <td>A date/time string in the format: YYYYMMDDhhmmssTTT where TTT is the 3 character time zone</td>
+    </tr>
+   <tr class='highlight'>
+     <td><h3><a name='MEMORY'>memory</a></td>
+     <td>A positive integer optionally followed by a unit of memory (whitespace disallowed), as in 2G.<br />If no unit is specified, bytes are assumed. Valid units are 'B', 'K', 'M', 'G', for bytes, kilobytes, megabytes, and gigabytes.<br />Examples of valid memories are '1024', '20B', '100K', '1500M', '2G'.<br />Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G', '1,024K', '', and 'a'.<br .>Unless otherwise stated, the max value for the memory represented in bytes is 9223372036854775807</td>
+    </tr>
+   <tr >
+     <td><h3><a name='HOSTLIST'>host list</a></td>
+     <td>A comma-separated list of hostnames or ip addresses, with optional port numbers.<br />Examples of valid host lists are 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.<br />Examples of invalid host lists are '', ':1000', and 'localhost:80000'</td>
+    </tr>
+   <tr class='highlight'>
+     <td><h3><a name='PORT'>port</a></td>
+     <td>An positive integer in the range 1024-65535, not already in use or specified elsewhere in the configuration</td>
+    </tr>
+   <tr >
+     <td><h3><a name='COUNT'>count</a></td>
+     <td>A non-negative integer in the range of 0-2147483647</td>
+    </tr>
+   <tr class='highlight'>
+     <td><h3><a name='FRACTION'>fraction/percentage</a></td>
+     <td>A floating point number that represents either a fraction or, if suffixed with the '%' character, a percentage.<br />Examples of valid fractions/percentages are '10', '1000%', '0.05', '5%', '0.2%', '0.0005'.<br />Examples of invalid fractions/percentages are '', '10 percent', 'Hulk Hogan'</td>
+    </tr>
+   <tr >
+     <td><h3><a name='PATH'>path</a></td>
+     <td>A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property.</td>
+    </tr>
+   <tr class='highlight'>
+     <td><h3><a name='ABSOLUTEPATH'>absolute path</a></td>
+     <td>An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified.</td>
+    </tr>
+   <tr >
+     <td><h3><a name='CLASSNAME'>java class</a></td>
+     <td>A fully qualified java class name representing a class on the classpath.<br />An example is 'java.lang.String', rather than 'String'</td>
+    </tr>
+   <tr class='highlight'>
+     <td><h3><a name='STRING'>string</a></td>
+     <td>An arbitrary string of characters whose format is unspecified and interpreted based on the context of the property to which it applies.</td>
+    </tr>
+   <tr >
+     <td><h3><a name='BOOLEAN'>boolean</a></td>
+     <td>Has a value of either 'true' or 'false'</td>
+    </tr>
+   <tr class='highlight'>
+     <td><h3><a name='URI'>uri</a></td>
+     <td>A valid URI</td>
+    </tr>
+  </table>
+ </body>
+</html>
