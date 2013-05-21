@@ -37,7 +37,7 @@ configured Accumulo system to see what its using for its classpath.
 
 \small 
 \begin{verbatim} 
-$ACCUMULO_HOME/bin/accumulo classpath 
+$ACCUMULO_HOME/bin/accumulo classpath
 \end{verbatim}
 \normalsize
 
@@ -168,7 +168,7 @@ crash a tablet server. By default rows are buffered in memory, but the user
 can easily supply their own buffer if they wish to buffer to disk when rows are
 large.
 
-For an example, look at the following\\ 
+For an example, look at the following\\
 \texttt{examples/simple/src/main/java/org/apache/accumulo/examples/simple/isolation/InterferenceTest.java}
 
 \subsection{BatchScanner}
@@ -193,7 +193,6 @@ BatchScanner bscan =
 
 bscan.setRanges(ranges);
 bscan.fetchFamily("attributes");
-
 for(Entry<Key,Value> entry : scan)
     System.out.println(entry.getValue());
 \end{verbatim}
@@ -202,3 +201,132 @@ for(Entry<Key,Value> entry : scan)
 An example of the BatchScanner can be found at\\
 accumulo/docs/examples/README.batch
 
+\section{Proxy}
+
+The proxy API allows the interaction with Accumulo with languages other than Java.
+A proxy server is provided in the codebase and a client can further be generated.
+
+\subsection{Prequisites}
+
+The proxy server can live on any node in which the basic client API would work. That
+means it must be able to communicate with the Master, ZooKeepers, NameNode, and the
+Data nodes. A proxy client only needs the ability to communicate with the proxy server.
+
+
+\subsection{Configuration}
+
+The configuration options for the proxy server live inside of a properties file. At
+the very least, you need to supply the following properties:
+
+\small
+\begin{verbatim}
+protocolFactory=org.apache.thrift.protocol.TCompactProtocol$Factory
+tokenClass=org.apache.accumulo.core.client.security.tokens.PasswordToken
+port=42424
+instance=test
+zookeepers=localhost:2181
+\end{verbatim}
+\normalsize
+
+You can find a sample configuration file in your distribution:
+
+\small
+\begin{verbatim}
+$ACCUMULO_HOME/proxy/proxy.properties.
+\end{verbatim}
+\normalsize
+
+This sample configuration file further demonstrates an abilty to back the proxy server
+by MockAccumulo or the MiniAccumuloCluster.
+
+\subsection{Running the Proxy Server}
+
+After the properties file holding the configuration is created, the proxy server
+can be started using the following command in the Accumulo distribution (assuming
+you your properties file is named config.properties):
+
+\small
+\begin{verbatim}
+$ACCUMULO_HOME/bin/accumulo proxy -p config.properties
+\end{verbatim}
+\normalsize
+
+\subsection{Creating a Proxy Client}
+
+Aside from installing the Thrift compiler, you will also need the language-specific library
+for Thrift installed to generate client code in that language. Typically, your operating
+system's package manager will be able to automatically install these for you in an expected
+location such as /usr/lib/python/site-packages/thrift.
+
+You can find the thrift file for generating the client:
+
+\small
+\begin{verbatim}
+$ACCUMULO_HOME/proxy/proxy.thrift.
+\end{verbatim}
+\normalsize
+
+After a client is generated, the port specified in the configuration properties above will be
+used to connect to the server.
+
+\subsection{Using a Proxy Client}
+
+The following examples have been written in Java and the method signatures may be
+slightly different depending on the language specified when generating client with
+the Thrift compiler. After initiating a connection to the Proxy (see Apache Thrift's
+documentation for examples of connecting to a Thrift service), the methods on the
+proxy client will be available. The first thing to do is log in:
+
+\small
+\begin{verbatim}
+Map password = new HashMap<String,String>();
+password.put("password", "secret");
+ByteBuffer token = client.login("root", password);
+\end{verbatim}
+\normalsize
+
+Once logged in, the token returned will be used for most subsequent calls to the client.
+Let's create a table, add some data, scan the table, and delete it.
+
+
+First, create a table.
+
+\small
+\begin{verbatim}
+client.createTable(token, "myTable", true, TimeType.MILLIS);
+\end{verbatim}
+\normalsize
+
+
+Next, add some data:
+
+\small
+\begin{verbatim}
+// first, create a writer on the server
+String writer = client.createWriter(token, "myTable", new WriterOptions());
+
+// build column updates
+Map<ByteBuffer, List<ColumnUpdate> cells> cellsToUpdate = //...
+
+// send updates to the server
+client.updateAndFlush(writer, "myTable", cellsToUpdate);
+
+client.closeWriter(writer);
+\end{verbatim}
+\normalsize
+
+
+Scan for the data and batch the return of the results on the server:
+
+\small
+\begin{verbatim}
+String scanner = client.createScanner(token, "myTable", new ScanOptions());
+ScanResult results = client.nextK(scanner, 100);
+
+for(KeyValue keyValue : results.getResultsIterator()) {
+  // do something with results
+}
+
+client.closeScanner(scanner);
+\end{verbatim}
+\normalsize
