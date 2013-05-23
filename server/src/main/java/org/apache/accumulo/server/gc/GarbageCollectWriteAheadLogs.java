@@ -32,7 +32,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -55,13 +54,12 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 
-
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
   
   private final Instance instance;
   private final FileSystem fs;
-
+  
   private Trash trash;
   
   GarbageCollectWriteAheadLogs(Instance instance, FileSystem fs, boolean noTrash) throws IOException {
@@ -70,14 +68,14 @@ public class GarbageCollectWriteAheadLogs {
     if (!noTrash)
       this.trash = new Trash(fs, fs.getConf());
   }
-
+  
   public void collect(GCStatus status) {
     
     Span span = Trace.start("scanServers");
     try {
       
       Set<String> sortedWALogs = getSortedWALogs();
-
+      
       status.currentLog.started = System.currentTimeMillis();
       
       Map<String,String> fileToServerMap = new HashMap<String,String>();
@@ -131,7 +129,7 @@ public class GarbageCollectWriteAheadLogs {
       return true;
     }
   }
-
+  
   private int removeFiles(Map<String,ArrayList<String>> serverToFileMap, Set<String> sortedWALogs, final GCStatus status) {
     AccumuloConfiguration conf = instance.getConfiguration();
     for (Entry<String,ArrayList<String>> entry : serverToFileMap.entrySet()) {
@@ -206,7 +204,7 @@ public class GarbageCollectWriteAheadLogs {
         }
       }
     }
-
+    
     return 0;
   }
   
@@ -234,7 +232,7 @@ public class GarbageCollectWriteAheadLogs {
           status.currentLog.inUse++;
         
         sortedWALogs.remove(filename);
-
+        
         count++;
       }
     }
@@ -261,7 +259,7 @@ public class GarbageCollectWriteAheadLogs {
         log.info("Ignoring file " + name + " because it doesn't look like a uuid");
       }
     }
-
+    
     int count = 0;
     return count;
   }
@@ -271,7 +269,7 @@ public class GarbageCollectWriteAheadLogs {
     Path recoveryDir = new Path(Constants.getRecoveryDir(conf));
     
     Set<String> sortedWALogs = new HashSet<String>();
-
+    
     if (fs.exists(recoveryDir)) {
       for (FileStatus status : fs.listStatus(recoveryDir)) {
         if (isUUID(status.getPath().getName())) {
@@ -284,7 +282,7 @@ public class GarbageCollectWriteAheadLogs {
     
     return sortedWALogs;
   }
-
+  
   /**
    * @param name
    * @return

@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
@@ -115,7 +114,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       
       if (onlineTables == null || current == null)
         return;
-
+      
       TabletLocationState tls;
       try {
         tls = MetaDataTableScanner.createTabletLocationState(k, v);

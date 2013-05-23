@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -67,7 +66,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     this.credentials = credentials;
   }
   
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   * 
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#setProperty(java.lang.String, java.lang.String)
    */
   @Override
@@ -81,7 +82,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
   }
   
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   * 
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#removeProperty(java.lang.String)
    */
   @Override
@@ -95,7 +98,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
   }
   
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   * 
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#getSystemConfiguration()
    */
   @Override
@@ -108,7 +113,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
   }
   
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   * 
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#getSiteConfiguration()
    */
   @Override
@@ -121,7 +128,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
   }
   
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   * 
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#getTabletServers()
    */
   
@@ -144,7 +153,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return results;
   }
   
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   * 
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#getActiveScans(java.lang.String)
    */
   
@@ -175,7 +186,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     }
   }
   
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   * 
    * @see org.apache.accumulo.core.client.admin.InstanceOperations#testClassLoad(java.lang.String, java.lang.String)
    */
   @Override
