@@ -109,3 +109,6 @@ if [ ! -f "$ACCUMULO_HOME/conf/tracers" ]; then
     echo "$MASTER1" > "$ACCUMULO_HOME/conf/tracers"
 fi
 SSH='ssh -qnf -o ConnectTimeout=2'
+
+# See HADOOP-7154 and ACCUMULO-847
+export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-1}
