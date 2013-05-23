@@ -16,7 +16,10 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.io.IOException;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -28,6 +31,11 @@ import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -42,7 +50,7 @@ public class ConfiguratorBase {
    * @since 1.5.0
    */
   public static enum ConnectorInfo {
-    IS_CONFIGURED, PRINCIPAL, TOKEN, TOKEN_CLASS
+    IS_CONFIGURED, PRINCIPAL, TOKEN, TOKEN_CLASS, TOKEN_FILE
   }
   
   /**
@@ -108,6 +116,41 @@ public class ConfiguratorBase {
   }
   
   /**
+   * Sets the connector information needed to communicate with Accumulo in this job.
+   * 
+   * <p>
+   * Pulls a token file into the Distributed Cache that contains the authentication token in an attempt to be more secure than storing the password in the
+   * Configuration. Token file created with "bin/accumulo create-token".
+   * 
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param principal
+   *          a valid Accumulo user name
+   * @param tokenFile
+   *          the path to the token file
+   * @throws AccumuloSecurityException
+   * @since 1.6.0
+   */
+  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, String tokenFile) throws AccumuloSecurityException {
+    if (isConnectorInfoSet(implementingClass, conf))
+      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
+    
+    ArgumentChecker.notNull(principal, tokenFile);
+    
+    try {
+      DistributedCache.addCacheFile(new URI(tokenFile), conf);
+    } catch (URISyntaxException e) {
+      throw new IllegalStateException("Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
+    }
+    
+    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_FILE), tokenFile);
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
+  }
+  
+  /**
    * Determines if the connector info has already been set for this instance.
    * 
    * @param implementingClass
@@ -138,7 +181,7 @@ public class ConfiguratorBase {
   }
   
   /**
-   * Gets the serialized token class from the configuration.
+   * Gets the serialized token class from either the configuration or the token file.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -149,12 +192,17 @@ public class ConfiguratorBase {
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
   public static String getTokenClass(Class<?> implementingClass, Configuration conf) {
-    return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS));
+    String tokenFile = getTokenFile(implementingClass, conf);
+    if (tokenFile.isEmpty()) {
+      return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS));
+    } else {
+      return readTokenFile(implementingClass, conf).split(":")[1];
+    }
   }
   
   /**
-   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
-   * provide a charset safe conversion to a string, and is not intended to be secure.
+   * Gets the password from either the configuration or the token file. WARNING: If no token file is specified, the password is stored in the Configuration and
+   * shared with all MapReduce tasks; It is BASE64 encoded to provide a charset safe conversion to a string, and is not intended to be secure.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -165,7 +213,79 @@ public class ConfiguratorBase {
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
   public static byte[] getToken(Class<?> implementingClass, Configuration conf) {
-    return Base64.decodeBase64(conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), "").getBytes(Charset.forName("UTF-8")));
+    String tokenFile = getTokenFile(implementingClass, conf);
+    String token = null;
+    if (tokenFile.isEmpty()) {
+      token = conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN));
+    } else {
+      token = readTokenFile(implementingClass, conf).split(":")[2];
+    }
+    return Base64.decodeBase64(token.getBytes(Charset.forName("UTF-8")));
+  }
+  
+  /**
+   * Grabs the token file's path out of the Configuration.
+   * 
+   * @param job
+   *          the Hadoop context for the configured job
+   * @return path to the token file as a String
+   * @since 1.6.0
+   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
+   */
+  public static String getTokenFile(Class<?> implementingClass, Configuration conf) {
+    return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_FILE), "");
+  }
+  
+  /**
+   * Reads from the token file in distributed cache. Currently, the token file stores data separated by colons e.g. principal:token_class:token
+   * 
+   * @param job
+   *          the Hadoop context for the configured job
+   * @return path to the token file as a String
+   * @since 1.6.0
+   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
+   */
+  public static String readTokenFile(Class<?> implementingClass, Configuration conf) {
+    String tokenFile = getTokenFile(implementingClass, conf);
+    FSDataInputStream in = null;
+    try {
+      URI[] uris = DistributedCache.getCacheFiles(conf);
+      Path path = null;
+      for (URI u : uris) {
+        if (u.toString().equals(tokenFile)) {
+          path = new Path(u);
+        }
+      }
+      if (path == null) {
+        throw new IllegalArgumentException("Couldn't find password file called \"" + tokenFile + "\" in cache.");
+      }
+      FileSystem fs = FileSystem.get(conf);
+      in = fs.open(path);
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Couldn't open password file called \"" + tokenFile + "\".");
+    }
+    java.util.Scanner fileScanner = new java.util.Scanner(in);
+    try {
+      String line = null;
+      boolean found = false;
+      String principal = getPrincipal(implementingClass, conf);
+      while (!found && fileScanner.hasNextLine()) {
+        line = fileScanner.nextLine();
+        if (line.startsWith(principal + ":")) {
+          found = true;
+          break;
+        }
+      }
+      if (found)
+        return line;
+      else
+        throw new IllegalArgumentException("Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
+    } finally {
+      if (fileScanner != null && fileScanner.ioException() == null)
+        fileScanner.close();
+      else if (fileScanner.ioException() != null)
+        throw new RuntimeException(fileScanner.ioException());
+    }
   }
   
   /**

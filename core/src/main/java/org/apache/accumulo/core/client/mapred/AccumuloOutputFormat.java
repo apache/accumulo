@@ -60,6 +60,7 @@ import org.apache.log4j.Logger;
  * 
  * <ul>
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
+ * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String)}
  * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
  * </ul>
  * 
@@ -88,6 +89,25 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    */
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
     OutputConfigurator.setConnectorInfo(CLASS, job, principal, token);
+  }
+  
+  /**
+   * Sets the connector information needed to communicate with Accumulo in this job.
+   * 
+   * <p>
+   * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt to be more secure than storing it in the Configuration.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param principal
+   *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
+   * @param tokenFile
+   *          the path to the password file
+   * @throws AccumuloSecurityException
+   * @since 1.6.0
+   */
+  public static void setConnectorInfo(JobConf job, String principal, String tokenFile) throws AccumuloSecurityException {
+    OutputConfigurator.setConnectorInfo(CLASS, job, principal, tokenFile);
   }
   
   /**

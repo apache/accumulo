@@ -104,6 +104,25 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
   }
   
   /**
+   * Sets the connector information needed to communicate with Accumulo in this job.
+   * 
+   * <p>
+   * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt to be more secure than storing it in the Configuration.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param principal
+   *          a valid Accumulo user name (user must have Table.CREATE permission)
+   * @param tokenFile
+   *          the path to the token file
+   * @throws AccumuloSecurityException
+   * @since 1.6.0
+   */
+  public static void setConnectorInfo(JobConf job, String principal, String tokenFile) throws AccumuloSecurityException {
+    InputConfigurator.setConnectorInfo(CLASS, job, principal, tokenFile);
+  }
+  
+  /**
    * Determines if the connector has been configured.
    * 
    * @param job
@@ -154,6 +173,20 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    */
   protected static byte[] getToken(JobConf job) {
     return InputConfigurator.getToken(CLASS, job);
+  }
+  
+  /**
+   * Gets the password file from the configuration. It is BASE64 encoded to provide a charset safe conversion to a string, and is not intended to be secure. If
+   * specified, the password will be stored in a file rather than in the Configuration.
+   * 
+   * @param job
+   *          the Hadoop context for the configured job
+   * @return path to the password file as a String
+   * @since 1.6.0
+   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
+   */
+  protected static String getTokenFile(JobConf job) {
+    return InputConfigurator.getTokenFile(CLASS, job);
   }
   
   /**

@@ -95,6 +95,25 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
+   * Sets the connector information needed to communicate with Accumulo in this job.
+   * 
+   * <p>
+   * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt to be more secure than storing it in the Configuration.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param principal
+   *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(Job, boolean)} is set to true)
+   * @param tokenFile
+   *          the path to the token file
+   * @throws AccumuloSecurityException
+   * @since 1.6.0
+   */
+  public static void setConnectorInfo(Job job, String principal, String tokenFile) throws AccumuloSecurityException {
+    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, tokenFile);
+  }
+  
+  /**
    * Determines if the connector has been configured.
    * 
    * @param context

@@ -73,6 +73,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -115,6 +116,25 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   public static void setConnectorInfo(Job job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
     InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
+  }
+  
+  /**
+   * Sets the connector information needed to communicate with Accumulo in this job.
+   * 
+   * <p>
+   * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt to be more secure than storing it in the Configuration.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param principal
+   *          a valid Accumulo user name (user must have Table.CREATE permission)
+   * @param tokenFile
+   *          the path to the token file
+   * @throws AccumuloSecurityException
+   * @since 1.6.0
+   */
+  public static void setConnectorInfo(Job job, String principal, String tokenFile) throws AccumuloSecurityException {
+    InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, tokenFile);
   }
   
   /**
@@ -168,6 +188,19 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   protected static byte[] getToken(JobContext context) {
     return InputConfigurator.getToken(CLASS, getConfiguration(context));
+  }
+  
+  /**
+   * Gets the password file from the configuration.
+   * 
+   * @param job
+   *          the Hadoop context for the configured job
+   * @return path to the password file as a String
+   * @since 1.6.0
+   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
+   */
+  protected static String getTokenFile(JobContext context) {
+    return InputConfigurator.getTokenFile(CLASS, getConfiguration(context));
   }
   
   /**

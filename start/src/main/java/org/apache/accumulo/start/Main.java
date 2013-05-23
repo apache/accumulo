@@ -77,6 +77,8 @@ public class Main {
         runTMP = cl.loadClass("org.apache.accumulo.core.util.LoginProperties");
       } else if (args[0].equals("zookeeper")) {
         runTMP = cl.loadClass("org.apache.accumulo.server.util.ZooKeeperMain");
+      } else if (args[0].equals("create-token")) {
+        runTMP = cl.loadClass("org.apache.accumulo.core.util.CreateToken");
       } else {
         try {
           runTMP = cl.loadClass(args[0]);
@@ -119,6 +121,6 @@ public class Main {
   }
   
   private static void printUsage() {
-    System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | mini | proxy | zookeeper | <accumulo class> args");
+    System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | mini | proxy | zookeeper | create-token | <accumulo class> args");
   }
 }
