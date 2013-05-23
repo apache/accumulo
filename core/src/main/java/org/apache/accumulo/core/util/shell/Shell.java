@@ -92,6 +92,7 @@ import org.apache.accumulo.core.util.shell.commands.EGrepCommand;
 import org.apache.accumulo.core.util.shell.commands.ExecfileCommand;
 import org.apache.accumulo.core.util.shell.commands.ExitCommand;
 import org.apache.accumulo.core.util.shell.commands.ExportTableCommand;
+import org.apache.accumulo.core.util.shell.commands.ExtensionCommand;
 import org.apache.accumulo.core.util.shell.commands.FateCommand;
 import org.apache.accumulo.core.util.shell.commands.FlushCommand;
 import org.apache.accumulo.core.util.shell.commands.FormatterCommand;
@@ -125,6 +126,7 @@ import org.apache.accumulo.core.util.shell.commands.QuotedStringTokenizer;
 import org.apache.accumulo.core.util.shell.commands.RenameTableCommand;
 import org.apache.accumulo.core.util.shell.commands.RevokeCommand;
 import org.apache.accumulo.core.util.shell.commands.ScanCommand;
+import org.apache.accumulo.core.util.shell.commands.ScriptCommand;
 import org.apache.accumulo.core.util.shell.commands.SetAuthsCommand;
 import org.apache.accumulo.core.util.shell.commands.SetGroupsCommand;
 import org.apache.accumulo.core.util.shell.commands.SetIterCommand;
@@ -338,7 +340,7 @@ public class Shell extends ShellOptions {
         new InterpreterCommand(), new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
         new PingCommand()};
-    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand()};
+    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(), new ScriptCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
     Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(), new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand(),
@@ -1062,4 +1064,9 @@ public class Shell extends ShellOptions {
   public boolean hasExited() {
     return exit;
   }
+
+  public boolean isTabCompletion() {
+    return tabCompletion;
+  }
+  
 }
