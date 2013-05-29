@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.gc;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -138,6 +139,8 @@ public class GarbageCollectWriteAheadLogs {
                 for (FileStatus match : fs.globStatus(new Path(ServerConstants.getRecoveryDir(), file + "*"))) {
                   fs.delete(match.getPath(), true);
                 }
+              } catch (FileNotFoundException ex) {
+                // ignored
               } catch (IOException ex) {
                 log.warn("Error deleting recovery data: ", ex);
               }
