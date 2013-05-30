@@ -53,6 +53,11 @@
   </property>
 
   <property>
+    <name>tserver.memory.maps.native.enabled</name>
+    <value>false</value>
+  </property>
+
+  <property>
     <name>tserver.cache.data.size</name>
     <value>7M</value>
   </property>
