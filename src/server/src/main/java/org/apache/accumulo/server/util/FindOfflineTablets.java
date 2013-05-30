@@ -16,11 +16,13 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
@@ -30,6 +32,7 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.log4j.Logger;
 
 public class FindOfflineTablets {
@@ -39,28 +42,39 @@ public class FindOfflineTablets {
    * @param args
    */
   public static void main(String[] args) throws Exception {
-    if (args.length != 4) {
-      System.err.println("Usage: accumulo.server.util.FindOfflineTablets instance zookeepers");
+    if (args.length != 2) {
+      System.err.println("Usage: " + FindOfflineTablets.class.getName() + " <instance> <zookeepers>");
       System.exit(1);
     }
     String instance = args[0];
     String keepers = args[1];
     Instance zooInst = new ZooKeeperInstance(instance, keepers);
-    MetaDataTableScanner scanner = new MetaDataTableScanner(zooInst, SecurityConstants.getSystemCredentials(), new Range());
+    MetaDataTableScanner rootScanner = new MetaDataTableScanner(zooInst, SecurityConstants.getSystemCredentials(),
+        Constants.ROOT_TABLET_EXTENT.toMetadataRange());
+    MetaDataTableScanner metaScanner = new MetaDataTableScanner(zooInst, SecurityConstants.getSystemCredentials(), Constants.NON_ROOT_METADATA_KEYSPACE);
+    @SuppressWarnings("unchecked")
+    Iterator<TabletLocationState> scanner = (Iterator<TabletLocationState>) new IteratorChain(rootScanner, metaScanner);
+    final AtomicBoolean scanning = new AtomicBoolean(false);
     LiveTServerSet tservers = new LiveTServerSet(zooInst, new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
-        if (!deleted.isEmpty())
+        if (!deleted.isEmpty() && scanning.get())
           log.warn("Tablet servers deleted while scanning: " + deleted);
-        if (!added.isEmpty())
+        if (!added.isEmpty() && scanning.get())
           log.warn("Tablet servers added while scanning: " + added);
       }
     });
+    
+    tservers.startListeningForTabletServerChanges();
+    scanning.set(true);
+
     while (scanner.hasNext()) {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state != TabletState.HOSTED && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
-        System.out.println(locationState + " is " + state);
+      if (state != null && state != TabletState.HOSTED
+          && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
+        if (!locationState.extent.equals(Constants.ROOT_TABLET_EXTENT))
+          System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
     }
   }
   
