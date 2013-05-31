@@ -45,12 +45,18 @@ features of Apache Accumulo.
 
    README.bulkIngest:  Ingesting bulk data using map/reduce jobs on Hadoop.
 
+   README.classpath:   Using per-table classpaths.
+
+   README.client:      Using table operations, reading and writing data in Java.
+
    README.combiner:    Using example StatsCombiner to find min, max, sum, and 
                        count.
 
    README.constraints: Using constraints with tables.
 
    README.dirlist:     Storing filesystem information.
+
+   README.export:      Exporting and importing tables.
 
    README.filedata:    Storing file data.
 
@@ -68,8 +74,19 @@ features of Apache Accumulo.
 
    README.maxmutation: Limiting mutation size to avoid running out of memory.
 
+   README.regex:       Using MapReduce and Accumulo to find data using regular
+                       expressions.
+
+   README.rowhash:     Using MapReduce to read a table and write to a new 
+                       column in the same table.
+
    README.shard:       Using the intersecting iterator with a term index 
                        partitioned by document.
+
+   README.tabletofile: Using MapReduce to read a table and write one of its
+                       columns to a file in HDFS.
+
+   README.terasort:    Generating random data and sorting it using Accumulo.  
 
    README.visibility:  Using visibilities (or combinations of authorizations). 
                        Also shows user permissions.

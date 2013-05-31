@@ -18,6 +18,12 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
 
 This documents how you run the simplest java examples.
 
+This tutorial uses the following Java classes, which can be found in org.apache.accumulo.examples.simple.client in the examples-simple module:
+
+ * Flush.java - flushes a table
+ * RowOperations.java - reads and writes rows
+ * ReadWriteExample.java - creates a table, writes to it, and reads from it
+
 Using the accumulo command, you can run the simple client examples by providing their 
 class name, and enough arguments to find your accumulo instance.  For example,
 the Flush class will flush a table:

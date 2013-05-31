@@ -16,7 +16,7 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            specific language governing permissions and limitations
            under the License.
 
-This tutorial uses the following Java classes, which can be found in org.apache.accumulo.examples.simple.constraints in the simple-examples module:
+This tutorial uses the following Java classes, which can be found in org.apache.accumulo.examples.simple.constraints in the examples-simple module:
 
  * AlphaNumKeyConstraint.java - a constraint that requires alphanumeric keys
  * NumericValueConstraint.java - a constraint that requires numeric string values
