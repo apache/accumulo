@@ -2037,7 +2037,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
     for (TServerInstance server : currentServers) {
       try {
-        TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
+        TabletServerStatus status = tserverSet.getConnection(server).getTableMap(false);
         result.put(server, status);
         // TODO maybe remove from bad servers
       } catch (Exception ex) {

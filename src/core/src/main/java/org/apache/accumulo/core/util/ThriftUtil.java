@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 
 import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
@@ -29,6 +30,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.log4j.Logger;
+import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -125,6 +127,37 @@ public class ThriftUtil {
     }
   }
   
+  /**
+   * create a transport that is not pooled
+   */
+  public static TTransport createTransport(String address, int port, AccumuloConfiguration conf) throws TException {
+    TTransport transport = null;
+    
+    try {
+      transport = TTimeoutTransport.create(org.apache.accumulo.core.util.AddressUtil.parseAddress(address, port),
+          conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+      transport = ThriftUtil.transportFactory().getTransport(transport);
+      transport.open();
+      TTransport tmp = transport;
+      transport = null;
+      return tmp;
+    } catch (IOException ex) {
+      throw new TTransportException(ex);
+    } finally {
+      if (transport != null)
+        transport.close();
+    }
+    
+
+  }
+
+  /**
+   * create a transport that is not pooled
+   */
+  public static TTransport createTransport(InetSocketAddress address, AccumuloConfiguration conf) throws TException {
+    return createTransport(address.getAddress().getHostAddress(), address.getPort(), conf);
+  }
+
   public static TTransportFactory transportFactory() {
     return transportFactory;
   }

@@ -49,6 +49,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NotEmptyException;
@@ -97,12 +98,19 @@ public class LiveTServerSet implements Watcher {
       }
     }
     
-    public TabletServerStatus getTableMap() throws TException, ThriftSecurityException {
-      TabletClientService.Iface client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, ServerConfiguration.getSystemConfiguration());
+    public TabletServerStatus getTableMap(boolean usePooledConnection) throws TException, ThriftSecurityException {
+      
+      if (usePooledConnection == true)
+        throw new UnsupportedOperationException();
+      
+      TTransport transport = ThriftUtil.createTransport(address, ServerConfiguration.getSystemConfiguration());
+      
       try {
+        TabletClientService.Iface client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
         return client.getTabletServerStatus(null, SecurityConstants.getSystemCredentials());
       } finally {
-        ThriftUtil.returnClient(client);
+        if (transport != null)
+          transport.close();
       }
     }
     
