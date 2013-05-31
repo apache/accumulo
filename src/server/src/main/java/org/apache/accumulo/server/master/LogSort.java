@@ -81,8 +81,8 @@ public class LogSort extends Configured implements Tool {
     
     @Override
     public void abortTask(TaskAttemptContext context) {
-      super.abortTask(context);
       try {
+        super.abortTask(context);
         outputFileSystem.delete(outputPath, true);
       } catch (IOException ex) {
         throw new RuntimeException(ex);

@@ -257,6 +257,9 @@ public class CoordinateRecoveryTask implements Runnable {
         return new RecoveryStatus(logFile.server, logFile.file, (sortJob == null ? 0. : sortJob.mapProgress()), (sortJob == null ? 0.
             : sortJob.reduceProgress()), (int) (System.currentTimeMillis() - copyStartTime), (sortJob != null) ? 1. : (copySize == 0 ? 0 : copiedSoFar()
             / (double) copySize));
+      } catch (InterruptedException ie) {
+        // Hadoop 2.0.2-alpha's Job.mapProgress throws Interrupted Exception.  1.x and 2.0.4 do not.
+        return new RecoveryStatus(logFile.server, logFile.file, 1.0, 1.0, (int) (System.currentTimeMillis() - copyStartTime), 1.0);
       } catch (NullPointerException npe) {
         return new RecoveryStatus(logFile.server, logFile.file, 1.0, 1.0, (int) (System.currentTimeMillis() - copyStartTime), 1.0);
       }
