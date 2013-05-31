@@ -16,10 +16,9 @@
  */
 package org.apache.accumulo.core.util.shell.command;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -42,7 +41,7 @@ import org.junit.Test;
  * Uses the MockShell to test the shell output with Formatters
  */
 public class FormatterCommandTest {
-  Writer writer = null;
+  ByteArrayOutputStream out = null;
   InputStream in = null;
   
   @Test
@@ -55,9 +54,9 @@ public class FormatterCommandTest {
     final String[] commands = createCommands();
     
     in = MockShell.makeCommands(commands);
-    writer = new StringWriter();
+    out = new ByteArrayOutputStream();
     
-    final MockShell shell = new MockShell(in, writer);
+    final MockShell shell = new MockShell(in, out);
     shell.config(args);
     
     // Can't call createtable in the shell with MockAccumulo
@@ -69,9 +68,9 @@ public class FormatterCommandTest {
       Assert.fail("Exception while running commands: " + e.getMessage());
     } 
     
-    shell.getReader().flushConsole();
+    shell.getReader().flush();
     
-    final String[] output = StringUtils.split(writer.toString(), '\n');
+    final String[] output = StringUtils.split(new String(out.toByteArray()), '\n');
    
     boolean formatterOn = false;
     
@@ -94,7 +93,7 @@ public class FormatterCommandTest {
       final String line = output[outputIndex];
       
       if (line.startsWith("root@mock-instance")) {
-        if (line.contains("formatter -t test -f org.apache.accumulo.core.util.shell.command.FormatterCommandTest$HexFormatter")) {
+        if (line.contains("formatter")) {
           formatterOn = true;
         }
        

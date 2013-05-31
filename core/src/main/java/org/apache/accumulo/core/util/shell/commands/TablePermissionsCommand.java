@@ -27,7 +27,7 @@ public class TablePermissionsCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     for (String p : TablePermission.printableValues()) {
-      shellState.getReader().printString(p + "\n");
+      shellState.getReader().println(p);
     }
     return 0;
   }

@@ -23,12 +23,11 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import jline.ConsoleReader;
+import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.util.format.DateStringFormatter;
 import org.apache.log4j.Level;
@@ -85,7 +84,7 @@ public class ShellTest {
   public void setup() throws IOException {
     Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
-    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
+    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output));
     shell.setLogErrorsToConsole();
     shell.config("--fake", "-u", "test", "-p", "secret");
   }

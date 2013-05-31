@@ -40,19 +40,19 @@ public class ConstraintCommand extends Command {
                 + Constraint.class.getName());
           }
           i = shellState.getConnector().tableOperations().addConstraint(tableName, constraint);
-          shellState.getReader().printString("Added constraint " + constraint + " to table " + tableName + " with number " + i + "\n");
+          shellState.getReader().println("Added constraint " + constraint + " to table " + tableName + " with number " + i);
         }
         break;
       case DELETE:
         for (String constraint : cl.getArgs()) {
           i = Integer.parseInt(constraint);
           shellState.getConnector().tableOperations().removeConstraint(tableName, i);
-          shellState.getReader().printString("Removed constraint " + i + " from table " + tableName + "\n");
+          shellState.getReader().println("Removed constraint " + i + " from table " + tableName);
         }
         break;
       case LIST:
         for (Entry<String,Integer> property : shellState.getConnector().tableOperations().listConstraints(tableName).entrySet()) {
-          shellState.getReader().printString(property.toString() + "\n");
+          shellState.getReader().println(property.toString());
         }
     }
     

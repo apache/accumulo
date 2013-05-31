@@ -37,31 +37,31 @@ public class UserPermissionsCommand extends Command {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
     
     String delim = "";
-    shellState.getReader().printString("System permissions: ");
+    shellState.getReader().print("System permissions: ");
     for (SystemPermission p : SystemPermission.values()) {
       if (p != null && shellState.getConnector().securityOperations().hasSystemPermission(user, p)) {
-        shellState.getReader().printString(delim + "System." + p.name());
+        shellState.getReader().print(delim + "System." + p.name());
         delim = ", ";
       }
     }
-    shellState.getReader().printNewline();
+    shellState.getReader().println();
     
     for (String t : shellState.getConnector().tableOperations().list()) {
       delim = "";
       for (TablePermission p : TablePermission.values()) {
         if (shellState.getConnector().securityOperations().hasTablePermission(user, t, p) && p != null) {
           if (runOnce == 0) {
-            shellState.getReader().printString("\nTable permissions (" + t + "): ");
+            shellState.getReader().print("\nTable permissions (" + t + "): ");
             runOnce++;
           }
-          shellState.getReader().printString(delim + "Table." + p.name());
+          shellState.getReader().print(delim + "Table." + p.name());
           delim = ", ";
         }
         
       }
       runOnce = 0;
     }
-    shellState.getReader().printNewline();
+    shellState.getReader().println();
     return 0;
   }
   

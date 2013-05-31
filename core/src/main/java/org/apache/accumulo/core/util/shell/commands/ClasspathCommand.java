@@ -18,7 +18,7 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 
-import jline.ConsoleReader;
+import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -34,7 +34,7 @@ public class ClasspathCommand extends Command {
       @Override
       public void print(String s) {
         try {
-          reader.printString(s + "\n");
+          reader.println(s);
         } catch (IOException ex) {
           throw new RuntimeException(ex);
         }

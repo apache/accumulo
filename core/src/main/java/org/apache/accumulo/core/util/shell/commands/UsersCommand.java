@@ -28,7 +28,7 @@ public class UsersCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     for (String user : shellState.getConnector().securityOperations().listLocalUsers()) {
-      shellState.getReader().printString(user + "\n");
+      shellState.getReader().println(user);
     }
     return 0;
   }

@@ -16,10 +16,13 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.ListIterator;
+
+import jline.console.history.History.Entry;
+import jline.console.history.History;
+import jline.console.history.PersistentHistory;
 
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -27,8 +30,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.iterators.AbstractIteratorDecorator;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.LineIterator;
 
 public class HistoryCommand extends Command {
   private Option clearHist;
@@ -37,39 +38,27 @@ public class HistoryCommand extends Command {
   @SuppressWarnings("unchecked")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
-    String home = System.getProperty("HOME");
-    if (home == null)
-      home = System.getenv("HOME");
-    final String historyPath = home + "/" + Shell.HISTORY_DIR_NAME + "/" + Shell.HISTORY_FILE_NAME;
-    
     if (cl.hasOption(clearHist.getOpt())) {
-      final FileOutputStream out = new FileOutputStream(historyPath);
-      out.close();
+      shellState.getReader().getHistory().clear();
     } else {
-      final LineIterator it = FileUtils.lineIterator(new File(historyPath));
-      try {
-        shellState.printLines(new HistoryLineIterator(it), !cl.hasOption(disablePaginationOpt.getOpt()));
-      } finally {
-        it.close();
-      }
+      ListIterator<Entry> it = shellState.getReader().getHistory().entries();
+      shellState.printLines(new HistoryLineIterator(it), !cl.hasOption(disablePaginationOpt.getOpt()));
     }
     
     return 0;
   }
   
   /**
-   * Decorator that prepends a running counter to an Iterator<String>.
+   * Decorator that converts an Iterator<History.Entry> to an Iterator<String>.
    */
   private static class HistoryLineIterator extends AbstractIteratorDecorator {
-    int counter = 0;
-    
-    public HistoryLineIterator(Iterator<String> iterator) {
+    public HistoryLineIterator(Iterator<Entry> iterator) {
       super(iterator);
     }
     
     @Override
-    public Object next() {
-      return counter++ + " " + super.next();
+    public String next() {
+      return super.next().toString();
     }
   }
   

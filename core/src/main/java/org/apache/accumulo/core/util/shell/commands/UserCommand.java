@@ -40,7 +40,7 @@ public class UserCommand extends Command {
     // of these methods fails
     final String p = shellState.readMaskedLine("Enter password for user " + user + ": ", '*');
     if (p == null) {
-      shellState.getReader().printNewline();
+      shellState.getReader().println();
       return 0;
     } // user canceled
     pass = p.getBytes();

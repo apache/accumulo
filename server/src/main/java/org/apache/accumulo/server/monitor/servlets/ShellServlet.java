@@ -19,7 +19,6 @@ package org.apache.accumulo.server.monitor.servlets;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import jline.ConsoleReader;
+import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.util.shell.Shell;
 
@@ -225,7 +224,7 @@ public class ShellServlet extends BasicServlet {
       this.cmdIndex = 0;
       this.readWait = false;
       this.output = new StringBuilderOutputStream();
-      ConsoleReader reader = new ConsoleReader(this, new OutputStreamWriter(output));
+      ConsoleReader reader = new ConsoleReader(this, output);
       this.shell = new Shell(reader, new PrintWriter(output));
       shell.setLogErrorsToConsole();
       if (mock != null) {

@@ -35,7 +35,7 @@ public class HelpCommand extends Command {
   private Option noWrapOpt;
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws ShellCommandException, IOException {
-    int numColumns = shellState.getReader().getTermwidth();
+    int numColumns = shellState.getReader().getTerminal().getWidth();
     if (cl.hasOption(noWrapOpt.getOpt())) {
       numColumns = Integer.MAX_VALUE;
     }
@@ -91,7 +91,7 @@ public class HelpCommand extends Command {
     for (String cmd : cl.getArgs()) {
       final Command c = shellState.commandFactory.get(cmd);
       if (c == null) {
-        shellState.getReader().printString(String.format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.\n", cmd));
+        shellState.getReader().println(String.format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.", cmd));
       } else {
         c.printHelp(shellState, numColumns);
       }

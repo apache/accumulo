@@ -36,7 +36,7 @@ public class GetGroupsCommand extends Command {
     final Map<String,Set<Text>> groups = shellState.getConnector().tableOperations().getLocalityGroups(tableName);
     
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
-      shellState.getReader().printString(entry.getKey() + "=" + LocalityGroupUtil.encodeColumnFamilies(entry.getValue()) + "\n");
+      shellState.getReader().println(entry.getKey() + "=" + LocalityGroupUtil.encodeColumnFamilies(entry.getValue()));
     }
     return 0;
   }

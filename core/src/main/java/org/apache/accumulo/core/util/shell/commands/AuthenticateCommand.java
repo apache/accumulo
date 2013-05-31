@@ -34,12 +34,12 @@ public class AuthenticateCommand extends Command {
     final String user = cl.getArgs()[0];
     final String p = shellState.readMaskedLine("Enter current password for '" + user + "': ", '*');
     if (p == null) {
-      shellState.getReader().printNewline();
+      shellState.getReader().println();
       return 0;
     } // user canceled
     final byte[] password = p.getBytes();
     final boolean valid = shellState.getConnector().securityOperations().authenticateUser(user, new PasswordToken(password));
-    shellState.getReader().printString((valid ? "V" : "Not v") + "alid\n");
+    shellState.getReader().println((valid ? "V" : "Not v") + "alid");
     return 0;
   }
   

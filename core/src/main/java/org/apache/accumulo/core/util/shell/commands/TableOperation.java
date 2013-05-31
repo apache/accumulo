@@ -69,7 +69,7 @@ public abstract class TableOperation extends Command {
       }
       boolean operate = true;
       if (!force) {
-        shellState.getReader().flushConsole();
+        shellState.getReader().flush();
         String line = shellState.getReader().readLine(getName() + " { " + tableName + " } (yes|no)? ");
         more = line != null;
         operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));

@@ -42,7 +42,7 @@ public class GetAuthsCommand extends Command {
     for (byte[] auth : auths) {
       set.add(new String(auth));
     }
-    shellState.getReader().printString(StringUtils.join(set, ',') + "\n");
+    shellState.getReader().println(StringUtils.join(set, ','));
     return 0;
   }
   

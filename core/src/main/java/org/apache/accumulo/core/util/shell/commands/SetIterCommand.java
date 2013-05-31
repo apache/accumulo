@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import jline.ConsoleReader;
+import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -210,17 +210,16 @@ public class SetIterCommand extends Command {
       }
       localOptions.clear();
       
-      reader.printString(itopts.getDescription());
-      reader.printNewline();
+      reader.println(itopts.getDescription());
       
       String prompt;
       if (itopts.getNamedOptions() != null) {
         for (Entry<String,String> e : itopts.getNamedOptions().entrySet()) {
           prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " parameter " + e.getKey() + ", " + e.getValue() + ": ";
-          reader.flushConsole();
+          reader.flush();
           input = reader.readLine(prompt);
           if (input == null) {
-            reader.printNewline();
+            reader.println();
             throw new IOException("Input stream closed");
           } else {
             input = new String(input);
@@ -234,15 +233,15 @@ public class SetIterCommand extends Command {
       
       if (itopts.getUnnamedOptionDescriptions() != null) {
         for (String desc : itopts.getUnnamedOptionDescriptions()) {
-          reader.printString(Shell.repeat("-", 10) + "> entering options: " + desc + "\n");
+          reader.println(Shell.repeat("-", 10) + "> entering options: " + desc);
           input = "start";
           while (true) {
             prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " option (<name> <value>, hit enter to skip): ";
             
-            reader.flushConsole();
+            reader.flush();
             input = reader.readLine(prompt);
             if (input == null) {
-              reader.printNewline();
+              reader.println();
               throw new IOException("Input stream closed");
             } else {
               input = new String(input);
@@ -259,7 +258,7 @@ public class SetIterCommand extends Command {
       
       options.putAll(localOptions);
       if (!skvi.validateOptions(options))
-        reader.printString("invalid options for " + clazz.getName() + "\n");
+        reader.println("invalid options for " + clazz.getName());
       
     } while (!skvi.validateOptions(options));
     return itopts.getName();

@@ -22,12 +22,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import jline.Completor;
+import jline.console.completer.Completer;
 
 import org.apache.accumulo.core.util.shell.Shell.Command.CompletionSet;
 import org.apache.accumulo.core.util.shell.commands.QuotedStringTokenizer;
 
-public class ShellCompletor implements Completor {
+public class ShellCompletor implements Completer {
   
   // private static final Logger log = Logger.getLogger(ShellCompletor.class);
   

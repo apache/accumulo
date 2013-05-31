@@ -24,7 +24,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import jline.ConsoleReader;
+import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -218,7 +218,7 @@ public class ConfigCommand extends Command {
   }
   
   private void printConfFooter(List<String> output) {
-    int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTermwidth() - COL1 - COL2 - 6));
+    int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
     output.add(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%-" + col3 + "s", Shell.repeat("-", COL1), Shell.repeat("-", COL2), Shell.repeat("-", col3)));
   }
   

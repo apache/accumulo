@@ -95,9 +95,9 @@ public class ScanCommand extends Command {
         BinaryFormatter.getlength(length);
         printBinaryRecords(cl, shellState, scanner, printFile);
       } catch (NumberFormatException nfe) {
-        shellState.getReader().printString("Arg must be an integer. \n");
+        shellState.getReader().println("Arg must be an integer.");
       } catch (IllegalArgumentException iae) {
-        shellState.getReader().printString("Arg must be greater than one. \n");
+        shellState.getReader().println("Arg must be greater than one.");
       }
       
     } else {
@@ -185,7 +185,7 @@ public class ScanCommand extends Command {
         clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), ScanInterpreter.class);
       }
     } catch (ClassNotFoundException e) {
-      shellState.getReader().printString("Interpreter class could not be loaded.\n" + e.getMessage() + "\n");
+      shellState.getReader().println("Interpreter class could not be loaded.\n" + e.getMessage());
     }
 
     if (clazz == null)
@@ -207,7 +207,7 @@ public class ScanCommand extends Command {
         return AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), Formatter.class);
       }
     } catch (ClassNotFoundException e) {
-      shellState.getReader().printString("Formatter class could not be loaded.\n" + e.getMessage() + "\n");
+      shellState.getReader().println("Formatter class could not be loaded.\n" + e.getMessage());
     }
     
     return shellState.getFormatter(tableName);

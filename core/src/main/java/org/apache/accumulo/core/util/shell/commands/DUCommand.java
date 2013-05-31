@@ -60,7 +60,7 @@ public class DUCommand extends Command {
         @Override
         public void print(String line) {
           try {
-            shellState.getReader().printString(line + "\n");
+            shellState.getReader().println(line);
           } catch (IOException ex) {
             throw new RuntimeException(ex);
           }

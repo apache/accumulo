@@ -41,7 +41,7 @@ public class DeleteTableCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName) throws Exception {
     shellState.getConnector().tableOperations().delete(tableName);
-    shellState.getReader().printString("Table: [" + tableName + "] has been deleted. \n");
+    shellState.getReader().println("Table: [" + tableName + "] has been deleted.");
     if (shellState.getTableName().equals(tableName)) {
       shellState.setTableName("");
     }

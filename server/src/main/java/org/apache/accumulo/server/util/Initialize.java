@@ -23,7 +23,7 @@ import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.UUID;
 
-import jline.ConsoleReader;
+import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
@@ -126,18 +126,14 @@ public class Initialize {
     if (ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
       ConsoleReader c = getConsoleReader();
       c.beep();
-      c.printNewline();
-      c.printNewline();
-      c.printString("Warning!!! Your instance secret is still set to the default, this is not secure. We highly recommend you change it.");
-      c.printNewline();
-      c.printNewline();
-      c.printNewline();
-      c.printString("You can change the instance secret in accumulo by using:");
-      c.printNewline();
-      c.printString("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName() + " oldPassword newPassword.");
-      c.printNewline();
-      c.printString("You will also need to edit your secret in your configuration file by adding the property instance.secret to your conf/accumulo-site.xml. Without this accumulo will not operate correctly");
-      c.printNewline();
+      c.println();
+      c.println();
+      c.println("Warning!!! Your instance secret is still set to the default, this is not secure. We highly recommend you change it.");
+      c.println();
+      c.println();
+      c.println("You can change the instance secret in accumulo by using:");
+      c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName() + " oldPassword newPassword.");
+      c.println("You will also need to edit your secret in your configuration file by adding the property instance.secret to your conf/accumulo-site.xml. Without this accumulo will not operate correctly");
     }
     
     try {

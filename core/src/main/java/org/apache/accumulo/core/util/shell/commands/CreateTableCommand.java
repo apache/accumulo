@@ -59,7 +59,7 @@ public class CreateTableCommand extends Command {
     final String testTableName = cl.getArgs()[0];
     
     if (!testTableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
-      shellState.getReader().printString("Only letters, numbers and underscores are allowed for use in table names. \n");
+      shellState.getReader().println("Only letters, numbers and underscores are allowed for use in table names.");
       throw new IllegalArgumentException();
     }
     

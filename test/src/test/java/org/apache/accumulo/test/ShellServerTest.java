@@ -20,19 +20,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Map.Entry;
 
-import jline.ConsoleReader;
+import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
@@ -78,11 +75,30 @@ public class ShellServerTest {
       sb.setLength(0);
     }
   }
+
+  public static class StringInputStream extends InputStream {
+    private String source = "";
+    private int offset = 0;
+    
+    @Override
+    public int read() throws IOException {
+      if (offset == source.length())
+        return '\n';
+      else
+        return source.charAt(offset++);
+    }
+    
+    public void set(String other) {
+      source = other;
+      offset = 0;
+    }
+  }
   
   private static String secret = "superSecret";
   public static TemporaryFolder folder = new TemporaryFolder();
   public static MiniAccumuloCluster cluster;
   public static TestOutputStream output;
+  public static StringInputStream input;
   public static Shell shell;
   private static Process traceProcess;
   
@@ -129,7 +145,7 @@ public class ShellServerTest {
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
     shell.resetExitCode();
   }
-
+  
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     folder.create();
@@ -141,7 +157,8 @@ public class ShellServerTest {
 
     // start the shell
     output = new TestOutputStream();
-    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
+    input = new StringInputStream();
+    shell = new Shell(new ConsoleReader(input, output));
     shell.setLogErrorsToConsole();
     shell.config("-u", "root", "-p", secret, "-z", cluster.getConfig().getInstanceName(), cluster.getConfig().getZooKeepers());
     exec("quit", true);
@@ -213,7 +230,7 @@ public class ShellServerTest {
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
-    shell.getReader().setInput(new ByteArrayInputStream("true\n\n\nSTRING\n".getBytes()));
+    input.set("true\n\n\nSTRING");
     exec("setscaniter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
     exec("scan", true, "3", true);
     exec("deletescaniter -n name", true);
@@ -271,7 +288,7 @@ public class ShellServerTest {
   @Test(timeout = 30000)
   public void user() throws Exception {
     // createuser, deleteuser, user, users, droptable, grant, revoke
-    shell.getReader().setInput(new ByteArrayInputStream("secret\nsecret\n".getBytes()));
+    input.set("secret\nsecret\n");
     exec("createuser xyzzy", true);
     exec("users", true, "xyzzy", true);
     String perms = exec("userpermissions -u xyzzy", true);
@@ -283,14 +300,14 @@ public class ShellServerTest {
     exec("grant -u root -t !METADATA Table.GOOFY", false);
     exec("grant -u root -s foo", false);
     exec("grant -u xyzzy -t !METADATA foo", false);
-    shell.getReader().setInput(new ByteArrayInputStream("secret\nsecret\n".getBytes()));
+    input.set("secret\nsecret\n");
     exec("user xyzzy", true);
     exec("createtable t", true, "xyzzy@", true);
     exec("insert row1 cf cq 1", true);
     exec("scan", true, "row1", true);
     exec("droptable -f t", true);
     exec("deleteuser xyzzy", false, "delete yourself", true);
-    shell.getReader().setInput(new ByteArrayInputStream((secret + "\n" + secret + "\n").getBytes()));
+    input.set(secret+"\n"+secret+"\n");
     exec("user root", true);
     exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
     exec("revoke -u xyzzy -s System.GOOFY", false);
@@ -309,9 +326,9 @@ public class ShellServerTest {
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
-    shell.getReader().setInput(new ByteArrayInputStream("true\n\n\nSTRING\n".getBytes()));
+    input.set("true\n\n\nSTRING\n");
     exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -pn sum -n name", true);
-    shell.getReader().setInput(new ByteArrayInputStream("true\n\n\nSTRING\n".getBytes()));
+    input.set("true\n\n\nSTRING\n");
     exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -pn sum -n xyzzy", true);
     exec("scan -pn sum", true, "3", true);
     exec("listshelliter", true, "Iterator name", true);
@@ -329,9 +346,9 @@ public class ShellServerTest {
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
-    shell.getReader().setInput(new ByteArrayInputStream("true\n\n\nSTRING\n".getBytes()));
+    input.set("true\n\n\nSTRING\n");
     exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
-    shell.getReader().setInput(new ByteArrayInputStream("true\n\n\nSTRING\n".getBytes()));
+    input.set("true\n\n\nSTRING\n");
     exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -n xyzzy", true);
     exec("scan", true, "3", true);
     exec("listiter -scan", true, "Iterator name", true);
@@ -520,10 +537,9 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
   }
   
-  @Test(timeout = 30000)
+  @Test//(timeout = 30000)
   public void help() throws Exception {
     exec("help -np", true, "Help Commands", true);
-    shell.getReader().setInput(new ByteArrayInputStream("\n\n".getBytes()));
     exec("?", true, "Help Commands", true);
     for (String c : ("bye exit quit " + "about help info ? " + "deleteiter deletescaniter listiter setiter setscaniter "
         + "grant revoke systempermissions tablepermissions userpermissions " + "execfile history " + "authenticate cls clear notable sleep table user whoami "

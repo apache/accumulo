@@ -20,9 +20,9 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Writer;
+import java.io.OutputStream;
 
-import jline.ConsoleReader;
+import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -34,12 +34,12 @@ public class MockShell extends Shell {
   private static final String NEWLINE = "\n";
   
   protected InputStream in;
-  protected Writer writer;
+  protected OutputStream out;
   
-  public MockShell(InputStream in, Writer writer) throws IOException {
+  public MockShell(InputStream in, OutputStream out) throws IOException {
     super();
     this.in = in;
-    this.writer = writer;
+    this.out = out;
   }
   
   public boolean config(String... args) {
@@ -47,15 +47,15 @@ public class MockShell extends Shell {
     
     // Update the ConsoleReader with the input and output "redirected"
     try {
-      this.reader = new ConsoleReader(in, writer);
+      this.reader = new ConsoleReader(in, out);
     } catch (Exception e) {
       printException(e);
       configError = true;
     }
     
     // Don't need this for testing purposes
-    this.reader.setUseHistory(false);
-    this.reader.setUsePagination(false);
+    this.reader.setHistoryEnabled(false);
+    this.reader.setPaginationEnabled(false);
     
     // Make the parsing from the client easier;
     this.verbose = false;
@@ -96,10 +96,10 @@ public class MockShell extends Shell {
       if (hasExited())
         return exitCode;
       
-      reader.setDefaultPrompt(getDefaultPrompt());
+      reader.setPrompt(getDefaultPrompt());
       input = reader.readLine();
       if (input == null) {
-        reader.printNewline();
+        reader.println();
         return exitCode;
       } // user canceled
       
@@ -116,11 +116,11 @@ public class MockShell extends Shell {
   }
   
   /**
-   * @param writer
-   *          the writer to set
+   * @param out
+   *          the output stream to set
    */
-  public void setConsoleWriter(Writer writer) {
-    this.writer = writer;
+  public void setConsoleWriter(OutputStream out) {
+    this.out = out;
   }
   
   /**
