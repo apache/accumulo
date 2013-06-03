@@ -69,12 +69,12 @@ elif [[ $1 = '--seal-jars' ]]; then
   cacheGPG; setupRPM
   # build a tag, but with sealed jars
   run mvn clean compile javadoc:aggregate install \
-   -P apache-release,seal-jars,check-licenses,thrift,native,assemble,docs,rpm,deb
+   -P apache-release,seal-jars,thrift,native,assemble,docs,rpm,deb
 elif [[ $1 = '--test' ]]; then
   cacheGPG; setupRPM
   # build a tag, but with tests
   run mvn clean compile javadoc:aggregate install \
-   -P apache-release,check-licenses,thrift,native,assemble,docs,rpm,deb
+   -P apache-release,thrift,native,assemble,docs,rpm,deb
 else
   fail "Missing one of: --create-release-candidate, --test, --seal-jars"
 fi

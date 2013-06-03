@@ -13,64 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# global Eclipse, Maven, Python
+# global IDE, Maven, Python, ignores
 target/
 .project
 .classpath
 .settings
 .pydevproject
 *.pyc
-
-# JetBrains IDE
 .idea
 *.iml
-
-# /
-/logs
-/walogs
-
-# /conf/
-/conf/accumulo-metrics.xml
-/conf/masters
-/conf/slaves
-/conf/tracers
-/conf/test-*
-/conf/gc
-/conf/monitor
-/conf/accumulo-env.sh
-/conf/accumulo-site.xml
-/conf/accumulo_user_manual.pdf
-
-# /contrib/accumulo_sample/ingest/
-/contrib/accumulo_sample/ingest/lib
-
-# /contrib/accumulo_sample/query/
-/contrib/accumulo_sample/query/lib
-
-# /docs/
-/docs/config.html
-/docs/accumulo_user_manual.pdf
-
-# /docs/src/user_manual/
-/docs/src/user_manual/accumulo_user_manual.toc
-/docs/src/user_manual/accumulo_user_manual.out
-
-# /lib/
-/lib/native
-/lib/*.jar
-
-# /server/src/main/c++/mlock/
-/server/src/main/c++/mlock/*.jnilib
-/server/src/main/c++/mlock/org_apache_accumulo_server_tabletserver_MLock.h
-
-# /server/src/main/c++/nativeMap/
-/server/src/main/c++/nativeMap/*.jnilib
-
-# /test/system/auto/
-/test/system/auto/fake_disk_failure.so
-
-# /test/system/continuous/
-/test/system/continuous/continuous-env.sh
-/test/system/continuous/walkers.txt
-/test/system/continuous/ingesters.txt
-

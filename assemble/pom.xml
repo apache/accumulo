@@ -84,31 +84,6 @@
       <scope>provided</scope>
     </dependency>
   </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>config-webpage</id>
-            <goals>
-              <goal>java</goal>
-            </goals>
-            <phase>prepare-package</phase>
-            <configuration>
-              <mainClass>org.apache.accumulo.core.conf.DefaultConfiguration</mainClass>
-              <classpathScope>compile</classpathScope>
-              <arguments>
-                <argument>--generate-doc</argument>
-                <argument>${project.build.directory}/../../docs/config.html</argument>
-              </arguments>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
   <profiles>
     <profile>
       <id>apache-release</id>
@@ -627,53 +602,6 @@
                       <excludes>**/.svn/**,**/*.pyc,src/**,target/**,**/walkers.txt,**/ingesters.txt,**/continuous-env.sh,.*/**,**/*.pyc,**/*.pyo,pom.xml</excludes>
                     </data>
                   </dataSet>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>docs</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-resources-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>copy-pdf-manuals</id>
-                <goals>
-                  <goal>copy-resources</goal>
-                </goals>
-                <phase>prepare-package</phase>
-                <configuration>
-                  <outputDirectory>../docs</outputDirectory>
-                  <resources>
-                    <resource>
-                      <directory>${project.build.directory}</directory>
-                      <includes>
-                        <include>*.pdf</include>
-                      </includes>
-                    </resource>
-                  </resources>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>latex-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>build-pdf-manuals</id>
-                <goals>
-                  <goal>latex</goal>
-                </goals>
-                <phase>compile</phase>
-                <configuration>
-                  <docsRoot>../docs/src/main/latex</docsRoot>
                 </configuration>
               </execution>
             </executions>
