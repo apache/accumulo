@@ -21,19 +21,30 @@
   <formats>
     <format>tar.gz</format>
   </formats>
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>lib</outputDirectory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <outputFileNameMapping>${artifact.artifactId}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
+      <useStrictFiltering>true</useStrictFiltering>
+      <useTransitiveDependencies>false</useTransitiveDependencies>
+      <includes>
+        <include>${groupId}:${artifactId}-*</include>
+        <include>org.apache.commons:commons-vfs2</include>
+        <include>com.beust:jcommander</include>
+        <include>com.google.code.gson:gson</include>
+        <include>com.google.guava:guava</include>
+        <include>jline:jline</include>
+        <include>org.apache.thrift:libthrift</include>
+      </includes>
+    </dependencySet>
+  </dependencySets>
   <fileSets>
     <fileSet>
       <directory>../bin</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0755</fileMode>
-    </fileSet>
-    <fileSet>
-      <directory>../lib</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>*.jar</include>
-      </includes>
     </fileSet>
     <fileSet>
       <directory>../examples/simple</directory>
