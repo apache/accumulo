@@ -61,10 +61,6 @@
      <appender-ref ref="ASYNC" />
   </logger>
 
-  <logger name="org.apache.accumulo.server.security.Auditor">
-     <level value="WARN"/> <!-- change to INFO for authorization events -->
-  </logger>
-
   <logger name="org.apache.accumulo.core.file.rfile.bcfile">
      <level value="INFO"/>
   </logger>

@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.server.security;
 
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -26,6 +29,11 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.thrift.IterInfo;
+import org.apache.accumulo.core.data.thrift.TColumn;
+import org.apache.accumulo.core.data.thrift.TKeyExtent;
+import org.apache.accumulo.core.data.thrift.TRange;
+import org.apache.accumulo.core.master.thrift.TableOperation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -41,6 +49,7 @@ import org.apache.accumulo.server.security.handler.ZKAuthenticator;
 import org.apache.accumulo.server.security.handler.ZKAuthorizor;
 import org.apache.accumulo.server.security.handler.ZKPermHandler;
 import org.apache.accumulo.server.zookeeper.ZooCache;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
@@ -238,7 +247,7 @@ public class SecurityOperation {
    * 
    * @return true if a user exists and has permission; false otherwise
    */
-  private boolean hasTablePermission(String user, String table, TablePermission permission, boolean useCached) throws ThriftSecurityException {
+  protected boolean hasTablePermission(String user, String table, TablePermission permission, boolean useCached) throws ThriftSecurityException {
     if (user.equals(SecurityConstants.SYSTEM_PRINCIPAL))
       return true;
     
@@ -284,6 +293,14 @@ public class SecurityOperation {
     return hasTablePermission(credentials.getPrincipal(), table, TablePermission.READ, true);
   }
   
+  public boolean canScan(TCredentials credentials, String table, TRange range, List<TColumn> columns, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+    return canScan(credentials, table);
+  }
+  
+  public boolean canScan(TCredentials credentials, String table, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+    return canScan(credentials, table);
+  }
+  
   public boolean canWrite(TCredentials credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
     return hasTablePermission(credentials.getPrincipal(), table, TablePermission.WRITE, true);
@@ -316,18 +333,22 @@ public class SecurityOperation {
         || hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_TABLE, false);
   }
   
+  public boolean canCreateTable(TCredentials c, String tableName) throws ThriftSecurityException {
+    return canCreateTable(c);
+  }
+  
   public boolean canCreateTable(TCredentials c) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.CREATE_TABLE, false);
   }
   
-  public boolean canRenameTable(TCredentials c, String tableId) throws ThriftSecurityException {
+  public boolean canRenameTable(TCredentials c, String tableId, String oldTableName, String newTableName) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_TABLE, false)
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.ALTER_TABLE, false);
   }
   
-  public boolean canCloneTable(TCredentials c, String tableId) throws ThriftSecurityException {
+  public boolean canCloneTable(TCredentials c, String tableId, String tableName) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.CREATE_TABLE, false)
         && hasTablePermission(c.getPrincipal(), tableId, TablePermission.READ, false);
@@ -339,7 +360,7 @@ public class SecurityOperation {
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.DROP_TABLE, false);
   }
   
-  public boolean canOnlineOfflineTable(TCredentials c, String tableId) throws ThriftSecurityException {
+  public boolean canOnlineOfflineTable(TCredentials c, String tableId, TableOperation op) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.SYSTEM, false) || hasSystemPermission(c.getPrincipal(), SystemPermission.ALTER_TABLE, false)
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.ALTER_TABLE, false);
@@ -351,9 +372,13 @@ public class SecurityOperation {
         || hasTablePermission(c.getPrincipal(), tableId, TablePermission.ALTER_TABLE, false);
   }
   
-  public boolean canDeleteRange(TCredentials c, String tableId) throws ThriftSecurityException {
+  public boolean canDeleteRange(TCredentials c, String tableId, String tableName, Text startRow, Text endRow) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c.getPrincipal(), SystemPermission.SYSTEM, false) || hasTablePermission(c.getPrincipal(), tableId, TablePermission.WRITE, false);
+  }
+  
+  public boolean canBulkImport(TCredentials c, String tableId, String tableName, String dir, String failDir) throws ThriftSecurityException {
+    return canBulkImport(c, tableId);
   }
   
   public boolean canBulkImport(TCredentials c, String tableId) throws ThriftSecurityException {
@@ -603,12 +628,12 @@ public class SecurityOperation {
     }
   }
   
-  public boolean canExport(TCredentials credentials, String tableId) throws ThriftSecurityException {
+  public boolean canExport(TCredentials credentials, String tableId, String tableName, String exportDir) throws ThriftSecurityException {
     authenticate(credentials);
     return hasTablePermission(credentials.getPrincipal(), tableId, TablePermission.READ, false);
   }
   
-  public boolean canImport(TCredentials credentials) throws ThriftSecurityException {
+  public boolean canImport(TCredentials credentials, String tableName, String importDir) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermission(credentials.getPrincipal(), SystemPermission.CREATE_TABLE, false);
   }

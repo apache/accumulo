@@ -822,7 +822,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       switch (op) {
         case CREATE: {
           String tableName = ByteBufferUtil.toString(arguments.get(0));
-          if (!security.canCreateTable(c))
+          if (!security.canCreateTable(c, tableName))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           checkNotMetadataTable(tableName, TableOperation.CREATE);
           checkTableName(tableName, TableOperation.CREATE);
@@ -841,7 +841,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           checkNotMetadataTable(oldTableName, TableOperation.RENAME);
           checkNotMetadataTable(newTableName, TableOperation.RENAME);
           checkTableName(newTableName, TableOperation.RENAME);
-          if (!security.canRenameTable(c, tableId))
+          if (!security.canRenameTable(c, tableId, oldTableName, newTableName))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTable(tableId, oldTableName, newTableName)), autoCleanup);
@@ -851,10 +851,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         case CLONE: {
           String srcTableId = ByteBufferUtil.toString(arguments.get(0));
           String tableName = ByteBufferUtil.toString(arguments.get(1));
-          
           checkNotMetadataTable(tableName, TableOperation.CLONE);
           checkTableName(tableName, TableOperation.CLONE);
-          if (!security.canCloneTable(c, srcTableId))
+          if (!security.canCloneTable(c, srcTableId, tableName))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           Map<String,String> propertiesToSet = new HashMap<String,String>();
@@ -894,7 +893,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           final String tableId = checkTableId(tableName, TableOperation.ONLINE);
           checkNotMetadataTable(tableName, TableOperation.ONLINE);
           
-          if (!security.canOnlineOfflineTable(c, tableId))
+          if (!security.canOnlineOfflineTable(c, tableId, op))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new ChangeTableState(tableId, TableOperation.ONLINE)), autoCleanup);
@@ -905,7 +904,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           final String tableId = checkTableId(tableName, TableOperation.OFFLINE);
           checkNotMetadataTable(tableName, TableOperation.OFFLINE);
           
-          if (!security.canOnlineOfflineTable(c, tableId))
+          if (!security.canOnlineOfflineTable(c, tableId, op))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new ChangeTableState(tableId, TableOperation.OFFLINE)), autoCleanup);
@@ -940,7 +939,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           final String tableId = checkTableId(tableName, TableOperation.DELETE_RANGE);
           checkNotMetadataTable(tableName, TableOperation.DELETE_RANGE);
           
-          if (!security.canDeleteRange(c, tableId))
+          if (!security.canDeleteRange(c, tableId, tableName, startRow, endRow))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new TableRangeOp(MergeInfo.Operation.DELETE, tableId, startRow, endRow)), autoCleanup);
@@ -955,7 +954,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           final String tableId = checkTableId(tableName, TableOperation.BULK_IMPORT);
           checkNotMetadataTable(tableName, TableOperation.BULK_IMPORT);
           
-          if (!security.canBulkImport(c, tableId))
+          if (!security.canBulkImport(c, tableId, tableName, dir, failDir))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new BulkImport(tableId, dir, failDir, setTime)), autoCleanup);
@@ -986,7 +985,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           String exportDir = ByteBufferUtil.toString(arguments.get(1));
           
-          if (!security.canImport(c))
+          if (!security.canImport(c, tableName, exportDir))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           checkNotMetadataTable(tableName, TableOperation.CREATE);
@@ -1001,7 +1000,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           
           String tableId = checkTableId(tableName, TableOperation.EXPORT);
           
-          if (!security.canExport(c, tableId))
+          if (!security.canExport(c, tableId, tableName, exportDir))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
           
           checkNotMetadataTable(tableName, TableOperation.EXPORT);

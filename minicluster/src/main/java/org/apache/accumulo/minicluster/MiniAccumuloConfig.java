@@ -252,7 +252,7 @@ public class MiniAccumuloConfig {
     return accumuloDir;
   }
   
-  File getLogDir() {
+  public File getLogDir() {
     return logDir;
   }
   

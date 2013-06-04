@@ -197,6 +197,7 @@ public class Constants {
   public static String getRootTabletDir(final AccumuloConfiguration conf) {
     return getMetadataTableDir(conf) + ZROOT_TABLET;
   }
+
   
   /**
    * @param conf
@@ -205,4 +206,6 @@ public class Constants {
   public static String getWalDirectory(final AccumuloConfiguration conf) {
     return getBaseDir(conf) + "/wal";
   }
+
+    public static final String AUDITLOG = "Audit";
 }

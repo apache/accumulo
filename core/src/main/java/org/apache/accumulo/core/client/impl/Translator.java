@@ -64,6 +64,13 @@ public abstract class Translator<IT,OT> {
       return input.toThrift();
     }
   }
+
+  public static class TColumnTranslator extends Translator<TColumn,Column> {
+    @Override
+    public Column translate(TColumn input) {
+      return new Column(input);
+    }
+  }
   
   public static class ColumnTranslator extends Translator<Column,TColumn> {
     @Override

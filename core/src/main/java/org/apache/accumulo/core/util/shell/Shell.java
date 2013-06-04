@@ -55,7 +55,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
-import org.apache.accumulo.core.security.AuditLevel;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -539,7 +538,7 @@ public class Shell extends ShellOptions {
   }
   
   public void execCommand(String input, boolean ignoreAuthTimeout, boolean echoPrompt) throws IOException {
-    audit.log(AuditLevel.AUDIT, getDefaultPrompt() + input);
+    audit.log(Level.INFO, getDefaultPrompt() + input);
     if (echoPrompt) {
       reader.print(getDefaultPrompt());
       reader.println(input);

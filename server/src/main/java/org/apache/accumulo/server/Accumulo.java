@@ -107,11 +107,18 @@ public class Accumulo {
     }
     // Turn off messages about not being able to reach the remote logger... we protect against that.
     LogLog.setQuietMode(true);
-    
-    // Configure logging
+
+      // Configure logging
     DOMConfigurator.configureAndWatch(logConfig, 5000);
-    
-    log.info(application + " starting");
+
+    // Read the auditing config
+    String auditConfig = String.format("%s/conf/auditLog.xml", System.getenv("ACCUMULO_HOME"), application);
+
+     DOMConfigurator.configureAndWatch(auditConfig, 5000);
+
+
+
+      log.info(application + " starting");
     log.info("Instance " + config.getInstance().getInstanceID());
     int dataVersion = Accumulo.getAccumuloPersistentVersion(fs);
     log.info("Data Version " + dataVersion);

@@ -1102,7 +1102,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
       
       Authorizations userauths = null;
-      if (!security.canScan(credentials, new String(textent.getTable())))
+      if (!security.canScan(credentials, new String(textent.getTable()), range, columns, ssiList, ssio, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       
       userauths = security.getUserAuthorizations(credentials);
@@ -1259,7 +1259,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       // check if user has permission to the tables
       Authorizations userauths = null;
       for (String table : tables)
-        if (!security.canScan(credentials, table))
+        if (!security.canScan(credentials, table, tbatch, tcolumns, ssiList, ssio, authorizations))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       
       userauths = security.getUserAuthorizations(credentials);
