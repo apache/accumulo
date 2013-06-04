@@ -147,6 +147,40 @@
       </build>
     </profile>
     <profile>
+      <id>make-accumulo-home</id>
+      <activation>
+        <property>
+          <name>DEV_ACCUMULO_HOME</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>directory-assembly</id>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <outputDirectory>${DEV_ACCUMULO_HOME}</outputDirectory>
+                  <formats>
+                    <format>dir</format>
+                  </formats>
+                  <descriptors>
+                    <descriptor>src/main/assemblies/dev-directory.xml</descriptor>
+                  </descriptors>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <id>rpm</id>
       <build>
         <plugins>
