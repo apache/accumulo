@@ -26,6 +26,7 @@
   <packaging>pom</packaging>
   <name>Assemblies</name>
   <properties>
+    <DEV_ACCUMULO_HOME>${project.build.directory}</DEV_ACCUMULO_HOME>
     <accumulo-top>..</accumulo-top>
   </properties>
   <dependencies>
@@ -149,9 +150,10 @@
     <profile>
       <id>make-accumulo-home</id>
       <activation>
-        <property>
-          <name>DEV_ACCUMULO_HOME</name>
-        </property>
+        <!-- always activate, unless explicitly de-activated -->
+        <file>
+          <exists>pom.xml</exists>
+        </file>
       </activation>
       <build>
         <plugins>
