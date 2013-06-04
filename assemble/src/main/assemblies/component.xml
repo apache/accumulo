@@ -24,7 +24,6 @@
       <fileMode>0644</fileMode>
       <useProjectArtifact>false</useProjectArtifact>
       <outputFileNameMapping>${artifact.artifactId}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
-      <useStrictFiltering>true</useStrictFiltering>
       <useTransitiveDependencies>false</useTransitiveDependencies>
       <includes>
         <include>${groupId}:${artifactId}-*</include>
@@ -34,6 +33,20 @@
         <include>com.google.guava:guava</include>
         <include>jline:jline</include>
         <include>org.apache.thrift:libthrift</include>
+      </includes>
+      <excludes>
+        <exclude>${groupId}:${artifactId}-docs</exclude>
+      </excludes>
+    </dependencySet>
+    <dependencySet>
+      <outputDirectory>docs</outputDirectory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <useProjectArtifact>false</useProjectArtifact>
+      <outputFileNameMapping>${artifactId}_user_manual.${artifact.extension}</outputFileNameMapping>
+      <useTransitiveDependencies>false</useTransitiveDependencies>
+      <includes>
+        <include>${groupId}:${artifactId}-docs</include>
       </includes>
     </dependencySet>
   </dependencySets>
@@ -71,7 +84,7 @@
       </excludes>
     </fileSet>
     <fileSet>
-      <directory>../lib/ext</directory>
+      <directory>./</directory>
       <outputDirectory>/lib/ext</outputDirectory>
       <directoryMode>0755</directoryMode>
       <excludes>
@@ -79,7 +92,7 @@
       </excludes>
     </fileSet>
     <fileSet>
-      <directory>../logs</directory>
+      <directory>./</directory>
       <outputDirectory>/logs</outputDirectory>
       <directoryMode>0700</directoryMode>
       <excludes>
@@ -90,9 +103,10 @@
       <directory>../docs</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
-      <excludes>
-        <exclude>src/**</exclude>
-      </excludes>
+      <includes>
+        <include>*.html</include>
+        <include>examples/*</include>
+      </includes>
     </fileSet>
     <fileSet>
       <directory>../conf</directory>

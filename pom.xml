@@ -211,6 +211,13 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-docs</artifactId>
+        <version>${project.version}</version>
+        <classifier>user-manual</classifier>
+        <type>pdf</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-examples-simple</artifactId>
         <version>${project.version}</version>
       </dependency>

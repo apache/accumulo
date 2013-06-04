@@ -651,5 +651,16 @@
         </plugins>
       </build>
     </profile>
+    <profile>
+      <id>docs</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.accumulo</groupId>
+          <artifactId>accumulo-docs</artifactId>
+          <classifier>user-manual</classifier>
+          <type>pdf</type>
+        </dependency>
+      </dependencies>
+    </profile>
   </profiles>
 </project>
