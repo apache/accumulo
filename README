@@ -15,29 +15,42 @@ ready to go on x86 GNU/Linux: there is no build step.
 
 However, if you only have source code, or you wish to make changes, you need to
 have maven configured to get Accumulo prerequisites from repositories.  See
-the pom.xml file for the necessary components. Activate the 'docs' profile to build
-the Accumulo developer and user manual.
+the pom.xml file for the necessary components. 
 
-Run "mvn package -P assemble" to build a distribution, or run 
-"mvn package -P assemble,docs" to also build the documentation. By default, 
-Accumulo compiles against Hadoop 1.0.4.  To compile against a different version
-that is compatible with Hadoop 1.0, specify hadoop.version on the command line,
-e.g. "-Dhadoop.version=0.20.205.0" or "-Dhadoop.version=1.1.0".  To compile 
-against Hadoop 2.0, specify "-Dhadoop.profile=2.0".  By default this uses
+You can build an Accumulo binary distribution, which is created in the 
+assemble/target directory, using the following command. Note that maven 3
+is required starting with Accumulo v1.5.0. By default, Accumulo compiles
+against Hadoop 1.0.4.
+
+  mvn package -P assemble
+
+To compile against a different version that is compatible with Hadoop 1.0, 
+specify hadoop.version on the command line,
+e.g. "-Dhadoop.version=0.20.205.0" or "-Dhadoop.version=1.1.0".  
+
+To compile against Hadoop 2.0, specify "-Dhadoop.profile=2.0".  By default this uses
 2.0.4-alpha.  To compile against a different 2.0-compatible version, specify
 the profile and version, e.g. "-Dhadoop.profile=2.0 -Dhadoop.version=0.23.5".
 
 If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary
-but having them available suppresses a runtime warning:
+but having them available suppresses a runtime warning and enables Accumulo
+to run faster:
 
   $ ( cd ./server/src/main/c++ ; make )
 
-If you want to build the debian release, use the command "mvn install -Pdeb" to 
+If you want to build the debian release, use the command "mvn package -Pdeb" to 
 generate the .deb files in the target/ directory. Please follow the steps at 
 https://cwiki.apache.org/BIGTOP/how-to-install-hadoop-distribution-from-bigtop.html
 to add bigtop to your debian sources list. This will make it substantially
 easier to install.
+
+Building Documentation
+
+Use the following command to build the User Manual (docs/target/accumulo_user_manual.pdf)
+and the configuration HTML page (docs/target/config.html)
+
+  mvn package -P docs -DskipTests
 
 ******************************************************************************
 2. Deployment
@@ -48,6 +61,39 @@ tar xzf accumulo-1.6.0-bin.tar.gz).
 
 If you are using the RPM, install the RPM on every machine that will run
 accumulo.
+
+Another option is to package Accumulo directly to a working directory. For example,
+
+  mvn package -DskipTests -DDEV_ACCUMULO_HOME=/var/tmp
+
+The above command would create a directory with a name similar to
+/var/tmp/accumulo-1.6.0-dev/accumulo-1.6.0/, containing all the contents
+that are normally contained in accumulo-1.6.0-bin.tar.gz, but already unpacked.
+If the DEV_ACCUMULO_HOME parameter is not specified, this directory would
+normally be created in assemble/target, but that is subject to deletion by
+the 'mvn clean' command. Specifying an external directory would not be subject
+to 'mvn clean'. When executed more than once, newer files overwrite older files,
+and files a user adds (such as configuration files in conf/) will be left alone.
+
+If HDFS and Zookeeper are running, you can run Accumulo directly from this
+working directory. See the 'Running Apache Accumulo' section later in this document.
+
+You can avoid specifying the working directory each time you compile by adding
+a profile to maven's settings.xml file. Below is an example of $HOME/.m2/settings.xml
+
+ <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+   <profiles>
+     <profile>
+       <id>inject-accumulo-home</id>
+       <properties>
+         <DEV_ACCUMULO_HOME>/var/tmp</DEV_ACCUMULO_HOME>
+       </properties>
+     </profile>
+   </profiles>
+   <activeProfiles>
+     <activeProfile>inject-accumulo-home</activeProfile>
+   </activeProfiles>
+ </settings>
 
 ******************************************************************************
 3. Upgrading from 1.4 to 1.5
@@ -64,10 +110,10 @@ accumulo.
 4. Configuring
 
 Apache Accumulo has two prerequisites, hadoop and zookeeper. Zookeeper must be 
-at least version 3.3.0. Both of these must be installed and configured. 
-Zookeeper normally only allows for 10 connections from one computer.  On a 
-single-host install, this number is a little too low.  Add the following to the 
-$ZOOKEEPER_HOME/conf/zoo.cfg file:
+at least version 3.3.0. Both of these must be installed and configured. Some
+versions of Zookeeper may only allow 10 connections from one computer by default.
+On a single-host install, this number is a little too low. Add the following to
+the $ZOOKEEPER_HOME/conf/zoo.cfg file:
 
    maxClientCnxns=100
 
