@@ -21,8 +21,6 @@ import java.util.Iterator;
 import java.util.ListIterator;
 
 import jline.console.history.History.Entry;
-import jline.console.history.History;
-import jline.console.history.PersistentHistory;
 
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;

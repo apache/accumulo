@@ -36,7 +36,6 @@ import java.util.UUID;
 
 import jline.console.ConsoleReader;
 import jline.console.history.FileHistory;
-import jline.console.history.History;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;

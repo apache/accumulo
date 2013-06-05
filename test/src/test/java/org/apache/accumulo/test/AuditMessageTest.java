@@ -406,7 +406,7 @@ public class AuditMessageTest {
       auditConnector.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
     try {
-      auditConnector.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, true, Collections.EMPTY_MAP, Collections.EMPTY_SET);
+      auditConnector.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, true, Collections.<String,String>emptyMap(), Collections.<String>emptySet());
     } catch (AccumuloSecurityException ex) {}
     try {
       auditConnector.tableOperations().delete(OLD_TEST_TABLE_NAME);
