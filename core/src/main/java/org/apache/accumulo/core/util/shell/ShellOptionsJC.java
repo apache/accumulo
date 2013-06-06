@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.util.shell;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -80,7 +81,7 @@ public class ShellOptionsJC {
   private boolean hdfsZooInstance;
   
   @Parameter(names = {"-z", "--zooKeeperInstance"}, description = "use a zookeeper instance with the given instance name and list of zoo hosts", arity = 2)
-  private List<String> zooKeeperInstance;
+  private List<String> zooKeeperInstance = new ArrayList<String>();
   
   @Parameter(names = "--auth-timeout", description = "minutes the shell can be idle without re-entering a password")
   private int authTimeout = 60; // TODO Add validator for positive number
