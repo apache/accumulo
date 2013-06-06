@@ -17,87 +17,16 @@
 package org.apache.accumulo.core.util.shell;
 
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
-import org.apache.commons.cli.Options;
 
 /**
  * Abstract class to encompass the Options available on the Accumulo Shell
  */
 public abstract class ShellOptions {
-  protected static final String DEFAULT_AUTH_TIMEOUT = "60"; // in minutes
-  
   // Global options flags
   public static final String userOption = "u";
   public static final String tableOption = "t";
   public static final String helpOption = "?";
   public static final String helpLongOption = "help";
   
-  final Options opts = new Options();
-  
-  final Option usernameOption = new Option("u", "user", true, "username (defaults to your OS user)");
-  final Option passwOption = new Option("p", "password", true, "password (prompt for password if this option is missing)");
-  final Option tokenOption = new Option("tc", "tokenClass", true, "token type to create, use the -l to pass options");
-  final Option loginOption = new Option("l", "tokenProperty", true,
-      "login properties in the format key=value. Reuse -l for each property and/or comma seperate (prompt for properties if this option is missing");
-  
-  final Option tabCompleteOption = new Option(null, "disable-tab-completion", false, "disables tab completion (for less overhead when scripting)");
-  final Option debugOption = new Option(null, "debug", false, "enables client debugging");
-  final Option fakeOption = new Option(null, "fake", false, "fake a connection to accumulo");
   final Option helpOpt = new Option(helpOption, helpLongOption, false, "display this help");
-  final Option execCommandOpt = new Option("e", "execute-command", true, "executes a command, and then exits");
-  final OptionGroup execFileGroup = new OptionGroup();
-  final Option execfileOption = new Option("f", "execute-file", true, "executes commands from a file at startup");
-  final Option execfileVerboseOption = new Option("fv", "execute-file-verbose", true, "executes commands from a file at startup, with commands shown");
-  final OptionGroup instanceOptions = new OptionGroup();
-  final Option hdfsZooInstance = new Option("h", "hdfsZooInstance", false, "use hdfs zoo instance");
-  final Option zooKeeperInstance = new Option("z", "zooKeeperInstance", true, "use a zookeeper instance with the given instance name and list of zoo hosts");
-  final OptionGroup authTimeoutOptions = new OptionGroup();
-  final Option authTimeoutOpt = new Option(null, "auth-timeout", true, "minutes the shell can be idle without re-entering a password (default "
-      + DEFAULT_AUTH_TIMEOUT + " min)");
-  final Option disableAuthTimeoutOpt = new Option(null, "disable-auth-timeout", false, "disables requiring the user to re-type a password after being idle");
-
-  public ShellOptions() {
-    usernameOption.setArgName("user");
-    opts.addOption(usernameOption);
-    
-    passwOption.setArgName("pass");
-    opts.addOption(passwOption);
-    opts.addOption(loginOption);
-    opts.addOption(tokenOption);
-    
-    opts.addOption(tabCompleteOption);
-    
-    opts.addOption(debugOption);
-    
-    opts.addOption(fakeOption);
-    
-    opts.addOption(helpOpt);
-    
-    opts.addOption(execCommandOpt);
-    
-    
-    execfileOption.setArgName("file");
-    execFileGroup.addOption(execfileOption);
-    
-    execfileVerboseOption.setArgName("file");
-    execFileGroup.addOption(execfileVerboseOption);
-    
-    opts.addOptionGroup(execFileGroup);
-    
-    
-    instanceOptions.addOption(hdfsZooInstance);
-    
-    zooKeeperInstance.setArgName("name hosts");
-    zooKeeperInstance.setArgs(2);
-    instanceOptions.addOption(zooKeeperInstance);
-    
-    opts.addOptionGroup(instanceOptions);
-    
-    authTimeoutOpt.setArgName("minutes");
-    authTimeoutOptions.addOption(authTimeoutOpt);
-    
-    authTimeoutOptions.addOption(disableAuthTimeoutOpt);
-    
-    opts.addOptionGroup(authTimeoutOptions);
-  }
 }

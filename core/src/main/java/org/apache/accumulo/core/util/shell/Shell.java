@@ -47,7 +47,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -145,7 +144,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.MissingArgumentException;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -153,6 +151,9 @@ import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
 
 /**
  * A convenient console interface to perform basic accumulo functions Includes auto-complete, help, and quoted strings with escape sequences
@@ -167,7 +168,6 @@ public class Shell extends ShellOptions {
   public static final String HISTORY_DIR_NAME = ".accumulo";
   public static final String HISTORY_FILE_NAME = "shell_history.txt";
   private static final String SHELL_DESCRIPTION = "Shell - Apache Accumulo Interactive Shell";
-  private static final String DEFAULT_AUTH_TIMEOUT = "60"; // in minutes
   
   protected int exitCode = 0;
   private String tableName;
@@ -190,7 +190,7 @@ public class Shell extends ShellOptions {
   private boolean exit = false;
   
   // file to execute commands from
-  protected String execFile = null;
+  protected File execFile = null;
   // single command to execute from the command line
   protected String execCommand = null;
   protected boolean verbose = true;
@@ -219,98 +219,96 @@ public class Shell extends ShellOptions {
   
   // Not for client use
   public boolean config(String... args) {
+    ShellOptionsJC options = new ShellOptionsJC();
+    JCommander jc = new JCommander();
     
-    CommandLine cl;
+    jc.setProgramName("accumulo shell");
+    jc.addObject(options);
     try {
-      cl = new BasicParser().parse(opts, args);
-      if (cl.getArgs().length > 0)
-        throw new ParseException("Unrecognized arguments: " + cl.getArgList());
-      
-      if (cl.hasOption(helpOpt.getOpt())) {
-        configError = true;
-        printHelp("shell", SHELL_DESCRIPTION, opts);
-        return true;
-      }
-      
-      setDebugging(cl.hasOption(debugOption.getLongOpt()));
-      authTimeout = Integer.parseInt(cl.getOptionValue(authTimeoutOpt.getLongOpt(), DEFAULT_AUTH_TIMEOUT)) * 60 * 1000;
-      disableAuthTimeout = cl.hasOption(disableAuthTimeoutOpt.getLongOpt());
-      
-      if (cl.hasOption(zooKeeperInstance.getOpt()) && cl.getOptionValues(zooKeeperInstance.getOpt()).length != 2)
-        throw new MissingArgumentException(zooKeeperInstance);
-      
-    } catch (Exception e) {
+      jc.parse(args);
+    } catch (ParameterException e) {
       configError = true;
-      printException(e);
-      printHelp("shell", SHELL_DESCRIPTION, opts);
+    }
+    
+    if (options.isHelpEnabled()) {
+      configError = true;
+    }
+    
+    if (!configError && options.getUnrecognizedOptions() != null) {
+      configError = true;
+      logError("Unrecognized Options: " + options.getUnrecognizedOptions().toString());
+    }
+    
+    if (configError) {
+      jc.usage();
       return true;
     }
     
-    // get the options that were parsed
-    String sysUser = System.getProperty("user.name");
-    if (sysUser == null)
-      sysUser = "root";
-    String user = cl.getOptionValue(usernameOption.getOpt(), sysUser);
+    setDebugging(options.isDebugEnabled());
+    authTimeout = options.getAuthTimeout() * 60 * 1000; // convert minutes to milliseconds
+    disableAuthTimeout = options.isAuthTimeoutDisabled();
     
-    String passw = cl.getOptionValue(passwOption.getOpt(), null);
-    tabCompletion = !cl.hasOption(tabCompleteOption.getLongOpt());
-    String[] loginOptions = cl.getOptionValues(loginOption.getOpt());
+    // get the options that were parsed
+    String user = options.getUsername();
+    String password = options.getPassword();
+    
+    tabCompletion = !options.isTabCompletionDisabled();
     
     // Use a fake (Mock), ZK, or HdfsZK Accumulo instance
-    setInstance(cl);
+    setInstance(options);
+    
+    // AuthenticationToken options
+    token = options.getAuthenticationToken();
+    Map<String,String> loginOptions = options.getTokenProperties();
     
     // process default parameters if unspecified
     try {
-      if (loginOptions != null && !cl.hasOption(tokenOption.getOpt()))
-        throw new IllegalArgumentException("Must supply '-" + tokenOption.getOpt() + "' option with '-" + loginOption.getOpt() + "' option");
+      boolean hasToken = (token != null);
+      boolean hasTokenOptions = loginOptions != null && !loginOptions.isEmpty();
       
-      if (loginOptions == null && cl.hasOption(tokenOption.getOpt()))
-        throw new IllegalArgumentException("Must supply '-" + loginOption.getOpt() + "' option with '-" + tokenOption.getOpt() + "' option");
-      
-      if (passw != null && cl.hasOption(tokenOption.getOpt()))
-        throw new IllegalArgumentException("Can not supply '-" + passwOption.getOpt() + "' option with '-" + tokenOption.getOpt() + "' option");
-      
-      if (user == null)
-        throw new MissingArgumentException(usernameOption);
-      
-      if (loginOptions != null && cl.hasOption(tokenOption.getOpt())) {
-        Properties props = new Properties();
-        for (String loginOption : loginOptions)
-          for (String lo : loginOption.split(",")) {
-            String[] split = lo.split("=");
-            props.put(split[0], split[1]);
-          }
-        
-        this.token = Class.forName(cl.getOptionValue(tokenOption.getOpt())).asSubclass(AuthenticationToken.class).newInstance();
-        this.token.init(props);
+      // Need either both a token and options, or neither, but not just one.
+      if (hasToken != hasTokenOptions) {
+        throw new ParameterException("Must supply either both or neither of '--tokenClass' and '--tokenProperty'");
       }
       
-      if (!cl.hasOption(fakeOption.getLongOpt())) {
-        DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), "shell", InetAddress.getLocalHost()
-            .getHostName());
+      if (hasToken && password != null) {
+        throw new ParameterException("Can not supply '--pass' option with '--tokenClass' option");
+      }
+      
+      if (hasToken && hasTokenOptions) {
+        // Fully qualified name so we don't shadow java.util.Properties
+        org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties props;
+        // and line wrap it because the package name is so long
+        props = new org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties();
+        
+        props.putAllStrings(loginOptions);
+        token.init(props);
+      }
+      
+      if (!options.isFake()) {
+        ZooReader zr = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+        DistributedTrace.enable(instance, zr, "shell", InetAddress.getLocalHost().getHostName());
       }
       
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
-        public void start() {
+        public void run() {
           reader.getTerminal().setEchoEnabled(true);
         }
       });
       
-      if (passw != null) {
-        this.token = new PasswordToken(passw);
+      if (!hasToken) {
+        if (password == null) {
+          password = reader.readLine("Password: ", '*');
+        }
+        
+        if (password == null) {
+          // User cancel, e.g. Ctrl-D pressed
+          throw new ParameterException("No password or token option supplied");
+        } else {
+          this.token = new PasswordToken(password);
+        }
       }
-      
-      if (this.token == null) {
-        passw = readMaskedLine("Password: ", '*');
-        if (passw != null)
-          this.token = new PasswordToken(passw);
-      }
-      
-      if (this.token == null) {
-        reader.println();
-        throw new MissingArgumentException("No password or token option supplied");
-      } // user canceled
       
       this.setTableName("");
       this.principal = user;
@@ -322,14 +320,15 @@ public class Shell extends ShellOptions {
     }
     
     // decide whether to execute commands from a file and quit
-    if (cl.hasOption(execfileOption.getOpt())) {
-      execFile = cl.getOptionValue(execfileOption.getOpt());
+    if (options.getExecFile() != null) {
+      execFile = options.getExecFile();
       verbose = false;
-    } else if (cl.hasOption(execfileVerboseOption.getOpt())) {
-      execFile = cl.getOptionValue(execfileVerboseOption.getOpt());
+    } else if (options.getExecFileVerbose() != null) {
+      execFile = options.getExecFileVerbose();
+      verbose = true;
     }
-    if (cl.hasOption(execCommandOpt.getOpt())) {
-      execCommand = cl.getOptionValue(execCommandOpt.getOpt());
+    execCommand = options.getExecCommand();
+    if (execCommand != null) {
       verbose = false;
     }
     
@@ -378,18 +377,18 @@ public class Shell extends ShellOptions {
     return configError;
   }
   
-  protected void setInstance(CommandLine cl) {
+  protected void setInstance(ShellOptionsJC options) {
     // should only be one instance option set
     instance = null;
-    if (cl.hasOption(fakeOption.getLongOpt())) {
+    if (options.isFake()) {
       instance = new MockInstance("fake");
-    } else if (cl.hasOption(hdfsZooInstance.getOpt())) {
+    } else if (options.isHdfsZooInstance()) {
       @SuppressWarnings("deprecation")
       AccumuloConfiguration deprecatedSiteConfiguration = AccumuloConfiguration.getSiteConfiguration();
       instance = getDefaultInstance(deprecatedSiteConfiguration);
-    } else if (cl.hasOption(zooKeeperInstance.getOpt())) {
-      String[] zkOpts = cl.getOptionValues(zooKeeperInstance.getOpt());
-      instance = new ZooKeeperInstance(zkOpts[0], zkOpts[1]);
+    } else if (options.getZooKeeperInstance().size() > 0) {
+      List<String> zkOpts = options.getZooKeeperInstance();
+      instance = new ZooKeeperInstance(zkOpts.get(0), zkOpts.get(1));
     } else {
       @SuppressWarnings("deprecation")
       AccumuloConfiguration deprecatedSiteConfiguration = AccumuloConfiguration.getSiteConfiguration();
@@ -459,7 +458,7 @@ public class Shell extends ShellOptions {
     ShellCompletor userCompletor = null;
     
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(new File(execFile));
+      java.util.Scanner scanner = new java.util.Scanner(execFile);
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
@@ -843,7 +842,7 @@ public class Shell extends ShellOptions {
       writer.close();
     }
   };
-
+  
   public final void printLines(Iterator<String> lines, boolean paginate) throws IOException {
     printLines(lines, paginate, null);
   }
@@ -1074,7 +1073,7 @@ public class Shell extends ShellOptions {
   public boolean hasExited() {
     return exit;
   }
-
+  
   public boolean isTabCompletion() {
     return tabCompletion;
   }

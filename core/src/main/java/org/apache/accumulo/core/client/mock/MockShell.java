@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client.mock;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,7 +24,7 @@ import java.io.OutputStream;
 import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.commons.cli.CommandLine;
+import org.apache.accumulo.core.util.shell.ShellOptionsJC;
 
 /**
  * An Accumulo Shell implementation that allows a developer to attach an InputStream and Writer to the Shell for testing purposes.
@@ -63,7 +62,7 @@ public class MockShell extends Shell {
   }
   
   @Override
-  protected void setInstance(CommandLine cl) {
+  protected void setInstance(ShellOptionsJC options) {
     // We always want a MockInstance for this test
     instance = new MockInstance();
   }
@@ -77,7 +76,7 @@ public class MockShell extends Shell {
       printInfo();
     
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(new File(execFile));
+      java.util.Scanner scanner = new java.util.Scanner(execFile);
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
