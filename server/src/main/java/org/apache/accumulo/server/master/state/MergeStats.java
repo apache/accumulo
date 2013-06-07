@@ -21,8 +21,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -32,6 +30,8 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
@@ -62,7 +62,7 @@ public class MergeStats {
   public MergeInfo getMergeInfo() {
     return info;
   }
-
+  
   public void update(KeyExtent ke, TabletState state, boolean chopped, boolean hasWALs) {
     if (ke.isRootTablet())
       return;
@@ -186,7 +186,7 @@ public class MergeStats {
     }
     scanner.setRange(range);
     KeyExtent prevExtent = null;
-
+    
     log.debug("Scanning range " + range);
     for (Entry<Key,Value> entry : scanner) {
       TabletLocationState tls;
@@ -200,12 +200,12 @@ public class MergeStats {
       if (!tls.extent.getTableId().equals(tableId)) {
         break;
       }
-
+      
       if (!tls.walogs.isEmpty() && verify.getMergeInfo().needsToBeChopped(tls.extent)) {
         log.debug("failing consistency: needs to be chopped" + tls.extent);
         return false;
       }
-
+      
       if (prevExtent == null) {
         // this is the first tablet observed, it must be offline and its prev row must be less than the start of the merge range
         if (tls.extent.getPrevEndRow() != null && tls.extent.getPrevEndRow().compareTo(start) > 0) {
@@ -219,21 +219,20 @@ public class MergeStats {
         }
         
       } else if (!tls.extent.isPreviousExtent(prevExtent)) {
-        log.debug("hole in !METADATA");
+        log.debug("hole in " + Constants.METADATA_TABLE_NAME);
         return false;
       }
       
       prevExtent = tls.extent;
-
+      
       verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped, !tls.walogs.isEmpty());
       // stop when we've seen the tablet just beyond our range
       if (tls.extent.getPrevEndRow() != null && extent.getEndRow() != null && tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
         break;
       }
     }
-    log.debug("chopped " + chopped + " v.chopped " + verify.chopped + 
-        " unassigned " + unassigned + " v.unassigned " + verify.unassigned +
-        " verify.total " + verify.total);
+    log.debug("chopped " + chopped + " v.chopped " + verify.chopped + " unassigned " + unassigned + " v.unassigned " + verify.unassigned + " verify.total "
+        + verify.total);
     return chopped == verify.chopped && unassigned == verify.unassigned && unassigned == verify.total;
   }
   

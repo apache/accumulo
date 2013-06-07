@@ -109,7 +109,7 @@ class CleanUp extends MasterRepo {
         break;
       }
     }
-
+    
     if (!done)
       return 50;
     
@@ -145,7 +145,7 @@ class CleanUp extends MasterRepo {
       
     } catch (Exception e) {
       refCount = -1;
-      log.error("Failed to scan !METADATA looking for references to deleted table " + tableId, e);
+      log.error("Failed to scan " + Constants.METADATA_TABLE_NAME + " looking for references to deleted table " + tableId, e);
     }
     
     // remove metadata table entries

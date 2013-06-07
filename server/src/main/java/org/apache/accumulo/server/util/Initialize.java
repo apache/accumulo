@@ -384,7 +384,7 @@ public class Initialize {
       if (opts.clearInstanceName) {
         exists = false;
         break;
-      } else if ((boolean) (exists = ZooReaderWriter.getInstance().exists(instanceNamePath))) {
+      } else if (exists = ZooReaderWriter.getInstance().exists(instanceNamePath)) {
         String decision = getConsoleReader().readLine("Instance name \"" + instanceName + "\" exists. Delete existing entry from zookeeper? [Y/N] : ");
         if (decision == null)
           System.exit(0);
@@ -396,7 +396,7 @@ public class Initialize {
     } while (exists);
     return instanceNamePath;
   }
-
+  
   private static byte[] getRootPassword(Opts opts) throws IOException {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes();
@@ -404,7 +404,8 @@ public class Initialize {
     String rootpass;
     String confirmpass;
     do {
-      rootpass = getConsoleReader().readLine("Enter initial password for " + DEFAULT_ROOT_USER + " (this may not be applicable for your security setup): ", '*');
+      rootpass = getConsoleReader()
+          .readLine("Enter initial password for " + DEFAULT_ROOT_USER + " (this may not be applicable for your security setup): ", '*');
       if (rootpass == null)
         System.exit(0);
       confirmpass = getConsoleReader().readLine("Confirm initial password for " + DEFAULT_ROOT_USER + ": ", '*');
@@ -441,8 +442,8 @@ public class Initialize {
   
   private static void setMetadataReplication(int replication, String reason) throws IOException {
     String rep = getConsoleReader().readLine(
-        "Your HDFS replication " + reason
-        + " is not compatible with our default !METADATA replication of 5. What do you want to set your !METADATA replication to? (" + replication + ") ");
+        "Your HDFS replication " + reason + " is not compatible with our default " + Constants.METADATA_TABLE_NAME
+            + " replication of 5. What do you want to set your " + Constants.METADATA_TABLE_NAME + " replication to? (" + replication + ") ");
     if (rep == null || rep.length() == 0)
       rep = Integer.toString(replication);
     else
@@ -473,7 +474,7 @@ public class Initialize {
   public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(Initialize.class.getName(), args);
-        
+    
     try {
       SecurityUtil.serverLogin();
       Configuration conf = CachedConfiguration.getInstance();

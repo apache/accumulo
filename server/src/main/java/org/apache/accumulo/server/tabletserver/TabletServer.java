@@ -1277,7 +1277,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         } else if (keyExtent.isRootTablet()) {
           throw new IllegalArgumentException("Cannot batch query root tablet with other tablets " + threadPoolExtent + " " + keyExtent);
         } else if (keyExtent.isMeta() && !threadPoolExtent.isMeta()) {
-          throw new IllegalArgumentException("Cannot batch query !METADATA and non !METADATA tablets " + threadPoolExtent + " " + keyExtent);
+          throw new IllegalArgumentException("Cannot batch query " + Constants.METADATA_TABLE_NAME + " and non " + Constants.METADATA_TABLE_NAME + " tablets "
+              + threadPoolExtent + " " + keyExtent);
         }
         
       }
@@ -2109,7 +2110,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       }
     }
-        
+    
     @Override
     public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       try {
@@ -2639,8 +2640,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (address == null) {
         return null;
       }
-      MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address,
-          Property.GENERAL_RPC_TIMEOUT, getSystemConfiguration());
+      MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.GENERAL_RPC_TIMEOUT,
+          getSystemConfiguration());
       // log.info("Listener API to master has been opened");
       return client;
     } catch (Exception e) {

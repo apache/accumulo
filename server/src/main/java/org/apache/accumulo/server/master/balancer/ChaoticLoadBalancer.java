@@ -25,6 +25,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -42,9 +43,6 @@ import org.apache.thrift.TException;
 public class ChaoticLoadBalancer extends TabletBalancer {
   Random r = new Random();
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.master.balancer.TabletBalancer#getAssignments(java.util.SortedMap, java.util.Map, java.util.Map)
-   */
   @Override
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
       Map<KeyExtent,TServerInstance> assignments) {
@@ -62,9 +60,8 @@ public class ChaoticLoadBalancer extends TabletBalancer {
         toAssign.put(e.getKey(), avg - numTablets);
       }
     }
-
-    for (KeyExtent ke : unassigned.keySet())
-    {
+    
+    for (KeyExtent ke : unassigned.keySet()) {
       int index = r.nextInt(tServerArray.size());
       TServerInstance dest = tServerArray.get(index);
       assignments.put(ke, dest);
@@ -85,10 +82,10 @@ public class ChaoticLoadBalancer extends TabletBalancer {
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     Map<TServerInstance,Long> numTablets = new HashMap<TServerInstance,Long>();
     List<TServerInstance> underCapacityTServer = new ArrayList<TServerInstance>();
-
+    
     if (!migrations.isEmpty())
       return 100;
-
+    
     boolean moveMetadata = r.nextInt(4) == 0;
     long totalTablets = 0;
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
@@ -104,11 +101,9 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     // *1.2 to handle fuzziness, and prevent locking for 'perfect' balancing scenarios
     long avg = (long) Math.ceil(((double) totalTablets) / current.size() * 1.2);
     
-    for (Entry<TServerInstance, TabletServerStatus> e : current.entrySet())
-    {
-      for (String table : e.getValue().getTableMap().keySet())
-      {
-        if (!moveMetadata && "!METADATA".equals(table))
+    for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
+      for (String table : e.getValue().getTableMap().keySet()) {
+        if (!moveMetadata && Constants.METADATA_TABLE_NAME.equals(table))
           continue;
         try {
           for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), table)) {
@@ -146,7 +141,6 @@ public class ChaoticLoadBalancer extends TabletBalancer {
    * @see org.apache.accumulo.server.master.balancer.TabletBalancer#init(org.apache.accumulo.server.conf.ServerConfiguration)
    */
   @Override
-  public void init(ServerConfiguration conf) {
-  }
+  public void init(ServerConfiguration conf) {}
   
 }

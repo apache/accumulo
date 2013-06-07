@@ -278,7 +278,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/loggers", NodeMissingPolicy.SKIP);
         zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/dead/loggers", NodeMissingPolicy.SKIP);
-
+        
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.SKIP);
         
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
@@ -606,9 +606,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
           
         } catch (AccumuloException e) {
-          log.debug("Failed to scan !METADATA table to wait for flush " + tableId, e);
+          log.debug("Failed to scan " + Constants.METADATA_TABLE_NAME + " table to wait for flush " + tableId, e);
         } catch (TabletDeletedException tde) {
-          log.debug("Failed to scan !METADATA table to wait for flush " + tableId, tde);
+          log.debug("Failed to scan " + Constants.METADATA_TABLE_NAME + " table to wait for flush " + tableId, tde);
         } catch (AccumuloSecurityException e) {
           log.warn(e.getMessage(), e);
           throw new ThriftSecurityException();
@@ -667,7 +667,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           throw new Exception("Invalid table property.");
         }
       } catch (KeeperException.NoNodeException e) {
-        // race condition... table no longer exists?  This call will throw an exception if the table was deleted:
+        // race condition... table no longer exists? This call will throw an exception if the table was deleted:
         checkTableId(tableName, op);
         log.info("Error altering table property", e);
         throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.OTHER, "Problem altering table property");
@@ -2099,11 +2099,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     });
     
     TCredentials systemAuths = SecurityConstants.getSystemCredentials();
-    final TabletStateStore stores[] = {
-        new ZooTabletStateStore(new ZooStore(zroot)), 
-        new RootTabletStateStore(instance, systemAuths, this),
-        new MetaDataStateStore(instance, systemAuths, this)
-    };
+    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
+        new MetaDataStateStore(instance, systemAuths, this)};
     watchers.add(new TabletGroupWatcher(stores[2], null));
     watchers.add(new TabletGroupWatcher(stores[1], watchers.get(0)));
     watchers.add(new TabletGroupWatcher(stores[0], watchers.get(1)));
@@ -2168,7 +2165,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       if (acquiredLock || failedToAcquireLock) {
         Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
       }
-
+      
       acquiredLock = true;
       notifyAll();
     }
@@ -2180,7 +2177,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       if (acquiredLock) {
         Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock, -1);
       }
-
+      
       failedToAcquireLock = true;
       notifyAll();
     }
@@ -2193,10 +2190,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
   }
-
+  
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
     log.info("trying to get master lock");
-
+    
     final String masterClientAddress = org.apache.accumulo.core.util.AddressUtil.toString(new InetSocketAddress(hostname, getSystemConfiguration().getPort(
         Property.MASTER_CLIENTPORT)));
     
@@ -2205,7 +2202,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       MasterLockWatcher masterLockWatcher = new MasterLockWatcher();
       masterLock = new ZooLock(zMasterLoc);
       masterLock.lockAsync(masterLockWatcher, masterClientAddress.getBytes());
-
+      
       masterLockWatcher.waitForChange();
       
       if (masterLockWatcher.acquiredLock) {
@@ -2215,12 +2212,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       if (!masterLockWatcher.failedToAcquireLock) {
         throw new IllegalStateException("master lock in unknown state");
       }
-
+      
       masterLock.tryToCancelAsyncLockOrUnlock();
-
+      
       UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS);
     }
-
+    
     setMasterState(MasterState.HAVE_LOCK);
   }
   
@@ -2288,7 +2285,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     nextEvent.event("There are now %d tablet servers", current.size());
   }
-
+  
   private static void cleanListByHostAndPort(Collection<TServerInstance> badServers, Set<TServerInstance> deleted, Set<TServerInstance> added) {
     Iterator<TServerInstance> badIter = badServers.iterator();
     while (badIter.hasNext()) {
@@ -2307,7 +2304,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
   }
-
   
   @Override
   public void stateChanged(String tableId, TableState state) {
