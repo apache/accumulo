@@ -16,8 +16,11 @@
  */
 package org.apache.accumulo.core.security;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import java.nio.ByteBuffer;
 
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.Test;
@@ -56,5 +59,43 @@ public class AuthorizationsTest {
     
     assertEquals(a1, a2);
     assertEquals(a1.serialize(), a2.serialize());
+  }
+  
+  @Test
+  public void testDefensiveAccess() {
+    Authorizations expected = new Authorizations("foo", "a");
+    Authorizations actual = new Authorizations("foo", "a");
+    
+    // foo to goo; test defensive iterator
+    for (byte[] bytes : actual) {
+      bytes[0]++;
+    }
+    assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
+    
+    // test defensive getter and serializer
+    actual.getAuthorizations().get(0)[0]++;
+    assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
+    assertEquals(expected.serialize(), actual.serialize());
+  }
+  
+  // This should throw ReadOnlyBufferException, but THRIFT-883 requires that the ByteBuffers themselves not be read-only
+  // @Test(expected = ReadOnlyBufferException.class)
+  @Test
+  public void testReadOnlyByteBuffer() {
+    Authorizations expected = new Authorizations("foo");
+    Authorizations actual = new Authorizations("foo");
+    
+    assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
+    actual.getAuthorizationsBB().get(0).array()[0]++;
+    assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
+  }
+  
+  @Test(expected = UnsupportedOperationException.class)
+  public void testUnmodifiableList() {
+    Authorizations expected = new Authorizations("foo");
+    Authorizations actual = new Authorizations("foo");
+    
+    assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
+    actual.getAuthorizationsBB().add(ByteBuffer.wrap(new byte[] {'a'}));
   }
 }

@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.hadoop.io.Text;
@@ -39,6 +40,19 @@ public class ByteBufferUtil {
       result.add(ByteBuffer.wrap(bytes));
     }
     return result;
+  }
+  
+  /**
+   * Provides an immutable view of a list of byte buffers, representing the same bytes. This does not protect against modifying the underlying byte arrays.
+   */
+  public static List<ByteBuffer> toImmutableByteBufferList(Collection<byte[]> bytesList) {
+    if (bytesList == null)
+      return null;
+    ArrayList<ByteBuffer> result = new ArrayList<ByteBuffer>();
+    for (byte[] bytes : bytesList) {
+      result.add(ByteBuffer.wrap(bytes));
+    }
+    return Collections.unmodifiableList(result);
   }
   
   public static List<byte[]> toBytesList(Collection<ByteBuffer> bytesList) {

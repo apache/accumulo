@@ -40,7 +40,6 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   
   private Set<ByteSequence> auths = new HashSet<ByteSequence>();
   private List<byte[]> authsList = new ArrayList<byte[]>();
-  private List<byte[]> immutableList = Collections.unmodifiableList(authsList);
   
   private static final boolean[] validAuthChars = new boolean[256];
   
@@ -183,7 +182,13 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
    * @see #Authorizations(Collection)
    */
   public List<byte[]> getAuthorizations() {
-    return immutableList;
+    ArrayList<byte[]> copy = new ArrayList<byte[]>(authsList.size());
+    for (byte[] auth : authsList) {
+      byte[] bytes = new byte[auth.length];
+      System.arraycopy(auth, 0, bytes, 0, auth.length);
+      copy.add(bytes);
+    }
+    return Collections.unmodifiableList(copy);
   }
   
   /**
@@ -192,7 +197,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
    * @see #Authorizations(List)
    */
   public List<ByteBuffer> getAuthorizationsBB() {
-    return ByteBufferUtil.toByteBuffers(immutableList);
+    return ByteBufferUtil.toImmutableByteBufferList(getAuthorizations());
   }
   
   @Override
@@ -262,7 +267,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   
   @Override
   public Iterator<byte[]> iterator() {
-    return immutableList.iterator();
+    return getAuthorizations().iterator();
   }
   
   /**
@@ -271,7 +276,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   public String serialize() {
     StringBuilder sb = new StringBuilder(HEADER);
     String sep = "";
-    for (byte[] auth : immutableList) {
+    for (byte[] auth : authsList) {
       sb.append(sep);
       sep = ",";
       sb.append(new String(Base64.encodeBase64(auth), Constants.UTF8));
