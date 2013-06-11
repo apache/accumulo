@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.client.mock;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,8 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
-
-import junit.framework.Assert;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -48,6 +46,7 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class MockConnectorTest {
@@ -108,7 +107,7 @@ public class MockConnectorTest {
       Assert.fail("addMutations should throw IAE for null iterable");
     } catch (IllegalArgumentException iae) {}
 
-    bw.addMutations(Collections.EMPTY_LIST);
+    bw.addMutations(Collections.<Mutation>emptyList());
 
     Mutation bad = new Mutation("bad");
     try {
