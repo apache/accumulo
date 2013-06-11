@@ -20,8 +20,10 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
 
@@ -91,6 +93,43 @@ public class MockConnectorTest {
     assertFalse(c.securityOperations().getUserAuthorizations("greg").contains("A".getBytes()));
   }
   
+  @Test
+  public void testBadMutations() throws Exception {
+    Connector c = new MockConnector("root", new MockInstance());
+    c.tableOperations().create("test");
+    BatchWriter bw = c.createBatchWriter("test", 10000L, 1000L, 4);
+
+    try {
+      bw.addMutation(null);
+      Assert.fail("addMutation should throw IAE for null mutation");
+    } catch (IllegalArgumentException iae) {}
+    try {
+      bw.addMutations(null);
+      Assert.fail("addMutations should throw IAE for null iterable");
+    } catch (IllegalArgumentException iae) {}
+
+    bw.addMutations(Collections.EMPTY_LIST);
+
+    Mutation bad = new Mutation("bad");
+    try {
+      bw.addMutation(bad);
+      Assert.fail("addMutation should throw IAE for empty mutation");
+    } catch (IllegalArgumentException iae) {}
+
+
+    Mutation good = new Mutation("good");
+    good.put(asText(random.nextInt()), asText(random.nextInt()), new Value("good".getBytes()));
+    List<Mutation> mutations = new ArrayList<Mutation>();
+    mutations.add(good);
+    mutations.add(bad);
+    try {
+      bw.addMutations(mutations);
+      Assert.fail("addMutations should throw IAE if it contains empty mutation");
+    } catch (IllegalArgumentException iae) {}
+
+    bw.close();
+  }
+
   @Test
   public void testAggregation() throws Exception {
     MockInstance mockInstance = new MockInstance();

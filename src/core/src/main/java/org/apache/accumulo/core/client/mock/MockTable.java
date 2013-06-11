@@ -97,6 +97,8 @@ public class MockTable {
   }
   
   synchronized void addMutation(Mutation m) {
+    if (m.size() == 0)
+      throw new IllegalArgumentException("Can not add empty mutations");
     long now = System.currentTimeMillis();
     mutationCount++;
     for (ColumnUpdate u : m.getUpdates()) {
