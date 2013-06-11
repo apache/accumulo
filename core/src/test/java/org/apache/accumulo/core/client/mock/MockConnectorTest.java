@@ -20,9 +20,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
@@ -46,6 +49,7 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class MockConnectorTest {
@@ -93,6 +97,43 @@ public class MockConnectorTest {
     assertFalse(c.securityOperations().getUserAuthorizations("greg").contains("A".getBytes()));
   }
   
+  @Test
+  public void testBadMutations() throws Exception {
+    Connector c = new MockConnector("root", new MockInstance());
+    c.tableOperations().create("test");
+    BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(10000L).setMaxLatency(1000L, TimeUnit.MILLISECONDS).setMaxWriteThreads(4));
+
+    try {
+      bw.addMutation(null);
+      Assert.fail("addMutation should throw IAE for null mutation");
+    } catch (IllegalArgumentException iae) {}
+    try {
+      bw.addMutations(null);
+      Assert.fail("addMutations should throw IAE for null iterable");
+    } catch (IllegalArgumentException iae) {}
+
+    bw.addMutations(Collections.<Mutation>emptyList());
+
+    Mutation bad = new Mutation("bad");
+    try {
+      bw.addMutation(bad);
+      Assert.fail("addMutation should throw IAE for empty mutation");
+    } catch (IllegalArgumentException iae) {}
+
+
+    Mutation good = new Mutation("good");
+    good.put(asText(random.nextInt()), asText(random.nextInt()), new Value("good".getBytes()));
+    List<Mutation> mutations = new ArrayList<Mutation>();
+    mutations.add(good);
+    mutations.add(bad);
+    try {
+      bw.addMutations(mutations);
+      Assert.fail("addMutations should throw IAE if it contains empty mutation");
+    } catch (IllegalArgumentException iae) {}
+
+    bw.close();
+  }
+
   @Test
   public void testAggregation() throws Exception {
     MockInstance mockInstance = new MockInstance();

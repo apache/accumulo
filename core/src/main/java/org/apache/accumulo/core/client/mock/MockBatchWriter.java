@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mock;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.util.ArgumentChecker;
 
 public class MockBatchWriter implements BatchWriter {
   
@@ -32,11 +33,13 @@ public class MockBatchWriter implements BatchWriter {
   
   @Override
   public void addMutation(Mutation m) throws MutationsRejectedException {
+    ArgumentChecker.notNull(m);
     acu.addMutation(tablename, m);
   }
   
   @Override
   public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
+    ArgumentChecker.notNull(iterable);
     for (Mutation m : iterable) {
       acu.addMutation(tablename, m);
     }
