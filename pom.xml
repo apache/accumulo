@@ -95,7 +95,7 @@
   </issueManagement>
   <ciManagement>
     <system>Apache Jenkins</system>
-    <url>https://builds.apache.org/view/A-F/view/Accumulo/</url>
+    <url>https://builds.apache.org/view/A-D/view/Accumulo/</url>
   </ciManagement>
   <distributionManagement>
     <site>
