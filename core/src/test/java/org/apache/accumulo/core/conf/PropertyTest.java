@@ -22,6 +22,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.junit.Test;
 
@@ -98,7 +102,8 @@ public class PropertyTest {
     typeCheckValidFormat(PropertyType.ABSOLUTEPATH, "/foo", "/foo/c", "/");
     // in hadoop 2.0 Path only normalizes Windows paths properly when run on a Windows system
     // this makes the following checks fail
-    // typeCheckValidFormat(PropertyType.ABSOLUTEPATH, "d:\\foo12", "c:\\foo\\g", "c:\\foo\\c", "c:\\");
+    if (System.getProperty("os.name").toLowerCase().contains("windows"))
+      typeCheckValidFormat(PropertyType.ABSOLUTEPATH, "d:\\foo12", "c:\\foo\\g", "c:\\foo\\c", "c:\\");
     typeCheckInvalidFormat(PropertyType.ABSOLUTEPATH, "foo12", "foo/g", "foo\\c");
   }
   
@@ -108,5 +113,51 @@ public class PropertyTest {
     assertEquals("${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}", Property.VFS_CLASSLOADER_CACHE_DIR.getRawDefaultValue());
     assertEquals(new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name")).getAbsolutePath(),
         conf.get(Property.VFS_CLASSLOADER_CACHE_DIR));
+  }
+  
+  @Test
+  public void testSensitiveKeys() {
+    final TreeMap<String,String> extras = new TreeMap<String,String>();
+    extras.put("trace.token.property.blah", "something");
+    
+    AccumuloConfiguration conf = new DefaultConfiguration() {
+      @Override
+      public Iterator<Entry<String,String>> iterator() {
+        final Iterator<Entry<String,String>> parent = super.iterator();
+        final Iterator<Entry<String,String>> mine = extras.entrySet().iterator();
+        
+        return new Iterator<Entry<String,String>>() {
+          
+          @Override
+          public boolean hasNext() {
+            return parent.hasNext() || mine.hasNext();
+          }
+          
+          @Override
+          public Entry<String,String> next() {
+            return parent.hasNext() ? parent.next() : mine.next();
+          }
+          
+          @Override
+          public void remove() {
+            throw new UnsupportedOperationException();
+          }
+        };
+      }
+    };
+    TreeSet<String> expected = new TreeSet<String>();
+    for (Entry<String,String> entry : conf) {
+      String key = entry.getKey();
+      if (key.equals(Property.INSTANCE_SECRET.getKey()) || key.toLowerCase().contains("password") || key.toLowerCase().contains("secret")
+          || key.startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey()))
+        expected.add(key);
+    }
+    TreeSet<String> actual = new TreeSet<String>();
+    for (Entry<String,String> entry : conf) {
+      String key = entry.getKey();
+      if (Property.isSensitive(key))
+        actual.add(key);
+    }
+    assertEquals(expected, actual);
   }
 }

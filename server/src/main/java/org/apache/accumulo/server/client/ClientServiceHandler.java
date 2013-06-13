@@ -197,19 +197,15 @@ public class ClientServiceHandler implements ClientService.Iface {
     return security.listUsers(credentials);
   }
   
-  static private Map<String,String> conf(TCredentials credentials, AccumuloConfiguration conf) throws TException {
+  private static Map<String,String> conf(TCredentials credentials, AccumuloConfiguration conf) throws TException {
     security.authenticateUser(credentials, credentials);
     conf.invalidateCache();
     
     Map<String,String> result = new HashMap<String,String>();
     for (Entry<String,String> entry : conf) {
-      if (entry.getKey().equals(Property.INSTANCE_SECRET.getKey()))
-        continue;
-      if (entry.getKey().toLowerCase().contains("password"))
-        continue;
-      if (entry.getKey().startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey()))
-        continue;
-      result.put(entry.getKey(), entry.getValue());
+      String key = entry.getKey();
+      if (!Property.isSensitive(key))
+        result.put(key, entry.getValue());
     }
     return result;
   }
@@ -293,7 +289,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     security.authenticateUser(credentials, credentials);
     
     String tableId = checkTableId(tableName, null);
-
+    
     ClassLoader loader = getClass().getClassLoader();
     Class shouldMatch;
     try {

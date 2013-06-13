@@ -53,10 +53,6 @@ public class TableConfiguration extends AccumuloConfiguration {
     this.observers = Collections.synchronizedSet(new HashSet<ConfigurationObserver>());
   }
   
-  /**
-   * @deprecated not for client use
-   */
-  @Deprecated
   private static ZooCache getTablePropCache() {
     Instance inst = HdfsZooInstance.getInstance();
     if (tablePropCache == null)
@@ -104,6 +100,7 @@ public class TableConfiguration extends AccumuloConfiguration {
       co.propertiesChanged();
   }
   
+  @Override
   public String get(Property property) {
     String key = property.getKey();
     String value = get(key);

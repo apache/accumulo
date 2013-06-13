@@ -107,18 +107,16 @@ public class Accumulo {
     }
     // Turn off messages about not being able to reach the remote logger... we protect against that.
     LogLog.setQuietMode(true);
-
-      // Configure logging
+    
+    // Configure logging
     DOMConfigurator.configureAndWatch(logConfig, 5000);
-
+    
     // Read the auditing config
     String auditConfig = String.format("%s/conf/auditLog.xml", System.getenv("ACCUMULO_HOME"), application);
-
-     DOMConfigurator.configureAndWatch(auditConfig, 5000);
-
-
-
-      log.info(application + " starting");
+    
+    DOMConfigurator.configureAndWatch(auditConfig, 5000);
+    
+    log.info(application + " starting");
     log.info("Instance " + config.getInstance().getInstanceID());
     int dataVersion = Accumulo.getAccumuloPersistentVersion(fs);
     log.info("Data Version " + dataVersion);
@@ -134,11 +132,8 @@ public class Accumulo {
       sortedProps.put(entry.getKey(), entry.getValue());
     
     for (Entry<String,String> entry : sortedProps.entrySet()) {
-      if (entry.getKey().toLowerCase().contains("password") || entry.getKey().toLowerCase().contains("secret")
-          || entry.getKey().startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey()))
-        log.info(entry.getKey() + " = <hidden>");
-      else
-        log.info(entry.getKey() + " = " + entry.getValue());
+      String key = entry.getKey();
+      log.info(key + " = " + (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
     }
     
     monitorSwappiness();
@@ -221,7 +216,7 @@ public class Accumulo {
   private static boolean isInSafeMode(FileSystem fs) throws IOException {
     if (!(fs instanceof DistributedFileSystem))
       return false;
-    DistributedFileSystem dfs = (DistributedFileSystem)fs;
+    DistributedFileSystem dfs = (DistributedFileSystem) fs;
     // So this: if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
     // Becomes this:
     Class<?> safeModeAction;
