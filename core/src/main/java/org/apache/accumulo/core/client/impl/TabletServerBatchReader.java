@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.data.Key;
@@ -45,7 +44,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   private ArrayList<Range> ranges;
   
   private TCredentials credentials;
-  private Authorizations authorizations = Constants.NO_AUTHS;
+  private Authorizations authorizations = Authorizations.EMPTY;
   
   private static int nextBatchReaderInstance = 1;
   

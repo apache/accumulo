@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 public class CloneTest extends TestCase {
@@ -100,7 +101,7 @@ public class CloneTest extends TestCase {
     
     assertEquals(0, rc);
     
-    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
     
     HashSet<String> files = new HashSet<String>();
@@ -139,7 +140,7 @@ public class CloneTest extends TestCase {
     
     assertEquals(0, rc);
     
-    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
     
     HashSet<String> files = new HashSet<String>();
@@ -187,7 +188,7 @@ public class CloneTest extends TestCase {
     
     assertEquals(0, rc);
     
-    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
     
     HashSet<String> files = new HashSet<String>();
@@ -255,7 +256,7 @@ public class CloneTest extends TestCase {
     
     assertEquals(0, rc);
     
-    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
     
     HashSet<String> files = new HashSet<String>();
@@ -319,7 +320,7 @@ public class CloneTest extends TestCase {
     
     assertEquals(0, rc);
     
-    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
     
     HashSet<String> files = new HashSet<String>();

@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 public class CreateAndUseTest extends FunctionalTest {
@@ -79,7 +79,7 @@ public class CreateAndUseTest extends FunctionalTest {
     bw.close();
     
     // verify data is there
-    Scanner scanner1 = getConnector().createScanner("t1", Constants.NO_AUTHS);
+    Scanner scanner1 = getConnector().createScanner("t1", Authorizations.EMPTY);
     
     int ei = 1;
     
@@ -102,7 +102,7 @@ public class CreateAndUseTest extends FunctionalTest {
     // TEST 2 create a table and immediately scan it
     getConnector().tableOperations().create("t2");
     getConnector().tableOperations().addSplits("t2", splits);
-    Scanner scanner2 = getConnector().createScanner("t2", Constants.NO_AUTHS);
+    Scanner scanner2 = getConnector().createScanner("t2", Authorizations.EMPTY);
     int count = 0;
     for (Entry<Key,Value> entry : scanner2) {
       if (entry != null)
@@ -122,7 +122,7 @@ public class CreateAndUseTest extends FunctionalTest {
     
     getConnector().tableOperations().create("t3");
     getConnector().tableOperations().addSplits("t3", splits);
-    BatchScanner bs = getConnector().createBatchScanner("t3", Constants.NO_AUTHS, 3);
+    BatchScanner bs = getConnector().createBatchScanner("t3", Authorizations.EMPTY, 3);
     bs.setRanges(ranges);
     count = 0;
     for (Entry<Key,Value> entry : bs) {

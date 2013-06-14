@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 
 /**
@@ -56,7 +56,7 @@ public class TimeoutTest extends FunctionalTest {
     testBatchScannerTimeout();
     testBatchWriterTimeout();
   }
-
+  
   public void testBatchWriterTimeout() throws Exception {
     Connector conn = getConnector();
     
@@ -98,7 +98,7 @@ public class TimeoutTest extends FunctionalTest {
     
     bw.close();
     
-    BatchScanner bs = getConnector().createBatchScanner("timeout", Constants.NO_AUTHS, 2);
+    BatchScanner bs = getConnector().createBatchScanner("timeout", Authorizations.EMPTY, 2);
     bs.setTimeout(1, TimeUnit.SECONDS);
     bs.setRanges(Collections.singletonList(new Range()));
     
@@ -111,7 +111,7 @@ public class TimeoutTest extends FunctionalTest {
     iterSetting.addOption("sleepTime", 2000 + "");
     getConnector().tableOperations().attachIterator("timeout", iterSetting);
     UtilWaitThread.sleep(250);
-
+    
     try {
       for (Entry<Key,Value> entry : bs) {
         entry.getKey();
@@ -120,7 +120,7 @@ public class TimeoutTest extends FunctionalTest {
     } catch (TimedOutException toe) {
       // toe.printStackTrace();
     }
-
+    
     bs.close();
   }
   

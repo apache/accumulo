@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -35,6 +34,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 public class BloomFilterTest extends FunctionalTest {
@@ -75,7 +75,7 @@ public class BloomFilterTest extends FunctionalTest {
     bw.close();
     getConnector().tableOperations().flush("bt4", null, null, true);
     
-    for (String table : new String[]{"bt1", "bt2", "bt3"}) {
+    for (String table : new String[] {"bt1", "bt2", "bt3"}) {
       getConnector().tableOperations().setProperty(table, Property.TABLE_INDEXCACHE_ENABLED.getKey(), "false");
       getConnector().tableOperations().setProperty(table, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "false");
       getConnector().tableOperations().flush(table, null, null, true);
@@ -122,7 +122,7 @@ public class BloomFilterTest extends FunctionalTest {
     timeCheck(t3, tb3);
     
     // test querying for empty key
-    Scanner scanner = getConnector().createScanner("bt4", Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner("bt4", Authorizations.EMPTY);
     scanner.setRange(new Range(new Text("")));
     
     if (!scanner.iterator().next().getValue().toString().equals("foo1")) {
@@ -172,7 +172,7 @@ public class BloomFilterTest extends FunctionalTest {
       ranges.add(range);
     }
     
-    BatchScanner bs = getConnector().createBatchScanner(table, Constants.NO_AUTHS, 3);
+    BatchScanner bs = getConnector().createBatchScanner(table, Authorizations.EMPTY, 3);
     bs.setRanges(ranges);
     
     long t1 = System.currentTimeMillis();

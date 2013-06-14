@@ -53,11 +53,11 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-//import org.apache.hadoop.fs.CreateFlag;
-//import org.apache.hadoop.fs.Syncable;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
+//import org.apache.hadoop.fs.CreateFlag;
+//import org.apache.hadoop.fs.Syncable;
 
 /**
  * Wrap a connection to a logger.
@@ -180,11 +180,6 @@ public class DfsLogger {
     }
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.tabletserver.log.IRemoteLogger#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     // filename is unique
@@ -195,11 +190,6 @@ public class DfsLogger {
     return false;
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.tabletserver.log.IRemoteLogger#hashCode()
-   */
   @Override
   public int hashCode() {
     // filename is unique
@@ -282,14 +272,12 @@ public class DfsLogger {
           // hsync: send data to datanodes and sync the data to disk
           sync = logFile.getClass().getMethod("hsync");
           e = null;
-        } catch (NoSuchMethodException ex) {
-        }
+        } catch (NoSuchMethodException ex) {}
         if (e != null)
           throw new RuntimeException(e);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      
       
       // Initialize the crypto operations.
       @SuppressWarnings("deprecation")
@@ -338,20 +326,20 @@ public class DfsLogger {
   
   private FSDataOutputStream create(FileSystem fs, Path logPath, boolean b, int buffersize, short replication, long blockSize) throws IOException {
     try {
-      // This... 
-      //    EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
-      //    return fs.create(logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
+      // This...
+      // EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
+      // return fs.create(logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
       // Becomes this:
       Class<?> createFlags = Class.forName("org.apache.hadoop.fs.CreateFlag");
       List<Enum<?>> flags = new ArrayList<Enum<?>>();
       if (createFlags.isEnum()) {
         for (Object constant : createFlags.getEnumConstants()) {
           if (constant.toString().equals("SYNC_BLOCK")) {
-            flags.add((Enum<?>)constant);
+            flags.add((Enum<?>) constant);
             log.debug("Found synch enum " + constant);
           }
           if (constant.toString().equals("CREATE")) {
-            flags.add((Enum<?>)constant);
+            flags.add((Enum<?>) constant);
             log.debug("Found CREATE enum " + constant);
           }
         }
@@ -359,11 +347,11 @@ public class DfsLogger {
       Object set = EnumSet.class.getMethod("of", java.lang.Enum.class, java.lang.Enum.class).invoke(null, flags.get(0), flags.get(1));
       log.debug("CreateFlag set: " + set);
       if (fs instanceof TraceFileSystem) {
-        fs = ((TraceFileSystem)fs).getImplementation();
+        fs = ((TraceFileSystem) fs).getImplementation();
       }
       Method create = fs.getClass().getMethod("create", Path.class, FsPermission.class, EnumSet.class, Integer.TYPE, Short.TYPE, Long.TYPE, Progressable.class);
       log.debug("creating " + logPath + " with SYNCH_BLOCK flag");
-      return (FSDataOutputStream)create.invoke(fs, logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
+      return (FSDataOutputStream) create.invoke(fs, logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
     } catch (ClassNotFoundException ex) {
       // Expected in hadoop 1.0
       return fs.create(logPath, b, buffersize, replication, blockSize);
@@ -372,12 +360,7 @@ public class DfsLogger {
       return fs.create(logPath, b, buffersize, replication, blockSize);
     }
   }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.tabletserver.log.IRemoteLogger#toString()
-   */
+  
   @Override
   public String toString() {
     return getLogger() + "/" + getFileName();

@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -75,7 +76,7 @@ public class ShellServerTest {
       sb.setLength(0);
     }
   }
-
+  
   public static class StringInputStream extends InputStream {
     private String source = "";
     private int offset = 0;
@@ -152,9 +153,9 @@ public class ShellServerTest {
     MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
-
+    
     System.setProperty("HOME", folder.getRoot().getAbsolutePath());
-
+    
     // start the shell
     output = new TestOutputStream();
     input = new StringInputStream();
@@ -173,14 +174,14 @@ public class ShellServerTest {
     // give the tracer some time to start
     UtilWaitThread.sleep(1000);
   }
-
+  
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
     traceProcess.destroy();
     folder.delete();
   }
-
+  
   @Test(timeout = 30000)
   public void exporttableImporttable() throws Exception {
     // exporttable / importtable
@@ -249,7 +250,7 @@ public class ShellServerTest {
     exec("execfile " + file.getAbsolutePath(), true, Constants.VERSION, true);
     
   }
-
+  
   @Test(timeout = 30000)
   public void egrep() throws Exception {
     // egrep
@@ -307,7 +308,7 @@ public class ShellServerTest {
     exec("scan", true, "row1", true);
     exec("droptable -f t", true);
     exec("deleteuser xyzzy", false, "delete yourself", true);
-    input.set(secret+"\n"+secret+"\n");
+    input.set(secret + "\n" + secret + "\n");
     exec("user root", true);
     exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
     exec("revoke -u xyzzy -s System.GOOFY", false);
@@ -537,7 +538,8 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
   }
   
-  @Test//(timeout = 30000)
+  @Test
+  // (timeout = 30000)
   public void help() throws Exception {
     exec("help -np", true, "Help Commands", true);
     exec("?", true, "Help Commands", true);
@@ -698,11 +700,12 @@ public class ShellServerTest {
     exec("insert c cf cq value", true);
     exec("insert d cf cq value", true);
     Thread thread = new Thread() {
+      @Override
       public void run() {
         try {
           ZooKeeperInstance instance = new ZooKeeperInstance(cluster.getConfig().getInstanceName(), cluster.getConfig().getZooKeepers());
           Connector connector = instance.getConnector("root", new PasswordToken(secret));
-          Scanner s = connector.createScanner("t", Constants.NO_AUTHS);
+          Scanner s = connector.createScanner("t", Authorizations.EMPTY);
           for (@SuppressWarnings("unused")
           Entry<Key,Value> kv : s)
             ;

@@ -18,13 +18,13 @@ package org.apache.accumulo.test.randomwalk.multitable;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -57,7 +57,7 @@ public class CopyTool extends Configured implements Tool {
     job.setInputFormatClass(AccumuloInputFormat.class);
     AccumuloInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     AccumuloInputFormat.setInputTableName(job, args[2]);
-    AccumuloInputFormat.setScanAuthorizations(job, Constants.NO_AUTHS);
+    AccumuloInputFormat.setScanAuthorizations(job, Authorizations.EMPTY);
     AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
     
     job.setMapperClass(SeqMapClass.class);

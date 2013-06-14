@@ -16,10 +16,8 @@
  */
 package org.apache.accumulo.examples.simple.client;
 
-import java.io.IOException;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -35,6 +33,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -166,7 +165,8 @@ public class RowOperations {
   
   /**
    * Deletes a row given a text object
-   * @param opts 
+   * 
+   * @param opts
    * 
    * @param row
    * @throws TableNotFoundException
@@ -209,18 +209,10 @@ public class RowOperations {
   
   /**
    * Gets a scanner over one row
-   * @param opts 
-   * 
-   * @param row
-   * @return
-   * @throws TableNotFoundException
-   * @throws AccumuloSecurityException
-   * @throws AccumuloException
-   * @throws IOException
    */
   private static Scanner getRow(ClientOpts opts, ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // Create a scanner
-    Scanner scanner = connector.createScanner(table, Constants.NO_AUTHS);
+    Scanner scanner = connector.createScanner(table, Authorizations.EMPTY);
     scanner.setBatchSize(scanOpts.scanBatchSize);
     // Say start key is the one with key of row
     // and end key is the one that immediately follows the row

@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
@@ -32,6 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.io.Text;
@@ -97,7 +97,7 @@ public class LargeRowTest extends FunctionalTest {
     
     UtilWaitThread.sleep(12000);
     Logger.getLogger(LargeRowTest.class).warn("checking splits");
-    checkSplits(REG_TABLE_NAME, NUM_PRE_SPLITS/2, NUM_PRE_SPLITS * 2);
+    checkSplits(REG_TABLE_NAME, NUM_PRE_SPLITS / 2, NUM_PRE_SPLITS * 2);
     
     verify(REG_TABLE_NAME);
   }
@@ -153,7 +153,7 @@ public class LargeRowTest extends FunctionalTest {
     
     r.setSeed(SEED);
     
-    Scanner scanner = getConnector().createScanner(table, Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
     
     for (int i = 0; i < NUM_ROWS; i++) {
       

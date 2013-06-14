@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -52,7 +52,7 @@ public class Grep extends Test {
       words[i] = new Text(Insert.generateRandomWord(rand));
     }
     
-    BatchScanner bs = state.getConnector().createBatchScanner(indexTableName, Constants.NO_AUTHS, 16);
+    BatchScanner bs = state.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY, 16);
     IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class.getName());
     IntersectingIterator.setColumnFamilies(ii, words);
     bs.addScanIterator(ii);
@@ -66,7 +66,7 @@ public class Grep extends Test {
     
     bs.close();
     
-    bs = state.getConnector().createBatchScanner(dataTableName, Constants.NO_AUTHS, 16);
+    bs = state.getConnector().createBatchScanner(dataTableName, Authorizations.EMPTY, 16);
     
     for (int i = 0; i < words.length; i++) {
       IteratorSetting more = new IteratorSetting(20 + i, "ii" + i, RegExFilter.class);

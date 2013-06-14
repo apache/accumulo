@@ -35,8 +35,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import org.apache.accumulo.trace.instrument.TraceExecutorService;
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -56,6 +54,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -71,6 +70,8 @@ import org.apache.accumulo.server.tabletserver.UniqueNameAllocator;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
+import org.apache.accumulo.trace.instrument.TraceExecutorService;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -80,7 +81,6 @@ import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
-
 
 /*
  * Bulk import makes requests of tablet servers, and those requests can take a
@@ -104,7 +104,7 @@ import org.apache.thrift.TException;
 
 public class BulkImport extends MasterRepo {
   public static final String FAILURES_TXT = "failures.txt";
-
+  
   private static final long serialVersionUID = 1L;
   
   private static final Logger log = Logger.getLogger(BulkImport.class);
@@ -147,7 +147,7 @@ public class BulkImport extends MasterRepo {
     
     // check that the error directory exists and is empty
     FileSystem fs = master.getFileSystem();
-
+    
     Path errorPath = new Path(errorDir);
     FileStatus errorStatus = null;
     try {
@@ -334,7 +334,7 @@ class CompleteBulkImport extends MasterRepo {
 class CopyFailed extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
-
+  
   private String tableId;
   private String source;
   private String bulk;
@@ -367,10 +367,10 @@ class CopyFailed extends MasterRepo {
   
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-	//This needs to execute after the arbiter is stopped  
-	  
+    // This needs to execute after the arbiter is stopped
+    
     FileSystem fs = master.getFileSystem();
-	  
+    
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
     
@@ -394,10 +394,10 @@ class CopyFailed extends MasterRepo {
      * I thought I could move files that have no file references in the table. However its possible a clone references a file. Therefore only move files that
      * have no loaded markers.
      */
-
+    
     // determine which failed files were loaded
     Connector conn = master.getConnector();
-    Scanner mscanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+    Scanner mscanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY));
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
     mscanner.fetchColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY);
     
@@ -439,7 +439,7 @@ class CopyFailed extends MasterRepo {
       
       bifCopyQueue.waitUntilDone(workIds);
     }
-
+    
     fs.delete(new Path(error, BulkImport.FAILURES_TXT), true);
     return new CleanUpBulkImport(tableId, source, bulk, error);
   }
@@ -452,7 +452,7 @@ class LoadFiles extends MasterRepo {
   
   private static ExecutorService threadPool = null;
   static {
-
+    
   }
   private static final Logger log = Logger.getLogger(BulkImport.class);
   
@@ -485,7 +485,7 @@ class LoadFiles extends MasterRepo {
       threadPool = new TraceExecutorService(pool);
     }
   }
-
+  
   @Override
   public Repo<Master> call(final long tid, final Master master) throws Exception {
     initializeThreadPool(master);
@@ -496,7 +496,7 @@ class LoadFiles extends MasterRepo {
       files.add(entry);
     }
     log.debug("tid " + tid + " importing " + files.size() + " files");
-
+    
     Path writable = new Path(this.errorDir, ".iswritable");
     if (!fs.createNewFile(writable)) {
       // Maybe this is a re-try... clear the flag and try again
@@ -576,7 +576,7 @@ class LoadFiles extends MasterRepo {
     } finally {
       out.close();
     }
-
+    
     // return the next step, which will perform cleanup
     return new CompleteBulkImport(tableId, source, bulk, errorDir);
   }
@@ -600,5 +600,5 @@ class LoadFiles extends MasterRepo {
     result.append("]");
     return result.toString();
   }
-
+  
 }

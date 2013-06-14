@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
@@ -53,7 +54,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
     try {
       Connector connector = instance.getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths));
-      mdScanner = connector.createBatchScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 8);
+      mdScanner = connector.createBatchScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY, 8);
       configureScanner(mdScanner, state);
       mdScanner.setRanges(Collections.singletonList(range));
       iter = mdScanner.iterator();
@@ -62,7 +63,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       throw new RuntimeException(ex);
     }
   }
-
+  
   static public void configureScanner(ScannerBase scanner, CurrentState state) {
     Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
@@ -90,6 +91,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     }
   }
   
+  @Override
   public void finalize() {
     close();
   }
@@ -114,7 +116,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       log.error(ex, ex);
       mdScanner.close();
       return null;
-    } 
+    }
   }
   
   public static TabletLocationState createTabletLocationState(Key k, Value v) throws IOException, BadLocationStateException {
@@ -174,7 +176,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       throw new RuntimeException(ex);
     } catch (BadLocationStateException ex) {
       throw new RuntimeException(ex);
-    } 
+    }
   }
   
   @Override

@@ -22,7 +22,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -48,7 +48,7 @@ public class ScanTable extends Test {
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
     try {
-      Scanner scanner = conn.createScanner(tableName, Constants.NO_AUTHS);
+      Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
       while (iter.hasNext()) {
         iter.next();

@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
@@ -170,7 +171,7 @@ public class MergeStats {
   
   private boolean verifyMergeConsistency(Connector connector, CurrentState master) throws TableNotFoundException, IOException {
     MergeStats verify = new MergeStats(info);
-    Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
     KeyExtent extent = info.getRange();
     Text start = extent.getPrevEndRow();

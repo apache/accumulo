@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.hadoop.conf.Configuration;
@@ -87,7 +87,7 @@ public class BulkFileTest extends FunctionalTest {
   }
   
   private void verifyData(String table, int s, int e) throws Exception {
-    Scanner scanner = getConnector().createScanner(table, Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
     
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
     

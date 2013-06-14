@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -70,7 +71,7 @@ public class TestAccumuloSplitRecovery {
   
   boolean isOffline(String tablename, Connector connector) throws TableNotFoundException {
     String tableId = connector.tableOperations().tableIdMap().get(tablename);
-    Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     for (@SuppressWarnings("unused")
@@ -115,7 +116,7 @@ public class TestAccumuloSplitRecovery {
         
         bw.flush();
         
-        Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
         scanner.setRange(extent.toMetadataRange());
         scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
         
@@ -136,7 +137,7 @@ public class TestAccumuloSplitRecovery {
       connector.tableOperations().online(TABLE);
       
       // verify the tablets went online
-      Scanner scanner = connector.createScanner(TABLE, Constants.NO_AUTHS);
+      Scanner scanner = connector.createScanner(TABLE, Authorizations.EMPTY);
       int i = 0;
       String expected[] = {"a", "b", "c"};
       for (Entry<Key,Value> entry : scanner) {

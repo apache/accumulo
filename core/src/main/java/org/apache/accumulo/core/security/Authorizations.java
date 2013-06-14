@@ -41,6 +41,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   private Set<ByteSequence> auths = new HashSet<ByteSequence>();
   private List<byte[]> authsList = new ArrayList<byte[]>();
   
+  public static final Authorizations EMPTY = new Authorizations();
+  
   private static final boolean[] validAuthChars = new boolean[256];
   
   public static final String HEADER = "!AUTH1:";

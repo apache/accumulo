@@ -32,6 +32,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -61,6 +62,7 @@ public class Merge {
       return AccumuloConfiguration.getMemoryInBytes(value);
     }
   }
+  
   static class TextConverter implements IStringConverter<Text> {
     @Override
     public Text convert(String value) {
@@ -69,13 +71,13 @@ public class Merge {
   }
   
   static class Opts extends ClientOnRequiredTable {
-    @Parameter(names={"-s", "--size"}, description="merge goal size", converter=MemoryConverter.class)
+    @Parameter(names = {"-s", "--size"}, description = "merge goal size", converter = MemoryConverter.class)
     Long goalSize = null;
-    @Parameter(names={"-f", "--force"}, description="merge small tablets even if merging them to larger tablets might cause a split")
+    @Parameter(names = {"-f", "--force"}, description = "merge small tablets even if merging them to larger tablets might cause a split")
     boolean force = false;
-    @Parameter(names={"-b", "--begin"}, description="start tablet", converter=TextConverter.class)
+    @Parameter(names = {"-b", "--begin"}, description = "start tablet", converter = TextConverter.class)
     Text begin = null;
-    @Parameter(names={"-e", "--end"}, description="end tablet", converter=TextConverter.class)
+    @Parameter(names = {"-e", "--end"}, description = "end tablet", converter = TextConverter.class)
     Text end = null;
   }
   
@@ -210,7 +212,7 @@ public class Merge {
     Scanner scanner;
     try {
       tableId = Tables.getTableId(conn.getInstance(), tablename);
-      scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+      scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     } catch (Exception e) {
       throw new MergeException(e);
     }

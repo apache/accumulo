@@ -105,6 +105,7 @@ public class SecurityOperation {
    * 
    * @deprecated not for client use
    */
+  @Deprecated
   public SecurityOperation(String instanceId) {
     ZKUserPath = Constants.ZROOT + "/" + instanceId + "/users";
     zooCache = new ZooCache();
@@ -209,7 +210,7 @@ public class SecurityOperation {
     
     // system user doesn't need record-level authorizations for the tables it reads (for now)
     if (user.equals(SecurityConstants.SYSTEM_PRINCIPAL))
-      return Constants.NO_AUTHS;
+      return Authorizations.EMPTY;
     
     try {
       return authorizor.getCachedUserAuthorizations(user);
@@ -293,11 +294,13 @@ public class SecurityOperation {
     return hasTablePermission(credentials.getPrincipal(), table, TablePermission.READ, true);
   }
   
-  public boolean canScan(TCredentials credentials, String table, TRange range, List<TColumn> columns, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+  public boolean canScan(TCredentials credentials, String table, TRange range, List<TColumn> columns, List<IterInfo> ssiList,
+      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations) throws ThriftSecurityException {
     return canScan(credentials, table);
   }
   
-  public boolean canScan(TCredentials credentials, String table, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+  public boolean canScan(TCredentials credentials, String table, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
+      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations) throws ThriftSecurityException {
     return canScan(credentials, table);
   }
   

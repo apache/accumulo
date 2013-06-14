@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -50,7 +50,7 @@ public class BatchScan extends Test {
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
     try {
-      BatchScanner bs = conn.createBatchScanner(tableName, Constants.NO_AUTHS, 3);
+      BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 3);
       List<Range> ranges = new ArrayList<Range>();
       for (int i = 0; i < rand.nextInt(2000) + 1; i++)
         ranges.add(new Range(String.format("%016x", (rand.nextLong() & 0x7fffffffffffffffl))));

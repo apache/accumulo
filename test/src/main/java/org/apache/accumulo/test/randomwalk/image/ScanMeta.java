@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Properties;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -79,7 +78,7 @@ public class ScanMeta extends Test {
     log.debug("Found " + hashes.size() + " hashes starting at " + uuid);
     
     // use batch scanner to verify all of these exist in index
-    BatchScanner indexScanner = conn.createBatchScanner(indexTableName, Constants.NO_AUTHS, 3);
+    BatchScanner indexScanner = conn.createBatchScanner(indexTableName, Authorizations.EMPTY, 3);
     ArrayList<Range> ranges = new ArrayList<Range>();
     for (Text row : hashes.keySet()) {
       ranges.add(new Range(row));

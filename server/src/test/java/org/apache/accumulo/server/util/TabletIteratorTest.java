@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
 
@@ -42,13 +43,13 @@ public class TabletIteratorTest extends TestCase {
     private Connector conn;
     
     public TestTabletIterator(Connector conn) throws Exception {
-      super(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS), Constants.METADATA_KEYSPACE, true, true);
+      super(conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY), Constants.METADATA_KEYSPACE, true, true);
       this.conn = conn;
     }
     
     protected void resetScanner() {
       try {
-        Scanner ds = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        Scanner ds = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
         Text tablet = new KeyExtent(new Text("0"), new Text("m"), null).getMetadataEntry();
         ds.setRange(new Range(tablet, true, tablet, true));
         

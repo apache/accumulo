@@ -25,6 +25,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -35,15 +36,12 @@ public class CheckBalance extends Test {
   
   private static final String LAST_UNBALANCED_TIME = "lastUnbalancedTime";
   private static final String UNBALANCED_COUNT = "unbalancedCount";
-
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.test.randomwalk.Node#visit(org.apache.accumulo.test.randomwalk.State, java.util.Properties)
-   */
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     log.debug("checking balance");
     Map<String,Long> counts = new HashMap<String,Long>();
-    Scanner scanner = state.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = state.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     for (Entry<Key,Value> entry : scanner) {
       String location = entry.getKey().getColumnQualifier().toString();

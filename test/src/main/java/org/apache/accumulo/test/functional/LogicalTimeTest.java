@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -29,6 +28,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 public class LogicalTimeTest extends FunctionalTest {
@@ -96,13 +96,14 @@ public class LogicalTimeTest extends FunctionalTest {
     bw.addMutation(m);
     bw.flush();
     
-    Scanner scanner = conn.createScanner(table, Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
     scanner.setRange(new Range(last));
     
     bw.close();
     
     long time = scanner.iterator().next().getKey().getTimestamp();
-    if (time != expected) throw new RuntimeException("unexpected time " + time + " " + expected);
+    if (time != expected)
+      throw new RuntimeException("unexpected time " + time + " " + expected);
   }
   
   @Override

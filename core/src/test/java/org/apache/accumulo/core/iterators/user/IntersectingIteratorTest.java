@@ -28,7 +28,6 @@ import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -282,7 +282,7 @@ public class IntersectingIteratorTest extends TestCase {
     bw.addMutation(m);
     bw.close();
     
-    BatchScanner bs = connector.createBatchScanner("index", Constants.NO_AUTHS, 10);
+    BatchScanner bs = connector.createBatchScanner("index", Authorizations.EMPTY, 10);
     IteratorSetting ii = new IteratorSetting(20, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(ii, new Text[] {new Text("rvy"), new Text("15qh")});
     bs.addScanIterator(ii);

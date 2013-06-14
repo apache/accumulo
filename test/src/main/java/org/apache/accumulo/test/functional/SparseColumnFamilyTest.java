@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
@@ -30,6 +29,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -54,7 +54,7 @@ public class SparseColumnFamilyTest extends FunctionalTest {
     BatchWriter bw = getConnector().createBatchWriter("scftt", new BatchWriterConfig());
     
     // create file in the tablet that has mostly column family 0, with a few entries for column family 1
-
+    
     bw.addMutation(nm(0, 1, 0));
     for (int i = 1; i < 99999; i++) {
       bw.addMutation(nm(i * 2, 0, i));
@@ -72,7 +72,7 @@ public class SparseColumnFamilyTest extends FunctionalTest {
     
     getConnector().tableOperations().flush("scftt", null, null, true);
     
-    Scanner scanner = getConnector().createScanner("scftt", Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner("scftt", Authorizations.EMPTY);
     
     for (int i = 0; i < 200; i++) {
       
@@ -109,7 +109,7 @@ public class SparseColumnFamilyTest extends FunctionalTest {
     m.put(String.format("%03d", cf), "", "" + val);
     return m;
   }
-
+  
   @Override
   public void cleanup() throws Exception {}
   

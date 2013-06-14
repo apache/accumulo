@@ -79,6 +79,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -542,7 +543,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         try {
           Connector conn = getConnector();
-          Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+          Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY));
           Constants.METADATA_FLUSH_COLUMN.fetch(scanner);
           Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
           scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
@@ -1566,7 +1567,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.debug("Making file deletion entries for " + range);
         Range deleteRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, KeyExtent.getMetadataEntry(range.getTableId(),
             range.getEndRow()), true);
-        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
         scanner.setRange(deleteRange);
         Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
         Constants.METADATA_TIME_COLUMN.fetch(scanner);
@@ -1645,7 +1646,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         Connector conn = getConnector();
         // Make file entries in highest tablet
         bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
-        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
         scanner.setRange(scanRange);
         Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
         Constants.METADATA_TIME_COLUMN.fetch(scanner);
@@ -1672,7 +1673,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         // read the logical time from the last tablet in the merge range, it is not included in
         // the loop above
-        scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
         Range last = new Range(stopRow);
         if (range.isMeta())
           last = last.clip(Constants.METADATA_ROOT_TABLET_KEYSPACE);
@@ -1733,7 +1734,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       // group all deletes into tablet into one mutation, this makes tablets
       // either disappear entirely or not all.. this is important for the case
       // where the process terminates in the loop below...
-      scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+      scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
       log.debug("Deleting range " + scanRange);
       scanner.setRange(scanRange);
       RowIterator rowIter = new RowIterator(scanner);
@@ -1759,7 +1760,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
       try {
         Connector conn = getConnector();
-        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
         Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
         KeyExtent start = new KeyExtent(range.getTableId(), range.getEndRow(), null);
         scanner.setRange(new Range(start.getMetadataEntry(), null));
@@ -1844,7 +1845,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // remove any migrating tablets that no longer exist.
     private void cleanupMutations() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Connector connector = getConnector();
-      Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+      Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
       Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<KeyExtent>();
       for (Entry<Key,Value> entry : scanner) {

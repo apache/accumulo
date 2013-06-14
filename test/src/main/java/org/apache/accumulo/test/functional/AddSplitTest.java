@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -35,6 +34,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
@@ -99,7 +99,7 @@ public class AddSplitTest extends FunctionalTest {
   }
   
   private void verifyData(long ts) throws Exception {
-    Scanner scanner = getConnector().createScanner("foo", Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner("foo", Authorizations.EMPTY);
     
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
     

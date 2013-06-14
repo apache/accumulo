@@ -27,120 +27,77 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
  */
 public class InsecurePermHandler implements PermissionHandler {
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#initialize(java.lang.String)
-   */
   @Override
   public void initialize(String instanceId, boolean initialize) {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#validSecurityHandlers(org.apache.accumulo.server.security.handler.Authenticator, org.apache.accumulo.server.security.handler.Authorizor)
-   */
   @Override
   public boolean validSecurityHandlers(Authenticator authent, Authorizor author) {
     return true;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#initializeSecurity(java.lang.String)
-   */
   @Override
   public void initializeSecurity(TCredentials token, String rootuser) throws AccumuloSecurityException {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#hasSystemPermission(java.lang.String, org.apache.accumulo.core.security.SystemPermission)
-   */
   @Override
   public boolean hasSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     return true;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#hasCachedSystemPermission(java.lang.String, org.apache.accumulo.core.security.SystemPermission)
-   */
   @Override
   public boolean hasCachedSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     return true;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#hasTablePermission(java.lang.String, java.lang.String, org.apache.accumulo.core.security.TablePermission)
-   */
   @Override
   public boolean hasTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
     return true;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#hasCachedTablePermission(java.lang.String, java.lang.String, org.apache.accumulo.core.security.TablePermission)
-   */
   @Override
   public boolean hasCachedTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
     return true;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#grantSystemPermission(java.lang.String, org.apache.accumulo.core.security.SystemPermission)
-   */
   @Override
   public void grantSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#revokeSystemPermission(java.lang.String, org.apache.accumulo.core.security.SystemPermission)
-   */
   @Override
   public void revokeSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#grantTablePermission(java.lang.String, java.lang.String, org.apache.accumulo.core.security.TablePermission)
-   */
   @Override
   public void grantTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#revokeTablePermission(java.lang.String, java.lang.String, org.apache.accumulo.core.security.TablePermission)
-   */
   @Override
   public void revokeTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#cleanTablePermissions(java.lang.String)
-   */
   @Override
   public void cleanTablePermissions(String table) throws AccumuloSecurityException, TableNotFoundException {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#initUser(java.lang.String)
-   */
   @Override
   public void initUser(String user) throws AccumuloSecurityException {
     return;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.PermissionHandler#dropUser(java.lang.String)
-   */
   @Override
   public void cleanUser(String user) throws AccumuloSecurityException {
     return;
   }
-
+  
   @Override
-  public void initTable(String table) throws AccumuloSecurityException {
-  }
+  public void initTable(String table) throws AccumuloSecurityException {}
   
 }

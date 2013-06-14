@@ -370,7 +370,7 @@ public class PermissionsTest {
       switch (perm) {
         case READ:
           try {
-            scanner = test_user_conn.createScanner(TEST_TABLE, Constants.NO_AUTHS);
+            scanner = test_user_conn.createScanner(TEST_TABLE, Authorizations.EMPTY);
             int i = 0;
             for (Entry<Key,Value> entry : scanner)
               i += 1 + entry.getKey().getRowData().length();
@@ -448,7 +448,7 @@ public class PermissionsTest {
       // test permission after granting it
       switch (perm) {
         case READ:
-          scanner = test_user_conn.createScanner(TEST_TABLE, Constants.NO_AUTHS);
+          scanner = test_user_conn.createScanner(TEST_TABLE, Authorizations.EMPTY);
           Iterator<Entry<Key,Value>> iter = scanner.iterator();
           while (iter.hasNext())
             iter.next();

@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -32,6 +31,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
@@ -43,7 +43,7 @@ public class ConcurrencyTest extends FunctionalTest {
     Scanner scanner;
     
     ScanTask(Connector conn, long time) throws Exception {
-      scanner = conn.createScanner("cct", Constants.NO_AUTHS);
+      scanner = conn.createScanner("cct", Authorizations.EMPTY);
       IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
       slow.addOption("sleepTime", "" + time);
       scanner.addScanIterator(slow);

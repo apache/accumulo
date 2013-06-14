@@ -114,12 +114,11 @@ public class ClientOpts extends Help {
   
   @Parameter(names = {"-tc", "--tokenClass"}, description = "Token class")
   public String tokenClassName = PasswordToken.class.getName();
-
+  
   @DynamicParameter(names = "-l",
       description = "login properties in the format key=value. Reuse -l for each property (prompt for properties if this option is missing")
   public Map<String,String> loginProps = new LinkedHashMap<String,String>();
   
-
   public AuthenticationToken getToken() {
     if (!loginProps.isEmpty()) {
       Properties props = new Properties();
@@ -133,7 +132,7 @@ public class ClientOpts extends Help {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-
+      
     }
     
     if (securePassword != null)
@@ -152,7 +151,7 @@ public class ClientOpts extends Help {
   public String instance = null;
   
   @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class, description = "the authorizations to use when reading or writing")
-  public Authorizations auths = Constants.NO_AUTHS;
+  public Authorizations auths = Authorizations.EMPTY;
   
   @Parameter(names = "--debug", description = "turn on TRACE-level log messages")
   public boolean debug = false;

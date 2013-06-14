@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.format.BinaryFormatter;
 import org.apache.accumulo.core.util.shell.Shell;
@@ -68,7 +69,7 @@ public class GetSplitsCommand extends Command {
           p.print(encode(encode, row));
         }
       } else {
-        final Scanner scanner = shellState.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        final Scanner scanner = shellState.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
         Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
         final Text start = new Text(shellState.getConnector().tableOperations().tableIdMap().get(tableName));
         final Text end = new Text(start);

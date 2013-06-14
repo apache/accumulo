@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -117,9 +118,8 @@ public class TableDiskUsage {
     void print(String line);
   }
   
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, boolean humanReadable) 
-      throws TableNotFoundException,
-      IOException {
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, boolean humanReadable)
+      throws TableNotFoundException, IOException {
     printDiskUsage(acuConf, tables, fs, conn, new Printer() {
       @Override
       public void print(String line) {
@@ -141,7 +141,7 @@ public class TableDiskUsage {
     for (String tableId : tableIds) {
       Scanner mdScanner = null;
       try {
-        mdScanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        mdScanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }
@@ -229,8 +229,8 @@ public class TableDiskUsage {
     return usage;
   }
   
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, Printer printer, boolean humanReadable)
-      throws TableNotFoundException, IOException {
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, Printer printer,
+      boolean humanReadable) throws TableNotFoundException, IOException {
     
     HashSet<String> tableIds = new HashSet<String>();
     
@@ -243,7 +243,7 @@ public class TableDiskUsage {
     }
     
     Map<TreeSet<String>,Long> usage = getDiskUsage(acuConf, tableIds, fs, conn, humanReadable);
-
+    
     String valueFormat = humanReadable ? "%9s" : "%,24d";
     for (Entry<TreeSet<String>,Long> entry : usage.entrySet()) {
       Object value = humanReadable ? NumUtil.bigNumberForSize(entry.getValue()) : entry.getValue();

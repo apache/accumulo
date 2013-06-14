@@ -26,13 +26,13 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -126,7 +126,7 @@ public class DeleteRowsTest extends FunctionalTest {
       sb.append(split.toString());
     assertEquals(result, sb.toString());
     // See that the rows are really deleted
-    Scanner scanner = this.getConnector().createScanner(table, Constants.NO_AUTHS);
+    Scanner scanner = this.getConnector().createScanner(table, Authorizations.EMPTY);
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
       Text row = entry.getKey().getRow();

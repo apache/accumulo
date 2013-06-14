@@ -135,11 +135,6 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     return 100;
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.master.balancer.TabletBalancer#init(org.apache.accumulo.server.conf.ServerConfiguration)
-   */
   @Override
   public void init(ServerConfiguration conf) {}
   

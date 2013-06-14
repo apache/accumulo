@@ -45,6 +45,7 @@ import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.TextUtil;
@@ -78,7 +79,7 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     DeletingIterator delIter = new DeletingIterator(multiIterator, false);
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
     ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, columns);
-    VisibilityFilter visFilter = new VisibilityFilter(colFilter, Constants.NO_AUTHS, new byte[0]);
+    VisibilityFilter visFilter = new VisibilityFilter(colFilter, Authorizations.EMPTY, new byte[0]);
     
     visFilter.seek(r, LocalityGroupUtil.EMPTY_CF_SET, false);
     

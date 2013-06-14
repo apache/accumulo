@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.ServerConstants;
@@ -88,7 +89,7 @@ class CleanUp extends MasterRepo {
     
     boolean done = true;
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-    Scanner scanner = master.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = master.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
     scanner.setRange(tableRange);
     
@@ -126,7 +127,7 @@ class CleanUp extends MasterRepo {
     try {
       // look for other tables that references this tables files
       Connector conn = master.getConnector();
-      BatchScanner bs = conn.createBatchScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 8);
+      BatchScanner bs = conn.createBatchScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY, 8);
       try {
         bs.setRanges(Collections.singleton(Constants.NON_ROOT_METADATA_KEYSPACE));
         bs.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);

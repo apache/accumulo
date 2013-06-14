@@ -41,6 +41,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
@@ -87,10 +88,10 @@ class CompactionDriver extends MasterRepo {
       // compaction was canceled
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
     }
-
+    
     MapCounter<TServerInstance> serversToFlush = new MapCounter<TServerInstance>();
     Connector conn = master.getConnector();
-    Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+    Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY));
     
     Range range = new KeyExtent(new Text(tableId), null, startRow == null ? null : new Text(startRow)).toMetadataRange();
     
@@ -189,7 +190,6 @@ class CompactionDriver extends MasterRepo {
   
 }
 
-
 public class CompactRange extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
@@ -214,7 +214,7 @@ public class CompactRange extends MasterRepo {
       endRow = null;
       iterators = Collections.emptyList();
     }
-
+    
     @Override
     public void write(DataOutput out) throws IOException {
       out.writeBoolean(startRow != null);
@@ -275,7 +275,7 @@ public class CompactRange extends MasterRepo {
       return iterators;
     }
   }
-
+  
   public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators) throws ThriftTableOperationException {
     this.tableId = tableId;
     this.startRow = startRow.length == 0 ? null : startRow;
@@ -286,7 +286,7 @@ public class CompactRange extends MasterRepo {
     } else {
       iterators = null;
     }
-
+    
     if (this.startRow != null && this.endRow != null && new Text(startRow).compareTo(new Text(endRow)) >= 0)
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.BAD_RANGE,
           "start row must be less than end row");
@@ -317,13 +317,13 @@ public class CompactRange extends MasterRepo {
           for (int i = 1; i < tokens.length; i++) {
             if (tokens[i].startsWith(txidString))
               continue; // skip self
-
+              
             throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER,
                 "Another compaction with iterators is running");
           }
-
+          
           StringBuilder encodedIterators = new StringBuilder();
-
+          
           if (iterators != null) {
             Hex hex = new Hex();
             encodedIterators.append(",");
@@ -354,7 +354,7 @@ public class CompactRange extends MasterRepo {
         String cvs = new String(currentValue);
         String[] tokens = cvs.split(",");
         long flushID = Long.parseLong(new String(tokens[0]));
-
+        
         String txidString = String.format("%016x", txid);
         
         StringBuilder encodedIterators = new StringBuilder();
@@ -368,9 +368,9 @@ public class CompactRange extends MasterRepo {
         return ("" + flushID + encodedIterators).getBytes();
       }
     });
-
+    
   }
-
+  
   @Override
   public void undo(long tid, Master environment) throws Exception {
     try {

@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
@@ -138,7 +137,7 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Authorizations getScanAuthorizations(Class<?> implementingClass, Configuration conf) {
     String authString = conf.get(enumToConfKey(implementingClass, ScanOpts.AUTHORIZATIONS));
-    return authString == null ? Constants.NO_AUTHS : new Authorizations(authString.getBytes());
+    return authString == null ? Authorizations.EMPTY : new Authorizations(authString.getBytes());
   }
   
   /**

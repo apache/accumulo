@@ -71,7 +71,6 @@ import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
 
-
 /**
  * The purpose of this class is to server as fake tserver that is a data sink like /dev/null. NullTserver modifies the !METADATA location entries for a table to
  * point to it. This allows thrift performance to be measured by running any client code that writes to a table.
@@ -98,7 +97,7 @@ public class NullTserver {
     
     @Override
     public UpdateErrors closeUpdate(TInfo tinfo, long updateID) {
-      return new UpdateErrors(new HashMap<TKeyExtent,Long>(), new ArrayList<TConstraintViolationSummary>(), new HashMap<TKeyExtent, SecurityErrorCode>());
+      return new UpdateErrors(new HashMap<TKeyExtent,Long>(), new ArrayList<TConstraintViolationSummary>(), new HashMap<TKeyExtent,SecurityErrorCode>());
     }
     
     @Override
@@ -194,15 +193,8 @@ public class NullTserver {
       
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface#removeLogs(org.apache.accumulo.trace.thrift.TInfo,
-     * org.apache.accumulo.core.security.thrift.Credentials, java.util.List)
-     */
     @Override
-    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
-    }
+    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {}
     
     @Override
     public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
@@ -211,13 +203,13 @@ public class NullTserver {
   }
   
   static class Opts extends Help {
-    @Parameter(names={"-i", "--instance"}, description="instance name", required=true)
+    @Parameter(names = {"-i", "--instance"}, description = "instance name", required = true)
     String iname = null;
-    @Parameter(names={"-z", "--keepers"}, description="comma-separated list of zookeeper host:ports", required=true)
+    @Parameter(names = {"-z", "--keepers"}, description = "comma-separated list of zookeeper host:ports", required = true)
     String keepers = null;
-    @Parameter(names="--table", description="table to adopt", required=true)
+    @Parameter(names = "--table", description = "table to adopt", required = true)
     String tableName = null;
-    @Parameter(names="--port", description="port number to use")
+    @Parameter(names = "--port", description = "port number to use")
     int port = DefaultConfiguration.getInstance().getPort(Property.TSERV_CLIENTPORT);
   }
   
@@ -228,7 +220,7 @@ public class NullTserver {
     TransactionWatcher watcher = new TransactionWatcher();
     ThriftClientHandler tch = new ThriftClientHandler(HdfsZooInstance.getInstance(), watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
-    TServerUtils.startTServer(opts.port, processor, "NullTServer", "null tserver", 2, 1000, 10*1024*1024);
+    TServerUtils.startTServer(opts.port, processor, "NullTServer", "null tserver", 2, 1000, 10 * 1024 * 1024);
     
     InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), opts.port);
     

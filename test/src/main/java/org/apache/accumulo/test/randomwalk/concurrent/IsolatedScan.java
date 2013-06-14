@@ -21,7 +21,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.RowIterator;
@@ -30,6 +29,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -48,7 +48,7 @@ public class IsolatedScan extends Test {
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
     try {
-      RowIterator iter = new RowIterator(new IsolatedScanner(conn.createScanner(tableName, Constants.NO_AUTHS)));
+      RowIterator iter = new RowIterator(new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY)));
       
       while (iter.hasNext()) {
         PeekingIterator<Entry<Key,Value>> row = new PeekingIterator<Entry<Key,Value>>(iter.next());

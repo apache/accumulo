@@ -16,12 +16,11 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
+import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.trace.thrift.TInfo;
-import org.apache.accumulo.fate.Repo;
-
 
 /**
  * 
@@ -29,7 +28,7 @@ import org.apache.accumulo.fate.Repo;
 public class TraceRepo<T> implements Repo<T> {
   
   private static final long serialVersionUID = 1L;
-
+  
   TInfo tinfo;
   Repo<T> repo;
   
@@ -38,11 +37,6 @@ public class TraceRepo<T> implements Repo<T> {
     tinfo = Tracer.traceInfo();
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.fate.Repo#isReady(long, java.lang.Object)
-   */
   @Override
   public long isReady(long tid, T environment) throws Exception {
     Span span = Trace.trace(tinfo, repo.getDescription());
@@ -53,11 +47,6 @@ public class TraceRepo<T> implements Repo<T> {
     }
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.fate.Repo#call(long, java.lang.Object)
-   */
   @Override
   public Repo<T> call(long tid, T environment) throws Exception {
     Span span = Trace.trace(tinfo, repo.getDescription());
@@ -71,11 +60,6 @@ public class TraceRepo<T> implements Repo<T> {
     }
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.fate.Repo#undo(long, java.lang.Object)
-   */
   @Override
   public void undo(long tid, T environment) throws Exception {
     Span span = Trace.trace(tinfo, repo.getDescription());
@@ -86,24 +70,14 @@ public class TraceRepo<T> implements Repo<T> {
     }
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.fate.Repo#getDescription()
-   */
   @Override
   public String getDescription() {
     return repo.getDescription();
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.fate.Repo#getReturn()
-   */
   @Override
   public String getReturn() {
     return repo.getReturn();
   }
-
+  
 }

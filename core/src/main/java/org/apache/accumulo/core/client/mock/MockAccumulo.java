@@ -44,7 +44,7 @@ public class MockAccumulo {
   }
   
   {
-    MockUser root = new MockUser("root", new PasswordToken(new byte[0]), Constants.NO_AUTHS);
+    MockUser root = new MockUser("root", new PasswordToken(new byte[0]), Authorizations.EMPTY);
     root.permissions.add(SystemPermission.SYSTEM);
     users.put(root.name, root);
     createTable("root", Constants.METADATA_TABLE_NAME, true, TimeType.LOGICAL);
@@ -88,8 +88,8 @@ public class MockAccumulo {
   public Collection<Text> getSplits(String tableName) {
     return tables.get(tableName).getSplits();
   }
-
+  
   public void merge(String tableName, Text start, Text end) {
     tables.get(tableName).merge(start, end);
-  }  
+  }
 }

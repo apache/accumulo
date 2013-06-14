@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.io.Text;
@@ -55,12 +56,13 @@ public class QueryMetadataTable {
       this.row = row;
     }
     
+    @Override
     public void run() {
       try {
         KeyExtent extent = new KeyExtent(row, (Text) null);
         
         Connector connector = HdfsZooInstance.getInstance().getConnector(principal, token);
-        Scanner mdScanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        Scanner mdScanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
         Text row = extent.getMetadataEntry();
         
         mdScanner.setRange(new Range(row));
@@ -84,9 +86,9 @@ public class QueryMetadataTable {
   }
   
   static class Opts extends ClientOpts {
-    @Parameter(names="--numQueries", description="number of queries to run")
+    @Parameter(names = "--numQueries", description = "number of queries to run")
     int numQueries = 1;
-    @Parameter(names="--numThreads", description="number of threads used to run the queries")
+    @Parameter(names = "--numThreads", description = "number of threads used to run the queries")
     int numThreads = 1;
   }
   

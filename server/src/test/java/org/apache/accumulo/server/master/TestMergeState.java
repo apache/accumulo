@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.master.state.Assignment;
@@ -137,7 +138,7 @@ public class TestMergeState {
     Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
     
     // unassign the tablets
-    BatchDeleter deleter = connector.createBatchDeleter("!METADATA", Constants.NO_AUTHS, 1000, new BatchWriterConfig());
+    BatchDeleter deleter = connector.createBatchDeleter("!METADATA", Authorizations.EMPTY, 1000, new BatchWriterConfig());
     deleter.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     deleter.setRanges(Collections.singletonList(new Range()));
     deleter.delete();

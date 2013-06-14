@@ -20,11 +20,11 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -37,8 +37,8 @@ public class VerifyIndex extends Test {
     String tmpIndexTableName = indexTableName + "_tmp";
     
     // scan new and old index and verify identical
-    Scanner indexScanner1 = state.getConnector().createScanner(tmpIndexTableName, Constants.NO_AUTHS);
-    Scanner indexScanner2 = state.getConnector().createScanner(indexTableName, Constants.NO_AUTHS);
+    Scanner indexScanner1 = state.getConnector().createScanner(tmpIndexTableName, Authorizations.EMPTY);
+    Scanner indexScanner2 = state.getConnector().createScanner(indexTableName, Authorizations.EMPTY);
     
     Iterator<Entry<Key,Value>> iter = indexScanner2.iterator();
     

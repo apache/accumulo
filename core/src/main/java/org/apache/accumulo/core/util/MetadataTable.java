@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.hadoop.io.Text;
@@ -94,6 +95,7 @@ public class MetadataTable {
       return ("" + size + "," + numEntries).getBytes();
     }
     
+    @Override
     public boolean equals(Object o) {
       if (o instanceof DataFileValue) {
         DataFileValue odfv = (DataFileValue) o;
@@ -104,10 +106,12 @@ public class MetadataTable {
       return false;
     }
     
+    @Override
     public int hashCode() {
       return Long.valueOf(size + numEntries).hashCode();
     }
     
+    @Override
     public String toString() {
       return size + " " + numEntries;
     }
@@ -164,7 +168,7 @@ public class MetadataTable {
           results.put(ke, location);
         else
           locationless.add(ke);
-
+        
         location = null;
         prevRow = null;
       }
@@ -172,7 +176,7 @@ public class MetadataTable {
     
     return new Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>>(results, locationless);
   }
-
+  
   public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
     TreeMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries = new TreeMap<Text,SortedMap<ColumnFQ,Value>>();
     
@@ -200,12 +204,13 @@ public class MetadataTable {
     
     return tabletEntries;
   }
-    
+  
   public static void getEntries(Instance instance, TCredentials credentials, String table, boolean isTid, Map<KeyExtent,String> locations,
       SortedSet<KeyExtent> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableId = isTid ? table : Tables.getNameToIdMap(instance).get(table);
     
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
+        Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     
     Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);

@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -50,8 +50,7 @@ public class MergeTest extends FunctionalTest {
     return Collections.emptyList();
   }
   
-  
-  private String[] ns(String...strings){
+  private String[] ns(String... strings) {
     return strings;
   }
   
@@ -60,7 +59,7 @@ public class MergeTest extends FunctionalTest {
     int tc = 0;
     
     runMergeTest("foo" + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
-
+    
     runMergeTest("foo" + tc++, ns("m"), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
     runMergeTest("foo" + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns("m", "n"), ns(null, "z"));
     runMergeTest("foo" + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns(null, "b"), ns("l", "m"));
@@ -90,7 +89,7 @@ public class MergeTest extends FunctionalTest {
   
   private void runMergeTest(String table, String[] splits, String[] expectedSplits, String[] inserts, String start, String end) throws Exception {
     System.out.println("Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
-
+    
     Connector conn = super.getConnector();
     conn.tableOperations().create(table, true, TimeType.LOGICAL);
     TreeSet<Text> splitSet = new TreeSet<Text>();
@@ -112,7 +111,7 @@ public class MergeTest extends FunctionalTest {
     
     conn.tableOperations().merge(table, start == null ? null : new Text(start), end == null ? null : new Text(end));
     
-    Scanner scanner = conn.createScanner(table, Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
     
     HashSet<String> observed = new HashSet<String>();
     for (Entry<Key,Value> entry : scanner) {

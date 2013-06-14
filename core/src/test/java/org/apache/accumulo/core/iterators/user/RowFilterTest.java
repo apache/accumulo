@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -37,6 +36,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -57,7 +57,7 @@ public class RowFilterTest extends TestCase {
       if (rowIterator.hasTop()) {
         firstKey = new Key(rowIterator.getTopKey());
       }
-
+      
       while (rowIterator.hasTop()) {
         sum += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
@@ -80,7 +80,7 @@ public class RowFilterTest extends TestCase {
     }
     
   }
-
+  
   public void test1() throws Exception {
     MockInstance instance = new MockInstance("rft1");
     Connector conn = instance.getConnector("", new PasswordToken(""));
@@ -130,11 +130,11 @@ public class RowFilterTest extends TestCase {
     m.put("cf2", "cq1", "1");
     m.put("cf2", "cq2", "1");
     bw.addMutation(m);
-
+    
     IteratorSetting is = new IteratorSetting(40, SummingRowFilter.class);
     conn.tableOperations().attachIterator("table1", is);
-
-    Scanner scanner = conn.createScanner("table1", Constants.NO_AUTHS);
+    
+    Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY);
     assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(scanner));
     
     scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
@@ -161,7 +161,7 @@ public class RowFilterTest extends TestCase {
     scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
     scanner.fetchColumn(new Text("cf1"), new Text("cq4"));
     assertEquals(new HashSet<String>(Arrays.asList("4")), getRows(scanner));
-
+    
   }
   
   private HashSet<String> getRows(Scanner scanner) {

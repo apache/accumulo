@@ -21,12 +21,12 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -50,7 +50,7 @@ public class DeleteSomeDocs extends Test {
     
     String pattern = patterns.get(rand.nextInt(patterns.size()));
     BatchWriterConfig bwc = new BatchWriterConfig();
-    BatchDeleter ibd = state.getConnector().createBatchDeleter(indexTableName, Constants.NO_AUTHS, 8, bwc);
+    BatchDeleter ibd = state.getConnector().createBatchDeleter(indexTableName, Authorizations.EMPTY, 8, bwc);
     ibd.setRanges(Collections.singletonList(new Range()));
     
     IteratorSetting iterSettings = new IteratorSetting(100, RegExFilter.class);
@@ -62,7 +62,7 @@ public class DeleteSomeDocs extends Test {
     
     ibd.close();
     
-    BatchDeleter dbd = state.getConnector().createBatchDeleter(dataTableName, Constants.NO_AUTHS, 8, bwc);
+    BatchDeleter dbd = state.getConnector().createBatchDeleter(dataTableName, Authorizations.EMPTY, 8, bwc);
     dbd.setRanges(Collections.singletonList(new Range()));
     
     iterSettings = new IteratorSetting(100, RegExFilter.class);

@@ -62,6 +62,7 @@ import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -476,7 +477,7 @@ public class SimpleGarbageCollector implements Iface {
     }
     
     Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
-        Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     scanner.setRange(range);
     List<String> result = new ArrayList<String>();
     // find candidates for deletion; chop off the prefix
@@ -516,7 +517,7 @@ public class SimpleGarbageCollector implements Iface {
     } else {
       try {
         scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
-            Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+            Constants.METADATA_TABLE_NAME, Authorizations.EMPTY));
       } catch (AccumuloSecurityException ex) {
         throw new AccumuloException(ex);
       } catch (TableNotFoundException ex) {

@@ -64,7 +64,7 @@ public class ZKAuthorizor implements Authorizor {
     byte[] authsBytes = zooCache.get(ZKUserPath + "/" + user + ZKUserAuths);
     if (authsBytes != null)
       return ZKSecurityTool.convertAuthorizations(authsBytes);
-    return Constants.NO_AUTHS;
+    return Authorizations.EMPTY;
   }
   
   @Override
@@ -90,7 +90,7 @@ public class ZKAuthorizor implements Authorizor {
         zoo.putPersistentData(ZKUserPath, rootuser.getBytes(), NodeExistsPolicy.FAIL);
       
       initUser(rootuser);
-      zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths, ZKSecurityTool.convertAuthorizations(Constants.NO_AUTHS), NodeExistsPolicy.FAIL);
+      zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths, ZKSecurityTool.convertAuthorizations(Authorizations.EMPTY), NodeExistsPolicy.FAIL);
     } catch (KeeperException e) {
       log.error(e, e);
       throw new RuntimeException(e);

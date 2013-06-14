@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
@@ -72,7 +72,7 @@ public class ServerSideErrorTest extends FunctionalTest {
     bw.close();
     
     // try to scan table
-    Scanner scanner = getConnector().createScanner("tt", Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner("tt", Authorizations.EMPTY);
     
     boolean caught = false;
     try {
@@ -87,7 +87,7 @@ public class ServerSideErrorTest extends FunctionalTest {
       throw new Exception("Scan did not fail");
     
     // try to batch scan the table
-    BatchScanner bs = getConnector().createBatchScanner("tt", Constants.NO_AUTHS, 2);
+    BatchScanner bs = getConnector().createBatchScanner("tt", Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singleton(new Range()));
     
     caught = false;
@@ -110,7 +110,7 @@ public class ServerSideErrorTest extends FunctionalTest {
     UtilWaitThread.sleep(500);
     
     // should be able to scan now
-    scanner = getConnector().createScanner("tt", Constants.NO_AUTHS);
+    scanner = getConnector().createScanner("tt", Authorizations.EMPTY);
     for (Entry<Key,Value> entry : scanner) {
       entry.getKey();
     }

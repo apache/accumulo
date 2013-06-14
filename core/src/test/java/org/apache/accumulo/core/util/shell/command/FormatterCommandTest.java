@@ -22,8 +22,6 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.junit.Assert;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -35,6 +33,7 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -50,7 +49,7 @@ public class FormatterCommandTest {
     Logger.getLogger(Shell.class).setLevel(Level.WARN);
     
     final String[] args = new String[] {"--fake", "-u", "root", "-p", ""};
-   
+    
     final String[] commands = createCommands();
     
     in = MockShell.makeCommands(commands);
@@ -61,32 +60,25 @@ public class FormatterCommandTest {
     
     // Can't call createtable in the shell with MockAccumulo
     shell.getConnector().tableOperations().create("test");
-
+    
     try {
       shell.start();
     } catch (Exception e) {
       Assert.fail("Exception while running commands: " + e.getMessage());
-    } 
+    }
     
     shell.getReader().flush();
     
     final String[] output = StringUtils.split(new String(out.toByteArray()), '\n');
-   
+    
     boolean formatterOn = false;
     
-    final String[] expectedDefault = new String[] {
-        "row cf:cq []    1234abcd",
-        "row cf1:cq1 []    9876fedc",
-        "row2 cf:cq []    13579bdf",
-        "row2 cf1:cq []    2468ace"
-    };
+    final String[] expectedDefault = new String[] {"row cf:cq []    1234abcd", "row cf1:cq1 []    9876fedc", "row2 cf:cq []    13579bdf",
+        "row2 cf1:cq []    2468ace"};
     
-    final String[] expectedFormatted = new String[] {
-        "row cf:cq []    0x31 0x32 0x33 0x34 0x61 0x62 0x63 0x64",
-        "row cf1:cq1 []    0x39 0x38 0x37 0x36 0x66 0x65 0x64 0x63",
-        "row2 cf:cq []    0x31 0x33 0x35 0x37 0x39 0x62 0x64 0x66",
-        "row2 cf1:cq []    0x32 0x34 0x36 0x38 0x61 0x63 0x65"
-    };
+    final String[] expectedFormatted = new String[] {"row cf:cq []    0x31 0x32 0x33 0x34 0x61 0x62 0x63 0x64",
+        "row cf1:cq1 []    0x39 0x38 0x37 0x36 0x66 0x65 0x64 0x63", "row2 cf:cq []    0x31 0x33 0x35 0x37 0x39 0x62 0x64 0x66",
+        "row2 cf1:cq []    0x32 0x34 0x36 0x38 0x61 0x63 0x65"};
     
     int outputIndex = 0;
     while (outputIndex < output.length) {
@@ -96,7 +88,7 @@ public class FormatterCommandTest {
         if (line.contains("formatter")) {
           formatterOn = true;
         }
-       
+        
         outputIndex++;
       } else if (line.startsWith("row")) {
         int expectedIndex = 0;
@@ -121,48 +113,37 @@ public class FormatterCommandTest {
   }
   
   private String[] createCommands() {
-    return new String[] {
-        "table test",
-        "insert row cf cq 1234abcd",
-        "insert row cf1 cq1 9876fedc",
-        "insert row2 cf cq 13579bdf",
-        "insert row2 cf1 cq 2468ace",
-        "scan",
-        "formatter -t test -f org.apache.accumulo.core.util.shell.command.FormatterCommandTest$HexFormatter",
-        "scan"
-    };
+    return new String[] {"table test", "insert row cf cq 1234abcd", "insert row cf1 cq1 9876fedc", "insert row2 cf cq 13579bdf", "insert row2 cf1 cq 2468ace",
+        "scan", "formatter -t test -f org.apache.accumulo.core.util.shell.command.FormatterCommandTest$HexFormatter", "scan"};
   }
   
   /**
-   * <p>Simple <code>Formatter</code> that will convert each character in the Value
-   * from decimal to hexadecimal. Will automatically skip over characters in the value
-   * which do not fall within the [0-9,a-f] range.</p>
+   * <p>
+   * Simple <code>Formatter</code> that will convert each character in the Value from decimal to hexadecimal. Will automatically skip over characters in the
+   * value which do not fall within the [0-9,a-f] range.
+   * </p>
    * 
-   * <p>Example: <code>'0'</code> will be displayed as <code>'0x30'</code></p>
+   * <p>
+   * Example: <code>'0'</code> will be displayed as <code>'0x30'</code>
+   * </p>
    */
   public static class HexFormatter implements Formatter {
-    private Iterator<Entry<Key, Value>> iter = null;
+    private Iterator<Entry<Key,Value>> iter = null;
     private boolean printTs = false;
-
+    
     private final static String tab = "\t";
     private final static String newline = "\n";
     
     public HexFormatter() {}
     
-    /* (non-Javadoc)
-     * @see java.util.Iterator#hasNext()
-     */
     @Override
     public boolean hasNext() {
       return this.iter.hasNext();
     }
-
-    /* (non-Javadoc)
-     * @see java.util.Iterator#next()
-     */
+    
     @Override
     public String next() {
-      final Entry<Key, Value> entry = iter.next();
+      final Entry<Key,Value> entry = iter.next();
       
       String key;
       
@@ -176,7 +157,7 @@ public class FormatterCommandTest {
       final Value v = entry.getValue();
       
       // Approximate how much space we'll need
-      final StringBuilder sb = new StringBuilder(key.length() + v.getSize() * 5); 
+      final StringBuilder sb = new StringBuilder(key.length() + v.getSize() * 5);
       
       sb.append(key).append(tab);
       
@@ -190,17 +171,10 @@ public class FormatterCommandTest {
       
       return sb.toString();
     }
-
-    /* (non-Javadoc)
-     * @see java.util.Iterator#remove()
-     */
+    
     @Override
-    public void remove() {
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.accumulo.core.util.format.Formatter#initialize(java.lang.Iterable, boolean)
-     */
+    public void remove() {}
+    
     @Override
     public void initialize(final Iterable<Entry<Key,Value>> scanner, final boolean printTimestamps) {
       this.iter = scanner.iterator();

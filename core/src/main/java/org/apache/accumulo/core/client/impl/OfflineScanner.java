@@ -246,7 +246,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   }
   
   private Pair<KeyExtent,String> getTabletFiles(Range nextRange, List<String> relFiles) throws TableNotFoundException {
-    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     scanner.setBatchSize(100);
     scanner.setRange(nextRange);
     

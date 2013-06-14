@@ -1201,7 +1201,7 @@ public class Tablet {
       Text rowName = extent.getMetadataEntry();
       
       ScannerImpl mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), Constants.METADATA_TABLE_ID,
-          Constants.NO_AUTHS);
+          Authorizations.EMPTY);
       
       // Commented out because when no data file is present, each tablet will scan through metadata table and return nothing
       // reduced batch size to improve performance

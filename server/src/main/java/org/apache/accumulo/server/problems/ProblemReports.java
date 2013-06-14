@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -153,7 +154,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     }
     
     Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemPrincipal(), SecurityConstants.getSystemToken());
-    Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     scanner.addScanIterator(new IteratorSetting(1, "keys-only", SortedKeyIterator.class));
     
     if (table == null) {
@@ -208,7 +209,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
             try {
               if ((table == null || !table.equals(Constants.METADATA_TABLE_ID)) && iter1Count == 0) {
                 Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemPrincipal(), SecurityConstants.getSystemToken());
-                Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+                Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
                 
                 scanner.setTimeout(3, TimeUnit.SECONDS);
                 

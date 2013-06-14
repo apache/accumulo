@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -95,7 +96,7 @@ class WriteExportFiles extends MasterRepo {
     
     checkOffline(conn);
     
-    Scanner metaScanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner metaScanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     metaScanner.setRange(new KeyExtent(new Text(tableInfo.tableID), null, null).toMetadataRange());
     
     // scan for locations
@@ -217,7 +218,7 @@ class WriteExportFiles extends MasterRepo {
     
     Map<String,String> uniqueFiles = new HashMap<String,String>();
     
-    Scanner metaScanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner metaScanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
     Constants.METADATA_PREV_ROW_COLUMN.fetch(metaScanner);
     Constants.METADATA_TIME_COLUMN.fetch(metaScanner);

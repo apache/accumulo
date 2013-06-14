@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
@@ -68,7 +68,7 @@ public class DeleteEverythingTest extends FunctionalTest {
     bw.addMutation(m);
     bw.flush();
     
-    Scanner scanner = getConnector().createScanner("de", Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner("de", Authorizations.EMPTY);
     scanner.setRange(new Range());
     
     int count = 0;

@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
@@ -95,7 +95,7 @@ public class BatchScanSplitTest extends FunctionalTest {
     
     // logger.setLevel(Level.TRACE);
     
-    BatchScanner bs = getConnector().createBatchScanner("bss", Constants.NO_AUTHS, 4);
+    BatchScanner bs = getConnector().createBatchScanner("bss", Authorizations.EMPTY, 4);
     
     HashMap<Text,Value> found = new HashMap<Text,Value>();
     

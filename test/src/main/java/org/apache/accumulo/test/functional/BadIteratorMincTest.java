@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
@@ -29,6 +28,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
@@ -69,7 +69,7 @@ public class BadIteratorMincTest extends FunctionalTest {
     checkRFiles("foo", 1, 1, 0, 0);
     
     // try to scan table
-    Scanner scanner = getConnector().createScanner("foo", Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner("foo", Authorizations.EMPTY);
     
     int count = 0;
     for (@SuppressWarnings("unused")
@@ -115,7 +115,7 @@ public class BadIteratorMincTest extends FunctionalTest {
     
     // this should not hang
     getConnector().tableOperations().delete("foo");
-
+    
   }
   
 }

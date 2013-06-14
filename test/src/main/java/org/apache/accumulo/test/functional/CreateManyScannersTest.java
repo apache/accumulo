@@ -20,8 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.security.Authorizations;
 
 public class CreateManyScannersTest extends FunctionalTest {
   
@@ -44,7 +44,7 @@ public class CreateManyScannersTest extends FunctionalTest {
   public void run() throws Exception {
     Connector connector = getConnector();
     for (int i = 0; i < 100000; i++) {
-      connector.createScanner("mscant", Constants.NO_AUTHS);
+      connector.createScanner("mscant", Authorizations.EMPTY);
     }
   }
   

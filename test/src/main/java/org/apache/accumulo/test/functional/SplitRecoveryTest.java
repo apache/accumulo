@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -180,20 +181,19 @@ public class SplitRecoveryTest extends FunctionalTest {
     if (steps >= 2)
       MetadataTable.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SecurityConstants.getSystemCredentials(), zl);
     
-    
     TabletServer.verifyTabletInformation(high, instance, null, "127.0.0.1:0", zl);
-
+    
     if (steps >= 1) {
       ensureTabletHasNoUnexpectedMetadataEntries(low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(high, highDatafileSizes);
-    
+      
       Map<String,Long> lowBulkFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), low);
       Map<String,Long> highBulkFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), high);
-    
+      
       if (!lowBulkFiles.equals(highBulkFiles)) {
         throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
       }
-    
+      
       if (lowBulkFiles.size() == 0) {
         throw new Exception(" no bulk files " + low);
       }
@@ -204,7 +204,7 @@ public class SplitRecoveryTest extends FunctionalTest {
   
   private void ensureTabletHasNoUnexpectedMetadataEntries(KeyExtent extent, SortedMap<String,DataFileValue> expectedMapFiles) throws Exception {
     Scanner scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), Constants.METADATA_TABLE_ID,
-        Constants.NO_AUTHS);
+        Authorizations.EMPTY);
     scanner.setRange(extent.toMetadataRange());
     
     HashSet<ColumnFQ> expectedColumns = new HashSet<ColumnFQ>();

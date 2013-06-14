@@ -25,17 +25,16 @@ import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
-
 
 // attempt to reproduce ACCUMULO-315
 public class DeleteRowsSplitTest extends FunctionalTest {
@@ -51,7 +50,7 @@ public class DeleteRowsSplitTest extends FunctionalTest {
       ROWS.add(new String(new byte[] {b}));
     }
   }
-
+  
   @Override
   public void cleanup() throws Exception {}
   
@@ -70,7 +69,7 @@ public class DeleteRowsSplitTest extends FunctionalTest {
     Random random = new Random();
     TABLE = "table" + Long.toHexString(random.nextLong());
   }
-
+  
   @Override
   public void run() throws Exception {
     // Delete ranges of rows, and verify the are removed
@@ -81,18 +80,19 @@ public class DeleteRowsSplitTest extends FunctionalTest {
       // create a table
       log.info("Test " + test);
       getConnector().tableOperations().create(TABLE);
-
+      
       // put some data in it
       fillTable(TABLE);
-
+      
       // generate a random delete range
       final Text start = new Text();
       final Text end = new Text();
       generateRandomRange(start, end);
-
+      
       // initiate the delete range
-      final boolean fail[] = { false };
+      final boolean fail[] = {false};
       Thread t = new Thread() {
+        @Override
         public void run() {
           try {
             // split the table
@@ -109,16 +109,16 @@ public class DeleteRowsSplitTest extends FunctionalTest {
       t.start();
       
       UtilWaitThread.sleep(test * 2);
-
+      
       getConnector().tableOperations().deleteRows(TABLE, start, end);
       
       t.join();
       synchronized (fail) {
         assertTrue(!fail[0]);
       }
-
+      
       // scan the table
-      Scanner scanner = getConnector().createScanner(TABLE, Constants.NO_AUTHS);
+      Scanner scanner = getConnector().createScanner(TABLE, Authorizations.EMPTY);
       for (Entry<Key,Value> entry : scanner) {
         Text row = entry.getKey().getRow();
         assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
@@ -139,7 +139,7 @@ public class DeleteRowsSplitTest extends FunctionalTest {
       start.set(bunch.get(1));
       end.set(bunch.get(0));
     }
-
+    
   }
   
   private void fillTable(String table) throws Exception {
@@ -151,11 +151,10 @@ public class DeleteRowsSplitTest extends FunctionalTest {
     }
     bw.close();
   }
-
+  
   private void assertTrue(boolean b) {
     if (!b)
       throw new RuntimeException("test failed, false value");
   }
   
 }
-

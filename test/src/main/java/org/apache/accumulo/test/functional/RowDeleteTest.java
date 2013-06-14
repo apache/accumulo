@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.RowDeletingIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 
 public class RowDeleteTest extends FunctionalTest {
@@ -66,7 +66,7 @@ public class RowDeleteTest extends FunctionalTest {
     checkRFiles("rdel1", 1, 1, 1, 1);
     
     int count = 0;
-    Scanner scanner = getConnector().createScanner("rdel1", Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner("rdel1", Authorizations.EMPTY);
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
       count++;
@@ -85,7 +85,7 @@ public class RowDeleteTest extends FunctionalTest {
     checkRFiles("rdel1", 1, 1, 2, 2);
     
     count = 0;
-    scanner = getConnector().createScanner("rdel1", Constants.NO_AUTHS);
+    scanner = getConnector().createScanner("rdel1", Authorizations.EMPTY);
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
       count++;
@@ -98,7 +98,7 @@ public class RowDeleteTest extends FunctionalTest {
     checkRFiles("rdel1", 1, 1, 0, 0);
     
     count = 0;
-    scanner = getConnector().createScanner("rdel1", Constants.NO_AUTHS);
+    scanner = getConnector().createScanner("rdel1", Authorizations.EMPTY);
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
       count++;

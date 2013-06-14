@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
@@ -51,7 +50,7 @@ public class TestClientOpts {
     assertFalse(args.trace);
     assertEquals(10, bsOpts.scanThreads.intValue());
     assertEquals(null, args.instance);
-    assertEquals(Constants.NO_AUTHS, args.auths);
+    assertEquals(Authorizations.EMPTY, args.auths);
     assertEquals("localhost:2181", args.zookeepers);
     assertFalse(args.help);
     

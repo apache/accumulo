@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
@@ -123,7 +124,7 @@ public class ConstraintTest extends FunctionalTest {
     }
     
     // verify mutation did not go through
-    Scanner scanner = getConnector().createScanner("ct", Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner("ct", Authorizations.EMPTY);
     scanner.setRange(new Range(new Text("r1")));
     
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
@@ -293,7 +294,7 @@ public class ConstraintTest extends FunctionalTest {
       throw new Exception("Did not see MutationsRejectedException");
     }
     
-    Scanner scanner = getConnector().createScanner(table, Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
     
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
     

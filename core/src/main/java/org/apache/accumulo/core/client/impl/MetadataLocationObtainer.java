@@ -44,6 +44,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.MetadataTable;
@@ -94,7 +95,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
       
       boolean more = ThriftScanner.getBatchFromServer(credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols,
-          serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Constants.NO_AUTHS, false, instance.getConfiguration());
+          serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, instance.getConfiguration());
       
       decodeRows(encodedResults, results);
       
@@ -102,7 +103,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME), true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
         more = ThriftScanner.getBatchFromServer(credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Constants.NO_AUTHS, false, instance.getConfiguration());
+            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, instance.getConfiguration());
         
         decodeRows(encodedResults, results);
       }
@@ -178,7 +179,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     Map<KeyExtent,List<Range>> unscanned = new HashMap<KeyExtent,List<Range>>();
     Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
     try {
-      TabletServerBatchReaderIterator.doLookup(tserver, tabletsRanges, failures, unscanned, rr, columns, credentials, opts, Constants.NO_AUTHS,
+      TabletServerBatchReaderIterator.doLookup(tserver, tabletsRanges, failures, unscanned, rr, columns, credentials, opts, Authorizations.EMPTY,
           instance.getConfiguration());
       if (failures.size() > 0) {
         // invalidate extents in parents cache

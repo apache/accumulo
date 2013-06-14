@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -110,7 +109,7 @@ public class MockTableOperationsTest {
   }
   
   protected void assertVersionable(Connector c, String tableName, int size) throws TableNotFoundException {
-    BatchScanner s = c.createBatchScanner(tableName, Constants.NO_AUTHS, 1);
+    BatchScanner s = c.createBatchScanner(tableName, Authorizations.EMPTY, 1);
     s.setRanges(Collections.singleton(Range.exact("row1", "cf", "cq")));
     int count = 0;
     for (Map.Entry<Key,Value> e : s) {
@@ -266,7 +265,7 @@ public class MockTableOperationsTest {
     }
     bw.flush();
     to.deleteRows("test", new Text("1"), new Text("2"));
-    Scanner s = connector.createScanner("test", Constants.NO_AUTHS);
+    Scanner s = connector.createScanner("test", Authorizations.EMPTY);
     for (Entry<Key,Value> entry : s) {
       Assert.assertTrue(entry.getKey().getRow().toString().charAt(0) != '1');
     }

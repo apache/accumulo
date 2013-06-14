@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
 public class ScanRangeTest extends FunctionalTest {
@@ -163,7 +163,7 @@ public class ScanRangeTest extends FunctionalTest {
   }
   
   private void scanRange(String table, IntKey ik1, boolean inclusive1, IntKey ik2, boolean inclusive2) throws Exception {
-    Scanner scanner = getConnector().createScanner(table, Constants.NO_AUTHS);
+    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
     
     Key key1 = null;
     Key key2 = null;
