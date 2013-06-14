@@ -25,7 +25,10 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,6 +48,7 @@ public class AccumuloClassLoader {
   
   public static final String CLASSPATH_PROPERTY_NAME = "general.classpaths";
   
+  /* @formatter:off */
   public static final String ACCUMULO_CLASSPATH_VALUE = 
       "$ACCUMULO_HOME/conf,\n" + 
           "$ACCUMULO_HOME/lib/[^.].*.jar,\n" + 
@@ -57,6 +61,10 @@ public class AccumuloClassLoader {
           "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,\n" +
           "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,\n"
           ;
+  /* @formatter:on */
+  
+  public static final String MAVEN_PROJECT_BASEDIR_PROPERTY_NAME = "general.maven.project.basedir";
+  public static final String DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE = "";
   
   private static String SITE_CONF;
   
@@ -208,12 +216,35 @@ public class AccumuloClassLoader {
       return new ArrayList<URL>();
     String[] cps = replaceEnvVars(cp, System.getenv()).split(",");
     ArrayList<URL> urls = new ArrayList<URL>();
+    for (String classpath : getMavenClasspaths())
+      addUrl(classpath, urls);
     for (String classpath : cps) {
       if (!classpath.startsWith("#")) {
         addUrl(classpath, urls);
       }
     }
     return urls;
+  }
+  
+  private static Set<String> getMavenClasspaths() {
+    String baseDirname = AccumuloClassLoader.getAccumuloString(MAVEN_PROJECT_BASEDIR_PROPERTY_NAME, DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE);
+    if (baseDirname == null || baseDirname.trim().isEmpty())
+      return Collections.emptySet();
+    Set<String> paths = new TreeSet<String>();
+    findMavenTargetClasses(paths, new File(baseDirname.trim()), 0);
+    return paths;
+  }
+  
+  private static void findMavenTargetClasses(Set<String> paths, File file, int depth) {
+    if (depth > 3)
+      return;
+    if (file.isDirectory()) {
+      File[] children = file.listFiles();
+      for (File child : children)
+        findMavenTargetClasses(paths, child, depth + 1);
+    } else if ("pom.xml".equals(file.getName())) {
+      paths.add(file.getParentFile().getAbsolutePath() + File.separator + "target" + File.separator + "classes");
+    }
   }
   
   public static synchronized ClassLoader getClassLoader() throws IOException {
