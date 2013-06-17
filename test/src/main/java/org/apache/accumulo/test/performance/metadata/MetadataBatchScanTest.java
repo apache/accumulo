@@ -52,9 +52,6 @@ import org.apache.hadoop.io.Text;
 
 public class MetadataBatchScanTest {
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     
     final Connector connector = new ZooKeeperInstance("acu14", "localhost")
@@ -165,10 +162,7 @@ public class MetadataBatchScanTest {
   }
   
   private static ScanStats runScanTest(Connector connector, int numLoop, List<Range> ranges) throws Exception {
-    Scanner scanner = null;/*
-                            * connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS); ColumnFQ.fetch(scanner,
-                            * Constants.METADATA_LOCATION_COLUMN); ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
-                            */
+    Scanner scanner = null;
     
     BatchScanner bs = connector.createBatchScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY, 1);
     bs.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
