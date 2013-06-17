@@ -21,11 +21,22 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -66,8 +77,7 @@ public class AuditMessageTest {
   private final String THIRD_TEST_TABLE_NAME = "pears";
   private final Authorizations auths = new Authorizations("private", "public");
   private static TemporaryFolder folder = new TemporaryFolder();
-
-
+  
   // Must be static to survive Junit re-initialising the class every time.
   private static String lastAuditTimestamp;
   private Connector auditConnector;
@@ -93,7 +103,6 @@ public class AuditMessageTest {
     logWriters = accumulo.getLogWriters();
   }
   
-
   /**
    * Returns a List of Audit messages that have been grep'd out of the MiniAccumuloCluster output.
    * 
@@ -118,7 +127,7 @@ public class AuditMessageTest {
         try {
           while (it.hasNext()) {
             String line = it.nextLine();
-            if (line.matches(".* \\[" + Constants.AUDITLOG + "\\s*\\].*")) {
+            if (line.matches(".* \\[" + AuditedSecurityOperation.AUDITLOG + "\\s*\\].*")) {
               // Only include the message if startTimestamp is null. or the message occurred after the startTimestamp value
               if ((lastAuditTimestamp == null) || (line.substring(0, 23).compareTo(lastAuditTimestamp) > 0))
                 result.add(line);
@@ -406,7 +415,8 @@ public class AuditMessageTest {
       auditConnector.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
     try {
-      auditConnector.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, true, Collections.<String,String>emptyMap(), Collections.<String>emptySet());
+      auditConnector.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, true, Collections.<String,String> emptyMap(),
+          Collections.<String> emptySet());
     } catch (AccumuloSecurityException ex) {}
     try {
       auditConnector.tableOperations().delete(OLD_TEST_TABLE_NAME);
@@ -480,11 +490,11 @@ public class AuditMessageTest {
     assertEquals(1, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CREATE_USER_AUDIT_TEMPLATE, "root", "")).size());
     
   }
-
+  
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
-
+    
     // Comment this out to have a look at the logs, they will be in /tmp/junit*
     folder.delete();
   }

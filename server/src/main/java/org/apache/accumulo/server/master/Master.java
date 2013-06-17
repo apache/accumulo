@@ -97,6 +97,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
@@ -271,7 +272,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   }
   
   private void upgradeZookeeper() {
-    if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
+    if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
       try {
         log.info("Upgrading zookeeper");
         
@@ -299,7 +300,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private final ServerConfiguration serverConfig;
   
   private void upgradeMetadata() {
-    if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
+    if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
       if (upgradeMetadataRunning.compareAndSet(false, true)) {
         Runnable upgradeTask = new Runnable() {
           @Override

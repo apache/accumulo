@@ -2055,7 +2055,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
       String myname = getClientAddressString();
       myname = myname.replace(':', '+');
-      Path logDir = new Path(Constants.getWalDirectory(acuConf), myname);
+      Path logDir = new Path(ServerConstants.getWalDirectory(), myname);
       Set<String> loggers = new HashSet<String>();
       logger.getLoggers(loggers);
       nextFile: for (String filename : filenames) {
@@ -2078,7 +2078,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         try {
           String source = logDir + "/" + filename;
           if (acuConf.getBoolean(Property.TSERV_ARCHIVE_WALOGS)) {
-            String walogArchive = Constants.getBaseDir(acuConf) + "/walogArchive";
+            String walogArchive = ServerConstants.getBaseDir() + "/walogArchive";
             fs.mkdirs(new Path(walogArchive));
             String dest = walogArchive + "/" + filename;
             log.info("Archiving walog " + source + " to " + dest);
@@ -2090,7 +2090,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             Path sourcePath = new Path(source);
             if (!trash.moveToTrash(sourcePath) && !fs.delete(sourcePath, true))
               log.warn("Failed to delete walog " + source);
-            Path recoveryPath = new Path(Constants.getRecoveryDir(acuConf), filename);
+            Path recoveryPath = new Path(ServerConstants.getRecoveryDir(), filename);
             try {
               if (trash.moveToTrash(recoveryPath) || fs.delete(recoveryPath, true))
                 log.info("Deleted any recovery log " + filename);
@@ -3295,9 +3295,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
         LogFileKey key = new LogFileKey();
         LogFileValue value = new LogFileValue();
-        log.info("Openning local log " + file.getPath());
+        log.info("Opening local log " + file.getPath());
         Reader reader = new SequenceFile.Reader(localfs, file.getPath(), localfs.getConf());
-        Path tmp = new Path(Constants.getWalDirectory(conf) + "/" + name + ".copy");
+        Path tmp = new Path(ServerConstants.getWalDirectory() + "/" + name + ".copy");
         FSDataOutputStream writer = fs.create(tmp);
         while (reader.next(key, value)) {
           try {

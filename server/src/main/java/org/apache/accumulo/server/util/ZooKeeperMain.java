@@ -16,12 +16,11 @@
  */
 package org.apache.accumulo.server.util;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -42,7 +41,7 @@ public class ZooKeeperMain {
     Opts opts = new Opts();
     opts.parseArgs(ZooKeeperMain.class.getName(), args);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    String baseDir = Constants.getBaseDir(ServerConfiguration.getSiteConfiguration());
+    String baseDir = ServerConstants.getBaseDir();
     System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id")) + " to lookup accumulo instance");
     Instance instance = HdfsZooInstance.getInstance();
     if (opts.servers == null) {
@@ -50,7 +49,7 @@ public class ZooKeeperMain {
     }
     System.out.println("The accumulo instance id is " + instance.getInstanceID());
     if (!opts.servers.contains("/"))
-      opts.servers += "/accumulo/"+instance.getInstanceID(); 
-    org.apache.zookeeper.ZooKeeperMain.main(new String[]{"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
+      opts.servers += "/accumulo/" + instance.getInstanceID();
+    org.apache.zookeeper.ZooKeeperMain.main(new String[] {"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
   }
 }

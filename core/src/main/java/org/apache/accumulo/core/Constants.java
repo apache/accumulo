@@ -18,25 +18,17 @@ package org.apache.accumulo.core;
 
 import java.nio.charset.Charset;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 public class Constants {
   public static final Charset UTF8 = Charset.forName("UTF-8");
   public static final String VERSION = FilteredConstants.VERSION;
-  
-  // versions should never be negative
-  public static final Integer WIRE_VERSION = 2;
-  public static final int DATA_VERSION = 5;
-  public static final int PREV_DATA_VERSION = 4;
   
   // Zookeeper locations
   public static final String ZROOT = "/accumulo";
@@ -60,6 +52,7 @@ public class Constants {
   public static final String ZMASTERS = "/masters";
   public static final String ZMASTER_LOCK = ZMASTERS + "/lock";
   public static final String ZMASTER_GOAL_STATE = ZMASTERS + "/goal_state";
+  
   public static final String ZGC = "/gc";
   public static final String ZGC_LOCK = ZGC + "/lock";
   
@@ -68,12 +61,11 @@ public class Constants {
   public static final String ZTSERVERS = "/tservers";
   
   public static final String ZDEAD = "/dead";
-  public static final String ZDEADTSERVERS = "/dead/tservers";
+  public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
   
   public static final String ZTRACERS = "/tracers";
   
   public static final String ZPROBLEMS = "/problems";
-  public static final String ZUSERS = "/users";
   
   public static final String BULK_ARBITRATOR_TYPE = "bulkTx";
   
@@ -94,8 +86,6 @@ public class Constants {
   
   // reserved keyspace is any row that begins with a tilde '~' character
   public static final Key METADATA_RESERVED_KEYSPACE_START_KEY = new Key(new Text(new byte[] {'~'}));
-  public static final Key METADATA_RESERVED_KEYSPACE_STOP_KEY = new Key(new Text(new byte[] {'~' + 1}));
-  public static final Range METADATA_RESERVED_KEYSPACE = new Range(METADATA_RESERVED_KEYSPACE_START_KEY, true, METADATA_RESERVED_KEYSPACE_STOP_KEY, false);
   public static final String METADATA_DELETE_FLAG_PREFIX = "~del";
   public static final String METADATA_DELETE_FLAG_FOR_METADATA_PREFIX = "!!" + METADATA_DELETE_FLAG_PREFIX;
   public static final Range METADATA_DELETES_KEYSPACE = new Range(new Key(new Text(METADATA_DELETE_FLAG_PREFIX)), true, new Key(new Text("~dem")), false);
@@ -139,18 +129,11 @@ public class Constants {
   public static final Range METADATA_ROOT_TABLET_KEYSPACE = new Range(ROOT_TABLET_EXTENT.getMetadataEntry(), false, KeyExtent.getMetadataEntry(new Text(
       METADATA_TABLE_ID), null), true);
   
-  public static final String VALUE_ENCODING = "UTF-8";
-  
   public static final String BULK_PREFIX = "b-";
-  public static final String OLD_BULK_PREFIX = "bulk_";
   
   // note: all times are in milliseconds
   
   public static final int SCAN_BATCH_SIZE = 1000; // this affects the table client caching of metadata
-  
-  public static final long MIN_MASTER_LOOP_TIME = 1000;
-  public static final int MASTER_TABLETSERVER_CONNECTION_TIMEOUT = 3000;
-  public static final long CLIENT_SLEEP_BEFORE_RECONNECT = 1000;
   
   // Security configuration
   public static final String PW_HASH_ALGORITHM = "SHA-256";
@@ -164,10 +147,8 @@ public class Constants {
   public static final int DEFAULT_MINOR_COMPACTION_MAX_SLEEP_TIME = 60 * 3; // in seconds
   
   public static final int MAX_DATA_TO_PRINT = 64;
-  public static final int CLIENT_RETRIES = 5;
   public static final int TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER = 2;
   public static final String CORE_PACKAGE_NAME = "org.apache.accumulo.core";
-  public static final String OLD_PACKAGE_NAME = "cloudbase";
   public static final String VALID_TABLE_NAME_REGEX = "^\\w+$";
   public static final String MAPFILE_EXTENSION = "map";
   public static final String GENERATED_TABLET_DIRECTORY_PREFIX = "t-";
@@ -177,37 +158,4 @@ public class Constants {
   public static final String EXPORT_FILE = "exportMetadata.zip";
   public static final String EXPORT_INFO_FILE = "accumulo_export_info.txt";
   
-  public static String getBaseDir(final AccumuloConfiguration conf) {
-    return conf.get(Property.INSTANCE_DFS_DIR);
-  }
-  
-  public static String getTablesDir(final AccumuloConfiguration conf) {
-    return getBaseDir(conf) + "/tables";
-  }
-  
-  public static String getRecoveryDir(final AccumuloConfiguration conf) {
-    return getBaseDir(conf) + "/recovery";
-  }
-  
-  public static Path getDataVersionLocation(final AccumuloConfiguration conf) {
-    return new Path(getBaseDir(conf) + "/version");
-  }
-  
-  public static String getMetadataTableDir(final AccumuloConfiguration conf) {
-    return getTablesDir(conf) + "/" + METADATA_TABLE_ID;
-  }
-  
-  public static String getRootTabletDir(final AccumuloConfiguration conf) {
-    return getMetadataTableDir(conf) + ZROOT_TABLET;
-  }
-  
-  /**
-   * @param conf
-   * @return The write-ahead log directory.
-   */
-  public static String getWalDirectory(final AccumuloConfiguration conf) {
-    return getBaseDir(conf) + "/wal";
-  }
-  
-  public static final String AUDITLOG = "Audit";
 }

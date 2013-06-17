@@ -34,6 +34,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -65,7 +66,7 @@ public class RecoveryManager {
       log.warn(e, e);
     }
   }
-
+  
   private class LogSortTask implements Runnable {
     private String filename;
     private String host;
@@ -76,7 +77,7 @@ public class RecoveryManager {
       this.host = host;
       this.filename = filename;
     }
-
+    
     @Override
     public void run() {
       boolean rescheduled = false;
@@ -84,9 +85,9 @@ public class RecoveryManager {
         FileSystem localFs = master.getFileSystem();
         if (localFs instanceof TraceFileSystem)
           localFs = ((TraceFileSystem) localFs).getImplementation();
-      
+        
         long time = closer.close(master, localFs, getSource(host, filename));
-      
+        
         if (time > 0) {
           executor.schedule(this, time, TimeUnit.MILLISECONDS);
           rescheduled = true;
@@ -115,20 +116,20 @@ public class RecoveryManager {
     synchronized (this) {
       sortsQueued.add(file);
     }
-
+    
     final String path = ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY + "/" + file;
     log.info("Created zookeeper entry " + path + " with data " + source);
   }
   
   private Path getSource(String server, String file) {
-    String source = Constants.getWalDirectory(master.getSystemConfiguration()) + "/" + server + "/" + file;
+    String source = ServerConstants.getWalDirectory() + "/" + server + "/" + file;
     if (server.contains(":")) {
       // old-style logger log, copied from local file systems by tservers, unsorted into the wal base dir
-      source = Constants.getWalDirectory(master.getSystemConfiguration()) + "/" + file;
+      source = ServerConstants.getWalDirectory() + "/" + file;
     }
     return new Path(source);
   }
-
+  
   public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs) throws IOException {
     boolean recoveryNeeded = false;
     for (Collection<String> logs : walogs) {
@@ -147,8 +148,8 @@ public class RecoveryManager {
             sortsQueued.remove(filename);
           }
         }
-
-        if (master.getFileSystem().exists(new Path(Constants.getRecoveryDir(master.getSystemConfiguration()) + "/" + filename + "/finished"))) {
+        
+        if (master.getFileSystem().exists(new Path(ServerConstants.getRecoveryDir() + "/" + filename + "/finished"))) {
           synchronized (this) {
             closeTasksQueued.remove(filename);
             recoveryDelay.remove(filename);
@@ -161,17 +162,16 @@ public class RecoveryManager {
         synchronized (this) {
           if (!closeTasksQueued.contains(filename) && !sortsQueued.contains(filename)) {
             AccumuloConfiguration aconf = master.getConfiguration().getConfiguration();
-            LogCloser closer = Master.createInstanceFromPropertyName(aconf, Property.MASTER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class,
-                new HadoopLogCloser());
+            LogCloser closer = Master.createInstanceFromPropertyName(aconf, Property.MASTER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class, new HadoopLogCloser());
             Long delay = recoveryDelay.get(filename);
             if (delay == null) {
               delay = master.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_DELAY);
             } else {
               delay = Math.min(2 * delay, 1000 * 60 * 5l);
             }
-
+            
             log.info("Starting recovery of " + filename + " (in : " + (delay / 1000) + "s) created for " + host + ", tablet " + extent + " holds a reference");
-
+            
             executor.schedule(new LogSortTask(closer, host, filename), delay, TimeUnit.MILLISECONDS);
             closeTasksQueued.add(filename);
             recoveryDelay.put(filename, delay);

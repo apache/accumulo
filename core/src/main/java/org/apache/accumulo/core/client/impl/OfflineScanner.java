@@ -230,7 +230,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
     
-    String tablesDir = Constants.getTablesDir(instance.getConfiguration());
+    String tablesDir = instance.getConfiguration().get(Property.INSTANCE_DFS_DIR) + "/tables";
     List<String> absFiles = new ArrayList<String>();
     for (String relPath : relFiles) {
       if (relPath.startsWith(".."))

@@ -209,7 +209,7 @@ public class Initialize {
     
     final Path metadataTableDir = new Path(ServerConstants.getMetadataTableDir());
     
-    fs.mkdirs(new Path(ServerConstants.getDataVersionLocation(), "" + Constants.DATA_VERSION));
+    fs.mkdirs(new Path(ServerConstants.getDataVersionLocation(), "" + ServerConstants.DATA_VERSION));
     
     // create an instance id
     fs.mkdirs(ServerConstants.getInstanceIdLocation());
@@ -250,7 +250,7 @@ public class Initialize {
       // populate the root tablet with info about the default tablet
       // the root tablet contains the key extent and locations of all the
       // metadata tablets
-      String initRootTabFile = ServerConstants.getMetadataTableDir() + "/root_tablet/00000_00000."
+      String initRootTabFile = ServerConstants.getRootTabletDir() + "/00000_00000."
           + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
       FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, fs, conf, AccumuloConfiguration.getDefaultConfiguration());
       mfw.startDefaultLocalityGroup();

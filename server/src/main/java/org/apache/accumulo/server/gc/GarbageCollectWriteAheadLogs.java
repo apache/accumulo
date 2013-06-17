@@ -38,6 +38,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.accumulo.server.util.MetadataTable;
@@ -138,7 +139,7 @@ public class GarbageCollectWriteAheadLogs {
         for (String filename : entry.getValue()) {
           log.debug("Removing old-style WAL " + entry.getValue());
           try {
-            Path path = new Path(Constants.getWalDirectory(conf), filename);
+            Path path = new Path(ServerConstants.getWalDirectory(), filename);
             if (trash == null || !trash.moveToTrash(path))
               fs.delete(path, true);
             status.currentLog.deleted++;
@@ -151,7 +152,7 @@ public class GarbageCollectWriteAheadLogs {
       } else {
         InetSocketAddress address = AddressUtil.parseAddress(entry.getKey());
         if (!holdsLock(address)) {
-          Path serverPath = new Path(Constants.getWalDirectory(conf), entry.getKey());
+          Path serverPath = new Path(ServerConstants.getWalDirectory(), entry.getKey());
           for (String filename : entry.getValue()) {
             log.debug("Removing WAL for offline server " + filename);
             try {
@@ -183,7 +184,7 @@ public class GarbageCollectWriteAheadLogs {
       }
     }
     
-    Path recoveryDir = new Path(Constants.getRecoveryDir(conf));
+    Path recoveryDir = new Path(ServerConstants.getRecoveryDir());
     
     for (String sortedWALog : sortedWALogs) {
       log.debug("Removing sorted WAL " + sortedWALog);
@@ -240,8 +241,7 @@ public class GarbageCollectWriteAheadLogs {
   }
   
   private int scanServers(Map<String,String> fileToServerMap) throws Exception {
-    AccumuloConfiguration conf = instance.getConfiguration();
-    Path walRoot = new Path(Constants.getWalDirectory(conf));
+    Path walRoot = new Path(ServerConstants.getWalDirectory());
     for (FileStatus status : fs.listStatus(walRoot)) {
       String name = status.getPath().getName();
       if (status.isDir()) {
@@ -265,8 +265,7 @@ public class GarbageCollectWriteAheadLogs {
   }
   
   private Set<String> getSortedWALogs() throws IOException {
-    AccumuloConfiguration conf = instance.getConfiguration();
-    Path recoveryDir = new Path(Constants.getRecoveryDir(conf));
+    Path recoveryDir = new Path(ServerConstants.getRecoveryDir());
     
     Set<String> sortedWALogs = new HashSet<String>();
     
@@ -283,10 +282,6 @@ public class GarbageCollectWriteAheadLogs {
     return sortedWALogs;
   }
   
-  /**
-   * @param name
-   * @return
-   */
   static private boolean isUUID(String name) {
     try {
       UUID.fromString(name);

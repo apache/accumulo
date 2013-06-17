@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.commons.codec.binary.Base64;
@@ -62,7 +63,7 @@ public class SecurityConstants {
   }
   
   private static AuthenticationToken makeSystemPassword() {
-    int wireVersion = Constants.WIRE_VERSION;
+    int wireVersion = ServerConstants.WIRE_VERSION;
     byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8);
     try {
       confChecksum = getSystemConfigChecksum();
@@ -92,7 +93,7 @@ public class SecurityConstants {
       
       // seed the config with the version and instance id, so at least
       // it's not empty
-      md.update(Constants.WIRE_VERSION.toString().getBytes(Constants.UTF8));
+      md.update(ServerConstants.WIRE_VERSION.toString().getBytes(Constants.UTF8));
       md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8));
       
       for (Entry<String,String> entry : ServerConfiguration.getSiteConfiguration()) {

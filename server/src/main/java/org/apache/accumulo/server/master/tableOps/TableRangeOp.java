@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeInfo.Operation;
@@ -58,7 +59,7 @@ class MakeDeleteEntries extends MasterRepo {
     log.info("creating delete entries for merged metadata tablets");
     Connector conn = master.getConnector();
     BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
-    String tableDir = Constants.getMetadataTableDir(master.getConfiguration().getConfiguration());
+    String tableDir = ServerConstants.getMetadataTableDir();
     for (FileStatus fs : master.getFileSystem().listStatus(new Path(tableDir))) {
       // TODO: add the entries only if there are no !METADATA table references - ACCUMULO-1308
       if (fs.isDir() && fs.getPath().getName().matches("^" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + ".*")) {

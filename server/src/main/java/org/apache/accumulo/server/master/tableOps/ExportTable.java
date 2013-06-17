@@ -161,7 +161,7 @@ class WriteExportFiles extends MasterRepo {
       osw.append("srcZookeepers:" + conn.getInstance().getZooKeepers() + "\n");
       osw.append("srcTableName:" + tableName + "\n");
       osw.append("srcTableID:" + tableID + "\n");
-      osw.append(ExportTable.DATA_VERSION_PROP + ":" + Constants.DATA_VERSION + "\n");
+      osw.append(ExportTable.DATA_VERSION_PROP + ":" + ServerConstants.DATA_VERSION + "\n");
       osw.append("srcCodeVersion:" + Constants.VERSION + "\n");
       
       osw.flush();

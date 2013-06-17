@@ -570,7 +570,7 @@ public class ImportTable extends MasterRepo {
         throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
             "Incompatible export version " + exportVersion);
       
-      if (dataVersion == null || dataVersion > Constants.DATA_VERSION)
+      if (dataVersion == null || dataVersion > ServerConstants.DATA_VERSION)
         throw new ThriftTableOperationException(null, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
             "Incompatible data version " + exportVersion);
       

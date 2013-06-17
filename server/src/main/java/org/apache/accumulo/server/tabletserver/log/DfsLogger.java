@@ -37,13 +37,13 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.StringUtil;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -210,7 +210,7 @@ public class DfsLogger {
   public DfsLogger(ServerResources conf, String logger, String filename) throws IOException {
     this.conf = conf;
     this.logger = logger;
-    this.logPath = new Path(Constants.getWalDirectory(conf.getConfiguration()), filename);
+    this.logPath = new Path(ServerConstants.getWalDirectory(), filename);
   }
   
   public static FSDataInputStream readHeader(FileSystem fs, Path path, Map<String,String> opts) throws IOException {
@@ -243,7 +243,7 @@ public class DfsLogger {
     
     log.debug("DfsLogger.open() begin");
     
-    logPath = new Path(Constants.getWalDirectory(conf.getConfiguration()) + "/" + logger + "/" + filename);
+    logPath = new Path(ServerConstants.getWalDirectory() + "/" + logger + "/" + filename);
     try {
       FileSystem fs = conf.getFileSystem();
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);

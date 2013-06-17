@@ -22,7 +22,6 @@ import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -30,7 +29,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.log4j.Logger;
 
 /**
  * A byte sequence that is usable as a key or value. Based on {@link org.apache.hadoop.io.BytesWritable} only this class is NOT resizable and DOES NOT
@@ -39,7 +37,6 @@ import org.apache.log4j.Logger;
  */
 public class Value implements WritableComparable<Object> {
   protected byte[] value;
-  private static final Logger log = Logger.getLogger(Value.class);
   
   /**
    * Create a zero-size sequence.
@@ -142,12 +139,13 @@ public class Value implements WritableComparable<Object> {
     return this.value.length;
   }
   
+  @Override
   public void readFields(final DataInput in) throws IOException {
     this.value = new byte[in.readInt()];
     in.readFully(this.value, 0, this.value.length);
   }
   
-  /** {@inheritDoc} */
+  @Override
   public void write(final DataOutput out) throws IOException {
     out.writeInt(this.value.length);
     out.write(this.value, 0, this.value.length);
@@ -155,7 +153,6 @@ public class Value implements WritableComparable<Object> {
   
   // Below methods copied from BytesWritable
   
-  /** {@inheritDoc} */
   @Override
   public int hashCode() {
     return WritableComparator.hashBytes(value, this.value.length);
@@ -168,6 +165,7 @@ public class Value implements WritableComparable<Object> {
    *          The other bytes writable
    * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is smaller than right.
    */
+  @Override
   public int compareTo(Object right_obj) {
     return compareTo(((Value) right_obj).get());
   }
@@ -182,7 +180,6 @@ public class Value implements WritableComparable<Object> {
     return (diff != 0) ? diff : WritableComparator.compareBytes(this.value, 0, this.value.length, that, 0, that.length);
   }
   
-  /** {@inheritDoc} */
   @Override
   public boolean equals(Object right_obj) {
     if (right_obj instanceof byte[]) {
@@ -196,13 +193,7 @@ public class Value implements WritableComparable<Object> {
   
   @Override
   public String toString() {
-	String retValue = "";
-    try {
-      retValue = new String(get(), Constants.VALUE_ENCODING);
-    } catch (UnsupportedEncodingException e) {
-      log.error(e.toString());
-    }
-    return retValue;
+    return new String(get(), Constants.UTF8);
   }
   
   /**
@@ -216,7 +207,6 @@ public class Value implements WritableComparable<Object> {
       super(Value.class);
     }
     
-    /** {@inheritDoc} */
     @Override
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
       return comparator.compare(b1, s1, l1, b2, s2, l2);

@@ -37,6 +37,7 @@ import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -74,7 +75,7 @@ public class LogSorter {
     
     @Override
     public void process(String child, byte[] data) {
-      String dest = Constants.getRecoveryDir(conf) + "/" + child;
+      String dest = ServerConstants.getRecoveryDir() + "/" + child;
       String src = new String(data);
       String name = new Path(src).getName();
       

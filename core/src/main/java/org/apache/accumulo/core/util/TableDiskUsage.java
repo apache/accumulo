@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
@@ -165,7 +166,7 @@ public class TableDiskUsage {
     }
     
     for (String tableId : tablesReferenced) {
-      FileStatus[] files = fs.globStatus(new Path(Constants.getTablesDir(acuConf) + "/" + tableId + "/*/*"));
+      FileStatus[] files = fs.globStatus(new Path(acuConf.get(Property.INSTANCE_DFS_DIR) + "/tables/" + tableId + "/*/*"));
       
       for (FileStatus fileStatus : files) {
         String dir = fileStatus.getPath().getParent().getName();

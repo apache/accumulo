@@ -16,13 +16,20 @@
  */
 package org.apache.accumulo.server;
 
+import static org.apache.accumulo.core.Constants.METADATA_TABLE_ID;
+import static org.apache.accumulo.core.Constants.ZROOT_TABLET;
+
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.fs.Path;
 
-import static org.apache.accumulo.core.Constants.*;
-
 public class ServerConstants {
+  
+  // versions should never be negative
+  public static final Integer WIRE_VERSION = 2;
+  public static final int DATA_VERSION = 5;
+  public static final int PREV_DATA_VERSION = 4;
+  
   // these are functions to delay loading the Accumulo configuration unless we must
   public static String getBaseDir() {
     return ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_DIR);
@@ -34,6 +41,10 @@ public class ServerConstants {
   
   public static String getRecoveryDir() {
     return getBaseDir() + "/recovery";
+  }
+  
+  public static String getWalDirectory() {
+    return getBaseDir() + "/wal";
   }
   
   public static Path getInstanceIdLocation() {
@@ -48,8 +59,12 @@ public class ServerConstants {
     return getTablesDir() + "/" + METADATA_TABLE_ID;
   }
   
+  public static String getRootTableDir() {
+    return getTablesDir() + "/" + METADATA_TABLE_ID;
+  }
+  
   public static String getRootTabletDir() {
-    return getMetadataTableDir() + ZROOT_TABLET;
+    return getRootTableDir() + ZROOT_TABLET;
   }
   
 }

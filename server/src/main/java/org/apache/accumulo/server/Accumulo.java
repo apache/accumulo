@@ -50,9 +50,9 @@ public class Accumulo {
   
   public static synchronized void updateAccumuloVersion(FileSystem fs) {
     try {
-      if (getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
-        fs.create(new Path(ServerConstants.getDataVersionLocation() + "/" + Constants.DATA_VERSION));
-        fs.delete(new Path(ServerConstants.getDataVersionLocation() + "/" + Constants.PREV_DATA_VERSION), false);
+      if (getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+        fs.create(new Path(ServerConstants.getDataVersionLocation() + "/" + ServerConstants.DATA_VERSION));
+        fs.delete(new Path(ServerConstants.getDataVersionLocation() + "/" + ServerConstants.PREV_DATA_VERSION), false);
       }
     } catch (IOException e) {
       throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
@@ -123,7 +123,7 @@ public class Accumulo {
     Accumulo.waitForZookeeperAndHdfs(fs);
     
     Version codeVersion = new Version(Constants.VERSION);
-    if (dataVersion != Constants.DATA_VERSION && dataVersion != Constants.PREV_DATA_VERSION) {
+    if (dataVersion != ServerConstants.DATA_VERSION && dataVersion != ServerConstants.PREV_DATA_VERSION) {
       throw new RuntimeException("This version of accumulo (" + codeVersion + ") is not compatible with files stored using data version " + dataVersion);
     }
     
