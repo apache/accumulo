@@ -97,7 +97,7 @@ public class LargeRowTest extends FunctionalTest {
     
     UtilWaitThread.sleep(12000);
     Logger.getLogger(LargeRowTest.class).warn("checking splits");
-    checkSplits(REG_TABLE_NAME, NUM_PRE_SPLITS / 2, NUM_PRE_SPLITS * 2);
+    checkSplits(REG_TABLE_NAME, NUM_PRE_SPLITS / 2, NUM_PRE_SPLITS * 4);
     
     verify(REG_TABLE_NAME);
   }
