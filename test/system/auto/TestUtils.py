@@ -457,6 +457,8 @@ class TestUtilsMixin:
         out,err = handle.communicate()
         self.assert_(handle.returncode==0)
         for line in out.split('\n') :
+            if line.find("=>") < 0:
+                continue
             left, right = line.split("=>")
             left = left.strip()
             right = right.strip()
