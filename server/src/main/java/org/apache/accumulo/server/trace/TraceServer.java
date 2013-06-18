@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileUtil;
+import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -185,6 +187,9 @@ public class TraceServer implements Watcher {
         connector = serverConfiguration.getInstance().getConnector(principal, at);
         if (!connector.tableOperations().exists(table)) {
           connector.tableOperations().create(table);
+          IteratorSetting setting = new IteratorSetting(10, "ageoff", AgeOffFilter.class.getName());
+          AgeOffFilter.setTTL(setting, 7 * 24 * 60 * 60 * 1000l);
+          connector.tableOperations().attachIterator(table, setting);
         }
         connector.tableOperations().setProperty(table, Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
         break;
