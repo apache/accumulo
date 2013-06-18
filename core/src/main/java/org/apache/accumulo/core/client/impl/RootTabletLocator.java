@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -30,6 +29,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
@@ -54,7 +54,7 @@ public class RootTabletLocator extends TabletLocator {
     String rootTabletLocation = instance.getRootTabletLocation();
     if (rootTabletLocation != null) {
       for (Range range : ranges) {
-        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation, Constants.ROOT_TABLET_EXTENT, range);
+        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation, RootTable.ROOT_TABLET_EXTENT, range);
       }
     }
     return Collections.emptyList();
@@ -78,7 +78,7 @@ public class RootTabletLocator extends TabletLocator {
       row = new Text(row);
       row.append(new byte[] {0}, 0, 1);
     }
-    if (!Constants.ROOT_TABLET_EXTENT.contains(row)) {
+    if (!RootTable.ROOT_TABLET_EXTENT.contains(row)) {
       throw new AccumuloException("Tried to locate row out side of root tablet " + row);
     }
     String location = instance.getRootTabletLocation();
@@ -88,7 +88,7 @@ public class RootTabletLocator extends TabletLocator {
       location = instance.getRootTabletLocation();
     }
     if (location != null)
-      return new TabletLocation(Constants.ROOT_TABLET_EXTENT, location);
+      return new TabletLocation(RootTable.ROOT_TABLET_EXTENT, location);
     return null;
   }
   

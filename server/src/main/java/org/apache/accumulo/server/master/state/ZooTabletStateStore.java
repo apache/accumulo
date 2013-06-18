@@ -23,8 +23,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.log4j.Logger;
@@ -60,9 +60,9 @@ public class ZooTabletStateStore extends TabletStateStore {
       public TabletLocationState next() {
         finished = true;
         try {
-          byte[] future = store.get(Constants.ZROOT_TABLET_FUTURE_LOCATION);
-          byte[] current = store.get(Constants.ZROOT_TABLET_LOCATION);
-          byte[] last = store.get(Constants.ZROOT_TABLET_LAST_LOCATION);
+          byte[] future = store.get(RootTable.ZROOT_TABLET_FUTURE_LOCATION);
+          byte[] current = store.get(RootTable.ZROOT_TABLET_LOCATION);
+          byte[] last = store.get(RootTable.ZROOT_TABLET_LAST_LOCATION);
           
           TServerInstance currentSession = null;
           TServerInstance futureSession = null;
@@ -79,8 +79,8 @@ public class ZooTabletStateStore extends TabletStateStore {
             futureSession = null;
           }
           List<Collection<String>> logs = new ArrayList<Collection<String>>();
-          for (String entry : store.getChildren(Constants.ZROOT_TABLET_WALOGS)) {
-            byte[] logInfo = store.get(Constants.ZROOT_TABLET_WALOGS + "/" + entry);
+          for (String entry : store.getChildren(RootTable.ZROOT_TABLET_WALOGS)) {
+            byte[] logInfo = store.get(RootTable.ZROOT_TABLET_WALOGS + "/" + entry);
             if (logInfo != null) {
               MetadataTable.LogEntry logEntry = new MetadataTable.LogEntry();
               logEntry.fromBytes(logInfo);
@@ -88,7 +88,7 @@ public class ZooTabletStateStore extends TabletStateStore {
               log.debug("root tablet logSet " + logEntry.logSet);
             }
           }
-          TabletLocationState result = new TabletLocationState(Constants.ROOT_TABLET_EXTENT, futureSession, currentSession, lastSession, logs, false);
+          TabletLocationState result = new TabletLocationState(RootTable.ROOT_TABLET_EXTENT, futureSession, currentSession, lastSession, logs, false);
           log.debug("Returning root tablet state: " + result);
           return result;
         } catch (Exception ex) {
@@ -120,7 +120,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (assignments.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     Assignment assignment = assignments.iterator().next();
-    if (assignment.tablet.compareTo(Constants.ROOT_TABLET_EXTENT) != 0)
+    if (assignment.tablet.compareTo(RootTable.ROOT_TABLET_EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
     Iterator<TabletLocationState> currentIter = iterator();
@@ -128,7 +128,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (current.current != null) {
       throw new IllegalDSException("Trying to set the root tablet location: it is already set to " + current.current);
     }
-    store.put(Constants.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes());
+    store.put(RootTable.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes());
   }
   
   @Override
@@ -136,7 +136,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (assignments.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     Assignment assignment = assignments.iterator().next();
-    if (assignment.tablet.compareTo(Constants.ROOT_TABLET_EXTENT) != 0)
+    if (assignment.tablet.compareTo(RootTable.ROOT_TABLET_EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
     Iterator<TabletLocationState> currentIter = iterator();
@@ -147,10 +147,10 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (!current.future.equals(assignment.server)) {
       throw new IllegalDSException("Root tablet is already assigned to " + current.future);
     }
-    store.put(Constants.ZROOT_TABLET_LOCATION, value.getBytes());
-    store.put(Constants.ZROOT_TABLET_LAST_LOCATION, value.getBytes());
+    store.put(RootTable.ZROOT_TABLET_LOCATION, value.getBytes());
+    store.put(RootTable.ZROOT_TABLET_LAST_LOCATION, value.getBytes());
     // Make the following unnecessary by making the entire update atomic 
-    store.remove(Constants.ZROOT_TABLET_FUTURE_LOCATION);
+    store.remove(RootTable.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("Put down root tablet location");
   }
   
@@ -159,10 +159,10 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (tablets.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     TabletLocationState tls = tablets.iterator().next();
-    if (tls.extent.compareTo(Constants.ROOT_TABLET_EXTENT) != 0)
+    if (tls.extent.compareTo(RootTable.ROOT_TABLET_EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
-    store.remove(Constants.ZROOT_TABLET_LOCATION);
-    store.remove(Constants.ZROOT_TABLET_FUTURE_LOCATION);
+    store.remove(RootTable.ZROOT_TABLET_LOCATION);
+    store.remove(RootTable.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("unassign root tablet location");
   }
   

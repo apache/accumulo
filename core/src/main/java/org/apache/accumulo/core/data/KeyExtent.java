@@ -39,9 +39,10 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.WeakHashMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
@@ -395,7 +396,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   
   public static Mutation getPrevRowUpdateMutation(KeyExtent ke) {
     Mutation m = new Mutation(ke.getMetadataEntry());
-    Constants.METADATA_PREV_ROW_COLUMN.put(m, encodePrevEndRow(ke.getPrevEndRow()));
+    MetadataTable.PREV_ROW_COLUMN.put(m, encodePrevEndRow(ke.getPrevEndRow()));
     return m;
   }
   
@@ -774,10 +775,10 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
   
   public boolean isMeta() {
-    return getTableId().toString().equals(Constants.METADATA_TABLE_ID);
+    return getTableId().toString().equals(MetadataTable.ID);
   }
   
   public boolean isRootTablet() {
-    return this.compareTo(Constants.ROOT_TABLET_EXTENT) == 0;
+    return this.compareTo(RootTable.ROOT_TABLET_EXTENT) == 0;
   }
 }

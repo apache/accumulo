@@ -42,6 +42,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
@@ -91,17 +93,17 @@ class CompactionDriver extends MasterRepo {
     
     MapCounter<TServerInstance> serversToFlush = new MapCounter<TServerInstance>();
     Connector conn = master.getConnector();
-    Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY));
+    Scanner scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
     
     Range range = new KeyExtent(new Text(tableId), null, startRow == null ? null : new Text(startRow)).toMetadataRange();
     
-    if (tableId.equals(Constants.METADATA_TABLE_ID))
-      range = range.clip(new Range(Constants.ROOT_TABLET_EXTENT.getMetadataEntry(), false, null, true));
+    if (tableId.equals(MetadataTable.ID))
+      range = range.clip(new Range(RootTable.ROOT_TABLET_EXTENT.getMetadataEntry(), false, null, true));
     
     scanner.setRange(range);
-    Constants.METADATA_COMPACT_COLUMN.fetch(scanner);
-    Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
+    MetadataTable.COMPACT_COLUMN.fetch(scanner);
+    MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
     
     long t1 = System.currentTimeMillis();
     RowIterator ri = new RowIterator(scanner);
@@ -120,10 +122,10 @@ class CompactionDriver extends MasterRepo {
         entry = row.next();
         Key key = entry.getKey();
         
-        if (Constants.METADATA_COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
+        if (MetadataTable.COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
           tabletCompactID = Long.parseLong(entry.getValue().toString());
         
-        if (Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily()))
+        if (MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily()))
           server = new TServerInstance(entry.getValue(), key.getColumnQualifier());
       }
       

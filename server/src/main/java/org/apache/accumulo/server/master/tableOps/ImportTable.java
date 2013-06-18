@@ -205,7 +205,7 @@ class PopulateMetadataTable extends MasterRepo {
     try {
       FileSystem fs = master.getFileSystem();
       
-      mbw = master.getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+      mbw = master.getConnector().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       
       zis = new ZipInputStream(fs.open(path));
       
@@ -234,7 +234,7 @@ class PopulateMetadataTable extends MasterRepo {
             
             Text cq;
             
-            if (key.getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
+            if (key.getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
               String oldName = new Path(key.getColumnQualifier().toString()).getName();
               String newName = fileNameMappings.get(oldName);
               
@@ -245,19 +245,19 @@ class PopulateMetadataTable extends MasterRepo {
             
             if (m == null) {
               m = new Mutation(metadataRow);
-              Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
+              MetadataTable.DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
               currentRow = metadataRow;
             }
             
             if (!currentRow.equals(metadataRow)) {
               mbw.addMutation(m);
               m = new Mutation(metadataRow);
-              Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
+              MetadataTable.DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
             }
             
             m.put(key.getColumnFamily(), cq, val);
             
-            if (endRow == null && Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key)) {
+            if (endRow == null && MetadataTable.PREV_ROW_COLUMN.hasColumns(key)) {
               mbw.addMutation(m);
               break; // its the last column in the last row
             }

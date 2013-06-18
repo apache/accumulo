@@ -125,6 +125,7 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
@@ -1277,8 +1278,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         } else if (keyExtent.isRootTablet()) {
           throw new IllegalArgumentException("Cannot batch query root tablet with other tablets " + threadPoolExtent + " " + keyExtent);
         } else if (keyExtent.isMeta() && !threadPoolExtent.isMeta()) {
-          throw new IllegalArgumentException("Cannot batch query " + Constants.METADATA_TABLE_NAME + " and non " + Constants.METADATA_TABLE_NAME + " tablets "
-              + threadPoolExtent + " " + keyExtent);
+          throw new IllegalArgumentException("Cannot batch query " + MetadataTable.NAME + " and non " + MetadataTable.NAME + " tablets " + threadPoolExtent
+              + " " + keyExtent);
         }
         
       }
@@ -2874,7 +2875,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       throw new AccumuloException("Root tablet already has a location set");
     }
     
-    return new Pair<Text,KeyExtent>(new Text(Constants.ZROOT_TABLET), null);
+    return new Pair<Text,KeyExtent>(new Text(RootTable.ZROOT_TABLET), null);
   }
   
   public static Pair<Text,KeyExtent> verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues,
@@ -2885,11 +2886,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       return verifyRootTablet(extent, instance);
     }
     
-    List<ColumnFQ> columnsToFetch = Arrays.asList(new ColumnFQ[] {Constants.METADATA_DIRECTORY_COLUMN, Constants.METADATA_PREV_ROW_COLUMN,
-        Constants.METADATA_SPLIT_RATIO_COLUMN, Constants.METADATA_OLD_PREV_ROW_COLUMN, Constants.METADATA_TIME_COLUMN});
+    List<ColumnFQ> columnsToFetch = Arrays.asList(new ColumnFQ[] {MetadataTable.DIRECTORY_COLUMN, MetadataTable.PREV_ROW_COLUMN,
+        MetadataTable.SPLIT_RATIO_COLUMN, MetadataTable.OLD_PREV_ROW_COLUMN, MetadataTable.TIME_COLUMN});
     
-    ScannerImpl scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), Constants.METADATA_TABLE_ID,
-        Authorizations.EMPTY);
+    ScannerImpl scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), MetadataTable.ID, Authorizations.EMPTY);
     scanner.setRange(extent.toMetadataRange());
     
     TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
@@ -2912,7 +2912,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     Value oldPrevEndRow = null;
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
-      if (Constants.METADATA_OLD_PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+      if (MetadataTable.OLD_PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
         oldPrevEndRow = entry.getValue();
       }
     }
@@ -2949,19 +2949,19 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         return null;
       }
       Text cf = key.getColumnFamily();
-      if (cf.equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
+      if (cf.equals(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY)) {
         if (future != null) {
           throw new AccumuloException("Tablet has multiple future locations " + extent);
         }
         future = new TServerInstance(entry.getValue(), key.getColumnQualifier());
-      } else if (cf.equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
+      } else if (cf.equals(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY)) {
         log.info("Tablet seems to be already assigned to " + new TServerInstance(entry.getValue(), key.getColumnQualifier()));
         return null;
-      } else if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key)) {
+      } else if (MetadataTable.PREV_ROW_COLUMN.hasColumns(key)) {
         prevEndRow = entry.getValue();
-      } else if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(key)) {
+      } else if (MetadataTable.DIRECTORY_COLUMN.hasColumns(key)) {
         dir = entry.getValue();
-      } else if (Constants.METADATA_TIME_COLUMN.hasColumns(key)) {
+      } else if (MetadataTable.TIME_COLUMN.hasColumns(key)) {
         time = entry.getValue();
       }
     }

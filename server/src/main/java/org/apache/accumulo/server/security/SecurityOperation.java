@@ -39,6 +39,7 @@ import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.Master;
@@ -133,7 +134,7 @@ public class SecurityOperation {
     authorizor.initializeSecurity(credentials, rootPrincipal);
     permHandle.initializeSecurity(credentials, rootPrincipal);
     try {
-      permHandle.grantTablePermission(rootPrincipal, Constants.METADATA_TABLE_ID, TablePermission.ALTER_TABLE);
+      permHandle.grantTablePermission(rootPrincipal, MetadataTable.ID, TablePermission.ALTER_TABLE);
     } catch (TableNotFoundException e) {
       // Shouldn't happen
       throw new RuntimeException(e);
@@ -254,7 +255,7 @@ public class SecurityOperation {
     
     targetUserExists(user);
     
-    if (table.equals(Constants.METADATA_TABLE_ID) && permission.equals(TablePermission.READ))
+    if (table.equals(MetadataTable.ID) && permission.equals(TablePermission.READ))
       return true;
     
     try {

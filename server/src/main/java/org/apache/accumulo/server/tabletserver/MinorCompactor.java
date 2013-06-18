@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -78,7 +77,7 @@ public class MinorCompactor extends Compactor {
       return false; // can not get positive confirmation that its deleting.
     }
   }
-
+  
   @Override
   public CompactionStats call() {
     log.debug("Begin minor compaction " + getOutputFile() + " " + getExtent());
@@ -86,7 +85,7 @@ public class MinorCompactor extends Compactor {
     // output to new MapFile with a temporary name
     int sleepTime = 100;
     double growthFactor = 4;
-    int maxSleepTime = 1000 * Constants.DEFAULT_MINOR_COMPACTION_MAX_SLEEP_TIME;
+    int maxSleepTime = 1000 * 60 * 3; // 3 minutes
     boolean reportedProblem = false;
     
     runningCompactions.add(this);

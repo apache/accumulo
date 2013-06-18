@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.logger.LogEvents;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
@@ -49,7 +49,7 @@ public class FilterMeta extends Configured implements Tool {
     public void map(LogFileKey key, LogFileValue value, Context context) throws IOException, InterruptedException {
       if (key.event == LogEvents.OPEN) {
         context.write(key, value);
-      } else if (key.event == LogEvents.DEFINE_TABLET && key.tablet.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
+      } else if (key.event == LogEvents.DEFINE_TABLET && key.tablet.getTableId().toString().equals(MetadataTable.ID)) {
         tabletIds.add(key.tid);
         context.write(key, value);
       } else if ((key.event == LogEvents.MUTATION || key.event == LogEvents.MANY_MUTATIONS) && tabletIds.contains(key.tid)) {

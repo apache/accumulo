@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
@@ -32,6 +31,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.logger.LogEvents;
 import org.apache.accumulo.server.logger.LogFileKey;
@@ -72,7 +72,7 @@ public class IndexMeta extends Configured implements Tool {
       if (key.event == LogEvents.OPEN) {
         uuid = key.tserverSession;
       } else if (key.event == LogEvents.DEFINE_TABLET) {
-        if (key.tablet.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
+        if (key.tablet.getTableId().toString().equals(MetadataTable.ID)) {
           tabletIds.put(key.tid, new KeyExtent(key.tablet));
         }
       } else if ((key.event == LogEvents.MUTATION || key.event == LogEvents.MANY_MUTATIONS) && tabletIds.containsKey(key.tid)) {
@@ -93,7 +93,7 @@ public class IndexMeta extends Configured implements Tool {
       }
       
       for (ColumnUpdate cu : columnsUpdates) {
-        if (Constants.METADATA_PREV_ROW_COLUMN.equals(new Text(cu.getColumnFamily()), new Text(cu.getColumnQualifier())) && !cu.isDeleted()) {
+        if (MetadataTable.PREV_ROW_COLUMN.equals(new Text(cu.getColumnFamily()), new Text(cu.getColumnQualifier())) && !cu.isDeleted()) {
           prevRow = new Text(cu.getValue());
         }
         

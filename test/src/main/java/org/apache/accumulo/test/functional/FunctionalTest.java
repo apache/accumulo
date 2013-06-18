@@ -26,7 +26,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -43,6 +42,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -190,11 +190,11 @@ public abstract class FunctionalTest {
    */
   
   protected void checkRFiles(String tableName, int minTablets, int maxTablets, int minRFiles, int maxRFiles) throws Exception {
-    Scanner scanner = getConnector().createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+    Scanner scanner = getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     String tableId = Tables.getNameToIdMap(getInstance()).get(tableName);
     scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
-    scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+    MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
     
     HashMap<Text,Integer> tabletFileCounts = new HashMap<Text,Integer>();
     
@@ -205,7 +205,7 @@ public abstract class FunctionalTest {
       Integer count = tabletFileCounts.get(row);
       if (count == null)
         count = 0;
-      if (entry.getKey().getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
+      if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
         count = count + 1;
       }
       

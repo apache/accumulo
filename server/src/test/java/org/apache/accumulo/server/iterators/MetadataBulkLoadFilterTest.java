@@ -23,7 +23,6 @@ import java.util.TreeMap;
 
 import org.junit.Assert;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -83,24 +83,24 @@ public class MetadataBulkLoadFilterTest {
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
     
     // following should not be deleted by filter
-    put(tm1, "2;m", Constants.METADATA_DIRECTORY_COLUMN, "/t1");
-    put(tm1, "2;m", Constants.METADATA_DATAFILE_COLUMN_FAMILY, "/t1/file1", "1,1");
-    put(tm1, "2;m", Constants.METADATA_BULKFILE_COLUMN_FAMILY, "/t1/file1", "5");
-    put(tm1, "2;m", Constants.METADATA_BULKFILE_COLUMN_FAMILY, "/t1/file3", "7");
-    put(tm1, "2;m", Constants.METADATA_BULKFILE_COLUMN_FAMILY, "/t1/file4", "9");
-    put(tm1, "2<", Constants.METADATA_DIRECTORY_COLUMN, "/t2");
-    put(tm1, "2<", Constants.METADATA_DATAFILE_COLUMN_FAMILY, "/t2/file2", "1,1");
-    put(tm1, "2<", Constants.METADATA_BULKFILE_COLUMN_FAMILY, "/t2/file6", "5");
-    put(tm1, "2<", Constants.METADATA_BULKFILE_COLUMN_FAMILY, "/t2/file7", "7");
-    put(tm1, "2<", Constants.METADATA_BULKFILE_COLUMN_FAMILY, "/t2/file8", "9");
-    put(tm1, "2<", Constants.METADATA_BULKFILE_COLUMN_FAMILY, "/t2/fileC", null);
+    put(tm1, "2;m", MetadataTable.DIRECTORY_COLUMN, "/t1");
+    put(tm1, "2;m", MetadataTable.DATAFILE_COLUMN_FAMILY, "/t1/file1", "1,1");
+    put(tm1, "2;m", MetadataTable.BULKFILE_COLUMN_FAMILY, "/t1/file1", "5");
+    put(tm1, "2;m", MetadataTable.BULKFILE_COLUMN_FAMILY, "/t1/file3", "7");
+    put(tm1, "2;m", MetadataTable.BULKFILE_COLUMN_FAMILY, "/t1/file4", "9");
+    put(tm1, "2<", MetadataTable.DIRECTORY_COLUMN, "/t2");
+    put(tm1, "2<", MetadataTable.DATAFILE_COLUMN_FAMILY, "/t2/file2", "1,1");
+    put(tm1, "2<", MetadataTable.BULKFILE_COLUMN_FAMILY, "/t2/file6", "5");
+    put(tm1, "2<", MetadataTable.BULKFILE_COLUMN_FAMILY, "/t2/file7", "7");
+    put(tm1, "2<", MetadataTable.BULKFILE_COLUMN_FAMILY, "/t2/file8", "9");
+    put(tm1, "2<", MetadataTable.BULKFILE_COLUMN_FAMILY, "/t2/fileC", null);
     
     expected.putAll(tm1);
 
     // the following should be deleted by filter
-    put(tm1, "2;m", Constants.METADATA_BULKFILE_COLUMN_FAMILY, "/t1/file5", "8");
-    put(tm1, "2<", Constants.METADATA_BULKFILE_COLUMN_FAMILY, "/t2/file9", "8");
-    put(tm1, "2<", Constants.METADATA_BULKFILE_COLUMN_FAMILY, "/t2/fileA", "2");
+    put(tm1, "2;m", MetadataTable.BULKFILE_COLUMN_FAMILY, "/t1/file5", "8");
+    put(tm1, "2<", MetadataTable.BULKFILE_COLUMN_FAMILY, "/t2/file9", "8");
+    put(tm1, "2<", MetadataTable.BULKFILE_COLUMN_FAMILY, "/t2/fileA", "2");
     
     TestMetadataBulkLoadFilter iter = new TestMetadataBulkLoadFilter();
     iter.init(new SortedMapIterator(tm1), new HashMap<String,String>(), new IteratorEnvironment() {

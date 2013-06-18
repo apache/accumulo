@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -35,6 +34,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.hadoop.io.Text;
@@ -71,9 +71,9 @@ public class TestAccumuloSplitRecovery {
   
   boolean isOffline(String tablename, Connector connector) throws TableNotFoundException {
     String tableId = connector.tableOperations().tableIdMap().get(tablename);
-    Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+    Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
-    scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
       return false;
@@ -101,32 +101,32 @@ public class TestAccumuloSplitRecovery {
         UtilWaitThread.sleep(200);
       
       // poke a partial split into the !METADATA table
-      connector.securityOperations().grantTablePermission("root", Constants.METADATA_TABLE_NAME, TablePermission.WRITE);
+      connector.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
       String tableId = connector.tableOperations().tableIdMap().get(TABLE);
       
       KeyExtent extent = new KeyExtent(new Text(tableId), null, new Text("b"));
       Mutation m = extent.getPrevRowUpdateMutation();
       
-      Constants.METADATA_SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(0.5).getBytes()));
-      Constants.METADATA_OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(null));
-      bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+      MetadataTable.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(0.5).getBytes()));
+      MetadataTable.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(null));
+      bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       bw.addMutation(m);
       
       if (tn == 1) {
         
         bw.flush();
         
-        Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+        Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         scanner.setRange(extent.toMetadataRange());
-        scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+        scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
         
         KeyExtent extent2 = new KeyExtent(new Text(tableId), new Text("b"), null);
         m = extent2.getPrevRowUpdateMutation();
-        Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value("/t2".getBytes()));
-        Constants.METADATA_TIME_COLUMN.put(m, new Value("M0".getBytes()));
+        MetadataTable.DIRECTORY_COLUMN.put(m, new Value("/t2".getBytes()));
+        MetadataTable.TIME_COLUMN.put(m, new Value("M0".getBytes()));
         
         for (Entry<Key,Value> entry : scanner) {
-          m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, entry.getKey().getColumnQualifier(), entry.getValue());
+          m.put(MetadataTable.DATAFILE_COLUMN_FAMILY, entry.getKey().getColumnQualifier(), entry.getValue());
         }
         
         bw.addMutation(m);

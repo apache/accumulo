@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -54,7 +54,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
     try {
       Connector connector = instance.getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths));
-      mdScanner = connector.createBatchScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY, 8);
+      mdScanner = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8);
       configureScanner(mdScanner, state);
       mdScanner.setRanges(Collections.singletonList(range));
       iter = mdScanner.iterator();
@@ -65,11 +65,11 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   }
   
   static public void configureScanner(ScannerBase scanner, CurrentState state) {
-    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-    scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
-    scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
-    scanner.fetchColumnFamily(Constants.METADATA_CHOPPED_COLUMN_FAMILY);
+    MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(MetadataTable.LOG_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(MetadataTable.CHOPPED_COLUMN_FAMILY);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange = new IteratorSetting(1001, "tabletChange", TabletStateChangeIterator.class);
     if (state != null) {
@@ -134,30 +134,30 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       Text cf = key.getColumnFamily();
       Text cq = key.getColumnQualifier();
       
-      if (cf.compareTo(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY) == 0) {
+      if (cf.compareTo(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (future != null) {
           throw new BadLocationStateException("found two assignments for the same extent " + key.getRow() + ": " + future + " and " + location);
         }
         future = location;
-      } else if (cf.compareTo(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
+      } else if (cf.compareTo(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (current != null) {
           throw new BadLocationStateException("found two locations for the same extent " + key.getRow() + ": " + current + " and " + location);
         }
         current = location;
-      } else if (cf.compareTo(Constants.METADATA_LOG_COLUMN_FAMILY) == 0) {
+      } else if (cf.compareTo(MetadataTable.LOG_COLUMN_FAMILY) == 0) {
         String[] split = entry.getValue().toString().split("\\|")[0].split(";");
         walogs.add(Arrays.asList(split));
-      } else if (cf.compareTo(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY) == 0) {
+      } else if (cf.compareTo(MetadataTable.LAST_LOCATION_COLUMN_FAMILY) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (last != null) {
           throw new BadLocationStateException("found two last locations for the same extent " + key.getRow() + ": " + last + " and " + location);
         }
         last = new TServerInstance(entry.getValue(), cq);
-      } else if (cf.compareTo(Constants.METADATA_CHOPPED_COLUMN_FAMILY) == 0) {
+      } else if (cf.compareTo(MetadataTable.CHOPPED_COLUMN_FAMILY) == 0) {
         chopped = true;
-      } else if (Constants.METADATA_PREV_ROW_COLUMN.equals(cf, cq)) {
+      } else if (MetadataTable.PREV_ROW_COLUMN.equals(cf, cq)) {
         extent = new KeyExtent(row, entry.getValue());
       }
     }

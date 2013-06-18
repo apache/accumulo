@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -142,11 +141,11 @@ public class TableDiskUsage {
     for (String tableId : tableIds) {
       Scanner mdScanner = null;
       try {
-        mdScanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+        mdScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }
-      mdScanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+      mdScanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
       mdScanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
       
       if (!mdScanner.iterator().hasNext()) {

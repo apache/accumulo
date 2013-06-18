@@ -167,10 +167,10 @@ public class SplitRecoveryTest extends FunctionalTest {
     
     MetadataTable.splitTablet(high, extent.getPrevEndRow(), splitRatio, SecurityConstants.getSystemCredentials(), zl);
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
-    Writer writer = new Writer(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), Constants.METADATA_TABLE_ID);
+    Writer writer = new Writer(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), MetadataTable.ID);
     Assignment assignment = new Assignment(high, instance);
     Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-    m.put(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY, assignment.server.asColumnQualifier(), assignment.server.asMutationValue());
+    m.put(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY, assignment.server.asColumnQualifier(), assignment.server.asMutationValue());
     writer.update(m);
     
     if (steps >= 1) {
@@ -203,29 +203,28 @@ public class SplitRecoveryTest extends FunctionalTest {
   }
   
   private void ensureTabletHasNoUnexpectedMetadataEntries(KeyExtent extent, SortedMap<String,DataFileValue> expectedMapFiles) throws Exception {
-    Scanner scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), Constants.METADATA_TABLE_ID,
-        Authorizations.EMPTY);
+    Scanner scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), MetadataTable.ID, Authorizations.EMPTY);
     scanner.setRange(extent.toMetadataRange());
     
     HashSet<ColumnFQ> expectedColumns = new HashSet<ColumnFQ>();
-    expectedColumns.add(Constants.METADATA_DIRECTORY_COLUMN);
-    expectedColumns.add(Constants.METADATA_PREV_ROW_COLUMN);
-    expectedColumns.add(Constants.METADATA_TIME_COLUMN);
-    expectedColumns.add(Constants.METADATA_LOCK_COLUMN);
+    expectedColumns.add(MetadataTable.DIRECTORY_COLUMN);
+    expectedColumns.add(MetadataTable.PREV_ROW_COLUMN);
+    expectedColumns.add(MetadataTable.TIME_COLUMN);
+    expectedColumns.add(MetadataTable.LOCK_COLUMN);
     
     HashSet<Text> expectedColumnFamilies = new HashSet<Text>();
-    expectedColumnFamilies.add(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-    expectedColumnFamilies.add(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
-    expectedColumnFamilies.add(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-    expectedColumnFamilies.add(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY);
-    expectedColumnFamilies.add(Constants.METADATA_BULKFILE_COLUMN_FAMILY);
+    expectedColumnFamilies.add(MetadataTable.DATAFILE_COLUMN_FAMILY);
+    expectedColumnFamilies.add(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY);
+    expectedColumnFamilies.add(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
+    expectedColumnFamilies.add(MetadataTable.LAST_LOCATION_COLUMN_FAMILY);
+    expectedColumnFamilies.add(MetadataTable.BULKFILE_COLUMN_FAMILY);
     
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
     while (iter.hasNext()) {
       Key key = iter.next().getKey();
       
       if (!key.getRow().equals(extent.getMetadataEntry())) {
-        throw new Exception("Tablet " + extent + " contained unexpected " + Constants.METADATA_TABLE_NAME + " entry " + key);
+        throw new Exception("Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
       }
       
       if (expectedColumnFamilies.contains(key.getColumnFamily())) {
@@ -236,7 +235,7 @@ public class SplitRecoveryTest extends FunctionalTest {
         continue;
       }
       
-      throw new Exception("Tablet " + extent + " contained unexpected " + Constants.METADATA_TABLE_NAME + " entry " + key);
+      throw new Exception("Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
     }
     System.out.println("expectedColumns " + expectedColumns);
     if (expectedColumns.size() > 1 || (expectedColumns.size() == 1)) {

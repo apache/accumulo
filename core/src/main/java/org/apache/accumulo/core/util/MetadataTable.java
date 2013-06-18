@@ -26,7 +26,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -44,6 +43,68 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.hadoop.io.Text;
 
 public class MetadataTable {
+  
+  public static final String ID = "!0";
+  public static final String NAME = "!METADATA";
+  
+  /**
+   * Initial tablet directory name
+   */
+  public static final String TABLE_TABLET_LOCATION = "/table_info";
+  
+  /**
+   * Reserved keyspace is any row that begins with a tilde '~' character
+   */
+  public static final Key RESERVED_KEYSPACE_START_KEY = new Key(new Text(new byte[] {'~'}));
+  public static final String DELETE_FLAG_PREFIX = "~del";
+  public static final Range DELETES_KEYSPACE = new Range(new Key(new Text(DELETE_FLAG_PREFIX)), true, new Key(new Text("~dem")), false);
+  public static final String BLIP_FLAG_PREFIX = "~blip"; // BLIP = bulk load in progress
+  public static final Range BLIP_KEYSPACE = new Range(new Key(new Text(BLIP_FLAG_PREFIX)), true, new Key(new Text("~bliq")), false);
+  
+  public static final Text CURRENT_LOCATION_COLUMN_FAMILY = new Text("loc");
+  public static final Text FUTURE_LOCATION_COLUMN_FAMILY = new Text("future");
+  public static final Text LAST_LOCATION_COLUMN_FAMILY = new Text("last");
+  /**
+   * Temporary marker that indicates a tablet loaded a bulk file
+   */
+  public static final Text BULKFILE_COLUMN_FAMILY = new Text("loaded");
+  
+  /**
+   * Temporary marker that indicates a tablet was successfully cloned
+   */
+  public static final Text CLONED_COLUMN_FAMILY = new Text("!cloned");
+  
+  /**
+   * This needs to sort after all other column families for that tablet, because the {@link #PREV_ROW_COLUMN} sits in this and that needs to sort last because
+   * the {@link SimpleGarbageCollector} relies on this.
+   */
+  public static final Text TABLET_COLUMN_FAMILY = new Text("~tab");
+  
+  /**
+   * README : very important that prevRow sort last to avoid race conditions between garbage collector and split this needs to sort after everything else for
+   * that tablet
+   */
+  public static final ColumnFQ PREV_ROW_COLUMN = new ColumnFQ(TABLET_COLUMN_FAMILY, new Text("~pr"));
+  public static final ColumnFQ OLD_PREV_ROW_COLUMN = new ColumnFQ(TABLET_COLUMN_FAMILY, new Text("oldprevrow"));
+  public static final ColumnFQ SPLIT_RATIO_COLUMN = new ColumnFQ(TABLET_COLUMN_FAMILY, new Text("splitRatio"));
+  
+  public static final Text SERVER_COLUMN_FAMILY = new Text("srv");
+  public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(SERVER_COLUMN_FAMILY, new Text("dir"));
+  public static final ColumnFQ TIME_COLUMN = new ColumnFQ(SERVER_COLUMN_FAMILY, new Text("time"));
+  public static final ColumnFQ FLUSH_COLUMN = new ColumnFQ(SERVER_COLUMN_FAMILY, new Text("flush"));
+  public static final ColumnFQ COMPACT_COLUMN = new ColumnFQ(SERVER_COLUMN_FAMILY, new Text("compact"));
+  public static final ColumnFQ LOCK_COLUMN = new ColumnFQ(SERVER_COLUMN_FAMILY, new Text("lock"));
+  
+  public static final Text DATAFILE_COLUMN_FAMILY = new Text("file");
+  public static final Text SCANFILE_COLUMN_FAMILY = new Text("scan");
+  public static final Text LOG_COLUMN_FAMILY = new Text("log");
+  public static final Text CHOPPED_COLUMN_FAMILY = new Text("chopped");
+  public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(CHOPPED_COLUMN_FAMILY, new Text("chopped"));
+  
+  public static final Range NON_ROOT_KEYSPACE = new Range(new Key(KeyExtent.getMetadataEntry(new Text(ID), null)).followingKey(PartialKey.ROW), true,
+      RESERVED_KEYSPACE_START_KEY, false);
+  public static final Range KEYSPACE = new Range(new Key(new Text(ID)), true, RESERVED_KEYSPACE_START_KEY, false);
+  
   public static class DataFileValue {
     private long size;
     private long numEntries;
@@ -153,12 +214,12 @@ public class MetadataTable {
       colq = key.getColumnQualifier(colq);
       
       // interpret the row id as a key extent
-      if (colf.equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) || colf.equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
+      if (colf.equals(CURRENT_LOCATION_COLUMN_FAMILY) || colf.equals(FUTURE_LOCATION_COLUMN_FAMILY)) {
         if (location != null) {
           throw new IllegalStateException("Tablet has multiple locations : " + lastRowFromKey);
         }
         location = new Text(val.toString());
-      } else if (Constants.METADATA_PREV_ROW_COLUMN.equals(colf, colq)) {
+      } else if (PREV_ROW_COLUMN.equals(colf, colq)) {
         prevRow = new Value(val);
       }
       
@@ -209,11 +270,10 @@ public class MetadataTable {
       SortedSet<KeyExtent> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableId = isTid ? table : Tables.getNameToIdMap(instance).get(table);
     
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
-        Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(NAME, Authorizations.EMPTY);
     
-    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
+    PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(CURRENT_LOCATION_COLUMN_FAMILY);
     
     // position at first entry in metadata table for given table
     KeyExtent ke = new KeyExtent(new Text(tableId), new Text(), null);
@@ -249,11 +309,11 @@ public class MetadataTable {
       if (!(new KeyExtent(entry.getKey().getRow(), (Text) null)).getTableId().toString().equals(tableId))
         break;
       
-      if (Constants.METADATA_PREV_ROW_COLUMN.equals(colf, colq)) {
+      if (PREV_ROW_COLUMN.equals(colf, colq)) {
         currentKeyExtent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
         tablets.add(currentKeyExtent);
         haveExtent = true;
-      } else if (colf.equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
+      } else if (colf.equals(CURRENT_LOCATION_COLUMN_FAMILY)) {
         location = entry.getValue().toString();
         haveLocation = true;
       }

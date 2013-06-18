@@ -1162,7 +1162,7 @@ public class Tablet {
       entries = new TreeMap<Key,Value>();
       Text rowName = extent.getMetadataEntry();
       for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
-        if (entry.getKey().compareRow(rowName) == 0 && Constants.METADATA_TIME_COLUMN.hasColumns(entry.getKey())) {
+        if (entry.getKey().compareRow(rowName) == 0 && MetadataTable.TIME_COLUMN.hasColumns(entry.getKey())) {
           entries.put(new Key(entry.getKey()), new Value(entry.getValue()));
         }
       }
@@ -1200,8 +1200,7 @@ public class Tablet {
       
       Text rowName = extent.getMetadataEntry();
       
-      ScannerImpl mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), Constants.METADATA_TABLE_ID,
-          Authorizations.EMPTY);
+      ScannerImpl mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), MetadataTable.ID, Authorizations.EMPTY);
       
       // Commented out because when no data file is present, each tablet will scan through metadata table and return nothing
       // reduced batch size to improve performance
@@ -1209,7 +1208,7 @@ public class Tablet {
       mdScanner.setBatchSize(1000);
       
       // leave these in, again, now using endKey for safety
-      mdScanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+      mdScanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
       
       mdScanner.setRange(new Range(rowName));
       
@@ -1250,7 +1249,7 @@ public class Tablet {
       for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
         Key key = entry.getKey();
         if (key.getRow().equals(row)) {
-          if (key.getColumnFamily().equals(Constants.METADATA_LOG_COLUMN_FAMILY)) {
+          if (key.getColumnFamily().equals(MetadataTable.LOG_COLUMN_FAMILY)) {
             logEntries.add(MetadataTable.entryFromKeyValue(key, entry.getValue()));
           }
         }
@@ -1267,7 +1266,7 @@ public class Tablet {
     Text row = extent.getMetadataEntry();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
-      if (key.getRow().equals(row) && key.getColumnFamily().equals(Constants.METADATA_SCANFILE_COLUMN_FAMILY)) {
+      if (key.getRow().equals(row) && key.getColumnFamily().equals(MetadataTable.SCANFILE_COLUMN_FAMILY)) {
         scanFiles.add(key.getColumnQualifier().toString());
       }
     }
@@ -1279,7 +1278,7 @@ public class Tablet {
     Text row = extent.getMetadataEntry();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
-      if (key.getRow().equals(row) && Constants.METADATA_FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
+      if (key.getRow().equals(row) && MetadataTable.FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
         return Long.parseLong(entry.getValue().toString());
     }
     
@@ -1290,7 +1289,7 @@ public class Tablet {
     Text row = extent.getMetadataEntry();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
-      if (key.getRow().equals(row) && Constants.METADATA_COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
+      if (key.getRow().equals(row) && MetadataTable.COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
         return Long.parseLong(entry.getValue().toString());
     }
     
@@ -1306,7 +1305,7 @@ public class Tablet {
   
   private static TServerInstance lookupLastServer(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
-      if (entry.getKey().getColumnFamily().compareTo(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY) == 0) {
+      if (entry.getKey().getColumnFamily().compareTo(MetadataTable.LAST_LOCATION_COLUMN_FAMILY) == 0) {
         return new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
       }
     }
@@ -2803,21 +2802,21 @@ public class Tablet {
       Pair<List<LogEntry>,SortedMap<String,DataFileValue>> fileLog = MetadataTable.getFileAndLogEntries(SecurityConstants.getSystemCredentials(), extent);
       
       if (fileLog.getFirst().size() != 0) {
-        String msg = "Closed tablet " + extent + " has walog entries in " + Constants.METADATA_TABLE_NAME + " " + fileLog.getFirst();
+        String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " " + fileLog.getFirst();
         log.error(msg);
         throw new RuntimeException(msg);
       }
       
       if (extent.isRootTablet()) {
         if (!fileLog.getSecond().keySet().equals(datafileManager.getDatafileSizesRel().keySet())) {
-          String msg = "Data file in " + Constants.METADATA_TABLE_NAME + " differ from in memory data " + extent + "  " + fileLog.getSecond().keySet() + "  "
+          String msg = "Data file in " + MetadataTable.NAME + " differ from in memory data " + extent + "  " + fileLog.getSecond().keySet() + "  "
               + datafileManager.getDatafileSizesRel().keySet();
           log.error(msg);
           throw new RuntimeException(msg);
         }
       } else {
         if (!fileLog.getSecond().equals(datafileManager.getDatafileSizesRel())) {
-          String msg = "Data file in " + Constants.METADATA_TABLE_NAME + " differ from in memory data " + extent + "  " + fileLog.getSecond() + "  "
+          String msg = "Data file in " + MetadataTable.NAME + " differ from in memory data " + extent + "  " + fileLog.getSecond() + "  "
               + datafileManager.getDatafileSizesRel();
           log.error(msg);
           throw new RuntimeException(msg);

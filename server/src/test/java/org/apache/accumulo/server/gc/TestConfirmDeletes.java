@@ -21,7 +21,6 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -109,7 +109,7 @@ public class TestConfirmDeletes {
   private void load(Instance instance, String[] metadata, String[] deletes) throws Exception {
     TCredentials credential = CredentialHelper.create("root", new PasswordToken(new byte[0]), "instance");
     
-    Scanner scanner = instance.getConnector(credential.getPrincipal(), CredentialHelper.extractToken(credential)).createScanner(Constants.METADATA_TABLE_NAME,
+    Scanner scanner = instance.getConnector(credential.getPrincipal(), CredentialHelper.extractToken(credential)).createScanner(MetadataTable.NAME,
         Authorizations.EMPTY);
     int count = 0;
     for (@SuppressWarnings("unused")
@@ -121,7 +121,7 @@ public class TestConfirmDeletes {
     Assert.assertEquals(0, count);
     
     Connector conn = instance.getConnector(credential.getPrincipal(), CredentialHelper.extractToken(credential));
-    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     for (String line : metadata) {
       String[] parts = line.split(" ");
       String[] columnParts = parts[1].split(":");

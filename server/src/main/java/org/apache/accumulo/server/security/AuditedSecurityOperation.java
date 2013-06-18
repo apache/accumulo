@@ -20,7 +20,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.Translator;
@@ -38,6 +37,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
@@ -87,7 +87,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   private static boolean shouldAudit(TCredentials credentials, String tableId) {
-    return !tableId.equals(Constants.METADATA_TABLE_ID) && shouldAudit(credentials);
+    return !tableId.equals(MetadataTable.ID) && shouldAudit(credentials);
   }
   
   // Is INFO the right level to check? Do we even need that check?

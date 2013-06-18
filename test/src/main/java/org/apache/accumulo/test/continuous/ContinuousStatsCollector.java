@@ -23,7 +23,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.monitor.Monitor;
@@ -88,9 +88,9 @@ public class ContinuousStatsCollector {
     private String getTabletStats() throws Exception {
       
       Connector conn = opts.getConnector();
-      Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, opts.auths);
+      Scanner scanner = conn.createScanner(MetadataTable.NAME, opts.auths);
       scanner.setBatchSize(scanBatchSize);
-      scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+      scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
       scanner.addScanIterator(new IteratorSetting(1000, "cfc", ColumnFamilyCounter.class.getName()));
       scanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
       

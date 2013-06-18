@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -89,7 +88,7 @@ class CleanUp extends MasterRepo {
     
     boolean done = true;
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-    Scanner scanner = master.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+    Scanner scanner = master.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
     scanner.setRange(tableRange);
     
@@ -127,10 +126,10 @@ class CleanUp extends MasterRepo {
     try {
       // look for other tables that references this tables files
       Connector conn = master.getConnector();
-      BatchScanner bs = conn.createBatchScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY, 8);
+      BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8);
       try {
-        bs.setRanges(Collections.singleton(Constants.NON_ROOT_METADATA_KEYSPACE));
-        bs.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+        bs.setRanges(Collections.singleton(MetadataTable.NON_ROOT_KEYSPACE));
+        bs.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
         IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
         GrepIterator.setTerm(cfg, "../" + tableId + "/");
         bs.addScanIterator(cfg);
@@ -146,7 +145,7 @@ class CleanUp extends MasterRepo {
       
     } catch (Exception e) {
       refCount = -1;
-      log.error("Failed to scan " + Constants.METADATA_TABLE_NAME + " looking for references to deleted table " + tableId, e);
+      log.error("Failed to scan " + MetadataTable.NAME + " looking for references to deleted table " + tableId, e);
     }
     
     // remove metadata table entries

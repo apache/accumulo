@@ -30,6 +30,8 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
@@ -171,7 +173,7 @@ public class MergeStats {
   
   private boolean verifyMergeConsistency(Connector connector, CurrentState master) throws TableNotFoundException, IOException {
     MergeStats verify = new MergeStats(info);
-    Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+    Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
     KeyExtent extent = info.getRange();
     Text start = extent.getPrevEndRow();
@@ -183,7 +185,7 @@ public class MergeStats {
     Range range = new Range(first, false, null, true);
     if (extent.isMeta()) {
       // don't go off the root tablet
-      range = new Range(new Key(first).followingKey(PartialKey.ROW), false, Constants.METADATA_ROOT_TABLET_KEYSPACE.getEndKey(), false);
+      range = new Range(new Key(first).followingKey(PartialKey.ROW), false, RootTable.KEYSPACE.getEndKey(), false);
     }
     scanner.setRange(range);
     KeyExtent prevExtent = null;
@@ -220,7 +222,7 @@ public class MergeStats {
         }
         
       } else if (!tls.extent.isPreviousExtent(prevExtent)) {
-        log.debug("hole in " + Constants.METADATA_TABLE_NAME);
+        log.debug("hole in " + MetadataTable.NAME);
         return false;
       }
       

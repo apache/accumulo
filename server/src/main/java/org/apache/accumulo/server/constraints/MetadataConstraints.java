@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
@@ -54,14 +55,14 @@ public class MetadataConstraints implements Constraint {
     }
   }
   
-  private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<ColumnFQ>(Arrays.asList(new ColumnFQ[] {Constants.METADATA_PREV_ROW_COLUMN,
-      Constants.METADATA_OLD_PREV_ROW_COLUMN, Constants.METADATA_DIRECTORY_COLUMN, Constants.METADATA_SPLIT_RATIO_COLUMN, Constants.METADATA_TIME_COLUMN,
-      Constants.METADATA_LOCK_COLUMN, Constants.METADATA_FLUSH_COLUMN, Constants.METADATA_COMPACT_COLUMN}));
+  private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<ColumnFQ>(Arrays.asList(new ColumnFQ[] {MetadataTable.PREV_ROW_COLUMN,
+      MetadataTable.OLD_PREV_ROW_COLUMN, MetadataTable.DIRECTORY_COLUMN, MetadataTable.SPLIT_RATIO_COLUMN, MetadataTable.TIME_COLUMN,
+      MetadataTable.LOCK_COLUMN, MetadataTable.FLUSH_COLUMN, MetadataTable.COMPACT_COLUMN}));
   
-  private static final HashSet<Text> validColumnFams = new HashSet<Text>(Arrays.asList(new Text[] {Constants.METADATA_BULKFILE_COLUMN_FAMILY,
-      Constants.METADATA_LOG_COLUMN_FAMILY, Constants.METADATA_SCANFILE_COLUMN_FAMILY, Constants.METADATA_DATAFILE_COLUMN_FAMILY,
-      Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY, Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY, Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY,
-      Constants.METADATA_CHOPPED_COLUMN_FAMILY, Constants.METADATA_CLONED_COLUMN_FAMILY}));
+  private static final HashSet<Text> validColumnFams = new HashSet<Text>(Arrays.asList(new Text[] {MetadataTable.BULKFILE_COLUMN_FAMILY,
+      MetadataTable.LOG_COLUMN_FAMILY, MetadataTable.SCANFILE_COLUMN_FAMILY, MetadataTable.DATAFILE_COLUMN_FAMILY,
+      MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY, MetadataTable.LAST_LOCATION_COLUMN_FAMILY, MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY,
+      MetadataTable.CHOPPED_COLUMN_FAMILY, MetadataTable.CLONED_COLUMN_FAMILY}));
   
   private static boolean isValidColumn(ColumnUpdate cu) {
     
@@ -138,7 +139,7 @@ public class MetadataConstraints implements Constraint {
     }
     
     // ensure row is not less than Constants.METADATA_TABLE_ID
-    if (new Text(row).compareTo(new Text(Constants.METADATA_TABLE_ID)) < 0) {
+    if (new Text(row).compareTo(new Text(MetadataTable.ID)) < 0) {
       violations = addViolation(violations, 5);
     }
     
@@ -154,11 +155,11 @@ public class MetadataConstraints implements Constraint {
         continue;
       }
       
-      if (columnUpdate.getValue().length == 0 && !columnFamily.equals(Constants.METADATA_SCANFILE_COLUMN_FAMILY)) {
+      if (columnUpdate.getValue().length == 0 && !columnFamily.equals(MetadataTable.SCANFILE_COLUMN_FAMILY)) {
         violations = addViolation(violations, 6);
       }
       
-      if (columnFamily.equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
+      if (columnFamily.equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
         try {
           DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
           
@@ -170,9 +171,9 @@ public class MetadataConstraints implements Constraint {
         } catch (ArrayIndexOutOfBoundsException aiooe) {
           violations = addViolation(violations, 1);
         }
-      } else if (columnFamily.equals(Constants.METADATA_SCANFILE_COLUMN_FAMILY)) {
+      } else if (columnFamily.equals(MetadataTable.SCANFILE_COLUMN_FAMILY)) {
         
-      } else if (columnFamily.equals(Constants.METADATA_BULKFILE_COLUMN_FAMILY)) {
+      } else if (columnFamily.equals(MetadataTable.BULKFILE_COLUMN_FAMILY)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           // splits, which also write the time reference, are allowed to write this reference even when
           // the transaction is not running because the other half of the tablet is holding a reference
@@ -190,13 +191,13 @@ public class MetadataConstraints implements Constraint {
           int otherTidCount = 0;
 
           for (ColumnUpdate update : mutation.getUpdates()) {
-            if (new ColumnFQ(update).equals(Constants.METADATA_DIRECTORY_COLUMN)) {
+            if (new ColumnFQ(update).equals(MetadataTable.DIRECTORY_COLUMN)) {
               isSplitMutation = true;
-            } else if (new Text(update.getColumnFamily()).equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)) {
+            } else if (new Text(update.getColumnFamily()).equals(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY)) {
               isLocationMutation = true;
-            } else if (new Text(update.getColumnFamily()).equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
+            } else if (new Text(update.getColumnFamily()).equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
               dataFiles.add(new Text(update.getColumnQualifier()));
-            } else if (new Text(update.getColumnFamily()).equals(Constants.METADATA_BULKFILE_COLUMN_FAMILY)) {
+            } else if (new Text(update.getColumnFamily()).equals(MetadataTable.BULKFILE_COLUMN_FAMILY)) {
               loadedFiles.add(new Text(update.getColumnQualifier()));
               
               if (!new String(update.getValue()).equals(tidString)) {
@@ -222,7 +223,7 @@ public class MetadataConstraints implements Constraint {
       } else {
         if (!isValidColumn(columnUpdate)) {
           violations = addViolation(violations, 2);
-        } else if (new ColumnFQ(columnUpdate).equals(Constants.METADATA_PREV_ROW_COLUMN) && columnUpdate.getValue().length > 0
+        } else if (new ColumnFQ(columnUpdate).equals(MetadataTable.PREV_ROW_COLUMN) && columnUpdate.getValue().length > 0
             && (violations == null || !violations.contains((short) 4))) {
           KeyExtent ke = new KeyExtent(new Text(mutation.getRow()), (Text) null);
           
@@ -233,7 +234,7 @@ public class MetadataConstraints implements Constraint {
           if (!prevEndRowLessThanEndRow) {
             violations = addViolation(violations, 3);
           }
-        } else if (new ColumnFQ(columnUpdate).equals(Constants.METADATA_LOCK_COLUMN)) {
+        } else if (new ColumnFQ(columnUpdate).equals(MetadataTable.LOCK_COLUMN)) {
           if (zooCache == null) {
             zooCache = new ZooCache();
           }
@@ -284,9 +285,9 @@ public class MetadataConstraints implements Constraint {
       case 4:
         return "Invalid metadata row format";
       case 5:
-        return "Row can not be less than " + Constants.METADATA_TABLE_ID;
+        return "Row can not be less than " + MetadataTable.ID;
       case 6:
-        return "Empty values are not allowed for any " + Constants.METADATA_TABLE_NAME + " column";
+        return "Empty values are not allowed for any " + MetadataTable.NAME + " column";
       case 7:
         return "Lock not held in zookeeper by writer";
       case 8:

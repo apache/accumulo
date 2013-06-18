@@ -60,6 +60,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.commons.lang.NotImplementedException;
@@ -246,7 +247,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   }
   
   private Pair<KeyExtent,String> getTabletFiles(Range nextRange, List<String> relFiles) throws TableNotFoundException {
-    Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+    Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setBatchSize(100);
     scanner.setRange(nextRange);
     
@@ -260,16 +261,16 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       Entry<Key,Value> entry = row.next();
       Key key = entry.getKey();
       
-      if (key.getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
+      if (key.getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
         relFiles.add(key.getColumnQualifier().toString());
       }
       
-      if (key.getColumnFamily().equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)
-          || key.getColumnFamily().equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
+      if (key.getColumnFamily().equals(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY)
+          || key.getColumnFamily().equals(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY)) {
         location = entry.getValue().toString();
       }
       
-      if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key)) {
+      if (MetadataTable.PREV_ROW_COLUMN.hasColumns(key)) {
         extent = new KeyExtent(key.getRow(), entry.getValue());
       }
       

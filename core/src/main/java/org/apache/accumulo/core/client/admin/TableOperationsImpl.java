@@ -154,7 +154,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public boolean exists(String tableName) {
     ArgumentChecker.notNull(tableName);
-    if (tableName.equals(Constants.METADATA_TABLE_NAME))
+    if (tableName.equals(MetadataTable.NAME))
       return true;
     
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if table " + tableName + "exists...");

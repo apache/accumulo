@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -47,6 +46,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -319,9 +319,9 @@ public class PermissionsTest {
       Connector test_user_conn = getInstance().getConnector(TEST_USER, TEST_PASS);
       
       // check for read-only access to metadata table
-      verifyHasOnlyTheseTablePermissions(getConnector(), getConnector().whoami(), Constants.METADATA_TABLE_NAME, TablePermission.READ,
+      verifyHasOnlyTheseTablePermissions(getConnector(), getConnector().whoami(), MetadataTable.NAME, TablePermission.READ,
           TablePermission.ALTER_TABLE);
-      verifyHasOnlyTheseTablePermissions(getConnector(), TEST_USER, Constants.METADATA_TABLE_NAME, TablePermission.READ);
+      verifyHasOnlyTheseTablePermissions(getConnector(), TEST_USER, MetadataTable.NAME, TablePermission.READ);
       
       // test each permission
       for (TablePermission perm : TablePermission.values()) {

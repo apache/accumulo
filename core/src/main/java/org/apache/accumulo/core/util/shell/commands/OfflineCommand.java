@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.shell.Shell;
 
 public class OfflineCommand extends TableOperation {
@@ -29,8 +29,8 @@ public class OfflineCommand extends TableOperation {
   }
   
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
-      Shell.log.info("  You cannot take the " + Constants.METADATA_TABLE_NAME + " offline.");
+    if (tableName.equals(MetadataTable.NAME)) {
+      Shell.log.info("  You cannot take the " + MetadataTable.NAME + " offline.");
     } else {
       Shell.log.info("Attempting to begin taking " + tableName + " offline");
       shellState.getConnector().tableOperations().offline(tableName);

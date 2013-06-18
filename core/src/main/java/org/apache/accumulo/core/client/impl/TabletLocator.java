@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.hadoop.io.Text;
 
 public abstract class TabletLocator {
@@ -90,7 +90,7 @@ public abstract class TabletLocator {
   
   private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<LocatorKey,TabletLocator>();
   
-  private static final Text ROOT_TABLET_MDE = KeyExtent.getMetadataEntry(new Text(Constants.METADATA_TABLE_ID), null);
+  private static final Text ROOT_TABLET_MDE = KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null);
   
   public static synchronized TabletLocator getInstance(Instance instance, Text tableId) {
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
@@ -100,9 +100,9 @@ public abstract class TabletLocator {
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer(instance);
       
-      if (tableId.toString().equals(Constants.METADATA_TABLE_ID)) {
+      if (tableId.toString().equals(MetadataTable.ID)) {
         RootTabletLocator rootTabletLocator = new RootTabletLocator(instance);
-        tl = new TabletLocatorImpl(new Text(Constants.METADATA_TABLE_ID), rootTabletLocator, mlo) {
+        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), rootTabletLocator, mlo) {
           @Override
           public TabletLocation _locateTablet(Text row, boolean skipRow, boolean retry, boolean lock, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
               TableNotFoundException {
@@ -117,7 +117,7 @@ public abstract class TabletLocator {
           }
         };
       } else {
-        TabletLocator rootTabletCache = getInstance(instance, new Text(Constants.METADATA_TABLE_ID));
+        TabletLocator rootTabletCache = getInstance(instance, new Text(MetadataTable.ID));
         tl = new TabletLocatorImpl(tableId, rootTabletCache, mlo);
       }
       

@@ -22,10 +22,10 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -41,7 +41,7 @@ public class AddSplits extends Test {
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
     tableNames = new ArrayList<String>(tableNames);
-    tableNames.add(Constants.METADATA_TABLE_NAME);
+    tableNames.add(MetadataTable.NAME);
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
     TreeSet<Text> splits = new TreeSet<Text>();

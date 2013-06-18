@@ -67,7 +67,9 @@ import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -312,7 +314,7 @@ public class SimpleGarbageCollector implements Iface {
       // we just made a lot of changes to the !METADATA table: flush them out
       try {
         Connector connector = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
-        connector.tableOperations().compact(Constants.METADATA_TABLE_NAME, null, null, true, true);
+        connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
       } catch (Exception e) {
         log.warn(e, e);
       }
@@ -454,13 +456,13 @@ public class SimpleGarbageCollector implements Iface {
     }
     
     checkForBulkProcessingFiles = false;
-    Range range = Constants.METADATA_DELETES_FOR_METADATA_KEYSPACE;
-    candidates.addAll(getBatch(Constants.METADATA_DELETE_FLAG_FOR_METADATA_PREFIX, range));
+    Range range = RootTable.DELETES_KEYSPACE;
+    candidates.addAll(getBatch(RootTable.DELETE_FLAG_PREFIX, range));
     if (candidateMemExceeded)
       return candidates;
     
-    range = Constants.METADATA_DELETES_KEYSPACE;
-    candidates.addAll(getBatch(Constants.METADATA_DELETE_FLAG_PREFIX, range));
+    range = MetadataTable.DELETES_KEYSPACE;
+    candidates.addAll(getBatch(MetadataTable.DELETE_FLAG_PREFIX, range));
     return candidates;
   }
   
@@ -477,7 +479,7 @@ public class SimpleGarbageCollector implements Iface {
     }
     
     Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
-        Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+        MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(range);
     List<String> result = new ArrayList<String>();
     // find candidates for deletion; chop off the prefix
@@ -517,7 +519,7 @@ public class SimpleGarbageCollector implements Iface {
     } else {
       try {
         scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
-            Constants.METADATA_TABLE_NAME, Authorizations.EMPTY));
+            MetadataTable.NAME, Authorizations.EMPTY));
       } catch (AccumuloSecurityException ex) {
         throw new AccumuloException(ex);
       } catch (TableNotFoundException ex) {
@@ -530,14 +532,14 @@ public class SimpleGarbageCollector implements Iface {
       
       log.debug("Checking for bulk processing flags");
       
-      scanner.setRange(Constants.METADATA_BLIP_KEYSPACE);
+      scanner.setRange(MetadataTable.BLIP_KEYSPACE);
       
       // WARNING: This block is IMPORTANT
       // You MUST REMOVE candidates that are in the same folder as a bulk
       // processing flag!
       
       for (Entry<Key,Value> entry : scanner) {
-        String blipPath = entry.getKey().getRow().toString().substring(Constants.METADATA_BLIP_FLAG_PREFIX.length());
+        String blipPath = entry.getKey().getRow().toString().substring(MetadataTable.BLIP_FLAG_PREFIX.length());
         Iterator<String> tailIter = candidates.tailSet(blipPath).iterator();
         int count = 0;
         while (tailIter.hasNext()) {
@@ -558,18 +560,18 @@ public class SimpleGarbageCollector implements Iface {
     // skip candidates that are still in use in the file column family in
     // the metadata table
     scanner.clearColumns();
-    scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-    scanner.fetchColumnFamily(Constants.METADATA_SCANFILE_COLUMN_FAMILY);
-    Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(MetadataTable.SCANFILE_COLUMN_FAMILY);
+    MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
     
-    TabletIterator tabletIterator = new TabletIterator(scanner, Constants.METADATA_KEYSPACE, false, true);
+    TabletIterator tabletIterator = new TabletIterator(scanner, MetadataTable.KEYSPACE, false, true);
     
     while (tabletIterator.hasNext()) {
       Map<Key,Value> tabletKeyValues = tabletIterator.next();
       
       for (Entry<Key,Value> entry : tabletKeyValues.entrySet()) {
-        if (entry.getKey().getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)
-            || entry.getKey().getColumnFamily().equals(Constants.METADATA_SCANFILE_COLUMN_FAMILY)) {
+        if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)
+            || entry.getKey().getColumnFamily().equals(MetadataTable.SCANFILE_COLUMN_FAMILY)) {
           
           String cf = entry.getKey().getColumnQualifier().toString();
           String delete;
@@ -587,7 +589,7 @@ public class SimpleGarbageCollector implements Iface {
           String path = delete.substring(0, delete.lastIndexOf('/'));
           if (candidates.remove(path))
             log.debug("Candidate was still in use in the METADATA table: " + path);
-        } else if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
+        } else if (MetadataTable.DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
           String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()));
           String delete = "/" + table + entry.getValue().toString();
           if (candidates.remove(delete))
@@ -598,15 +600,15 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
   
-  final static String METADATA_TABLE_DIR = "/" + Constants.METADATA_TABLE_ID;
+  final static String METADATA_TABLE_DIR = "/" + MetadataTable.ID;
   
   private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer, final BatchWriter rootWriter) throws MutationsRejectedException {
     if (delete.startsWith(METADATA_TABLE_DIR)) {
-      Mutation m = new Mutation(new Text(Constants.METADATA_DELETE_FLAG_FOR_METADATA_PREFIX + delete));
+      Mutation m = new Mutation(new Text(RootTable.DELETE_FLAG_PREFIX + delete));
       m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
       rootWriter.addMutation(m);
     } else {
-      Mutation m = new Mutation(new Text(Constants.METADATA_DELETE_FLAG_PREFIX + delete));
+      Mutation m = new Mutation(new Text(MetadataTable.DELETE_FLAG_PREFIX + delete));
       m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
       writer.addMutation(m);
     }
@@ -624,10 +626,10 @@ public class SimpleGarbageCollector implements Iface {
       Connector c;
       try {
         c = instance.getConnector(SecurityConstants.SYSTEM_PRINCIPAL, SecurityConstants.getSystemToken());
-        writer = c.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
-        rootWriter = c.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+        writer = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+        rootWriter = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       } catch (Exception e) {
-        log.error("Unable to create writer to remove file from the " + Constants.METADATA_TABLE_NAME + " table", e);
+        log.error("Unable to create writer to remove file from the " + MetadataTable.NAME + " table", e);
       }
     }
     // when deleting a dir and all files in that dir, only need to delete the dir

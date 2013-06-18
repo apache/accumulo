@@ -397,9 +397,9 @@ class CopyFailed extends MasterRepo {
     
     // determine which failed files were loaded
     Connector conn = master.getConnector();
-    Scanner mscanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY));
+    Scanner mscanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
-    mscanner.fetchColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY);
+    mscanner.fetchColumnFamily(MetadataTable.BULKFILE_COLUMN_FAMILY);
     
     for (Entry<Key,Value> entry : mscanner) {
       if (Long.parseLong(entry.getValue().toString()) == tid) {

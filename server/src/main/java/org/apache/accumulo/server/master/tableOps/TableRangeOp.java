@@ -58,12 +58,12 @@ class MakeDeleteEntries extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.info("creating delete entries for merged metadata tablets");
     Connector conn = master.getConnector();
-    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     String tableDir = ServerConstants.getMetadataTableDir();
     for (FileStatus fs : master.getFileSystem().listStatus(new Path(tableDir))) {
       // TODO: add the entries only if there are no !METADATA table references - ACCUMULO-1308
       if (fs.isDir() && fs.getPath().getName().matches("^" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + ".*")) {
-        bw.addMutation(MetadataTable.createDeleteMutation(Constants.METADATA_TABLE_ID, "/" + fs.getPath().getName()));
+        bw.addMutation(MetadataTable.createDeleteMutation(MetadataTable.ID, "/" + fs.getPath().getName()));
       }
     }
     bw.close();
@@ -100,7 +100,7 @@ class TableRangeOpWait extends MasterRepo {
     // If the delete entries for the metadata table were in the root tablet, it would work just fine
     // but all the delete entries go into the end of the metadata table. Work around: add the
     // delete entries after the merge completes.
-    if (mergeInfo.getOperation().equals(Operation.MERGE) && tableId.equals(Constants.METADATA_TABLE_ID)) {
+    if (mergeInfo.getOperation().equals(Operation.MERGE) && tableId.equals(MetadataTable.ID)) {
       return new MakeDeleteEntries();
     }
     return null;

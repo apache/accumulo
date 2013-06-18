@@ -27,6 +27,7 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.log4j.Logger;
@@ -47,7 +48,7 @@ public class MetadataBulkLoadFilter extends Filter {
   
   @Override
   public boolean accept(Key k, Value v) {
-    if (!k.isDeleted() && k.compareColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY) == 0) {
+    if (!k.isDeleted() && k.compareColumnFamily(MetadataTable.BULKFILE_COLUMN_FAMILY) == 0) {
       long txid = Long.valueOf(v.toString());
       
       Status status = bulkTxStatusCache.get(txid);

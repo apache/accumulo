@@ -36,7 +36,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
@@ -68,6 +67,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
@@ -710,11 +710,11 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         startRow = new Text();
       
       Range metadataRange = new Range(new KeyExtent(new Text(tableId), startRow, null).getMetadataEntry(), true, null, false);
-      Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
-      Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY);
-      scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-      scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
+      Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(MetadataTable.LAST_LOCATION_COLUMN_FAMILY);
+      scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
+      scanner.fetchColumnFamily(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY);
       scanner.setRange(metadataRange);
       
       RowIterator rowIter = new RowIterator(scanner);
@@ -731,16 +731,16 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
           Entry<Key,Value> entry = row.next();
           Key key = entry.getKey();
           
-          if (key.getColumnFamily().equals(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY)) {
+          if (key.getColumnFamily().equals(MetadataTable.LAST_LOCATION_COLUMN_FAMILY)) {
             last = entry.getValue().toString();
           }
           
-          if (key.getColumnFamily().equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)
-              || key.getColumnFamily().equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
+          if (key.getColumnFamily().equals(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY)
+              || key.getColumnFamily().equals(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY)) {
             location = entry.getValue().toString();
           }
           
-          if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key)) {
+          if (MetadataTable.PREV_ROW_COLUMN.hasColumns(key)) {
             extent = new KeyExtent(key.getRow(), entry.getValue());
           }
           

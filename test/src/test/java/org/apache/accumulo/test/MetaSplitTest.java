@@ -21,12 +21,12 @@ import static org.junit.Assert.assertEquals;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
@@ -61,7 +61,7 @@ public class MetaSplitTest {
     for (String point : points) {
       splits.add(new Text(point));
     }
-    opts.addSplits(Constants.METADATA_TABLE_NAME, splits);
+    opts.addSplits(MetadataTable.NAME, splits);
   }
   
   @Test(timeout = 60000)
@@ -72,18 +72,18 @@ public class MetaSplitTest {
     for (int i = 1; i <= 10; i++) {
       opts.create("" + i);
     }
-    opts.merge(Constants.METADATA_TABLE_NAME, new Text("01"), new Text("02"));
-    assertEquals(2, opts.listSplits(Constants.METADATA_TABLE_NAME).size());
+    opts.merge(MetadataTable.NAME, new Text("01"), new Text("02"));
+    assertEquals(2, opts.listSplits(MetadataTable.NAME).size());
     addSplits(opts, "4 5 6 7 8".split(" "));
-    assertEquals(7, opts.listSplits(Constants.METADATA_TABLE_NAME).size());
-    opts.merge(Constants.METADATA_TABLE_NAME, new Text("6"), new Text("9"));
-    assertEquals(5, opts.listSplits(Constants.METADATA_TABLE_NAME).size());
+    assertEquals(7, opts.listSplits(MetadataTable.NAME).size());
+    opts.merge(MetadataTable.NAME, new Text("6"), new Text("9"));
+    assertEquals(5, opts.listSplits(MetadataTable.NAME).size());
     addSplits(opts, "44 55 66 77 88".split(" "));
-    assertEquals(10, opts.listSplits(Constants.METADATA_TABLE_NAME).size());
-    opts.merge(Constants.METADATA_TABLE_NAME, new Text("5"), new Text("7"));
-    assertEquals(7, opts.listSplits(Constants.METADATA_TABLE_NAME).size());
-    opts.merge(Constants.METADATA_TABLE_NAME, null, null);
-    assertEquals(1, opts.listSplits(Constants.METADATA_TABLE_NAME).size());
+    assertEquals(10, opts.listSplits(MetadataTable.NAME).size());
+    opts.merge(MetadataTable.NAME, new Text("5"), new Text("7"));
+    assertEquals(7, opts.listSplits(MetadataTable.NAME).size());
+    opts.merge(MetadataTable.NAME, null, null);
+    assertEquals(1, opts.listSplits(MetadataTable.NAME).size());
   }
   
 }

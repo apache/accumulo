@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
@@ -132,7 +132,7 @@ public class Admin {
           Connector conn = instance.getConnector(principal, token);
           Set<String> tables = conn.tableOperations().tableIdMap().keySet();
           for (String table : tables) {
-            if (table.equals(Constants.METADATA_TABLE_NAME))
+            if (table.equals(MetadataTable.NAME))
               continue;
             try {
               conn.tableOperations().flush(table, null, null, false);

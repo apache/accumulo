@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.shell.Shell;
 
 public class OnlineCommand extends TableOperation {
@@ -29,8 +29,8 @@ public class OnlineCommand extends TableOperation {
   }
   
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
-      Shell.log.info("  The " + Constants.METADATA_TABLE_NAME + " is always online.");
+    if (tableName.equals(MetadataTable.NAME)) {
+      Shell.log.info("  The " + MetadataTable.NAME + " is always online.");
     } else {
       Shell.log.info("Attempting to begin bringing " + tableName + " online");
       shellState.getConnector().tableOperations().online(tableName);

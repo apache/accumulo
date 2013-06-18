@@ -27,9 +27,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -146,7 +146,7 @@ public class RootTabletStateStoreTest {
   @Test
   public void testRootTabletStateStore() throws DistributedStoreException {
     ZooTabletStateStore tstore = new ZooTabletStateStore(new FakeZooStore());
-    KeyExtent root = Constants.ROOT_TABLET_EXTENT;
+    KeyExtent root = RootTable.ROOT_TABLET_EXTENT;
     String sessionId = "this is my unique session data";
     TServerInstance server = new TServerInstance(AddressUtil.parseAddress("127.0.0.1", 10000), sessionId);
     List<Assignment> assignments = Collections.singletonList(new Assignment(root, server));

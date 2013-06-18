@@ -86,6 +86,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AgeOffStore;
@@ -182,7 +183,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final private static Logger log = Logger.getLogger(Master.class);
   
   final private static int ONE_SECOND = 1000;
-  final private static Text METADATA_TABLE_ID = new Text(Constants.METADATA_TABLE_ID);
+  final private static Text METADATA_TABLE_ID = new Text(MetadataTable.ID);
   final private static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
   final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   final private static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
@@ -346,7 +347,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   }
   
   private int nonMetaDataTabletsAssignedOrHosted() {
-    return totalAssignedOrHosted() - assignedOrHosted(new Text(Constants.METADATA_TABLE_ID));
+    return totalAssignedOrHosted() - assignedOrHosted(new Text(MetadataTable.ID));
   }
   
   private int notHosted() {
@@ -362,7 +363,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   // The number of unassigned tablets that should be assigned: displayed on the monitor page
   private int displayUnassigned() {
     int result = 0;
-    Text meta = new Text(Constants.METADATA_TABLE_ID);
+    Text meta = new Text(MetadataTable.ID);
     switch (getMasterState()) {
       case NORMAL:
         // Count offline tablets for online tables
@@ -397,8 +398,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   }
   
   private void checkNotMetadataTable(String tableName, TableOperation operation) throws ThriftTableOperationException {
-    if (tableName.compareTo(Constants.METADATA_TABLE_NAME) == 0) {
-      String why = "Table names cannot be == " + Constants.METADATA_TABLE_NAME;
+    if (tableName.compareTo(MetadataTable.NAME) == 0) {
+      String why = "Table names cannot be == " + MetadataTable.NAME;
       log.warn(why);
       throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.OTHER, why);
     }
@@ -544,11 +545,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         try {
           Connector conn = getConnector();
-          Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY));
-          Constants.METADATA_FLUSH_COLUMN.fetch(scanner);
-          Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
-          scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-          scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
+          Scanner scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+          MetadataTable.FLUSH_COLUMN.fetch(scanner);
+          MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
+          scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
+          scanner.fetchColumnFamily(MetadataTable.LOG_COLUMN_FAMILY);
           scanner.setRange(new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange());
           
           RowIterator ri = new RowIterator(scanner);
@@ -571,14 +572,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
               entry = row.next();
               Key key = entry.getKey();
               
-              if (Constants.METADATA_FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier())) {
+              if (MetadataTable.FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier())) {
                 tabletFlushID = Long.parseLong(entry.getValue().toString());
               }
               
-              if (Constants.METADATA_LOG_COLUMN_FAMILY.equals(key.getColumnFamily()))
+              if (MetadataTable.LOG_COLUMN_FAMILY.equals(key.getColumnFamily()))
                 logs++;
               
-              if (Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily())) {
+              if (MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily())) {
                 online = true;
                 server = new TServerInstance(entry.getValue(), key.getColumnQualifier());
               }
@@ -608,9 +609,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
           
         } catch (AccumuloException e) {
-          log.debug("Failed to scan " + Constants.METADATA_TABLE_NAME + " table to wait for flush " + tableId, e);
+          log.debug("Failed to scan " + MetadataTable.NAME + " table to wait for flush " + tableId, e);
         } catch (TabletDeletedException tde) {
-          log.debug("Failed to scan " + Constants.METADATA_TABLE_NAME + " table to wait for flush " + tableId, tde);
+          log.debug("Failed to scan " + MetadataTable.NAME + " table to wait for flush " + tableId, tde);
         } catch (AccumuloSecurityException e) {
           log.warn(e.getMessage(), e);
           throw new ThriftSecurityException();
@@ -917,7 +918,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           Text startRow = ByteBufferUtil.toText(arguments.get(1));
           Text endRow = ByteBufferUtil.toText(arguments.get(2));
           final String tableId = checkTableId(tableName, TableOperation.MERGE);
-          if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
+          if (tableName.equals(MetadataTable.NAME)) {
             if (startRow.compareTo(new Text("0")) < 0) {
               startRow = new Text("0");
               if (endRow.getLength() != 0 && endRow.compareTo(startRow) < 0)
@@ -1568,26 +1569,26 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.debug("Making file deletion entries for " + range);
         Range deleteRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, KeyExtent.getMetadataEntry(range.getTableId(),
             range.getEndRow()), true);
-        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+        Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         scanner.setRange(deleteRange);
-        Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
-        Constants.METADATA_TIME_COLUMN.fetch(scanner);
-        scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-        scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
+        MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
+        MetadataTable.TIME_COLUMN.fetch(scanner);
+        scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+        scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
         Set<String> datafiles = new TreeSet<String>();
         for (Entry<Key,Value> entry : scanner) {
           Key key = entry.getKey();
-          if (key.compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
+          if (key.compareColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY) == 0) {
             datafiles.add(key.getColumnQualifier().toString());
             if (datafiles.size() > 1000) {
               MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
               datafiles.clear();
             }
-          } else if (Constants.METADATA_TIME_COLUMN.hasColumns(key)) {
+          } else if (MetadataTable.TIME_COLUMN.hasColumns(key)) {
             timeType = entry.getValue().toString().charAt(0);
-          } else if (key.compareColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
+          } else if (key.compareColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
             throw new IllegalStateException("Tablet " + key.getRow() + " is assigned during a merge!");
-          } else if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(key)) {
+          } else if (MetadataTable.DIRECTORY_COLUMN.hasColumns(key)) {
             datafiles.add(entry.getValue().toString());
             if (datafiles.size() > 1000) {
               MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
@@ -1596,7 +1597,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           }
         }
         MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
-        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+        BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
         try {
           deleteTablets(deleteRange, bw, conn);
         } finally {
@@ -1605,11 +1606,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         if (followingTablet != null) {
           log.debug("Updating prevRow of " + followingTablet + " to " + range.getPrevEndRow());
-          bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+          bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
           try {
             Mutation m = new Mutation(followingTablet.getMetadataEntry());
-            Constants.METADATA_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(range.getPrevEndRow()));
-            Constants.METADATA_CHOPPED_COLUMN.putDelete(m);
+            MetadataTable.PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(range.getPrevEndRow()));
+            MetadataTable.CHOPPED_COLUMN.putDelete(m);
             bw.addMutation(m);
             bw.flush();
           } finally {
@@ -1639,34 +1640,34 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
       Range scanRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, stopRow, false);
       if (range.isMeta())
-        scanRange = scanRange.clip(Constants.METADATA_ROOT_TABLET_KEYSPACE);
+        scanRange = scanRange.clip(RootTable.KEYSPACE);
       
       BatchWriter bw = null;
       try {
         long fileCount = 0;
         Connector conn = getConnector();
         // Make file entries in highest tablet
-        bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
-        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+        bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+        Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         scanner.setRange(scanRange);
-        Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
-        Constants.METADATA_TIME_COLUMN.fetch(scanner);
-        Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
-        scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+        MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
+        MetadataTable.TIME_COLUMN.fetch(scanner);
+        MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
+        scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
         Mutation m = new Mutation(stopRow);
         String maxLogicalTime = null;
         for (Entry<Key,Value> entry : scanner) {
           Key key = entry.getKey();
           Value value = entry.getValue();
-          if (key.getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
+          if (key.getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
             m.put(key.getColumnFamily(), key.getColumnQualifier(), value);
             fileCount++;
-          } else if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key) && firstPrevRowValue == null) {
+          } else if (MetadataTable.PREV_ROW_COLUMN.hasColumns(key) && firstPrevRowValue == null) {
             log.debug("prevRow entry for lowest tablet is " + value);
             firstPrevRowValue = new Value(value);
-          } else if (Constants.METADATA_TIME_COLUMN.hasColumns(key)) {
+          } else if (MetadataTable.TIME_COLUMN.hasColumns(key)) {
             maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, value.toString());
-          } else if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(key)) {
+          } else if (MetadataTable.DIRECTORY_COLUMN.hasColumns(key)) {
             if (!range.isMeta())
               bw.addMutation(MetadataTable.createDeleteMutation(range.getTableId().toString(), entry.getValue().toString()));
           }
@@ -1674,20 +1675,20 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         // read the logical time from the last tablet in the merge range, it is not included in
         // the loop above
-        scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+        scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         Range last = new Range(stopRow);
         if (range.isMeta())
-          last = last.clip(Constants.METADATA_ROOT_TABLET_KEYSPACE);
+          last = last.clip(RootTable.KEYSPACE);
         scanner.setRange(last);
-        Constants.METADATA_TIME_COLUMN.fetch(scanner);
+        MetadataTable.TIME_COLUMN.fetch(scanner);
         for (Entry<Key,Value> entry : scanner) {
-          if (Constants.METADATA_TIME_COLUMN.hasColumns(entry.getKey())) {
+          if (MetadataTable.TIME_COLUMN.hasColumns(entry.getKey())) {
             maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, entry.getValue().toString());
           }
         }
         
         if (maxLogicalTime != null)
-          Constants.METADATA_TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes()));
+          MetadataTable.TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes()));
         
         if (!m.getUpdates().isEmpty()) {
           bw.addMutation(m);
@@ -1712,7 +1713,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         // Clean-up the last chopped marker
         m = new Mutation(stopRow);
-        Constants.METADATA_CHOPPED_COLUMN.putDelete(m);
+        MetadataTable.CHOPPED_COLUMN.putDelete(m);
         bw.addMutation(m);
         bw.flush();
         
@@ -1735,7 +1736,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       // group all deletes into tablet into one mutation, this makes tablets
       // either disappear entirely or not all.. this is important for the case
       // where the process terminates in the loop below...
-      scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
+      scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       log.debug("Deleting range " + scanRange);
       scanner.setRange(scanRange);
       RowIterator rowIter = new RowIterator(scanner);
@@ -1761,8 +1762,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
       try {
         Connector conn = getConnector();
-        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
-        Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
+        Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+        MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
         KeyExtent start = new KeyExtent(range.getTableId(), range.getEndRow(), null);
         scanner.setRange(new Range(start.getMetadataEntry(), null));
         Iterator<Entry<Key,Value>> iterator = scanner.iterator();
@@ -1846,8 +1847,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // remove any migrating tablets that no longer exist.
     private void cleanupMutations() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Connector connector = getConnector();
-      Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Authorizations.EMPTY);
-      Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
+      Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<KeyExtent>();
       for (Entry<Key,Value> entry : scanner) {
         KeyExtent extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
@@ -2323,7 +2324,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     Set<String> result = new HashSet<String>();
     if (getMasterState() != MasterState.NORMAL) {
       if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS)
-        result.add(Constants.METADATA_TABLE_ID);
+        result.add(MetadataTable.ID);
       return result;
     }
     TableManager manager = TableManager.getInstance();

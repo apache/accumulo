@@ -66,8 +66,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     this.instance = instance;
     
     locCols = new TreeSet<Column>();
-    locCols.add(new Column(TextUtil.getBytes(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY), null, null));
-    locCols.add(Constants.METADATA_PREV_ROW_COLUMN.toColumn());
+    locCols.add(new Column(TextUtil.getBytes(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY), null, null));
+    locCols.add(MetadataTable.PREV_ROW_COLUMN.toColumn());
     columns = new ArrayList<Column>(locCols);
   }
   

@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.trace.instrument.TraceExecutorService;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
@@ -709,7 +709,7 @@ public class TabletServerResourceManager {
   }
   
   public void executeMajorCompaction(KeyExtent tablet, Runnable compactionTask) {
-    if (tablet.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (tablet.equals(RootTable.ROOT_TABLET_EXTENT)) {
       rootMajorCompactionThreadPool.execute(compactionTask);
     } else if (tablet.isMeta()) {
       defaultMajorCompactionThreadPool.execute(compactionTask);

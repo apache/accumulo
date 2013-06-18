@@ -28,7 +28,6 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -48,6 +47,7 @@ import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -124,7 +124,7 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     this.conf = conf;
     List<LogEntry> rwal;
     try {
-      rwal = MetadataTable.getLogEntries(null, Constants.ROOT_TABLET_EXTENT);
+      rwal = MetadataTable.getLogEntries(null, RootTable.ROOT_TABLET_EXTENT);
     } catch (Exception e) {
       throw new RuntimeException("Failed to check if root tablet has write ahead log entries", e);
     }
@@ -142,15 +142,15 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     List<SortedKeyValueIterator<Key,Value>> readers = openMapFiles(allFiles, fs, conf);
     
     HashSet<Column> columns = new HashSet<Column>();
-    columns.add(new Column(TextUtil.getBytes(Constants.METADATA_DATAFILE_COLUMN_FAMILY), null, null));
-    columns.add(new Column(TextUtil.getBytes(Constants.METADATA_LOG_COLUMN_FAMILY), null, null));
+    columns.add(new Column(TextUtil.getBytes(MetadataTable.DATAFILE_COLUMN_FAMILY), null, null));
+    columns.add(new Column(TextUtil.getBytes(MetadataTable.LOG_COLUMN_FAMILY), null, null));
     
     SortedKeyValueIterator<Key,Value> ssi = createSystemIter(new Range(), readers, columns);
     
     int walogs = 0;
     
     while (ssi.hasTop()) {
-      if (ssi.getTopKey().compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
+      if (ssi.getTopKey().compareColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY) == 0) {
         allFiles.add(ServerConstants.getMetadataTableDir() + "/" + ssi.getTopKey().getColumnQualifier().toString());
       } else {
         walogs++;
@@ -259,7 +259,7 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     ServerConfiguration conf = new ServerConfiguration(HdfsZooInstance.getInstance());
     OfflineMetadataScanner scanner = new OfflineMetadataScanner(conf.getConfiguration(), fs);
-    scanner.setRange(Constants.METADATA_KEYSPACE);
+    scanner.setRange(MetadataTable.KEYSPACE);
     for (Entry<Key,Value> entry : scanner)
       System.out.println(entry.getKey() + " " + entry.getValue());
   }

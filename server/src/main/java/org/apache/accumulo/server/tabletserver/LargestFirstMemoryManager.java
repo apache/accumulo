@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -30,6 +29,7 @@ import org.apache.log4j.Logger;
 public class LargestFirstMemoryManager implements MemoryManager {
   
   private static final Logger log = Logger.getLogger(LargestFirstMemoryManager.class);
+  private static final int TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER = 2;
   
   private long maxMemory = -1;
   private int maxConcurrentMincs;
@@ -48,11 +48,12 @@ public class LargestFirstMemoryManager implements MemoryManager {
     this.numWaitingMultiplier = numWaitingMultiplier;
   }
   
+  @Override
   public void init(ServerConfiguration conf) {
     this.config = conf;
     maxMemory = conf.getConfiguration().getMemoryInBytes(Property.TSERV_MAXMEM);
     maxConcurrentMincs = conf.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT);
-    numWaitingMultiplier = Constants.TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER;
+    numWaitingMultiplier = TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER;
   }
   
   LargestFirstMemoryManager() {

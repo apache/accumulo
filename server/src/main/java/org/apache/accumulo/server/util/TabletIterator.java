@@ -24,13 +24,13 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -93,8 +93,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
     this.scanner = s;
     this.range = range;
     this.scanner.setRange(range);
-    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
-    Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
+    MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
+    MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
     this.iter = s.iterator();
     this.returnPrevEndRow = returnPrevEndRow;
     this.returnDir = returnDir;
@@ -112,7 +112,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
       Key prevEndRowKey = currentTabletKeys.lastKey();
       Value prevEndRowValue = currentTabletKeys.get(prevEndRowKey);
       
-      if (!Constants.METADATA_PREV_ROW_COLUMN.hasColumns(prevEndRowKey)) {
+      if (!MetadataTable.PREV_ROW_COLUMN.hasColumns(prevEndRowKey)) {
         log.debug(currentTabletKeys);
         throw new RuntimeException("Unexpected key " + prevEndRowKey);
       }
@@ -176,11 +176,11 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
     
     while (esIter.hasNext()) {
       Map.Entry<Key,Value> entry = esIter.next();
-      if (!returnPrevEndRow && Constants.METADATA_PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+      if (!returnPrevEndRow && MetadataTable.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
         esIter.remove();
       }
       
-      if (!returnDir && Constants.METADATA_DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
+      if (!returnDir && MetadataTable.DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
         esIter.remove();
       }
     }
@@ -216,7 +216,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         
         tm.put(entry.getKey(), entry.getValue());
         
-        if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+        if (MetadataTable.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
           sawPrevEndRow = true;
           break;
         }
@@ -259,7 +259,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
       range = new Range(new Key(lastTablet).followingKey(PartialKey.ROW), true, this.range.getEndKey(), this.range.isEndKeyInclusive());
     }
     
-    log.info("Resetting " + Constants.METADATA_TABLE_NAME + " scanner to " + range);
+    log.info("Resetting " + MetadataTable.NAME + " scanner to " + range);
     
     scanner.setRange(range);
     iter = scanner.iterator();
