@@ -15517,7 +15517,7 @@ import org.slf4j.LoggerFactory;
                   struct.arguments = new ArrayList<ByteBuffer>(_list70.size);
                   for (int _i71 = 0; _i71 < _list70.size; ++_i71)
                   {
-                    ByteBuffer _elem72; // required
+                    ByteBuffer _elem72; // optional
                     _elem72 = iprot.readBinary();
                     struct.arguments.add(_elem72);
                   }
@@ -15721,7 +15721,7 @@ import org.slf4j.LoggerFactory;
             struct.arguments = new ArrayList<ByteBuffer>(_list81.size);
             for (int _i82 = 0; _i82 < _list81.size; ++_i82)
             {
-              ByteBuffer _elem83; // required
+              ByteBuffer _elem83; // optional
               _elem83 = iprot.readBinary();
               struct.arguments.add(_elem83);
             }

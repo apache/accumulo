@@ -854,7 +854,7 @@ import org.slf4j.LoggerFactory;
                 struct.results = new ArrayList<TKeyValue>(_list16.size);
                 for (int _i17 = 0; _i17 < _list16.size; ++_i17)
                 {
-                  TKeyValue _elem18; // required
+                  TKeyValue _elem18; // optional
                   _elem18 = new TKeyValue();
                   _elem18.read(iprot);
                   struct.results.add(_elem18);
@@ -882,7 +882,7 @@ import org.slf4j.LoggerFactory;
                     _val22 = new ArrayList<TRange>(_list23.size);
                     for (int _i24 = 0; _i24 < _list23.size; ++_i24)
                     {
-                      TRange _elem25; // required
+                      TRange _elem25; // optional
                       _elem25 = new TRange();
                       _elem25.read(iprot);
                       _val22.add(_elem25);
@@ -905,7 +905,7 @@ import org.slf4j.LoggerFactory;
                 struct.fullScans = new ArrayList<TKeyExtent>(_list26.size);
                 for (int _i27 = 0; _i27 < _list26.size; ++_i27)
                 {
-                  TKeyExtent _elem28; // required
+                  TKeyExtent _elem28; // optional
                   _elem28 = new TKeyExtent();
                   _elem28.read(iprot);
                   struct.fullScans.add(_elem28);
@@ -1124,7 +1124,7 @@ import org.slf4j.LoggerFactory;
           struct.results = new ArrayList<TKeyValue>(_list37.size);
           for (int _i38 = 0; _i38 < _list37.size; ++_i38)
           {
-            TKeyValue _elem39; // required
+            TKeyValue _elem39; // optional
             _elem39 = new TKeyValue();
             _elem39.read(iprot);
             struct.results.add(_elem39);
@@ -1147,7 +1147,7 @@ import org.slf4j.LoggerFactory;
               _val43 = new ArrayList<TRange>(_list44.size);
               for (int _i45 = 0; _i45 < _list44.size; ++_i45)
               {
-                TRange _elem46; // required
+                TRange _elem46; // optional
                 _elem46 = new TRange();
                 _elem46.read(iprot);
                 _val43.add(_elem46);
@@ -1164,7 +1164,7 @@ import org.slf4j.LoggerFactory;
           struct.fullScans = new ArrayList<TKeyExtent>(_list47.size);
           for (int _i48 = 0; _i48 < _list47.size; ++_i48)
           {
-            TKeyExtent _elem49; // required
+            TKeyExtent _elem49; // optional
             _elem49 = new TKeyExtent();
             _elem49.read(iprot);
             struct.fullScans.add(_elem49);

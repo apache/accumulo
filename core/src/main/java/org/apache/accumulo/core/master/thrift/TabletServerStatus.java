@@ -1219,7 +1219,7 @@ import org.slf4j.LoggerFactory;
                 struct.logSorts = new ArrayList<RecoveryStatus>(_list4.size);
                 for (int _i5 = 0; _i5 < _list4.size; ++_i5)
                 {
-                  RecoveryStatus _elem6; // required
+                  RecoveryStatus _elem6; // optional
                   _elem6 = new RecoveryStatus();
                   _elem6.read(iprot);
                   struct.logSorts.add(_elem6);
@@ -1462,7 +1462,7 @@ import org.slf4j.LoggerFactory;
           struct.logSorts = new ArrayList<RecoveryStatus>(_list15.size);
           for (int _i16 = 0; _i16 < _list15.size; ++_i16)
           {
-            RecoveryStatus _elem17; // required
+            RecoveryStatus _elem17; // optional
             _elem17 = new RecoveryStatus();
             _elem17.read(iprot);
             struct.logSorts.add(_elem17);

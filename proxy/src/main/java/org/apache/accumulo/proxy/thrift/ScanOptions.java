@@ -707,7 +707,7 @@ import org.slf4j.LoggerFactory;
                 struct.authorizations = new HashSet<ByteBuffer>(2*_set26.size);
                 for (int _i27 = 0; _i27 < _set26.size; ++_i27)
                 {
-                  ByteBuffer _elem28; // required
+                  ByteBuffer _elem28; // optional
                   _elem28 = iprot.readBinary();
                   struct.authorizations.add(_elem28);
                 }
@@ -734,7 +734,7 @@ import org.slf4j.LoggerFactory;
                 struct.columns = new ArrayList<ScanColumn>(_list29.size);
                 for (int _i30 = 0; _i30 < _list29.size; ++_i30)
                 {
-                  ScanColumn _elem31; // required
+                  ScanColumn _elem31; // optional
                   _elem31 = new ScanColumn();
                   _elem31.read(iprot);
                   struct.columns.add(_elem31);
@@ -753,7 +753,7 @@ import org.slf4j.LoggerFactory;
                 struct.iterators = new ArrayList<IteratorSetting>(_list32.size);
                 for (int _i33 = 0; _i33 < _list32.size; ++_i33)
                 {
-                  IteratorSetting _elem34; // required
+                  IteratorSetting _elem34; // optional
                   _elem34 = new IteratorSetting();
                   _elem34.read(iprot);
                   struct.iterators.add(_elem34);
@@ -921,7 +921,7 @@ import org.slf4j.LoggerFactory;
           struct.authorizations = new HashSet<ByteBuffer>(2*_set41.size);
           for (int _i42 = 0; _i42 < _set41.size; ++_i42)
           {
-            ByteBuffer _elem43; // required
+            ByteBuffer _elem43; // optional
             _elem43 = iprot.readBinary();
             struct.authorizations.add(_elem43);
           }
@@ -939,7 +939,7 @@ import org.slf4j.LoggerFactory;
           struct.columns = new ArrayList<ScanColumn>(_list44.size);
           for (int _i45 = 0; _i45 < _list44.size; ++_i45)
           {
-            ScanColumn _elem46; // required
+            ScanColumn _elem46; // optional
             _elem46 = new ScanColumn();
             _elem46.read(iprot);
             struct.columns.add(_elem46);
@@ -953,7 +953,7 @@ import org.slf4j.LoggerFactory;
           struct.iterators = new ArrayList<IteratorSetting>(_list47.size);
           for (int _i48 = 0; _i48 < _list47.size; ++_i48)
           {
-            IteratorSetting _elem49; // required
+            IteratorSetting _elem49; // optional
             _elem49 = new IteratorSetting();
             _elem49.read(iprot);
             struct.iterators.add(_elem49);

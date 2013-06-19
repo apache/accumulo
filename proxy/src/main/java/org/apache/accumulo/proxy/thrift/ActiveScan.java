@@ -1267,7 +1267,7 @@ import org.slf4j.LoggerFactory;
                 struct.columns = new ArrayList<Column>(_list82.size);
                 for (int _i83 = 0; _i83 < _list82.size; ++_i83)
                 {
-                  Column _elem84; // required
+                  Column _elem84; // optional
                   _elem84 = new Column();
                   _elem84.read(iprot);
                   struct.columns.add(_elem84);
@@ -1286,7 +1286,7 @@ import org.slf4j.LoggerFactory;
                 struct.iterators = new ArrayList<IteratorSetting>(_list85.size);
                 for (int _i86 = 0; _i86 < _list85.size; ++_i86)
                 {
-                  IteratorSetting _elem87; // required
+                  IteratorSetting _elem87; // optional
                   _elem87 = new IteratorSetting();
                   _elem87.read(iprot);
                   struct.iterators.add(_elem87);
@@ -1305,7 +1305,7 @@ import org.slf4j.LoggerFactory;
                 struct.authorizations = new ArrayList<ByteBuffer>(_list88.size);
                 for (int _i89 = 0; _i89 < _list88.size; ++_i89)
                 {
-                  ByteBuffer _elem90; // required
+                  ByteBuffer _elem90; // optional
                   _elem90 = iprot.readBinary();
                   struct.authorizations.add(_elem90);
                 }
@@ -1551,7 +1551,7 @@ import org.slf4j.LoggerFactory;
           struct.columns = new ArrayList<Column>(_list97.size);
           for (int _i98 = 0; _i98 < _list97.size; ++_i98)
           {
-            Column _elem99; // required
+            Column _elem99; // optional
             _elem99 = new Column();
             _elem99.read(iprot);
             struct.columns.add(_elem99);
@@ -1565,7 +1565,7 @@ import org.slf4j.LoggerFactory;
           struct.iterators = new ArrayList<IteratorSetting>(_list100.size);
           for (int _i101 = 0; _i101 < _list100.size; ++_i101)
           {
-            IteratorSetting _elem102; // required
+            IteratorSetting _elem102; // optional
             _elem102 = new IteratorSetting();
             _elem102.read(iprot);
             struct.iterators.add(_elem102);
@@ -1579,7 +1579,7 @@ import org.slf4j.LoggerFactory;
           struct.authorizations = new ArrayList<ByteBuffer>(_list103.size);
           for (int _i104 = 0; _i104 < _list103.size; ++_i104)
           {
-            ByteBuffer _elem105; // required
+            ByteBuffer _elem105; // optional
             _elem105 = iprot.readBinary();
             struct.authorizations.add(_elem105);
           }

@@ -1231,7 +1231,7 @@ import org.slf4j.LoggerFactory;
                 struct.inputFiles = new ArrayList<String>(_list52.size);
                 for (int _i53 = 0; _i53 < _list52.size; ++_i53)
                 {
-                  String _elem54; // required
+                  String _elem54; // optional
                   _elem54 = iprot.readString();
                   struct.inputFiles.add(_elem54);
                 }
@@ -1297,7 +1297,7 @@ import org.slf4j.LoggerFactory;
                 struct.ssiList = new ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list55.size);
                 for (int _i56 = 0; _i56 < _list55.size; ++_i56)
                 {
-                  org.apache.accumulo.core.data.thrift.IterInfo _elem57; // required
+                  org.apache.accumulo.core.data.thrift.IterInfo _elem57; // optional
                   _elem57 = new org.apache.accumulo.core.data.thrift.IterInfo();
                   _elem57.read(iprot);
                   struct.ssiList.add(_elem57);
@@ -1567,7 +1567,7 @@ import org.slf4j.LoggerFactory;
           struct.inputFiles = new ArrayList<String>(_list74.size);
           for (int _i75 = 0; _i75 < _list74.size; ++_i75)
           {
-            String _elem76; // required
+            String _elem76; // optional
             _elem76 = iprot.readString();
             struct.inputFiles.add(_elem76);
           }
@@ -1604,7 +1604,7 @@ import org.slf4j.LoggerFactory;
           struct.ssiList = new ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list77.size);
           for (int _i78 = 0; _i78 < _list77.size; ++_i78)
           {
-            org.apache.accumulo.core.data.thrift.IterInfo _elem79; // required
+            org.apache.accumulo.core.data.thrift.IterInfo _elem79; // optional
             _elem79 = new org.apache.accumulo.core.data.thrift.IterInfo();
             _elem79.read(iprot);
             struct.ssiList.add(_elem79);

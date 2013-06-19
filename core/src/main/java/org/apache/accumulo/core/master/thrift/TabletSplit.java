@@ -448,7 +448,7 @@ import org.slf4j.LoggerFactory;
                 struct.newTablets = new ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(_list62.size);
                 for (int _i63 = 0; _i63 < _list62.size; ++_i63)
                 {
-                  org.apache.accumulo.core.data.thrift.TKeyExtent _elem64; // required
+                  org.apache.accumulo.core.data.thrift.TKeyExtent _elem64; // optional
                   _elem64 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
                   _elem64.read(iprot);
                   struct.newTablets.add(_elem64);
@@ -546,7 +546,7 @@ import org.slf4j.LoggerFactory;
           struct.newTablets = new ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(_list67.size);
           for (int _i68 = 0; _i68 < _list67.size; ++_i68)
           {
-            org.apache.accumulo.core.data.thrift.TKeyExtent _elem69; // required
+            org.apache.accumulo.core.data.thrift.TKeyExtent _elem69; // optional
             _elem69 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
             _elem69.read(iprot);
             struct.newTablets.add(_elem69);

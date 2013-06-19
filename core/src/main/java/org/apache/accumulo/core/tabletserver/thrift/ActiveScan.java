@@ -1382,7 +1382,7 @@ import org.slf4j.LoggerFactory;
                 struct.columns = new ArrayList<org.apache.accumulo.core.data.thrift.TColumn>(_list8.size);
                 for (int _i9 = 0; _i9 < _list8.size; ++_i9)
                 {
-                  org.apache.accumulo.core.data.thrift.TColumn _elem10; // required
+                  org.apache.accumulo.core.data.thrift.TColumn _elem10; // optional
                   _elem10 = new org.apache.accumulo.core.data.thrift.TColumn();
                   _elem10.read(iprot);
                   struct.columns.add(_elem10);
@@ -1401,7 +1401,7 @@ import org.slf4j.LoggerFactory;
                 struct.ssiList = new ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list11.size);
                 for (int _i12 = 0; _i12 < _list11.size; ++_i12)
                 {
-                  org.apache.accumulo.core.data.thrift.IterInfo _elem13; // required
+                  org.apache.accumulo.core.data.thrift.IterInfo _elem13; // optional
                   _elem13 = new org.apache.accumulo.core.data.thrift.IterInfo();
                   _elem13.read(iprot);
                   struct.ssiList.add(_elem13);
@@ -1452,7 +1452,7 @@ import org.slf4j.LoggerFactory;
                 struct.authorizations = new ArrayList<ByteBuffer>(_list22.size);
                 for (int _i23 = 0; _i23 < _list22.size; ++_i23)
                 {
-                  ByteBuffer _elem24; // required
+                  ByteBuffer _elem24; // optional
                   _elem24 = iprot.readBinary();
                   struct.authorizations.add(_elem24);
                 }
@@ -1739,7 +1739,7 @@ import org.slf4j.LoggerFactory;
           struct.columns = new ArrayList<org.apache.accumulo.core.data.thrift.TColumn>(_list35.size);
           for (int _i36 = 0; _i36 < _list35.size; ++_i36)
           {
-            org.apache.accumulo.core.data.thrift.TColumn _elem37; // required
+            org.apache.accumulo.core.data.thrift.TColumn _elem37; // optional
             _elem37 = new org.apache.accumulo.core.data.thrift.TColumn();
             _elem37.read(iprot);
             struct.columns.add(_elem37);
@@ -1753,7 +1753,7 @@ import org.slf4j.LoggerFactory;
           struct.ssiList = new ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list38.size);
           for (int _i39 = 0; _i39 < _list38.size; ++_i39)
           {
-            org.apache.accumulo.core.data.thrift.IterInfo _elem40; // required
+            org.apache.accumulo.core.data.thrift.IterInfo _elem40; // optional
             _elem40 = new org.apache.accumulo.core.data.thrift.IterInfo();
             _elem40.read(iprot);
             struct.ssiList.add(_elem40);
@@ -1793,7 +1793,7 @@ import org.slf4j.LoggerFactory;
           struct.authorizations = new ArrayList<ByteBuffer>(_list49.size);
           for (int _i50 = 0; _i50 < _list49.size; ++_i50)
           {
-            ByteBuffer _elem51; // required
+            ByteBuffer _elem51; // optional
             _elem51 = iprot.readBinary();
             struct.authorizations.add(_elem51);
           }

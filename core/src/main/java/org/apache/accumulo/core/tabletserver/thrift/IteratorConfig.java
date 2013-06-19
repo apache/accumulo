@@ -359,7 +359,7 @@ import org.slf4j.LoggerFactory;
                 struct.iterators = new ArrayList<TIteratorSetting>(_list98.size);
                 for (int _i99 = 0; _i99 < _list98.size; ++_i99)
                 {
-                  TIteratorSetting _elem100; // required
+                  TIteratorSetting _elem100; // optional
                   _elem100 = new TIteratorSetting();
                   _elem100.read(iprot);
                   struct.iterators.add(_elem100);
@@ -441,7 +441,7 @@ import org.slf4j.LoggerFactory;
           struct.iterators = new ArrayList<TIteratorSetting>(_list103.size);
           for (int _i104 = 0; _i104 < _list103.size; ++_i104)
           {
-            TIteratorSetting _elem105; // required
+            TIteratorSetting _elem105; // optional
             _elem105 = new TIteratorSetting();
             _elem105.read(iprot);
             struct.iterators.add(_elem105);

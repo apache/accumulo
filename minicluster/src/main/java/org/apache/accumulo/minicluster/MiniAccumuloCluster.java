@@ -194,12 +194,6 @@ public class MiniAccumuloCluster {
    */
   public MiniAccumuloCluster(MiniAccumuloConfig config) throws IOException {
 
-    if (config.getDir().exists() && !config.getDir().isDirectory())
-      throw new IllegalArgumentException("Must pass in directory, " + config.getDir() + " is a file");
-
-    if (config.getDir().exists() && config.getDir().list().length != 0)
-      throw new IllegalArgumentException("Directory " + config.getDir() + " is not empty");
-
     this.config = config.initialize();
 
     config.getConfDir().mkdirs();

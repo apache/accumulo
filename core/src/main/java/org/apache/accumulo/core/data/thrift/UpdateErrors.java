@@ -584,7 +584,7 @@ import org.slf4j.LoggerFactory;
                 struct.violationSummaries = new ArrayList<TConstraintViolationSummary>(_list54.size);
                 for (int _i55 = 0; _i55 < _list54.size; ++_i55)
                 {
-                  TConstraintViolationSummary _elem56; // required
+                  TConstraintViolationSummary _elem56; // optional
                   _elem56 = new TConstraintViolationSummary();
                   _elem56.read(iprot);
                   struct.violationSummaries.add(_elem56);
@@ -755,7 +755,7 @@ import org.slf4j.LoggerFactory;
           struct.violationSummaries = new ArrayList<TConstraintViolationSummary>(_list71.size);
           for (int _i72 = 0; _i72 < _list71.size; ++_i72)
           {
-            TConstraintViolationSummary _elem73; // required
+            TConstraintViolationSummary _elem73; // optional
             _elem73 = new TConstraintViolationSummary();
             _elem73.read(iprot);
             struct.violationSummaries.add(_elem73);

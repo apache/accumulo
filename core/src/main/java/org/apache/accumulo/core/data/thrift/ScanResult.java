@@ -436,7 +436,7 @@ import org.slf4j.LoggerFactory;
                 struct.results = new ArrayList<TKeyValue>(_list8.size);
                 for (int _i9 = 0; _i9 < _list8.size; ++_i9)
                 {
-                  TKeyValue _elem10; // required
+                  TKeyValue _elem10; // optional
                   _elem10 = new TKeyValue();
                   _elem10.read(iprot);
                   struct.results.add(_elem10);
@@ -535,7 +535,7 @@ import org.slf4j.LoggerFactory;
           struct.results = new ArrayList<TKeyValue>(_list13.size);
           for (int _i14 = 0; _i14 < _list13.size; ++_i14)
           {
-            TKeyValue _elem15; // required
+            TKeyValue _elem15; // optional
             _elem15 = new TKeyValue();
             _elem15.read(iprot);
             struct.results.add(_elem15);

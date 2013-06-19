@@ -1041,7 +1041,7 @@ import org.slf4j.LoggerFactory;
                 struct.tServerInfo = new ArrayList<TabletServerStatus>(_list22.size);
                 for (int _i23 = 0; _i23 < _list22.size; ++_i23)
                 {
-                  TabletServerStatus _elem24; // required
+                  TabletServerStatus _elem24; // optional
                   _elem24 = new TabletServerStatus();
                   _elem24.read(iprot);
                   struct.tServerInfo.add(_elem24);
@@ -1104,7 +1104,7 @@ import org.slf4j.LoggerFactory;
                 struct.serversShuttingDown = new HashSet<String>(2*_set29.size);
                 for (int _i30 = 0; _i30 < _set29.size; ++_i30)
                 {
-                  String _elem31; // required
+                  String _elem31; // optional
                   _elem31 = iprot.readString();
                   struct.serversShuttingDown.add(_elem31);
                 }
@@ -1122,7 +1122,7 @@ import org.slf4j.LoggerFactory;
                 struct.deadTabletServers = new ArrayList<DeadServer>(_list32.size);
                 for (int _i33 = 0; _i33 < _list32.size; ++_i33)
                 {
-                  DeadServer _elem34; // required
+                  DeadServer _elem34; // optional
                   _elem34 = new DeadServer();
                   _elem34.read(iprot);
                   struct.deadTabletServers.add(_elem34);
@@ -1351,7 +1351,7 @@ import org.slf4j.LoggerFactory;
           struct.tServerInfo = new ArrayList<TabletServerStatus>(_list49.size);
           for (int _i50 = 0; _i50 < _list49.size; ++_i50)
           {
-            TabletServerStatus _elem51; // required
+            TabletServerStatus _elem51; // optional
             _elem51 = new TabletServerStatus();
             _elem51.read(iprot);
             struct.tServerInfo.add(_elem51);
@@ -1392,7 +1392,7 @@ import org.slf4j.LoggerFactory;
           struct.serversShuttingDown = new HashSet<String>(2*_set56.size);
           for (int _i57 = 0; _i57 < _set56.size; ++_i57)
           {
-            String _elem58; // required
+            String _elem58; // optional
             _elem58 = iprot.readString();
             struct.serversShuttingDown.add(_elem58);
           }
@@ -1405,7 +1405,7 @@ import org.slf4j.LoggerFactory;
           struct.deadTabletServers = new ArrayList<DeadServer>(_list59.size);
           for (int _i60 = 0; _i60 < _list59.size; ++_i60)
           {
-            DeadServer _elem61; // required
+            DeadServer _elem61; // optional
             _elem61 = new DeadServer();
             _elem61.read(iprot);
             struct.deadTabletServers.add(_elem61);

@@ -5082,7 +5082,7 @@ import org.slf4j.LoggerFactory;
                   struct.files = new ArrayList<String>(_list8.size);
                   for (int _i9 = 0; _i9 < _list8.size; ++_i9)
                   {
-                    String _elem10; // required
+                    String _elem10; // optional
                     _elem10 = iprot.readString();
                     struct.files.add(_elem10);
                   }
@@ -5259,7 +5259,7 @@ import org.slf4j.LoggerFactory;
             struct.files = new ArrayList<String>(_list13.size);
             for (int _i14 = 0; _i14 < _list13.size; ++_i14)
             {
-              String _elem15; // required
+              String _elem15; // optional
               _elem15 = iprot.readString();
               struct.files.add(_elem15);
             }
@@ -5746,7 +5746,7 @@ import org.slf4j.LoggerFactory;
                   struct.success = new ArrayList<String>(_list16.size);
                   for (int _i17 = 0; _i17 < _list16.size; ++_i17)
                   {
-                    String _elem18; // required
+                    String _elem18; // optional
                     _elem18 = iprot.readString();
                     struct.success.add(_elem18);
                   }
@@ -5867,7 +5867,7 @@ import org.slf4j.LoggerFactory;
             struct.success = new ArrayList<String>(_list21.size);
             for (int _i22 = 0; _i22 < _list21.size; ++_i22)
             {
-              String _elem23; // required
+              String _elem23; // optional
               _elem23 = iprot.readString();
               struct.success.add(_elem23);
             }
@@ -7808,7 +7808,7 @@ import org.slf4j.LoggerFactory;
                   struct.tables = new HashSet<String>(2*_set24.size);
                   for (int _i25 = 0; _i25 < _set24.size; ++_i25)
                   {
-                    String _elem26; // required
+                    String _elem26; // optional
                     _elem26 = iprot.readString();
                     struct.tables.add(_elem26);
                   }
@@ -7909,7 +7909,7 @@ import org.slf4j.LoggerFactory;
             struct.tables = new HashSet<String>(2*_set29.size);
             for (int _i30 = 0; _i30 < _set29.size; ++_i30)
             {
-              String _elem31; // required
+              String _elem31; // optional
               _elem31 = iprot.readString();
               struct.tables.add(_elem31);
             }
@@ -8393,7 +8393,7 @@ import org.slf4j.LoggerFactory;
                   struct.success = new ArrayList<TDiskUsage>(_list32.size);
                   for (int _i33 = 0; _i33 < _list32.size; ++_i33)
                   {
-                    TDiskUsage _elem34; // required
+                    TDiskUsage _elem34; // optional
                     _elem34 = new TDiskUsage();
                     _elem34.read(iprot);
                     struct.success.add(_elem34);
@@ -8515,7 +8515,7 @@ import org.slf4j.LoggerFactory;
             struct.success = new ArrayList<TDiskUsage>(_list37.size);
             for (int _i38 = 0; _i38 < _list37.size; ++_i38)
             {
-              TDiskUsage _elem39; // required
+              TDiskUsage _elem39; // optional
               _elem39 = new TDiskUsage();
               _elem39.read(iprot);
               struct.success.add(_elem39);
@@ -9392,7 +9392,7 @@ import org.slf4j.LoggerFactory;
                   struct.success = new HashSet<String>(2*_set40.size);
                   for (int _i41 = 0; _i41 < _set40.size; ++_i41)
                   {
-                    String _elem42; // required
+                    String _elem42; // optional
                     _elem42 = iprot.readString();
                     struct.success.add(_elem42);
                   }
@@ -9493,7 +9493,7 @@ import org.slf4j.LoggerFactory;
             struct.success = new HashSet<String>(2*_set45.size);
             for (int _i46 = 0; _i46 < _set45.size; ++_i46)
             {
-              String _elem47; // required
+              String _elem47; // optional
               _elem47 = iprot.readString();
               struct.success.add(_elem47);
             }
@@ -15015,7 +15015,7 @@ import org.slf4j.LoggerFactory;
                   struct.authorizations = new ArrayList<ByteBuffer>(_list48.size);
                   for (int _i49 = 0; _i49 < _list48.size; ++_i49)
                   {
-                    ByteBuffer _elem50; // required
+                    ByteBuffer _elem50; // optional
                     _elem50 = iprot.readBinary();
                     struct.authorizations.add(_elem50);
                   }
@@ -15143,7 +15143,7 @@ import org.slf4j.LoggerFactory;
             struct.authorizations = new ArrayList<ByteBuffer>(_list53.size);
             for (int _i54 = 0; _i54 < _list53.size; ++_i54)
             {
-              ByteBuffer _elem55; // required
+              ByteBuffer _elem55; // optional
               _elem55 = iprot.readBinary();
               struct.authorizations.add(_elem55);
             }
@@ -16467,7 +16467,7 @@ import org.slf4j.LoggerFactory;
                   struct.success = new ArrayList<ByteBuffer>(_list56.size);
                   for (int _i57 = 0; _i57 < _list56.size; ++_i57)
                   {
-                    ByteBuffer _elem58; // required
+                    ByteBuffer _elem58; // optional
                     _elem58 = iprot.readBinary();
                     struct.success.add(_elem58);
                   }
@@ -16568,7 +16568,7 @@ import org.slf4j.LoggerFactory;
             struct.success = new ArrayList<ByteBuffer>(_list61.size);
             for (int _i62 = 0; _i62 < _list61.size; ++_i62)
             {
-              ByteBuffer _elem63; // required
+              ByteBuffer _elem63; // optional
               _elem63 = iprot.readBinary();
               struct.success.add(_elem63);
             }

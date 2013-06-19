@@ -359,7 +359,7 @@ import org.slf4j.LoggerFactory;
                 struct.violationSummaries = new ArrayList<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>(_list0.size);
                 for (int _i1 = 0; _i1 < _list0.size; ++_i1)
                 {
-                  org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _elem2; // required
+                  org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _elem2; // optional
                   _elem2 = new org.apache.accumulo.core.data.thrift.TConstraintViolationSummary();
                   _elem2.read(iprot);
                   struct.violationSummaries.add(_elem2);
@@ -441,7 +441,7 @@ import org.slf4j.LoggerFactory;
           struct.violationSummaries = new ArrayList<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>(_list5.size);
           for (int _i6 = 0; _i6 < _list5.size; ++_i6)
           {
-            org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _elem7; // required
+            org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _elem7; // optional
             _elem7 = new org.apache.accumulo.core.data.thrift.TConstraintViolationSummary();
             _elem7.read(iprot);
             struct.violationSummaries.add(_elem7);

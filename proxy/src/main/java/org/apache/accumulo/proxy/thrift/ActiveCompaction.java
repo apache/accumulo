@@ -1116,7 +1116,7 @@ import org.slf4j.LoggerFactory;
                 struct.inputFiles = new ArrayList<String>(_list106.size);
                 for (int _i107 = 0; _i107 < _list106.size; ++_i107)
                 {
-                  String _elem108; // required
+                  String _elem108; // optional
                   _elem108 = iprot.readString();
                   struct.inputFiles.add(_elem108);
                 }
@@ -1182,7 +1182,7 @@ import org.slf4j.LoggerFactory;
                 struct.iterators = new ArrayList<IteratorSetting>(_list109.size);
                 for (int _i110 = 0; _i110 < _list109.size; ++_i110)
                 {
-                  IteratorSetting _elem111; // required
+                  IteratorSetting _elem111; // optional
                   _elem111 = new IteratorSetting();
                   _elem111.read(iprot);
                   struct.iterators.add(_elem111);
@@ -1379,7 +1379,7 @@ import org.slf4j.LoggerFactory;
           struct.inputFiles = new ArrayList<String>(_list116.size);
           for (int _i117 = 0; _i117 < _list116.size; ++_i117)
           {
-            String _elem118; // required
+            String _elem118; // optional
             _elem118 = iprot.readString();
             struct.inputFiles.add(_elem118);
           }
@@ -1416,7 +1416,7 @@ import org.slf4j.LoggerFactory;
           struct.iterators = new ArrayList<IteratorSetting>(_list119.size);
           for (int _i120 = 0; _i120 < _list119.size; ++_i120)
           {
-            IteratorSetting _elem121; // required
+            IteratorSetting _elem121; // optional
             _elem121 = new IteratorSetting();
             _elem121.read(iprot);
             struct.iterators.add(_elem121);
