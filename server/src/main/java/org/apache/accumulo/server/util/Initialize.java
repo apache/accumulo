@@ -18,7 +18,10 @@ package org.apache.accumulo.server.util;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -31,12 +34,12 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -52,6 +55,8 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -112,13 +117,13 @@ public class Initialize {
     initialMetadataConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
   }
   
-  public static boolean doInit(Opts opts, Configuration conf, FileSystem fs) throws IOException {
+  public static boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {
     if (!ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI).equals(""))
       log.info("Hadoop Filesystem is " + ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI));
     else
       log.info("Hadoop Filesystem is " + FileSystem.getDefaultUri(conf));
     
-    log.info("Accumulo data dir is " + ServerConstants.getBaseDir());
+    log.info("Accumulo data dirs are " + Arrays.asList(ServerConstants.getBaseDirs()));
     log.info("Zookeeper server is " + ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
     if (!zookeeperAvailable()) {
@@ -160,7 +165,7 @@ public class Initialize {
     return initialize(opts, instanceNamePath, fs);
   }
   
-  public static boolean initialize(Opts opts, String instanceNamePath, FileSystem fs) {
+  public static boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs) {
     
     UUID uuid = UUID.randomUUID();
     try {
@@ -171,7 +176,7 @@ public class Initialize {
     }
     
     try {
-      initFileSystem(opts, fs, fs.getConf(), uuid);
+      initFileSystem(opts, fs, uuid);
     } catch (Exception e) {
       log.fatal("Failed to initialize filesystem", e);
       return false;
@@ -196,18 +201,36 @@ public class Initialize {
       return false;
     }
   }
+  private static Path[] paths(String[] paths) {
+    Path result[] = new Path[paths.length];
+    for (int i = 0; i < paths.length; i++) {
+      result[i] = new Path(paths[i]);
+    }
+    return result;
+  }
   
-  private static void initFileSystem(Opts opts, FileSystem fs, Configuration conf, UUID uuid) throws IOException {
+  private static <T> T[] concat(T[] a, T[] b) {
+    List<T> result = new ArrayList<T>(a.length + b.length);
+    for (int i = 0; i < a.length; i++) {
+      result.add(a[i]);
+    }
+    for (int i = 0; i < b.length; i++) {
+      result.add(b[i]);
+    }
+    return result.toArray(a);
+  }
+  
+  private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid) throws IOException {
     FileStatus fstat;
     
     // the actual disk location of the root tablet
     final Path rootTablet = new Path(ServerConstants.getRootTabletDir());
     
-    final Path tableMetadataTablet = new Path(ServerConstants.getMetadataTableDir() + MetadataTable.TABLE_TABLET_LOCATION);
-    final Path defaultMetadataTablet = new Path(ServerConstants.getMetadataTableDir() + Constants.DEFAULT_TABLET_LOCATION);
+    final Path tableMetadataTabletDirs[] = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), MetadataTable.TABLE_TABLET_LOCATION));
+    final Path defaultMetadataTabletDirs[] = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
     
-    final Path metadataTableDir = new Path(ServerConstants.getMetadataTableDir());
-    
+    final Path metadataTableDirs[] = paths(ServerConstants.getMetadataTableDirs());
+
     fs.mkdirs(new Path(ServerConstants.getDataVersionLocation(), "" + ServerConstants.DATA_VERSION));
     
     // create an instance id
@@ -218,17 +241,18 @@ public class Initialize {
     initMetadataConfig();
     
     // create metadata table
-    try {
-      fstat = fs.getFileStatus(metadataTableDir);
-      if (!fstat.isDir()) {
-        log.fatal("location " + metadataTableDir.toString() + " exists but is not a directory");
-        return;
-      }
-    } catch (FileNotFoundException fnfe) {
-      // create btl dir
-      if (!fs.mkdirs(metadataTableDir)) {
-        log.fatal("unable to create directory " + metadataTableDir.toString());
-        return;
+    for (Path mtd : metadataTableDirs) {
+      try {
+        fstat = fs.getFileStatus(mtd);
+        if (!fstat.isDir()) {
+          log.fatal("location " + mtd.toString() + " exists but is not a directory");
+          return;
+        }
+      } catch (FileNotFoundException fnfe) {
+        if (!fs.mkdirs(mtd)) {
+          log.fatal("unable to create directory " + mtd.toString());
+          return;
+        }
       }
     }
     
@@ -240,90 +264,95 @@ public class Initialize {
         return;
       }
     } catch (FileNotFoundException fnfe) {
-      // create btl dir
       if (!fs.mkdirs(rootTablet)) {
         log.fatal("unable to create directory " + rootTablet.toString());
         return;
       }
-      
-      // populate the root tablet with info about the default tablet
-      // the root tablet contains the key extent and locations of all the
-      // metadata tablets
-      String initRootTabFile = ServerConstants.getRootTabletDir() + "/00000_00000."
-          + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
-      FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, fs, conf, AccumuloConfiguration.getDefaultConfiguration());
-      mfw.startDefaultLocalityGroup();
-      
-      // -----------] root tablet info
-      Text rootExtent = RootTable.ROOT_TABLET_EXTENT.getMetadataEntry();
-      
-      // root's directory
-      Key rootDirKey = new Key(rootExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(), MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-      mfw.append(rootDirKey, new Value("/root_tablet".getBytes()));
-      
-      // root's prev row
-      Key rootPrevRowKey = new Key(rootExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-      mfw.append(rootPrevRowKey, new Value(new byte[] {0}));
-      
-      // ----------] table tablet info
-      Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), MetadataTable.RESERVED_KEYSPACE_START_KEY.getRow()));
-      
-      // table tablet's directory
-      Key tableDirKey = new Key(tableExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(), MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-      mfw.append(tableDirKey, new Value(MetadataTable.TABLE_TABLET_LOCATION.getBytes()));
-      
-      // table tablet time
-      Key tableTimeKey = new Key(tableExtent, MetadataTable.TIME_COLUMN.getColumnFamily(), MetadataTable.TIME_COLUMN.getColumnQualifier(), 0);
-      mfw.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
-      
-      // table tablet's prevrow
-      Key tablePrevRowKey = new Key(tableExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-      mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null))));
-      
-      // ----------] default tablet info
-      Text defaultExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null));
-      
-      // default's directory
-      Key defaultDirKey = new Key(defaultExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(), MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-      mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
-      
-      // default's time
-      Key defaultTimeKey = new Key(defaultExtent, MetadataTable.TIME_COLUMN.getColumnFamily(), MetadataTable.TIME_COLUMN.getColumnQualifier(), 0);
-      mfw.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
-      
-      // default's prevrow
-      Key defaultPrevRowKey = new Key(defaultExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-      mfw.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataTable.RESERVED_KEYSPACE_START_KEY.getRow()));
-      
-      mfw.close();
     }
     
+    // populate the root tablet with info about the default tablet
+    // the root tablet contains the key extent and locations of all the
+    // metadata tablets
+    String initRootTabFile = rootTablet + "/00000_00000."
+        + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
+    FileSystem ns = fs.getFileSystemByPath(new Path(initRootTabFile));
+    FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, ns, ns.getConf(), AccumuloConfiguration.getDefaultConfiguration());
+    mfw.startDefaultLocalityGroup();
+    
+    // -----------] root tablet info
+    Text rootExtent = RootTable.ROOT_TABLET_EXTENT.getMetadataEntry();
+    
+    // root's directory
+    Key rootDirKey = new Key(rootExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(), MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    mfw.append(rootDirKey, new Value("/root_tablet".getBytes()));
+    
+    // root's prev row
+    Key rootPrevRowKey = new Key(rootExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    mfw.append(rootPrevRowKey, new Value(new byte[] {0}));
+    
+    // ----------] table tablet info
+    Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), MetadataTable.RESERVED_KEYSPACE_START_KEY.getRow()));
+    
+    // table tablet's directory
+    Key tableDirKey = new Key(tableExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(), MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    mfw.append(tableDirKey, new Value(MetadataTable.TABLE_TABLET_LOCATION.getBytes()));
+    
+    // table tablet time
+    Key tableTimeKey = new Key(tableExtent, MetadataTable.TIME_COLUMN.getColumnFamily(), MetadataTable.TIME_COLUMN.getColumnQualifier(), 0);
+    mfw.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
+    
+    // table tablet's prevrow
+    Key tablePrevRowKey = new Key(tableExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(),
+        0);
+    mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null))));
+    
+    // ----------] default tablet info
+    Text defaultExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null));
+    
+    // default's directory
+    Key defaultDirKey = new Key(defaultExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(),
+        MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
+    
+    // default's time
+    Key defaultTimeKey = new Key(defaultExtent, MetadataTable.TIME_COLUMN.getColumnFamily(), MetadataTable.TIME_COLUMN.getColumnQualifier(), 0);
+    mfw.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
+    
+    // default's prevrow
+    Key defaultPrevRowKey = new Key(defaultExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(),
+        MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    mfw.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataTable.RESERVED_KEYSPACE_START_KEY.getRow()));
+    
+    mfw.close();
+    
     // create table and default tablets directories
-    try {
-      fstat = fs.getFileStatus(defaultMetadataTablet);
-      if (!fstat.isDir()) {
-        log.fatal("location " + defaultMetadataTablet.toString() + " exists but is not a directory");
-        return;
-      }
-    } catch (FileNotFoundException fnfe) {
+    for (Path dir : concat(defaultMetadataTabletDirs, tableMetadataTabletDirs)) {
       try {
-        fstat = fs.getFileStatus(tableMetadataTablet);
+        fstat = fs.getFileStatus(dir);
         if (!fstat.isDir()) {
-          log.fatal("location " + tableMetadataTablet.toString() + " exists but is not a directory");
+          log.fatal("location " + dir.toString() + " exists but is not a directory");
           return;
         }
-      } catch (FileNotFoundException fnfe2) {
-        // create table info dir
-        if (!fs.mkdirs(tableMetadataTablet)) {
-          log.fatal("unable to create directory " + tableMetadataTablet.toString());
+      } catch (FileNotFoundException fnfe) {
+        try {
+          fstat = fs.getFileStatus(dir);
+          if (!fstat.isDir()) {
+            log.fatal("location " + dir.toString() + " exists but is not a directory");
+            return;
+          }
+        } catch (FileNotFoundException fnfe2) {
+          // create table info dir
+          if (!fs.mkdirs(dir)) {
+            log.fatal("unable to create directory " + dir.toString());
+            return;
+          }
+        }
+        
+        // create default dir
+        if (!fs.mkdirs(dir)) {
+          log.fatal("unable to create directory " + dir.toString());
           return;
         }
-      }
-      
-      // create default dir
-      if (!fs.mkdirs(defaultMetadataTablet)) {
-        log.fatal("unable to create directory " + defaultMetadataTablet.toString());
-        return;
       }
     }
   }
@@ -448,7 +477,7 @@ public class Initialize {
     initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
   }
   
-  public static boolean isInitialized(FileSystem fs) throws IOException {
+  public static boolean isInitialized(VolumeManager fs) throws IOException {
     return (fs.exists(ServerConstants.getInstanceIdLocation()) || fs.exists(ServerConstants.getDataVersionLocation()));
   }
   
@@ -475,7 +504,8 @@ public class Initialize {
       SecurityUtil.serverLogin();
       Configuration conf = CachedConfiguration.getInstance();
       
-      FileSystem fs = FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration());
+      @SuppressWarnings("deprecation")
+      VolumeManager fs = VolumeManagerImpl.get(SiteConfiguration.getSiteConfiguration());
       
       if (opts.resetSecurity) {
         if (isInitialized(fs)) {

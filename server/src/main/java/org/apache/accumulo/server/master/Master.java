@@ -66,7 +66,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -84,7 +83,6 @@ import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -101,6 +99,9 @@ import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.balancer.TabletBalancer;
@@ -144,7 +145,6 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tabletserver.TabletTime;
-import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.accumulo.server.util.DefaultMap;
 import org.apache.accumulo.server.util.Halt;
@@ -159,7 +159,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -193,7 +192,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final private static int MAX_TSERVER_WORK_CHUNK = 5000;
   final private static int MAX_BAD_STATUS_COUNT = 3;
   
-  final private FileSystem fs;
+  final private VolumeManager fs;
   final private Instance instance;
   final private String hostname;
   final private LiveTServerSet tserverSet;
@@ -452,10 +451,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return instance;
   }
   
-  public Master(ServerConfiguration config, FileSystem fs, String hostname) throws IOException {
+  public Master(ServerConfiguration config, VolumeManager fs, String hostname) throws IOException {
     this.serverConfig = config;
     this.instance = config.getInstance();
-    this.fs = TraceFileSystem.wrap(fs);
+    this.fs = fs;
     this.hostname = hostname;
     
     AccumuloConfiguration aconf = serverConfig.getConfiguration();
@@ -1575,11 +1574,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         MetadataTable.TIME_COLUMN.fetch(scanner);
         scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
         scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
-        Set<String> datafiles = new TreeSet<String>();
+        Set<FileRef> datafiles = new TreeSet<FileRef>();
         for (Entry<Key,Value> entry : scanner) {
           Key key = entry.getKey();
           if (key.compareColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY) == 0) {
-            datafiles.add(key.getColumnQualifier().toString());
+            datafiles.add(new FileRef(fs, key));
             if (datafiles.size() > 1000) {
               MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
               datafiles.clear();
@@ -1589,7 +1588,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           } else if (key.compareColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
             throw new IllegalStateException("Tablet " + key.getRow() + " is assigned during a merge!");
           } else if (MetadataTable.DIRECTORY_COLUMN.hasColumns(key)) {
-            datafiles.add(entry.getValue().toString());
+            datafiles.add(new FileRef(fs, key));
             if (datafiles.size() > 1000) {
               MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
               datafiles.clear();
@@ -2228,7 +2227,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     try {
       SecurityUtil.serverLogin();
       
-      FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
+      VolumeManager fs = VolumeManagerImpl.get();
       String hostname = Accumulo.getLocalAddress(args);
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfiguration conf = new ServerConfiguration(instance);
@@ -2380,7 +2379,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return serverConfig;
   }
   
-  public FileSystem getFileSystem() {
+  public VolumeManager getFileSystem() {
     return this.fs;
   }
   

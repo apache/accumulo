@@ -30,15 +30,11 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.file.FileUtil;
-import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.tabletserver.log.DfsLogger;
 import org.apache.accumulo.server.tabletserver.log.MultiReader;
-import org.apache.accumulo.server.trace.TraceFileSystem;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -70,9 +66,7 @@ public class LogReader {
   public static void main(String[] args) throws IOException {
     Opts opts = new Opts();
     opts.parseArgs(LogReader.class.getName(), args);
-    Configuration conf = CachedConfiguration.getInstance();
-    FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
-    FileSystem local = TraceFileSystem.wrap(FileSystem.getLocal(conf));
+    VolumeManager fs = VolumeManagerImpl.get();
     
     Matcher rowMatcher = null;
     KeyExtent ke = null;
@@ -117,25 +111,9 @@ public class LogReader {
         } finally {
           f.close();
         }
-      } else if (local.isFile(path)) {
-        // read log entries from a simple file
-        FSDataInputStream f = DfsLogger.readHeader(fs, path, meta);
-        try {
-          while (true) {
-            try {
-              key.readFields(f);
-              value.readFields(f);
-            } catch (EOFException ex) {
-              break;
-            }
-            printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
-          }
-        } finally {
-          f.close();
-        }
       } else {
         // read the log entries sorted in a map file
-        MultiReader input = new MultiReader(fs, conf, file);
+        MultiReader input = new MultiReader(fs, path);
         while (input.next(key, value)) {
           printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
         }

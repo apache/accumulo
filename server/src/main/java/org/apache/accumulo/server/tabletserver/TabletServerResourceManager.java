@@ -48,12 +48,13 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
 import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
 import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
 /**
@@ -140,7 +141,7 @@ public class TabletServerResourceManager {
     return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name)));
   }
   
-  public TabletServerResourceManager(Instance instance, FileSystem fs) {
+  public TabletServerResourceManager(Instance instance, VolumeManager fs) {
     this.conf = new ServerConfiguration(instance);
     final AccumuloConfiguration acuConf = conf.getConfiguration();
     
@@ -455,10 +456,10 @@ public class TabletServerResourceManager {
   }
   
   private class MapFileInfo {
-    private final String path;
+    private final FileRef path;
     private final long size;
     
-    MapFileInfo(String path, long size) {
+    MapFileInfo(FileRef path, long size) {
       this.path = path;
       this.size = size;
     }
@@ -544,10 +545,10 @@ public class TabletServerResourceManager {
     // BEGIN methods that Tablets call to make decisions about major compaction
     // when too many files are open, we may want tablets to compact down
     // to one map file
-    Map<String,Long> findMapFilesToCompact(SortedMap<String,DataFileValue> tabletFiles, MajorCompactionReason reason) {
+    Map<FileRef,Long> findMapFilesToCompact(SortedMap<FileRef,DataFileValue> tabletFiles, MajorCompactionReason reason) {
       if (reason == MajorCompactionReason.USER) {
-        Map<String,Long> files = new HashMap<String,Long>();
-        for (Entry<String,DataFileValue> entry : tabletFiles.entrySet()) {
+        Map<FileRef,Long> files = new HashMap<FileRef,Long>();
+        for (Entry<FileRef,DataFileValue> entry : tabletFiles.entrySet()) {
           files.put(entry.getKey(), entry.getValue().getSize());
         }
         return files;
@@ -572,7 +573,7 @@ public class TabletServerResourceManager {
       int maxFilesToCompact = tableConf.getCount(Property.TSERV_MAJC_THREAD_MAXOPEN);
       int maxFilesPerTablet = tableConf.getMaxFilesPerTablet();
       
-      for (Entry<String,DataFileValue> entry : tabletFiles.entrySet()) {
+      for (Entry<FileRef,DataFileValue> entry : tabletFiles.entrySet()) {
         candidateFiles.add(new MapFileInfo(entry.getKey(), entry.getValue().getSize()));
       }
       
@@ -581,7 +582,7 @@ public class TabletServerResourceManager {
         totalSize += mfi.size;
       }
       
-      Map<String,Long> files = new HashMap<String,Long>();
+      Map<FileRef,Long> files = new HashMap<FileRef,Long>();
       
       while (candidateFiles.size() > 1) {
         MapFileInfo max = candidateFiles.last();
@@ -607,12 +608,12 @@ public class TabletServerResourceManager {
       
       if (files.size() < totalFilesToCompact) {
         
-        TreeMap<String,DataFileValue> tfc = new TreeMap<String,DataFileValue>(tabletFiles);
+        TreeMap<FileRef,DataFileValue> tfc = new TreeMap<FileRef,DataFileValue>(tabletFiles);
         tfc.keySet().removeAll(files.keySet());
         
         // put data in candidateFiles to sort it
         candidateFiles.clear();
-        for (Entry<String,DataFileValue> entry : tfc.entrySet())
+        for (Entry<FileRef,DataFileValue> entry : tfc.entrySet())
           candidateFiles.add(new MapFileInfo(entry.getKey(), entry.getValue().getSize()));
         
         for (MapFileInfo mfi : candidateFiles) {
@@ -628,7 +629,7 @@ public class TabletServerResourceManager {
       return files;
     }
     
-    boolean needsMajorCompaction(SortedMap<String,DataFileValue> tabletFiles, MajorCompactionReason reason) {
+    boolean needsMajorCompaction(SortedMap<FileRef,DataFileValue> tabletFiles, MajorCompactionReason reason) {
       if (closed)
         return false;// throw new IOException("closed");
         

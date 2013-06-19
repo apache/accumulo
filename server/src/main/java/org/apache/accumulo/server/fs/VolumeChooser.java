@@ -14,14 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.master.recovery;
+package org.apache.accumulo.server.fs;
 
-import java.io.IOException;
 
-import org.apache.accumulo.server.master.Master;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.hadoop.fs.Path;
-
-public interface LogCloser {
-  public long close(Master master, VolumeManager fs, Path path) throws IOException;
+public interface VolumeChooser {
+  String choose(String[] options);
 }

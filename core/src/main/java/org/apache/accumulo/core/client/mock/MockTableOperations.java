@@ -306,11 +306,7 @@ public class MockTableOperations extends TableOperationsHelper {
   public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException {
 
     List<DiskUsage> diskUsages = new ArrayList<DiskUsage>();
-    for(String table : tables) {
-      TreeSet<String> tree = new TreeSet<String>();
-      tree.add(table);
-      diskUsages.add(new DiskUsage(tree, 1l));
-    }
+    diskUsages.add(new DiskUsage(new TreeSet<String>(tables), 0l));
 
     return diskUsages;
   }

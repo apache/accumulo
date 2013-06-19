@@ -37,7 +37,7 @@ import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -55,7 +55,7 @@ import org.apache.zookeeper.KeeperException;
 public class LogSorter {
   
   private static final Logger log = Logger.getLogger(LogSorter.class);
-  FileSystem fs;
+  VolumeManager fs;
   AccumuloConfiguration conf;
   
   private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<String,LogProcessor>());
@@ -75,21 +75,24 @@ public class LogSorter {
     
     @Override
     public void process(String child, byte[] data) {
-      String dest = ServerConstants.getRecoveryDir() + "/" + child;
-      String src = new String(data);
-      String name = new Path(src).getName();
+      String work = new String(data);
+      String[] parts = work.split("\\|");
+      String src = parts[0];
+      String dest = parts[1];
+      String sortId = new Path(src).getName();
+      log.debug("Sorting " + src + " to " + dest + " using sortId " + sortId);
       
       synchronized (currentWork) {
-        if (currentWork.containsKey(name))
+        if (currentWork.containsKey(sortId))
           return;
-        currentWork.put(name, this);
+        currentWork.put(sortId, this);
       }
       
       try {
         log.info("Copying " + src + " to " + dest);
-        sort(name, new Path(src), dest);
+        sort(sortId, new Path(src), dest);
       } finally {
-        currentWork.remove(name);
+        currentWork.remove(sortId);
       }
       
     }
@@ -105,7 +108,7 @@ public class LogSorter {
       try {
         
         // the following call does not throw an exception if the file/dir does not exist
-        fs.delete(new Path(destPath), true);
+        fs.deleteRecursively(new Path(destPath));
         
         FSDataInputStream tmpInput = fs.open(srcPath);
         DataInputStream tmpDecryptingInput = tmpInput;
@@ -193,8 +196,9 @@ public class LogSorter {
     }
     
     private void writeBuffer(String destPath, ArrayList<Pair<LogFileKey,LogFileValue>> buffer, int part) throws IOException {
-      String path = destPath + String.format("/part-r-%05d", part++);
-      MapFile.Writer output = new MapFile.Writer(fs.getConf(), fs, path, LogFileKey.class, LogFileValue.class);
+      Path path = new Path(destPath, String.format("part-r-%05d", part++));
+      FileSystem ns = fs.getFileSystemByPath(path);
+      MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns, path.toString(), LogFileKey.class, LogFileValue.class);
       try {
         Collections.sort(buffer, new Comparator<Pair<LogFileKey,LogFileValue>>() {
           @Override
@@ -234,7 +238,7 @@ public class LogSorter {
   ThreadPoolExecutor threadPool;
   private final Instance instance;
   
-  public LogSorter(Instance instance, FileSystem fs, AccumuloConfiguration conf) {
+  public LogSorter(Instance instance, VolumeManager fs, AccumuloConfiguration conf) {
     this.instance = instance;
     this.fs = fs;
     this.conf = conf;

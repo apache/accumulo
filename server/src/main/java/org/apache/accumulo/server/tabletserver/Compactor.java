@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -55,15 +53,18 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
 import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 
@@ -118,14 +119,14 @@ public class Compactor implements Callable<CompactionStats> {
     IteratorScope getIteratorScope();
   }
   
-  private Map<String,DataFileValue> filesToCompact;
+  private Map<FileRef,DataFileValue> filesToCompact;
   private InMemoryMap imm;
-  private String outputFile;
+  private FileRef outputFile;
   private boolean propogateDeletes;
   private TableConfiguration acuTableConf;
   private CompactionEnv env;
   private Configuration conf;
-  private FileSystem fs;
+  private VolumeManager fs;
   protected KeyExtent extent;
   private List<IteratorSetting> iterators;
   
@@ -217,9 +218,10 @@ public class Compactor implements Callable<CompactionStats> {
         iiList.add(new IterInfo(iterSetting.getPriority(), iterSetting.getIteratorClass(), iterSetting.getName()));
         iterOptions.put(iterSetting.getName(), iterSetting.getOptions());
       }
-      
-      return new ActiveCompaction(compactor.extent.toThrift(), System.currentTimeMillis() - compactor.startTime, new ArrayList<String>(
-          compactor.filesToCompact.keySet()), compactor.outputFile, type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);
+      List<String> filesToCompact = new ArrayList<String>();
+      for (FileRef ref : compactor.filesToCompact.keySet())
+        filesToCompact.add(ref.toString());
+      return new ActiveCompaction(compactor.extent.toThrift(), System.currentTimeMillis() - compactor.startTime, filesToCompact, compactor.outputFile.toString(), type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);
     }
   }
   
@@ -235,7 +237,7 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  Compactor(Configuration conf, FileSystem fs, Map<String,DataFileValue> files, InMemoryMap imm, String outputFile, boolean propogateDeletes,
+  Compactor(Configuration conf, VolumeManager fs, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile, boolean propogateDeletes,
       TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env, List<IteratorSetting> iterators, MajorCompactionReason reason) {
     this.extent = extent;
     this.conf = conf;
@@ -252,12 +254,12 @@ public class Compactor implements Callable<CompactionStats> {
     startTime = System.currentTimeMillis();
   }
   
-  Compactor(Configuration conf, FileSystem fs, Map<String,DataFileValue> files, InMemoryMap imm, String outputFile, boolean propogateDeletes,
+  Compactor(Configuration conf, VolumeManager fs, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile, boolean propogateDeletes,
       TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env) {
     this(conf, fs, files, imm, outputFile, propogateDeletes, acuTableConf, extent, env, new ArrayList<IteratorSetting>(), null);
   }
   
-  public FileSystem getFileSystem() {
+  public VolumeManager getFileSystem() {
     return fs;
   }
   
@@ -266,7 +268,7 @@ public class Compactor implements Callable<CompactionStats> {
   }
   
   String getOutputFile() {
-    return outputFile;
+    return outputFile.toString();
   }
   
   @Override
@@ -282,7 +284,8 @@ public class Compactor implements Callable<CompactionStats> {
 
     try {
       FileOperations fileFactory = FileOperations.getInstance();
-      mfw = fileFactory.openWriter(outputFile, fs, conf, acuTableConf);
+      FileSystem ns = this.fs.getFileSystemByPath(outputFile.path());
+      mfw = fileFactory.openWriter(outputFile.path().toString(), ns, ns.getConf(), acuTableConf);
       
       Map<String,Set<ByteSequence>> lGroups;
       try {
@@ -314,7 +317,7 @@ public class Compactor implements Callable<CompactionStats> {
       
       // Verify the file, since hadoop 0.20.2 sometimes lies about the success of close()
       try {
-        FileSKVIterator openReader = fileFactory.openReader(outputFile, false, fs, conf, acuTableConf);
+        FileSKVIterator openReader = fileFactory.openReader(outputFile.path().toString(), false, ns, ns.getConf(), acuTableConf);
         openReader.close();
       } catch (IOException ex) {
         log.error("Verification of successful compaction fails!!! " + extent + " " + outputFile, ex);
@@ -324,7 +327,7 @@ public class Compactor implements Callable<CompactionStats> {
       log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %6.3f secs", extent, majCStats.getEntriesRead(),
           majCStats.getEntriesWritten(), (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0));
       
-      majCStats.setFileSize(fileFactory.getFileSize(outputFile, fs, conf, acuTableConf));
+      majCStats.setFileSize(fileFactory.getFileSize(outputFile.path().toString(), ns, ns.getConf(), acuTableConf));
       return majCStats;
     } catch (IOException e) {
       log.error(e, e);
@@ -343,9 +346,8 @@ public class Compactor implements Callable<CompactionStats> {
           try {
             mfw.close();
           } finally {
-            Path path = new Path(outputFile);
-            if (!fs.delete(path, true))
-              if (fs.exists(path))
+            if (!fs.deleteRecursively(outputFile.path()))
+              if (fs.exists(outputFile.path()))
                 log.error("Unable to delete " + outputFile);
           }
         }
@@ -359,18 +361,18 @@ public class Compactor implements Callable<CompactionStats> {
     
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(filesToCompact.size());
     
-    for (String mapFile : filesToCompact.keySet()) {
+    for (FileRef mapFile : filesToCompact.keySet()) {
       try {
         
         FileOperations fileFactory = FileOperations.getInstance();
-        
+        FileSystem fs = this.fs.getFileSystemByPath(mapFile.path());
         FileSKVIterator reader;
         
-        reader = fileFactory.openReader(mapFile, false, fs, conf, acuTableConf);
+        reader = fileFactory.openReader(mapFile.path().toString(), false, fs, conf, acuTableConf);
         
         readers.add(reader);
         
-        SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(extent.getTableId().toString(), mapFile, false, reader);
+        SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(extent.getTableId().toString(), mapFile.path().toString(), false, reader);
         
         if (filesToCompact.get(mapFile).isTimeSet()) {
           iter = new TimeSettingIterator(iter, filesToCompact.get(mapFile).getTime());
@@ -380,7 +382,7 @@ public class Compactor implements Callable<CompactionStats> {
         
       } catch (Throwable e) {
         
-        ProblemReports.getInstance().report(new ProblemReport(extent.getTableId().toString(), ProblemType.FILE_READ, mapFile, e));
+        ProblemReports.getInstance().report(new ProblemReport(extent.getTableId().toString(), ProblemType.FILE_READ, mapFile.path().toString(), e));
         
         log.warn("Some problem opening map file " + mapFile + " " + e.getMessage(), e);
         // failed to open some map file... close the ones that were opened
@@ -462,7 +464,7 @@ public class Compactor implements Callable<CompactionStats> {
             } catch (IOException e) {
               log.error(e, e);
             }
-            fs.delete(new Path(outputFile), true);
+            fs.deleteRecursively(outputFile.path());
           } catch (Exception e) {
             log.warn("Failed to delete Canceled compaction output file " + outputFile, e);
           }

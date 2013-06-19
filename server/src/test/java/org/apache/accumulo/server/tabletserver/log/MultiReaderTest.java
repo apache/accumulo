@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.server.tabletserver.log;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.server.tabletserver.log.MultiReader;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
@@ -33,27 +34,31 @@ import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class MultiReaderTest {
   
-  Configuration conf = CachedConfiguration.getInstance();
-  FileSystem fs;
+  VolumeManager fs;
+  TemporaryFolder root = new TemporaryFolder();
   
   @Before
   public void setUp() throws Exception {
     // quiet log messages about compress.CodecPool
     Logger.getRootLogger().setLevel(Level.ERROR);
-    fs = FileSystem.getLocal(conf);
-    Path root = new Path("manyMaps");
+    fs = VolumeManagerImpl.getLocal();
+    root.create();
+    String path = root.getRoot().getAbsolutePath();
+    Path root = new Path("file://" + path + "/manyMaps");
     fs.mkdirs(root);
     fs.create(new Path(root, "finished")).close();
-    Writer writer = new Writer(conf, fs, "manyMaps/odd", IntWritable.class, BytesWritable.class);
+    FileSystem ns = fs.getDefaultVolume();
+    Writer writer = new Writer(ns.getConf(), ns, new Path(root, "odd").toString(), IntWritable.class, BytesWritable.class);
     BytesWritable value = new BytesWritable("someValue".getBytes());
     for (int i = 1; i < 1000; i += 2) {
       writer.append(new IntWritable(i), value);
     }
     writer.close();
-    writer = new Writer(conf, fs, "manyMaps/even", IntWritable.class, BytesWritable.class);
+    writer = new Writer(ns.getConf(), ns, new Path(root, "even").toString(), IntWritable.class, BytesWritable.class);
     for (int i = 0; i < 1000; i += 2) {
       if (i == 10)
         continue;
@@ -64,8 +69,7 @@ public class MultiReaderTest {
   
   @After
   public void tearDown() throws Exception {
-    if (fs != null)
-      fs.delete(new Path("manyMaps"), true);
+    root.create();
   }
   
   private void scan(MultiReader reader, int start) throws IOException {
@@ -92,7 +96,8 @@ public class MultiReaderTest {
   
   @Test
   public void testMultiReader() throws IOException {
-    MultiReader reader = new MultiReader(fs, conf, "manyMaps");
+    Path manyMaps = new Path("file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
+    MultiReader reader = new MultiReader(fs, manyMaps);
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
     
@@ -121,8 +126,8 @@ public class MultiReaderTest {
     assertEquals(0, key.get());
     reader.close();
     
-    fs.delete(new Path("manyMaps/even"), true);
-    reader = new MultiReader(fs, conf, "manyMaps");
+    fs.deleteRecursively(new Path(manyMaps, "even"));
+    reader = new MultiReader(fs, manyMaps);
     key.set(501);
     assertTrue(reader.seek(key));
     scanOdd(reader, 501);

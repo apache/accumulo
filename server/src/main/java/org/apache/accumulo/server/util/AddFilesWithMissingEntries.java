@@ -112,20 +112,22 @@ public class AddFilesWithMissingEntries {
     final String tableId = ke.getTableId().toString();
     final Text row = ke.getMetadataEntry();
     log.info(row.toString());
-    final Path path = new Path(ServerConstants.getTablesDir() + "/" + tableId + directory);
-    for (FileStatus file : fs.listStatus(path)) {
-      if (file.getPath().getName().endsWith("_tmp") || file.getPath().getName().endsWith("_tmp.rf"))
-        continue;
-      final String filename = directory + "/" + file.getPath().getName();
-      if (!knownFiles.contains(filename)) {
-        count++;
-        final Mutation m = new Mutation(row);
-        String size = Long.toString(file.getLen());
-        String entries = "1"; // lie
-        String value = size + "," + entries;
-        m.put(MetadataTable.DATAFILE_COLUMN_FAMILY, new Text(filename), new Value(value.getBytes()));
-        if (update) {
-          writer.getBatchWriter(MetadataTable.NAME).addMutation(m);
+    for (String dir : ServerConstants.getTablesDirs()) {
+      final Path path = new Path(dir + "/" + tableId + directory);
+      for (FileStatus file : fs.listStatus(path)) {
+        if (file.getPath().getName().endsWith("_tmp") || file.getPath().getName().endsWith("_tmp.rf"))
+          continue;
+        final String filename = directory + "/" + file.getPath().getName();
+        if (!knownFiles.contains(filename)) {
+          count++;
+          final Mutation m = new Mutation(row);
+          String size = Long.toString(file.getLen());
+          String entries = "1"; // lie
+          String value = size + "," + entries;
+          m.put(MetadataTable.DATAFILE_COLUMN_FAMILY, new Text(filename), new Value(value.getBytes()));
+          if (update) {
+            writer.getBatchWriter(MetadataTable.NAME).addMutation(m);
+          }
         }
       }
     }

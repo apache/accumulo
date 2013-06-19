@@ -1274,7 +1274,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     try {
       FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), instance.getConfiguration());
-      ;
       Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
       
       for (String propKey : props.keySet()) {

@@ -16,24 +16,28 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
-import org.apache.accumulo.core.Constants;
+import java.util.Map.Entry;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeInfo.Operation;
 import org.apache.accumulo.server.master.state.MergeState;
 import org.apache.accumulo.server.util.MetadataTable;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -58,13 +62,14 @@ class MakeDeleteEntries extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.info("creating delete entries for merged metadata tablets");
     Connector conn = master.getConnector();
+    Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    scanner.setRange(RootTable.KEYSPACE);
+    scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    String tableDir = ServerConstants.getMetadataTableDir();
-    for (FileStatus fs : master.getFileSystem().listStatus(new Path(tableDir))) {
+    for (Entry<Key,Value> entry : scanner) {
       // TODO: add the entries only if there are no !METADATA table references - ACCUMULO-1308
-      if (fs.isDir() && fs.getPath().getName().matches("^" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + ".*")) {
-        bw.addMutation(MetadataTable.createDeleteMutation(MetadataTable.ID, "/" + fs.getPath().getName()));
-      }
+      FileRef ref = new FileRef(master.getFileSystem(), entry.getKey());
+      bw.addMutation(MetadataTable.createDeleteMutation(MetadataTable.ID, ref.path().toString()));
     }
     bw.close();
     return null;

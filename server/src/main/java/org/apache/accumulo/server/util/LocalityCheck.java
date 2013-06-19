@@ -25,13 +25,12 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -43,7 +42,7 @@ public class LocalityCheck {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(LocalityCheck.class.getName(), args);
     
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    VolumeManager fs = VolumeManagerImpl.get();
     Connector connector = opts.getConnector();
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
@@ -63,7 +62,8 @@ public class LocalityCheck {
         addBlocks(fs, host, files, totalBlocks, localBlocks);
         files.clear();
       } else if (key.compareColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY) == 0) {
-        files.add(new String(KeyExtent.tableOfMetadataRow(key.getRow())) + slash(key.getColumnQualifier().toString()));
+        
+        files.add(fs.getFullPath(key).toString());
       }
     }
     System.out.println(" Server         %local  total blocks");
@@ -73,13 +73,7 @@ public class LocalityCheck {
     return 0;
   }
   
-  private static String slash(String path) {
-    if (path.startsWith("/"))
-      return path;
-    return "/" + path;
-  }
-  
-  private void addBlocks(FileSystem fs, String host, ArrayList<String> files, Map<String,Long> totalBlocks, Map<String,Long> localBlocks) throws Exception {
+  private void addBlocks(VolumeManager fs, String host, ArrayList<String> files, Map<String,Long> totalBlocks, Map<String,Long> localBlocks) throws Exception {
     long allBlocks = 0;
     long matchingBlocks = 0;
     if (!totalBlocks.containsKey(host)) {
@@ -87,9 +81,10 @@ public class LocalityCheck {
       localBlocks.put(host, 0L);
     }
     for (String file : files) {
-      Path filePath = new Path(ServerConstants.getTablesDir() + "/" + file);
-      FileStatus fileStatus = fs.getFileStatus(filePath);
-      BlockLocation[] fileBlockLocations = fs.getFileBlockLocations(fileStatus, 0, fileStatus.getLen());
+      Path filePath = new Path(file);
+      FileSystem ns = fs.getFileSystemByPath(filePath);
+      FileStatus fileStatus = ns.getFileStatus(filePath);
+      BlockLocation[] fileBlockLocations = ns.getFileBlockLocations(fileStatus, 0, fileStatus.getLen());
       for (BlockLocation blockLocation : fileBlockLocations) {
         allBlocks++;
         for (String location : blockLocation.getHosts()) {

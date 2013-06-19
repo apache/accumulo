@@ -34,7 +34,8 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
+import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
@@ -42,16 +43,16 @@ public class MinorCompactor extends Compactor {
   
   private static final Logger log = Logger.getLogger(MinorCompactor.class);
   
-  private static final Map<String,DataFileValue> EMPTY_MAP = Collections.emptyMap();
+  private static final Map<FileRef,DataFileValue> EMPTY_MAP = Collections.emptyMap();
   
-  private static Map<String,DataFileValue> toFileMap(String mergeFile, DataFileValue dfv) {
+  private static Map<FileRef,DataFileValue> toFileMap(FileRef mergeFile, DataFileValue dfv) {
     if (mergeFile == null)
       return EMPTY_MAP;
     
     return Collections.singletonMap(mergeFile, dfv);
   }
   
-  MinorCompactor(Configuration conf, FileSystem fs, InMemoryMap imm, String mergeFile, DataFileValue dfv, String outputFile, TableConfiguration acuTableConf,
+  MinorCompactor(Configuration conf, VolumeManager fs, InMemoryMap imm, FileRef mergeFile, DataFileValue dfv, FileRef outputFile, TableConfiguration acuTableConf,
       KeyExtent extent, MinorCompactionReason mincReason) {
     super(conf, fs, toFileMap(mergeFile, dfv), imm, outputFile, true, acuTableConf, extent, new CompactionEnv() {
       
@@ -126,7 +127,7 @@ public class MinorCompactor extends Compactor {
         // clean up
         try {
           if (getFileSystem().exists(new Path(getOutputFile()))) {
-            getFileSystem().delete(new Path(getOutputFile()), true);
+            getFileSystem().deleteRecursively(new Path(getOutputFile()));
           }
         } catch (IOException e) {
           log.warn("Failed to delete failed MinC file " + getOutputFile() + " " + e.getMessage());

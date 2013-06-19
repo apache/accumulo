@@ -22,8 +22,6 @@ import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -42,11 +40,14 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.cli.ClientOnRequiredTable;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.ClusterStatus;
@@ -110,15 +111,21 @@ public class ContinuousStatsCollector {
     }
     
     private String getFSStats() throws Exception {
-      FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-      Path acudir = new Path(ServerConstants.getTablesDir());
-      ContentSummary contentSummary = fs.getContentSummary(acudir);
+      VolumeManager fs = VolumeManagerImpl.get();
+      long length1 = 0, dcount1 = 0, fcount1 = 0;
+      long length2 = 0, dcount2 = 0, fcount2 = 0;
+      for (String dir : ServerConstants.getTablesDirs()) {
+        ContentSummary contentSummary = fs.getContentSummary(new Path(dir));
+        length1 += contentSummary.getLength();
+        dcount1 += contentSummary.getDirectoryCount();
+        fcount1 += contentSummary.getFileCount();
+        contentSummary = fs.getContentSummary(new Path(dir, tableId));
+        length2 += contentSummary.getLength();
+        dcount2 += contentSummary.getDirectoryCount();
+        fcount2 += contentSummary.getFileCount();
+      }
       
-      Path tableDir = new Path(ServerConstants.getTablesDir() + "/" + tableId);
-      ContentSummary contentSummary2 = fs.getContentSummary(tableDir);
-      
-      return "" + contentSummary.getLength() + " " + contentSummary.getDirectoryCount() + " " + contentSummary.getFileCount() + " "
-          + contentSummary2.getLength() + " " + contentSummary2.getDirectoryCount() + " " + contentSummary2.getFileCount();
+      return "" + length1 + " " + dcount1 + " " + fcount1 + " " + length2 + " " + dcount2 + " " + fcount2;
     }
     
     private String getACUStats() throws Exception {

@@ -42,13 +42,17 @@ import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -99,7 +103,7 @@ public class FileManager {
   
   private Semaphore filePermits;
   
-  private FileSystem fs;
+  private VolumeManager fs;
   
   // the data cache and index cache are allocated in
   // TabletResourceManager and passed through the file opener to
@@ -158,7 +162,7 @@ public class FileManager {
    * @param indexCache
    *          : underlying file can and should be able to handle a null cache
    */
-  FileManager(ServerConfiguration conf, FileSystem fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
+  FileManager(ServerConfiguration conf, VolumeManager fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
     
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
@@ -239,8 +243,7 @@ public class FileManager {
   }
   
   private List<String> takeOpenFiles(Collection<String> files, List<FileSKVIterator> reservedFiles, Map<FileSKVIterator,String> readersReserved) {
-    List<String> filesToOpen;
-    filesToOpen = new LinkedList<String>(files);
+    List<String> filesToOpen = new LinkedList<String>(files);
     for (Iterator<String> iterator = filesToOpen.iterator(); iterator.hasNext();) {
       String file = iterator.next();
       
@@ -304,8 +307,10 @@ public class FileManager {
     // open any files that need to be opened
     for (String file : filesToOpen) {
       try {
-        // log.debug("Opening "+file);
-        FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, fs.getConf(), conf.getTableConfiguration(table.toString()),
+        Path path = fs.getFullPath(ServerConstants.getTablesDirs(), file);
+        FileSystem ns = fs.getFileSystemByPath(path);
+        //log.debug("Opening "+file + " path " + path);
+        FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), false, ns, ns.getConf(), conf.getTableConfiguration(table.toString()),
             dataCache, indexCache);
         reservedFiles.add(reader);
         readersReserved.put(reader, file);
@@ -453,6 +458,13 @@ public class FileManager {
       }
     }
     
+    private List<FileSKVIterator> openFileRefs(Collection<FileRef> files) throws TooManyFilesException, IOException {
+      List<String> strings = new ArrayList<String>(files.size());
+      for (FileRef ref : files)
+        strings.add(ref.path().toString());
+      return openFiles(strings);
+    }
+    
     private List<FileSKVIterator> openFiles(Collection<String> files) throws TooManyFilesException, IOException {
       // one tablet can not open more than maxOpen files, otherwise it could get stuck
       // forever waiting on itself to release files
@@ -468,9 +480,9 @@ public class FileManager {
       return newlyReservedReaders;
     }
     
-    synchronized List<InterruptibleIterator> openFiles(Map<String,DataFileValue> files, boolean detachable) throws IOException {
+    synchronized List<InterruptibleIterator> openFiles(Map<FileRef,DataFileValue> files, boolean detachable) throws IOException {
       
-      List<FileSKVIterator> newlyReservedReaders = openFiles(files.keySet());
+      List<FileSKVIterator> newlyReservedReaders = openFileRefs(files.keySet());
       
       ArrayList<InterruptibleIterator> iters = new ArrayList<InterruptibleIterator>();
       
@@ -485,9 +497,9 @@ public class FileManager {
         } else {
           iter = new ProblemReportingIterator(tablet.getTableId().toString(), filename, continueOnFailure, reader);
         }
-        
-        if (files.get(filename).isTimeSet()) {
-          iter = new TimeSettingIterator(iter, files.get(filename).getTime());
+        DataFileValue value = files.get(new FileRef(filename));
+        if (value.isTimeSet()) {
+          iter = new TimeSettingIterator(iter, value.getTime());
         }
         
         iters.add(iter);

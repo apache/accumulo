@@ -41,7 +41,7 @@ public class ZooKeeperMain {
     Opts opts = new Opts();
     opts.parseArgs(ZooKeeperMain.class.getName(), args);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    String baseDir = ServerConstants.getBaseDir();
+    String baseDir = ServerConstants.getBaseDirs()[0];
     System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id")) + " to lookup accumulo instance");
     Instance instance = HdfsZooInstance.getInstance();
     if (opts.servers == null) {

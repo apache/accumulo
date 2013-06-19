@@ -52,6 +52,7 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -98,7 +99,7 @@ class FinishImportTable extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     
-    env.getFileSystem().delete(new Path(tableInfo.importDir, "mappings.txt"), true);
+    env.getFileSystem().deleteRecursively(new Path(tableInfo.importDir, "mappings.txt"));
     
     TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
     
@@ -136,7 +137,7 @@ class MoveExportedFiles extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     try {
-      FileSystem fs = master.getFileSystem();
+      VolumeManager fs = master.getFileSystem();
       
       Map<String,String> fileNameMappings = PopulateMetadataTable.readMappingFile(fs, tableInfo);
       
@@ -175,7 +176,7 @@ class PopulateMetadataTable extends MasterRepo {
     this.tableInfo = ti;
   }
   
-  static Map<String,String> readMappingFile(FileSystem fs, ImportedTableInfo tableInfo) throws Exception {
+  static Map<String,String> readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo) throws Exception {
     BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt"))));
     
     try {
@@ -203,7 +204,7 @@ class PopulateMetadataTable extends MasterRepo {
     ZipInputStream zis = null;
     
     try {
-      FileSystem fs = master.getFileSystem();
+      VolumeManager fs = master.getFileSystem();
       
       mbw = master.getConnector().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       
@@ -311,10 +312,10 @@ class MapImportFileNames extends MasterRepo {
     BufferedWriter mappingsWriter = null;
     
     try {
-      FileSystem fs = environment.getFileSystem();
+      VolumeManager fs = environment.getFileSystem();
       
       fs.mkdirs(new Path(tableInfo.importDir));
-      
+
       FileStatus[] files = fs.listStatus(new Path(tableInfo.exportDir));
       
       UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
@@ -323,7 +324,7 @@ class MapImportFileNames extends MasterRepo {
       
       for (FileStatus fileStatus : files) {
         String fileName = fileStatus.getPath().getName();
-        
+        log.info("filename " + fileStatus.getPath().toString());
         String sa[] = fileName.split("\\.");
         String extension = "";
         if (sa.length > 1) {
@@ -365,7 +366,7 @@ class MapImportFileNames extends MasterRepo {
   
   @Override
   public void undo(long tid, Master env) throws Exception {
-    env.getFileSystem().delete(new Path(tableInfo.importDir), true);
+    env.getFileSystem().deleteRecursively(new Path(tableInfo.importDir));
   }
 }
 
@@ -380,11 +381,12 @@ class CreateImportDir extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
     
-    Path directory = new Path(ServerConstants.getTablesDir() + "/" + tableInfo.tableId);
+    Path base = master.getFileSystem().matchingFileSystem(new Path(tableInfo.exportDir), ServerConstants.getTablesDirs());
+    Path directory = new Path(base, tableInfo.tableId);
     
     Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
     
@@ -409,12 +411,13 @@ class ImportPopulateZookeeper extends MasterRepo {
     return Utils.reserveTable(tableInfo.tableId, tid, true, false, TableOperation.IMPORT);
   }
   
-  private Map<String,String> getExportedProps(FileSystem fs) throws Exception {
+  private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {
     
     Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
     
     try {
-      return TableOperationsImpl.getExportedProps(fs, path);
+      FileSystem ns = fs.getFileSystemByPath(path);
+      return TableOperationsImpl.getExportedProps(ns, path);
     } catch (IOException ioe) {
       throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error reading table props from " + path + " " + ioe.getMessage());

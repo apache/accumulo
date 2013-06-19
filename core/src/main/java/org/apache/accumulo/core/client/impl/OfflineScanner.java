@@ -230,14 +230,24 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
-    
+
     String tablesDir = instance.getConfiguration().get(Property.INSTANCE_DFS_DIR) + "/tables";
+    String[] volumes = instance.getConfiguration().get(Property.INSTANCE_VOLUMES).split(",");
+    if (volumes.length > 1) {
+      tablesDir = volumes[0] + tablesDir;
+    }
     List<String> absFiles = new ArrayList<String>();
     for (String relPath : relFiles) {
-      if (relPath.startsWith(".."))
-        absFiles.add(tablesDir + relPath.substring(2));
-      else
-        absFiles.add(tablesDir + "/" + tableId + relPath);
+      if (relFiles.contains(":")) {
+        absFiles.add(relPath);
+      } else {
+        // handle old-style relative paths
+        if (relPath.startsWith("..")) {
+          absFiles.add(tablesDir + relPath.substring(2));
+        } else {
+          absFiles.add(tablesDir + "/" + tableId + relPath);
+        }
+      }
     }
     
     iter = createIterator(extent, absFiles);

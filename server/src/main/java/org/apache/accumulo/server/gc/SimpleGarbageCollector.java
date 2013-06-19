@@ -56,7 +56,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
@@ -66,7 +65,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.RootTable;
@@ -80,11 +78,11 @@ import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.Halt;
-import org.apache.accumulo.server.util.OfflineMetadataScanner;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -95,9 +93,7 @@ import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -128,8 +124,8 @@ public class SimpleGarbageCollector implements Iface {
   private TCredentials credentials;
   private long gcStartDelay;
   private boolean checkForBulkProcessingFiles;
-  private FileSystem fs;
-  private Trash trash = null;
+  private VolumeManager fs;
+  private boolean useTrash = true;
   private boolean safemode = false, offline = false, verbose = false;
   private String address = "localhost";
   private ZooLock lock;
@@ -146,7 +142,7 @@ public class SimpleGarbageCollector implements Iface {
     
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfiguration serverConf = new ServerConfiguration(instance);
-    final FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), serverConf.getConfiguration());
+    final VolumeManager fs = VolumeManagerImpl.get();
     Accumulo.init(fs, serverConf, "gc");
     String address = "localhost";
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
@@ -185,8 +181,8 @@ public class SimpleGarbageCollector implements Iface {
     this.address = address;
   }
   
-  public void init(FileSystem fs, Instance instance, TCredentials credentials, boolean noTrash) throws IOException {
-    this.fs = TraceFileSystem.wrap(fs);
+  public void init(VolumeManager fs, Instance instance, TCredentials credentials, boolean noTrash) throws IOException {
+    this.fs = fs;
     this.credentials = credentials;
     this.instance = instance;
     
@@ -200,9 +196,7 @@ public class SimpleGarbageCollector implements Iface {
     log.info("verbose: " + verbose);
     log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
     log.info("delete threads: " + numDeleteThreads);
-    if (!noTrash) {
-      this.trash = new Trash(fs, fs.getConf());
-    }
+    useTrash = !noTrash;
   }
   
   private void run() {
@@ -302,7 +296,7 @@ public class SimpleGarbageCollector implements Iface {
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
       try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(instance, fs, trash == null);
+        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(instance, fs, useTrash);
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
@@ -332,10 +326,10 @@ public class SimpleGarbageCollector implements Iface {
   }
   
   private boolean moveToTrash(Path path) throws IOException {
-    if (trash == null)
+    if (!useTrash)
       return false;
     try {
-      return trash.moveToTrash(path);
+      return fs.moveToTrash(path);
     } catch (FileNotFoundException ex) {
       return false;
     }
@@ -367,21 +361,22 @@ public class SimpleGarbageCollector implements Iface {
       // if dir exist and is empty, then empty list is returned...
       // hadoop 1.0 will return null if the file doesn't exist
       // hadoop 2.0 will throw an exception if the file does not exist
-      FileStatus[] tabletDirs = null;
-      try {
-        tabletDirs = fs.listStatus(new Path(ServerConstants.getTablesDir() + "/" + delTableId));
-      } catch (FileNotFoundException ex) {
-        // ignored
-      }
-      
-      if (tabletDirs == null)
-        continue;
-      
-      if (tabletDirs.length == 0) {
-        Path p = new Path(ServerConstants.getTablesDir() + "/" + delTableId);
-        if (!moveToTrash(p))
-          fs.delete(p, false);
-      }
+      for (String dir : ServerConstants.getTablesDirs()) {
+        FileStatus[] tabletDirs = null;
+        try {
+          tabletDirs = fs.listStatus(new Path(dir + "/" + delTableId));
+        } catch (FileNotFoundException ex) {
+          // ignored 
+        }
+        if (tabletDirs == null)
+          continue;
+        
+        if (tabletDirs.length == 0) {
+          Path p = new Path(dir + "/" + delTableId);
+          if (!moveToTrash(p)) 
+            fs.delete(p);
+        }
+      } 
     }
   }
   
@@ -440,10 +435,12 @@ public class SimpleGarbageCollector implements Iface {
       checkForBulkProcessingFiles = true;
       try {
         for (String validExtension : FileOperations.getValidExtensions()) {
-          for (FileStatus stat : fs.globStatus(new Path(ServerConstants.getTablesDir() + "/*/*/*." + validExtension))) {
-            String cand = stat.getPath().toUri().getPath();
-            if (!cand.contains(ServerConstants.getRootTabletDir())) {
-              candidates.add(cand.substring(ServerConstants.getTablesDir().length()));
+          for (String dir : ServerConstants.getTablesDirs()) {
+            for (FileStatus stat : fs.globStatus(new Path(dir + "/*/*/*." + validExtension))) {
+              String cand = stat.getPath().toUri().getPath();
+              if (cand.contains(ServerConstants.getRootTabletDir()))
+                continue;
+              candidates.add(cand.substring(dir.length()));
               log.debug("Offline candidate: " + cand);
             }
           }
@@ -511,11 +508,13 @@ public class SimpleGarbageCollector implements Iface {
     
     Scanner scanner;
     if (offline) {
-      try {
-        scanner = new OfflineMetadataScanner(instance.getConfiguration(), fs);
-      } catch (IOException e) {
-        throw new IllegalStateException("Unable to create offline metadata scanner", e);
-      }
+      // TODO
+      throw new RuntimeException("Offline scanner no longer supported");
+//      try {
+//        scanner = new OfflineMetadataScanner(instance.getConfiguration(), fs);
+//      } catch (IOException e) {
+//        throw new IllegalStateException("Unable to create offline metadata scanner", e);
+//      }
     } else {
       try {
         scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
@@ -563,7 +562,6 @@ public class SimpleGarbageCollector implements Iface {
     scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
     scanner.fetchColumnFamily(MetadataTable.SCANFILE_COLUMN_FAMILY);
     MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
-    
     TabletIterator tabletIterator = new TabletIterator(scanner, MetadataTable.KEYSPACE, false, true);
     
     while (tabletIterator.hasNext()) {
@@ -574,12 +572,17 @@ public class SimpleGarbageCollector implements Iface {
             || entry.getKey().getColumnFamily().equals(MetadataTable.SCANFILE_COLUMN_FAMILY)) {
           
           String cf = entry.getKey().getColumnQualifier().toString();
-          String delete;
-          if (cf.startsWith("../")) {
-            delete = cf.substring(2);
-          } else {
-            String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()));
-            delete = "/" + table + cf;
+          String delete = cf;
+          if (!cf.contains(":")) {
+            if (cf.startsWith("../")) {
+              delete = cf.substring(2);
+            } else {
+              String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()));
+              if (cf.startsWith("/"))
+                delete = "/" + table + cf;
+              else
+                delete = "/" + table + "/" + cf;
+            }
           }
           // WARNING: This line is EXTREMELY IMPORTANT.
           // You MUST REMOVE candidates that are still in use
@@ -603,7 +606,7 @@ public class SimpleGarbageCollector implements Iface {
   final static String METADATA_TABLE_DIR = "/" + MetadataTable.ID;
   
   private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer, final BatchWriter rootWriter) throws MutationsRejectedException {
-    if (delete.startsWith(METADATA_TABLE_DIR)) {
+    if (delete.contains(METADATA_TABLE_DIR)) {
       Mutation m = new Mutation(new Text(RootTable.DELETE_FLAG_PREFIX + delete));
       m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
       rootWriter.addMutation(m);
@@ -669,26 +672,29 @@ public class SimpleGarbageCollector implements Iface {
         public void run() {
           boolean removeFlag;
           
-          String fullPath = ServerConstants.getTablesDir() + delete;
-          log.debug("Deleting " + fullPath);
           try {
+            Path fullPath;
+
+            if (delete.contains(":"))
+              fullPath = new Path(delete);
+            else
+              fullPath = fs.getFullPath(ServerConstants.getTablesDirs(), delete);
+            log.debug("Deleting " + fullPath);
             
-            Path p = new Path(fullPath);
-            
-            if (moveToTrash(p) || fs.delete(p, true)) {
+            if (moveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
               // delete succeeded, still want to delete
               removeFlag = true;
               synchronized (SimpleGarbageCollector.this) {
                 ++status.current.deleted;
               }
-            } else if (fs.exists(p)) {
+            } else if (fs.exists(fullPath)) {
               // leave the entry in the METADATA table; we'll try again
               // later
               removeFlag = false;
               synchronized (SimpleGarbageCollector.this) {
                 ++status.current.errors;
               }
-              log.warn("File exists, but was not deleted for an unknown reason: " + p);
+              log.warn("File exists, but was not deleted for an unknown reason: " + fullPath);
             } else {
               // this failure, we still want to remove the METADATA table
               // entry
@@ -698,14 +704,14 @@ public class SimpleGarbageCollector implements Iface {
               }
               String parts[] = delete.split("/");
               if (parts.length > 2) {
-                String tableId = parts[1];
-                String tabletDir = parts[2];
+                String tableId = parts[parts.length - 3];
+                String tabletDir = parts[parts.length - 2];
                 TableManager.getInstance().updateTableStateCache(tableId);
                 TableState tableState = TableManager.getInstance().getTableState(tableId);
                 if (tableState != null && tableState != TableState.DELETING) {
                   // clone directories don't always exist
                   if (!tabletDir.startsWith("c-"))
-                    log.warn("File doesn't exist: " + p);
+                    log.warn("File doesn't exist: " + fullPath);
                 }
               } else {
                 log.warn("Very strange path name: " + delete);

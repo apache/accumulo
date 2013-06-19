@@ -190,10 +190,10 @@ public class ShellServerTest {
     exec("addsplits row5", true);
     exec("config -t t -s table.split.threshold=345M", true);
     exec("offline t", true);
-    String export = folder.newFolder().toString();
+    String export = "file://" + folder.newFolder().toString();
     exec("exporttable -t t " + export, true);
     DistCp cp = newDistCp();
-    String import_ = folder.newFolder().toString();
+    String import_ = "file://" +folder.newFolder().toString();
     cp.run(new String[] {"-f", export + "/distcp.txt", import_});
     exec("importtable t2 " + import_, true);
     exec("config -t t2 -np", true, "345M", true);

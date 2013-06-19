@@ -63,7 +63,6 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
@@ -91,9 +90,11 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.constraints.ConstraintChecker;
+import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.tableOps.CompactRange.CompactionIterators;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -111,7 +112,7 @@ import org.apache.accumulo.server.tabletserver.log.DfsLogger;
 import org.apache.accumulo.server.tabletserver.log.MutationReceiver;
 import org.apache.accumulo.server.tabletserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.server.tabletserver.metrics.TabletServerMinCMetrics;
-import org.apache.accumulo.server.trace.TraceFileSystem;
+import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MapCounter;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
@@ -126,7 +127,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -387,7 +387,7 @@ public class Tablet {
   private TServerInstance lastLocation;
   
   private Configuration conf;
-  private FileSystem fs;
+  private VolumeManager fs;
   
   private TableConfiguration acuTableConf;
   
@@ -472,10 +472,10 @@ public class Tablet {
     private static final long serialVersionUID = 1L;
   }
   
-  String getNextMapFilename(String prefix) throws IOException {
+  FileRef getNextMapFilename(String prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tabletServer.getTableConfiguration(extent));
     checkTabletDir();
-    return location.toString() + "/" + prefix + UniqueNameAllocator.getInstance().getNextName() + "." + extension;
+    return new FileRef(location.toString() + "/" + prefix + UniqueNameAllocator.getInstance().getNextName() + "." + extension);
   }
   
   private void checkTabletDir() throws IOException {
@@ -504,32 +504,25 @@ public class Tablet {
     }
   }
   
-  private static String rel2abs(String relPath, KeyExtent extent) {
-    if (relPath.startsWith("../"))
-      return ServerConstants.getTablesDir() + relPath.substring(2);
-    else
-      return ServerConstants.getTablesDir() + "/" + extent.getTableId() + relPath;
-  }
-  
   class DatafileManager {
     // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
-    final private Map<Path,DataFileValue> datafileSizes = Collections.synchronizedMap(new TreeMap<Path,DataFileValue>());
+    final private Map<FileRef,DataFileValue> datafileSizes = Collections.synchronizedMap(new TreeMap<FileRef,DataFileValue>());
     
-    DatafileManager(SortedMap<String,DataFileValue> datafileSizes) {
-      for (Entry<String,DataFileValue> datafiles : datafileSizes.entrySet())
-        this.datafileSizes.put(new Path(rel2abs(datafiles.getKey(), extent)), datafiles.getValue());
+    DatafileManager(SortedMap<FileRef,DataFileValue> datafileSizes) {
+      for (Entry<FileRef,DataFileValue> datafiles : datafileSizes.entrySet())
+        this.datafileSizes.put(datafiles.getKey(), datafiles.getValue());
     }
     
-    Path mergingMinorCompactionFile = null;
-    Set<Path> filesToDeleteAfterScan = new HashSet<Path>();
-    Map<Long,Set<Path>> scanFileReservations = new HashMap<Long,Set<Path>>();
-    MapCounter<Path> fileScanReferenceCounts = new MapCounter<Path>();
+    FileRef mergingMinorCompactionFile = null;
+    Set<FileRef> filesToDeleteAfterScan = new HashSet<FileRef>();
+    Map<Long,Set<FileRef>> scanFileReservations = new HashMap<Long,Set<FileRef>>();
+    MapCounter<FileRef> fileScanReferenceCounts = new MapCounter<FileRef>();
     long nextScanReservationId = 0;
     boolean reservationsBlocked = false;
     
-    Set<Path> majorCompactingFiles = new HashSet<Path>();
+    Set<FileRef> majorCompactingFiles = new HashSet<FileRef>();
     
-    Pair<Long,Map<String,DataFileValue>> reserveFilesForScan() {
+    Pair<Long,Map<FileRef,DataFileValue>> reserveFilesForScan() {
       synchronized (Tablet.this) {
         
         while (reservationsBlocked) {
@@ -540,35 +533,35 @@ public class Tablet {
           }
         }
         
-        Set<Path> absFilePaths = new HashSet<Path>(datafileSizes.keySet());
+        Set<FileRef> absFilePaths = new HashSet<FileRef>(datafileSizes.keySet());
         
         long rid = nextScanReservationId++;
         
         scanFileReservations.put(rid, absFilePaths);
         
-        Map<String,DataFileValue> ret = new HashMap<String,MetadataTable.DataFileValue>();
+        Map<FileRef,DataFileValue> ret = new HashMap<FileRef,MetadataTable.DataFileValue>();
         
-        for (Path path : absFilePaths) {
+        for (FileRef path : absFilePaths) {
           fileScanReferenceCounts.increment(path, 1);
-          ret.put(path.toString(), datafileSizes.get(path));
+          ret.put(path, datafileSizes.get(path));
         }
         
-        return new Pair<Long,Map<String,DataFileValue>>(rid, ret);
+        return new Pair<Long,Map<FileRef,DataFileValue>>(rid, ret);
       }
     }
     
     void returnFilesForScan(Long reservationId) {
       
-      final Set<Path> filesToDelete = new HashSet<Path>();
+      final Set<FileRef> filesToDelete = new HashSet<FileRef>();
       
       synchronized (Tablet.this) {
-        Set<Path> absFilePaths = scanFileReservations.remove(reservationId);
+        Set<FileRef> absFilePaths = scanFileReservations.remove(reservationId);
         
         if (absFilePaths == null)
           throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
         
         boolean notify = false;
-        for (Path path : absFilePaths) {
+        for (FileRef path : absFilePaths) {
           long refCount = fileScanReferenceCounts.decrement(path, 1);
           if (refCount == 0) {
             if (filesToDeleteAfterScan.remove(path))
@@ -583,28 +576,19 @@ public class Tablet {
       }
       
       if (filesToDelete.size() > 0) {
-        log.debug("Removing scan refs from metadata " + extent + " " + abs2rel(filesToDelete));
-        MetadataTable.removeScanFiles(extent, abs2rel(filesToDelete), SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+        log.debug("Removing scan refs from metadata " + extent + " " + filesToDelete);
+        MetadataTable.removeScanFiles(extent, filesToDelete, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
       }
     }
     
-    private void removeFilesAfterScanRel(Set<String> relPaths) {
-      Set<Path> scanFiles = new HashSet<Path>();
-      
-      for (String rpath : relPaths)
-        scanFiles.add(new Path(ServerConstants.getTablesDir() + "/" + extent.getTableId() + rpath));
-      
-      removeFilesAfterScan(scanFiles);
-    }
-    
-    private void removeFilesAfterScan(Set<Path> scanFiles) {
+    private void removeFilesAfterScan(Set<FileRef> scanFiles) {
       if (scanFiles.size() == 0)
         return;
       
-      Set<Path> filesToDelete = new HashSet<Path>();
+      Set<FileRef> filesToDelete = new HashSet<FileRef>();
       
       synchronized (Tablet.this) {
-        for (Path path : scanFiles) {
+        for (FileRef path : scanFiles) {
           if (fileScanReferenceCounts.get(path) == 0)
             filesToDelete.add(path);
           else
@@ -613,14 +597,14 @@ public class Tablet {
       }
       
       if (filesToDelete.size() > 0) {
-        log.debug("Removing scan refs from metadata " + extent + " " + abs2rel(filesToDelete));
-        MetadataTable.removeScanFiles(extent, abs2rel(filesToDelete), SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+        log.debug("Removing scan refs from metadata " + extent + " " + filesToDelete);
+        MetadataTable.removeScanFiles(extent, filesToDelete, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
       }
     }
     
-    private TreeSet<Path> waitForScansToFinish(Set<Path> pathsToWaitFor, boolean blockNewScans, long maxWaitTime) {
+    private TreeSet<FileRef> waitForScansToFinish(Set<FileRef> pathsToWaitFor, boolean blockNewScans, long maxWaitTime) {
       long startTime = System.currentTimeMillis();
-      TreeSet<Path> inUse = new TreeSet<Path>();
+      TreeSet<FileRef> inUse = new TreeSet<FileRef>();
       
       Span waitForScans = Trace.start("waitForScans");
       synchronized (Tablet.this) {
@@ -631,7 +615,7 @@ public class Tablet {
           reservationsBlocked = true;
         }
         
-        for (Path path : pathsToWaitFor) {
+        for (FileRef path : pathsToWaitFor) {
           while (fileScanReferenceCounts.get(path) > 0 && System.currentTimeMillis() - startTime < maxWaitTime) {
             try {
               Tablet.this.wait(100);
@@ -641,7 +625,7 @@ public class Tablet {
           }
         }
         
-        for (Path path : pathsToWaitFor) {
+        for (FileRef path : pathsToWaitFor) {
           if (fileScanReferenceCounts.get(path) > 0)
             inUse.add(path);
         }
@@ -656,23 +640,31 @@ public class Tablet {
       return inUse;
     }
     
-    public void importMapFiles(long tid, Map<String,DataFileValue> pathsString, boolean setTime) throws IOException {
+    public void importMapFiles(long tid, Map<FileRef,DataFileValue> pathsString, boolean setTime) throws IOException {
       
       String bulkDir = null;
       
-      Map<Path,DataFileValue> paths = new HashMap<Path,MetadataTable.DataFileValue>();
-      for (Entry<String,DataFileValue> entry : pathsString.entrySet())
-        paths.put(new Path(entry.getKey()), entry.getValue());
+      Map<FileRef,DataFileValue> paths = new HashMap<FileRef,MetadataTable.DataFileValue>();
+      for (Entry<FileRef,DataFileValue> entry : pathsString.entrySet())
+        paths.put(entry.getKey(), entry.getValue());
       
-      for (Path tpath : paths.keySet()) {
+      for (FileRef tpath : paths.keySet()) {
         
-        if (!tpath.getParent().getParent().equals(new Path(ServerConstants.getTablesDir() + "/" + extent.getTableId()))) {
-          throw new IOException("Map file " + tpath + " not in table dir " + ServerConstants.getTablesDir() + "/" + extent.getTableId());
+        boolean inTheRightDirectory = false;
+        Path parent = tpath.path().getParent().getParent();
+        for (String tablesDir : ServerConstants.getTablesDirs()) {
+          if (parent.equals(new Path(tablesDir, extent.getTableId().toString()))) {
+            inTheRightDirectory = true;
+            break;
+          }
+        }
+        if (!inTheRightDirectory) {
+          throw new IOException("Map file " + tpath + " not in table dirs");
         }
         
         if (bulkDir == null)
-          bulkDir = tpath.getParent().toString();
-        else if (!bulkDir.equals(tpath.getParent().toString()))
+          bulkDir = tpath.path().getParent().toString();
+        else if (!bulkDir.equals(tpath.path().getParent().toString()))
           throw new IllegalArgumentException("bulk files in different dirs " + bulkDir + " " + tpath);
         
       }
@@ -690,9 +682,10 @@ public class Tablet {
           throw new IOException(ex);
         }
         // Remove any bulk files we've previously loaded and compacted away
-        List<String> files = MetadataTable.getBulkFilesLoaded(conn, extent, tid);
-        for (String file : files)
-          if (paths.keySet().remove(new Path(ServerConstants.getTablesDir() + "/" + extent.getTableId() + file)))
+        List<FileRef> files = MetadataTable.getBulkFilesLoaded(conn, extent, tid);
+
+        for (FileRef file : files)
+          if (paths.keySet().remove(file.path()))
             log.debug("Ignoring request to re-import a file already imported: " + extent + ": " + file);
         
         if (paths.size() > 0) {
@@ -711,13 +704,13 @@ public class Tablet {
             if (bulkTime > persistedTime)
               persistedTime = bulkTime;
             
-            MetadataTable.updateTabletDataFile(tid, extent, abs2rel(paths), tabletTime.getMetadataValue(persistedTime), auths, tabletServer.getLock());
+            MetadataTable.updateTabletDataFile(tid, extent, paths, tabletTime.getMetadataValue(persistedTime), auths, tabletServer.getLock());
           }
         }
       }
       
       synchronized (Tablet.this) {
-        for (Entry<Path,DataFileValue> tpath : paths.entrySet()) {
+        for (Entry<FileRef,DataFileValue> tpath : paths.entrySet()) {
           if (datafileSizes.containsKey(tpath.getKey())) {
             log.error("Adding file that is already in set " + tpath.getKey());
           }
@@ -730,12 +723,12 @@ public class Tablet {
         computeNumEntries();
       }
       
-      for (Path tpath : paths.keySet()) {
-        log.log(TLevel.TABLET_HIST, extent + " import " + abs2rel(tpath) + " " + paths.get(tpath));
+      for (FileRef tpath : paths.keySet()) {
+        log.log(TLevel.TABLET_HIST, extent + " import " + tpath + " " + paths.get(tpath));
       }
     }
     
-    String reserveMergingMinorCompactionFile() {
+    FileRef reserveMergingMinorCompactionFile() {
       if (mergingMinorCompactionFile != null)
         throw new IllegalStateException("Tried to reserve merging minor compaction file when already reserved  : " + mergingMinorCompactionFile);
       
@@ -757,9 +750,9 @@ public class Tablet {
         // find the smallest file
         
         long min = Long.MAX_VALUE;
-        Path minName = null;
+        FileRef minName = null;
         
-        for (Entry<Path,DataFileValue> entry : datafileSizes.entrySet()) {
+        for (Entry<FileRef,DataFileValue> entry : datafileSizes.entrySet()) {
           if (entry.getValue().getSize() < min && !majorCompactingFiles.contains(entry.getKey())) {
             min = entry.getValue().getSize();
             minName = entry.getKey();
@@ -770,13 +763,13 @@ public class Tablet {
           return null;
         
         mergingMinorCompactionFile = minName;
-        return minName.toString();
+        return minName;
       }
       
       return null;
     }
     
-    void unreserveMergingMinorCompactionFile(Path file) {
+    void unreserveMergingMinorCompactionFile(FileRef file) {
       if ((file == null && mergingMinorCompactionFile != null) || (file != null && mergingMinorCompactionFile == null)
           || (file != null && mergingMinorCompactionFile != null && !file.equals(mergingMinorCompactionFile)))
         throw new IllegalStateException("Disagreement " + file + " " + mergingMinorCompactionFile);
@@ -784,12 +777,7 @@ public class Tablet {
       mergingMinorCompactionFile = null;
     }
     
-    void bringMinorCompactionOnline(String tmpDatafile, String newDatafile, String absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId) {
-      bringMinorCompactionOnline(new Path(tmpDatafile), new Path(newDatafile), absMergeFile == null ? null : new Path(absMergeFile), dfv, commitSession,
-          flushId);
-    }
-    
-    void bringMinorCompactionOnline(Path tmpDatafile, Path newDatafile, Path absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId) {
+    void bringMinorCompactionOnline(FileRef tmpDatafile, FileRef newDatafile, FileRef absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId) throws IOException {
       
       IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
       if (extent.isRootTablet()) {
@@ -807,20 +795,20 @@ public class Tablet {
       do {
         try {
           if (dfv.getNumEntries() == 0) {
-            fs.delete(tmpDatafile, true);
+            fs.deleteRecursively(tmpDatafile.path());
           } else {
-            if (fs.exists(newDatafile)) {
+            if (fs.exists(newDatafile.path())) {
               log.warn("Target map file already exist " + newDatafile);
-              fs.delete(newDatafile, true);
+              fs.deleteRecursively(newDatafile.path());
             }
             
-            if (!fs.rename(tmpDatafile, newDatafile)) {
+            if (!fs.rename(tmpDatafile.path(), newDatafile.path())) {
               throw new IOException("rename fails");
             }
           }
           break;
         } catch (IOException ioe) {
-          log.warn("Tablet " + extent + " failed to rename " + abs2rel(newDatafile) + " after MinC, will retry in 60 secs...", ioe);
+          log.warn("Tablet " + extent + " failed to rename " + newDatafile + " after MinC, will retry in 60 secs...", ioe);
           UtilWaitThread.sleep(60 * 1000);
         }
       } while (true);
@@ -836,14 +824,14 @@ public class Tablet {
       // here, but that was incorrect because a scan could start after waiting but before
       // memory was updated... assuming the file is always in use by scans leads to
       // one uneeded metadata update when it was not actually in use
-      Set<Path> filesInUseByScans = Collections.emptySet();
+      Set<FileRef> filesInUseByScans = Collections.emptySet();
       if (absMergeFile != null)
         filesInUseByScans = Collections.singleton(absMergeFile);
       
       // very important to write delete entries outside of log lock, because
       // this !METADATA write does not go up... it goes sideways or to itself
       if (absMergeFile != null)
-        MetadataTable.addDeleteEntries(extent, Collections.singleton(abs2rel(absMergeFile)), SecurityConstants.getSystemCredentials());
+        MetadataTable.addDeleteEntries(extent, Collections.singleton(absMergeFile), SecurityConstants.getSystemCredentials());
       
       Set<String> unusedWalLogs = beginClearingUnusedLogs();
       try {
@@ -858,7 +846,7 @@ public class Tablet {
             persistedTime = commitSession.getMaxCommittedTime();
           
           String time = tabletTime.getMetadataValue(persistedTime);
-          MetadataTable.updateTabletDataFile(extent, abs2rel(newDatafile), abs2rel(absMergeFile), dfv, time, creds, abs2rel(filesInUseByScans),
+          MetadataTable.updateTabletDataFile(extent, newDatafile, absMergeFile, dfv, time, creds, filesInUseByScans,
               tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation, flushId);
         }
         
@@ -910,9 +898,9 @@ public class Tablet {
       removeFilesAfterScan(filesInUseByScans);
       
       if (absMergeFile != null)
-        log.log(TLevel.TABLET_HIST, extent + " MinC [" + abs2rel(absMergeFile) + ",memory] -> " + abs2rel(newDatafile));
+        log.log(TLevel.TABLET_HIST, extent + " MinC [" + absMergeFile + ",memory] -> " + newDatafile);
       else
-        log.log(TLevel.TABLET_HIST, extent + " MinC [memory] -> " + abs2rel(newDatafile));
+        log.log(TLevel.TABLET_HIST, extent + " MinC [memory] -> " + newDatafile);
       log.debug(String.format("MinC finish lock %.2f secs %s", (t2 - t1) / 1000.0, getExtent().toString()));
       if (dfv.getSize() > acuTableConf.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD)) {
         log.debug(String.format("Minor Compaction wrote out file larger than split threshold.  split threshold = %,d  file size = %,d",
@@ -921,77 +909,37 @@ public class Tablet {
       
     }
     
-    private Map<String,DataFileValue> abs2rel(Map<Path,DataFileValue> paths) {
-      TreeMap<String,DataFileValue> relMap = new TreeMap<String,MetadataTable.DataFileValue>();
-      
-      for (Entry<Path,DataFileValue> entry : paths.entrySet())
-        relMap.put(abs2rel(entry.getKey()), entry.getValue());
-      
-      return relMap;
-    }
-    
-    private Set<String> abs2rel(Set<Path> absPaths) {
-      Set<String> relativePaths = new TreeSet<String>();
-      for (Path absPath : absPaths)
-        relativePaths.add(abs2rel(absPath));
-      
-      return relativePaths;
-    }
-    
-    private Set<Path> string2path(Set<String> strings) {
-      Set<Path> paths = new HashSet<Path>();
-      for (String path : strings)
-        paths.add(new Path(path));
-      
-      return paths;
-    }
-    
-    private String abs2rel(Path absPath) {
-      if (absPath == null)
-        return null;
-      
-      if (absPath.getParent().getParent().getName().equals(extent.getTableId().toString()))
-        return "/" + absPath.getParent().getName() + "/" + absPath.getName();
-      else
-        return "../" + absPath.getParent().getParent().getName() + "/" + absPath.getParent().getName() + "/" + absPath.getName();
-    }
-    
-    public void reserveMajorCompactingFiles(Set<String> files) {
+    public void reserveMajorCompactingFiles(Set<FileRef> files) {
       if (majorCompactingFiles.size() != 0)
         throw new IllegalStateException("Major compacting files not empty " + majorCompactingFiles);
       
-      Set<Path> mcf = string2path(files);
-      if (mergingMinorCompactionFile != null && mcf.contains(mergingMinorCompactionFile))
+      if (mergingMinorCompactionFile != null && files.contains(mergingMinorCompactionFile))
         throw new IllegalStateException("Major compaction tried to resrve file in use by minor compaction " + mergingMinorCompactionFile);
       
-      majorCompactingFiles.addAll(mcf);
+      majorCompactingFiles.addAll(files);
     }
     
     public void clearMajorCompactingFile() {
       majorCompactingFiles.clear();
     }
     
-    void bringMajorCompactionOnline(Set<String> oldDatafiles, String tmpDatafile, String newDatafile, Long compactionId, DataFileValue dfv) throws IOException {
-      bringMajorCompactionOnline(string2path(oldDatafiles), new Path(tmpDatafile), new Path(newDatafile), compactionId, dfv);
-    }
-    
-    void bringMajorCompactionOnline(Set<Path> oldDatafiles, Path tmpDatafile, Path newDatafile, Long compactionId, DataFileValue dfv) throws IOException {
+    void bringMajorCompactionOnline(Set<FileRef> oldDatafiles, FileRef tmpDatafile, FileRef newDatafile, Long compactionId, DataFileValue dfv) throws IOException {
       long t1, t2;
       
       if (!extent.isRootTablet()) {
         
-        if (fs.exists(newDatafile)) {
+        if (fs.exists(newDatafile.path())) {
           log.error("Target map file already exist " + newDatafile, new Exception());
           throw new IllegalStateException("Target map file already exist " + newDatafile);
         }
         
         // rename before putting in metadata table, so files in metadata table should
         // always exist
-        if (!fs.rename(tmpDatafile, newDatafile))
+        if (!fs.rename(tmpDatafile.path(), newDatafile.path()))
           log.warn("Rename of " + tmpDatafile + " to " + newDatafile + " returned false");
         
         if (dfv.getNumEntries() == 0) {
-          fs.delete(newDatafile, true);
+          fs.deleteRecursively(newDatafile.path());
         }
       }
       
@@ -1021,32 +969,33 @@ public class Tablet {
           // rename the compacted map file, in case
           // the system goes down
           
-          String compactName = newDatafile.getName();
+          String compactName = newDatafile.path().getName();
           
-          for (Path path : oldDatafiles) {
+          for (FileRef ref : oldDatafiles) {
+            Path path = ref.path();
             fs.rename(path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
           }
           
-          if (fs.exists(newDatafile)) {
+          if (fs.exists(newDatafile.path())) {
             log.error("Target map file already exist " + newDatafile, new Exception());
             throw new IllegalStateException("Target map file already exist " + newDatafile);
           }
           
-          if (!fs.rename(tmpDatafile, newDatafile))
+          if (!fs.rename(tmpDatafile.path(), newDatafile.path()))
             log.warn("Rename of " + tmpDatafile + " to " + newDatafile + " returned false");
           
           // start deleting files, if we do not finish they will be cleaned
           // up later
-          Trash trash = new Trash(fs, fs.getConf());
-          for (Path path : oldDatafiles) {
+          for (FileRef ref : oldDatafiles) {
+            Path path = ref.path();
             Path deleteFile = new Path(location + "/delete+" + compactName + "+" + path.getName());
-            if (!trash.moveToTrash(deleteFile))
-              fs.delete(deleteFile, true);
+            if (!fs.moveToTrash(deleteFile))
+              fs.deleteRecursively(deleteFile);
           }
         }
         
         // atomically remove old files and add new file
-        for (Path oldDatafile : oldDatafiles) {
+        for (FileRef oldDatafile : oldDatafiles) {
           if (!datafileSizes.containsKey(oldDatafile)) {
             log.error("file does not exist in set " + oldDatafile);
           }
@@ -1077,50 +1026,28 @@ public class Tablet {
       }
       
       if (!extent.isRootTablet()) {
-        Set<Path> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
+        Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
         if (filesInUseByScans.size() > 0)
-          log.debug("Adding scan refs to metadata " + extent + " " + abs2rel(filesInUseByScans));
-        MetadataTable.replaceDatafiles(extent, abs2rel(oldDatafiles), abs2rel(filesInUseByScans), abs2rel(newDatafile), compactionId, dfv,
+          log.debug("Adding scan refs to metadata " + extent + " " + filesInUseByScans);
+        MetadataTable.replaceDatafiles(extent, oldDatafiles, filesInUseByScans, newDatafile, compactionId, dfv,
             SecurityConstants.getSystemCredentials(), tabletServer.getClientAddressString(), lastLocation, tabletServer.getLock());
         removeFilesAfterScan(filesInUseByScans);
       }
       
       log.debug(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
-      log.log(TLevel.TABLET_HIST, extent + " MajC " + abs2rel(oldDatafiles) + " --> " + abs2rel(newDatafile));
+      log.log(TLevel.TABLET_HIST, extent + " MajC " + oldDatafiles + " --> " + newDatafile);
     }
     
-    public SortedMap<String,DataFileValue> getDatafileSizesRel() {
+    public SortedMap<FileRef,DataFileValue> getDatafileSizes() {
       synchronized (Tablet.this) {
-        TreeMap<String,DataFileValue> files = new TreeMap<String,MetadataTable.DataFileValue>();
-        Set<Entry<Path,DataFileValue>> es = datafileSizes.entrySet();
-        
-        for (Entry<Path,DataFileValue> entry : es) {
-          files.put(abs2rel(entry.getKey()), entry.getValue());
-        }
-        
-        return Collections.unmodifiableSortedMap(files);
+        TreeMap<FileRef,DataFileValue> copy = new TreeMap<FileRef,MetadataTable.DataFileValue>(datafileSizes);
+        return Collections.unmodifiableSortedMap(copy);
       }
     }
     
-    public SortedMap<String,DataFileValue> getDatafileSizes() {
+    public Set<FileRef> getFiles() {
       synchronized (Tablet.this) {
-        TreeMap<String,DataFileValue> files = new TreeMap<String,MetadataTable.DataFileValue>();
-        Set<Entry<Path,DataFileValue>> es = datafileSizes.entrySet();
-        
-        for (Entry<Path,DataFileValue> entry : es) {
-          files.put(entry.getKey().toString(), entry.getValue());
-        }
-        
-        return Collections.unmodifiableSortedMap(files);
-      }
-    }
-    
-    public Set<String> getFiles() {
-      synchronized (Tablet.this) {
-        HashSet<String> files = new HashSet<String>();
-        for (Path path : datafileSizes.keySet()) {
-          files.add(path.toString());
-        }
+        HashSet<FileRef> files = new HashSet<FileRef>(datafileSizes.keySet());
         return Collections.unmodifiableSet(files);
       }
     }
@@ -1133,7 +1060,7 @@ public class Tablet {
     splitCreationTime = 0;
   }
   
-  public Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, SortedMap<String,DataFileValue> datafiles, String time,
+  public Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, SortedMap<FileRef,DataFileValue> datafiles, String time,
       long initFlushID, long initCompactID) throws IOException {
     this(tabletServer, location, extent, trm, CachedConfiguration.getInstance(), datafiles, time, initFlushID, initCompactID);
     splitCreationTime = System.currentTimeMillis();
@@ -1141,16 +1068,16 @@ public class Tablet {
   
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf,
       SortedMap<Key,Value> tabletsKeyValues) throws IOException {
-    this(tabletServer, location, extent, trm, conf, TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration())),
+    this(tabletServer, location, extent, trm, conf, VolumeManagerImpl.get(),
         tabletsKeyValues);
   }
   
   static private final List<LogEntry> EMPTY = Collections.emptyList();
   
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf,
-      SortedMap<String,DataFileValue> datafiles, String time, long initFlushID, long initCompactID) throws IOException {
-    this(tabletServer, location, extent, trm, conf, TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration())), EMPTY,
-        datafiles, time, null, new HashSet<String>(), initFlushID, initCompactID);
+      SortedMap<FileRef,DataFileValue> datafiles, String time, long initFlushID, long initCompactID) throws IOException {
+    this(tabletServer, location, extent, trm, conf, VolumeManagerImpl.get(), EMPTY,
+        datafiles, time, null, new HashSet<FileRef>(), initFlushID, initCompactID);
   }
   
   private static String lookupTime(AccumuloConfiguration conf, KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
@@ -1175,28 +1102,25 @@ public class Tablet {
     return null;
   }
   
-  private static SortedMap<String,DataFileValue> lookupDatafiles(AccumuloConfiguration conf, Text locText, FileSystem fs, KeyExtent extent,
+  private static SortedMap<FileRef,DataFileValue> lookupDatafiles(AccumuloConfiguration conf, Text locText, VolumeManager fs, KeyExtent extent,
       SortedMap<Key,Value> tabletsKeyValues) throws IOException {
-    Path location = new Path(ServerConstants.getTablesDir() + "/" + extent.getTableId().toString() + locText.toString());
     
-    TreeMap<String,DataFileValue> datafiles = new TreeMap<String,DataFileValue>();
+    TreeMap<FileRef,DataFileValue> datafiles = new TreeMap<FileRef,DataFileValue>();
     
     if (extent.isRootTablet()) { // the meta0 tablet
+      Path location = new Path(ServerConstants.getRootTabletDir());
+      location = location.makeQualified(fs.getDefaultVolume());
       // cleanUpFiles() has special handling for delete. files
       FileStatus[] files = fs.listStatus(location);
-      Path[] paths = new Path[files.length];
-      for (int i = 0; i < files.length; i++) {
-        paths[i] = files[i].getPath();
-      }
-      Collection<String> goodPaths = cleanUpFiles(fs, files, location, true);
-      for (String path : goodPaths) {
-        String filename = new Path(path).getName();
+      Collection<String> goodPaths = cleanUpFiles(fs, files, true);
+      for (String good : goodPaths) {
+        Path path = new Path(good);
+        String filename = path.getName();
+        FileRef ref = new FileRef(location.toString() + "/" + filename, path);
         DataFileValue dfv = new DataFileValue(0, 0);
-        datafiles.put(locText.toString() + "/" + filename, dfv);
+        datafiles.put(ref, dfv);
       }
     } else {
-      
-      SortedMap<Key,Value> datafilesMetadata;
       
       Text rowName = extent.getMetadataEntry();
       
@@ -1212,23 +1136,14 @@ public class Tablet {
       
       mdScanner.setRange(new Range(rowName));
       
-      datafilesMetadata = new TreeMap<Key,Value>();
-      
       for (Entry<Key,Value> entry : mdScanner) {
         
         if (entry.getKey().compareRow(rowName) != 0) {
           break;
         }
         
-        datafilesMetadata.put(new Key(entry.getKey()), new Value(entry.getValue()));
-      }
-      
-      Iterator<Entry<Key,Value>> dfmdIter = datafilesMetadata.entrySet().iterator();
-      
-      while (dfmdIter.hasNext()) {
-        Entry<Key,Value> entry = dfmdIter.next();
-        
-        datafiles.put(entry.getKey().getColumnQualifier().toString(), new DataFileValue(entry.getValue().get()));
+        FileRef ref = new FileRef(entry.getKey().getColumnQualifier().toString(), fs.getFullPath(entry.getKey()));
+        datafiles.put(ref, new DataFileValue(entry.getValue().get()));
       }
     }
     return datafiles;
@@ -1260,14 +1175,16 @@ public class Tablet {
     return logEntries;
   }
   
-  private static Set<String> lookupScanFiles(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
-    HashSet<String> scanFiles = new HashSet<String>();
+  private static Set<FileRef> lookupScanFiles(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues, VolumeManager fs) throws IOException {
+    HashSet<FileRef> scanFiles = new HashSet<FileRef>();
     
     Text row = extent.getMetadataEntry();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
       if (key.getRow().equals(row) && key.getColumnFamily().equals(MetadataTable.SCANFILE_COLUMN_FAMILY)) {
-        scanFiles.add(key.getColumnQualifier().toString());
+        String meta = key.getColumnQualifier().toString();
+        Path path = fs.getFullPath(ServerConstants.getTablesDirs(), meta);
+        scanFiles.add(new FileRef(meta, path));
       }
     }
     
@@ -1296,11 +1213,11 @@ public class Tablet {
     return -1;
   }
   
-  private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf, FileSystem fs,
+  private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf, VolumeManager fs,
       SortedMap<Key,Value> tabletsKeyValues) throws IOException {
     this(tabletServer, location, extent, trm, conf, fs, lookupLogEntries(extent, tabletsKeyValues), lookupDatafiles(tabletServer.getSystemConfiguration(),
         location, fs, extent, tabletsKeyValues), lookupTime(tabletServer.getSystemConfiguration(), extent, tabletsKeyValues), lookupLastServer(extent,
-        tabletsKeyValues), lookupScanFiles(extent, tabletsKeyValues), lookupFlushID(extent, tabletsKeyValues), lookupCompactID(extent, tabletsKeyValues));
+        tabletsKeyValues), lookupScanFiles(extent, tabletsKeyValues, fs), lookupFlushID(extent, tabletsKeyValues), lookupCompactID(extent, tabletsKeyValues));
   }
   
   private static TServerInstance lookupLastServer(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
@@ -1316,9 +1233,14 @@ public class Tablet {
    * yet another constructor - this one allows us to avoid costly lookups into the Metadata table if we already know the files we need - as at split time
    */
   private Tablet(final TabletServer tabletServer, final Text location, final KeyExtent extent, final TabletResourceManager trm, final Configuration conf,
-      final FileSystem fs, final List<LogEntry> logEntries, final SortedMap<String,DataFileValue> datafiles, String time, final TServerInstance lastLocation,
-      Set<String> scanFiles, long initFlushID, long initCompactID) throws IOException {
-    this.location = new Path(ServerConstants.getTablesDir() + "/" + extent.getTableId().toString() + location.toString());
+      final VolumeManager fs, final List<LogEntry> logEntries, final SortedMap<FileRef,DataFileValue> datafiles, String time, final TServerInstance lastLocation,
+      Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
+    if (location.find(":") >= 0) {
+        this.location = new Path(location.toString());
+    } else {    
+      this.location = new Path(ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId().toString() + location.toString());
+    }
+    this.location = this.location.makeQualified(fs.getFileSystemByPath(this.location));
     this.lastLocation = lastLocation;
     this.tabletDirectory = location.toString();
     this.conf = conf;
@@ -1334,10 +1256,10 @@ public class Tablet {
     if (extent.isRootTablet()) {
       
       long rtime = Long.MIN_VALUE;
-      for (String path : datafiles.keySet()) {
-        String filename = new Path(path).getName();
-        
-        FileSKVIterator reader = FileOperations.getInstance().openReader(this.location + "/" + filename, true, fs, fs.getConf(),
+      for (FileRef ref : datafiles.keySet()) {
+        Path path = ref.path();
+        FileSystem ns = fs.getFileSystemByPath(path);
+        FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(),
             tabletServer.getTableConfiguration(extent));
         long maxTime = -1;
         try {
@@ -1419,10 +1341,10 @@ public class Tablet {
       count[1] = Long.MIN_VALUE;
       try {
         Set<String> absPaths = new HashSet<String>();
-        for (String relPath : datafiles.keySet())
-          absPaths.add(rel2abs(relPath, extent));
+        for (FileRef ref : datafiles.keySet())
+          absPaths.add(ref.path().toString());
         
-        tabletServer.recover(this, logEntries, absPaths, new MutationReceiver() {
+        tabletServer.recover(this.tabletServer.getFileSystem(), this, logEntries, absPaths, new MutationReceiver() {
           @Override
           public void receive(Mutation m) {
             // LogReader.printMutation(m);
@@ -1463,7 +1385,8 @@ public class Tablet {
       for (LogEntry logEntry : logEntries) {
         for (String log : logEntry.logSet) {
           String[] parts = log.split("/", 2);
-          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), logEntry.server, parts[1]));
+          Path file = fs.getFullPath(ServerConstants.getWalDirs(), parts[1]);
+          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), logEntry.server, file));
         }
       }
       
@@ -1484,7 +1407,7 @@ public class Tablet {
     
     computeNumEntries();
     
-    datafileManager.removeFilesAfterScanRel(scanFiles);
+    datafileManager.removeFilesAfterScan(scanFiles);
     
     log.log(TLevel.TABLET_HIST, extent + " opened ");
   }
@@ -1503,7 +1426,7 @@ public class Tablet {
     }
   }
   
-  private static Collection<String> cleanUpFiles(FileSystem fs, FileStatus[] files, Path location, boolean deleteTmp) throws IOException {
+  private static Collection<String> cleanUpFiles(VolumeManager fs, FileStatus[] files, boolean deleteTmp) throws IOException {
     /*
      * called in constructor and before major compactions
      */
@@ -1517,10 +1440,10 @@ public class Tablet {
       // check for incomplete major compaction, this should only occur
       // for root tablet
       if (filename.startsWith("delete+")) {
-        String expectedCompactedFile = location.toString() + "/" + filename.split("\\+")[1];
+        String expectedCompactedFile = path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename.split("\\+")[1];
         if (fs.exists(new Path(expectedCompactedFile))) {
           // compaction finished, but did not finish deleting compacted files.. so delete it
-          if (!fs.delete(file.getPath(), true))
+          if (!fs.deleteRecursively(file.getPath()))
             log.warn("Delete of file: " + file.getPath().toString() + " return false");
           continue;
         }
@@ -1528,7 +1451,7 @@ public class Tablet {
         
         // reset path and filename for rest of loop
         filename = filename.split("\\+", 3)[2];
-        path = location + "/" + filename;
+        path = path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename;
         
         if (!fs.rename(file.getPath(), new Path(path)))
           log.warn("Rename of " + file.getPath().toString() + " to " + path + " returned false");
@@ -1537,7 +1460,7 @@ public class Tablet {
       if (filename.endsWith("_tmp")) {
         if (deleteTmp) {
           log.warn("cleaning up old tmp file: " + path);
-          if (!fs.delete(file.getPath(), true))
+          if (!fs.deleteRecursively(file.getPath()))
             log.warn("Delete of tmp file: " + file.getPath().toString() + " return false");
           
         }
@@ -2027,7 +1950,7 @@ public class Tablet {
     
     private SortedKeyValueIterator<Key,Value> createIterator() throws IOException {
       
-      Map<String,DataFileValue> files;
+      Map<FileRef,DataFileValue> files;
       
       synchronized (Tablet.this) {
         
@@ -2054,7 +1977,7 @@ public class Tablet {
         expectedDeletionCount = dataSourceDeletions.get();
         
         memIters = tabletMemory.getIterators();
-        Pair<Long,Map<String,DataFileValue>> reservation = datafileManager.reserveFilesForScan();
+        Pair<Long,Map<FileRef,DataFileValue>> reservation = datafileManager.reserveFilesForScan();
         fileReservationId = reservation.getFirst();
         files = reservation.getSecond();
       }
@@ -2124,7 +2047,7 @@ public class Tablet {
     
   }
   
-  private DataFileValue minorCompact(Configuration conf, FileSystem fs, InMemoryMap memTable, String tmpDatafile, String newDatafile, String mergeFile,
+  private DataFileValue minorCompact(Configuration conf, VolumeManager fs, InMemoryMap memTable, FileRef tmpDatafile, FileRef newDatafile, FileRef mergeFile,
       boolean hasQueueTime, long queued, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
     boolean failed = false;
     long start = System.currentTimeMillis();
@@ -2149,9 +2072,9 @@ public class Tablet {
           commitSession, flushId);
       span.stop();
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
-    } catch (RuntimeException E) {
+    } catch (Exception E) {
       failed = true;
-      throw E;
+      throw new RuntimeException(E);
     } catch (Error E) {
       // Weird errors like "OutOfMemoryError" when trying to create the thread for the compaction
       failed = true;
@@ -2182,11 +2105,11 @@ public class Tablet {
     private long queued;
     private CommitSession commitSession;
     private DataFileValue stats;
-    private String mergeFile;
+    private FileRef mergeFile;
     private long flushId;
     private MinorCompactionReason mincReason;
     
-    MinorCompactionTask(String mergeFile, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
+    MinorCompactionTask(FileRef mergeFile, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
       queued = System.currentTimeMillis();
       minorCompactionWaitingToStart = true;
       this.commitSession = commitSession;
@@ -2201,7 +2124,8 @@ public class Tablet {
       minorCompactionInProgress = true;
       Span minorCompaction = Trace.on("minorCompaction");
       try {
-        String newMapfileLocation = getNextMapFilename(mergeFile == null ? "F" : "M");
+        FileRef newMapfileLocation = getNextMapFilename(mergeFile == null ? "F" : "M");
+        FileRef tmpFileRef = new FileRef(newMapfileLocation.path() + "_tmp");
         Span span = Trace.start("waitForCommits");
         synchronized (Tablet.this) {
           commitSession.waitForCommitsToFinish();
@@ -2215,7 +2139,7 @@ public class Tablet {
             // writing the minor compaction finish event, then the start event+filename in metadata table will
             // prevent recovery of duplicate data... the minor compaction start event could be written at any time
             // before the metadata write for the minor compaction
-            tabletServer.minorCompactionStarted(commitSession, commitSession.getWALogSeq() + 1, newMapfileLocation);
+            tabletServer.minorCompactionStarted(commitSession, commitSession.getWALogSeq() + 1, newMapfileLocation.path().toString());
             break;
           } catch (IOException e) {
             log.warn("Failed to write to write ahead log " + e.getMessage(), e);
@@ -2223,7 +2147,7 @@ public class Tablet {
         }
         span.stop();
         span = Trace.start("compact");
-        this.stats = minorCompact(conf, fs, tabletMemory.getMinCMemTable(), newMapfileLocation + "_tmp", newMapfileLocation, mergeFile, true, queued,
+        this.stats = minorCompact(conf, fs, tabletMemory.getMinCMemTable(), tmpFileRef, newMapfileLocation, mergeFile, true, queued,
             commitSession, flushId, mincReason);
         span.stop();
         
@@ -2250,7 +2174,7 @@ public class Tablet {
     otherLogs = currentLogs;
     currentLogs = new HashSet<DfsLogger>();
     
-    String mergeFile = datafileManager.reserveMergingMinorCompactionFile();
+    FileRef mergeFile = datafileManager.reserveMergingMinorCompactionFile();
     
     return new MinorCompactionTask(mergeFile, oldCommitSession, flushId, mincReason);
     
@@ -2799,7 +2723,7 @@ public class Tablet {
     }
     
     try {
-      Pair<List<LogEntry>,SortedMap<String,DataFileValue>> fileLog = MetadataTable.getFileAndLogEntries(SecurityConstants.getSystemCredentials(), extent);
+      Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> fileLog = MetadataTable.getFileAndLogEntries(SecurityConstants.getSystemCredentials(), extent);
       
       if (fileLog.getFirst().size() != 0) {
         String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " " + fileLog.getFirst();
@@ -2808,16 +2732,16 @@ public class Tablet {
       }
       
       if (extent.isRootTablet()) {
-        if (!fileLog.getSecond().keySet().equals(datafileManager.getDatafileSizesRel().keySet())) {
+        if (!fileLog.getSecond().keySet().equals(datafileManager.getDatafileSizes().keySet())) {
           String msg = "Data file in " + MetadataTable.NAME + " differ from in memory data " + extent + "  " + fileLog.getSecond().keySet() + "  "
-              + datafileManager.getDatafileSizesRel().keySet();
+              + datafileManager.getDatafileSizes().keySet();
           log.error(msg);
           throw new RuntimeException(msg);
         }
       } else {
-        if (!fileLog.getSecond().equals(datafileManager.getDatafileSizesRel())) {
+        if (!fileLog.getSecond().equals(datafileManager.getDatafileSizes())) {
           String msg = "Data file in " + MetadataTable.NAME + " differ from in memory data " + extent + "  " + fileLog.getSecond() + "  "
-              + datafileManager.getDatafileSizesRel();
+              + datafileManager.getDatafileSizes();
           log.error(msg);
           throw new RuntimeException(msg);
         }
@@ -2947,15 +2871,15 @@ public class Tablet {
   }
   
   private class CompactionTuple {
-    private Map<String,Long> filesToCompact;
+    private Map<FileRef,Long> filesToCompact;
     private boolean compactAll;
     
-    public CompactionTuple(Map<String,Long> filesToCompact, boolean doAll) {
+    public CompactionTuple(Map<FileRef,Long> filesToCompact, boolean doAll) {
       this.filesToCompact = filesToCompact;
       compactAll = doAll;
     }
     
-    public Map<String,Long> getFilesToCompact() {
+    public Map<FileRef,Long> getFilesToCompact() {
       return filesToCompact;
     }
     
@@ -2968,10 +2892,10 @@ public class Tablet {
    * Returns list of files that need to be compacted by major compactor
    */
   
-  private CompactionTuple getFilesToCompact(MajorCompactionReason reason, Map<String,Pair<Key,Key>> falks) {
-    SortedMap<String,DataFileValue> files = datafileManager.getDatafileSizes();
+  private CompactionTuple getFilesToCompact(MajorCompactionReason reason, Map<FileRef,Pair<Key,Key>> falks) {
+    SortedMap<FileRef,DataFileValue> files = datafileManager.getDatafileSizes();
     
-    Map<String,Long> toCompact;
+    Map<FileRef,Long> toCompact;
     if (reason == MajorCompactionReason.CHOP) {
       toCompact = findChopFiles(files, falks);
     } else {
@@ -2982,14 +2906,15 @@ public class Tablet {
     return new CompactionTuple(toCompact, toCompact.size() == files.size());
   }
   
-  private Map<String,Pair<Key,Key>> getFirstAndLastKeys(SortedMap<String,DataFileValue> files) throws IOException {
+  private Map<FileRef,Pair<Key,Key>> getFirstAndLastKeys(SortedMap<FileRef,DataFileValue> files) throws IOException {
     FileOperations fileFactory = FileOperations.getInstance();
     
-    Map<String,Pair<Key,Key>> falks = new HashMap<String,Pair<Key,Key>>();
+    Map<FileRef,Pair<Key,Key>> falks = new HashMap<FileRef,Pair<Key,Key>>();
     
-    for (Entry<String,DataFileValue> entry : files.entrySet()) {
-      String file = entry.getKey();
-      FileSKVIterator openReader = fileFactory.openReader(file, true, fs, conf, acuTableConf);
+    for (Entry<FileRef,DataFileValue> entry : files.entrySet()) {
+      FileRef file = entry.getKey();
+      FileSystem ns = fs.getFileSystemByPath(file.path());
+      FileSKVIterator openReader = fileFactory.openReader(file.path().toString(), true, ns, ns.getConf(), acuTableConf);
       try {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
@@ -3001,12 +2926,12 @@ public class Tablet {
     return falks;
   }
   
-  private Map<String,Long> findChopFiles(SortedMap<String,DataFileValue> files, Map<String,Pair<Key,Key>> falks) {
+  private Map<FileRef,Long> findChopFiles(SortedMap<FileRef,DataFileValue> files, Map<FileRef,Pair<Key,Key>> falks) {
     
-    Map<String,Long> result = new HashMap<String,Long>();
+    Map<FileRef,Long> result = new HashMap<FileRef,Long>();
     
-    for (Entry<String,DataFileValue> entry : files.entrySet()) {
-      String file = entry.getKey();
+    for (Entry<FileRef,DataFileValue> entry : files.entrySet()) {
+      FileRef file = entry.getKey();
       
       Pair<Key,Key> pair = falks.get(file);
       if (pair == null) {
@@ -3059,14 +2984,14 @@ public class Tablet {
     }
   }
   
-  private SplitRowSpec findSplitRow(Collection<String> files) {
+  private SplitRowSpec findSplitRow(Collection<FileRef> files) {
     
     // never split the root tablet
     // check if we already decided that we can never split
     // check to see if we're big enough to split
     
     long splitThreshold = acuTableConf.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
-    if (location.toString().equals(ServerConstants.getRootTabletDir()) || estimateTabletSize() <= splitThreshold) {
+    if (extent.isRootTablet() || estimateTabletSize() <= splitThreshold) {
       return null;
     }
     
@@ -3177,11 +3102,11 @@ public class Tablet {
     long t1, t2, t3;
     
     // acquire first and last key info outside of tablet lock
-    Map<String,Pair<Key,Key>> falks = null;
+    Map<FileRef,Pair<Key,Key>> falks = null;
     if (reason == MajorCompactionReason.CHOP)
       falks = getFirstAndLastKeys(datafileManager.getDatafileSizes());
     
-    Map<String,Long> filesToCompact;
+    Map<FileRef,Long> filesToCompact;
     
     int maxFilesToCompact = acuTableConf.getCount(Property.TSERV_MAJC_THREAD_MAXOPEN);
     
@@ -3207,7 +3132,7 @@ public class Tablet {
         // otherwise deleted compacted files could possible be brought back
         // at some point if the file they were compacted to was legitimately
         // removed by a major compaction
-        cleanUpFiles(fs, fs.listStatus(this.location), this.location, false);
+        cleanUpFiles(fs, fs.listStatus(this.location), false);
       }
       
       // getFilesToCompact() and cleanUpFiles() both
@@ -3275,10 +3200,10 @@ public class Tablet {
           numToCompact = filesToCompact.size() - maxFilesToCompact + 1;
         }
         
-        Set<String> smallestFiles = removeSmallest(filesToCompact, numToCompact);
+        Set<FileRef> smallestFiles = removeSmallest(filesToCompact, numToCompact);
         
-        String fileName = getNextMapFilename((filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
-        String compactTmpName = fileName + "_tmp";
+        FileRef fileName = getNextMapFilename((filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
+        FileRef compactTmpName = new FileRef(fileName.path().toString() + "_tmp");
         
         Span span = Trace.start("compactFiles");
         try {
@@ -3295,14 +3220,13 @@ public class Tablet {
             }
           };
           
-          HashMap<String,DataFileValue> copy = new HashMap<String,DataFileValue>(datafileManager.getDatafileSizes());
+          HashMap<FileRef,DataFileValue> copy = new HashMap<FileRef,DataFileValue>(datafileManager.getDatafileSizes());
           if (!copy.keySet().containsAll(smallestFiles))
             throw new IllegalStateException("Cannot find data file values for " + smallestFiles);
           
           copy.keySet().retainAll(smallestFiles);
           
-          log.debug("Starting MajC " + extent + " (" + reason + ") " + datafileManager.abs2rel(datafileManager.string2path(copy.keySet())) + " --> "
-              + datafileManager.abs2rel(new Path(compactTmpName)) + "  " + compactionIterators);
+          log.debug("Starting MajC " + extent + " (" + reason + ") " + copy.keySet() + " --> " + compactTmpName + "  " + compactionIterators);
           
           // always propagate deletes, unless last batch
           Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, filesToCompact.size() == 0 ? propogateDeletes : true, acuTableConf, extent,
@@ -3338,12 +3262,12 @@ public class Tablet {
     }
   }
   
-  private Set<String> removeSmallest(Map<String,Long> filesToCompact, int maxFilesToCompact) {
+  private Set<FileRef> removeSmallest(Map<FileRef,Long> filesToCompact, int maxFilesToCompact) {
     // ensure this method works properly when multiple files have the same size
     
-    PriorityQueue<Pair<String,Long>> fileHeap = new PriorityQueue<Pair<String,Long>>(filesToCompact.size(), new Comparator<Pair<String,Long>>() {
+    PriorityQueue<Pair<FileRef,Long>> fileHeap = new PriorityQueue<Pair<FileRef,Long>>(filesToCompact.size(), new Comparator<Pair<FileRef,Long>>() {
       @Override
-      public int compare(Pair<String,Long> o1, Pair<String,Long> o2) {
+      public int compare(Pair<FileRef,Long> o1, Pair<FileRef,Long> o2) {
         if (o1.getSecond() == o2.getSecond())
           return o1.getFirst().compareTo(o2.getFirst());
         if (o1.getSecond() < o2.getSecond())
@@ -3352,14 +3276,14 @@ public class Tablet {
       }
     });
     
-    for (Iterator<Entry<String,Long>> iterator = filesToCompact.entrySet().iterator(); iterator.hasNext();) {
-      Entry<String,Long> entry = iterator.next();
-      fileHeap.add(new Pair<String,Long>(entry.getKey(), entry.getValue()));
+    for (Iterator<Entry<FileRef,Long>> iterator = filesToCompact.entrySet().iterator(); iterator.hasNext();) {
+      Entry<FileRef,Long> entry = (Entry<FileRef,Long>) iterator.next();
+      fileHeap.add(new Pair<FileRef,Long>(entry.getKey(), entry.getValue()));
     }
     
-    Set<String> smallestFiles = new HashSet<String>();
+    Set<FileRef> smallestFiles = new HashSet<FileRef>();
     while (smallestFiles.size() < maxFilesToCompact && fileHeap.size() > 0) {
-      Pair<String,Long> pair = fileHeap.remove();
+      Pair<FileRef,Long> pair = fileHeap.remove();
       filesToCompact.remove(pair.getFirst());
       smallestFiles.add(pair.getFirst());
     }
@@ -3496,12 +3420,12 @@ public class Tablet {
   
   static class SplitInfo {
     String dir;
-    SortedMap<String,DataFileValue> datafiles;
+    SortedMap<FileRef,DataFileValue> datafiles;
     String time;
     long initFlushID;
     long initCompactID;
     
-    SplitInfo(String d, SortedMap<String,DataFileValue> dfv, String time, long initFlushID, long initCompactID) {
+    SplitInfo(String d, SortedMap<FileRef,DataFileValue> dfv, String time, long initFlushID, long initCompactID) {
       this.dir = d;
       this.datafiles = dfv;
       this.time = time;
@@ -3535,15 +3459,8 @@ public class Tablet {
     // this info is used for optimization... it is ok if map files are missing
     // from the set... can still query and insert into the tablet while this
     // map file operation is happening
-    Map<String,org.apache.accumulo.core.file.FileUtil.FileInfo> firstAndLastRowsAbs = FileUtil.tryToGetFirstAndLastRows(fs,
+    Map<FileRef,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(fs,
         tabletServer.getSystemConfiguration(), datafileManager.getFiles());
-    
-    // convert absolute paths to relative paths
-    Map<String,org.apache.accumulo.core.file.FileUtil.FileInfo> firstAndLastRows = new HashMap<String,org.apache.accumulo.core.file.FileUtil.FileInfo>();
-    
-    for (Entry<String,org.apache.accumulo.core.file.FileUtil.FileInfo> entry : firstAndLastRowsAbs.entrySet()) {
-      firstAndLastRows.put(datafileManager.abs2rel(new Path(entry.getKey())), entry.getValue());
-    }
     
     synchronized (this) {
       // java needs tuples ...
@@ -3576,14 +3493,14 @@ public class Tablet {
       KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
       KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
       
-      String lowDirectory = TabletOperations.createTabletDirectory(fs, location.getParent().toString(), midRow);
+      String lowDirectory = TabletOperations.createTabletDirectory(fs, extent.getTableId().toString(), midRow);
       
       // write new tablet information to MetadataTable
-      SortedMap<String,DataFileValue> lowDatafileSizes = new TreeMap<String,DataFileValue>();
-      SortedMap<String,DataFileValue> highDatafileSizes = new TreeMap<String,DataFileValue>();
-      List<String> highDatafilesToRemove = new ArrayList<String>();
+      SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<FileRef,DataFileValue>();
+      SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<FileRef,DataFileValue>();
+      List<FileRef> highDatafilesToRemove = new ArrayList<FileRef>();
       
-      MetadataTable.splitDatafiles(extent.getTableId(), midRow, splitRatio, firstAndLastRows, datafileManager.getDatafileSizesRel(), lowDatafileSizes,
+      MetadataTable.splitDatafiles(extent.getTableId(), midRow, splitRatio, firstAndLastRows, datafileManager.getDatafileSizes(), lowDatafileSizes,
           highDatafileSizes, highDatafilesToRemove);
       
       log.debug("Files for low split " + low + "  " + lowDatafileSizes.keySet());
@@ -3594,7 +3511,7 @@ public class Tablet {
       // it is possible that some of the bulk loading flags will be deleted after being read below because the bulk load
       // finishes.... therefore split could propogate load flags for a finished bulk load... there is a special iterator
       // on the !METADATA table to clean up this type of garbage
-      Map<String,Long> bulkLoadedFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), extent);
+      Map<FileRef,Long> bulkLoadedFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), extent);
       
       MetadataTable.splitTablet(high, extent.getPrevEndRow(), splitRatio, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
       MetadataTable.addNewTablet(low, lowDirectory, tabletServer.getTabletSession(), lowDatafileSizes, bulkLoadedFiles,
@@ -3616,7 +3533,7 @@ public class Tablet {
     }
   }
   
-  public SortedMap<String,DataFileValue> getDatafiles() {
+  public SortedMap<FileRef,DataFileValue> getDatafiles() {
     return datafileManager.getDatafileSizes();
   }
   
@@ -3661,10 +3578,10 @@ public class Tablet {
     return splitCreationTime;
   }
   
-  public void importMapFiles(long tid, Map<String,MapFileInfo> fileMap, boolean setTime) throws IOException {
-    Map<String,DataFileValue> entries = new HashMap<String,DataFileValue>(fileMap.size());
+  public void importMapFiles(long tid, Map<FileRef,MapFileInfo> fileMap, boolean setTime) throws IOException {
+    Map<FileRef,DataFileValue> entries = new HashMap<FileRef,DataFileValue>(fileMap.size());
     
-    for (String path : fileMap.keySet()) {
+    for (FileRef path : fileMap.keySet()) {
       MapFileInfo mfi = fileMap.get(path);
       entries.put(path, new DataFileValue(mfi.estimatedSize, 0l));
     }

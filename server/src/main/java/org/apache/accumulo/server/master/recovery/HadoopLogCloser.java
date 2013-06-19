@@ -21,6 +21,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.master.Master;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
@@ -32,10 +33,10 @@ public class HadoopLogCloser implements LogCloser {
   private static Logger log = Logger.getLogger(HadoopLogCloser.class);
 
   @Override
-  public long close(Master master, FileSystem fs, Path source) throws IOException {
-    
-    if (fs instanceof DistributedFileSystem) {
-      DistributedFileSystem dfs = (DistributedFileSystem) fs;
+  public long close(Master master, VolumeManager fs, Path source) throws IOException {
+    FileSystem ns = fs.getFileSystemByPath(source);
+    if (ns instanceof DistributedFileSystem) {
+      DistributedFileSystem dfs = (DistributedFileSystem) ns;
       try {
         if (!dfs.recoverLease(source)) {
           log.info("Waiting for file to be closed " + source.toString());
@@ -48,12 +49,12 @@ public class HadoopLogCloser implements LogCloser {
       } catch (Exception ex) {
         log.warn("Error recovery lease on " + source.toString(), ex);
       }
-    } else if (fs instanceof LocalFileSystem) {
+    } else if (ns instanceof LocalFileSystem) {
       // ignore
     } else {
       throw new IllegalStateException("Don't know how to recover a lease for " + fs.getClass().getName());
     }
-    fs.append(source).close();
+    ns.append(source).close();
     log.info("Recovered lease on " + source.toString() + " using append");
     return 0;
   }

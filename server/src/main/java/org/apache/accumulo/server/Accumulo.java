@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map.Entry;
@@ -33,12 +32,11 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.log4j.Logger;
 import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.xml.DOMConfigurator;
@@ -48,21 +46,21 @@ public class Accumulo {
   
   private static final Logger log = Logger.getLogger(Accumulo.class);
   
-  public static synchronized void updateAccumuloVersion(FileSystem fs) {
+  public static synchronized void updateAccumuloVersion(VolumeManager fs) {
     try {
       if (getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
         fs.create(new Path(ServerConstants.getDataVersionLocation() + "/" + ServerConstants.DATA_VERSION));
-        fs.delete(new Path(ServerConstants.getDataVersionLocation() + "/" + ServerConstants.PREV_DATA_VERSION), false);
+        fs.delete(new Path(ServerConstants.getDataVersionLocation() + "/" + ServerConstants.PREV_DATA_VERSION));
       }
     } catch (IOException e) {
       throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
     }
   }
   
-  public static synchronized int getAccumuloPersistentVersion(FileSystem fs) {
+  public static synchronized int getAccumuloPersistentVersion(VolumeManager fs) {
     int dataVersion;
     try {
-      FileStatus[] files = fs.listStatus(ServerConstants.getDataVersionLocation());
+      FileStatus[] files = fs.getDefaultVolume().listStatus(ServerConstants.getDataVersionLocation());
       if (files == null || files.length == 0) {
         dataVersion = -1; // assume it is 0.5 or earlier
       } else {
@@ -82,7 +80,7 @@ public class Accumulo {
     }
   }
   
-  public static void init(FileSystem fs, ServerConfiguration config, String application) throws UnknownHostException {
+  public static void init(VolumeManager fs, ServerConfiguration config, String application) throws UnknownHostException {
     
     System.setProperty("org.apache.accumulo.core.application", application);
     
@@ -183,7 +181,7 @@ public class Accumulo {
     return result.getHostName();
   }
   
-  public static void waitForZookeeperAndHdfs(FileSystem fs) {
+  public static void waitForZookeeperAndHdfs(VolumeManager fs) {
     log.info("Attempting to talk to zookeeper");
     while (true) {
       try {
@@ -200,7 +198,7 @@ public class Accumulo {
     long sleep = 1000;
     while (true) {
       try {
-        if (!isInSafeMode(fs))
+        if (fs.isReady())
           break;
         log.warn("Waiting for the NameNode to leave safemode");
       } catch (IOException ex) {
@@ -213,37 +211,4 @@ public class Accumulo {
     log.info("Connected to HDFS");
   }
   
-  private static boolean isInSafeMode(FileSystem fs) throws IOException {
-    if (!(fs instanceof DistributedFileSystem))
-      return false;
-    DistributedFileSystem dfs = (DistributedFileSystem) fs;
-    // So this: if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
-    // Becomes this:
-    Class<?> safeModeAction;
-    try {
-      // hadoop 2.0
-      safeModeAction = Class.forName("org.apache.hadoop.hdfs.protocol.HdfsConstants$SafeModeAction");
-    } catch (ClassNotFoundException ex) {
-      // hadoop 1.0
-      try {
-        safeModeAction = Class.forName("org.apache.hadoop.hdfs.protocol.FSConstants$SafeModeAction");
-      } catch (ClassNotFoundException e) {
-        throw new RuntimeException("Cannot figure out the right class for Constants");
-      }
-    }
-    Object get = null;
-    for (Object obj : safeModeAction.getEnumConstants()) {
-      if (obj.toString().equals("SAFEMODE_GET"))
-        get = obj;
-    }
-    if (get == null) {
-      throw new RuntimeException("cannot find SAFEMODE_GET");
-    }
-    try {
-      Method setSafeMode = dfs.getClass().getMethod("setSafeMode", safeModeAction);
-      return (Boolean) setSafeMode.invoke(dfs, get);
-    } catch (Exception ex) {
-      throw new RuntimeException("cannot find method setSafeMode");
-    }
-  }
 }

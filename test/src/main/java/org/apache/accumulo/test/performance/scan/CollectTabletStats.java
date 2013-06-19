@@ -63,14 +63,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Stat;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.util.MetadataTable;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -105,7 +105,7 @@ public class CollectTabletStats {
       columnsTmp = opts.columns.split(",");
     final String columns[] = columnsTmp;
     
-    final FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    final VolumeManager fs = VolumeManagerImpl.get();
 
     Instance instance = opts.getInstance();
     final ServerConfiguration sconf = new ServerConfiguration(instance);
@@ -126,10 +126,10 @@ public class CollectTabletStats {
     
     List<KeyExtent> tabletsToTest = selectRandomTablets(opts.numThreads, candidates);
     
-    Map<KeyExtent,List<String>> tabletFiles = new HashMap<KeyExtent,List<String>>();
+    Map<KeyExtent,List<FileRef>> tabletFiles = new HashMap<KeyExtent,List<FileRef>>();
     
     for (KeyExtent ke : tabletsToTest) {
-      List<String> files = getTabletFiles(CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), opts.getInstance(), tableId, ke);
+      List<FileRef> files = getTabletFiles(CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), opts.getInstance(), tableId, ke);
       tabletFiles.put(ke, files);
     }
     
@@ -155,7 +155,7 @@ public class CollectTabletStats {
       ArrayList<Test> tests = new ArrayList<Test>();
       
       for (final KeyExtent ke : tabletsToTest) {
-        final List<String> files = tabletFiles.get(ke);
+        final List<FileRef> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           public int runTest() throws Exception {
             return readFiles(fs, sconf.getConfiguration(), files, ke, columns);
@@ -174,7 +174,7 @@ public class CollectTabletStats {
       ArrayList<Test> tests = new ArrayList<Test>();
       
       for (final KeyExtent ke : tabletsToTest) {
-        final List<String> files = tabletFiles.get(ke);
+        final List<FileRef> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           public int runTest() throws Exception {
             return readFilesUsingIterStack(fs, sconf, files, opts.auths, ke, columns, false);
@@ -191,7 +191,7 @@ public class CollectTabletStats {
       ArrayList<Test> tests = new ArrayList<Test>();
       
       for (final KeyExtent ke : tabletsToTest) {
-        final List<String> files = tabletFiles.get(ke);
+        final List<FileRef> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           public int runTest() throws Exception {
             return readFilesUsingIterStack(fs, sconf, files, opts.auths, ke, columns, true);
@@ -372,29 +372,23 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
   
-  private static List<String> getTabletFiles(TCredentials token, Instance zki, String tableId, KeyExtent ke) {
-    List<String> files = new ArrayList<String>();
-    
-    for (String cq : MetadataTable.getDataFileSizes(ke, token).keySet()) {
-      files.add(ServerConstants.getTablesDir() + "/" + tableId + cq);
-    }
-    return files;
+  private static List<FileRef> getTabletFiles(TCredentials token, Instance zki, String tableId, KeyExtent ke) throws IOException {
+    return new ArrayList<FileRef>(MetadataTable.getDataFileSizes(ke, token).keySet());
   }
   
-  private static void reportHdfsBlockLocations(List<String> files) throws Exception {
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
+  private static void reportHdfsBlockLocations(List<FileRef> files) throws Exception {
+    VolumeManager fs = VolumeManagerImpl.get();
     
     System.out.println("\t\tFile block report : ");
-    for (String file : files) {
-      FileStatus status = fs.getFileStatus(new Path(file));
+    for (FileRef file : files) {
+      FileStatus status = fs.getFileStatus(file.path());
       
       if (status.isDir()) {
         // assume it is a map file
         status = fs.getFileStatus(new Path(file + "/data"));
       }
-      
-      BlockLocation[] locs = fs.getFileBlockLocations(status, 0, status.getLen());
+      FileSystem ns = fs.getFileSystemByPath(file.path());
+      BlockLocation[] locs = ns.getFileBlockLocations(status, 0, status.getLen());
       
       System.out.println("\t\t\tBlocks for : " + file);
       
@@ -433,14 +427,15 @@ public class CollectTabletStats {
     return visFilter;
   }
   
-  private static int readFiles(FileSystem fs, AccumuloConfiguration aconf, List<String> files, KeyExtent ke, String[] columns) throws Exception {
+  private static int readFiles(VolumeManager fs, AccumuloConfiguration aconf, List<FileRef> files, KeyExtent ke, String[] columns) throws Exception {
     
     int count = 0;
     
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
     
-    for (String file : files) {
-      FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, fs.getConf(), aconf);
+    for (FileRef file : files) {
+      FileSystem ns = fs.getFileSystemByPath(file.path());
+      FileSKVIterator reader = FileOperations.getInstance().openReader(file.path().toString(), false, ns, ns.getConf(), aconf);
       Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
       reader.seek(range, columnSet, columnSet.size() == 0 ? false : true);
       while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
@@ -461,7 +456,7 @@ public class CollectTabletStats {
     return columnSet;
   }
   
-  private static int readFilesUsingIterStack(FileSystem fs, ServerConfiguration aconf, List<String> files, Authorizations auths, KeyExtent ke, String[] columns,
+  private static int readFilesUsingIterStack(VolumeManager fs, ServerConfiguration aconf, List<FileRef> files, Authorizations auths, KeyExtent ke, String[] columns,
       boolean useTableIterators)
       throws Exception {
     
@@ -469,8 +464,9 @@ public class CollectTabletStats {
     
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<SortedKeyValueIterator<Key,Value>>(files.size());
     
-    for (String file : files) {
-      readers.add(FileOperations.getInstance().openReader(file, false, fs, fs.getConf(), aconf.getConfiguration()));
+    for (FileRef file : files) {
+      FileSystem ns = fs.getFileSystemByPath(file.path());
+      readers.add(FileOperations.getInstance().openReader(file.path().toString(), false, ns, ns.getConf(), aconf.getConfiguration()));
     }
     
     List<IterInfo> emptyIterinfo = Collections.emptyList();

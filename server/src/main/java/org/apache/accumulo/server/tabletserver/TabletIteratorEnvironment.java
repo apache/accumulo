@@ -29,7 +29,9 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
+import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
+import org.apache.hadoop.fs.Path;
 
 public class TabletIteratorEnvironment implements IteratorEnvironment {
   
@@ -38,7 +40,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private final boolean fullMajorCompaction;
   private final AccumuloConfiguration config;
   private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
-  private Map<String,DataFileValue> files;
+  private Map<FileRef,DataFileValue> files;
   
   TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config) {
     if (scope == IteratorScope.majc)
@@ -50,7 +52,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.fullMajorCompaction = false;
   }
   
-  TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<String,DataFileValue> files) {
+  TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
     
@@ -90,7 +92,8 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   
   @Override
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
-    return trm.openFiles(Collections.singletonMap(mapFileName, files.get(mapFileName)), false).get(0);
+    FileRef ref = new FileRef(mapFileName, new Path(mapFileName));
+    return trm.openFiles(Collections.singletonMap(ref, files.get(ref)), false).get(0);
   }
   
   @Override

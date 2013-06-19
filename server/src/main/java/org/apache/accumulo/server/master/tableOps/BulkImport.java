@@ -62,6 +62,7 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -75,7 +76,6 @@ import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.Text;
@@ -146,7 +146,7 @@ public class BulkImport extends MasterRepo {
     Utils.getReadLock(tableId, tid).lock();
     
     // check that the error directory exists and is empty
-    FileSystem fs = master.getFileSystem();
+    VolumeManager fs = master.getFileSystem();
     
     Path errorPath = new Path(errorDir);
     FileStatus errorStatus = null;
@@ -179,8 +179,23 @@ public class BulkImport extends MasterRepo {
     }
   }
   
-  private Path createNewBulkDir(FileSystem fs, String tableId) throws IOException {
-    Path directory = new Path(ServerConstants.getTablesDir() + "/" + tableId);
+  private Path createNewBulkDir(VolumeManager fs, String tableId) throws IOException {
+    String tableDir = null;
+    loop:
+    for (String dir : fs.getFileSystems().keySet()) {
+      if (this.sourceDir.startsWith(dir)) {
+        for (String path : ServerConstants.getTablesDirs()) {
+          if (path.startsWith(dir)) {
+            tableDir = path;
+            break loop;
+          }
+        }
+        break;
+      }
+    }
+    if (tableDir == null)
+      throw new IllegalStateException(sourceDir + " is not in a known namespace");
+    Path directory = new Path(tableDir + "/" + tableId);
     fs.mkdirs(directory);
     
     // only one should be able to create the lock file
@@ -203,7 +218,7 @@ public class BulkImport extends MasterRepo {
     }
   }
   
-  private String prepareBulkImport(FileSystem fs, String dir, String tableId) throws IOException {
+  private String prepareBulkImport(VolumeManager fs, String dir, String tableId) throws IOException {
     Path bulkDir = createNewBulkDir(fs, tableId);
     
     MetadataTable.addBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
@@ -369,7 +384,7 @@ class CopyFailed extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     // This needs to execute after the arbiter is stopped
     
-    FileSystem fs = master.getFileSystem();
+    VolumeManager fs = master.getFileSystem();
     
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
@@ -440,7 +455,7 @@ class CopyFailed extends MasterRepo {
       bifCopyQueue.waitUntilDone(workIds);
     }
     
-    fs.delete(new Path(error, BulkImport.FAILURES_TXT), true);
+    fs.deleteRecursively(new Path(error, BulkImport.FAILURES_TXT));
     return new CleanUpBulkImport(tableId, source, bulk, error);
   }
   
@@ -490,7 +505,7 @@ class LoadFiles extends MasterRepo {
   public Repo<Master> call(final long tid, final Master master) throws Exception {
     initializeThreadPool(master);
     final SiteConfiguration conf = ServerConfiguration.getSiteConfiguration();
-    FileSystem fs = master.getFileSystem();
+    VolumeManager fs = master.getFileSystem();
     List<FileStatus> files = new ArrayList<FileStatus>();
     for (FileStatus entry : fs.listStatus(new Path(bulk))) {
       files.add(entry);
@@ -500,12 +515,12 @@ class LoadFiles extends MasterRepo {
     Path writable = new Path(this.errorDir, ".iswritable");
     if (!fs.createNewFile(writable)) {
       // Maybe this is a re-try... clear the flag and try again
-      fs.delete(writable, false);
+      fs.delete(writable);
       if (!fs.createNewFile(writable))
         throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
             "Unable to write to " + this.errorDir);
     }
-    fs.delete(writable, false);
+    fs.delete(writable);
     
     final Set<String> filesToLoad = Collections.synchronizedSet(new HashSet<String>());
     for (FileStatus f : files)

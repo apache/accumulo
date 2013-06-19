@@ -982,7 +982,7 @@ public class SimpleTest {
     assertEquals("10", new String(more.getResults().get(0).getValue()));
     try {
       client.checkIteratorConflicts(creds, TABLE_TEST, setting, EnumSet.allOf(IteratorScope.class));
-      fail("checkIteratorConflicts did not throw and exception");
+      fail("checkIteratorConflicts did not throw an exception");
     } catch (Exception ex) {}
     client.deleteRows(creds, TABLE_TEST, null, null);
     client.removeIterator(creds, TABLE_TEST, "test", EnumSet.allOf(IteratorScope.class));

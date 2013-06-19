@@ -29,7 +29,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,20 +43,15 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.tabletserver.TabletMutations;
-import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
-//import org.apache.hadoop.fs.CreateFlag;
-//import org.apache.hadoop.fs.Syncable;
 
 /**
  * Wrap a connection to a logger.
@@ -80,7 +74,7 @@ public class DfsLogger {
   public interface ServerResources {
     AccumuloConfiguration getConfiguration();
     
-    FileSystem getFileSystem();
+    VolumeManager getFileSystem();
     
     Set<TServerInstance> getCurrentTServers();
   }
@@ -207,13 +201,13 @@ public class DfsLogger {
     this.conf = conf;
   }
   
-  public DfsLogger(ServerResources conf, String logger, String filename) throws IOException {
+  public DfsLogger(ServerResources conf, String logger, Path filename) throws IOException {
     this.conf = conf;
     this.logger = logger;
-    this.logPath = new Path(ServerConstants.getWalDirectory(), filename);
+    this.logPath = filename;
   }
   
-  public static FSDataInputStream readHeader(FileSystem fs, Path path, Map<String,String> opts) throws IOException {
+  public static FSDataInputStream readHeader(VolumeManager fs, Path path, Map<String,String> opts) throws IOException {
     FSDataInputStream file = fs.open(path);
     try {
       byte[] magic = LOG_FILE_HEADER_V2.getBytes();
@@ -242,23 +236,20 @@ public class DfsLogger {
     logger = StringUtil.join(Arrays.asList(address.split(":")), "+");
     
     log.debug("DfsLogger.open() begin");
+    VolumeManager fs = conf.getFileSystem();
     
-    logPath = new Path(ServerConstants.getWalDirectory() + "/" + logger + "/" + filename);
+    logPath = new Path(fs.choose(ServerConstants.getWalDirs()) + "/" + logger + "/" + filename);
     try {
-      FileSystem fs = conf.getFileSystem();
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
       if (replication == 0)
-        replication = fs.getDefaultReplication();
+        replication = fs.getDefaultReplication(logPath);
       long blockSize = conf.getConfiguration().getMemoryInBytes(Property.TSERV_WAL_BLOCKSIZE);
       if (blockSize == 0)
         blockSize = (long) (conf.getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
-      int checkSum = fs.getConf().getInt("io.bytes.per.checksum", 512);
-      blockSize -= blockSize % checkSum;
-      blockSize = Math.max(blockSize, checkSum);
       if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC))
-        logFile = create(fs, logPath, true, fs.getConf().getInt("io.file.buffer.size", 4096), replication, blockSize);
+        logFile = fs.createSyncable(logPath, 0, replication, blockSize);
       else
-        logFile = fs.create(logPath, true, fs.getConf().getInt("io.file.buffer.size", 4096), replication, blockSize);
+        logFile = fs.create(logPath, true, 0, replication, blockSize);
       
       try {
         NoSuchMethodException e = null;
@@ -324,43 +315,6 @@ public class DfsLogger {
     t.start();
   }
   
-  private FSDataOutputStream create(FileSystem fs, Path logPath, boolean b, int buffersize, short replication, long blockSize) throws IOException {
-    try {
-      // This...
-      // EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
-      // return fs.create(logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
-      // Becomes this:
-      Class<?> createFlags = Class.forName("org.apache.hadoop.fs.CreateFlag");
-      List<Enum<?>> flags = new ArrayList<Enum<?>>();
-      if (createFlags.isEnum()) {
-        for (Object constant : createFlags.getEnumConstants()) {
-          if (constant.toString().equals("SYNC_BLOCK")) {
-            flags.add((Enum<?>) constant);
-            log.debug("Found synch enum " + constant);
-          }
-          if (constant.toString().equals("CREATE")) {
-            flags.add((Enum<?>) constant);
-            log.debug("Found CREATE enum " + constant);
-          }
-        }
-      }
-      Object set = EnumSet.class.getMethod("of", java.lang.Enum.class, java.lang.Enum.class).invoke(null, flags.get(0), flags.get(1));
-      log.debug("CreateFlag set: " + set);
-      if (fs instanceof TraceFileSystem) {
-        fs = ((TraceFileSystem) fs).getImplementation();
-      }
-      Method create = fs.getClass().getMethod("create", Path.class, FsPermission.class, EnumSet.class, Integer.TYPE, Short.TYPE, Long.TYPE, Progressable.class);
-      log.debug("creating " + logPath + " with SYNCH_BLOCK flag");
-      return (FSDataOutputStream) create.invoke(fs, logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
-    } catch (ClassNotFoundException ex) {
-      // Expected in hadoop 1.0
-      return fs.create(logPath, b, buffersize, replication, blockSize);
-    } catch (Exception ex) {
-      log.debug(ex, ex);
-      return fs.create(logPath, b, buffersize, replication, blockSize);
-    }
-  }
-  
   @Override
   public String toString() {
     return getLogger() + "/" + getFileName();
@@ -371,7 +325,7 @@ public class DfsLogger {
   }
   
   public String getFileName() {
-    return logPath.getName();
+    return logPath.toString();
   }
   
   public void close() throws IOException {

@@ -22,17 +22,13 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.util.TableDiskUsage;
-import org.apache.accumulo.core.util.TableDiskUsage.Printer;
+import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 
 public class DUCommand extends Command {
   
@@ -51,22 +47,17 @@ public class DUCommand extends Command {
         }
       }
     } else {
-      shellState.checkTableState();
-      tablesToFlush.add(shellState.getTableName());
+      if (tablesToFlush.isEmpty()) {
+        shellState.checkTableState();
+        tablesToFlush.add(shellState.getTableName());
+      }
     }
     try {
-      final AccumuloConfiguration acuConf = new ConfigurationCopy(shellState.getConnector().instanceOperations().getSystemConfiguration());
-      TableDiskUsage.printDiskUsage(acuConf, tablesToFlush, FileSystem.get(new Configuration()), shellState.getConnector(), new Printer() {
-        @Override
-        public void print(String line) {
-          try {
-            shellState.getReader().println(line);
-          } catch (IOException ex) {
-            throw new RuntimeException(ex);
-          }
-        }
-        
-      }, prettyPrint);
+      String valueFormat = prettyPrint ? "%9s" : "%,24d";
+      for (DiskUsage usage : shellState.getConnector().tableOperations().getDiskUsage(tablesToFlush)) {
+        Object value = prettyPrint ? NumUtil.bigNumberForSize(usage.getUsage()) : usage.getUsage();
+        shellState.getReader().println(String.format(valueFormat + " %s", value, usage.getTables()));
+      }
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }

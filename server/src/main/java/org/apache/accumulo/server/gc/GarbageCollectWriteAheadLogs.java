@@ -39,6 +39,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.accumulo.server.util.MetadataTable;
@@ -48,9 +49,7 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.Trash;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -59,15 +58,13 @@ public class GarbageCollectWriteAheadLogs {
   private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
   
   private final Instance instance;
-  private final FileSystem fs;
+  private final VolumeManager fs;
   
-  private Trash trash;
+  private boolean useTrash;
   
-  GarbageCollectWriteAheadLogs(Instance instance, FileSystem fs, boolean noTrash) throws IOException {
+  GarbageCollectWriteAheadLogs(Instance instance, VolumeManager fs, boolean useTrash) throws IOException {
     this.instance = instance;
     this.fs = fs;
-    if (!noTrash)
-      this.trash = new Trash(fs, fs.getConf());
   }
   
   public void collect(GCStatus status) {
@@ -75,11 +72,11 @@ public class GarbageCollectWriteAheadLogs {
     Span span = Trace.start("scanServers");
     try {
       
-      Set<String> sortedWALogs = getSortedWALogs();
+      Set<Path> sortedWALogs = getSortedWALogs();
       
       status.currentLog.started = System.currentTimeMillis();
       
-      Map<String,String> fileToServerMap = new HashMap<String,String>();
+      Map<Path,String> fileToServerMap = new HashMap<Path,String>();
       int count = scanServers(fileToServerMap);
       long fileScanStop = System.currentTimeMillis();
       log.info(String.format("Fetched %d files from %d servers in %.2f seconds", fileToServerMap.size(), count,
@@ -101,7 +98,7 @@ public class GarbageCollectWriteAheadLogs {
       log.info(String.format("%d log entries scanned in %.2f seconds", count, (logEntryScanStop - fileScanStop) / 1000.));
       
       span = Trace.start("removeFiles");
-      Map<String,ArrayList<String>> serverToFileMap = mapServersToFiles(fileToServerMap);
+      Map<String,ArrayList<Path>> serverToFileMap = mapServersToFiles(fileToServerMap);
       
       count = removeFiles(serverToFileMap, sortedWALogs, status);
       
@@ -131,39 +128,36 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
   
-  private int removeFiles(Map<String,ArrayList<String>> serverToFileMap, Set<String> sortedWALogs, final GCStatus status) {
+  private int removeFiles(Map<String,ArrayList<Path>> serverToFileMap, Set<Path> sortedWALogs, final GCStatus status) {
     AccumuloConfiguration conf = instance.getConfiguration();
-    for (Entry<String,ArrayList<String>> entry : serverToFileMap.entrySet()) {
-      if (entry.getKey().length() == 0) {
+    for (Entry<String,ArrayList<Path>> entry : serverToFileMap.entrySet()) {
+      if (entry.getKey().isEmpty()) {
         // old-style log entry, just remove it
-        for (String filename : entry.getValue()) {
-          log.debug("Removing old-style WAL " + entry.getValue());
+        for (Path path : entry.getValue()) {
+          log.debug("Removing old-style WAL " + path);
           try {
-            Path path = new Path(ServerConstants.getWalDirectory(), filename);
-            if (trash == null || !trash.moveToTrash(path))
-              fs.delete(path, true);
+            if (!useTrash || !fs.moveToTrash(path))
+              fs.deleteRecursively(path);
             status.currentLog.deleted++;
           } catch (FileNotFoundException ex) {
             // ignored
           } catch (IOException ex) {
-            log.error("Unable to delete wal " + filename + ": " + ex);
+            log.error("Unable to delete wal " + path + ": " + ex);
           }
         }
       } else {
         InetSocketAddress address = AddressUtil.parseAddress(entry.getKey());
         if (!holdsLock(address)) {
-          Path serverPath = new Path(ServerConstants.getWalDirectory(), entry.getKey());
-          for (String filename : entry.getValue()) {
-            log.debug("Removing WAL for offline server " + filename);
+          for (Path path : entry.getValue()) {
+            log.debug("Removing WAL for offline server " + path);
             try {
-              Path path = new Path(serverPath, filename);
-              if (trash == null || !trash.moveToTrash(path))
-                fs.delete(path, true);
+              if (!useTrash || !fs.moveToTrash(path))
+                fs.deleteRecursively(path);
               status.currentLog.deleted++;
             } catch (FileNotFoundException ex) {
               // ignored
             } catch (IOException ex) {
-              log.error("Unable to delete wal " + filename + ": " + ex);
+              log.error("Unable to delete wal " + path + ": " + ex);
             }
           }
           continue;
@@ -171,7 +165,7 @@ public class GarbageCollectWriteAheadLogs {
           Client tserver = null;
           try {
             tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
-            tserver.removeLogs(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), entry.getValue());
+            tserver.removeLogs(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), paths2strings(entry.getValue()));
             log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
             status.currentLog.deleted += entry.getValue().size();
           } catch (TException e) {
@@ -184,24 +178,21 @@ public class GarbageCollectWriteAheadLogs {
       }
     }
     
-    Path recoveryDir = new Path(ServerConstants.getRecoveryDir());
-    
-    for (String sortedWALog : sortedWALogs) {
-      log.debug("Removing sorted WAL " + sortedWALog);
-      Path swalog = new Path(recoveryDir, sortedWALog);
+    for (Path swalog : sortedWALogs) {
+      log.debug("Removing sorted WAL " + swalog);
       try {
-        if (trash == null || !trash.moveToTrash(swalog)) {
-          fs.delete(swalog, true);
+        if (!useTrash || !fs.moveToTrash(swalog)) {
+          fs.deleteRecursively(swalog);
         }
       } catch (FileNotFoundException ex) {
         // ignored
       } catch (IOException ioe) {
         try {
           if (fs.exists(swalog)) {
-            log.error("Unable to delete sorted walog " + sortedWALog + ": " + ioe);
+            log.error("Unable to delete sorted walog " + swalog + ": " + ioe);
           }
         } catch (IOException ex) {
-          log.error("Unable to check for the existence of " + sortedWALog, ex);
+          log.error("Unable to check for the existence of " + swalog, ex);
         }
       }
     }
@@ -209,30 +200,42 @@ public class GarbageCollectWriteAheadLogs {
     return 0;
   }
   
-  private static Map<String,ArrayList<String>> mapServersToFiles(Map<String,String> fileToServerMap) {
-    Map<String,ArrayList<String>> serverToFileMap = new HashMap<String,ArrayList<String>>();
-    for (Entry<String,String> fileServer : fileToServerMap.entrySet()) {
-      ArrayList<String> files = serverToFileMap.get(fileServer.getValue());
+  private List<String> paths2strings(ArrayList<Path> paths) {
+    List<String> result = new ArrayList<String>(paths.size());
+    for (Path path : paths)
+      result.add(path.toString());
+    return result;
+  }
+
+  private static Map<String,ArrayList<Path>> mapServersToFiles(Map<Path,String> fileToServerMap) {
+    Map<String,ArrayList<Path>> result = new HashMap<String,ArrayList<Path>>();
+    for (Entry<Path,String> fileServer : fileToServerMap.entrySet()) {
+      ArrayList<Path> files = result.get(fileServer.getValue());
       if (files == null) {
-        files = new ArrayList<String>();
-        serverToFileMap.put(fileServer.getValue(), files);
+        files = new ArrayList<Path>();
+        result.put(fileServer.getValue(), files);
       }
       files.add(fileServer.getKey());
     }
-    return serverToFileMap;
+    return result;
   }
   
-  private static int removeMetadataEntries(Map<String,String> fileToServerMap, Set<String> sortedWALogs, GCStatus status) throws IOException, KeeperException,
+  private static int removeMetadataEntries(Map<Path,String> fileToServerMap, Set<Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
       InterruptedException {
     int count = 0;
     Iterator<LogEntry> iterator = MetadataTable.getLogEntries(SecurityConstants.getSystemCredentials());
     while (iterator.hasNext()) {
       for (String filename : iterator.next().logSet) {
-        filename = filename.split("/", 2)[1];
-        if (fileToServerMap.remove(filename) != null)
+        Path path;
+        if (filename.contains(":"))
+          path = new Path(filename);
+        else
+          path = new Path(ServerConstants.getWalDirs()[0] + filename);
+        
+        if (fileToServerMap.remove(path) != null)
           status.currentLog.inUse++;
         
-        sortedWALogs.remove(filename);
+        sortedWALogs.remove(path);
         
         count++;
       }
@@ -240,46 +243,52 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
   
-  private int scanServers(Map<String,String> fileToServerMap) throws Exception {
-    Path walRoot = new Path(ServerConstants.getWalDirectory());
-    for (FileStatus status : fs.listStatus(walRoot)) {
-      String name = status.getPath().getName();
-      if (status.isDir()) {
-        for (FileStatus file : fs.listStatus(new Path(walRoot, name))) {
-          if (isUUID(file.getPath().getName()))
-            fileToServerMap.put(file.getPath().getName(), name);
-          else {
-            log.info("Ignoring file " + file.getPath() + " because it doesn't look like a uuid");
+  private int scanServers(Map<Path,String> fileToServerMap) throws Exception {
+    Set<String> servers = new HashSet<String>();
+    for (String walDir : ServerConstants.getWalDirs()) {
+      Path walRoot = new Path(walDir);
+      FileStatus[] listing = fs.listStatus(walRoot);
+      if (listing == null)
+        continue;
+      for (FileStatus status : listing) {
+        String server = status.getPath().getName();
+        servers.add(server);
+        if (status.isDir()) {
+          for (FileStatus file : fs.listStatus(new Path(walRoot, server))) {
+            if (isUUID(file.getPath().getName()))
+              fileToServerMap.put(file.getPath(), server);
+            else {
+              log.info("Ignoring file " + file.getPath() + " because it doesn't look like a uuid");
+            }
           }
+        } else if (isUUID(server)) {
+          // old-style WAL are not under a directory
+          fileToServerMap.put(status.getPath(), "");
+        } else {
+          log.info("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
         }
-      } else if (isUUID(name)) {
-        // old-style WAL are not under a directory
-        fileToServerMap.put(name, "");
-      } else {
-        log.info("Ignoring file " + name + " because it doesn't look like a uuid");
       }
     }
-    
-    int count = 0;
-    return count;
+    return servers.size();
   }
   
-  private Set<String> getSortedWALogs() throws IOException {
-    Path recoveryDir = new Path(ServerConstants.getRecoveryDir());
+  private Set<Path> getSortedWALogs() throws IOException {
+    Set<Path> result = new HashSet<Path>();
     
-    Set<String> sortedWALogs = new HashSet<String>();
-    
-    if (fs.exists(recoveryDir)) {
-      for (FileStatus status : fs.listStatus(recoveryDir)) {
-        if (isUUID(status.getPath().getName())) {
-          sortedWALogs.add(status.getPath().getName());
-        } else {
-          log.debug("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
+    for (String dir : ServerConstants.getRecoveryDirs()) {
+      Path recoveryDir = new Path(dir);
+      
+      if (fs.exists(recoveryDir)) {
+        for (FileStatus status : fs.listStatus(recoveryDir)) {
+          if (isUUID(status.getPath().getName())) {
+            result.add(status.getPath());
+          } else {
+            log.debug("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
+          }
         }
       }
     }
-    
-    return sortedWALogs;
+    return result;
   }
   
   static private boolean isUUID(String name) {

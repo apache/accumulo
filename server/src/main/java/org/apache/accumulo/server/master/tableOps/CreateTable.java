@@ -27,25 +27,21 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tabletserver.TabletTime;
-import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.util.TabletOperations;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -148,18 +144,19 @@ class CreateDir extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
-    FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
-    String dir = ServerConstants.getTablesDir() + "/" + tableInfo.tableId;
-    TabletOperations.createTabletDirectory(fs, dir, null);
+  public Repo<Master> call(long tid, Master master) throws Exception {
+    VolumeManager fs = master.getFileSystem();
+    TabletOperations.createTabletDirectory(fs, tableInfo.tableId, null);
     return new PopulateMetadata(tableInfo);
   }
   
   @Override
-  public void undo(long tid, Master environment) throws Exception {
-    FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
-    String dir = ServerConstants.getTablesDir() + "/" + tableInfo.tableId;
-    fs.delete(new Path(dir), true);
+  public void undo(long tid, Master master) throws Exception {
+    VolumeManager fs = master.getFileSystem();
+    for(String dir : ServerConstants.getTablesDirs()) {
+      fs.deleteRecursively(new Path(dir + "/" + tableInfo.tableId));
+    }
+    
   }
 }
 
