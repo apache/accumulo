@@ -36,25 +36,33 @@ public class DUCommand extends Command {
 
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, TableNotFoundException {
 
-    final SortedSet<String> tablesToFlush = new TreeSet<String>(Arrays.asList(cl.getArgs()));
+    final SortedSet<String> tables = new TreeSet<String>(Arrays.asList(cl.getArgs()));
+    
+    if (cl.hasOption(Shell.tableOption)) {
+      String tableName = cl.getOptionValue(Shell.tableOption);
+      if (!shellState.getConnector().tableOperations().exists(tableName)) {
+        throw new TableNotFoundException(tableName, tableName, "specified table that doesn't exist");
+      }
+      tables.add(tableName);
+    }
 
     boolean prettyPrint = cl.hasOption(optHumanReadble.getOpt()) ? true : false;
 
     if (cl.hasOption(optTablePattern.getOpt())) {
       for (String table : shellState.getConnector().tableOperations().list()) {
         if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
-          tablesToFlush.add(table);
+          tables.add(table);
         }
       }
     } else {
-      if (tablesToFlush.isEmpty()) {
+      if (tables.isEmpty()) {
         shellState.checkTableState();
-        tablesToFlush.add(shellState.getTableName());
+        tables.add(shellState.getTableName());
       }
     }
     try {
       String valueFormat = prettyPrint ? "%9s" : "%,24d";
-      for (DiskUsage usage : shellState.getConnector().tableOperations().getDiskUsage(tablesToFlush)) {
+      for (DiskUsage usage : shellState.getConnector().tableOperations().getDiskUsage(tables)) {
         Object value = prettyPrint ? NumUtil.bigNumberForSize(usage.getUsage()) : usage.getUsage();
         shellState.getReader().println(String.format(valueFormat + " %s", value, usage.getTables()));
       }
@@ -78,6 +86,8 @@ public class DUCommand extends Command {
 
     optHumanReadble = new Option("h", "human-readable", false, "format large sizes to human readable units");
     optHumanReadble.setArgName("human readable output");
+    
+    o.addOption(OptUtil.tableOpt("table to examine"));
 
     o.addOption(optTablePattern);
     o.addOption(optHumanReadble);
