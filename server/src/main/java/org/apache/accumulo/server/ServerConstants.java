@@ -50,6 +50,8 @@ public class ServerConstants {
   }
   
   public static String[] prefix(String bases[], String suffix) {
+    if (suffix.startsWith("/"))
+      suffix = suffix.substring(1);
     String result[] = new String[bases.length];
     for (int i = 0; i < bases.length; i++) {
       result[i] = bases[i] + "/" + suffix;
@@ -74,11 +76,11 @@ public class ServerConstants {
   }
   
   public static Path getInstanceIdLocation() {
-    return new Path(getBaseDirs()[0] + "/instance_id");
+    return new Path(getBaseDirs()[0], "instance_id");
   }
   
   public static Path getDataVersionLocation() {
-    return new Path(getBaseDirs()[0] + "/version");
+    return new Path(getBaseDirs()[0], "version");
   }
   
   public static String[] getMetadataTableDirs() {

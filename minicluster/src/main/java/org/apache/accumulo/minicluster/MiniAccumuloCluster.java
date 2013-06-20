@@ -32,6 +32,12 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.master.Master;
@@ -258,7 +264,7 @@ public class MiniAccumuloCluster {
 
     // sleep a little bit to let zookeeper come up before calling init, seems to work better
     UtilWaitThread.sleep(250);
-
+    
     Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword(), "--username", "root");
     int ret = initProcess.waitFor();
     if (ret != 0) {
@@ -327,5 +333,10 @@ public class MiniAccumuloCluster {
    */
   public MiniAccumuloConfig getConfig() {
     return config;
+  }
+
+  public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException {
+    Instance instance = new ZooKeeperInstance(this.getInstanceName(), this.getZooKeepers());
+    return instance.getConnector(user, new PasswordToken(passwd));
   }
 }
