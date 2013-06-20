@@ -1,0 +1,59 @@
+
+% Licensed to the Apache Software Foundation (ASF) under one or more
+% contributor license agreements. See the NOTICE file distributed with
+% this work for additional information regarding copyright ownership.
+% The ASF licenses this file to You under the Apache License, Version 2.0
+% (the "License"); you may not use this file except in compliance with
+% the License. You may obtain a copy of the License at
+%
+%     http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+
+\chapter{Multi-Volume Installations}
+
+This is an advanced configuration setting for very large clusters
+under a lot of write pressure.
+
+The HDFS NameNode holds all of the metadata about the files in
+HDFS. For fast performance, all of this information needs to be stored
+in memory.  A single NameNode with 64G of memory can store the
+metadata for tens of millions of files.However, when scaling beyond a
+thousand nodes, an active accumulo system can generate lots of updates
+to the file system, especially when data is being ingested.  The large
+number of write transactions to the NameNode, and the speed of a
+single edit log, can become the limiting factor for large scale
+accumulo installations.
+
+You can see the effect of slow write transactions when the accumulo
+Garbage Collector takes a long time (more than 5 minutes) to delete
+the files accumulo no longer needs.  If your Garbage Collector
+routinely runs in less than a minute, the NameNode is performing well.
+
+However, if you do begin to experience slow-down and poor GC
+performance, accumulo can be configured to use multiple NameNode
+servers.  The configuration ``instance.volumes'' should be set to a
+comma-separated list, using full URI references to different NameNode
+servers:
+
+\small
+\begin{verbatim}
+  <property>
+    <name>instance.volumes</name>
+    <value>hdfs://ns1:9001,hdfs://ns2:9001</value>
+  </property>
+\end{verbatim}
+\normalsize
+
+Any existing relative file references will be assumed to be stored in
+the first NameNode.  So, if you are growing your cluster to use
+multiple NameNodes, list the original server first.
+
+You may also want to configure your cluster to use Federation,
+available in Hadoop 2.0, which allows DataNodes to respond to multiple
+NameNode servers, so you do not have to partition your DataNodes by
+NameNode.
