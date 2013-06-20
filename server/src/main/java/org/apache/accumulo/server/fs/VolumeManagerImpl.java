@@ -56,13 +56,13 @@ public class VolumeManagerImpl implements VolumeManager {
   private static final Logger log = Logger.getLogger(FileSystem.class);
   
   Map<String, ? extends FileSystem> volumes;
-  String defaultVolumes;
+  String defaultVolume;
   AccumuloConfiguration conf;
   VolumeChooser chooser;
   
   protected VolumeManagerImpl(Map<String, ? extends FileSystem> volumes, String defaultVolume, AccumuloConfiguration conf) {
     this.volumes = volumes;
-    this.defaultVolumes = defaultVolume;
+    this.defaultVolume = defaultVolume;
     this.conf = conf;
     ensureSyncIsEnabled();
     try {
@@ -256,7 +256,7 @@ public class VolumeManagerImpl implements VolumeManager {
       }
     }
       
-    return volumes.get(defaultVolumes);
+    return volumes.get(defaultVolume);
   }
 
   @Override
@@ -373,7 +373,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public FileSystem getDefaultVolume() {
-    return volumes.get(defaultVolumes);
+    return volumes.get(defaultVolume);
   }
 
   @Override
