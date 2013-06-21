@@ -241,6 +241,8 @@ def main():
                       help='Do not clean up at the end of the test.')
     parser.add_option('-s', '--start', dest='start', default=None, 
                       help='Start the test list at the given test name')
+    parser.add_option('-x', '--xml', dest='xmlreport', default=False, action='store_true',
+                      help='Output tests results to xml (jenkins conpatible)')
     
     allTests = getTests()
     options = parseArguments(parser, allTests)
@@ -268,7 +270,12 @@ def main():
        print "ZOOKEEPER_HOME needs to be set"
        sys.exit(1)
 
-    runner = TestRunner()
+    if options.xmlreport:
+        import xmlrunner
+        runner = xmlrunner.XMLTestRunner(output='test-reports')
+    else:    
+        runner = TestRunner()
+
     
     suite = unittest.TestSuite()
     map(suite.addTest, filtered)
