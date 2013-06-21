@@ -30,7 +30,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -69,7 +68,7 @@ public class FormatterCommandTest {
     
     shell.getReader().flush();
     
-    final String[] output = StringUtils.split(new String(out.toByteArray()), '\n');
+    final String[] output = new String(out.toByteArray()).split("\n\r");
     
     boolean formatterOn = false;
     
