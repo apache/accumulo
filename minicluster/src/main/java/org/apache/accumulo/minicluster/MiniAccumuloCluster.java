@@ -335,6 +335,15 @@ public class MiniAccumuloCluster {
     return config;
   }
 
+  /**
+   * Utility method to get a connector to the MAC.
+   * @since 1.6.0
+   * @param user
+   * @param passwd
+   * @return Connector
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
   public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException {
     Instance instance = new ZooKeeperInstance(this.getInstanceName(), this.getZooKeepers());
     return instance.getConnector(user, new PasswordToken(passwd));
