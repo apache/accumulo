@@ -16,28 +16,16 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
-import java.util.Map.Entry;
-
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeInfo.Operation;
 import org.apache.accumulo.server.master.state.MergeState;
-import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -53,29 +41,6 @@ import org.apache.hadoop.io.Text;
  * The code below uses read-write lock to prevent some operations while a merge is taking place. Normal operations, like bulk imports, will grab the read lock
  * and prevent merges (writes) while they run. Merge operations will lock out some operations while they run.
  */
-
-class MakeDeleteEntries extends MasterRepo {
-  
-  private static final long serialVersionUID = 1L;
-  
-  @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
-    log.info("creating delete entries for merged metadata tablets");
-    Connector conn = master.getConnector();
-    Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(RootTable.KEYSPACE);
-    scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
-    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    for (Entry<Key,Value> entry : scanner) {
-      // TODO: add the entries only if there are no !METADATA table references - ACCUMULO-1308
-      FileRef ref = new FileRef(master.getFileSystem(), entry.getKey());
-      bw.addMutation(MetadataTable.createDeleteMutation(MetadataTable.ID, ref.path().toString()));
-    }
-    bw.close();
-    return null;
-  }
-}
-
 class TableRangeOpWait extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
@@ -101,13 +66,6 @@ class TableRangeOpWait extends MasterRepo {
     log.info("removing merge information " + mergeInfo);
     master.clearMergeState(tableIdText);
     Utils.unreserveTable(tableId, tid, true);
-    // We can't add entries to the metadata table if it is offline for this merge.
-    // If the delete entries for the metadata table were in the root tablet, it would work just fine
-    // but all the delete entries go into the end of the metadata table. Work around: add the
-    // delete entries after the merge completes.
-    if (mergeInfo.getOperation().equals(Operation.MERGE) && tableId.equals(MetadataTable.ID)) {
-      return new MakeDeleteEntries();
-    }
     return null;
   }
   

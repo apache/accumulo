@@ -98,7 +98,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       while (buffer.available() > 0) {
         MergeInfo mergeInfo = new MergeInfo();
         mergeInfo.readFields(buffer);
-        result.put(mergeInfo.range.getTableId(), mergeInfo);
+        result.put(mergeInfo.extent.getTableId(), mergeInfo);
       }
       return result;
     } catch (Exception ex) {
@@ -126,7 +126,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       }
       // we always want data about merges
       MergeInfo merge = merges.get(tls.extent.getTableId());
-      if (merge != null && merge.getRange() != null && merge.getRange().overlaps(tls.extent)) {
+      if (merge != null && merge.getExtent() != null && merge.getExtent().overlaps(tls.extent)) {
         return;
       }
       // is the table supposed to be online or offline?
@@ -173,7 +173,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     DataOutputBuffer buffer = new DataOutputBuffer();
     try {
       for (MergeInfo info : merges) {
-        KeyExtent extent = info.getRange();
+        KeyExtent extent = info.getExtent();
         if (extent != null && !info.getState().equals(MergeState.NONE)) {
           info.write(buffer);
         }

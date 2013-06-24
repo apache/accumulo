@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.io.Text;
@@ -29,17 +28,15 @@ public class RootTable {
   public static final String ID = "!!R";
   public static final String NAME = "!!ROOT";
   
-  public static final String ZROOT_TABLET = "/root_tablet";
+  public static final String ROOT_TABLET_LOCATION = "/root_tablet";
+  
+  public static final String ZROOT_TABLET = ROOT_TABLET_LOCATION;
   public static final String ZROOT_TABLET_LOCATION = ZROOT_TABLET + "/location";
   public static final String ZROOT_TABLET_FUTURE_LOCATION = ZROOT_TABLET + "/future_location";
   public static final String ZROOT_TABLET_LAST_LOCATION = ZROOT_TABLET + "/lastlocation";
   public static final String ZROOT_TABLET_WALOGS = ZROOT_TABLET + "/walogs";
   
-  public static final String DELETE_FLAG_PREFIX = "!!" + MetadataTable.DELETE_FLAG_PREFIX;
-  public static final Range DELETES_KEYSPACE = new Range(new Key(new Text(DELETE_FLAG_PREFIX)), true, new Key(new Text("!!~dem")), false);
-  public static final KeyExtent ROOT_TABLET_EXTENT = new KeyExtent(new Text(MetadataTable.ID), KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null),
-      null);
-  public static final Range KEYSPACE = new Range(ROOT_TABLET_EXTENT.getMetadataEntry(), false, KeyExtent.getMetadataEntry(new Text(
-      MetadataTable.ID), null), true);
+  public static final KeyExtent EXTENT = new KeyExtent(new Text(ID), null, null);
+  public static final Range METADATA_TABLETS_RANGE = new Range(null, false, MetadataTable.RESERVED_RANGE_START_KEY, false);
   
 }

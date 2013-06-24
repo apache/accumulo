@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.format.BinaryFormatter;
 import org.apache.accumulo.core.util.shell.Shell;
@@ -69,7 +70,8 @@ public class GetSplitsCommand extends Command {
           p.print(encode(encode, row));
         }
       } else {
-        final Scanner scanner = shellState.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+        String systemTableToCheck = MetadataTable.NAME.equals(tableName) ? RootTable.NAME : MetadataTable.NAME;
+        final Scanner scanner = shellState.getConnector().createScanner(systemTableToCheck, Authorizations.EMPTY);
         MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
         final Text start = new Text(shellState.getConnector().tableOperations().tableIdMap().get(tableName));
         final Text end = new Text(start);

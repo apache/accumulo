@@ -710,7 +710,7 @@ public class TabletServerResourceManager {
   }
   
   public void executeMajorCompaction(KeyExtent tablet, Runnable compactionTask) {
-    if (tablet.equals(RootTable.ROOT_TABLET_EXTENT)) {
+    if (tablet.equals(RootTable.EXTENT)) {
       rootMajorCompactionThreadPool.execute(compactionTask);
     } else if (tablet.isMeta()) {
       defaultMajorCompactionThreadPool.execute(compactionTask);

@@ -193,7 +193,7 @@ public class ShellServerTest {
     String export = "file://" + folder.newFolder().toString();
     exec("exporttable -t t " + export, true);
     DistCp cp = newDistCp();
-    String import_ = "file://" +folder.newFolder().toString();
+    String import_ = "file://" + folder.newFolder().toString();
     cp.run(new String[] {"-f", export + "/distcp.txt", import_});
     exec("importtable t2 " + import_, true);
     exec("config -t t2 -np", true, "345M", true);
@@ -652,10 +652,12 @@ public class ShellServerTest {
     exec("getsplits", true, "z", false);
     exec("deletetable -f t");
     exec("getsplits -t !METADATA", true);
-    assertEquals(3, output.get().split("\n").length);
+    assertEquals(2, output.get().split("\n").length);
+    exec("getsplits -t !!ROOT", true);
+    assertEquals(1, output.get().split("\n").length);
     exec("merge --all -t !METADATA");
     exec("getsplits -t !METADATA", true);
-    assertEquals(2, output.get().split("\n").length);
+    assertEquals(1, output.get().split("\n").length);
   }
   
   @Test(timeout = 30000)

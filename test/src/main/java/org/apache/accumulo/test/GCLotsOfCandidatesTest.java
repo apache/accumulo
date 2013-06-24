@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -28,6 +27,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
 
 public class GCLotsOfCandidatesTest {
@@ -42,7 +42,7 @@ public class GCLotsOfCandidatesTest {
     
     for (int i = 0; i < 100000; ++i) {
       final Text emptyText = new Text("");
-      Text row = new Text(String.format("%s%s%020d%s", MetadataTable.DELETE_FLAG_PREFIX, "/", i,
+      Text row = new Text(String.format("%s%s%020d%s", MetadataTable.DELETED_RANGE.getStartKey().getRow().toString(), "/", i,
           "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
       Mutation delFlag = new Mutation(row);
       delFlag.put(emptyText, emptyText, new Value(new byte[] {}));

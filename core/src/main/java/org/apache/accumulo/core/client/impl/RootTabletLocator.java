@@ -42,22 +42,32 @@ public class RootTabletLocator extends TabletLocator {
   }
   
   @Override
-  public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
-    throw new UnsupportedOperationException();
+  public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    String rootTabletLocation = instance.getRootTabletLocation();
+    if (rootTabletLocation != null) {
+      TabletServerMutations tsm = new TabletServerMutations();
+      for (Mutation mutation : mutations) {
+        tsm.addMutation(RootTable.EXTENT, mutation);
+      }
+      binnedMutations.put(rootTabletLocation, tsm);
+    } else {
+      failures.addAll(mutations);
+    }
   }
   
   @Override
-  public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
     
     String rootTabletLocation = instance.getRootTabletLocation();
     if (rootTabletLocation != null) {
       for (Range range : ranges) {
-        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation, RootTable.ROOT_TABLET_EXTENT, range);
+        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation, RootTable.EXTENT, range);
       }
+      return Collections.emptyList();
     }
-    return Collections.emptyList();
+    return ranges;
   }
   
   @Override
@@ -73,14 +83,8 @@ public class RootTabletLocator extends TabletLocator {
   public void invalidateCache() {}
   
   @Override
-  public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (skipRow) {
-      row = new Text(row);
-      row.append(new byte[] {0}, 0, 1);
-    }
-    if (!RootTable.ROOT_TABLET_EXTENT.contains(row)) {
-      throw new AccumuloException("Tried to locate row out side of root tablet " + row);
-    }
+  public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException {
     String location = instance.getRootTabletLocation();
     // Always retry when finding the root tablet
     while (retry && location == null) {
@@ -88,7 +92,7 @@ public class RootTabletLocator extends TabletLocator {
       location = instance.getRootTabletLocation();
     }
     if (location != null)
-      return new TabletLocation(RootTable.ROOT_TABLET_EXTENT, location);
+      return new TabletLocation(RootTable.EXTENT, location);
     return null;
   }
   

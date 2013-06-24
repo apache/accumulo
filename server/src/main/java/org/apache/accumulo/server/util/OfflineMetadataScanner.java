@@ -126,7 +126,7 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     this.conf = conf;
     List<LogEntry> rwal;
     try {
-      rwal = MetadataTable.getLogEntries(null, RootTable.ROOT_TABLET_EXTENT);
+      rwal = MetadataTable.getLogEntries(null, RootTable.EXTENT);
     } catch (Exception e) {
       throw new RuntimeException("Failed to check if root tablet has write ahead log entries", e);
     }

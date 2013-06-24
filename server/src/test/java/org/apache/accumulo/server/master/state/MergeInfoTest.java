@@ -34,7 +34,7 @@ public class MergeInfoTest {
     in.reset(buffer.getData(), 0, buffer.getLength());
     MergeInfo info2 = new MergeInfo();
     info2.readFields(in);
-    Assert.assertEquals(info.range, info2.range);
+    Assert.assertEquals(info.extent, info2.extent);
     Assert.assertEquals(info.state, info2.state);
     Assert.assertEquals(info.operation, info2.operation);
     return info2;

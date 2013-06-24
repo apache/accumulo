@@ -73,17 +73,17 @@ public class MetaSplitTest {
       opts.create("" + i);
     }
     opts.merge(MetadataTable.NAME, new Text("01"), new Text("02"));
-    assertEquals(2, opts.listSplits(MetadataTable.NAME).size());
-    addSplits(opts, "4 5 6 7 8".split(" "));
-    assertEquals(7, opts.listSplits(MetadataTable.NAME).size());
-    opts.merge(MetadataTable.NAME, new Text("6"), new Text("9"));
-    assertEquals(5, opts.listSplits(MetadataTable.NAME).size());
-    addSplits(opts, "44 55 66 77 88".split(" "));
-    assertEquals(10, opts.listSplits(MetadataTable.NAME).size());
-    opts.merge(MetadataTable.NAME, new Text("5"), new Text("7"));
-    assertEquals(7, opts.listSplits(MetadataTable.NAME).size());
-    opts.merge(MetadataTable.NAME, null, null);
     assertEquals(1, opts.listSplits(MetadataTable.NAME).size());
+    addSplits(opts, "4 5 6 7 8".split(" "));
+    assertEquals(6, opts.listSplits(MetadataTable.NAME).size());
+    opts.merge(MetadataTable.NAME, new Text("6"), new Text("9"));
+    assertEquals(4, opts.listSplits(MetadataTable.NAME).size());
+    addSplits(opts, "44 55 66 77 88".split(" "));
+    assertEquals(9, opts.listSplits(MetadataTable.NAME).size());
+    opts.merge(MetadataTable.NAME, new Text("5"), new Text("7"));
+    assertEquals(6, opts.listSplits(MetadataTable.NAME).size());
+    opts.merge(MetadataTable.NAME, null, null);
+    assertEquals(0, opts.listSplits(MetadataTable.NAME).size());
   }
   
 }

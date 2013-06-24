@@ -42,6 +42,7 @@ import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -85,7 +86,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
         log.debug("Filing problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource());
         
         try {
-          if (pr.getTableName().equals(MetadataTable.ID)) {
+          if (pr.getTableName().equals(MetadataTable.ID) || pr.getTableName().equals(RootTable.ID)) {
             // file report in zookeeper
             pr.saveToZooKeeper();
           } else {

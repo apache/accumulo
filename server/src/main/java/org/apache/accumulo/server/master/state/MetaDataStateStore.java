@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.io.Text;
@@ -43,20 +44,30 @@ public class MetaDataStateStore extends TabletStateStore {
   final protected Instance instance;
   final protected CurrentState state;
   final protected TCredentials auths;
+  final private String targetTableName;
   
-  public MetaDataStateStore(Instance instance, TCredentials auths, CurrentState state) {
+  protected MetaDataStateStore(Instance instance, TCredentials auths, CurrentState state, String targetTableName) {
     this.instance = instance;
     this.state = state;
     this.auths = auths;
+    this.targetTableName = targetTableName;
+  }
+  
+  public MetaDataStateStore(Instance instance, TCredentials auths, CurrentState state) {
+    this(instance, auths, state, MetadataTable.NAME);
+  }
+  
+  protected MetaDataStateStore(String tableName) {
+    this(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), null, tableName);
   }
   
   public MetaDataStateStore() {
-    this(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), null);
+    this(MetadataTable.NAME);
   }
-
+  
   @Override
   public Iterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(instance, auths, MetadataTable.NON_ROOT_KEYSPACE, state);
+    return new MetaDataTableScanner(instance, auths, RootTable.METADATA_TABLETS_RANGE, state);
   }
   
   @Override
@@ -83,7 +94,7 @@ public class MetaDataStateStore extends TabletStateStore {
   
   BatchWriter createBatchWriter() {
     try {
-      return instance.getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths)).createBatchWriter(MetadataTable.NAME,
+      return instance.getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths)).createBatchWriter(targetTableName,
           new BatchWriterConfig().setMaxMemory(MAX_MEMORY).setMaxLatency(LATENCY, TimeUnit.MILLISECONDS).setMaxWriteThreads(THREADS));
     } catch (TableNotFoundException e) {
       // ya, I don't think so

@@ -55,7 +55,7 @@ import org.apache.hadoop.io.Text;
 
 public class TabletLocatorImplTest extends TestCase {
   
-  private static final KeyExtent RTE = RootTable.ROOT_TABLET_EXTENT;
+  private static final KeyExtent RTE = RootTable.EXTENT;
   private static final KeyExtent MTE = new KeyExtent(new Text(MetadataTable.ID), null, RTE.getEndRow());
   private static TCredentials credential = null;
   

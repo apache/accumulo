@@ -38,13 +38,13 @@ public class ServerConstants {
     if (ns == null || ns.isEmpty()) {
       Configuration hadoopConfig = CachedConfiguration.getInstance();
       String fullPath = hadoopConfig.get("fs.default.name") + singleNamespace;
-      return new String[] { fullPath };
+      return new String[] {fullPath};
     }
     String namespaces[] = ns.split(",");
     if (namespaces.length < 2) {
       Configuration hadoopConfig = CachedConfiguration.getInstance();
       String fullPath = hadoopConfig.get("fs.default.name") + singleNamespace;
-      return new String[] { fullPath };
+      return new String[] {fullPath};
     }
     return prefix(namespaces, singleNamespace);
   }
@@ -83,11 +83,15 @@ public class ServerConstants {
     return new Path(getBaseDirs()[0], "version");
   }
   
+  public static String[] getRootTableDirs() {
+    return prefix(getTablesDirs(), RootTable.ID);
+  }
+  
   public static String[] getMetadataTableDirs() {
     return prefix(getTablesDirs(), MetadataTable.ID);
   }
   
   public static String getRootTabletDir() {
-    return prefix(getMetadataTableDirs(), RootTable.ZROOT_TABLET)[0];
+    return prefix(getRootTableDirs(), RootTable.ZROOT_TABLET)[0];
   }
 }

@@ -48,7 +48,7 @@ public class FindOfflineTablets {
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
     final AtomicBoolean scanning = new AtomicBoolean(false);
     Instance instance = opts.getInstance();
-    MetaDataTableScanner rootScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), RootTable.KEYSPACE);
+    MetaDataTableScanner rootScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), RootTable.METADATA_TABLETS_RANGE);
     MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), MetadataTable.NON_ROOT_KEYSPACE);
     @SuppressWarnings("unchecked")
     Iterator<TabletLocationState> scanner = (Iterator<TabletLocationState>)new IteratorChain(rootScanner, metaScanner);
@@ -67,7 +67,7 @@ public class FindOfflineTablets {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
       if (state != null && state != TabletState.HOSTED && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
-        if (!locationState.extent.equals(RootTable.ROOT_TABLET_EXTENT))
+        if (!locationState.extent.equals(RootTable.EXTENT))
           System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
     }
   }

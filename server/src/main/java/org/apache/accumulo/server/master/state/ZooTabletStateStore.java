@@ -88,7 +88,7 @@ public class ZooTabletStateStore extends TabletStateStore {
               log.debug("root tablet logSet " + logEntry.logSet);
             }
           }
-          TabletLocationState result = new TabletLocationState(RootTable.ROOT_TABLET_EXTENT, futureSession, currentSession, lastSession, logs, false);
+          TabletLocationState result = new TabletLocationState(RootTable.EXTENT, futureSession, currentSession, lastSession, logs, false);
           log.debug("Returning root tablet state: " + result);
           return result;
         } catch (Exception ex) {
@@ -120,7 +120,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (assignments.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     Assignment assignment = assignments.iterator().next();
-    if (assignment.tablet.compareTo(RootTable.ROOT_TABLET_EXTENT) != 0)
+    if (assignment.tablet.compareTo(RootTable.EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
     Iterator<TabletLocationState> currentIter = iterator();
@@ -136,7 +136,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (assignments.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     Assignment assignment = assignments.iterator().next();
-    if (assignment.tablet.compareTo(RootTable.ROOT_TABLET_EXTENT) != 0)
+    if (assignment.tablet.compareTo(RootTable.EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
     Iterator<TabletLocationState> currentIter = iterator();
@@ -159,7 +159,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (tablets.size() != 1)
       throw new IllegalArgumentException("There is only one root tablet");
     TabletLocationState tls = tablets.iterator().next();
-    if (tls.extent.compareTo(RootTable.ROOT_TABLET_EXTENT) != 0)
+    if (tls.extent.compareTo(RootTable.EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
     store.remove(RootTable.ZROOT_TABLET_LOCATION);
     store.remove(RootTable.ZROOT_TABLET_FUTURE_LOCATION);

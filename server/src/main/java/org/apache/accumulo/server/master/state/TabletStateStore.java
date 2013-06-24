@@ -37,6 +37,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
   /**
    * Scan the information about the tablets covered by this store
    */
+  @Override
   abstract public Iterator<TabletLocationState> iterator();
   
   /**
@@ -68,6 +69,8 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
     TabletStateStore store;
     if (tls.extent.isRootTablet()) {
       store = new ZooTabletStateStore();
+    } else if (tls.extent.isMeta()) {
+      store = new RootTabletStateStore();
     } else {
       store = new MetaDataStateStore();
     }
@@ -78,6 +81,8 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
     TabletStateStore store;
     if (assignment.tablet.isRootTablet()) {
       store = new ZooTabletStateStore();
+    } else if (assignment.tablet.isMeta()) {
+      store = new RootTabletStateStore();
     } else {
       store = new MetaDataStateStore();
     }

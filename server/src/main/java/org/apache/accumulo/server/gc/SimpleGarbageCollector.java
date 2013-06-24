@@ -67,7 +67,6 @@ import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -366,17 +365,17 @@ public class SimpleGarbageCollector implements Iface {
         try {
           tabletDirs = fs.listStatus(new Path(dir + "/" + delTableId));
         } catch (FileNotFoundException ex) {
-          // ignored 
+          // ignored
         }
         if (tabletDirs == null)
           continue;
         
         if (tabletDirs.length == 0) {
           Path p = new Path(dir + "/" + delTableId);
-          if (!moveToTrash(p)) 
+          if (!moveToTrash(p))
             fs.delete(p);
         }
-      } 
+      }
     }
   }
   
@@ -453,13 +452,13 @@ public class SimpleGarbageCollector implements Iface {
     }
     
     checkForBulkProcessingFiles = false;
-    Range range = RootTable.DELETES_KEYSPACE;
-    candidates.addAll(getBatch(RootTable.DELETE_FLAG_PREFIX, range));
+    Range range = MetadataTable.DELETED_RANGE;
+    candidates.addAll(getBatch(MetadataTable.DELETED_RANGE.getStartKey().getRow().toString(), range));
     if (candidateMemExceeded)
       return candidates;
     
-    range = MetadataTable.DELETES_KEYSPACE;
-    candidates.addAll(getBatch(MetadataTable.DELETE_FLAG_PREFIX, range));
+    range = MetadataTable.DELETED_RANGE;
+    candidates.addAll(getBatch(MetadataTable.DELETED_RANGE.getStartKey().getRow().toString(), range));
     return candidates;
   }
   
@@ -475,8 +474,8 @@ public class SimpleGarbageCollector implements Iface {
       continueKey = null;
     }
     
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
-        MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(MetadataTable.NAME,
+        Authorizations.EMPTY);
     scanner.setRange(range);
     List<String> result = new ArrayList<String>();
     // find candidates for deletion; chop off the prefix
@@ -510,11 +509,11 @@ public class SimpleGarbageCollector implements Iface {
     if (offline) {
       // TODO
       throw new RuntimeException("Offline scanner no longer supported");
-//      try {
-//        scanner = new OfflineMetadataScanner(instance.getConfiguration(), fs);
-//      } catch (IOException e) {
-//        throw new IllegalStateException("Unable to create offline metadata scanner", e);
-//      }
+      // try {
+      // scanner = new OfflineMetadataScanner(instance.getConfiguration(), fs);
+      // } catch (IOException e) {
+      // throw new IllegalStateException("Unable to create offline metadata scanner", e);
+      // }
     } else {
       try {
         scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
@@ -607,11 +606,11 @@ public class SimpleGarbageCollector implements Iface {
   
   private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer, final BatchWriter rootWriter) throws MutationsRejectedException {
     if (delete.contains(METADATA_TABLE_DIR)) {
-      Mutation m = new Mutation(new Text(RootTable.DELETE_FLAG_PREFIX + delete));
+      Mutation m = new Mutation(new Text(MetadataTable.DELETED_RANGE.getStartKey().getRow().toString() + delete));
       m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
       rootWriter.addMutation(m);
     } else {
-      Mutation m = new Mutation(new Text(MetadataTable.DELETE_FLAG_PREFIX + delete));
+      Mutation m = new Mutation(new Text(MetadataTable.DELETED_RANGE.getStartKey().getRow().toString() + delete));
       m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
       writer.addMutation(m);
     }
@@ -674,7 +673,7 @@ public class SimpleGarbageCollector implements Iface {
           
           try {
             Path fullPath;
-
+            
             if (delete.contains(":"))
               fullPath = new Path(delete);
             else

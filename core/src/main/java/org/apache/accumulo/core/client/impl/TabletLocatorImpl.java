@@ -59,6 +59,7 @@ public class TabletLocatorImpl extends TabletLocator {
   
   private static class EndRowComparator implements Comparator<Text> {
     
+    @Override
     public int compare(Text o1, Text o2) {
       
       int ret;
@@ -95,10 +96,11 @@ public class TabletLocatorImpl extends TabletLocator {
     /**
      * @return null when unable to read information successfully
      */
-    TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials) throws AccumuloSecurityException, AccumuloException;
-    
-    List<TabletLocation> lookupTablets(String tserver, Map<KeyExtent,List<Range>> map, TabletLocator parent, TCredentials credentials) throws AccumuloSecurityException,
+    TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials) throws AccumuloSecurityException,
         AccumuloException;
+    
+    List<TabletLocation> lookupTablets(String tserver, Map<KeyExtent,List<Range>> map, TabletLocator parent, TCredentials credentials)
+        throws AccumuloSecurityException, AccumuloException;
   }
   
   public TabletLocatorImpl(Text table, TabletLocator parent, TabletLocationObtainer tlo) {
@@ -111,8 +113,8 @@ public class TabletLocatorImpl extends TabletLocator {
   }
   
   @Override
-  public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
     OpTimer opTimer = null;
     if (log.isTraceEnabled())
@@ -146,6 +148,7 @@ public class TabletLocatorImpl extends TabletLocator {
     
     if (notInCache.size() > 0) {
       Collections.sort(notInCache, new Comparator<Mutation>() {
+        @Override
         public int compare(Mutation o1, Mutation o2) {
           return WritableComparator.compareBytes(o1.getRow(), 0, o1.getRow().length, o2.getRow(), 0, o2.getRow().length);
         }
@@ -193,8 +196,8 @@ public class TabletLocatorImpl extends TabletLocator {
     tsm.addMutation(tl.tablet_extent, mutation);
   }
   
-  private List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, boolean useCache, TCredentials credentials) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  private List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, boolean useCache, TCredentials credentials)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     List<Range> failures = new ArrayList<Range>();
     List<TabletLocation> tabletLocations = new ArrayList<TabletLocation>();
     
@@ -254,8 +257,8 @@ public class TabletLocatorImpl extends TabletLocator {
   }
   
   @Override
-  public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
     
     /*
      * For this to be efficient, need to avoid fine grained synchronization and fine grained logging. Therefore methods called by this are not synchronized and
@@ -520,8 +523,8 @@ public class TabletLocatorImpl extends TabletLocator {
     return null;
   }
   
-  protected TabletLocation _locateTablet(Text row, boolean skipRow, boolean retry, boolean lock, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  protected TabletLocation _locateTablet(Text row, boolean skipRow, boolean retry, boolean lock, TCredentials credentials) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
     
     if (skipRow) {
       row = new Text(row);

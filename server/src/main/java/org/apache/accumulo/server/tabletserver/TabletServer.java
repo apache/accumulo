@@ -881,7 +881,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
         TKeyExtent tke = entry.getKey();
         Map<String,MapFileInfo> fileMap = entry.getValue();
-        Map<FileRef, MapFileInfo> fileRefMap = new HashMap<FileRef, MapFileInfo>();
+        Map<FileRef,MapFileInfo> fileRefMap = new HashMap<FileRef,MapFileInfo>();
         for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(mapping.getKey());
           FileSystem ns = fs.getFileSystemByPath(path);
@@ -2883,11 +2883,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     if (extent.isRootTablet()) {
       return verifyRootTablet(extent, instance);
     }
+    String tableToVerify = MetadataTable.ID;
+    if (extent.isMeta())
+      tableToVerify = RootTable.ID;
     
     List<ColumnFQ> columnsToFetch = Arrays.asList(new ColumnFQ[] {MetadataTable.DIRECTORY_COLUMN, MetadataTable.PREV_ROW_COLUMN,
         MetadataTable.SPLIT_RATIO_COLUMN, MetadataTable.OLD_PREV_ROW_COLUMN, MetadataTable.TIME_COLUMN});
     
-    ScannerImpl scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), MetadataTable.ID, Authorizations.EMPTY);
+    ScannerImpl scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), tableToVerify, Authorizations.EMPTY);
     scanner.setRange(extent.toMetadataRange());
     
     TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
@@ -3233,7 +3236,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
   
-
   public void minorCompactionFinished(CommitSession tablet, String newDatafile, int walogSeq) throws IOException {
     totalMinorCompactions++;
     logger.minorCompactionFinished(tablet, newDatafile, walogSeq);
@@ -3243,7 +3245,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newMapfileLocation);
   }
   
-  public void recover(VolumeManager fs, Tablet tablet, List<LogEntry> logEntries, Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
+  public void recover(VolumeManager fs, Tablet tablet, List<LogEntry> logEntries, Set<String> tabletFiles, MutationReceiver mutationReceiver)
+      throws IOException {
     List<Path> recoveryLogs = new ArrayList<Path>();
     List<LogEntry> sorted = new ArrayList<LogEntry>(logEntries);
     Collections.sort(sorted, new Comparator<LogEntry>() {
@@ -3473,7 +3476,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
     };
   }
-
+  
   public VolumeManager getFileSystem() {
     return fs;
   }

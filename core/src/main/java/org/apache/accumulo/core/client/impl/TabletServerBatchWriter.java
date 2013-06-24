@@ -211,6 +211,7 @@ public class TabletServerBatchWriter {
     
     if (this.maxLatency != Long.MAX_VALUE) {
       jtimer.schedule(new TimerTask() {
+        @Override
         public void run() {
           try {
             synchronized (TabletServerBatchWriter.this) {
@@ -460,9 +461,9 @@ public class TabletServerBatchWriter {
       }
     }
   }
-
+  
   private void updateAuthorizationFailures(Set<KeyExtent> keySet, SecurityErrorCode code) {
-    HashMap<KeyExtent, SecurityErrorCode> map = new HashMap<KeyExtent, SecurityErrorCode>();
+    HashMap<KeyExtent,SecurityErrorCode> map = new HashMap<KeyExtent,SecurityErrorCode>();
     for (KeyExtent ke : keySet)
       map.put(ke, code);
     
@@ -543,9 +544,6 @@ public class TabletServerBatchWriter {
   
   /**
    * Add mutations that previously failed back into the mix
-   * 
-   * @param failedMutations
-   *          static final Logger log = Logger.getLogger(TabletServerBatchWriter.class);
    */
   private synchronized void addFailedMutations(MutationSet failedMutations) throws Exception {
     mutations.addAll(failedMutations);
@@ -601,11 +599,11 @@ public class TabletServerBatchWriter {
         
         if (rf != null) {
           if (log.isTraceEnabled())
-            log.trace("requeuing " + rf.size() + " failed mutations");
+            log.trace("tid=" + Thread.currentThread().getId() + "  Requeuing " + rf.size() + " failed mutations");
           addFailedMutations(rf);
         }
       } catch (Throwable t) {
-        updateUnknownErrors("Failed to requeue failed mutations " + t.getMessage(), t);
+        updateUnknownErrors("tid=" + Thread.currentThread().getId() + "  Failed to requeue failed mutations " + t.getMessage(), t);
         cancel();
       }
     }

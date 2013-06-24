@@ -98,7 +98,7 @@ class CompactionDriver extends MasterRepo {
     Range range = new KeyExtent(new Text(tableId), null, startRow == null ? null : new Text(startRow)).toMetadataRange();
     
     if (tableId.equals(MetadataTable.ID))
-      range = range.clip(new Range(RootTable.ROOT_TABLET_EXTENT.getMetadataEntry(), false, null, true));
+      range = range.clip(new Range(RootTable.EXTENT.getMetadataEntry(), false, null, true));
     
     scanner.setRange(range);
     MetadataTable.COMPACT_COLUMN.fetch(scanner);

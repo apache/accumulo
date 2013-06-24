@@ -25,12 +25,16 @@ import org.apache.accumulo.core.util.RootTable;
 public class RootTabletStateStore extends MetaDataStateStore {
   
   public RootTabletStateStore(Instance instance, TCredentials auths, CurrentState state) {
-    super(instance, auths, state);
+    super(instance, auths, state, RootTable.NAME);
+  }
+  
+  public RootTabletStateStore() {
+    super(RootTable.NAME);
   }
   
   @Override
   public Iterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(instance, auths, RootTable.KEYSPACE, state);
+    return new MetaDataTableScanner(instance, auths, RootTable.METADATA_TABLETS_RANGE, state, RootTable.NAME);
   }
   
   @Override

@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -56,9 +55,9 @@ public class MergeStats {
     this.info = info;
     if (info.getState().equals(MergeState.NONE))
       return;
-    if (info.getRange().getEndRow() == null)
+    if (info.getExtent().getEndRow() == null)
       upperSplit = true;
-    if (info.getRange().getPrevEndRow() == null)
+    if (info.getExtent().getPrevEndRow() == null)
       lowerSplit = true;
   }
   
@@ -71,11 +70,11 @@ public class MergeStats {
       return;
     if (info.getState().equals(MergeState.NONE))
       return;
-    if (!upperSplit && info.getRange().getEndRow().equals(ke.getPrevEndRow())) {
+    if (!upperSplit && info.getExtent().getEndRow().equals(ke.getPrevEndRow())) {
       log.info("Upper split found");
       upperSplit = true;
     }
-    if (!lowerSplit && info.getRange().getPrevEndRow().equals(ke.getEndRow())) {
+    if (!lowerSplit && info.getExtent().getPrevEndRow().equals(ke.getEndRow())) {
       log.info("Lower split found");
       lowerSplit = true;
     }
@@ -103,79 +102,79 @@ public class MergeStats {
     if (state == MergeState.NONE)
       return state;
     if (total == 0) {
-      log.trace("failed to see any tablets for this range, ignoring " + info.getRange());
+      log.trace("failed to see any tablets for this range, ignoring " + info.getExtent());
       return state;
     }
-    log.info("Computing next merge state for " + info.getRange() + " which is presently " + state + " isDelete : " + info.isDelete());
+    log.info("Computing next merge state for " + info.getExtent() + " which is presently " + state + " isDelete : " + info.isDelete());
     if (state == MergeState.STARTED) {
       state = MergeState.SPLITTING;
     }
     if (state == MergeState.SPLITTING) {
       log.info(hosted + " are hosted, total " + total);
       if (!info.isDelete() && total == 1) {
-        log.info("Merge range is already contained in a single tablet " + info.getRange());
+        log.info("Merge range is already contained in a single tablet " + info.getExtent());
         state = MergeState.COMPLETE;
       } else if (hosted == total) {
         if (info.isDelete()) {
           if (!lowerSplit)
-            log.info("Waiting for " + info + " lower split to occur " + info.getRange());
+            log.info("Waiting for " + info + " lower split to occur " + info.getExtent());
           else if (!upperSplit)
-            log.info("Waiting for " + info + " upper split to occur " + info.getRange());
+            log.info("Waiting for " + info + " upper split to occur " + info.getExtent());
           else
             state = MergeState.WAITING_FOR_CHOPPED;
         } else {
           state = MergeState.WAITING_FOR_CHOPPED;
         }
       } else {
-        log.info("Waiting for " + hosted + " hosted tablets to be " + total + " " + info.getRange());
+        log.info("Waiting for " + hosted + " hosted tablets to be " + total + " " + info.getExtent());
       }
     }
     if (state == MergeState.WAITING_FOR_CHOPPED) {
-      log.info(chopped + " tablets are chopped " + info.getRange());
+      log.info(chopped + " tablets are chopped " + info.getExtent());
       if (chopped == needsToBeChopped) {
         state = MergeState.WAITING_FOR_OFFLINE;
       } else {
-        log.info("Waiting for " + chopped + " chopped tablets to be " + needsToBeChopped + " " + info.getRange());
+        log.info("Waiting for " + chopped + " chopped tablets to be " + needsToBeChopped + " " + info.getExtent());
       }
     }
     if (state == MergeState.WAITING_FOR_OFFLINE) {
       if (chopped != needsToBeChopped) {
-        log.warn("Unexpected state: chopped tablets should be " + needsToBeChopped + " was " + chopped + " merge " + info.getRange());
+        log.warn("Unexpected state: chopped tablets should be " + needsToBeChopped + " was " + chopped + " merge " + info.getExtent());
         // Perhaps a split occurred after we chopped, but before we went offline: start over
         state = MergeState.WAITING_FOR_CHOPPED;
       } else {
-        log.info(chopped + " tablets are chopped, " + unassigned + " are offline " + info.getRange());
+        log.info(chopped + " tablets are chopped, " + unassigned + " are offline " + info.getExtent());
         if (unassigned == total && chopped == needsToBeChopped) {
           if (verifyMergeConsistency(connector, master))
             state = MergeState.MERGING;
           else
-            log.info("Merge consistency check failed " + info.getRange());
+            log.info("Merge consistency check failed " + info.getExtent());
         } else {
-          log.info("Waiting for " + unassigned + " unassigned tablets to be " + total + " " + info.getRange());
+          log.info("Waiting for " + unassigned + " unassigned tablets to be " + total + " " + info.getExtent());
         }
       }
     }
     if (state == MergeState.MERGING) {
       if (hosted != 0) {
         // Shouldn't happen
-        log.error("Unexpected state: hosted tablets should be zero " + hosted + " merge " + info.getRange());
+        log.error("Unexpected state: hosted tablets should be zero " + hosted + " merge " + info.getExtent());
         state = MergeState.WAITING_FOR_OFFLINE;
       }
       if (unassigned != total) {
         // Shouldn't happen
-        log.error("Unexpected state: unassigned tablets should be " + total + " was " + unassigned + " merge " + info.getRange());
+        log.error("Unexpected state: unassigned tablets should be " + total + " was " + unassigned + " merge " + info.getExtent());
         state = MergeState.WAITING_FOR_CHOPPED;
       }
-      log.info(unassigned + " tablets are unassigned " + info.getRange());
+      log.info(unassigned + " tablets are unassigned " + info.getExtent());
     }
     return state;
   }
   
   private boolean verifyMergeConsistency(Connector connector, CurrentState master) throws TableNotFoundException, IOException {
     MergeStats verify = new MergeStats(info);
-    Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    KeyExtent extent = info.getExtent();
+    Scanner scanner = connector.createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
-    KeyExtent extent = info.getRange();
     Text start = extent.getPrevEndRow();
     if (start == null) {
       start = new Text();
@@ -183,10 +182,6 @@ public class MergeStats {
     Text tableId = extent.getTableId();
     Text first = KeyExtent.getMetadataEntry(tableId, start);
     Range range = new Range(first, false, null, true);
-    if (extent.isMeta()) {
-      // don't go off the root tablet
-      range = new Range(new Key(first).followingKey(PartialKey.ROW), false, RootTable.KEYSPACE.getEndKey(), false);
-    }
     scanner.setRange(range);
     KeyExtent prevExtent = null;
     
@@ -255,7 +250,7 @@ public class MergeStats {
         in.reset(data, data.length);
         info.readFields(in);
       }
-      System.out.println(String.format("%25s  %10s %10s %s", table, info.state, info.operation, info.range));
+      System.out.println(String.format("%25s  %10s %10s %s", table, info.state, info.operation, info.extent));
     }
   }
 }

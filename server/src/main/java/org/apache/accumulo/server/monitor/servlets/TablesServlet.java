@@ -33,6 +33,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
@@ -144,23 +146,27 @@ public class TablesServlet extends BasicServlet {
   private void doTableDetails(HttpServletRequest req, StringBuilder sb, Map<String,String> tidToNameMap, String tableId) {
     String displayName = Tables.getPrintableTableNameFromId(tidToNameMap, tableId);
     Instance instance = HdfsZooInstance.getInstance();
-    MetaDataTableScanner scanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), new Range(KeyExtent.getMetadataEntry(new Text(
-        tableId), new Text()),
-        KeyExtent.getMetadataEntry(
-        new Text(tableId), null)));
-    
     TreeSet<String> locs = new TreeSet<String>();
-    while (scanner.hasNext()) {
-      TabletLocationState state = scanner.next();
-      if (state.current != null) {
-        try {
-          locs.add(state.current.hostPort());
-        } catch (Exception ex) {
-          log.error(ex, ex);
+    if (RootTable.ID.equals(tableId)) {
+      locs.add(instance.getRootTabletLocation());
+    } else {
+      String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
+      MetaDataTableScanner scanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), new Range(KeyExtent.getMetadataEntry(
+          new Text(tableId), new Text()), KeyExtent.getMetadataEntry(new Text(tableId), null)), systemTableName);
+      
+      while (scanner.hasNext()) {
+        TabletLocationState state = scanner.next();
+        if (state.current != null) {
+          try {
+            locs.add(state.current.hostPort());
+          } catch (Exception ex) {
+            log.error(ex, ex);
+          }
         }
       }
+      scanner.close();
     }
-    scanner.close();
+    
     log.debug("Locs: " + locs);
     
     List<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();

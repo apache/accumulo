@@ -94,6 +94,7 @@ import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -154,7 +155,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public boolean exists(String tableName) {
     ArgumentChecker.notNull(tableName);
-    if (tableName.equals(MetadataTable.NAME))
+    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME))
       return true;
     
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if table " + tableName + "exists...");
@@ -542,6 +543,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArgumentChecker.notNull(tableName);
     
     String tableId = Tables.getTableId(instance, tableName);
+    if (RootTable.ID.equals(tableId))
+      return Collections.emptyList();
     
     SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
     Map<KeyExtent,String> locations = new TreeMap<KeyExtent,String>();
@@ -1203,7 +1206,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public List<DiskUsage> getDiskUsage(Set<String> tableNames) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
-
     List<TDiskUsage> diskUsages = null;
     while (diskUsages == null) {
       Pair<String,Client> pair = null;
@@ -1235,7 +1237,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           ServerClient.close(pair.getSecond());
       }
     }
-
+    
     List<DiskUsage> finalUsages = new ArrayList<DiskUsage>();
     for (TDiskUsage diskUsage : diskUsages) {
       finalUsages.add(new DiskUsage(new TreeSet<String>(diskUsage.getTables()), diskUsage.getUsage()));
@@ -1321,7 +1323,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, className, asTypeName);
     
-
     try {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Boolean,ClientService.Client>() {
         @Override

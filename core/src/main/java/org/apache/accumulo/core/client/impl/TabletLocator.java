@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.hadoop.io.Text;
 
 public abstract class TabletLocator {
@@ -90,37 +91,20 @@ public abstract class TabletLocator {
   
   private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<LocatorKey,TabletLocator>();
   
-  private static final Text ROOT_TABLET_MDE = KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null);
-  
   public static synchronized TabletLocator getInstance(Instance instance, Text tableId) {
+    
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
-    
     TabletLocator tl = locators.get(key);
-    
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer(instance);
       
-      if (tableId.toString().equals(MetadataTable.ID)) {
-        RootTabletLocator rootTabletLocator = new RootTabletLocator(instance);
-        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), rootTabletLocator, mlo) {
-          @Override
-          public TabletLocation _locateTablet(Text row, boolean skipRow, boolean retry, boolean lock, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
-              TableNotFoundException {
-            // add a special case for the root tablet itself to the cache of information in the root tablet
-            int comparison_result = row.compareTo(ROOT_TABLET_MDE);
-            
-            if ((skipRow && comparison_result < 0) || (!skipRow && comparison_result <= 0)) {
-              return parent.locateTablet(row, skipRow, retry, credentials);
-            }
-            
-            return super._locateTablet(row, skipRow, retry, lock, credentials);
-          }
-        };
+      if (tableId.toString().equals(RootTable.ID)) {
+        tl = new RootTabletLocator(instance);
+      } else if (tableId.toString().equals(MetadataTable.ID)) {
+        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), getInstance(instance, new Text(RootTable.ID)), mlo);
       } else {
-        TabletLocator rootTabletCache = getInstance(instance, new Text(MetadataTable.ID));
-        tl = new TabletLocatorImpl(tableId, rootTabletCache, mlo);
+        tl = new TabletLocatorImpl(tableId, getInstance(instance, new Text(MetadataTable.ID)), mlo);
       }
-      
       locators.put(key, tl);
     }
     

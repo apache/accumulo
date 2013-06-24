@@ -157,7 +157,7 @@ class SunnyLG(SunnyDayTest):
         handle = self.runOn(self.masterHost(),
                             [self.accumulo_sh(),
                              'org.apache.accumulo.core.file.rfile.PrintInfo',
-                             dir + '/tables/1/default_tablet/F0000000.rf'])
+                             dir + '/tables/1/default_tablet/F0000001.rf'])
         out, err = handle.communicate()
         self.assert_(handle.returncode == 0)
         self.assert_(out.find('Locality group         : g1') >= 0)

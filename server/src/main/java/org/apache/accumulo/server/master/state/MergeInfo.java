@@ -28,7 +28,6 @@ import org.apache.hadoop.io.Writable;
  * 
  * Writable to serialize for zookeeper and the Tablet
  */
-
 public class MergeInfo implements Writable {
   
   public enum Operation {
@@ -36,28 +35,28 @@ public class MergeInfo implements Writable {
   }
   
   MergeState state = MergeState.NONE;
-  KeyExtent range;
+  KeyExtent extent;
   Operation operation = Operation.MERGE;
   
   public MergeInfo() {}
   
   @Override
   public void readFields(DataInput in) throws IOException {
-    range = new KeyExtent();
-    range.readFields(in);
+    extent = new KeyExtent();
+    extent.readFields(in);
     state = MergeState.values()[in.readInt()];
     operation = Operation.values()[in.readInt()];
   }
   
   @Override
   public void write(DataOutput out) throws IOException {
-    range.write(out);
+    extent.write(out);
     out.writeInt(state.ordinal());
     out.writeInt(operation.ordinal());
   }
   
   public MergeInfo(KeyExtent range, Operation op) {
-    this.range = range;
+    this.extent = range;
     this.operation = op;
   }
   
@@ -65,8 +64,8 @@ public class MergeInfo implements Writable {
     return state;
   }
   
-  public KeyExtent getRange() {
-    return range;
+  public KeyExtent getExtent() {
+    return extent;
   }
   
   public Operation getOperation() {
@@ -81,27 +80,28 @@ public class MergeInfo implements Writable {
     return this.operation.equals(Operation.DELETE);
   }
   
-  public boolean needsToBeChopped(KeyExtent extent) {
+  public boolean needsToBeChopped(KeyExtent otherExtent) {
     // During a delete, the block after the merge will be stretched to cover the deleted area.
     // Therefore, it needs to be chopped
-    if (!extent.getTableId().equals(range.getTableId()))
+    if (!otherExtent.getTableId().equals(extent.getTableId()))
       return false;
     if (isDelete())
-      return extent.getPrevEndRow() != null && extent.getPrevEndRow().equals(range.getEndRow());
+      return otherExtent.getPrevEndRow() != null && otherExtent.getPrevEndRow().equals(extent.getEndRow());
     else
-      return this.range.overlaps(extent);
+      return this.extent.overlaps(otherExtent);
   }
   
-  public boolean overlaps(KeyExtent extent) {
-    boolean result = this.range.overlaps(extent);
-    if (!result && needsToBeChopped(extent))
+  public boolean overlaps(KeyExtent otherExtent) {
+    boolean result = this.extent.overlaps(otherExtent);
+    if (!result && needsToBeChopped(otherExtent))
       return true;
     return result;
   }
   
+  @Override
   public String toString() {
     if (!state.equals(MergeState.NONE))
-      return "Merge " + operation.toString() + " of " + range + " State: " + state;
+      return "Merge " + operation.toString() + " of " + extent + " State: " + state;
     return "No Merge in progress";
   }
 }

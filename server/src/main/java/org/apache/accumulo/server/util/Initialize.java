@@ -201,8 +201,9 @@ public class Initialize {
       return false;
     }
   }
+  
   private static Path[] paths(String[] paths) {
-    Path result[] = new Path[paths.length];
+    Path[] result = new Path[paths.length];
     for (int i = 0; i < paths.length; i++) {
       result[i] = new Path(paths[i]);
     }
@@ -223,14 +224,14 @@ public class Initialize {
   private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid) throws IOException {
     FileStatus fstat;
     
-    // the actual disk location of the root tablet
+    // the actual disk locations of the root table and tablets
     final Path rootTablet = new Path(ServerConstants.getRootTabletDir());
     
-    final Path tableMetadataTabletDirs[] = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), MetadataTable.TABLE_TABLET_LOCATION));
-    final Path defaultMetadataTabletDirs[] = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
+    // the actual disk locations of the metadata table and tablets
+    final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
+    final Path[] tableMetadataTabletDirs = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), MetadataTable.TABLE_TABLET_LOCATION));
+    final Path[] defaultMetadataTabletDirs = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
     
-    final Path metadataTableDirs[] = paths(ServerConstants.getMetadataTableDirs());
-
     fs.mkdirs(new Path(ServerConstants.getDataVersionLocation(), "" + ServerConstants.DATA_VERSION));
     
     // create an instance id
@@ -256,7 +257,7 @@ public class Initialize {
       }
     }
     
-    // create root tablet
+    // create root table and tablet
     try {
       fstat = fs.getFileStatus(rootTablet);
       if (!fstat.isDir()) {
@@ -273,25 +274,13 @@ public class Initialize {
     // populate the root tablet with info about the default tablet
     // the root tablet contains the key extent and locations of all the
     // metadata tablets
-    String initRootTabFile = rootTablet + "/00000_00000."
-        + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
+    String initRootTabFile = rootTablet + "/00000_00000." + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
     FileSystem ns = fs.getFileSystemByPath(new Path(initRootTabFile));
     FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, ns, ns.getConf(), AccumuloConfiguration.getDefaultConfiguration());
     mfw.startDefaultLocalityGroup();
     
-    // -----------] root tablet info
-    Text rootExtent = RootTable.ROOT_TABLET_EXTENT.getMetadataEntry();
-    
-    // root's directory
-    Key rootDirKey = new Key(rootExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(), MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(rootDirKey, new Value("/root_tablet".getBytes()));
-    
-    // root's prev row
-    Key rootPrevRowKey = new Key(rootExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    mfw.append(rootPrevRowKey, new Value(new byte[] {0}));
-    
     // ----------] table tablet info
-    Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), MetadataTable.RESERVED_KEYSPACE_START_KEY.getRow()));
+    Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), MetadataTable.RESERVED_RANGE_START_KEY.getRow()));
     
     // table tablet's directory
     Key tableDirKey = new Key(tableExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(), MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
@@ -302,16 +291,14 @@ public class Initialize {
     mfw.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
     
     // table tablet's prevrow
-    Key tablePrevRowKey = new Key(tableExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(),
-        0);
-    mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null))));
+    Key tablePrevRowKey = new Key(tableExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
     
     // ----------] default tablet info
     Text defaultExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null));
     
     // default's directory
-    Key defaultDirKey = new Key(defaultExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(),
-        MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    Key defaultDirKey = new Key(defaultExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(), MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
     
     // default's time
@@ -319,9 +306,8 @@ public class Initialize {
     mfw.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
     
     // default's prevrow
-    Key defaultPrevRowKey = new Key(defaultExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(),
-        MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataTable.RESERVED_KEYSPACE_START_KEY.getRow()));
+    Key defaultPrevRowKey = new Key(defaultExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    mfw.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataTable.RESERVED_RANGE_START_KEY.getRow()));
     
     mfw.close();
     
@@ -372,6 +358,7 @@ public class Initialize {
     String zkInstanceRoot = Constants.ZROOT + "/" + uuid;
     zoo.putPersistentData(zkInstanceRoot, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID, NodeExistsPolicy.FAIL);
+    TableManager.prepareNewTableState(uuid, RootTable.ID, RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(uuid, MetadataTable.ID, MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, new byte[0], NodeExistsPolicy.FAIL);
@@ -456,9 +443,12 @@ public class Initialize {
         setMetadataReplication(max, "max");
       if (min > 5)
         setMetadataReplication(min, "min");
-      for (Entry<String,String> entry : initialMetadataConf.entrySet())
+      for (Entry<String,String> entry : initialMetadataConf.entrySet()) {
+        if (!TablePropUtil.setTableProperty(RootTable.ID, entry.getKey(), entry.getValue()))
+          throw new IOException("Cannot create per-table property " + entry.getKey());
         if (!TablePropUtil.setTableProperty(MetadataTable.ID, entry.getKey(), entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
+      }
     } catch (Exception e) {
       log.fatal("error talking to zookeeper", e);
       throw new IOException(e);

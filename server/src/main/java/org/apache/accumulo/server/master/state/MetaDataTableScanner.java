@@ -51,10 +51,14 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   Iterator<Entry<Key,Value>> iter;
   
   public MetaDataTableScanner(Instance instance, TCredentials auths, Range range, CurrentState state) {
+    this(instance, auths, range, state, MetadataTable.NAME);
+  }
+  
+  MetaDataTableScanner(Instance instance, TCredentials auths, Range range, CurrentState state, String tableName) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
     try {
       Connector connector = instance.getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths));
-      mdScanner = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8);
+      mdScanner = connector.createBatchScanner(tableName, Authorizations.EMPTY, 8);
       configureScanner(mdScanner, state);
       mdScanner.setRanges(Collections.singletonList(range));
       iter = mdScanner.iterator();
@@ -81,7 +85,11 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   }
   
   public MetaDataTableScanner(Instance instance, TCredentials auths, Range range) {
-    this(instance, auths, range, null);
+    this(instance, auths, range, MetadataTable.NAME);
+  }
+  
+  public MetaDataTableScanner(Instance instance, TCredentials auths, Range range, String tableName) {
+    this(instance, auths, range, null, tableName);
   }
   
   public void close() {

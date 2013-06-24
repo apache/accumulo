@@ -16,15 +16,24 @@
  */
 package org.apache.accumulo.core.util;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class MetadataTableTest extends TestCase {
+public class MetadataTableTest {
+  
+  @Test
+  public void checkSystemTableIdentifiers() {
+    assertNotEquals(RootTable.ID, MetadataTable.ID);
+    assertNotEquals(RootTable.NAME, MetadataTable.NAME);
+  }
   
   private KeyExtent createKeyExtent(String tname, String er, String per) {
     return new KeyExtent(new Text(tname), er == null ? null : new Text(er), per == null ? null : new Text(per));
@@ -90,6 +99,7 @@ public class MetadataTableTest extends TestCase {
     
   }
   
+  @Test
   public void testICR1() {
     runTest(null, null);
     runTest(null, "r4");

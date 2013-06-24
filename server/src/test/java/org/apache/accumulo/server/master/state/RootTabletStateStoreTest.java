@@ -146,7 +146,7 @@ public class RootTabletStateStoreTest {
   @Test
   public void testRootTabletStateStore() throws DistributedStoreException {
     ZooTabletStateStore tstore = new ZooTabletStateStore(new FakeZooStore());
-    KeyExtent root = RootTable.ROOT_TABLET_EXTENT;
+    KeyExtent root = RootTable.EXTENT;
     String sessionId = "this is my unique session data";
     TServerInstance server = new TServerInstance(AddressUtil.parseAddress("127.0.0.1", 10000), sessionId);
     List<Assignment> assignments = Collections.singletonList(new Assignment(root, server));

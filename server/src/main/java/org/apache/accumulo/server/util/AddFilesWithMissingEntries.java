@@ -61,8 +61,8 @@ public class AddFilesWithMissingEntries {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(AddFilesWithMissingEntries.class.getName(), args, bwOpts);
     
-    final Key rootTableEnd = new Key(RootTable.ROOT_TABLET_EXTENT.getEndRow());
-    final Range range = new Range(rootTableEnd.followingKey(PartialKey.ROW), true, MetadataTable.RESERVED_KEYSPACE_START_KEY, false);
+    final Key rootTableEnd = new Key(RootTable.EXTENT.getEndRow());
+    final Range range = new Range(rootTableEnd.followingKey(PartialKey.ROW), true, MetadataTable.RESERVED_RANGE_START_KEY, false);
     final Scanner scanner = opts.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(range);
     final Configuration conf = new Configuration();

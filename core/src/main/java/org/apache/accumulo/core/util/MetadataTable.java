@@ -55,9 +55,10 @@ public class MetadataTable {
   /**
    * Reserved keyspace is any row that begins with a tilde '~' character
    */
-  public static final Key RESERVED_KEYSPACE_START_KEY = new Key(new Text(new byte[] {'~'}));
-  public static final String DELETE_FLAG_PREFIX = "~del";
-  public static final Range DELETES_KEYSPACE = new Range(new Key(new Text(DELETE_FLAG_PREFIX)), true, new Key(new Text("~dem")), false);
+  public static final Key RESERVED_RANGE_START_KEY = new Key(new Text(new byte[] {'~'}));
+  public static final Range NON_ROOT_KEYSPACE = new Range(null, false, RESERVED_RANGE_START_KEY, false);
+  public static final Range KEYSPACE = new Range(new Key(new Text(ID)), true, RESERVED_RANGE_START_KEY, false);
+  public static final Range DELETED_RANGE = new Range(new Key(new Text("~del")), true, new Key(new Text("~dem")), false);
   public static final String BLIP_FLAG_PREFIX = "~blip"; // BLIP = bulk load in progress
   public static final Range BLIP_KEYSPACE = new Range(new Key(new Text(BLIP_FLAG_PREFIX)), true, new Key(new Text("~bliq")), false);
   
@@ -100,10 +101,6 @@ public class MetadataTable {
   public static final Text LOG_COLUMN_FAMILY = new Text("log");
   public static final Text CHOPPED_COLUMN_FAMILY = new Text("chopped");
   public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(CHOPPED_COLUMN_FAMILY, new Text("chopped"));
-  
-  public static final Range NON_ROOT_KEYSPACE = new Range(new Key(KeyExtent.getMetadataEntry(new Text(ID), null)).followingKey(PartialKey.ROW), true,
-      RESERVED_KEYSPACE_START_KEY, false);
-  public static final Range KEYSPACE = new Range(new Key(new Text(ID)), true, RESERVED_KEYSPACE_START_KEY, false);
   
   public static class DataFileValue {
     private long size;
@@ -270,7 +267,9 @@ public class MetadataTable {
       SortedSet<KeyExtent> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableId = isTid ? table : Tables.getNameToIdMap(instance).get(table);
     
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(NAME, Authorizations.EMPTY);
+    String systemTableToRead = tableId.equals(ID) ? RootTable.NAME : NAME;
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(systemTableToRead,
+        Authorizations.EMPTY);
     
     PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(CURRENT_LOCATION_COLUMN_FAMILY);

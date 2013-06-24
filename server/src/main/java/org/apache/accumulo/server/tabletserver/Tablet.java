@@ -86,6 +86,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.ServerConstants;
@@ -683,7 +684,7 @@ public class Tablet {
         }
         // Remove any bulk files we've previously loaded and compacted away
         List<FileRef> files = MetadataTable.getBulkFilesLoaded(conn, extent, tid);
-
+        
         for (FileRef file : files)
           if (paths.keySet().remove(file.path()))
             log.debug("Ignoring request to re-import a file already imported: " + extent + ": " + file);
@@ -777,7 +778,8 @@ public class Tablet {
       mergingMinorCompactionFile = null;
     }
     
-    void bringMinorCompactionOnline(FileRef tmpDatafile, FileRef newDatafile, FileRef absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId) throws IOException {
+    void bringMinorCompactionOnline(FileRef tmpDatafile, FileRef newDatafile, FileRef absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId)
+        throws IOException {
       
       IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
       if (extent.isRootTablet()) {
@@ -846,8 +848,8 @@ public class Tablet {
             persistedTime = commitSession.getMaxCommittedTime();
           
           String time = tabletTime.getMetadataValue(persistedTime);
-          MetadataTable.updateTabletDataFile(extent, newDatafile, absMergeFile, dfv, time, creds, filesInUseByScans,
-              tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation, flushId);
+          MetadataTable.updateTabletDataFile(extent, newDatafile, absMergeFile, dfv, time, creds, filesInUseByScans, tabletServer.getClientAddressString(),
+              tabletServer.getLock(), unusedWalLogs, lastLocation, flushId);
         }
         
       } finally {
@@ -923,7 +925,8 @@ public class Tablet {
       majorCompactingFiles.clear();
     }
     
-    void bringMajorCompactionOnline(Set<FileRef> oldDatafiles, FileRef tmpDatafile, FileRef newDatafile, Long compactionId, DataFileValue dfv) throws IOException {
+    void bringMajorCompactionOnline(Set<FileRef> oldDatafiles, FileRef tmpDatafile, FileRef newDatafile, Long compactionId, DataFileValue dfv)
+        throws IOException {
       long t1, t2;
       
       if (!extent.isRootTablet()) {
@@ -1029,8 +1032,8 @@ public class Tablet {
         Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
         if (filesInUseByScans.size() > 0)
           log.debug("Adding scan refs to metadata " + extent + " " + filesInUseByScans);
-        MetadataTable.replaceDatafiles(extent, oldDatafiles, filesInUseByScans, newDatafile, compactionId, dfv,
-            SecurityConstants.getSystemCredentials(), tabletServer.getClientAddressString(), lastLocation, tabletServer.getLock());
+        MetadataTable.replaceDatafiles(extent, oldDatafiles, filesInUseByScans, newDatafile, compactionId, dfv, SecurityConstants.getSystemCredentials(),
+            tabletServer.getClientAddressString(), lastLocation, tabletServer.getLock());
         removeFilesAfterScan(filesInUseByScans);
       }
       
@@ -1068,16 +1071,14 @@ public class Tablet {
   
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf,
       SortedMap<Key,Value> tabletsKeyValues) throws IOException {
-    this(tabletServer, location, extent, trm, conf, VolumeManagerImpl.get(),
-        tabletsKeyValues);
+    this(tabletServer, location, extent, trm, conf, VolumeManagerImpl.get(), tabletsKeyValues);
   }
   
   static private final List<LogEntry> EMPTY = Collections.emptyList();
   
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf,
       SortedMap<FileRef,DataFileValue> datafiles, String time, long initFlushID, long initCompactID) throws IOException {
-    this(tabletServer, location, extent, trm, conf, VolumeManagerImpl.get(), EMPTY,
-        datafiles, time, null, new HashSet<FileRef>(), initFlushID, initCompactID);
+    this(tabletServer, location, extent, trm, conf, VolumeManagerImpl.get(), EMPTY, datafiles, time, null, new HashSet<FileRef>(), initFlushID, initCompactID);
   }
   
   private static String lookupTime(AccumuloConfiguration conf, KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
@@ -1124,7 +1125,8 @@ public class Tablet {
       
       Text rowName = extent.getMetadataEntry();
       
-      ScannerImpl mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), MetadataTable.ID, Authorizations.EMPTY);
+      String tableId = extent.isMeta() ? RootTable.ID : MetadataTable.ID;
+      ScannerImpl mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), tableId, Authorizations.EMPTY);
       
       // Commented out because when no data file is present, each tablet will scan through metadata table and return nothing
       // reduced batch size to improve performance
@@ -1233,11 +1235,11 @@ public class Tablet {
    * yet another constructor - this one allows us to avoid costly lookups into the Metadata table if we already know the files we need - as at split time
    */
   private Tablet(final TabletServer tabletServer, final Text location, final KeyExtent extent, final TabletResourceManager trm, final Configuration conf,
-      final VolumeManager fs, final List<LogEntry> logEntries, final SortedMap<FileRef,DataFileValue> datafiles, String time, final TServerInstance lastLocation,
-      Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
+      final VolumeManager fs, final List<LogEntry> logEntries, final SortedMap<FileRef,DataFileValue> datafiles, String time,
+      final TServerInstance lastLocation, Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
     if (location.find(":") >= 0) {
-        this.location = new Path(location.toString());
-    } else {    
+      this.location = new Path(location.toString());
+    } else {
       this.location = new Path(ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId().toString() + location.toString());
     }
     this.location = this.location.makeQualified(fs.getFileSystemByPath(this.location));
@@ -1259,8 +1261,7 @@ public class Tablet {
       for (FileRef ref : datafiles.keySet()) {
         Path path = ref.path();
         FileSystem ns = fs.getFileSystemByPath(path);
-        FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(),
-            tabletServer.getTableConfiguration(extent));
+        FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(), tabletServer.getTableConfiguration(extent));
         long maxTime = -1;
         try {
           
@@ -2147,8 +2148,8 @@ public class Tablet {
         }
         span.stop();
         span = Trace.start("compact");
-        this.stats = minorCompact(conf, fs, tabletMemory.getMinCMemTable(), tmpFileRef, newMapfileLocation, mergeFile, true, queued,
-            commitSession, flushId, mincReason);
+        this.stats = minorCompact(conf, fs, tabletMemory.getMinCMemTable(), tmpFileRef, newMapfileLocation, mergeFile, true, queued, commitSession, flushId,
+            mincReason);
         span.stop();
         
         if (needsSplit()) {
@@ -3277,7 +3278,7 @@ public class Tablet {
     });
     
     for (Iterator<Entry<FileRef,Long>> iterator = filesToCompact.entrySet().iterator(); iterator.hasNext();) {
-      Entry<FileRef,Long> entry = (Entry<FileRef,Long>) iterator.next();
+      Entry<FileRef,Long> entry = iterator.next();
       fileHeap.add(new Pair<FileRef,Long>(entry.getKey(), entry.getValue()));
     }
     
@@ -3459,8 +3460,7 @@ public class Tablet {
     // this info is used for optimization... it is ok if map files are missing
     // from the set... can still query and insert into the tablet while this
     // map file operation is happening
-    Map<FileRef,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(fs,
-        tabletServer.getSystemConfiguration(), datafileManager.getFiles());
+    Map<FileRef,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(fs, tabletServer.getSystemConfiguration(), datafileManager.getFiles());
     
     synchronized (this) {
       // java needs tuples ...
