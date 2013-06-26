@@ -22,10 +22,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
@@ -66,8 +63,7 @@ public class MetaSplitTest {
   
   @Test(timeout = 60000)
   public void testMetaSplit() throws Exception {
-    Instance instance = new ZooKeeperInstance(cluster.getConfig().getInstanceName(), cluster.getConfig().getZooKeepers());
-    Connector connector = instance.getConnector("root", new PasswordToken(secret));
+    Connector connector = cluster.getConnector("root", secret);
     TableOperations opts = connector.tableOperations();
     for (int i = 1; i <= 10; i++) {
       opts.create("" + i);

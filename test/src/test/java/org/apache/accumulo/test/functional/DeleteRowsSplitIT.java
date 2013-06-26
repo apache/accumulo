@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.SortedSet;
@@ -35,11 +36,12 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.junit.Test;
 
 // attempt to reproduce ACCUMULO-315
-public class DeleteRowsSplitTest extends FunctionalTest {
+public class DeleteRowsSplitIT extends MacTest {
   
-  private static final Logger log = Logger.getLogger(DeleteRowsSplitTest.class);
+  private static final Logger log = Logger.getLogger(DeleteRowsSplitIT.class);
   
   private static final String LETTERS = "abcdefghijklmnopqrstuvwxyz";
   static final SortedSet<Text> SPLITS = new TreeSet<Text>();
@@ -51,26 +53,13 @@ public class DeleteRowsSplitTest extends FunctionalTest {
     }
   }
   
-  @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.emptyList();
-  }
-  
   static final String TABLE;
   static {
     Random random = new Random();
     TABLE = "table" + Long.toHexString(random.nextLong());
   }
   
-  @Override
+  @Test
   public void run() throws Exception {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
@@ -151,10 +140,4 @@ public class DeleteRowsSplitTest extends FunctionalTest {
     }
     bw.close();
   }
-  
-  private void assertTrue(boolean b) {
-    if (!b)
-      throw new RuntimeException("test failed, false value");
-  }
-  
 }

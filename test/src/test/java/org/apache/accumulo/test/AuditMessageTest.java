@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -69,13 +68,13 @@ public class AuditMessageTest {
   private static MiniAccumuloCluster accumulo;
   private static File logDir;
   private static List<MiniAccumuloCluster.LogWriter> logWriters;
-  private final String AUDIT_USER_1 = "AuditUser1";
-  private final String AUDIT_USER_2 = "AuditUser2";
-  private final PasswordToken PASSWORD_TOKEN = new PasswordToken("password");
-  private final String OLD_TEST_TABLE_NAME = "apples";
-  private final String NEW_TEST_TABLE_NAME = "oranges";
-  private final String THIRD_TEST_TABLE_NAME = "pears";
-  private final Authorizations auths = new Authorizations("private", "public");
+  private static final String AUDIT_USER_1 = "AuditUser1";
+  private static final String AUDIT_USER_2 = "AuditUser2";
+  private static final String PASSWORD = "password";
+  private static final String OLD_TEST_TABLE_NAME = "apples";
+  private static final String NEW_TEST_TABLE_NAME = "oranges";
+  private static final String THIRD_TEST_TABLE_NAME = "pears";
+  private static final Authorizations auths = new Authorizations("private", "public");
   private static TemporaryFolder folder = new TemporaryFolder();
   
   // Must be static to survive Junit re-initialising the class every time.
@@ -160,7 +159,7 @@ public class AuditMessageTest {
   
   @Before
   public void setup() throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", new PasswordToken("superSecret"));
+    conn = accumulo.getConnector("root", "superSecret");
     
     // I don't want to recreate the instance for every test since it will take ages.
     // If we run every test as non-root users, I can drop these users every test which should effectively
@@ -187,13 +186,13 @@ public class AuditMessageTest {
   public void testTableOperationsAudits() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
     
-    conn.securityOperations().createLocalUser(AUDIT_USER_1, PASSWORD_TOKEN);
+    conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
     conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.CREATE_TABLE);
     
     // Connect as Audit User and do a bunch of stuff.
     // Testing activity begins here
-    auditConnector = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector(AUDIT_USER_1, PASSWORD_TOKEN);
+    auditConnector = accumulo.getConnector(AUDIT_USER_1, PASSWORD);
     auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
     auditConnector.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     auditConnector.tableOperations().clone(NEW_TEST_TABLE_NAME, OLD_TEST_TABLE_NAME, true, Collections.EMPTY_MAP, Collections.EMPTY_SET);
@@ -216,15 +215,15 @@ public class AuditMessageTest {
   @Test
   public void testUserOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, InterruptedException, IOException {
     
-    conn.securityOperations().createLocalUser(AUDIT_USER_1, PASSWORD_TOKEN);
+    conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
     conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.CREATE_USER);
     grantEverySystemPriv(conn, AUDIT_USER_1);
     
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector(AUDIT_USER_1, PASSWORD_TOKEN);
-    auditConnector.securityOperations().createLocalUser(AUDIT_USER_2, PASSWORD_TOKEN);
+    auditConnector = accumulo.getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector.securityOperations().createLocalUser(AUDIT_USER_2, new PasswordToken(PASSWORD));
     
     // It seems only root can grant stuff.
     conn.securityOperations().grantSystemPermission(AUDIT_USER_2, SystemPermission.ALTER_TABLE);
@@ -266,14 +265,14 @@ public class AuditMessageTest {
   public void testImportExportOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException,
       IOException, InterruptedException {
     
-    conn.securityOperations().createLocalUser(AUDIT_USER_1, PASSWORD_TOKEN);
+    conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
     conn.securityOperations().changeUserAuthorizations(AUDIT_USER_1, auths);
     grantEverySystemPriv(conn, AUDIT_USER_1);
     
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector(AUDIT_USER_1, PASSWORD_TOKEN);
+    auditConnector = accumulo.getConnector(AUDIT_USER_1, PASSWORD);
     auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
     
     // Insert some play data
@@ -346,14 +345,14 @@ public class AuditMessageTest {
   public void testDataOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
     
-    conn.securityOperations().createLocalUser(AUDIT_USER_1, PASSWORD_TOKEN);
+    conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
     conn.securityOperations().changeUserAuthorizations(AUDIT_USER_1, auths);
     grantEverySystemPriv(conn, AUDIT_USER_1);
     
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector(AUDIT_USER_1, PASSWORD_TOKEN);
+    auditConnector = accumulo.getConnector(AUDIT_USER_1, PASSWORD);
     auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
     
     // Insert some play data
@@ -400,9 +399,9 @@ public class AuditMessageTest {
       InterruptedException {
     
     // Create our user with no privs
-    conn.securityOperations().createLocalUser(AUDIT_USER_1, PASSWORD_TOKEN);
+    conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     conn.tableOperations().create(OLD_TEST_TABLE_NAME);
-    auditConnector = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector(AUDIT_USER_1, PASSWORD_TOKEN);
+    auditConnector = accumulo.getConnector(AUDIT_USER_1, PASSWORD);
     
     // Start testing activities
     // We should get denied or / failed audit messages here.

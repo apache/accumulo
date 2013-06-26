@@ -17,10 +17,12 @@
 package org.apache.accumulo.minicluster;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.util.PortUtils;
 
 /**
@@ -87,9 +89,18 @@ public class MiniAccumuloConfig {
       logDir = new File(dir, "logs");
       walogDir = new File(dir, "walogs");
       
-      String classpath = System.getenv("ACCUMULO_HOME") + "/lib/.*.jar," + "$ZOOKEEPER_HOME/zookeeper[^.].*.jar," + "$HADOOP_HOME/[^.].*.jar,"
-          + "$HADOOP_HOME/lib/[^.].*.jar," + "$HADOOP_PREFIX/share/hadoop/common/.*.jar," + "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,"
-          + "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar," + "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar";
+      String[] paths = {
+          "$ACCUMULO_HOME/lib/.*.jar",
+          "$ZOOKEEPER_HOME/zookeeper[^.].*.jar",
+          "$HADOOP_PREFIX/[^.].*.jar",
+          "$HADOOP_PREFIX/lib/[^.].*.jar",
+          "$HADOOP_PREFIX/share/hadoop/common/.*.jar",
+          "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar",
+          "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar",
+          "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar"
+      };
+      
+      String classpath = StringUtil.join(Arrays.asList(paths), ",");
       
       mergeProp(Property.INSTANCE_DFS_URI.getKey(), "file:///");
       mergeProp(Property.INSTANCE_DFS_DIR.getKey(), accumuloDir.getAbsolutePath());
@@ -109,6 +120,7 @@ public class MiniAccumuloConfig {
       mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.TRACE_PORT.getKey());
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
+      mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       
       // zookeeper port should be set explicitly in this class, not just on the site config
       if (zooKeeperPort == null)

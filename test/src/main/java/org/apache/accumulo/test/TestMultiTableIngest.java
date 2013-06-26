@@ -17,6 +17,7 @@
 package org.apache.accumulo.test;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
@@ -37,8 +38,6 @@ import com.beust.jcommander.Parameter;
 
 public class TestMultiTableIngest {
   
-  private static ArrayList<String> tableNames = new ArrayList<String>();
-  
   static class Opts extends ClientOpts {
     @Parameter(names="--readonly", description="read only")
     boolean readonly = false;
@@ -48,7 +47,7 @@ public class TestMultiTableIngest {
     int count = 10000;
   }
   
-  private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn) throws Exception {
+  private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn, List<String> tableNames) throws Exception {
     int i = 0;
     for (String table : tableNames) {
       Scanner scanner = conn.createScanner(table, opts.auths);
@@ -65,6 +64,8 @@ public class TestMultiTableIngest {
   }
   
   public static void main(String[] args) throws Exception {
+    ArrayList<String> tableNames = new ArrayList<String>();
+    
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
@@ -106,7 +107,7 @@ public class TestMultiTableIngest {
       }
     }
     try {
-      readBack(opts, scanOpts, connector);
+      readBack(opts, scanOpts, connector, tableNames);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

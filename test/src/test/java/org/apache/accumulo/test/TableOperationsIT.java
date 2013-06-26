@@ -35,9 +35,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DiskUsage;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.data.Mutation;
@@ -71,8 +69,7 @@ public class TableOperationsIT {
     
     accumuloCluster.start();
     
-    ZooKeeperInstance instance = new ZooKeeperInstance(accumuloCluster.getConfig().getInstanceName(), accumuloCluster.getConfig().getZooKeepers());
-    connector = instance.getConnector(ROOT, new PasswordToken(ROOT_PASS.getBytes()));
+    connector = accumuloCluster.getConnector(ROOT, ROOT_PASS);
   }
   
   @Test

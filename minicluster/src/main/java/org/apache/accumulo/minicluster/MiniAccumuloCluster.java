@@ -122,7 +122,7 @@ public class MiniAccumuloCluster {
 
   private MiniAccumuloConfig config;
 
-  private Process exec(Class<? extends Object> clazz, String... args) throws IOException {
+  public Process exec(Class<? extends Object> clazz, String... args) throws IOException {
     return exec(clazz, Collections.singletonList("-Xmx" + config.getDefaultMemory()), args);
   }
 

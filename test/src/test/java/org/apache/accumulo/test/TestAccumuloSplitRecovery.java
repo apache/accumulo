@@ -25,8 +25,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -86,8 +84,7 @@ public class TestAccumuloSplitRecovery {
     
     for (int tn = 0; tn < 2; tn++) {
       
-      ZooKeeperInstance instance = new ZooKeeperInstance(accumulo.getConfig().getInstanceName(), accumulo.getConfig().getZooKeepers());
-      Connector connector = instance.getConnector("root", new PasswordToken(secret));
+      Connector connector = accumulo.getConnector("root", secret);
       // create a table and put some data in it
       connector.tableOperations().create(TABLE);
       BatchWriter bw = connector.createBatchWriter(TABLE, new BatchWriterConfig());

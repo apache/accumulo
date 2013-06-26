@@ -34,8 +34,6 @@ import jline.console.ConsoleReader;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -705,8 +703,7 @@ public class ShellServerTest {
       @Override
       public void run() {
         try {
-          ZooKeeperInstance instance = new ZooKeeperInstance(cluster.getConfig().getInstanceName(), cluster.getConfig().getZooKeepers());
-          Connector connector = instance.getConnector("root", new PasswordToken(secret));
+          Connector connector = cluster.getConnector("root", secret);
           Scanner s = connector.createScanner("t", Authorizations.EMPTY);
           for (@SuppressWarnings("unused")
           Entry<Key,Value> kv : s)

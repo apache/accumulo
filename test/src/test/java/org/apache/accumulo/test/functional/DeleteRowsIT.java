@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -35,9 +36,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.junit.Test;
 
-public class DeleteRowsTest extends FunctionalTest {
-  private static final Logger log = Logger.getLogger(DeleteRowsTest.class);
+public class DeleteRowsIT extends MacTest {
+  private static final Logger log = Logger.getLogger(DeleteRowsIT.class);
   
   private static final int ROWS_PER_TABLET = 10;
   private static final String[] LETTERS = new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
@@ -55,21 +57,8 @@ public class DeleteRowsTest extends FunctionalTest {
     ROWS.add("{");
   }
   
-  @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.emptyList();
-  }
-  
-  @Override
-  public void run() throws Exception {
+  @Test
+  public void test() throws Exception {
     // Delete ranges of rows, and verify the tablets are removed.
     int i = 0;
     // Eliminate whole tablets
@@ -136,22 +125,6 @@ public class DeleteRowsTest extends FunctionalTest {
     }
     log.info("Finished table " + table);
     assertEquals(entries, count);
-  }
-  
-  private void assertEquals(int expected, int value) {
-    if (expected != value)
-      throw new RuntimeException("Test failed, expected " + expected + " != " + value);
-    
-  }
-  
-  private void assertTrue(boolean b) {
-    if (!b)
-      throw new RuntimeException("test failed, false value");
-  }
-  
-  private void assertEquals(String expected, String value) {
-    if (!expected.equals(value))
-      throw new RuntimeException("expected " + expected + " != " + value);
   }
   
 }
