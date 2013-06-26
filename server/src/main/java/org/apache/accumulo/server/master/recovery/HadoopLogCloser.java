@@ -43,19 +43,18 @@ public class HadoopLogCloser implements LogCloser {
           return master.getConfiguration().getConfiguration().getTimeInMillis(Property.MASTER_LEASE_RECOVERY_WAITING_PERIOD);
         }
         log.info("Recovered lease on " + source.toString());
-        return 0;
       } catch (FileNotFoundException ex) {
         throw ex;
       } catch (Exception ex) {
         log.warn("Error recovery lease on " + source.toString(), ex);
+        ns.append(source).close();
+        log.info("Recovered lease on " + source.toString() + " using append");
       }
     } else if (ns instanceof LocalFileSystem) {
       // ignore
     } else {
       throw new IllegalStateException("Don't know how to recover a lease for " + fs.getClass().getName());
     }
-    ns.append(source).close();
-    log.info("Recovered lease on " + source.toString() + " using append");
     return 0;
   }
   

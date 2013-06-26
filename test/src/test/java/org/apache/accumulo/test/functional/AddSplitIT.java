@@ -17,10 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
@@ -28,6 +25,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -37,27 +35,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class AddSplitTest extends FunctionalTest {
+public class AddSplitIT extends MacTest {
   
-  @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.singletonList(new TableSetup("foo"));
-  }
-  
-  @Override
-  public void run() throws Exception {
-    
-    // Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME+".client");
-    // logger.setLevel(Level.TRACE);
+  @Test
+  public void addSplitTest() throws Exception {
+
+    Connector c = getConnector();
+    c.tableOperations().create("foo");
     
     insertData(1l);
     
@@ -65,11 +51,11 @@ public class AddSplitTest extends FunctionalTest {
     splits.add(new Text(String.format("%09d", 333)));
     splits.add(new Text(String.format("%09d", 666)));
     
-    getConnector().tableOperations().addSplits("foo", splits);
+    c.tableOperations().addSplits("foo", splits);
     
     UtilWaitThread.sleep(100);
     
-    Collection<Text> actualSplits = getConnector().tableOperations().listSplits("foo");
+    Collection<Text> actualSplits = c.tableOperations().listSplits("foo");
     
     if (!splits.equals(new TreeSet<Text>(actualSplits))) {
       throw new Exception(splits + " != " + actualSplits);
@@ -85,11 +71,11 @@ public class AddSplitTest extends FunctionalTest {
     splits.add(new Text(String.format("%09d", 500)));
     splits.add(new Text(String.format("%09d", 800)));
     
-    getConnector().tableOperations().addSplits("foo", splits);
+    c.tableOperations().addSplits("foo", splits);
     
     UtilWaitThread.sleep(100);
     
-    actualSplits = getConnector().tableOperations().listSplits("foo");
+    actualSplits = c.tableOperations().listSplits("foo");
     
     if (!splits.equals(new TreeSet<Text>(actualSplits))) {
       throw new Exception(splits + " != " + actualSplits);

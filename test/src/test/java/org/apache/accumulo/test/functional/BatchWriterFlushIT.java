@@ -16,19 +16,16 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -39,47 +36,32 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class BatchWriterFlushTest extends FunctionalTest {
+public class BatchWriterFlushIT extends MacTest {
   
   private static final int NUM_TO_FLUSH = 100000;
   
-  @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    ArrayList<TableSetup> tables = new ArrayList<TableSetup>();
-    
-    tables.add(new TableSetup("bwft"));
-    tables.add(new TableSetup("bwlt"));
-    
-    return tables;
-  }
-  
-  @Override
+  @Test(timeout=30*1000)
   public void run() throws Exception {
-    
+    Connector c = getConnector();
+    c.tableOperations().create("bwft");
+    c.tableOperations().create("bwlt");
     runFlushTest();
     runLatencyTest();
     
   }
   
   private void runLatencyTest() throws Exception {
-    // should automatically flush after 3 seconds
-    BatchWriter bw = getConnector().createBatchWriter("bwlt", new BatchWriterConfig().setMaxLatency(2000, TimeUnit.MILLISECONDS));
+    // should automatically flush after 2 seconds
+    BatchWriter bw = getConnector().createBatchWriter("bwlt", new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS));
     Scanner scanner = getConnector().createScanner("bwlt", Authorizations.EMPTY);
     
     Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
     m.put(new Text("cf"), new Text("cq"), new Value(("" + 1).getBytes()));
     bw.addMutation(m);
     
-    UtilWaitThread.sleep(1000);
+    UtilWaitThread.sleep(500);
     
     int count = 0;
     for (@SuppressWarnings("unused")
@@ -91,7 +73,7 @@ public class BatchWriterFlushTest extends FunctionalTest {
       throw new Exception("Flushed too soon");
     }
     
-    UtilWaitThread.sleep(4000);
+    UtilWaitThread.sleep(1500);
     
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {

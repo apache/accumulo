@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -37,24 +37,18 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class BulkFileTest extends FunctionalTest {
+public class BulkFileIT extends MacTest {
   
-  @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.singletonList(new TableSetup("bulkFile", "0333", "0666", "0999", "1333", "1666"));
-  }
-  
-  @Override
-  public void run() throws Exception {
+  @Test(timeout=30*1000)
+  public void testBulkFile() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("bulkFile");
+    SortedSet<Text> splits = new TreeSet<Text>();
+    for (String split : "0333 0666 0999 1333 1666".split(" "))
+      splits.add(new Text(split));
+    c.tableOperations().addSplits("bulkFile", splits);
     Configuration conf = new Configuration();
     AccumuloConfiguration aconf = ServerConfiguration.getDefaultConfiguration();
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, aconf));
@@ -78,9 +72,9 @@ public class BulkFileTest extends FunctionalTest {
     writeData(writer3, 1000, 1999);
     writer3.close();
     
-    bulkImport(fs, "bulkFile", dir);
+    FunctionalTestUtils.bulkImport(c,  fs, "bulkFile", dir);
     
-    checkRFiles("bulkFile", 6, 6, 1, 1);
+    FunctionalTestUtils.checkRFiles(c, "bulkFile", 6, 6, 1, 1);
     
     verifyData("bulkFile", 0, 1999);
     

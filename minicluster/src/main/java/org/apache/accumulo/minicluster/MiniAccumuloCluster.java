@@ -38,9 +38,11 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.master.Master;
+import org.apache.accumulo.server.master.state.SetGoalState;
 import org.apache.accumulo.server.tabletserver.TabletServer;
 import org.apache.accumulo.server.util.Initialize;
 import org.apache.accumulo.server.util.PortUtils;
@@ -105,6 +107,7 @@ public class MiniAccumuloCluster {
     }
   }
 
+  private boolean initialized = false;
   private Process zooKeeperProcess;
   private Process masterProcess;
   private Process[] tabletServerProcesses;
@@ -247,33 +250,44 @@ public class MiniAccumuloCluster {
     if (zooKeeperProcess != null)
       throw new IllegalStateException("Already started");
 
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      @Override
-      public void run() {
-        try {
-          MiniAccumuloCluster.this.stop();
-        } catch (IOException e) {
-          e.printStackTrace();
-        } catch (InterruptedException e) {
-          e.printStackTrace();
+    if (!initialized) {
+      
+      Runtime.getRuntime().addShutdownHook(new Thread() {
+        @Override
+        public void run() {
+          try {
+            MiniAccumuloCluster.this.stop();
+          } catch (IOException e) {
+            e.printStackTrace();
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
         }
-      }
-    });
-
+      });
+    }
+      
     zooKeeperProcess = exec(Main.class, ServerType.ZOOKEEPER, ZooKeeperServerMain.class.getName(), zooCfgFile.getAbsolutePath());
 
     // sleep a little bit to let zookeeper come up before calling init, seems to work better
     UtilWaitThread.sleep(250);
     
-    Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword(), "--username", "root");
-    int ret = initProcess.waitFor();
-    if (ret != 0) {
-      throw new RuntimeException("Initialize process returned " + ret);
+    if (!initialized) {
+      Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword(), "--username", "root");
+      int ret = initProcess.waitFor();
+      if (ret != 0) {
+        throw new RuntimeException("Initialize process returned " + ret);
+      }
+      initialized = true; 
     }
 
     tabletServerProcesses = new Process[config.getNumTservers()];
     for (int i = 0; i < config.getNumTservers(); i++) {
       tabletServerProcesses[i] = exec(TabletServer.class, ServerType.TABLET_SERVER);
+    }
+    Process goal = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString());
+    int ret = goal.waitFor();
+    if (ret != 0) {
+      throw new RuntimeException("Could not set master goal state, process returned " + ret);
     }
 
     masterProcess = exec(Master.class, ServerType.MASTER);
@@ -326,6 +340,9 @@ public class MiniAccumuloCluster {
 
     for (LogWriter lw : logWriters)
       lw.flush();
+    zooKeeperProcess = null;
+    masterProcess = null;
+    tabletServerProcesses = null;
   }
 
   /**

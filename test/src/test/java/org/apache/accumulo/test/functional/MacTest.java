@@ -40,8 +40,12 @@ public class MacTest {
   public void setUp() throws Exception {
     folder.create();
     MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), PASSWORD);
+    configure(cfg);
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
+  }
+  
+  public void configure(MiniAccumuloConfig cfg) {
   }
   
   @After

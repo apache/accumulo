@@ -16,60 +16,46 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.EnumSet;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class BadIteratorMincTest extends FunctionalTest {
+public class BadIteratorMincIT extends MacTest {
   
-  @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    String pre = Property.TABLE_ITERATOR_PREFIX.getKey();
-    TableSetup ts = new TableSetup("foo", parseConfig(pre + "minc.badi=30," + BadIterator.class.getName()));
-    
-    return Collections.singletonList(ts);
-  }
-  
-  @Override
-  public void run() throws Exception {
-    
-    BatchWriter bw = getConnector().createBatchWriter("foo", new BatchWriterConfig());
+  @Test(timeout=30*1000)
+  public void test() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("foo");
+    IteratorSetting is = new IteratorSetting(30, BadIterator.class);
+    c.tableOperations().attachIterator("foo", is, EnumSet.of(IteratorScope.minc));
+    BatchWriter bw = c.createBatchWriter("foo", new BatchWriterConfig());
     
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
-    
     bw.addMutation(m);
-    
     bw.close();
     
-    getConnector().tableOperations().flush("foo", null, null, false);
+    c.tableOperations().flush("foo", null, null, false);
     UtilWaitThread.sleep(1000);
     
     // minc should fail, so there should be no files
-    checkRFiles("foo", 1, 1, 0, 0);
+    FunctionalTestUtils.checkRFiles(c, "foo", 1, 1, 0, 0);
     
     // try to scan table
-    Scanner scanner = getConnector().createScanner("foo", Authorizations.EMPTY);
+    Scanner scanner = c.createScanner("foo", Authorizations.EMPTY);
     
     int count = 0;
     for (@SuppressWarnings("unused")
@@ -81,12 +67,12 @@ public class BadIteratorMincTest extends FunctionalTest {
       throw new Exception("Did not see expected # entries " + count);
     
     // remove the bad iterator
-    getConnector().tableOperations().removeProperty("foo", Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.badi");
+    c.tableOperations().removeIterator("foo", BadIterator.class.getSimpleName(), EnumSet.of(IteratorScope.minc));
     
     UtilWaitThread.sleep(5000);
     
     // minc should complete
-    checkRFiles("foo", 1, 1, 1, 1);
+    FunctionalTestUtils.checkRFiles(c, "foo", 1, 1, 1, 1);
     
     count = 0;
     for (@SuppressWarnings("unused")
@@ -98,24 +84,26 @@ public class BadIteratorMincTest extends FunctionalTest {
       throw new Exception("Did not see expected # entries " + count);
     
     // now try putting bad iterator back and deleting the table
-    getConnector().tableOperations().setProperty("foo", Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.badi", "30," + BadIterator.class.getName());
-    bw = getConnector().createBatchWriter("foo", new BatchWriterConfig());
+    c.tableOperations().attachIterator("foo", is, EnumSet.of(IteratorScope.minc));
+    bw = c.createBatchWriter("foo", new BatchWriterConfig());
     m = new Mutation(new Text("r2"));
     m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
     bw.addMutation(m);
     bw.close();
     
     // make sure property is given time to propagate
-    UtilWaitThread.sleep(1000);
+    UtilWaitThread.sleep(500);
     
-    getConnector().tableOperations().flush("foo", null, null, false);
+    c.tableOperations().flush("foo", null, null, false);
     
     // make sure the flush has time to start
     UtilWaitThread.sleep(1000);
     
     // this should not hang
-    getConnector().tableOperations().delete("foo");
-    
+    c.tableOperations().delete("foo");
   }
+  
+
+
   
 }

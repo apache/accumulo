@@ -20,14 +20,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -35,29 +34,21 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class BatchScanSplitTest extends FunctionalTest {
+public class BatchScanSplitIT extends MacTest {
   
   @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    HashMap<String,String> conf = new HashMap<String,String>();
-    conf.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
-    return conf;
+  public void configure(MiniAccumuloConfig cfg) {
+    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "0"));
   }
   
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.singletonList(new TableSetup("bss"));
-  }
-  
-  @Override
-  public void run() throws Exception {
-    
-    // Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
+  @Test(timeout=30*1000)
+  public void test() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("bss");
     
     int numRows = 1 << 18;
     
@@ -113,15 +104,14 @@ public class BatchScanSplitTest extends FunctionalTest {
       
       long t2 = System.currentTimeMillis();
       
-      System.out.printf("rate : %06.2f%n", ranges.size() / ((t2 - t1) / 1000.0));
+      log.info(String.format("rate : %06.2f%n", ranges.size() / ((t2 - t1) / 1000.0)));
       
       if (!found.equals(expected))
         throw new Exception("Found and expected differ " + found + " " + expected);
     }
     
     splits = getConnector().tableOperations().listSplits("bss");
-    System.out.println("splits : " + splits);
-    
+    log.info("splits : " + splits);
   }
   
 }
