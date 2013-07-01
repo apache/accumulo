@@ -48,6 +48,24 @@ public class Query {
     List<String> terms = new ArrayList<String>();
   }
   
+  public static List<String> query(BatchScanner bs, List<String> terms) {
+    
+    Text columns[] = new Text[terms.size()];
+    int i = 0;
+    for (String term : terms) {
+      columns[i++] = new Text(term);
+    }
+    IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
+    IntersectingIterator.setColumnFamilies(ii, columns);
+    bs.addScanIterator(ii);
+    bs.setRanges(Collections.singleton(new Range()));
+    List<String> result = new ArrayList<String>();
+    for (Entry<Key,Value> entry : bs) {
+      result.add(entry.getKey().getColumnQualifier().toString());
+    }
+    return result;
+  }
+  
   /**
    * @param args
    */
@@ -55,24 +73,12 @@ public class Query {
     Opts opts = new Opts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();
     opts.parseArgs(Query.class.getName(), args, bsOpts);
-    
     Connector conn = opts.getConnector();
     BatchScanner bs = conn.createBatchScanner(opts.tableName, opts.auths, bsOpts.scanThreads);
     bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
-    
-    Text columns[] = new Text[opts.terms.size()];
-    int i = 0;
-    for (String term : opts.terms) {
-      columns[i++] = new Text(term);
-    }
-    IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
-    IntersectingIterator.setColumnFamilies(ii, columns);
-    bs.addScanIterator(ii);
-    bs.setRanges(Collections.singleton(new Range()));
-    for (Entry<Key,Value> entry : bs) {
-      System.out.println("  " + entry.getKey().getColumnQualifier());
-    }
-    
+
+    for (String entry : query(bs, opts.terms))
+      System.out.println("  " + entry);
   }
   
 }

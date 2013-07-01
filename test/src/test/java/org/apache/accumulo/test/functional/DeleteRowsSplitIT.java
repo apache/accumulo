@@ -59,7 +59,7 @@ public class DeleteRowsSplitIT extends MacTest {
     TABLE = "table" + Long.toHexString(random.nextLong());
   }
   
-  @Test
+  @Test(timeout=200*1000)
   public void run() throws Exception {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits

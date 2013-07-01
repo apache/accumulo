@@ -35,7 +35,7 @@ import org.junit.Test;
 
 public class BadIteratorMincIT extends MacTest {
   
-  @Test(timeout=30*1000)
+  @Test(timeout=60*1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("foo");

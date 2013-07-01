@@ -20,9 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URL;
 import java.util.Collections;
@@ -46,9 +43,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
@@ -74,7 +71,7 @@ public class ReadWriteIT extends MacTest {
     verify(connector, ROWS, COLS, 50, 0);
     URL url = new URL("http://" + InetAddress.getLocalHost().getHostName() + ":" + cluster.getConfig().getSiteConfig().get(Property.MONITOR_PORT.getKey()));
     log.debug("Fetching web page " + url);
-    String result = readAll(url.openStream());
+    String result = FunctionalTestUtils.readAll(url.openStream());
     assertTrue(result.length() > 100);
     log.debug("Stopping mini accumulo cluster");
     Process shutdown = cluster.exec(Admin.class, "stopAll");
@@ -82,18 +79,6 @@ public class ReadWriteIT extends MacTest {
     assertTrue(shutdown.exitValue() == 0);
     log.debug("success!");
     monitor.destroy();
-  }
-  
-  private String readAll(InputStream is) throws IOException {
-    byte[] buffer = new byte[4096];
-    StringBuffer result = new StringBuffer();
-    while (true) {
-      int n = is.read(buffer);
-      if (n <= 0)
-        break;
-      result.append(new String(buffer, 0, n));
-    }
-    return result.toString();
   }
   
   public void ingest(Connector connector, int rows, int cols, int width, int offset) throws Exception {
@@ -227,14 +212,13 @@ public class ReadWriteIT extends MacTest {
     boolean foundFile = false;
     for (Entry<Key,Value> entry: bscanner) {
       foundFile = true;
-      Process info = cluster.exec(org.apache.accumulo.core.file.rfile.PrintInfo.class, entry.getKey().getColumnQualifier().toString());
+      Process info = cluster.exec(PrintInfo.class, entry.getKey().getColumnQualifier().toString());
       assertEquals(0, info.waitFor());
-      for (LogWriter writer : cluster.getLogWriters())
-        writer.flush();
-      String out = readAll(new FileInputStream(cluster.getConfig().getLogDir() + "/PrintInfo_" + info.hashCode() + ".out"));
+      String out = FunctionalTestUtils.readAll(cluster, PrintInfo.class, info);
       assertTrue(out.contains("Locality group         : g1"));
       assertTrue(out.contains("families      : [colf]"));
     }
+    bscanner.close();
     assertTrue(foundFile);
   }
   

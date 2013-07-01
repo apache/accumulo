@@ -16,17 +16,15 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
@@ -37,36 +35,29 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
+import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Test;
 
-public class ConstraintTest extends FunctionalTest {
+public class ConstraintIT extends MacTest {
   
-  @Override
-  public void cleanup() {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    Map<String,String> config = parseConfig(Property.TABLE_CONSTRAINT_PREFIX + "1=org.apache.accumulo.examples.simple.constraints.NumericValueConstraint",
-        Property.TABLE_CONSTRAINT_PREFIX + "2=org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint");
-    return Arrays.asList(new TableSetup("ct", config), new TableSetup("ct2", config), new TableSetup("ct3", config));
-  }
-  
-  @Override
+  @Test(timeout=30*1000)
   public void run() throws Exception {
-    
+    Connector c = getConnector();
+    for (String table : "ct ct2 ct3".split(" ")) {
+      c.tableOperations().create(table);
+      c.tableOperations().addConstraint(table, NumericValueConstraint.class.getName());
+      c.tableOperations().addConstraint(table, AlphaNumKeyConstraint.class.getName());
+    }
+      
     Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
     logger.setLevel(Level.TRACE);
     
     test1();
     
-    // Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
     logger.setLevel(Level.TRACE);
     
     test2("ct2", false);
@@ -109,7 +100,7 @@ public class ConstraintTest extends FunctionalTest {
       }
       
       for (ConstraintViolationSummary cvs : cvsl) {
-        if (!cvs.constrainClass.equals("org.apache.accumulo.examples.simple.constraints.NumericValueConstraint")) {
+        if (!cvs.constrainClass.equals(NumericValueConstraint.class.getName())) {
           throw new Exception("Unexpected constraint class " + cvs.constrainClass);
         }
         
@@ -141,7 +132,7 @@ public class ConstraintTest extends FunctionalTest {
     }
     
     // remove the numeric value constraint
-    getConnector().tableOperations().removeConstraint("ct", 1);
+    getConnector().tableOperations().removeConstraint("ct", 2);
     UtilWaitThread.sleep(1000);
     
     // now should be able to add a non numeric value
@@ -204,7 +195,7 @@ public class ConstraintTest extends FunctionalTest {
     }
     
     // remove the bad constraint
-    getConnector().tableOperations().removeProperty("ct", Property.TABLE_CONSTRAINT_PREFIX + "1");
+    getConnector().tableOperations().removeConstraint("ct", 1);
     UtilWaitThread.sleep(1000);
     
     // try the mutation again

@@ -181,7 +181,7 @@ public class AuditMessageTest {
     
   }
   
-  @Test
+  @Test(timeout=60*1000)
   @SuppressWarnings("unchecked")
   public void testTableOperationsAudits() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
@@ -212,7 +212,7 @@ public class AuditMessageTest {
     
   }
   
-  @Test
+  @Test(timeout=60*1000)
   public void testUserOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, InterruptedException, IOException {
     
     conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
@@ -261,7 +261,7 @@ public class AuditMessageTest {
     assertEquals(1, findAuditMessage(auditMessages, "action: dropUser; targetUser: " + AUDIT_USER_2).size());
   }
   
-  @Test
+  @Test(timeout=60*1000)
   public void testImportExportOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException,
       IOException, InterruptedException {
     
@@ -341,7 +341,7 @@ public class AuditMessageTest {
     
   }
   
-  @Test
+  @Test(timeout=60*1000)
   public void testDataOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
     
@@ -394,7 +394,7 @@ public class AuditMessageTest {
     
   }
   
-  @Test
+  @Test(timeout=60*1000)
   public void testDeniedAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
     
@@ -461,7 +461,7 @@ public class AuditMessageTest {
             "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, "myRow", "myRow~")).size());
   }
   
-  @Test
+  @Test(timeout=60*1000)
   public void testFailedAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
     

@@ -107,6 +107,7 @@ public class ContinuousBatchWalker {
       
       count++;
     }
+    bs.close();
     
     long t2 = System.currentTimeMillis();
     

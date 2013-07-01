@@ -130,7 +130,7 @@ public class ShellServerTest {
   }
   
   static void assertGoodExit(String s, boolean stringPresent) {
-    Shell.log.debug(output.get());
+    Shell.log.info(output.get());
     assertEquals(0, shell.getExitCode());
     
     if (s.length() > 0)
@@ -417,8 +417,13 @@ public class ShellServerTest {
   @Test(timeout = 30000)
   public void clearCls() throws Exception {
     // clear/cls
-    exec("cls", true, "[1;1H");
-    exec("clear", true, "[2J");
+    if (shell.getReader().getTerminal().isAnsiSupported()) {
+      exec("cls", true, "[1;1H");
+      exec("clear", true, "[2J");
+    } else {
+      exec("cls", false, "does not support");
+      exec("clear", false, "does not support");
+    }
   }
   
   @Test(timeout = 30000)

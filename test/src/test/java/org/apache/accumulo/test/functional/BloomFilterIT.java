@@ -33,6 +33,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor;
+import org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor;
+import org.apache.accumulo.core.file.keyfunctor.RowFunctor;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
@@ -52,9 +55,9 @@ public class BloomFilterIT extends MacTest {
     for (String table : "bt1 bt2 bt3 bt4".split(" ")) {
       c.tableOperations().create(table);
     }
-    write(c, "bt1", 1, 0, 1000000000, 1000);
-    write(c, "bt2", 2, 0, 1000000000, 1000);
-    write(c, "bt3", 3, 0, 1000000000, 1000);
+    write(c, "bt1", 1, 0, 1000000000, 500);
+    write(c, "bt2", 2, 0, 1000000000, 500);
+    write(c, "bt3", 3, 0, 1000000000, 500);
     
     // test inserting an empty key
     BatchWriter bw = c.createBatchWriter("bt4", new BatchWriterConfig());
@@ -77,33 +80,31 @@ public class BloomFilterIT extends MacTest {
     FunctionalTestUtils.checkRFiles(c, "bt4", 1, 1, 1, 1);
     
     // these queries should only run quickly if bloom filters are working, so lets get a base
-    long t1 = query(c, "bt1", 1, 0, 1000000000, 100000, 1000);
-    long t2 = query(c, "bt2", 2, 0, 1000000000, 100000, 1000);
-    long t3 = query(c, "bt3", 3, 0, 1000000000, 100000, 1000);
+    long t1 = query(c, "bt1", 1, 0, 1000000000, 100000, 500);
+    long t2 = query(c, "bt2", 2, 0, 1000000000, 100000, 500);
+    long t3 = query(c, "bt3", 3, 0, 1000000000, 100000, 500);
     
     c.tableOperations().setProperty("bt1", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    c.tableOperations().setProperty("bt1", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), "org.apache.accumulo.core.file.keyfunctor.RowFunctor");
+    c.tableOperations().setProperty("bt1", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), RowFunctor.class.getName());
     c.tableOperations().compact("bt1", null, null, false, true);
     
     c.tableOperations().setProperty("bt2", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    c.tableOperations().setProperty("bt2", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(),
-        "org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor");
+    c.tableOperations().setProperty("bt2", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), ColumnFamilyFunctor.class.getName());
     c.tableOperations().compact("bt2", null, null, false, true);
     
     c.tableOperations().setProperty("bt3", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    c.tableOperations().setProperty("bt3", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(),
-        "org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor");
+    c.tableOperations().setProperty("bt3", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), ColumnQualifierFunctor.class.getName());
     c.tableOperations().compact("bt3", null, null, false, true);
     
     c.tableOperations().setProperty("bt4", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    c.tableOperations().setProperty("bt4", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), "org.apache.accumulo.core.file.keyfunctor.RowFunctor");
+    c.tableOperations().setProperty("bt4", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), RowFunctor.class.getName());
     c.tableOperations().compact("bt4", null, null, false, true);
     
     // these queries should only run quickly if bloom
     // filters are working
-    long tb1 = query(c, "bt1", 1, 0, 1000000000, 100000, 1000);
-    long tb2 = query(c, "bt2", 2, 0, 1000000000, 100000, 1000);
-    long tb3 = query(c, "bt3", 3, 0, 1000000000, 100000, 1000);
+    long tb1 = query(c, "bt1", 1, 0, 1000000000, 100000, 500);
+    long tb2 = query(c, "bt2", 2, 0, 1000000000, 100000, 500);
+    long tb3 = query(c, "bt3", 3, 0, 1000000000, 100000, 500);
     
     timeCheck(t1, tb1);
     timeCheck(t2, tb2);

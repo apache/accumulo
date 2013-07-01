@@ -17,18 +17,17 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.cli.ClientOpts.Password;
+import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.test.CreateRFiles;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.junit.Test;
 
 /**
  * This test verifies that when a lot of files are bulk imported into a table with one tablet and then splits that not all map files go to the children tablets.
@@ -37,40 +36,33 @@ import org.apache.hadoop.fs.Path;
  * 
  */
 
-public class BulkSplitOptimizationTest extends FunctionalTest {
+public class BulkSplitOptimizationIT extends MacTest {
   
   private static final String TABLE_NAME = "test_ingest";
   
   @Override
-  public void cleanup() throws Exception {
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    fs.delete(new Path("/tmp/testmf"), true);
-    fs.delete(new Path("/tmp/testmf_failures"), true);
+  public void configure(MiniAccumuloConfig cfg) {
+    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
   }
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return parseConfig(Property.TSERV_MAJC_DELAY + "=1s");
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.singletonList(new TableSetup(TABLE_NAME, parseConfig(Property.TABLE_MAJC_RATIO + "=1000", Property.TABLE_FILE_MAX + "=1000",
-        Property.TABLE_SPLIT_THRESHOLD + "=1G")));
-  }
-  
-  @Override
-  public void run() throws Exception {
+
+  static final int ROWS = 100000;
+  static final int SPLITS = 99;
+
+  @Test(timeout=30*1000)
+  public void testBulkSplitOptimization() throws Exception {
+    final Connector c = getConnector();
+    c.tableOperations().create(TABLE_NAME);
+    c.tableOperations().setProperty(TABLE_NAME, Property.TABLE_MAJC_RATIO.getKey(), "1000");
+    c.tableOperations().setProperty(TABLE_NAME, Property.TABLE_FILE_MAX.getKey(), "1000");
+    c.tableOperations().setProperty(TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1G");
     
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    fs.delete(new Path("/tmp/testmf"), true);
-    AuthenticationToken token = this.getToken();
-    CreateRFiles.main(new String[] {"--output", "tmp/testmf", "--numThreads", "8", "--start", "0", "--end", "100000", "--splits", "99"});
+    FunctionalTestUtils.createRFiles(c, fs, "/tmp/testmf", ROWS, SPLITS, 8);
     
-    bulkImport(fs, TABLE_NAME, "/tmp/testmf");
+    FunctionalTestUtils.bulkImport(c, fs, TABLE_NAME, "/tmp/testmf");
     
-    checkSplits(TABLE_NAME, 0, 0);
-    checkRFiles(TABLE_NAME, 1, 1, 100, 100);
+    FunctionalTestUtils.checkSplits(c, TABLE_NAME, 0, 0);
+    FunctionalTestUtils.checkRFiles(c, TABLE_NAME, 1, 1, 100, 100);
     
     // initiate splits
     getConnector().tableOperations().setProperty(TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
@@ -82,15 +74,19 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
       UtilWaitThread.sleep(500);
     }
     
-    checkSplits(TABLE_NAME, 50, 100);
-    
-    String passwd = "";
-    if (token instanceof PasswordToken) {
-      passwd = new String(((PasswordToken) token).getPassword());
-    }
-    VerifyIngest.main(new String[] {"--timestamp", "1", "--size", "50", "--random", "56", "--rows", "100000", "--start", "0", "--cols", "1", "-p", passwd});
+    FunctionalTestUtils.checkSplits(c, TABLE_NAME, 50, 100);
+    VerifyIngest.Opts opts = new VerifyIngest.Opts();
+    opts.timestamp = 1;
+    opts.dataSize = 50;
+    opts.random = 56;
+    opts.rows = 100000;
+    opts.startRow = 0;
+    opts.cols = 1;
+    opts.password = new Password(PASSWORD);
+    VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
     
     // ensure each tablet does not have all map files
-    checkRFiles(TABLE_NAME, 50, 100, 1, 4);
+    FunctionalTestUtils.checkRFiles(c, TABLE_NAME, 50, 100, 1, 4);
   }
+
 }

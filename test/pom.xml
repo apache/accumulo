@@ -107,14 +107,24 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>commons-httpclient</groupId>
+      <artifactId>commons-httpclient</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-    	<groupId>org.mortbay.jetty</groupId>
-    	<artifactId>jetty</artifactId>
-    	<scope>test</scope>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-examples-simple</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mortbay.jetty</groupId>
+      <artifactId>jetty</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
   <build>

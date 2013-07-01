@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -27,8 +28,14 @@ import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.util.UtilWaitThread;
 
 public class SlowIterator extends WrappingIterator {
+
+  static private final String SLEEP_TIME = "sleepTime";
   
   long sleepTime;
+  
+  public static void setSleepTime(IteratorSetting is, long millis) {
+    is.addOption(SLEEP_TIME, Long.toString(millis));  
+  }
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
@@ -44,7 +51,7 @@ public class SlowIterator extends WrappingIterator {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    sleepTime = Long.parseLong(options.get("sleepTime"));
+    sleepTime = Long.parseLong(options.get(SLEEP_TIME));
   }
   
 }

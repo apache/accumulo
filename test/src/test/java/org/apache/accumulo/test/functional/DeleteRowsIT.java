@@ -57,7 +57,7 @@ public class DeleteRowsIT extends MacTest {
     ROWS.add("{");
   }
   
-  @Test
+  @Test(timeout=60*1000)
   public void test() throws Exception {
     // Delete ranges of rows, and verify the tablets are removed.
     int i = 0;

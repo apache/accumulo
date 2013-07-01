@@ -45,6 +45,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   
   private TCredentials credentials;
   private Authorizations authorizations = Authorizations.EMPTY;
+  private Throwable ex = null;
   
   private static int nextBatchReaderInstance = 1;
   
@@ -65,6 +66,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     queryThreadPool = new SimpleThreadPool(numQueryThreads, "batch scanner " + batchReaderInstance + "-");
     
     ranges = null;
+    ex = new Throwable();
   }
   
   @Override
@@ -78,7 +80,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   @Override
   protected void finalize() {
     if (!queryThreadPool.isShutdown()) {
-      log.warn(TabletServerBatchReader.class.getSimpleName() + " not shutdown; did you forget to call close()?");
+      log.warn(TabletServerBatchReader.class.getSimpleName() + " not shutdown; did you forget to call close()?", ex);
       close();
     }
   }

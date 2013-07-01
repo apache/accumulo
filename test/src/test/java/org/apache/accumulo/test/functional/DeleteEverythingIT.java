@@ -17,13 +17,11 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -32,27 +30,21 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class DeleteEverythingTest extends FunctionalTest {
+public class DeleteEverythingIT extends MacTest {
   
   @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    Map<String,String> props = new HashMap<String,String>();
-    props.put(Property.TSERV_MAJC_DELAY.getKey(), "1s");
-    return props;
+  public void configure(MiniAccumuloConfig cfg) {
+    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
   }
   
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.singletonList(new TableSetup("de"));
-  }
-  
-  @Override
+  @Test(timeout=20*1000)
   public void run() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("de");
     BatchWriter bw = getConnector().createBatchWriter("de", new BatchWriterConfig());
     Mutation m = new Mutation(new Text("foo"));
     m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes()));
@@ -61,7 +53,7 @@ public class DeleteEverythingTest extends FunctionalTest {
     
     getConnector().tableOperations().flush("de", null, null, true);
     
-    checkRFiles("de", 1, 1, 1, 1);
+    FunctionalTestUtils.checkRFiles(c, "de", 1, 1, 1, 1);
     
     m = new Mutation(new Text("foo"));
     m.putDelete(new Text("bar"), new Text("1910"));
@@ -85,7 +77,7 @@ public class DeleteEverythingTest extends FunctionalTest {
     getConnector().tableOperations().setProperty("de", Property.TABLE_MAJC_RATIO.getKey(), "1.0");
     UtilWaitThread.sleep(4000);
     
-    checkRFiles("de", 1, 1, 0, 0);
+    FunctionalTestUtils.checkRFiles(c, "de", 1, 1, 0, 0);
     
     bw.close();
     

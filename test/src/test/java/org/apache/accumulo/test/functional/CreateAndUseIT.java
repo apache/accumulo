@@ -17,9 +17,6 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -34,25 +31,11 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class CreateAndUseTest extends FunctionalTest {
+public class CreateAndUseIT extends MacTest {
   
-  @Override
-  public void cleanup() throws Exception {
-    
-  }
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.emptyList();
-  }
-  
-  @Override
+  @Test(timeout=60*1000)
   public void run() throws Exception {
     SortedSet<Text> splits = new TreeSet<Text>();
     

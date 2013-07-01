@@ -51,7 +51,7 @@ public class MacTest {
   @After
   public void tearDown() throws Exception {
     cluster.stop();
-//    folder.delete();
+    folder.delete();
   }
   
 }

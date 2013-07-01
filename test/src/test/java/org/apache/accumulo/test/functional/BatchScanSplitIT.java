@@ -45,7 +45,7 @@ public class BatchScanSplitIT extends MacTest {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "0"));
   }
   
-  @Test(timeout=30*1000)
+  @Test(timeout=60*1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bss");
@@ -86,11 +86,10 @@ public class BatchScanSplitIT extends MacTest {
     
     // logger.setLevel(Level.TRACE);
     
-    BatchScanner bs = getConnector().createBatchScanner("bss", Authorizations.EMPTY, 4);
-    
     HashMap<Text,Value> found = new HashMap<Text,Value>();
     
     for (int i = 0; i < 20; i++) {
+      BatchScanner bs = getConnector().createBatchScanner("bss", Authorizations.EMPTY, 4);
       
       found.clear();
       
@@ -101,6 +100,7 @@ public class BatchScanSplitIT extends MacTest {
       for (Entry<Key,Value> entry : bs) {
         found.put(entry.getKey().getRow(), entry.getValue());
       }
+      bs.close();
       
       long t2 = System.currentTimeMillis();
       

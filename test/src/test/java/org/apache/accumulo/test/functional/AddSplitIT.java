@@ -39,7 +39,7 @@ import org.junit.Test;
 
 public class AddSplitIT extends MacTest {
   
-  @Test
+  @Test(timeout=30*1000)
   public void addSplitTest() throws Exception {
 
     Connector c = getConnector();

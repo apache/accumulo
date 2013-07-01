@@ -50,7 +50,7 @@ public class TableToFile extends Configured implements Tool {
     @Parameter(names = "--output", description = "output directory", required = true)
     String output;
     @Parameter(names = "--columns", description = "columns to extract, in cf:cq{,cf:cq,...} form")
-    String columns;
+    String columns = "";
   }
   
   /**
@@ -123,8 +123,6 @@ public class TableToFile extends Configured implements Tool {
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(CachedConfiguration.getInstance(), new TableToFile(), args);
-    if (res != 0)
-      System.exit(res);
+    ToolRunner.run(CachedConfiguration.getInstance(), new TableToFile(), args);
   }
 }

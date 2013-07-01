@@ -16,10 +16,21 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.HashMap;
-import java.util.Set;
-import java.util.Map.Entry;
+import static org.junit.Assert.assertFalse;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -27,6 +38,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
+import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -79,6 +93,60 @@ public class FunctionalTestUtils {
       throw new Exception("Some files failed to bulk import");
     }
     
+  }
+  
+  static public void checkSplits(Connector c, String table, int min, int max) throws Exception {
+    Collection<Text> splits = c.tableOperations().listSplits(table);
+    if (splits.size() < min || splits.size() > max) {
+      throw new Exception("# of table splits points out of range, #splits=" + splits.size() + " table=" + table + " min=" + min + " max=" + max);
+    }
+  }
+  
+  static public void createRFiles(final Connector c, FileSystem fs, String path, int rows, int splits, int threads) throws Exception {
+    fs.delete(new Path(path), true);
+    ExecutorService threadPool = Executors.newFixedThreadPool(threads);
+    final AtomicBoolean fail = new AtomicBoolean(false);
+    for (int i = 0; i < rows; i += rows / splits) {
+      final TestIngest.Opts opts = new TestIngest.Opts();
+      opts.outputFile = String.format("%s/mf%s", path, i);
+      opts.random = 56;
+      opts.timestamp = 1;
+      opts.dataSize = 50;
+      opts.rows = rows / splits;
+      opts.startRow = i;
+      opts.cols = 1;
+      threadPool.execute(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            TestIngest.ingest(c, opts, new BatchWriterOpts());
+          } catch (Exception e) {
+            fail.set(true);
+          }
+        }
+      });
+    }
+    threadPool.shutdown();
+    threadPool.awaitTermination(1, TimeUnit.HOURS);
+    assertFalse(fail.get());
+  }
+  
+  static public String readAll(InputStream is) throws IOException {
+    byte[] buffer = new byte[4096];
+    StringBuffer result = new StringBuffer();
+    while (true) {
+      int n = is.read(buffer);
+      if (n <= 0)
+        break;
+      result.append(new String(buffer, 0, n));
+    }
+    return result.toString();
+  }
+  
+  static String readAll(MiniAccumuloCluster c, Class<? extends Object> klass, Process p) throws Exception {
+    for (LogWriter writer : c.getLogWriters())
+      writer.flush();
+    return readAll(new FileInputStream(c.getConfig().getLogDir() + "/" + klass.getSimpleName() + "_" + p.hashCode() + ".out"));
   }
   
 

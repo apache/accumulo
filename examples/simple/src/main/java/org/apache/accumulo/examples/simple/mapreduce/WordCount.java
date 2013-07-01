@@ -88,7 +88,6 @@ public class WordCount extends Configured implements Tool {
   }
   
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(CachedConfiguration.getInstance(), new WordCount(), args);
-    System.exit(res);
+    ToolRunner.run(CachedConfiguration.getInstance(), new WordCount(), args);
   }
 }

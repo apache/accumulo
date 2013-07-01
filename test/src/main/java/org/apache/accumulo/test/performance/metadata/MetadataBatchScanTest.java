@@ -219,6 +219,7 @@ public class MetadataBatchScanTest {
     Entry<Key,Value> entry : bs) {
       count++;
     }
+    bs.close();
     long t2 = System.currentTimeMillis();
     
     ss.delta1 = (t2 - t1);

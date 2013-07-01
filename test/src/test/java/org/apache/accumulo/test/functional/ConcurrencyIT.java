@@ -17,9 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.EnumSet;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -31,11 +29,14 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class ConcurrencyTest extends FunctionalTest {
+public class ConcurrencyIT extends MacTest {
   
   static class ScanTask extends Thread {
     
@@ -45,7 +46,7 @@ public class ConcurrencyTest extends FunctionalTest {
     ScanTask(Connector conn, long time) throws Exception {
       scanner = conn.createScanner("cct", Authorizations.EMPTY);
       IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
-      slow.addOption("sleepTime", "" + time);
+      SlowIterator.setSleepTime(slow, time);
       scanner.addScanIterator(slow);
     }
     
@@ -61,22 +62,8 @@ public class ConcurrencyTest extends FunctionalTest {
   }
   
   @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    HashMap<String,String> opts = new HashMap<String,String>();
-    opts.put("tserver.compaction.major.delay", "1");
-    return opts;
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    String pre = Property.TABLE_ITERATOR_PREFIX.getKey();
-    TableSetup ts = new TableSetup("cct", parseConfig(pre + "minc.slow=30," + SlowIterator.class.getName(), pre + "minc.slow.opt.sleepTime=50", pre
-        + "majc.slow=30," + SlowIterator.class.getName(), pre + "majc.slow.opt.sleepTime=50", Property.TABLE_MAJC_RATIO.getKey() + "=1"));
-    
-    return Collections.singletonList(ts);
+  public void configure(MiniAccumuloConfig cfg) {
+    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1"));
   }
   
   /*
@@ -85,15 +72,21 @@ public class ConcurrencyTest extends FunctionalTest {
    * Scan 0 |------------------------------| Scan 1 |----------| Minc 1 |-----| Scan 2 |----------| Scan 3 |---------------| Minc 2 |-----| Majc 1 |-----|
    */
   
-  @Override
+  @Test(timeout=30*1000)
   public void run() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("cct");
+    IteratorSetting is = new IteratorSetting(10, SlowIterator.class);
+    SlowIterator.setSleepTime(is, 50);
+    c.tableOperations().attachIterator("cct", is, EnumSet.of(IteratorScope.minc, IteratorScope.majc));
+    c.tableOperations().setProperty("cct", Property.TABLE_MAJC_RATIO.getKey(), "1.0");
+    
     BatchWriter bw = getConnector().createBatchWriter("cct", new BatchWriterConfig());
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
       m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes()));
       bw.addMutation(m);
     }
-    
     bw.flush();
     
     ScanTask st0 = new ScanTask(getConnector(), 300);

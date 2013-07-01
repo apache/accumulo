@@ -95,6 +95,7 @@ public class ServerSideErrorTest extends FunctionalTest {
       for (Entry<Key,Value> entry : bs) {
         entry.getKey();
       }
+      bs.close();
     } catch (Exception e) {
       caught = true;
     }

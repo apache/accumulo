@@ -41,7 +41,7 @@ import org.junit.Test;
 
 public class BulkFileIT extends MacTest {
   
-  @Test(timeout=30*1000)
+  @Test(timeout=60*1000)
   public void testBulkFile() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bulkFile");

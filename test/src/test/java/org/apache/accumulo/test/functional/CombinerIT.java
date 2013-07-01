@@ -49,7 +49,7 @@ public class CombinerIT extends MacTest {
     assertFalse(i.hasNext());
   }
   
-  @Test
+  @Test(timeout=60*1000)
   public void aggregationTest() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test");

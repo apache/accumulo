@@ -89,8 +89,6 @@ public class RowHash extends Configured implements Tool {
   }
   
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(CachedConfiguration.getInstance(), new RowHash(), args);
-    if (res != 0)
-      System.exit(res);
+    ToolRunner.run(CachedConfiguration.getInstance(), new RowHash(), args);
   }
 }
