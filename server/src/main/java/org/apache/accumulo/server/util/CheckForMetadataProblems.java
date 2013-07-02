@@ -195,7 +195,7 @@ public class CheckForMetadataProblems {
     checkMetadataTableEntries(opts, fs);
     opts.stopTracing();
     if (sawProblems)
-      System.exit(-1);
+      throw new RuntimeException();
   }
   
 }

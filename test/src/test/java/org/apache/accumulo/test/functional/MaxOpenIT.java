@@ -17,56 +17,61 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.junit.Test;
 
 /**
- * A functional test that excercises hitting the max open file limit on a tablet server. This test assumes there are one or two tablet servers.
- * 
- * 
+ * A functional test that exercises hitting the max open file limit on a tablet server. This test assumes there are one or two tablet servers.
  */
 
-public class MaxOpenTest extends FunctionalTest {
+public class MaxOpenIT extends MacTest {
   
+  @Override
+  public void configure(MiniAccumuloConfig cfg) {
+    Map<String, String> conf = new HashMap<String, String>();
+    conf.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "4");
+    conf.put(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
+    conf.put(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "2");
+    cfg.setSiteConfig(conf);
+  }
+
   private static final int NUM_TABLETS = 16;
   private static final int NUM_TO_INGEST = 10000;
   
-  @Override
-  public void cleanup() {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return parseConfig(Property.TSERV_SCAN_MAX_OPENFILES + "=4", Property.TSERV_MAJC_MAXCONCURRENT + "=1", Property.TSERV_MAJC_THREAD_MAXOPEN + "=2");
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    Map<String,String> config = parseConfig(Property.TABLE_MAJC_RATIO + "=10");
-    TableSetup ts = new TableSetup("test_ingest", config, TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
-    return Collections.singletonList(ts);
-  }
-  
-  @Override
+  @Test
   public void run() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("test_ingest");
+    c.tableOperations().setProperty("test_ingest", Property.TABLE_MAJC_RATIO.getKey(), "10");
+    c.tableOperations().addSplits("test_ingest", TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
     
     // the following loop should create three tablets in each map file
     for (int i = 0; i < 3; i++) {
+      TestIngest.Opts opts = new TestIngest.Opts();
+      opts.timestamp = i;
+      opts.dataSize = 50;
+      opts.rows = NUM_TO_INGEST;
+      opts.cols = 1;
+      opts.random = i;
+      TestIngest.ingest(c, opts, new BatchWriterOpts());
       
-      TestIngest.main(new String[] {"-random", "" + i, "-timestamp", "" + i, "-size", "" + 50, "" + NUM_TO_INGEST, "0", "1"});
-      
-      getConnector().tableOperations().flush("test_ingest", null, null, true);
-      checkRFiles("test_ingest", NUM_TABLETS, NUM_TABLETS, i + 1, i + 1);
+      c.tableOperations().flush("test_ingest", null, null, true);
+      FunctionalTestUtils.checkRFiles(c, "test_ingest", NUM_TABLETS, NUM_TABLETS, i + 1, i + 1);
     }
     
     List<Range> ranges = new ArrayList<Range>(NUM_TO_INGEST);
@@ -75,18 +80,18 @@ public class MaxOpenTest extends FunctionalTest {
       ranges.add(new Range(TestIngest.generateRow(i, 0)));
     }
     
-    long time1 = batchScan(ranges, 1);
+    long time1 = batchScan(c, ranges, 1);
     // run it again, now that stuff is cached on the client and sever
-    time1 = batchScan(ranges, 1);
-    long time2 = batchScan(ranges, NUM_TABLETS);
+    time1 = batchScan(c, ranges, 1);
+    long time2 = batchScan(c, ranges, NUM_TABLETS);
     
     System.out.printf("Single thread scan time   %6.2f %n", time1 / 1000.0);
     System.out.printf("Multiple thread scan time %6.2f %n", time2 / 1000.0);
     
   }
   
-  private long batchScan(List<Range> ranges, int threads) throws Exception {
-    BatchScanner bs = getConnector().createBatchScanner("test_ingest", TestIngest.AUTHS, threads);
+  private long batchScan(Connector c, List<Range> ranges, int threads) throws Exception {
+    BatchScanner bs = c.createBatchScanner("test_ingest", TestIngest.AUTHS, threads);
     
     bs.setRanges(ranges);
     

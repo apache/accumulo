@@ -16,14 +16,20 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.test.functional.FunctionalTestUtils.checkRFiles;
+import static org.apache.accumulo.test.functional.FunctionalTestUtils.nm;
+
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -31,42 +37,42 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.RowDeletingIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class RowDeleteTest extends FunctionalTest {
+public class RowDeleteIT extends MacTest {
+
   
   @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    HashMap<String,String> conf = new HashMap<String,String>();
-    conf.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
-    return conf;
+  public void configure(MiniAccumuloConfig cfg) {
+    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "50ms"));
   }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    TableSetup ts1 = new TableSetup("rdel1", parseConfig(Property.TABLE_LOCALITY_GROUPS + "=lg1,dg", Property.TABLE_LOCALITY_GROUP_PREFIX + "lg1=foo",
-        Property.TABLE_LOCALITY_GROUP_PREFIX + "dg=",
-        Property.TABLE_ITERATOR_PREFIX + "" + IteratorScope.majc + ".rdel=30," + RowDeletingIterator.class.getName(), Property.TABLE_MAJC_RATIO + "=100"));
-    return Collections.singletonList(ts1);
-  }
-  
-  @Override
+
+  @Test(timeout=30*1000)
   public void run() throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter("rdel1", new BatchWriterConfig());
+    Connector c = getConnector();
+    c.tableOperations().create("rdel1");
+    Map<String,Set<Text>> groups = new HashMap<String, Set<Text>>();
+    groups.put("lg1", Collections.singleton(new Text("foo")));
+    groups.put("dg", Collections.<Text>emptySet());
+    c.tableOperations().setLocalityGroups("rdel1", groups);
+    IteratorSetting setting = new IteratorSetting(30, RowDeletingIterator.class);
+    c.tableOperations().attachIterator("rdel1", setting, EnumSet.of(IteratorScope.majc));
+    c.tableOperations().setProperty("rdel1", Property.TABLE_MAJC_RATIO.getKey(), "100");
+    
+    BatchWriter bw = c.createBatchWriter("rdel1", new BatchWriterConfig());
     
     bw.addMutation(nm("r1", "foo", "cf1", "v1"));
     bw.addMutation(nm("r1", "bar", "cf1", "v2"));
     
     bw.flush();
-    getConnector().tableOperations().flush("rdel1", null, null, true);
+    c.tableOperations().flush("rdel1", null, null, true);
     
-    checkRFiles("rdel1", 1, 1, 1, 1);
+    checkRFiles(c, "rdel1", 1, 1, 1, 1);
     
     int count = 0;
-    Scanner scanner = getConnector().createScanner("rdel1", Authorizations.EMPTY);
+    Scanner scanner = c.createScanner("rdel1", Authorizations.EMPTY);
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
       count++;
@@ -77,15 +83,12 @@ public class RowDeleteTest extends FunctionalTest {
     bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
     
     bw.flush();
-    getConnector().tableOperations().flush("rdel1", null, null, true);
+    c.tableOperations().flush("rdel1", null, null, true);
     
-    // Wait for the files in HDFS to be older than the future compaction date
-    UtilWaitThread.sleep(2000);
-    
-    checkRFiles("rdel1", 1, 1, 2, 2);
+    checkRFiles(c, "rdel1", 1, 1, 2, 2);
     
     count = 0;
-    scanner = getConnector().createScanner("rdel1", Authorizations.EMPTY);
+    scanner = c.createScanner("rdel1", Authorizations.EMPTY);
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
       count++;
@@ -93,12 +96,12 @@ public class RowDeleteTest extends FunctionalTest {
     if (count != 3)
       throw new Exception("2 count=" + count);
     
-    getConnector().tableOperations().compact("rdel1", null, null, false, true);
+    c.tableOperations().compact("rdel1", null, null, false, true);
     
-    checkRFiles("rdel1", 1, 1, 0, 0);
+    checkRFiles(c, "rdel1", 1, 1, 0, 0);
     
     count = 0;
-    scanner = getConnector().createScanner("rdel1", Authorizations.EMPTY);
+    scanner = c.createScanner("rdel1", Authorizations.EMPTY);
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
       count++;

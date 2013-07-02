@@ -56,7 +56,7 @@ import org.junit.Test;
 
 public class ReadWriteIT extends MacTest {
   
-  static final int ROWS = 20000;
+  static final int ROWS = 200000;
   static final int COLS = 1;
   static final String COLF = "colf";
   
@@ -81,11 +81,11 @@ public class ReadWriteIT extends MacTest {
     monitor.destroy();
   }
   
-  public void ingest(Connector connector, int rows, int cols, int width, int offset) throws Exception {
+  public static void ingest(Connector connector, int rows, int cols, int width, int offset) throws Exception {
     ingest(connector, rows, cols, width, offset, COLF);
   }
   
-  public void ingest(Connector connector, int rows, int cols, int width, int offset, String colf) throws Exception {
+  public static void ingest(Connector connector, int rows, int cols, int width, int offset, String colf) throws Exception {
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.rows = rows;
     opts.cols = cols;
@@ -96,10 +96,10 @@ public class ReadWriteIT extends MacTest {
     TestIngest.ingest(connector, opts, new BatchWriterOpts());
   }
   
-  private void verify(Connector connector, int rows, int cols, int width, int offset) throws Exception {
+  private static void verify(Connector connector, int rows, int cols, int width, int offset) throws Exception {
     verify(connector, rows, cols, width, offset, COLF);
   }
-  private void verify(Connector connector, int rows, int cols, int width, int offset, String colf) throws Exception {
+  private static void verify(Connector connector, int rows, int cols, int width, int offset, String colf) throws Exception {
     ScannerOpts scannerOpts = new ScannerOpts();
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
     opts.rows = rows;
@@ -135,6 +135,10 @@ public class ReadWriteIT extends MacTest {
   public void interleaved() throws Exception {
     // read and write concurrently
     final Connector connector = getConnector();
+    interleaveTest(connector);
+  }
+ 
+  static void interleaveTest(final Connector connector) throws Exception {
     final AtomicBoolean fail = new AtomicBoolean(false);
     final int CHUNKSIZE = ROWS / 10;
     ingest(connector, CHUNKSIZE, 1, 50, 0);

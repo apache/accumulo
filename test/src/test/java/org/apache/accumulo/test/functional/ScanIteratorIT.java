@@ -19,13 +19,12 @@ package org.apache.accumulo.test.functional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -35,26 +34,16 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class ScanIteratorTest extends FunctionalTest {
+public class ScanIteratorIT extends MacTest {
   
-  @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.singletonList(new TableSetup("foo"));
-  }
-  
-  @Override
+  @Test(timeout=30*1000)
   public void run() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("foo");
     
-    BatchWriter bw = getConnector().createBatchWriter("foo", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter("foo", new BatchWriterConfig());
     
     for (int i = 0; i < 1000; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
@@ -66,12 +55,12 @@ public class ScanIteratorTest extends FunctionalTest {
     
     bw.close();
     
-    Scanner scanner = getConnector().createScanner("foo", new Authorizations());
+    Scanner scanner = c.createScanner("foo", new Authorizations());
     
     setupIter(scanner);
     verify(scanner, 1, 999);
     
-    BatchScanner bscanner = getConnector().createBatchScanner("foo", new Authorizations(), 3);
+    BatchScanner bscanner = c.createBatchScanner("foo", new Authorizations(), 3);
     bscanner.setRanges(Collections.singleton(new Range((Key) null, null)));
     
     setupIter(bscanner);

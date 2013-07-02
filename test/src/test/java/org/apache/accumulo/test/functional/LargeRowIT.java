@@ -16,15 +16,14 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -33,12 +32,19 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.junit.Test;
 
-public class LargeRowTest extends FunctionalTest {
+public class LargeRowIT extends MacTest {
   
+  @Override
+  public void configure(MiniAccumuloConfig cfg) {
+    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "10ms"));
+  }
+
   private static final int SEED = 42;
   private static final String REG_TABLE_NAME = "lr";
   private static final String PRE_SPLIT_TABLE_NAME = "lrps";
@@ -47,67 +53,44 @@ public class LargeRowTest extends FunctionalTest {
   private static final int NUM_PRE_SPLITS = 9;
   private static final int SPLIT_THRESH = ROW_SIZE * NUM_ROWS / NUM_PRE_SPLITS;
   
-  @Override
-  public void cleanup() {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return parseConfig(Property.TSERV_MAJC_DELAY + "=10ms");
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    
+  @Test(timeout=60*1000)
+  public void run() throws Exception {
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];
     r.setSeed(SEED + 1);
-    
     TreeSet<Text> splitPoints = new TreeSet<Text>();
-    
     for (int i = 0; i < NUM_PRE_SPLITS; i++) {
       r.nextBytes(rowData);
       TestIngest.toPrintableChars(rowData);
       splitPoints.add(new Text(rowData));
     }
-    
-    ArrayList<TableSetup> tables = new ArrayList<TableSetup>();
-    
-    tables.add(new TableSetup(REG_TABLE_NAME));
-    tables.add(new TableSetup(PRE_SPLIT_TABLE_NAME, splitPoints));
-    
-    return tables;
-    // return Collections.singletonList(new TableSetup(TABLE_NAME));
+    Connector c = getConnector();
+    c.tableOperations().create(REG_TABLE_NAME);
+    c.tableOperations().create(PRE_SPLIT_TABLE_NAME);
+    c.tableOperations().addSplits(PRE_SPLIT_TABLE_NAME, splitPoints);
+    test1(c);
+    test2(c);
   }
   
-  @Override
-  public void run() throws Exception {
+  private void test1(Connector c) throws Exception {
     
-    // Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
-    // logger.setLevel(Level.TRACE);
+    basicTest(c, REG_TABLE_NAME, 0);
     
-    test1();
-    test2();
-  }
-  
-  private void test1() throws Exception {
-    
-    basicTest(REG_TABLE_NAME, 0);
-    
-    getConnector().tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "" + SPLIT_THRESH);
+    c.tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "" + SPLIT_THRESH);
     
     UtilWaitThread.sleep(12000);
-    Logger.getLogger(LargeRowTest.class).warn("checking splits");
-    checkSplits(REG_TABLE_NAME, NUM_PRE_SPLITS / 2, NUM_PRE_SPLITS * 4);
+    Logger.getLogger(LargeRowIT.class).warn("checking splits");
+    FunctionalTestUtils.checkSplits(c, REG_TABLE_NAME, NUM_PRE_SPLITS / 2, NUM_PRE_SPLITS * 4);
     
-    verify(REG_TABLE_NAME);
+    verify(c, REG_TABLE_NAME);
   }
   
-  private void test2() throws Exception {
-    basicTest(PRE_SPLIT_TABLE_NAME, NUM_PRE_SPLITS);
+  private void test2(Connector c) throws Exception {
+    basicTest(c, PRE_SPLIT_TABLE_NAME, NUM_PRE_SPLITS);
   }
   
-  private void basicTest(String table, int expectedSplits) throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
+  private void basicTest(Connector c, String table, int expectedSplits) throws Exception {
+    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
     
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];
@@ -126,34 +109,34 @@ public class LargeRowTest extends FunctionalTest {
     
     bw.close();
     
-    checkSplits(table, expectedSplits, expectedSplits);
+    FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
     
-    verify(table);
+    verify(c, table);
     
-    checkSplits(table, expectedSplits, expectedSplits);
+    FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
     
-    getConnector().tableOperations().flush(table, null, null, false);
+    c.tableOperations().flush(table, null, null, false);
     
     // verify while table flush is running
-    verify(table);
+    verify(c, table);
     
     // give split time to complete
-    getConnector().tableOperations().flush(table, null, null, true);
+    c.tableOperations().flush(table, null, null, true);
     
-    checkSplits(table, expectedSplits, expectedSplits);
+    FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
     
-    verify(table);
+    verify(c, table);
     
-    checkSplits(table, expectedSplits, expectedSplits);
+    FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
   }
   
-  private void verify(String table) throws Exception {
+  private void verify(Connector c, String table) throws Exception {
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];
     
     r.setSeed(SEED);
     
-    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
+    Scanner scanner = c.createScanner(table, Authorizations.EMPTY);
     
     for (int i = 0; i < NUM_ROWS; i++) {
       

@@ -16,14 +16,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -31,27 +29,19 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
 /**
  * This test recreates issue ACCUMULO-516. Until that issue is fixed this test should time out.
  */
-public class SparseColumnFamilyTest extends FunctionalTest {
+public class SparseColumnFamilyIT extends MacTest {
   
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.emptyList();
-  }
-  
-  @Override
-  public void run() throws Exception {
-    getConnector().tableOperations().create("scftt");
+  @Test(timeout=30*1000)
+  public void sparceColumnFamily() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("scftt");
     
-    BatchWriter bw = getConnector().createBatchWriter("scftt", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter("scftt", new BatchWriterConfig());
     
     // create file in the tablet that has mostly column family 0, with a few entries for column family 1
     
@@ -62,7 +52,7 @@ public class SparseColumnFamilyTest extends FunctionalTest {
     bw.addMutation(nm(99999 * 2, 1, 99999));
     bw.flush();
     
-    getConnector().tableOperations().flush("scftt", null, null, true);
+    c.tableOperations().flush("scftt", null, null, true);
     
     // create a file that has column family 1 and 0 interleaved
     for (int i = 0; i < 100000; i++) {
@@ -70,9 +60,9 @@ public class SparseColumnFamilyTest extends FunctionalTest {
     }
     bw.close();
     
-    getConnector().tableOperations().flush("scftt", null, null, true);
+    c.tableOperations().flush("scftt", null, null, true);
     
-    Scanner scanner = getConnector().createScanner("scftt", Authorizations.EMPTY);
+    Scanner scanner = c.createScanner("scftt", Authorizations.EMPTY);
     
     for (int i = 0; i < 200; i++) {
       
@@ -109,8 +99,4 @@ public class SparseColumnFamilyTest extends FunctionalTest {
     m.put(String.format("%03d", cf), "", "" + val);
     return m;
   }
-  
-  @Override
-  public void cleanup() throws Exception {}
-  
 }

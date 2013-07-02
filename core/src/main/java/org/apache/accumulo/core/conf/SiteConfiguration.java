@@ -49,7 +49,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
       xmlConfig = new Configuration(false);
       
       if (SiteConfiguration.class.getClassLoader().getResource(configFile) == null)
-        log.warn(configFile + " not found on classpath");
+        log.warn(configFile + " not found on classpath", new Throwable());
       else
         xmlConfig.addResource(configFile);
     }

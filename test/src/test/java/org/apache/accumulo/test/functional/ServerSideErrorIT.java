@@ -17,13 +17,12 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -35,34 +34,19 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class ServerSideErrorTest extends FunctionalTest {
+public class ServerSideErrorIT extends MacTest {
   
-  @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.emptyList();
-  }
-  
-  @Override
+  @Test
   public void run() throws Exception {
-    
-    // Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
-    // logger.setLevel(Level.TRACE);
-    
-    getConnector().tableOperations().create("tt");
+    Connector c = getConnector();
+    c.tableOperations().create("tt");
     IteratorSetting is = new IteratorSetting(5, "Bad Aggregator", BadCombiner.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("acf")));
-    getConnector().tableOperations().attachIterator("tt", is);
+    c.tableOperations().attachIterator("tt", is);
     
-    BatchWriter bw = getConnector().createBatchWriter("tt", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter("tt", new BatchWriterConfig());
     
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
@@ -72,7 +56,7 @@ public class ServerSideErrorTest extends FunctionalTest {
     bw.close();
     
     // try to scan table
-    Scanner scanner = getConnector().createScanner("tt", Authorizations.EMPTY);
+    Scanner scanner = c.createScanner("tt", Authorizations.EMPTY);
     
     boolean caught = false;
     try {
@@ -87,7 +71,7 @@ public class ServerSideErrorTest extends FunctionalTest {
       throw new Exception("Scan did not fail");
     
     // try to batch scan the table
-    BatchScanner bs = getConnector().createBatchScanner("tt", Authorizations.EMPTY, 2);
+    BatchScanner bs = c.createBatchScanner("tt", Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singleton(new Range()));
     
     caught = false;
@@ -103,7 +87,7 @@ public class ServerSideErrorTest extends FunctionalTest {
       throw new Exception("batch scan did not fail");
     
     // remove the bad agg so accumulo can shutdown
-    TableOperations to = getConnector().tableOperations();
+    TableOperations to = c.tableOperations();
     for (Entry<String,String> e : to.getProperties("tt")) {
       to.removeProperty("tt", e.getKey());
     }
@@ -111,7 +95,7 @@ public class ServerSideErrorTest extends FunctionalTest {
     UtilWaitThread.sleep(500);
     
     // should be able to scan now
-    scanner = getConnector().createScanner("tt", Authorizations.EMPTY);
+    scanner = c.createScanner("tt", Authorizations.EMPTY);
     for (Entry<Key,Value> entry : scanner) {
       entry.getKey();
     }

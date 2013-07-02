@@ -32,17 +32,22 @@ public class DeleteIT extends MacTest {
   @Test(timeout=60*1000)
   public void test() throws Exception {
     Connector c = getConnector();
+    c.tableOperations().create("test_ingest");
+    deleteTest(c);
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+  }
+
+  public static void deleteTest(Connector c) throws Exception {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     TestIngest.Opts opts = new TestIngest.Opts();
-    vopts.rows = opts.rows = 10000;
+    vopts.rows = opts.rows = 1000;
     vopts.cols = opts.cols = 1;
     vopts.random = opts.random = 56;
-    opts.createTable = true;
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     assertEquals(0, cluster.exec(TestRandomDeletes.class, "-p", MacTest.PASSWORD, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers()).waitFor());
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
+  
   
 }

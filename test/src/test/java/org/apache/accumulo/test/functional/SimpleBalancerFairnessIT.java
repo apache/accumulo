@@ -18,7 +18,10 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.Connector;
@@ -37,50 +40,51 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.junit.Test;
 
-public class DynamicThreadPoolsIT extends MacTest {
+public class SimpleBalancerFairnessIT extends MacTest {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1"));
+    Map<String,String> siteConfig = new HashMap<String, String>();
+    siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
+    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
+    cfg.setSiteConfig(siteConfig );
   }
   
-  @Test(timeout=90*1000)
-  public void test() throws Exception {
+  @Test(timeout=120*1000)
+  public void simpleBalancerFairness() throws Exception {
     Connector c = getConnector();
+    c.tableOperations().create("test_ingest");
+    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+    c.tableOperations().create("unused");
+    c.tableOperations().addSplits("unused", TestIngest.getSplitPoints(0, 10000000, 2000));
+    List<String> tservers = c.instanceOperations().getTabletServers();
     TestIngest.Opts opts = new TestIngest.Opts();
-    opts.rows = 100000;
-    opts.createTable = true;
+    opts.rows = 200000;
     TestIngest.ingest(c, opts, new BatchWriterOpts());
-    c.tableOperations().flush("test_ingest", null, null, true);
-    c.tableOperations().clone("test_ingest", "test_ingest2", true, null, null);
-    c.tableOperations().clone("test_ingest", "test_ingest3", true, null, null);
-    c.tableOperations().clone("test_ingest", "test_ingest4", true, null, null);
-    c.tableOperations().clone("test_ingest", "test_ingest5", true, null, null);
-    c.tableOperations().clone("test_ingest", "test_ingest6", true, null, null);
-    c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
-    
+    c.tableOperations().flush("test_ingest", null, null, false);
+    UtilWaitThread.sleep(15*1000);
     TCredentials creds = CredentialHelper.create("root", new PasswordToken(MacTest.PASSWORD), c.getInstance().getInstanceName());
-    UtilWaitThread.sleep(10);
-    for (int i = 2; i < 7; i++)
-      c.tableOperations().compact("test_ingest" + i, null, null, true, false);
-    int count = 0;
-    while (count == 0) {
-      MasterClientService.Iface client = null;
-      MasterMonitorInfo stats = null;
-      try {
-        client = MasterClient.getConnectionWithRetry(c.getInstance());
-        stats = client.getMasterStats(Tracer.traceInfo(), creds);
-      } finally {
-        if (client != null)
-          MasterClient.close(client);
-      }
-      for (TabletServerStatus server: stats.tServerInfo) {
-        for (TableInfo table : server.tableMap.values()) {
-          count += table.majors.running;
-        }
-      }
+    
+    MasterClientService.Iface client = null;
+    MasterMonitorInfo stats = null;
+    try {
+      client = MasterClient.getConnectionWithRetry(c.getInstance());
+      stats = client.getMasterStats(Tracer.traceInfo(), creds);
+    } finally {
+      if (client != null)
+        MasterClient.close(client);
     }
-    assertTrue(count == 1 || count == 2); // sometimes we get two threads due to the way the stats are pulled
+    List<Integer> counts = new ArrayList<Integer>();
+    for (TabletServerStatus server: stats.tServerInfo) {
+      int count = 0;
+      for (TableInfo table : server.tableMap.values()) {
+        count += table.onlineTablets;
+      }
+      counts.add(count);
+    }
+    assertTrue(counts.size() > 1);
+    for (int i = 1; i < counts.size(); i++)
+      assertTrue(Math.abs(counts.get(0) - counts.get(i)) <= tservers.size());
   }
   
 }

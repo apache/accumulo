@@ -17,42 +17,36 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
 /**
  * See ACCUMULO-779
  */
-public class FateStarvationTest extends FunctionalTest {
+public class FateStarvationIT extends MacTest {
   
-  @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.emptyList();
-  }
-  
-  @Override
+  @Test(timeout=60*1000)
   public void run() throws Exception {
-    getConnector().tableOperations().create("test_ingest");
+    Connector c = getConnector();
+    c.tableOperations().create("test_ingest");
     
-    getConnector().tableOperations().addSplits("test_ingest", TestIngest.getSplitPoints(0, 100000, 50));
+    c.tableOperations().addSplits("test_ingest", TestIngest.getSplitPoints(0, 100000, 50));
     
-    TestIngest.main(new String[] {"-random", "89", "-timestamp", "7", "-size", "" + 50, "100000", "0", "1"});
+    TestIngest.Opts opts = new TestIngest.Opts();
+    opts.random = 89;
+    opts.timestamp = 7;
+    opts.dataSize = 50;
+    opts.rows = 100000;
+    opts.cols = 1;
+    TestIngest.ingest(c, opts, new BatchWriterOpts());
     
-    getConnector().tableOperations().flush("test_ingest", null, null, true);
+    c.tableOperations().flush("test_ingest", null, null, true);
     
     List<Text> splits = new ArrayList<Text>(TestIngest.getSplitPoints(0, 100000, 67));
     Random rand = new Random();
@@ -61,17 +55,10 @@ public class FateStarvationTest extends FunctionalTest {
       int idx1 = rand.nextInt(splits.size() - 1);
       int idx2 = rand.nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
       
-      getConnector().tableOperations().compact("test_ingest", splits.get(idx1), splits.get(idx2), false, false);
+      c.tableOperations().compact("test_ingest", splits.get(idx1), splits.get(idx2), false, false);
     }
     
-    getConnector().tableOperations().offline("test_ingest");
+    c.tableOperations().offline("test_ingest");
   }
   
-  public static void main(String[] args) throws Exception {
-    ArrayList<String> argsList = new ArrayList<String>();
-    argsList.addAll(Arrays.asList(args));
-    argsList.addAll(Arrays.asList(FateStarvationTest.class.getName(), "run"));
-    FunctionalTest.main(argsList.toArray(new String[0]));
-  }
-
 }

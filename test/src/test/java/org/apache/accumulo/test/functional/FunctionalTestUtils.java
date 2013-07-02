@@ -34,6 +34,7 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -149,6 +150,15 @@ public class FunctionalTestUtils {
     return readAll(new FileInputStream(c.getConfig().getLogDir() + "/" + klass.getSimpleName() + "_" + p.hashCode() + ".out"));
   }
   
+  static Mutation nm(String row, String cf, String cq, Value value) {
+    Mutation m = new Mutation(new Text(row));
+    m.put(new Text(cf), new Text(cq), value);
+    return m;
+  }
+  
+  static Mutation nm(String row, String cf, String cq, String value) {
+    return nm(row, cf, cq, new Value(value.getBytes()));
+  }
 
   
 }

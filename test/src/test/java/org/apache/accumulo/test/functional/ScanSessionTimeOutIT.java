@@ -17,14 +17,12 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -32,29 +30,23 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class ScanSessionTimeOutTest extends FunctionalTest {
+public class ScanSessionTimeOutIT extends MacTest {
   
   @Override
-  public void cleanup() throws Exception {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    HashMap<String,String> config = new HashMap<String,String>();
-    // set the session idle time 3 seconds
-    config.put(Property.TSERV_SESSION_MAXIDLE.getKey(), "3");
-    return config;
+  public void configure(MiniAccumuloConfig cfg) {
+    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_SESSION_MAXIDLE.getKey(), "3"));
   }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.singletonList(new TableSetup("abc"));
-  }
-  
-  @Override
+
+  @Test(timeout=30*1000)
   public void run() throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter("abc", new BatchWriterConfig());
+    Connector c = getConnector();
+    c.tableOperations().create("abc");
+    
+    BatchWriter bw = c.createBatchWriter("abc", new BatchWriterConfig());
     
     for (int i = 0; i < 100000; i++) {
       Mutation m = new Mutation(new Text(String.format("%08d", i)));
@@ -66,7 +58,7 @@ public class ScanSessionTimeOutTest extends FunctionalTest {
     
     bw.close();
     
-    Scanner scanner = getConnector().createScanner("abc", new Authorizations());
+    Scanner scanner = c.createScanner("abc", new Authorizations());
     scanner.setBatchSize(1000);
     
     Iterator<Entry<Key,Value>> iter = scanner.iterator();

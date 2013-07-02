@@ -16,15 +16,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -32,73 +29,59 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class ScanRangeTest extends FunctionalTest {
+public class ScanRangeIT extends MacTest {
   
   private static final int TS_LIMIT = 1;
   private static final int CQ_LIMIT = 5;
   private static final int CF_LIMIT = 5;
   private static final int ROW_LIMIT = 100;
   
-  @Override
-  public void cleanup() {}
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    ArrayList<TableSetup> ts = new ArrayList<TableSetup>();
-    ts.add(new TableSetup("table1"));
-    
+  @Test(timeout=30*1000)
+  public void run() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("table1");
+    c.tableOperations().create("table2");
     TreeSet<Text> splitRows = new TreeSet<Text>();
     int splits = 3;
     for (int i = (ROW_LIMIT / splits); i < ROW_LIMIT; i += (ROW_LIMIT / splits))
       splitRows.add(createRow(i));
+    c.tableOperations().addSplits("table2", splitRows);
     
-    Map<String,String> empty = Collections.emptyMap();
-    ts.add(new TableSetup("table2", empty, splitRows));
+    insertData(c, "table1");
+    scanTable(c, "table1");
     
-    return ts;
+    insertData(c, "table2");
+    scanTable(c, "table2");
   }
   
-  @Override
-  public void run() throws Exception {
-    insertData("table1");
-    scanTable("table1");
+  private void scanTable(Connector c, String table) throws Exception {
+    scanRange(c, table, new IntKey(0, 0, 0, 0), new IntKey(1, 0, 0, 0));
     
-    insertData("table2");
-    scanTable("table2");
-  }
-  
-  private void scanTable(String table) throws Exception {
-    scanRange(table, new IntKey(0, 0, 0, 0), new IntKey(1, 0, 0, 0));
+    scanRange(c, table, new IntKey(0, 0, 0, 0), new IntKey(ROW_LIMIT - 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
     
-    scanRange(table, new IntKey(0, 0, 0, 0), new IntKey(ROW_LIMIT - 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
-    
-    scanRange(table, null, null);
+    scanRange(c, table, null, null);
     
     for (int i = 0; i < ROW_LIMIT; i += (ROW_LIMIT / 3)) {
       for (int j = 0; j < CF_LIMIT; j += (CF_LIMIT / 2)) {
         for (int k = 1; k < CQ_LIMIT; k += (CQ_LIMIT / 2)) {
-          scanRange(table, null, new IntKey(i, j, k, 0));
-          scanRange(table, new IntKey(0, 0, 0, 0), new IntKey(i, j, k, 0));
+          scanRange(c, table, null, new IntKey(i, j, k, 0));
+          scanRange(c, table, new IntKey(0, 0, 0, 0), new IntKey(i, j, k, 0));
           
-          scanRange(table, new IntKey(i, j, k, 0), new IntKey(ROW_LIMIT - 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
+          scanRange(c, table, new IntKey(i, j, k, 0), new IntKey(ROW_LIMIT - 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
           
-          scanRange(table, new IntKey(i, j, k, 0), null);
+          scanRange(c, table, new IntKey(i, j, k, 0), null);
           
         }
       }
     }
     
     for (int i = 0; i < ROW_LIMIT; i++) {
-      scanRange(table, new IntKey(i, 0, 0, 0), new IntKey(i, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
+      scanRange(c, table, new IntKey(i, 0, 0, 0), new IntKey(i, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
       
       if (i > 0 && i < ROW_LIMIT - 1) {
-        scanRange(table, new IntKey(i - 1, 0, 0, 0), new IntKey(i + 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
+        scanRange(c, table, new IntKey(i - 1, 0, 0, 0), new IntKey(i + 1, CF_LIMIT - 1, CQ_LIMIT - 1, 0));
       }
     }
     
@@ -155,15 +138,15 @@ public class ScanRangeTest extends FunctionalTest {
     
   }
   
-  private void scanRange(String table, IntKey ik1, IntKey ik2) throws Exception {
-    scanRange(table, ik1, false, ik2, false);
-    scanRange(table, ik1, false, ik2, true);
-    scanRange(table, ik1, true, ik2, false);
-    scanRange(table, ik1, true, ik2, true);
+  private void scanRange(Connector c, String table, IntKey ik1, IntKey ik2) throws Exception {
+    scanRange(c, table, ik1, false, ik2, false);
+    scanRange(c, table, ik1, false, ik2, true);
+    scanRange(c, table, ik1, true, ik2, false);
+    scanRange(c, table, ik1, true, ik2, true);
   }
   
-  private void scanRange(String table, IntKey ik1, boolean inclusive1, IntKey ik2, boolean inclusive2) throws Exception {
-    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
+  private void scanRange(Connector c, String table, IntKey ik1, boolean inclusive1, IntKey ik2, boolean inclusive2) throws Exception {
+    Scanner scanner = c.createScanner(table, Authorizations.EMPTY);
     
     Key key1 = null;
     Key key2 = null;
@@ -227,9 +210,9 @@ public class ScanRangeTest extends FunctionalTest {
     return trow;
   }
   
-  private void insertData(String table) throws Exception {
+  private void insertData(Connector c, String table) throws Exception {
     
-    BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
     
     for (int i = 0; i < ROW_LIMIT; i++) {
       Mutation m = new Mutation(createRow(i));
