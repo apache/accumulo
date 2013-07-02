@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
 
@@ -38,13 +39,15 @@ import com.beust.jcommander.Parameter;
  */
 public class ReadData {
   
+  private static final Logger log = Logger.getLogger(ReadData.class);
+  
   static class Opts extends ClientOnRequiredTable {
     @Parameter(names="--startKey")
     String startKey;
     @Parameter(names="--endKey")
     String endKey;
   }
-  
+
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
@@ -67,8 +70,8 @@ public class ReadData {
       Entry<Key,Value> e = iter.next();
       Text colf = e.getKey().getColumnFamily();
       Text colq = e.getKey().getColumnQualifier();
-      System.out.print("row: " + e.getKey().getRow() + ", colf: " + colf + ", colq: " + colq);
-      System.out.println(", value: " + e.getValue().toString());
+      log.trace("row: " + e.getKey().getRow() + ", colf: " + colf + ", colq: " + colq);
+      log.trace(", value: " + e.getValue().toString());
     }
   }
 }

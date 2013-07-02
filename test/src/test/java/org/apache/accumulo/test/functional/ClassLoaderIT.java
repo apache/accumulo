@@ -61,11 +61,11 @@ public class ClassLoaderIT extends MacTest {
     IteratorSetting is = new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
     c.tableOperations().attachIterator("test", is, EnumSet.of(IteratorScope.scan));
-    UtilWaitThread.sleep(1000);
+    UtilWaitThread.sleep(5000);
     scanCheck(c, "TestX");
     fs.delete(jarPath, true);
     fs.copyFromLocalFile(new Path(System.getProperty("user.dir")+"/system/auto/TestCombinerY.jar"), jarPath);
-    UtilWaitThread.sleep(3000);
+    UtilWaitThread.sleep(5000);
     scanCheck(c, "TestY");
   }
 

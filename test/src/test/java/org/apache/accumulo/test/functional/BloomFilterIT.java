@@ -49,7 +49,7 @@ public class BloomFilterIT extends MacTest {
     cfg.setDefaultMemory(500, MemoryUnit.MEGABYTE);
   }
   
-  @Test(timeout=90*1000)
+  @Test(timeout=120*1000)
   public void test() throws Exception {
     Connector c = getConnector();
     for (String table : "bt1 bt2 bt3 bt4".split(" ")) {
