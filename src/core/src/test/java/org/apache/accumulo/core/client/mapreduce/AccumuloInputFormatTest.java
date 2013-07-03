@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -46,6 +47,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class AccumuloInputFormatTest {
@@ -351,6 +353,37 @@ public class AccumuloInputFormatTest {
     Mapper<Key,Value,Key,Value>.Context context = mapper.new Context(job.getConfiguration(), tac.getTaskAttemptID(), rr, null, null, null, ris);
     while (rr.nextKeyValue()) {
       mapper.map(rr.getCurrentKey(), rr.getCurrentValue(), context);
+    }
+  }
+  
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testRegex() throws Exception {
+    MockInstance mockInstance = new MockInstance("testmapinstance");
+    Connector c = mockInstance.getConnector("root", new byte[] {});
+    c.tableOperations().create("testtable3");
+    BatchWriter bw = c.createBatchWriter("testtable3", 10000L, 1000L, 4);
+    for (int i = 0; i < 100; i++) {
+      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      bw.addMutation(m);
+    }
+    bw.close();
+    
+    JobContext job = new JobContext(new Configuration(), new JobID());
+    AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable3", new Authorizations());
+    AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmapinstance");
+    final String regex = ".*1.*";
+    AccumuloInputFormat.setRegex(job, RegexType.ROW, regex);
+    AccumuloInputFormat input = new AccumuloInputFormat();
+    RangeInputSplit ris = new RangeInputSplit();
+    TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
+    RecordReader<Key,Value> rr = input.createRecordReader(ris, tac);
+    rr.initialize(ris, tac);
+    
+    Pattern p = Pattern.compile(regex);
+    while (rr.nextKeyValue()) {
+      Assert.assertTrue( p.matcher( rr.getCurrentKey().getRow().toString()).matches());
     }
   }
 }

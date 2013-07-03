@@ -1131,9 +1131,13 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
           scanner = new ClientSideIteratorScanner(scanner);
         }
         setupMaxVersions(conf, scanner);
-        IteratorSetting is = new IteratorSetting(50, RegExFilter.class);
-        RegExFilter.setRegexs(is, conf.get(ROW_REGEX), conf.get(COLUMN_FAMILY_REGEX), conf.get(COLUMN_QUALIFIER_REGEX), null, false);
-        scanner.addScanIterator(is);
+        if (conf.get(ROW_REGEX) != null || conf.get(COLUMN_FAMILY_REGEX) != null || conf.get(COLUMN_QUALIFIER_REGEX) != null ||
+            conf.get(VALUE_REGEX) != null) {
+          IteratorSetting is = new IteratorSetting(50, RegExFilter.class);
+          RegExFilter.setRegexs(is, conf.get(ROW_REGEX), conf.get(COLUMN_FAMILY_REGEX), conf.get(COLUMN_QUALIFIER_REGEX),
+            conf.get(VALUE_REGEX), false);
+          scanner.addScanIterator(is);
+        }
         setupIterators(conf, scanner);
       } catch (Exception e) {
         throw new IOException(e);
