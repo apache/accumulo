@@ -54,7 +54,7 @@ public class TestMultiTableIngest {
       scanner.setBatchSize(scanOpts.scanBatchSize);
       int count = i;
       for (Entry<Key,Value> elt : scanner) {
-        String expected = String.format("%05d", count);
+        String expected = String.format("%06d", count);
         if (!elt.getKey().getRow().toString().equals(expected))
           throw new RuntimeException("entry " + elt + " does not match expected " + expected + " in table " + table);
         count += tableNames.size();
@@ -96,7 +96,7 @@ public class TestMultiTableIngest {
       
       // populate
       for (int i = 0; i < opts.count; i++) {
-        Mutation m = new Mutation(new Text(String.format("%05d", i)));
+        Mutation m = new Mutation(new Text(String.format("%06d", i)));
         m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes()));
         b.getBatchWriter(tableNames.get(i % tableNames.size())).addMutation(m);
       }

@@ -48,7 +48,7 @@ public class SplitIT extends MacTest {
   public void configure(MiniAccumuloConfig cfg) {
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "5K");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1s");
+    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
     cfg.setSiteConfig(siteConfig);
   }
   
@@ -92,8 +92,8 @@ public class SplitIT extends MacTest {
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
     ReadWriteIT.interleaveTest(c);
-    UtilWaitThread.sleep(5 * 1000);
-    assertTrue(c.tableOperations().listSplits("test_ingest").size() > 10);
+    UtilWaitThread.sleep(5*1000);
+    assertTrue(c.tableOperations().listSplits("test_ingest").size() > 20);
   }
   
   @Test(timeout = 120 * 1000)
@@ -102,6 +102,8 @@ public class SplitIT extends MacTest {
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     DeleteIT.deleteTest(c);
+    c.tableOperations().flush("test_ingest", null, null, true);
+    UtilWaitThread.sleep(5*1000);
     assertTrue(c.tableOperations().listSplits("test_ingest").size() > 30);
   }
   

@@ -42,7 +42,7 @@ import org.junit.Test;
  */
 public class TimeoutIT extends MacTest {
   
-  @Test
+  @Test(timeout=30*1000)
   public void run() throws Exception {
     Connector conn = getConnector();
     testBatchWriterTimeout(conn);

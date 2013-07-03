@@ -45,7 +45,7 @@ public class BinaryIT extends MacTest {
     runTest(c);
   }
   
-  void runTest(Connector c) throws Exception {
+  public static void runTest(Connector c) throws Exception {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     ScannerOpts scanOpts = new ScannerOpts();
     TestBinaryRows.Opts opts = new TestBinaryRows.Opts();

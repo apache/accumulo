@@ -16,35 +16,18 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
+import org.junit.Test;
 
-public class CreateManyScannersTest extends FunctionalTest {
+public class CreateManyScannersIT extends MacTest {
   
-  @Override
-  public void cleanup() throws Exception {
-    
-  }
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Collections.singletonList(new TableSetup("mscant"));
-  }
-  
-  @Override
+  @Test(timeout=10*1000)
   public void run() throws Exception {
-    Connector connector = getConnector();
+    Connector c = getConnector();
+    c.tableOperations().create("mscant");
     for (int i = 0; i < 100000; i++) {
-      connector.createScanner("mscant", Authorizations.EMPTY);
+      c.createScanner("mscant", Authorizations.EMPTY);
     }
   }
   

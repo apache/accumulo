@@ -23,8 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.SortedSet;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -159,6 +161,12 @@ public class FunctionalTestUtils {
   
   static Mutation nm(String row, String cf, String cq, String value) {
     return nm(row, cf, cq, new Value(value.getBytes()));
+  }
+  public static SortedSet<Text> splits(String [] splits) {
+    SortedSet<Text> result = new TreeSet<Text>();
+    for (String split : splits)
+      result.add(new Text(split));
+    return result;
   }
   
 }
