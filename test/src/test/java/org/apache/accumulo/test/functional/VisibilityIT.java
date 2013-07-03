@@ -17,7 +17,6 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +31,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -42,34 +42,23 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class VisibilityTest extends FunctionalTest {
+public class VisibilityIT extends MacTest {
   
-  @Override
-  public void cleanup() throws Exception {
-    
-  }
-  
-  @Override
-  public Map<String,String> getInitialConfig() {
-    return Collections.emptyMap();
-  }
-  
-  @Override
-  public List<TableSetup> getTablesToCreate() {
-    return Arrays.asList(new TableSetup[] {new TableSetup("vt"),
-        new TableSetup("vt2", Collections.singletonMap(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "DEFLABEL"))});
-  }
-  
-  @Override
+  @Test
   public void run() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("vt");
+    c.tableOperations().create("vt2");
+    c.tableOperations().setProperty("vt2", Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "DEFLABEL");
     
-    insertData();
-    queryData();
-    deleteData();
+    insertData(c);
+    queryData(c);
+    deleteData(c);
     
-    insertDefaultData();
-    queryDefaultData();
+    insertDefaultData(c);
+    queryDefaultData(c);
     
   }
   
@@ -93,9 +82,9 @@ public class VisibilityTest extends FunctionalTest {
     m.putDelete(new Text(cf), new Text(cq), le);
   }
   
-  private void insertData() throws Exception {
+  private void insertData(Connector c) throws Exception {
     
-    BatchWriter bw = getConnector().createBatchWriter("vt", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter("vt", new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
     
     mput(m1, "cf1", "cq1", "", "v1");
@@ -116,9 +105,9 @@ public class VisibilityTest extends FunctionalTest {
     bw.close();
   }
   
-  private void deleteData() throws Exception {
+  private void deleteData(Connector c) throws Exception {
     
-    BatchWriter bw = getConnector().createBatchWriter("vt", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter("vt", new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
     
     mputDelete(m1, "cf1", "cq1", "");
@@ -145,11 +134,11 @@ public class VisibilityTest extends FunctionalTest {
     expected.put(nss("FOO"), nss("v11"));
     expected.put(nss("A", "FOO"), nss("v9"));
     
-    queryData(nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "FOO", "L", "M", "Z"), expected);
+    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "FOO", "L", "M", "Z"), expected);
   }
   
-  private void insertDefaultData() throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter("vt2", new BatchWriterConfig());
+  private void insertDefaultData(Connector c) throws Exception {
+    BatchWriter bw = c.createBatchWriter("vt2", new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
     
     mput(m1, "cf1", "cq1", "BASE", "v1");
@@ -175,7 +164,7 @@ public class VisibilityTest extends FunctionalTest {
     }
   }
   
-  private void queryData() throws Exception {
+  private void queryData(Connector c) throws Exception {
     Map<Set<String>,Set<String>> expected = new HashMap<Set<String>,Set<String>>();
     expected.put(nss(), nss("v1"));
     expected.put(nss("A"), nss("v2"));
@@ -196,16 +185,16 @@ public class VisibilityTest extends FunctionalTest {
     expected.put(nss("B", "FOO", "L"), nss("v12"));
     expected.put(nss("B", "FOO", "M"), nss("v12"));
     
-    queryData(nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "FOO", "L", "M", "Z"), expected);
-    queryData(nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "L", "M", "Z"), expected);
-    queryData(nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "Z"), expected);
-    queryData(nss("A", "B", "FOO", "L", "M", "Z"), nss("Z"), expected);
-    queryData(nss("A", "B", "FOO", "L", "M", "Z"), nss(), expected);
+    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "FOO", "L", "M", "Z"), expected);
+    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "L", "M", "Z"), expected);
+    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "Z"), expected);
+    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss("Z"), expected);
+    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss(), expected);
   }
   
-  private void queryData(Set<String> allAuths, Set<String> userAuths, Map<Set<String>,Set<String>> expected) throws Exception {
+  private void queryData(Connector c, Set<String> allAuths, Set<String> userAuths, Map<Set<String>,Set<String>> expected) throws Exception {
     
-    getConnector().securityOperations().changeUserAuthorizations(getPrincipal(), new Authorizations(nbas(userAuths)));
+    c.securityOperations().changeUserAuthorizations("root", new Authorizations(nbas(userAuths)));
     
     ArrayList<Set<String>> combos = new ArrayList<Set<String>>();
     uniqueCombos(combos, nss(), allAuths);
@@ -223,16 +212,16 @@ public class VisibilityTest extends FunctionalTest {
       }
       
       set1.retainAll(userAuths);
-      verify(set1, e);
+      verify(c, set1, e);
     }
     
   }
   
-  private void queryDefaultData() throws Exception {
+  private void queryDefaultData(Connector c) throws Exception {
     Scanner scanner;
     
     // should return no records
-    getConnector().securityOperations().changeUserAuthorizations(getPrincipal(), new Authorizations("BASE", "DEFLABEL"));
+    c.securityOperations().changeUserAuthorizations("root", new Authorizations("BASE", "DEFLABEL"));
     scanner = getConnector().createScanner("vt2", new Authorizations());
     verifyDefault(scanner, 0);
     
@@ -253,11 +242,11 @@ public class VisibilityTest extends FunctionalTest {
       throw new Exception(" expected count !=0 " + expectedCount);
   }
   
-  private void verify(Set<String> auths, Set<String> expectedValues) throws Exception {
+  private void verify(Connector c, Set<String> auths, Set<String> expectedValues) throws Exception {
     ByteArraySet bas = nbas(auths);
     
     try {
-      verify(bas, expectedValues.toArray(new String[0]));
+      verify(c, bas, expectedValues.toArray(new String[0]));
     } catch (Exception e) {
       throw new Exception("Verification failed auths=" + auths + " exp=" + expectedValues, e);
     }
@@ -271,8 +260,8 @@ public class VisibilityTest extends FunctionalTest {
     return bas;
   }
   
-  private void verify(ByteArraySet nss, String... expected) throws Exception {
-    Scanner scanner = getConnector().createScanner("vt", new Authorizations(nss));
+  private void verify(Connector c, ByteArraySet nss, String... expected) throws Exception {
+    Scanner scanner = c.createScanner("vt", new Authorizations(nss));
     verify(scanner.iterator(), expected);
     
     BatchScanner bs = getConnector().createBatchScanner("vt", new Authorizations(nss), 3);

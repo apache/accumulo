@@ -56,7 +56,7 @@ import org.junit.Test;
 
 public class ReadWriteIT extends MacTest {
   
-  static final int ROWS = 200000;
+  static final int ROWS = 20000;
   static final int COLS = 1;
   static final String COLF = "colf";
   
@@ -226,7 +226,7 @@ public class ReadWriteIT extends MacTest {
     assertTrue(foundFile);
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout=90*1000)
   public void localityGroupChange() throws Exception {
     // Make changes to locality groups and ensure nothing is lostssh
     final Connector connector = getConnector();
