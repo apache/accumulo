@@ -26,7 +26,9 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -43,7 +45,7 @@ public class RemoveEntriesForMissingFiles {
   private static Logger log = Logger.getLogger(RemoveEntriesForMissingFiles.class);
   
   static class Opts extends ClientOpts {
-    @Parameter(names="--fix")
+    @Parameter(names = "--fix")
     boolean fix = false;
   }
   
@@ -56,11 +58,11 @@ public class RemoveEntriesForMissingFiles {
     Connector connector = opts.getConnector();
     Scanner metadata = connector.createScanner(MetadataTable.NAME, opts.auths);
     metadata.setBatchSize(scanOpts.scanBatchSize);
-    metadata.setRange(MetadataTable.KEYSPACE);
-    metadata.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+    metadata.setRange(MetadataSchema.TabletsSection.getRange());
+    metadata.fetchColumnFamily(DataFileColumnFamily.NAME);
     int count = 0;
     int missing = 0;
-    BatchWriter writer = null; 
+    BatchWriter writer = null;
     if (opts.fix)
       writer = connector.createBatchWriter(MetadataTable.NAME, bwOpts.getBatchWriterConfig());
     for (Entry<Key,Value> entry : metadata) {

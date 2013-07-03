@@ -31,10 +31,11 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.hadoop.io.Text;
 
 public abstract class TabletLocator {
@@ -91,7 +92,7 @@ public abstract class TabletLocator {
   
   private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<LocatorKey,TabletLocator>();
   
-  public static synchronized TabletLocator getInstance(Instance instance, Text tableId) {
+  public static synchronized TabletLocator getLocator(Instance instance, Text tableId) {
     
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
@@ -101,9 +102,9 @@ public abstract class TabletLocator {
       if (tableId.toString().equals(RootTable.ID)) {
         tl = new RootTabletLocator(instance);
       } else if (tableId.toString().equals(MetadataTable.ID)) {
-        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), getInstance(instance, new Text(RootTable.ID)), mlo);
+        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), getLocator(instance, new Text(RootTable.ID)), mlo);
       } else {
-        tl = new TabletLocatorImpl(tableId, getInstance(instance, new Text(MetadataTable.ID)), mlo);
+        tl = new TabletLocatorImpl(tableId, getLocator(instance, new Text(MetadataTable.ID)), mlo);
       }
       locators.put(key, tl);
     }

@@ -44,16 +44,19 @@ import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.util.MetadataTable.LogEntry;
+import org.apache.accumulo.server.util.MetadataTableUtil.LogEntry;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -126,7 +129,7 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     this.conf = conf;
     List<LogEntry> rwal;
     try {
-      rwal = MetadataTable.getLogEntries(null, RootTable.EXTENT);
+      rwal = MetadataTableUtil.getLogEntries(null, RootTable.EXTENT);
     } catch (Exception e) {
       throw new RuntimeException("Failed to check if root tablet has write ahead log entries", e);
     }
@@ -144,15 +147,15 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     List<SortedKeyValueIterator<Key,Value>> readers = openMapFiles(allFiles, fs, conf);
     
     HashSet<Column> columns = new HashSet<Column>();
-    columns.add(new Column(TextUtil.getBytes(MetadataTable.DATAFILE_COLUMN_FAMILY), null, null));
-    columns.add(new Column(TextUtil.getBytes(MetadataTable.LOG_COLUMN_FAMILY), null, null));
+    columns.add(new Column(TextUtil.getBytes(DataFileColumnFamily.NAME), null, null));
+    columns.add(new Column(TextUtil.getBytes(LogColumnFamily.NAME), null, null));
     
     SortedKeyValueIterator<Key,Value> ssi = createSystemIter(new Range(), readers, columns);
     
     int walogs = 0;
     
     while (ssi.hasTop()) {
-      if (ssi.getTopKey().compareColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY) == 0) {
+      if (ssi.getTopKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
         allFiles.add(fs.getFullPath(ssi.getTopKey()).toString());
       } else {
         walogs++;
@@ -261,7 +264,7 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     ServerConfiguration conf = new ServerConfiguration(HdfsZooInstance.getInstance());
     VolumeManager fs = VolumeManagerImpl.get();
     OfflineMetadataScanner scanner = new OfflineMetadataScanner(conf.getConfiguration(), fs);
-    scanner.setRange(MetadataTable.KEYSPACE);
+    scanner.setRange(MetadataSchema.TabletsSection.getRange());
     for (Entry<Key,Value> entry : scanner)
       System.out.println(entry.getKey() + " " + entry.getValue());
   }

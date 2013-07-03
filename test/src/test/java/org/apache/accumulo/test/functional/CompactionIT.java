@@ -33,9 +33,10 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.VerifyIngest;
@@ -44,17 +45,16 @@ import org.junit.Test;
 
 public class CompactionIT extends MacTest {
   
-  
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String, String> map = new HashMap<String, String>();
+    Map<String,String> map = new HashMap<String,String>();
     map.put(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "4");
     map.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     map.put(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
     cfg.setSiteConfig(map);
   }
   
-  @Test(timeout=120*1000)
+  @Test(timeout = 120 * 1000)
   public void test() throws Exception {
     final Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -68,9 +68,10 @@ public class CompactionIT extends MacTest {
     for (int count = 0; count < 5; count++) {
       List<Thread> threads = new ArrayList<Thread>();
       final int span = 500000 / 59;
-      for (int i = 0; i < 500000; i += 500000/59 ) {
+      for (int i = 0; i < 500000; i += 500000 / 59) {
         final int finalI = i;
         Thread t = new Thread() {
+          @Override
           public void run() {
             try {
               VerifyIngest.Opts opts = new VerifyIngest.Opts();
@@ -97,13 +98,14 @@ public class CompactionIT extends MacTest {
     assertTrue(finalCount < beforeCount);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
-
+  
   private int countFiles(Connector c) throws Exception {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.fetchColumnFamily(MetadataTable.TABLET_COLUMN_FAMILY);
-    s.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+    s.fetchColumnFamily(MetadataSchema.TabletsSection.TabletColumnFamily.NAME);
+    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     int i = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : s)
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : s)
       i++;
     return i;
   }

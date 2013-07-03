@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.logger.LogEvents;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;

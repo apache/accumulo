@@ -22,13 +22,12 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
-
 
 public class CheckTabletMetadataTest {
   
@@ -39,7 +38,7 @@ public class CheckTabletMetadataTest {
   private static Key nk(String row, Text cf, String cq) {
     return new Key(row, cf.toString(), cq);
   }
-
+  
   private static void put(TreeMap<Key,Value> tabletMeta, String row, ColumnFQ cfq, byte[] val) {
     Key k = new Key(new Text(row), cfq.getColumnFamily(), cfq.getColumnQualifier());
     tabletMeta.put(k, new Value(val));
@@ -49,25 +48,25 @@ public class CheckTabletMetadataTest {
     Key k = new Key(new Text(row), cf, new Text(cq));
     tabletMeta.put(k, new Value(val.getBytes()));
   }
-
+  
   private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi) {
     try {
       Assert.assertNull(TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
     } catch (Exception e) {
-
+      
     }
   }
-
+  
   private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi, Key keyToDelete) {
     TreeMap<Key,Value> copy = new TreeMap<Key,Value>(tabletMeta);
     Assert.assertNotNull(copy.remove(keyToDelete));
     try {
       Assert.assertNull(TabletServer.checkTabletMetadata(ke, tsi, copy, ke.getMetadataEntry()));
     } catch (Exception e) {
-
+      
     }
   }
-
+  
   @Test
   public void testBadTabletMetadata() throws Exception {
     
@@ -75,10 +74,10 @@ public class CheckTabletMetadataTest {
     
     TreeMap<Key,Value> tabletMeta = new TreeMap<Key,Value>();
     
-    put(tabletMeta, "1<", MetadataTable.PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(null).get());
-    put(tabletMeta, "1<", MetadataTable.DIRECTORY_COLUMN, "/t1".getBytes());
-    put(tabletMeta, "1<", MetadataTable.TIME_COLUMN, "M0".getBytes());
-    put(tabletMeta, "1<", MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY, "4", "127.0.0.1:9997");
+    put(tabletMeta, "1<", TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(null).get());
+    put(tabletMeta, "1<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t1".getBytes());
+    put(tabletMeta, "1<", TabletsSection.ServerColumnFamily.TIME_COLUMN, "M0".getBytes());
+    put(tabletMeta, "1<", TabletsSection.FutureLocationColumnFamily.NAME, "4", "127.0.0.1:9997");
     
     TServerInstance tsi = new TServerInstance("127.0.0.1:9997", 4);
     
@@ -94,30 +93,30 @@ public class CheckTabletMetadataTest {
     
     assertFail(tabletMeta, new KeyExtent(new Text("1"), new Text("r"), new Text("m")), tsi);
     
-    assertFail(tabletMeta, ke, tsi, nk("1<", MetadataTable.PREV_ROW_COLUMN));
-
-    assertFail(tabletMeta, ke, tsi, nk("1<", MetadataTable.DIRECTORY_COLUMN));
+    assertFail(tabletMeta, ke, tsi, nk("1<", TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN));
     
-    assertFail(tabletMeta, ke, tsi, nk("1<", MetadataTable.TIME_COLUMN));
+    assertFail(tabletMeta, ke, tsi, nk("1<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN));
     
-    assertFail(tabletMeta, ke, tsi, nk("1<", MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY, "4"));
+    assertFail(tabletMeta, ke, tsi, nk("1<", TabletsSection.ServerColumnFamily.TIME_COLUMN));
+    
+    assertFail(tabletMeta, ke, tsi, nk("1<", TabletsSection.FutureLocationColumnFamily.NAME, "4"));
     
     TreeMap<Key,Value> copy = new TreeMap<Key,Value>(tabletMeta);
-    put(copy, "1<", MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY, "4", "127.0.0.1:9997");
+    put(copy, "1<", TabletsSection.CurrentLocationColumnFamily.NAME, "4", "127.0.0.1:9997");
     assertFail(copy, ke, tsi);
-    assertFail(copy, ke, tsi, nk("1<", MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY, "4"));
+    assertFail(copy, ke, tsi, nk("1<", TabletsSection.FutureLocationColumnFamily.NAME, "4"));
     
     copy = new TreeMap<Key,Value>(tabletMeta);
-    put(copy, "1<", MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY, "5", "127.0.0.1:9998");
+    put(copy, "1<", TabletsSection.CurrentLocationColumnFamily.NAME, "5", "127.0.0.1:9998");
     assertFail(copy, ke, tsi);
-    put(copy, "1<", MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY, "6", "127.0.0.1:9999");
+    put(copy, "1<", TabletsSection.CurrentLocationColumnFamily.NAME, "6", "127.0.0.1:9999");
     assertFail(copy, ke, tsi);
     
     copy = new TreeMap<Key,Value>(tabletMeta);
-    put(copy, "1<", MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY, "5", "127.0.0.1:9998");
+    put(copy, "1<", TabletsSection.FutureLocationColumnFamily.NAME, "5", "127.0.0.1:9998");
     assertFail(copy, ke, tsi);
     
     assertFail(new TreeMap<Key,Value>(), ke, tsi);
-
+    
   }
 }

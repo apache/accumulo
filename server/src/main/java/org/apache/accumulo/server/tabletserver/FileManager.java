@@ -41,7 +41,7 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
-import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.FileRef;

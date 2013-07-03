@@ -399,7 +399,7 @@ public class TabletLocatorImpl extends TabletLocator {
     
     if (ptl != null) {
       TabletLocations locations = locationObtainer.lookupTablet(ptl, metadataRow, lastTabletRow, parent, credentials);
-      while (locations != null && locations.getLocations().isEmpty() && locations.getLocationless().isEmpty() && !ptl.tablet_extent.isRootTablet()) {
+      while (locations != null && locations.getLocations().isEmpty() && locations.getLocationless().isEmpty()) {
         // try the next tablet, the current tablet does not have any tablets that overlap the row
         Text er = ptl.tablet_extent.getEndRow();
         if (er != null && er.compareTo(lastTabletRow) < 0) {

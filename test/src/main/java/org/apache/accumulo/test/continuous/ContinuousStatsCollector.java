@@ -36,8 +36,9 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
@@ -91,7 +92,7 @@ public class ContinuousStatsCollector {
       Connector conn = opts.getConnector();
       Scanner scanner = conn.createScanner(MetadataTable.NAME, opts.auths);
       scanner.setBatchSize(scanBatchSize);
-      scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.addScanIterator(new IteratorSetting(1000, "cfc", ColumnFamilyCounter.class.getName()));
       scanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
       

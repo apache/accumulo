@@ -25,7 +25,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;

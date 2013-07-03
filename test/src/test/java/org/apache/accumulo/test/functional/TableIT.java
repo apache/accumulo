@@ -1,4 +1,5 @@
 package org.apache.accumulo.test.functional;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -15,7 +16,9 @@ package org.apache.accumulo.test.functional;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Map.Entry;
 
@@ -26,9 +29,9 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -37,10 +40,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-
 public class TableIT extends MacTest {
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -52,7 +54,8 @@ public class TableIT extends MacTest {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(new KeyExtent(new Text(id), null, null).toMetadataRange());
     int count = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : s) {
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : s) {
       count++;
     }
     assertTrue(count > 0);
@@ -60,7 +63,8 @@ public class TableIT extends MacTest {
     assertTrue(fs.listStatus(new Path(cluster.getConfig().getDir() + "/accumulo/tables/" + id)).length > 0);
     c.tableOperations().delete("test_ingest");
     count = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : s) {
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : s) {
       count++;
     }
     assertEquals(0, count);

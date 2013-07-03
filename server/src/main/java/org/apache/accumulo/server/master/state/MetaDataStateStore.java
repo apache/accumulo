@@ -26,10 +26,11 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.io.Text;
@@ -67,7 +68,7 @@ public class MetaDataStateStore extends TabletStateStore {
   
   @Override
   public Iterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(instance, auths, RootTable.METADATA_TABLETS_RANGE, state);
+    return new MetaDataTableScanner(instance, auths, MetadataSchema.TabletsSection.getRange(), state);
   }
   
   @Override
@@ -77,8 +78,8 @@ public class MetaDataStateStore extends TabletStateStore {
       for (Assignment assignment : assignments) {
         Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
         Text cq = assignment.server.asColumnQualifier();
-        m.put(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY, cq, assignment.server.asMutationValue());
-        m.putDelete(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY, cq);
+        m.put(TabletsSection.CurrentLocationColumnFamily.NAME, cq, assignment.server.asMutationValue());
+        m.putDelete(TabletsSection.FutureLocationColumnFamily.NAME, cq);
         writer.addMutation(m);
       }
     } catch (Exception ex) {
@@ -110,7 +111,7 @@ public class MetaDataStateStore extends TabletStateStore {
     try {
       for (Assignment assignment : assignments) {
         Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-        m.put(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY, assignment.server.asColumnQualifier(), assignment.server.asMutationValue());
+        m.put(TabletsSection.FutureLocationColumnFamily.NAME, assignment.server.asColumnQualifier(), assignment.server.asMutationValue());
         writer.addMutation(m);
       }
     } catch (Exception ex) {
@@ -132,10 +133,10 @@ public class MetaDataStateStore extends TabletStateStore {
       for (TabletLocationState tls : tablets) {
         Mutation m = new Mutation(tls.extent.getMetadataEntry());
         if (tls.current != null) {
-          m.putDelete(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY, tls.current.asColumnQualifier());
+          m.putDelete(TabletsSection.CurrentLocationColumnFamily.NAME, tls.current.asColumnQualifier());
         }
         if (tls.future != null) {
-          m.putDelete(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY, tls.future.asColumnQualifier());
+          m.putDelete(TabletsSection.FutureLocationColumnFamily.NAME, tls.future.asColumnQualifier());
         }
         writer.addMutation(m);
       }

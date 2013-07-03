@@ -46,6 +46,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.Repo;
@@ -59,7 +62,7 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tabletserver.UniqueNameAllocator;
-import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -235,7 +238,7 @@ class PopulateMetadataTable extends MasterRepo {
             
             Text cq;
             
-            if (key.getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+            if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
               String oldName = new Path(key.getColumnQualifier().toString()).getName();
               String newName = fileNameMappings.get(oldName);
               
@@ -246,19 +249,19 @@ class PopulateMetadataTable extends MasterRepo {
             
             if (m == null) {
               m = new Mutation(metadataRow);
-              MetadataTable.DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
               currentRow = metadataRow;
             }
             
             if (!currentRow.equals(metadataRow)) {
               mbw.addMutation(m);
               m = new Mutation(metadataRow);
-              MetadataTable.DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
             }
             
             m.put(key.getColumnFamily(), cq, val);
             
-            if (endRow == null && MetadataTable.PREV_ROW_COLUMN.hasColumns(key)) {
+            if (endRow == null && TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
               mbw.addMutation(m);
               break; // its the last column in the last row
             }
@@ -290,7 +293,7 @@ class PopulateMetadataTable extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTable.deleteTable(tableInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(tableInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
   }
 }
 
@@ -315,7 +318,7 @@ class MapImportFileNames extends MasterRepo {
       VolumeManager fs = environment.getFileSystem();
       
       fs.mkdirs(new Path(tableInfo.importDir));
-
+      
       FileStatus[] files = fs.listStatus(new Path(tableInfo.exportDir));
       
       UniqueNameAllocator namer = UniqueNameAllocator.getInstance();

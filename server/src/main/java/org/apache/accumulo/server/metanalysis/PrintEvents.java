@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -31,8 +30,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.hadoop.io.Text;
 
@@ -44,11 +44,11 @@ import com.beust.jcommander.Parameter;
 public class PrintEvents {
   
   static class Opts extends ClientOpts {
-    @Parameter(names={"-t", "--tableId"}, description="table id", required=true)
+    @Parameter(names = {"-t", "--tableId"}, description = "table id", required = true)
     String tableId;
-    @Parameter(names={"-e", "--endRow"}, description="end row")
+    @Parameter(names = {"-e", "--endRow"}, description = "end row")
     String endRow;
-    @Parameter(names={"-t", "--time"}, description="time, in milliseconds", required=true)
+    @Parameter(names = {"-t", "--time"}, description = "time, in milliseconds", required = true)
     long time;
   }
   
@@ -78,7 +78,7 @@ public class PrintEvents {
     int count = 0;
     
     String lastLog = null;
-
+    
     loop1: for (Entry<Key,Value> entry : scanner) {
       if (entry.getKey().getColumnQualifier().toString().equals("log")) {
         if (lastLog == null || !lastLog.equals(entry.getValue().toString()))
@@ -96,7 +96,7 @@ public class PrintEvents {
         
         List<ColumnUpdate> columnsUpdates = m.getUpdates();
         for (ColumnUpdate cu : columnsUpdates) {
-          if (MetadataTable.PREV_ROW_COLUMN.equals(new Text(cu.getColumnFamily()), new Text(cu.getColumnQualifier())) && count > 0) {
+          if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(new Text(cu.getColumnFamily()), new Text(cu.getColumnQualifier())) && count > 0) {
             System.out.println("Saw change to prevrow, stopping printing events.");
             break loop1;
           }
@@ -104,6 +104,6 @@ public class PrintEvents {
         count++;
       }
     }
-
+    
   }
 }

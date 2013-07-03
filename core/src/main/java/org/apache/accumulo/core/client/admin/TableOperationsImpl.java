@@ -81,6 +81,9 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.TableOperation;
+import org.apache.accumulo.core.metadata.MetadataServicer;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -90,11 +93,9 @@ import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -436,7 +437,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   
   private void addSplits(String tableName, SortedSet<Text> partitionKeys, String tableId) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, AccumuloServerException {
-    TabletLocator tabLocator = TabletLocator.getInstance(instance, new Text(tableId));
+    TabletLocator tabLocator = TabletLocator.getLocator(instance, new Text(tableId));
     
     for (Text split : partitionKeys) {
       boolean successful = false;
@@ -543,38 +544,34 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArgumentChecker.notNull(tableName);
     
     String tableId = Tables.getTableId(instance, tableName);
-    if (RootTable.ID.equals(tableId))
-      return Collections.emptyList();
     
-    SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
-    Map<KeyExtent,String> locations = new TreeMap<KeyExtent,String>();
+    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
     
     while (true) {
       try {
-        tablets.clear();
-        locations.clear();
+        tabletLocations.clear();
         // the following method throws AccumuloException for some conditions that should be retried
-        MetadataTable.getEntries(instance, credentials, tableId, true, locations, tablets);
+        MetadataServicer.forTableId(instance, credentials, tableId).getTabletLocations(tabletLocations);
         break;
       } catch (AccumuloSecurityException ase) {
         throw ase;
-      } catch (Throwable t) {
+      } catch (Exception e) {
         if (!Tables.exists(instance, tableId)) {
           throw new TableNotFoundException(tableId, tableName, null);
         }
         
-        if (t instanceof RuntimeException && t.getCause() instanceof AccumuloSecurityException) {
-          throw (AccumuloSecurityException) t.getCause();
+        if (e instanceof RuntimeException && e.getCause() instanceof AccumuloSecurityException) {
+          throw (AccumuloSecurityException) e.getCause();
         }
         
-        log.info(t.getMessage() + " ... retrying ...");
+        log.info(e.getMessage() + " ... retrying ...");
         UtilWaitThread.sleep(3000);
       }
     }
     
-    ArrayList<Text> endRows = new ArrayList<Text>(tablets.size());
+    ArrayList<Text> endRows = new ArrayList<Text>(tabletLocations.size());
     
-    for (KeyExtent ke : tablets)
+    for (KeyExtent ke : tabletLocations.keySet())
       if (ke.getEndRow() != null)
         endRows.add(ke.getEndRow());
     
@@ -1039,7 +1036,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     String tableId = Tables.getTableId(instance, tableName);
-    TabletLocator tl = TabletLocator.getInstance(instance, new Text(tableId));
+    TabletLocator tl = TabletLocator.getLocator(instance, new Text(tableId));
     // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
     tl.invalidateCache();
     while (!tl.binRanges(Collections.singletonList(range), binnedRanges, credentials).isEmpty()) {
@@ -1181,7 +1178,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName);
-    TabletLocator tabLocator = TabletLocator.getInstance(instance, new Text(Tables.getTableId(instance, tableName)));
+    TabletLocator tabLocator = TabletLocator.getLocator(instance, new Text(Tables.getTableId(instance, tableName)));
     tabLocator.invalidateCache();
   }
   

@@ -33,6 +33,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.ServerConstants;
@@ -45,7 +48,7 @@ import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -127,8 +130,8 @@ class CleanUp extends MasterRepo {
       Connector conn = master.getConnector();
       BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8);
       try {
-        bs.setRanges(Collections.singleton(MetadataTable.NON_ROOT_KEYSPACE));
-        bs.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+        bs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange()));
+        bs.fetchColumnFamily(DataFileColumnFamily.NAME);
         IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
         GrepIterator.setTerm(cfg, "../" + tableId + "/");
         bs.addScanIterator(cfg);
@@ -152,7 +155,7 @@ class CleanUp extends MasterRepo {
       // Intentionally do not pass master lock. If master loses lock, this operation may complete before master can kill itself.
       // If the master lock passed to deleteTable, it is possible that the delete mutations will be dropped. If the delete operations
       // are dropped and the operation completes, then the deletes will not be repeated.
-      MetadataTable.deleteTable(tableId, refCount != 0, SecurityConstants.getSystemCredentials(), null);
+      MetadataTableUtil.deleteTable(tableId, refCount != 0, SecurityConstants.getSystemCredentials(), null);
     } catch (Exception e) {
       log.error("error deleting " + tableId + " from metadata table", e);
     }

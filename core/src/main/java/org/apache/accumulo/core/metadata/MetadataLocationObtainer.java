@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.impl;
+package org.apache.accumulo.core.metadata;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,10 +32,15 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.AccumuloServerException;
+import org.apache.accumulo.core.client.impl.ScannerOptions;
+import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocations;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletLocationObtainer;
+import org.apache.accumulo.core.client.impl.TabletServerBatchReaderIterator;
 import org.apache.accumulo.core.client.impl.TabletServerBatchReaderIterator.ResultReceiver;
+import org.apache.accumulo.core.client.impl.ThriftScanner;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -44,10 +49,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -61,13 +66,13 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   private ArrayList<Column> columns;
   private Instance instance;
   
-  MetadataLocationObtainer(Instance instance) {
+  public MetadataLocationObtainer(Instance instance) {
     
     this.instance = instance;
     
     locCols = new TreeSet<Column>();
-    locCols.add(new Column(TextUtil.getBytes(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY), null, null));
-    locCols.add(MetadataTable.PREV_ROW_COLUMN.toColumn());
+    locCols.add(new Column(TextUtil.getBytes(TabletsSection.CurrentLocationColumnFamily.NAME), null, null));
+    locCols.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
     columns = new ArrayList<Column>(locCols);
   }
   
@@ -113,7 +118,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       
       // System.out.println("results "+results.keySet());
       
-      Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> metadata = MetadataTable.getMetadataLocationEntries(results);
+      Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> metadata = MetadataLocationObtainer.getMetadataLocationEntries(results);
       
       for (Entry<KeyExtent,Text> entry : metadata.getFirst().entrySet()) {
         list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
@@ -170,11 +175,15 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
     };
     
-    ScannerOptions opts = new ScannerOptions();
-    opts.fetchedColumns = locCols;
-    opts.serverSideIteratorList = new ArrayList<IterInfo>();
-    opts.serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI")); // see comment in lookupTablet about why iterator is
-                                                                                                   // used
+    ScannerOptions opts = new ScannerOptions() {
+      ScannerOptions setOpts() {
+        this.fetchedColumns = locCols;
+        this.serverSideIteratorList = new ArrayList<IterInfo>();
+        // see comment in lookupTablet about why iterator is used
+        this.serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
+        return this;
+      }
+    }.setOpts();
     
     Map<KeyExtent,List<Range>> unscanned = new HashMap<KeyExtent,List<Range>>();
     Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
@@ -195,12 +204,66 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       throw e;
     }
     
-    SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results).getFirst();
+    SortedMap<KeyExtent,Text> metadata = MetadataLocationObtainer.getMetadataLocationEntries(results).getFirst();
     
     for (Entry<KeyExtent,Text> entry : metadata.entrySet()) {
       list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
     }
     
     return list;
+  }
+  
+  public static Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> getMetadataLocationEntries(SortedMap<Key,Value> entries) {
+    Key key;
+    Value val;
+    Text location = null;
+    Value prevRow = null;
+    KeyExtent ke;
+    
+    SortedMap<KeyExtent,Text> results = new TreeMap<KeyExtent,Text>();
+    ArrayList<KeyExtent> locationless = new ArrayList<KeyExtent>();
+    
+    Text lastRowFromKey = new Text();
+    
+    // text obj below is meant to be reused in loop for efficiency
+    Text colf = new Text();
+    Text colq = new Text();
+    
+    for (Entry<Key,Value> entry : entries.entrySet()) {
+      key = entry.getKey();
+      val = entry.getValue();
+      
+      if (key.compareRow(lastRowFromKey) != 0) {
+        prevRow = null;
+        location = null;
+        key.getRow(lastRowFromKey);
+      }
+      
+      colf = key.getColumnFamily(colf);
+      colq = key.getColumnQualifier(colq);
+      
+      // interpret the row id as a key extent
+      if (colf.equals(TabletsSection.CurrentLocationColumnFamily.NAME) || colf.equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
+        if (location != null) {
+          throw new IllegalStateException("Tablet has multiple locations : " + lastRowFromKey);
+        }
+        location = new Text(val.toString());
+      } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
+        prevRow = new Value(val);
+      }
+      
+      if (prevRow != null) {
+        ke = new KeyExtent(key.getRow(), prevRow);
+        if (location != null)
+          results.put(ke, location);
+        else
+          locationless.add(ke);
+        
+        location = null;
+        prevRow = null;
+      }
+    }
+    
+    return new Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>>(results, locationless);
   }
 }

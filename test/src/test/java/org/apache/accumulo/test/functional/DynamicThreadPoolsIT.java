@@ -44,7 +44,7 @@ public class DynamicThreadPoolsIT extends MacTest {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1"));
   }
   
-  @Test(timeout=90*1000)
+  @Test(timeout = 90 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     TestIngest.Opts opts = new TestIngest.Opts();
@@ -74,7 +74,7 @@ public class DynamicThreadPoolsIT extends MacTest {
         if (client != null)
           MasterClient.close(client);
       }
-      for (TabletServerStatus server: stats.tServerInfo) {
+      for (TabletServerStatus server : stats.tServerInfo) {
         for (TableInfo table : server.tableMap.values()) {
           count += table.majors.running;
         }

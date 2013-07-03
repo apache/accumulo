@@ -33,8 +33,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.fs.Path;
@@ -104,7 +104,7 @@ public class VolumeTest {
     // verify the new files are written to the different volumes
     scanner = connector.createScanner("!METADATA", Authorizations.EMPTY);
     scanner.setRange(new Range("1", "1<"));
-    scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     int fileCount = 0;
     for (Entry<Key,Value> entry : scanner) {
       boolean inV1 = entry.getKey().getColumnQualifier().toString().contains(v1.toString());

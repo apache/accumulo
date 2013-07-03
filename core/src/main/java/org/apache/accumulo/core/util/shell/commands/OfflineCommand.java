@@ -19,7 +19,7 @@ package org.apache.accumulo.core.util.shell.commands;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.shell.Shell;
 
 public class OfflineCommand extends TableOperation {

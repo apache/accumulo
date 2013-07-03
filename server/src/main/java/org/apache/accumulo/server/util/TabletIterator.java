@@ -30,7 +30,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -93,8 +94,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
     this.scanner = s;
     this.range = range;
     this.scanner.setRange(range);
-    MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
-    MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
     this.iter = s.iterator();
     this.returnPrevEndRow = returnPrevEndRow;
     this.returnDir = returnDir;
@@ -112,7 +113,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
       Key prevEndRowKey = currentTabletKeys.lastKey();
       Value prevEndRowValue = currentTabletKeys.get(prevEndRowKey);
       
-      if (!MetadataTable.PREV_ROW_COLUMN.hasColumns(prevEndRowKey)) {
+      if (!TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(prevEndRowKey)) {
         log.debug(currentTabletKeys);
         throw new RuntimeException("Unexpected key " + prevEndRowKey);
       }
@@ -176,11 +177,11 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
     
     while (esIter.hasNext()) {
       Map.Entry<Key,Value> entry = esIter.next();
-      if (!returnPrevEndRow && MetadataTable.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+      if (!returnPrevEndRow && TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
         esIter.remove();
       }
       
-      if (!returnDir && MetadataTable.DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
+      if (!returnDir && TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
         esIter.remove();
       }
     }
@@ -216,7 +217,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         
         tm.put(entry.getKey(), entry.getValue());
         
-        if (MetadataTable.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+        if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
           sawPrevEndRow = true;
           break;
         }

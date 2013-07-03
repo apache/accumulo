@@ -43,10 +43,14 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -81,6 +85,7 @@ import com.beust.jcommander.Parameter;
 public class Initialize {
   private static final Logger log = Logger.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
+  public static final String TABLE_TABLETS_TABLET_DIR = "/table_info";
   
   private static ConsoleReader reader = null;
   
@@ -107,10 +112,9 @@ public class Initialize {
     initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter", "20," + MetadataBulkLoadFilter.class.getName());
     initialMetadataConf.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
     initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
-        String.format("%s,%s", MetadataTable.TABLET_COLUMN_FAMILY.toString(), MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY.toString()));
-    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server", String.format("%s,%s,%s,%s",
-        MetadataTable.DATAFILE_COLUMN_FAMILY.toString(), MetadataTable.LOG_COLUMN_FAMILY.toString(), MetadataTable.SERVER_COLUMN_FAMILY.toString(),
-        MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY.toString()));
+        String.format("%s,%s", TabletsSection.TabletColumnFamily.NAME, TabletsSection.CurrentLocationColumnFamily.NAME));
+    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server", String.format("%s,%s,%s,%s", DataFileColumnFamily.NAME,
+        LogColumnFamily.NAME, TabletsSection.ServerColumnFamily.NAME, TabletsSection.FutureLocationColumnFamily.NAME));
     initialMetadataConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
     initialMetadataConf.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
     initialMetadataConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
@@ -229,7 +233,7 @@ public class Initialize {
     
     // the actual disk locations of the metadata table and tablets
     final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
-    final Path[] tableMetadataTabletDirs = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), MetadataTable.TABLE_TABLET_LOCATION));
+    final Path[] tableMetadataTabletDirs = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), TABLE_TABLETS_TABLET_DIR));
     final Path[] defaultMetadataTabletDirs = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
     
     fs.mkdirs(new Path(ServerConstants.getDataVersionLocation(), "" + ServerConstants.DATA_VERSION));
@@ -279,35 +283,40 @@ public class Initialize {
     FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, ns, ns.getConf(), AccumuloConfiguration.getDefaultConfiguration());
     mfw.startDefaultLocalityGroup();
     
-    // ----------] table tablet info
-    Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), MetadataTable.RESERVED_RANGE_START_KEY.getRow()));
+    Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
     
     // table tablet's directory
-    Key tableDirKey = new Key(tableExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(), MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableDirKey, new Value(MetadataTable.TABLE_TABLET_LOCATION.getBytes()));
+    Key tableDirKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    mfw.append(tableDirKey, new Value(TABLE_TABLETS_TABLET_DIR.getBytes()));
     
     // table tablet time
-    Key tableTimeKey = new Key(tableExtent, MetadataTable.TIME_COLUMN.getColumnFamily(), MetadataTable.TIME_COLUMN.getColumnQualifier(), 0);
+    Key tableTimeKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
     
     // table tablet's prevrow
-    Key tablePrevRowKey = new Key(tableExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    Key tablePrevRowKey = new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
     
     // ----------] default tablet info
     Text defaultExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null));
     
     // default's directory
-    Key defaultDirKey = new Key(defaultExtent, MetadataTable.DIRECTORY_COLUMN.getColumnFamily(), MetadataTable.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    Key defaultDirKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
     
     // default's time
-    Key defaultTimeKey = new Key(defaultExtent, MetadataTable.TIME_COLUMN.getColumnFamily(), MetadataTable.TIME_COLUMN.getColumnQualifier(), 0);
+    Key defaultTimeKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
     
     // default's prevrow
-    Key defaultPrevRowKey = new Key(defaultExtent, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataTable.RESERVED_RANGE_START_KEY.getRow()));
+    Key defaultPrevRowKey = new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    mfw.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
     
     mfw.close();
     

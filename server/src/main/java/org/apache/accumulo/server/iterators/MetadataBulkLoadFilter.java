@@ -27,7 +27,7 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.log4j.Logger;
@@ -48,7 +48,7 @@ public class MetadataBulkLoadFilter extends Filter {
   
   @Override
   public boolean accept(Key k, Value v) {
-    if (!k.isDeleted() && k.compareColumnFamily(MetadataTable.BULKFILE_COLUMN_FAMILY) == 0) {
+    if (!k.isDeleted() && k.compareColumnFamily(TabletsSection.BulkFileColumnFamily.NAME) == 0) {
       long txid = Long.valueOf(v.toString());
       
       Status status = bulkTxStatusCache.get(txid);
@@ -69,10 +69,10 @@ public class MetadataBulkLoadFilter extends Filter {
       
       return status == Status.ACTIVE;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
@@ -80,7 +80,7 @@ public class MetadataBulkLoadFilter extends Filter {
     if (env.getIteratorScope() == IteratorScope.scan) {
       throw new IOException("This iterator not intended for use at scan time");
     }
-
+    
     bulkTxStatusCache = new HashMap<Long,MetadataBulkLoadFilter.Status>();
     arbitrator = getArbitrator();
   }

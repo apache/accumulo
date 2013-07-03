@@ -45,8 +45,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -100,8 +103,8 @@ class WriteExportFiles extends MasterRepo {
     metaScanner.setRange(new KeyExtent(new Text(tableInfo.tableID), null, null).toMetadataRange());
     
     // scan for locations
-    metaScanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
-    metaScanner.fetchColumnFamily(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY);
+    metaScanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+    metaScanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);
     
     if (metaScanner.iterator().hasNext()) {
       return 500;
@@ -110,7 +113,7 @@ class WriteExportFiles extends MasterRepo {
     // use the same range to check for walogs that we used to check for hosted (or future hosted) tablets
     // this is done as a separate scan after we check for locations, because walogs are okay only if there is no location
     metaScanner.clearColumns();
-    metaScanner.fetchColumnFamily(MetadataTable.LOG_COLUMN_FAMILY);
+    metaScanner.fetchColumnFamily(LogColumnFamily.NAME);
     
     if (metaScanner.iterator().hasNext()) {
       throw new ThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
@@ -204,23 +207,23 @@ class WriteExportFiles extends MasterRepo {
     }
   }
   
-  private static Map<String,String> exportMetadata(VolumeManager fs, Connector conn, String tableID, ZipOutputStream zipOut, DataOutputStream dataOut) throws IOException,
-      TableNotFoundException {
+  private static Map<String,String> exportMetadata(VolumeManager fs, Connector conn, String tableID, ZipOutputStream zipOut, DataOutputStream dataOut)
+      throws IOException, TableNotFoundException {
     zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_METADATA_FILE));
     
     Map<String,String> uniqueFiles = new HashMap<String,String>();
     
     Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    metaScanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
-    MetadataTable.PREV_ROW_COLUMN.fetch(metaScanner);
-    MetadataTable.TIME_COLUMN.fetch(metaScanner);
+    metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
     metaScanner.setRange(new KeyExtent(new Text(tableID), null, null).toMetadataRange());
     
     for (Entry<Key,Value> entry : metaScanner) {
       entry.getKey().write(dataOut);
       entry.getValue().write(dataOut);
       
-      if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         String path = fs.getFullPath(entry.getKey()).toString();
         String tokens[] = path.split("/");
         if (tokens.length < 1) {

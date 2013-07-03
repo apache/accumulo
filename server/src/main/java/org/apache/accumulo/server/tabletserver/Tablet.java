@@ -78,15 +78,20 @@ import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSou
 import org.apache.accumulo.core.iterators.system.StatsIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.ServerConstants;
@@ -115,8 +120,8 @@ import org.apache.accumulo.server.tabletserver.mastermessage.TabletStatusMessage
 import org.apache.accumulo.server.tabletserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MapCounter;
-import org.apache.accumulo.server.util.MetadataTable;
-import org.apache.accumulo.server.util.MetadataTable.LogEntry;
+import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.MetadataTableUtil.LogEntry;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -540,7 +545,7 @@ public class Tablet {
         
         scanFileReservations.put(rid, absFilePaths);
         
-        Map<FileRef,DataFileValue> ret = new HashMap<FileRef,MetadataTable.DataFileValue>();
+        Map<FileRef,DataFileValue> ret = new HashMap<FileRef,DataFileValue>();
         
         for (FileRef path : absFilePaths) {
           fileScanReferenceCounts.increment(path, 1);
@@ -578,7 +583,7 @@ public class Tablet {
       
       if (filesToDelete.size() > 0) {
         log.debug("Removing scan refs from metadata " + extent + " " + filesToDelete);
-        MetadataTable.removeScanFiles(extent, filesToDelete, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+        MetadataTableUtil.removeScanFiles(extent, filesToDelete, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
       }
     }
     
@@ -599,7 +604,7 @@ public class Tablet {
       
       if (filesToDelete.size() > 0) {
         log.debug("Removing scan refs from metadata " + extent + " " + filesToDelete);
-        MetadataTable.removeScanFiles(extent, filesToDelete, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+        MetadataTableUtil.removeScanFiles(extent, filesToDelete, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
       }
     }
     
@@ -645,7 +650,7 @@ public class Tablet {
       
       String bulkDir = null;
       
-      Map<FileRef,DataFileValue> paths = new HashMap<FileRef,MetadataTable.DataFileValue>();
+      Map<FileRef,DataFileValue> paths = new HashMap<FileRef,DataFileValue>();
       for (Entry<FileRef,DataFileValue> entry : pathsString.entrySet())
         paths.put(entry.getKey(), entry.getValue());
       
@@ -660,7 +665,7 @@ public class Tablet {
           }
         }
         if (!inTheRightDirectory) {
-          throw new IOException("Map file " + tpath + " not in table dirs");
+          throw new IOException("Data file " + tpath + " not in table dirs");
         }
         
         if (bulkDir == null)
@@ -683,7 +688,7 @@ public class Tablet {
           throw new IOException(ex);
         }
         // Remove any bulk files we've previously loaded and compacted away
-        List<FileRef> files = MetadataTable.getBulkFilesLoaded(conn, extent, tid);
+        List<FileRef> files = MetadataTableUtil.getBulkFilesLoaded(conn, extent, tid);
         
         for (FileRef file : files)
           if (paths.keySet().remove(file.path()))
@@ -705,7 +710,7 @@ public class Tablet {
             if (bulkTime > persistedTime)
               persistedTime = bulkTime;
             
-            MetadataTable.updateTabletDataFile(tid, extent, paths, tabletTime.getMetadataValue(persistedTime), auths, tabletServer.getLock());
+            MetadataTableUtil.updateTabletDataFile(tid, extent, paths, tabletTime.getMetadataValue(persistedTime), auths, tabletServer.getLock());
           }
         }
       }
@@ -833,7 +838,7 @@ public class Tablet {
       // very important to write delete entries outside of log lock, because
       // this !METADATA write does not go up... it goes sideways or to itself
       if (absMergeFile != null)
-        MetadataTable.addDeleteEntries(extent, Collections.singleton(absMergeFile), SecurityConstants.getSystemCredentials());
+        MetadataTableUtil.addDeleteEntries(extent, Collections.singleton(absMergeFile), SecurityConstants.getSystemCredentials());
       
       Set<String> unusedWalLogs = beginClearingUnusedLogs();
       try {
@@ -848,7 +853,7 @@ public class Tablet {
             persistedTime = commitSession.getMaxCommittedTime();
           
           String time = tabletTime.getMetadataValue(persistedTime);
-          MetadataTable.updateTabletDataFile(extent, newDatafile, absMergeFile, dfv, time, creds, filesInUseByScans, tabletServer.getClientAddressString(),
+          MetadataTableUtil.updateTabletDataFile(extent, newDatafile, absMergeFile, dfv, time, creds, filesInUseByScans, tabletServer.getClientAddressString(),
               tabletServer.getLock(), unusedWalLogs, lastLocation, flushId);
         }
         
@@ -1032,7 +1037,7 @@ public class Tablet {
         Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
         if (filesInUseByScans.size() > 0)
           log.debug("Adding scan refs to metadata " + extent + " " + filesInUseByScans);
-        MetadataTable.replaceDatafiles(extent, oldDatafiles, filesInUseByScans, newDatafile, compactionId, dfv, SecurityConstants.getSystemCredentials(),
+        MetadataTableUtil.replaceDatafiles(extent, oldDatafiles, filesInUseByScans, newDatafile, compactionId, dfv, SecurityConstants.getSystemCredentials(),
             tabletServer.getClientAddressString(), lastLocation, tabletServer.getLock());
         removeFilesAfterScan(filesInUseByScans);
       }
@@ -1043,7 +1048,7 @@ public class Tablet {
     
     public SortedMap<FileRef,DataFileValue> getDatafileSizes() {
       synchronized (Tablet.this) {
-        TreeMap<FileRef,DataFileValue> copy = new TreeMap<FileRef,MetadataTable.DataFileValue>(datafileSizes);
+        TreeMap<FileRef,DataFileValue> copy = new TreeMap<FileRef,DataFileValue>(datafileSizes);
         return Collections.unmodifiableSortedMap(copy);
       }
     }
@@ -1090,7 +1095,7 @@ public class Tablet {
       entries = new TreeMap<Key,Value>();
       Text rowName = extent.getMetadataEntry();
       for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
-        if (entry.getKey().compareRow(rowName) == 0 && MetadataTable.TIME_COLUMN.hasColumns(entry.getKey())) {
+        if (entry.getKey().compareRow(rowName) == 0 && TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(entry.getKey())) {
           entries.put(new Key(entry.getKey()), new Value(entry.getValue()));
         }
       }
@@ -1103,7 +1108,7 @@ public class Tablet {
     return null;
   }
   
-  private static SortedMap<FileRef,DataFileValue> lookupDatafiles(AccumuloConfiguration conf, Text locText, VolumeManager fs, KeyExtent extent,
+  private static SortedMap<FileRef,DataFileValue> lookupDatafiles(AccumuloConfiguration conf, VolumeManager fs, KeyExtent extent,
       SortedMap<Key,Value> tabletsKeyValues) throws IOException {
     
     TreeMap<FileRef,DataFileValue> datafiles = new TreeMap<FileRef,DataFileValue>();
@@ -1134,7 +1139,7 @@ public class Tablet {
       mdScanner.setBatchSize(1000);
       
       // leave these in, again, now using endKey for safety
-      mdScanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+      mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       
       mdScanner.setRange(new Range(rowName));
       
@@ -1156,7 +1161,7 @@ public class Tablet {
     
     if (ke.isMeta()) {
       try {
-        logEntries = MetadataTable.getLogEntries(SecurityConstants.getSystemCredentials(), ke);
+        logEntries = MetadataTableUtil.getLogEntries(SecurityConstants.getSystemCredentials(), ke);
       } catch (Exception ex) {
         throw new RuntimeException("Unable to read tablet log entries", ex);
       }
@@ -1166,8 +1171,8 @@ public class Tablet {
       for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
         Key key = entry.getKey();
         if (key.getRow().equals(row)) {
-          if (key.getColumnFamily().equals(MetadataTable.LOG_COLUMN_FAMILY)) {
-            logEntries.add(MetadataTable.entryFromKeyValue(key, entry.getValue()));
+          if (key.getColumnFamily().equals(LogColumnFamily.NAME)) {
+            logEntries.add(MetadataTableUtil.entryFromKeyValue(key, entry.getValue()));
           }
         }
       }
@@ -1183,7 +1188,7 @@ public class Tablet {
     Text row = extent.getMetadataEntry();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
-      if (key.getRow().equals(row) && key.getColumnFamily().equals(MetadataTable.SCANFILE_COLUMN_FAMILY)) {
+      if (key.getRow().equals(row) && key.getColumnFamily().equals(ScanFileColumnFamily.NAME)) {
         String meta = key.getColumnQualifier().toString();
         Path path = fs.getFullPath(ServerConstants.getTablesDirs(), meta);
         scanFiles.add(new FileRef(meta, path));
@@ -1197,7 +1202,7 @@ public class Tablet {
     Text row = extent.getMetadataEntry();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
-      if (key.getRow().equals(row) && MetadataTable.FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
+      if (key.getRow().equals(row) && TabletsSection.ServerColumnFamily.FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
         return Long.parseLong(entry.getValue().toString());
     }
     
@@ -1208,7 +1213,7 @@ public class Tablet {
     Text row = extent.getMetadataEntry();
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
-      if (key.getRow().equals(row) && MetadataTable.COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
+      if (key.getRow().equals(row) && TabletsSection.ServerColumnFamily.COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
         return Long.parseLong(entry.getValue().toString());
     }
     
@@ -1217,14 +1222,14 @@ public class Tablet {
   
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf, VolumeManager fs,
       SortedMap<Key,Value> tabletsKeyValues) throws IOException {
-    this(tabletServer, location, extent, trm, conf, fs, lookupLogEntries(extent, tabletsKeyValues), lookupDatafiles(tabletServer.getSystemConfiguration(),
-        location, fs, extent, tabletsKeyValues), lookupTime(tabletServer.getSystemConfiguration(), extent, tabletsKeyValues), lookupLastServer(extent,
-        tabletsKeyValues), lookupScanFiles(extent, tabletsKeyValues, fs), lookupFlushID(extent, tabletsKeyValues), lookupCompactID(extent, tabletsKeyValues));
+    this(tabletServer, location, extent, trm, conf, fs, lookupLogEntries(extent, tabletsKeyValues), lookupDatafiles(tabletServer.getSystemConfiguration(), fs,
+        extent, tabletsKeyValues), lookupTime(tabletServer.getSystemConfiguration(), extent, tabletsKeyValues), lookupLastServer(extent, tabletsKeyValues),
+        lookupScanFiles(extent, tabletsKeyValues, fs), lookupFlushID(extent, tabletsKeyValues), lookupCompactID(extent, tabletsKeyValues));
   }
   
   private static TServerInstance lookupLastServer(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
-      if (entry.getKey().getColumnFamily().compareTo(MetadataTable.LAST_LOCATION_COLUMN_FAMILY) == 0) {
+      if (entry.getKey().getColumnFamily().compareTo(TabletsSection.LastLocationColumnFamily.NAME) == 0) {
         return new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
       }
     }
@@ -1370,7 +1375,7 @@ public class Tablet {
         tabletMemory.updateMemoryUsageStats();
         
         if (count[0] == 0) {
-          MetadataTable.removeUnusedWALEntries(extent, logEntries, tabletServer.getLock());
+          MetadataTableUtil.removeUnusedWALEntries(extent, logEntries, tabletServer.getLock());
           logEntries.clear();
         }
         
@@ -2211,7 +2216,7 @@ public class Tablet {
         TCredentials creds = SecurityConstants.getSystemCredentials();
         // if multiple threads were allowed to update this outside of a sync block, then it would be
         // a race condition
-        MetadataTable.updateTabletFlushID(extent, tableFlushID, creds, tabletServer.getLock());
+        MetadataTableUtil.updateTabletFlushID(extent, tableFlushID, creds, tabletServer.getLock());
       } else if (initiateMinor)
         initiateMinorCompaction(tableFlushID, MinorCompactionReason.USER);
       
@@ -2724,7 +2729,7 @@ public class Tablet {
     }
     
     try {
-      Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> fileLog = MetadataTable.getFileAndLogEntries(SecurityConstants.getSystemCredentials(), extent);
+      Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> fileLog = MetadataTableUtil.getFileAndLogEntries(SecurityConstants.getSystemCredentials(), extent);
       
       if (fileLog.getFirst().size() != 0) {
         String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " " + fileLog.getFirst();
@@ -2734,7 +2739,7 @@ public class Tablet {
       
       if (extent.isRootTablet()) {
         if (!fileLog.getSecond().keySet().equals(datafileManager.getDatafileSizes().keySet())) {
-          String msg = "Data file in " + MetadataTable.NAME + " differ from in memory data " + extent + "  " + fileLog.getSecond().keySet() + "  "
+          String msg = "Data file in " + RootTable.NAME + " differ from in memory data " + extent + "  " + fileLog.getSecond().keySet() + "  "
               + datafileManager.getDatafileSizes().keySet();
           log.error(msg);
           throw new RuntimeException(msg);
@@ -3319,7 +3324,7 @@ public class Tablet {
     try {
       majCStats = _majorCompact(reason);
       if (reason == MajorCompactionReason.CHOP) {
-        MetadataTable.chopped(getExtent(), this.tabletServer.getLock());
+        MetadataTableUtil.chopped(getExtent(), this.tabletServer.getLock());
         tabletServer.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
       }
     } catch (CompactionCanceledException mcce) {
@@ -3500,7 +3505,7 @@ public class Tablet {
       SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<FileRef,DataFileValue>();
       List<FileRef> highDatafilesToRemove = new ArrayList<FileRef>();
       
-      MetadataTable.splitDatafiles(extent.getTableId(), midRow, splitRatio, firstAndLastRows, datafileManager.getDatafileSizes(), lowDatafileSizes,
+      MetadataTableUtil.splitDatafiles(extent.getTableId(), midRow, splitRatio, firstAndLastRows, datafileManager.getDatafileSizes(), lowDatafileSizes,
           highDatafileSizes, highDatafilesToRemove);
       
       log.debug("Files for low split " + low + "  " + lowDatafileSizes.keySet());
@@ -3511,12 +3516,12 @@ public class Tablet {
       // it is possible that some of the bulk loading flags will be deleted after being read below because the bulk load
       // finishes.... therefore split could propogate load flags for a finished bulk load... there is a special iterator
       // on the !METADATA table to clean up this type of garbage
-      Map<FileRef,Long> bulkLoadedFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), extent);
+      Map<FileRef,Long> bulkLoadedFiles = MetadataTableUtil.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), extent);
       
-      MetadataTable.splitTablet(high, extent.getPrevEndRow(), splitRatio, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
-      MetadataTable.addNewTablet(low, lowDirectory, tabletServer.getTabletSession(), lowDatafileSizes, bulkLoadedFiles,
+      MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+      MetadataTableUtil.addNewTablet(low, lowDirectory, tabletServer.getTabletSession(), lowDatafileSizes, bulkLoadedFiles,
           SecurityConstants.getSystemCredentials(), time, lastFlushID, lastCompactID, tabletServer.getLock());
-      MetadataTable.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+      MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
       
       log.log(TLevel.TABLET_HIST, extent + " split " + low + " " + high);
       
@@ -3802,7 +3807,7 @@ public class Tablet {
       try {
         // if multiple threads were allowed to update this outside of a sync block, then it would be
         // a race condition
-        MetadataTable.updateTabletCompactID(extent, compactionId, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+        MetadataTableUtil.updateTabletCompactID(extent, compactionId, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
       } finally {
         synchronized (this) {
           majorCompactionInProgress = false;

@@ -17,9 +17,9 @@
 package org.apache.accumulo.server;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -28,8 +28,12 @@ public class ServerConstants {
   
   // versions should never be negative
   public static final Integer WIRE_VERSION = 2;
-  public static final int DATA_VERSION = 5;
-  public static final int PREV_DATA_VERSION = 4;
+  
+  /**
+   * current version reflects the addition of a separate root table (ACCUMULO-1481)
+   */
+  public static final int DATA_VERSION = 6;
+  public static final int PREV_DATA_VERSION = 5;
   
   // these are functions to delay loading the Accumulo configuration unless we must
   public static String[] getBaseDirs() {
@@ -92,6 +96,6 @@ public class ServerConstants {
   }
   
   public static String getRootTabletDir() {
-    return prefix(getRootTableDirs(), RootTable.ZROOT_TABLET)[0];
+    return prefix(getRootTableDirs(), RootTable.ROOT_TABLET_LOCATION)[0];
   }
 }

@@ -84,7 +84,7 @@ public class Writer {
       throw new IllegalArgumentException("Can not add empty mutations");
     
     while (true) {
-      TabletLocation tabLoc = TabletLocator.getInstance(instance, table).locateTablet(new Text(m.getRow()), false, true, credentials);
+      TabletLocation tabLoc = TabletLocator.getLocator(instance, table).locateTablet(new Text(m.getRow()), false, true, credentials);
       
       if (tabLoc == null) {
         log.trace("No tablet location found for row " + new String(m.getRow()));
@@ -97,10 +97,10 @@ public class Writer {
         return;
       } catch (NotServingTabletException e) {
         log.trace("Not serving tablet, server = " + tabLoc.tablet_location);
-        TabletLocator.getInstance(instance, table).invalidateCache(tabLoc.tablet_extent);
+        TabletLocator.getLocator(instance, table).invalidateCache(tabLoc.tablet_extent);
       } catch (TException e) {
         log.error("error sending update to " + tabLoc.tablet_location + ": " + e);
-        TabletLocator.getInstance(instance, table).invalidateCache(tabLoc.tablet_extent);
+        TabletLocator.getLocator(instance, table).invalidateCache(tabLoc.tablet_extent);
       } 
       
       UtilWaitThread.sleep(500);

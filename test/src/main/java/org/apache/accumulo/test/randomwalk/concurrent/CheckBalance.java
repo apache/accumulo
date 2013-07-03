@@ -24,8 +24,9 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -42,7 +43,7 @@ public class CheckBalance extends Test {
     log.debug("checking balance");
     Map<String,Long> counts = new HashMap<String,Long>();
     Scanner scanner = state.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     for (Entry<Key,Value> entry : scanner) {
       String location = entry.getKey().getColumnQualifier().toString();
       Long count = counts.get(location);

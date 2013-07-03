@@ -66,8 +66,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
-
 
 public class ThriftScanner {
   private static final Logger log = Logger.getLogger(ThriftScanner.class);
@@ -80,7 +78,7 @@ public class ThriftScanner {
     }
   }
   
-  static boolean getBatchFromServer(TCredentials credentials, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
+  public static boolean getBatchFromServer(TCredentials credentials, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
       SortedSet<Column> fetchedColumns, List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, int size,
       Authorizations authorizations, boolean retry, AccumuloConfiguration conf) throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
     if (server == null)
@@ -111,7 +109,7 @@ public class ThriftScanner {
         
         return isr.result.more;
       } finally {
-        ThriftUtil.returnClient((TServiceClient) client);
+        ThriftUtil.returnClient(client);
       }
     } catch (TApplicationException tae) {
       throw new AccumuloServerException(server, tae);
@@ -122,7 +120,7 @@ public class ThriftScanner {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TException e) {
       log.debug("Error getting transport to " + server + " : " + e);
-    } 
+    }
     
     throw new AccumuloException("getBatchFromServer: failed");
   }
@@ -213,8 +211,8 @@ public class ThriftScanner {
           
           Span locateSpan = Trace.start("scan:locateTablet");
           try {
-            loc = TabletLocator.getInstance(instance, scanState.tableId).locateTablet(scanState.startRow, scanState.skipStartRow, false, credentials);
-
+            loc = TabletLocator.getLocator(instance, scanState.tableId).locateTablet(scanState.startRow, scanState.skipStartRow, false, credentials);
+            
             if (loc == null) {
               if (!Tables.exists(instance, scanState.tableId.toString()))
                 throw new TableDeletedException(scanState.tableId.toString());
@@ -281,7 +279,7 @@ public class ThriftScanner {
             log.trace(error);
           lastError = error;
           
-          TabletLocator.getInstance(instance, scanState.tableId).invalidateCache(loc.tablet_extent);
+          TabletLocator.getLocator(instance, scanState.tableId).invalidateCache(loc.tablet_extent);
           loc = null;
           
           // no need to try the current scan id somewhere else
@@ -327,7 +325,7 @@ public class ThriftScanner {
           
           UtilWaitThread.sleep(100);
         } catch (TException e) {
-          TabletLocator.getInstance(instance, scanState.tableId).invalidateCache(loc.tablet_location);
+          TabletLocator.getLocator(instance, scanState.tableId).invalidateCache(loc.tablet_location);
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage() + " " + loc;
           if (!error.equals(lastError))
             log.debug(error);
@@ -443,7 +441,7 @@ public class ThriftScanner {
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } finally {
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient(client);
       Thread.currentThread().setName(old);
     }
   }

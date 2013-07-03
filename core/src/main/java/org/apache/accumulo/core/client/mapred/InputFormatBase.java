@@ -53,10 +53,11 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
@@ -687,10 +688,10 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       
       Range metadataRange = new Range(new KeyExtent(new Text(tableId), startRow, null).getMetadataEntry(), true, null, false);
       Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(MetadataTable.LAST_LOCATION_COLUMN_FAMILY);
-      scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
-      scanner.fetchColumnFamily(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY);
+      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(TabletsSection.LastLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);
       scanner.setRange(metadataRange);
       
       RowIterator rowIter = new RowIterator(scanner);
@@ -707,16 +708,16 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
           Entry<Key,Value> entry = row.next();
           Key key = entry.getKey();
           
-          if (key.getColumnFamily().equals(MetadataTable.LAST_LOCATION_COLUMN_FAMILY)) {
+          if (key.getColumnFamily().equals(TabletsSection.LastLocationColumnFamily.NAME)) {
             last = entry.getValue().toString();
           }
           
-          if (key.getColumnFamily().equals(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY)
-              || key.getColumnFamily().equals(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY)) {
+          if (key.getColumnFamily().equals(TabletsSection.CurrentLocationColumnFamily.NAME)
+              || key.getColumnFamily().equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
             location = entry.getValue().toString();
           }
           
-          if (MetadataTable.PREV_ROW_COLUMN.hasColumns(key)) {
+          if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
             extent = new KeyExtent(key.getRow(), entry.getValue());
           }
           

@@ -61,11 +61,16 @@ import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -308,6 +313,7 @@ public class SimpleGarbageCollector implements Iface {
       try {
         Connector connector = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
         connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
+        connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
       } catch (Exception e) {
         log.warn(e, e);
       }
@@ -452,19 +458,24 @@ public class SimpleGarbageCollector implements Iface {
     }
     
     checkForBulkProcessingFiles = false;
-    Range range = MetadataTable.DELETED_RANGE;
-    candidates.addAll(getBatch(MetadataTable.DELETED_RANGE.getStartKey().getRow().toString(), range));
+    candidates.addAll(getBatch(RootTable.NAME));
     if (candidateMemExceeded)
       return candidates;
     
-    range = MetadataTable.DELETED_RANGE;
-    candidates.addAll(getBatch(MetadataTable.DELETED_RANGE.getStartKey().getRow().toString(), range));
+    candidates.addAll(getBatch(MetadataTable.NAME));
     return candidates;
   }
   
-  private Collection<String> getBatch(String prefix, Range range) throws Exception {
+  /**
+   * Gets a batch of delete markers from the specified table
+   * 
+   * @param tableName
+   *          the name of the system table to scan (either {@link RootTable.NAME} or {@link MetadataTable.NAME})
+   */
+  private Collection<String> getBatch(String tableName) throws Exception {
     // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them,
     // then will never inspect deletes after N
+    Range range = MetadataSchema.DeletesSection.getRange();
     if (continueKey != null) {
       if (!range.contains(continueKey)) {
         // continue key is for some other range
@@ -474,13 +485,13 @@ public class SimpleGarbageCollector implements Iface {
       continueKey = null;
     }
     
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(MetadataTable.NAME,
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(tableName,
         Authorizations.EMPTY);
     scanner.setRange(range);
     List<String> result = new ArrayList<String>();
     // find candidates for deletion; chop off the prefix
     for (Entry<Key,Value> entry : scanner) {
-      String cand = entry.getKey().getRow().toString().substring(prefix.length());
+      String cand = entry.getKey().getRow().toString().substring(MetadataSchema.DeletesSection.getRowPrefix().length());
       result.add(cand);
       checkForBulkProcessingFiles |= cand.toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
       if (almostOutOfMemory()) {
@@ -504,7 +515,11 @@ public class SimpleGarbageCollector implements Iface {
    * selected 2. They are still in use in the file column family in the METADATA table
    */
   public void confirmDeletes(SortedSet<String> candidates) throws AccumuloException {
-    
+    confirmDeletes(RootTable.NAME, candidates);
+    confirmDeletes(MetadataTable.NAME, candidates);
+  }
+  
+  private void confirmDeletes(String tableName, SortedSet<String> candidates) throws AccumuloException {
     Scanner scanner;
     if (offline) {
       // TODO
@@ -516,8 +531,8 @@ public class SimpleGarbageCollector implements Iface {
       // }
     } else {
       try {
-        scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(
-            MetadataTable.NAME, Authorizations.EMPTY));
+        scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(tableName,
+            Authorizations.EMPTY));
       } catch (AccumuloSecurityException ex) {
         throw new AccumuloException(ex);
       } catch (TableNotFoundException ex) {
@@ -530,14 +545,14 @@ public class SimpleGarbageCollector implements Iface {
       
       log.debug("Checking for bulk processing flags");
       
-      scanner.setRange(MetadataTable.BLIP_KEYSPACE);
+      scanner.setRange(MetadataSchema.BlipSection.getRange());
       
       // WARNING: This block is IMPORTANT
       // You MUST REMOVE candidates that are in the same folder as a bulk
       // processing flag!
       
       for (Entry<Key,Value> entry : scanner) {
-        String blipPath = entry.getKey().getRow().toString().substring(MetadataTable.BLIP_FLAG_PREFIX.length());
+        String blipPath = entry.getKey().getRow().toString().substring(MetadataSchema.BlipSection.getRowPrefix().length());
         Iterator<String> tailIter = candidates.tailSet(blipPath).iterator();
         int count = 0;
         while (tailIter.hasNext()) {
@@ -558,17 +573,17 @@ public class SimpleGarbageCollector implements Iface {
     // skip candidates that are still in use in the file column family in
     // the metadata table
     scanner.clearColumns();
-    scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
-    scanner.fetchColumnFamily(MetadataTable.SCANFILE_COLUMN_FAMILY);
-    MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
-    TabletIterator tabletIterator = new TabletIterator(scanner, MetadataTable.KEYSPACE, false, true);
+    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+    scanner.fetchColumnFamily(ScanFileColumnFamily.NAME);
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+    TabletIterator tabletIterator = new TabletIterator(scanner, MetadataSchema.TabletsSection.getRange(), false, true);
     
     while (tabletIterator.hasNext()) {
       Map<Key,Value> tabletKeyValues = tabletIterator.next();
       
       for (Entry<Key,Value> entry : tabletKeyValues.entrySet()) {
-        if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)
-            || entry.getKey().getColumnFamily().equals(MetadataTable.SCANFILE_COLUMN_FAMILY)) {
+        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)
+            || entry.getKey().getColumnFamily().equals(ScanFileColumnFamily.NAME)) {
           
           String cf = entry.getKey().getColumnQualifier().toString();
           String delete = cf;
@@ -586,16 +601,16 @@ public class SimpleGarbageCollector implements Iface {
           // WARNING: This line is EXTREMELY IMPORTANT.
           // You MUST REMOVE candidates that are still in use
           if (candidates.remove(delete))
-            log.debug("Candidate was still in use in the METADATA table: " + delete);
+            log.debug("Candidate was still in use in the " + tableName + " table: " + delete);
           
           String path = delete.substring(0, delete.lastIndexOf('/'));
           if (candidates.remove(path))
-            log.debug("Candidate was still in use in the METADATA table: " + path);
-        } else if (MetadataTable.DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
+            log.debug("Candidate was still in use in the " + tableName + " table: " + path);
+        } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
           String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()));
           String delete = "/" + table + entry.getValue().toString();
           if (candidates.remove(delete))
-            log.debug("Candidate was still in use in the METADATA table: " + delete);
+            log.debug("Candidate was still in use in the " + tableName + " table: " + delete);
         } else
           throw new AccumuloException("Scanner over metadata table returned unexpected column : " + entry.getKey());
       }
@@ -604,16 +619,12 @@ public class SimpleGarbageCollector implements Iface {
   
   final static String METADATA_TABLE_DIR = "/" + MetadataTable.ID;
   
-  private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer, final BatchWriter rootWriter) throws MutationsRejectedException {
-    if (delete.contains(METADATA_TABLE_DIR)) {
-      Mutation m = new Mutation(new Text(MetadataTable.DELETED_RANGE.getStartKey().getRow().toString() + delete));
-      m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
-      rootWriter.addMutation(m);
-    } else {
-      Mutation m = new Mutation(new Text(MetadataTable.DELETED_RANGE.getStartKey().getRow().toString() + delete));
-      m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
-      writer.addMutation(m);
-    }
+  private static void putMarkerDeleteMutation(final String delete, final BatchWriter metadataWriter, final BatchWriter rootWriter)
+      throws MutationsRejectedException {
+    BatchWriter writer = delete.contains(METADATA_TABLE_DIR) ? rootWriter : metadataWriter;
+    Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + delete);
+    m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
+    writer.addMutation(m);
   }
   
   /**
@@ -629,9 +640,13 @@ public class SimpleGarbageCollector implements Iface {
       try {
         c = instance.getConnector(SecurityConstants.SYSTEM_PRINCIPAL, SecurityConstants.getSystemToken());
         writer = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-        rootWriter = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      } catch (Exception e) {
-        log.error("Unable to create writer to remove file from the " + MetadataTable.NAME + " table", e);
+        rootWriter = c.createBatchWriter(RootTable.NAME, new BatchWriterConfig());
+      } catch (AccumuloException e) {
+        log.error("Unable to connect to Accumulo to write deletes", e);
+      } catch (AccumuloSecurityException e) {
+        log.error("Unable to connect to Accumulo to write deletes", e);
+      } catch (TableNotFoundException e) {
+        log.error("Unable to create writer to remove file from the " + e.getTableName() + " table", e);
       }
     }
     // when deleting a dir and all files in that dir, only need to delete the dir

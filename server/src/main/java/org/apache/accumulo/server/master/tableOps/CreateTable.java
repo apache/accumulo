@@ -39,7 +39,7 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.tabletserver.TabletTime;
-import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.hadoop.fs.Path;
@@ -115,7 +115,7 @@ class PopulateMetadata extends MasterRepo {
   public Repo<Master> call(long tid, Master environment) throws Exception {
     
     KeyExtent extent = new KeyExtent(new Text(tableInfo.tableId), null, null);
-    MetadataTable.addTablet(extent, Constants.DEFAULT_TABLET_LOCATION, SecurityConstants.getSystemCredentials(), tableInfo.timeType,
+    MetadataTableUtil.addTablet(extent, Constants.DEFAULT_TABLET_LOCATION, SecurityConstants.getSystemCredentials(), tableInfo.timeType,
         environment.getMasterLock());
     
     return new FinishCreateTable(tableInfo);
@@ -124,7 +124,7 @@ class PopulateMetadata extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTable.deleteTable(tableInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(tableInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
   }
   
 }

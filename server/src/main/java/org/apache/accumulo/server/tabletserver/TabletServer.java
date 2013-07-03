@@ -101,6 +101,9 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -121,7 +124,6 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
@@ -183,8 +185,8 @@ import org.apache.accumulo.server.tabletserver.metrics.TabletServerUpdateMetrics
 import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MapCounter;
-import org.apache.accumulo.server.util.MetadataTable;
-import org.apache.accumulo.server.util.MetadataTable.LogEntry;
+import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.MetadataTableUtil.LogEntry;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerPort;
 import org.apache.accumulo.server.util.time.RelativeTime;
@@ -1254,6 +1256,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         tables.add(new String(keyExtent.getTable()));
       }
       
+      if (tables.size() != 1)
+        throw new IllegalArgumentException("Cannot batch scan over multiple tables");
+      
       // check if user has permission to the tables
       Authorizations userauths = null;
       for (String table : tables)
@@ -1265,21 +1270,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         if (!userauths.contains(ByteBufferUtil.toBytes(auth)))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
       
-      KeyExtent threadPoolExtent = null;
-      
       Map<KeyExtent,List<Range>> batch = Translator.translate(tbatch, Translator.TKET, new Translator.ListTranslator<TRange,Range>(Translator.TRT));
       
-      for (KeyExtent keyExtent : batch.keySet()) {
-        if (threadPoolExtent == null) {
-          threadPoolExtent = keyExtent;
-        } else if (keyExtent.isRootTablet()) {
-          throw new IllegalArgumentException("Cannot batch query root tablet with other tablets " + threadPoolExtent + " " + keyExtent);
-        } else if (keyExtent.isMeta() && !threadPoolExtent.isMeta()) {
-          throw new IllegalArgumentException("Cannot batch query " + MetadataTable.NAME + " and non " + MetadataTable.NAME + " tablets " + threadPoolExtent
-              + " " + keyExtent);
-        }
-        
-      }
+      // This is used to determine which thread pool to use
+      KeyExtent threadPoolExtent = batch.keySet().iterator().next();
       
       if (waitForWrites)
         writeTracker.waitForWrites(TabletType.type(batch.keySet()));
@@ -2597,14 +2591,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     List<String> logSet = new ArrayList<String>();
     for (DfsLogger log : logs)
       logSet.add(log.toString());
-    MetadataTable.LogEntry entry = new MetadataTable.LogEntry();
+    MetadataTableUtil.LogEntry entry = new MetadataTableUtil.LogEntry();
     entry.extent = extent;
     entry.tabletId = id;
     entry.timestamp = now;
     entry.server = logs.get(0).getLogger();
     entry.filename = logs.get(0).getFileName();
     entry.logSet = logSet;
-    MetadataTable.addLogEntry(SecurityConstants.getSystemCredentials(), entry, getLock());
+    MetadataTableUtil.addLogEntry(SecurityConstants.getSystemCredentials(), entry, getLock());
   }
   
   private int startServer(AccumuloConfiguration conf, Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
@@ -2873,7 +2867,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       throw new AccumuloException("Root tablet already has a location set");
     }
     
-    return new Pair<Text,KeyExtent>(new Text(RootTable.ZROOT_TABLET), null);
+    return new Pair<Text,KeyExtent>(new Text(RootTable.ROOT_TABLET_LOCATION), null);
   }
   
   public static Pair<Text,KeyExtent> verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues,
@@ -2887,8 +2881,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     if (extent.isMeta())
       tableToVerify = RootTable.ID;
     
-    List<ColumnFQ> columnsToFetch = Arrays.asList(new ColumnFQ[] {MetadataTable.DIRECTORY_COLUMN, MetadataTable.PREV_ROW_COLUMN,
-        MetadataTable.SPLIT_RATIO_COLUMN, MetadataTable.OLD_PREV_ROW_COLUMN, MetadataTable.TIME_COLUMN});
+    List<ColumnFQ> columnsToFetch = Arrays.asList(new ColumnFQ[] {TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
+        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN, TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
+        TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN, TabletsSection.ServerColumnFamily.TIME_COLUMN});
     
     ScannerImpl scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), tableToVerify, Authorizations.EMPTY);
     scanner.setRange(extent.toMetadataRange());
@@ -2913,18 +2908,18 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     Value oldPrevEndRow = null;
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
-      if (MetadataTable.OLD_PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+      if (TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
         oldPrevEndRow = entry.getValue();
       }
     }
     
     if (oldPrevEndRow != null) {
       SortedMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries;
-      tabletEntries = MetadataTable.getTabletEntries(tabletsKeyValues, columnsToFetch);
+      tabletEntries = MetadataTableUtil.getTabletEntries(tabletsKeyValues, columnsToFetch);
       
       KeyExtent fke;
       try {
-        fke = MetadataTable.fixSplit(metadataEntry, tabletEntries.get(metadataEntry), instance, SecurityConstants.getSystemCredentials(), lock);
+        fke = MetadataTableUtil.fixSplit(metadataEntry, tabletEntries.get(metadataEntry), instance, SecurityConstants.getSystemCredentials(), lock);
       } catch (IOException e) {
         log.error("Error fixing split " + metadataEntry);
         throw new AccumuloException(e.toString());
@@ -2956,19 +2951,19 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         return null;
       }
       Text cf = key.getColumnFamily();
-      if (cf.equals(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY)) {
+      if (cf.equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
         if (future != null) {
           throw new AccumuloException("Tablet has multiple future locations " + extent);
         }
         future = new TServerInstance(entry.getValue(), key.getColumnQualifier());
-      } else if (cf.equals(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY)) {
+      } else if (cf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
         log.info("Tablet seems to be already assigned to " + new TServerInstance(entry.getValue(), key.getColumnQualifier()));
         return null;
-      } else if (MetadataTable.PREV_ROW_COLUMN.hasColumns(key)) {
+      } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
         prevEndRow = entry.getValue();
-      } else if (MetadataTable.DIRECTORY_COLUMN.hasColumns(key)) {
+      } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
         dir = entry.getValue();
-      } else if (MetadataTable.TIME_COLUMN.hasColumns(key)) {
+      } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
         time = entry.getValue();
       }
     }

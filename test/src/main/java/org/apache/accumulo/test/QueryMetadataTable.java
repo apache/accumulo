@@ -35,8 +35,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.io.Text;
@@ -111,7 +112,7 @@ public class QueryMetadataTable {
       if (count % 72 == 0) {
         System.out.printf(" %,d%n", count);
       }
-      if (entry.getKey().compareRow(mdrow) == 0 && entry.getKey().getColumnFamily().compareTo(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
+      if (entry.getKey().compareRow(mdrow) == 0 && entry.getKey().getColumnFamily().compareTo(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
         System.out.println(entry.getKey() + " " + entry.getValue());
         location = entry.getValue().toString();
       }

@@ -50,7 +50,7 @@ import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -147,7 +147,6 @@ public class SimpleTest {
     props.put("tokenClass", PasswordToken.class.getName());
     
     protocolClass = getRandomProtocol();
-    System.out.println(protocolClass.getName());
     
     proxyPort = PortUtils.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
@@ -1001,14 +1000,14 @@ public class SimpleTest {
     client.closeScanner(scanner);
     assertEquals(10, more.getResults().size());
     client.deleteTable(creds, "test2");
-
+    
     // don't know how to test this, call it just for fun
     client.clearLocatorCache(creds, TABLE_TEST);
-
+    
     // compact
     client.compactTable(creds, TABLE_TEST, null, null, null, true, true);
     assertEquals(1, countFiles(TABLE_TEST));
-
+    
     // get disk usage
     client.cloneTable(creds, TABLE_TEST, "test2", true, null, null);
     Set<String> tablesToScan = new HashSet<String>();
@@ -1028,7 +1027,7 @@ public class SimpleTest {
     assertEquals(1, diskUsage.get(2).getTables().size());
     client.deleteTable(creds, "foo");
     client.deleteTable(creds, "test2");
-
+    
     // export/import
     String dir = folder.getRoot() + "/test";
     String destDir = folder.getRoot() + "/test_dest";

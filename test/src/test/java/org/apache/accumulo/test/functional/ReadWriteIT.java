@@ -44,8 +44,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
@@ -60,7 +61,7 @@ public class ReadWriteIT extends MacTest {
   static final int COLS = 1;
   static final String COLF = "colf";
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void sunnyDay() throws Exception {
     // Start accumulo, create a table, insert some data, verify we can read it out.
     // Shutdown cleanly.
@@ -99,6 +100,7 @@ public class ReadWriteIT extends MacTest {
   private static void verify(Connector connector, int rows, int cols, int width, int offset) throws Exception {
     verify(connector, rows, cols, width, offset, COLF);
   }
+  
   private static void verify(Connector connector, int rows, int cols, int width, int offset, String colf) throws Exception {
     ScannerOpts scannerOpts = new ScannerOpts();
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
@@ -110,11 +112,11 @@ public class ReadWriteIT extends MacTest {
     VerifyIngest.verifyIngest(connector, opts, scannerOpts);
   }
   
-  public static String[] args(String ...args) {
+  public static String[] args(String... args) {
     return args;
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void multiTableTest() throws Exception {
     // Write to multiple tables
     String instance = cluster.getInstanceName();
@@ -123,7 +125,7 @@ public class ReadWriteIT extends MacTest {
     TestMultiTableIngest.main(args("--count", "" + ROWS, "--readonly", "-u", "root", "-i", instance, "-z", keepers, "-p", PASSWORD));
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void largeTest() throws Exception {
     // write a few large values
     Connector connector = getConnector();
@@ -131,13 +133,13 @@ public class ReadWriteIT extends MacTest {
     verify(connector, 2, 1, 500000, 0);
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void interleaved() throws Exception {
     // read and write concurrently
     final Connector connector = getConnector();
     interleaveTest(connector);
   }
- 
+  
   static void interleaveTest(final Connector connector) throws Exception {
     final AtomicBoolean fail = new AtomicBoolean(false);
     final int CHUNKSIZE = ROWS / 10;
@@ -146,6 +148,7 @@ public class ReadWriteIT extends MacTest {
     for (i = 0; i < ROWS; i += CHUNKSIZE) {
       final int start = i;
       Thread verify = new Thread() {
+        @Override
         public void run() {
           try {
             verify(connector, CHUNKSIZE, 1, 50, start);
@@ -161,7 +164,9 @@ public class ReadWriteIT extends MacTest {
     verify(connector, CHUNKSIZE, 1, 50, i);
   }
   
-  public static Text t(String s) { return new Text(s); }
+  public static Text t(String s) {
+    return new Text(s);
+  }
   
   public static Mutation m(String row, String cf, String cq, String value) {
     Mutation m = new Mutation(t(row));
@@ -169,10 +174,9 @@ public class ReadWriteIT extends MacTest {
     return m;
   }
   
-  
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void localityGroupPerf() throws Exception {
-    // verify that locality groups can make look-ups faster 
+    // verify that locality groups can make look-ups faster
     final Connector connector = getConnector();
     connector.tableOperations().create("test_ingest");
     connector.tableOperations().setProperty("test_ingest", "table.group.g1", "colf");
@@ -185,25 +189,27 @@ public class ReadWriteIT extends MacTest {
     long now = System.currentTimeMillis();
     Scanner scanner = connector.createScanner("test_ingest", Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text("colf"));
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : scanner)
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : scanner)
       ;
     long diff = System.currentTimeMillis() - now;
     now = System.currentTimeMillis();
     scanner = connector.createScanner("test_ingest", Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text("colf2"));
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : scanner)
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : scanner)
       ;
     bw.close();
     long diff2 = System.currentTimeMillis() - now;
     assertTrue(diff2 < diff);
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void sunnyLG() throws Exception {
     // create a locality group, write to it and ensure it exists in the RFiles that result
     final Connector connector = getConnector();
     connector.tableOperations().create("test_ingest");
-    Map<String, Set<Text>> groups = new TreeMap<String, Set<Text>>();
+    Map<String,Set<Text>> groups = new TreeMap<String,Set<Text>>();
     groups.put("g1", Collections.singleton(t("colf")));
     connector.tableOperations().setLocalityGroups("test_ingest", groups);
     ingest(connector, 2000, 1, 50, 0);
@@ -212,9 +218,9 @@ public class ReadWriteIT extends MacTest {
     BatchScanner bscanner = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
     String tableId = connector.tableOperations().tableIdMap().get("test_ingest");
     bscanner.setRanges(Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));
-    bscanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+    bscanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     boolean foundFile = false;
-    for (Entry<Key,Value> entry: bscanner) {
+    for (Entry<Key,Value> entry : bscanner) {
       foundFile = true;
       Process info = cluster.exec(PrintInfo.class, entry.getKey().getColumnQualifier().toString());
       assertEquals(0, info.waitFor());
@@ -226,34 +232,24 @@ public class ReadWriteIT extends MacTest {
     assertTrue(foundFile);
   }
   
-  @Test(timeout=90*1000)
+  @Test(timeout = 90 * 1000)
   public void localityGroupChange() throws Exception {
     // Make changes to locality groups and ensure nothing is lostssh
     final Connector connector = getConnector();
     TableOperations to = connector.tableOperations();
     to.create("test_ingest");
-    String[] config = new String[] {
-      "lg1:colf",
-      null,
-      "lg1:colf,xyz",
-      "lg1:colf,xyz;lg2:c1,c2"
-    };
+    String[] config = new String[] {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf,xyz;lg2:c1,c2"};
     int i = 0;
     for (String cfg : config) {
       to.setLocalityGroups("test_ingest", getGroups(cfg));
-      ingest(connector, ROWS * (i+1), 1, 50, ROWS * i);
+      ingest(connector, ROWS * (i + 1), 1, 50, ROWS * i);
       to.flush("test_ingest", null, null, true);
-      verify(connector, 0, 1, 50, ROWS * (i+1));
+      verify(connector, 0, 1, 50, ROWS * (i + 1));
       i++;
     }
     to.delete("test_ingest");
     to.create("test_ingest");
-    config = new String[] {
-        "lg1:colf",
-        null,
-        "lg1:colf,xyz",
-        "lg1:colf;lg2:colf",
-    };
+    config = new String[] {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf;lg2:colf",};
     i = 1;
     for (String cfg : config) {
       ingest(connector, ROWS * i, 1, 50, 0);
@@ -265,11 +261,11 @@ public class ReadWriteIT extends MacTest {
       i++;
     }
   }
-
+  
   private Map<String,Set<Text>> getGroups(String cfg) {
-    Map<String, Set<Text>> groups = new TreeMap<String, Set<Text>>();
+    Map<String,Set<Text>> groups = new TreeMap<String,Set<Text>>();
     if (cfg != null) {
-      for (String group: cfg.split(";")) {
+      for (String group : cfg.split(";")) {
         String[] parts = group.split(":");
         Set<Text> cols = new HashSet<Text>();
         for (String col : parts[1].split(",")) {
@@ -280,5 +276,5 @@ public class ReadWriteIT extends MacTest {
     }
     return groups;
   }
-
+  
 }

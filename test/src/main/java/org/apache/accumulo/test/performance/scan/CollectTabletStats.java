@@ -27,9 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.SortedSet;
+import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,6 +58,7 @@ import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
+import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -70,7 +70,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -84,16 +84,16 @@ public class CollectTabletStats {
   private static final Logger log = Logger.getLogger(CollectTabletStats.class);
   
   static class CollectOptions extends ClientOnRequiredTable {
-    @Parameter(names="--iterations", description="number of iterations")
+    @Parameter(names = "--iterations", description = "number of iterations")
     int iterations = 3;
-    @Parameter(names="-t", description="number of threads")
+    @Parameter(names = "-t", description = "number of threads")
     int numThreads = 1;
-    @Parameter(names="-f", description="select far tablets, default is to use local tablets")
+    @Parameter(names = "-f", description = "select far tablets, default is to use local tablets")
     boolean selectFarTablets = false;
-    @Parameter(names="-c", description="comma separated list of columns")
+    @Parameter(names = "-c", description = "comma separated list of columns")
     String columns;
   }
-
+  
   public static void main(String[] args) throws Exception {
     
     final CollectOptions opts = new CollectOptions();
@@ -106,7 +106,7 @@ public class CollectTabletStats {
     final String columns[] = columnsTmp;
     
     final VolumeManager fs = VolumeManagerImpl.get();
-
+    
     Instance instance = opts.getInstance();
     final ServerConfiguration sconf = new ServerConfiguration(instance);
     
@@ -116,8 +116,9 @@ public class CollectTabletStats {
       System.exit(-1);
     }
     
-    Map<KeyExtent,String> locations = new HashMap<KeyExtent,String>();
-    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), opts.tableName, instance, locations);
+    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
+    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), opts.tableName,
+        instance, tabletLocations);
     
     if (candidates.size() < opts.numThreads) {
       System.err.println("ERROR : Unable to find " + opts.numThreads + " " + (opts.selectFarTablets ? "far" : "local") + " tablets");
@@ -142,7 +143,7 @@ public class CollectTabletStats {
     for (KeyExtent ke : tabletsToTest) {
       System.out.println("\t *** Information about tablet " + ke.getUUID() + " *** ");
       System.out.println("\t\t# files in tablet : " + tabletFiles.get(ke).size());
-      System.out.println("\t\ttablet location   : " + locations.get(ke));
+      System.out.println("\t\ttablet location   : " + tabletLocations.get(ke));
       reportHdfsBlockLocations(tabletFiles.get(ke));
     }
     
@@ -157,6 +158,7 @@ public class CollectTabletStats {
       for (final KeyExtent ke : tabletsToTest) {
         final List<FileRef> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
+          @Override
           public int runTest() throws Exception {
             return readFiles(fs, sconf.getConfiguration(), files, ke, columns);
           }
@@ -176,6 +178,7 @@ public class CollectTabletStats {
       for (final KeyExtent ke : tabletsToTest) {
         final List<FileRef> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
+          @Override
           public int runTest() throws Exception {
             return readFilesUsingIterStack(fs, sconf, files, opts.auths, ke, columns, false);
           }
@@ -193,6 +196,7 @@ public class CollectTabletStats {
       for (final KeyExtent ke : tabletsToTest) {
         final List<FileRef> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
+          @Override
           public int runTest() throws Exception {
             return readFilesUsingIterStack(fs, sconf, files, opts.auths, ke, columns, true);
           }
@@ -212,6 +216,7 @@ public class CollectTabletStats {
       
       for (final KeyExtent ke : tabletsToTest) {
         Test test = new Test(ke) {
+          @Override
           public int runTest() throws Exception {
             return scanTablet(conn, opts.tableName, opts.auths, scanOpts.scanBatchSize, ke.getPrevEndRow(), ke.getEndRow(), columns);
           }
@@ -227,6 +232,7 @@ public class CollectTabletStats {
       final Connector conn = opts.getConnector();
       
       threadPool.submit(new Runnable() {
+        @Override
         public void run() {
           try {
             calcTabletStats(conn, opts.tableName, opts.auths, scanOpts.scanBatchSize, ke, columns);
@@ -259,6 +265,7 @@ public class CollectTabletStats {
       this.finishCdl = fcdl;
     }
     
+    @Override
     public void run() {
       
       try {
@@ -337,23 +344,26 @@ public class CollectTabletStats {
     
   }
   
-  private static List<KeyExtent> findTablets(boolean selectLocalTablets, TCredentials credentials, String table, Instance zki,
-      Map<KeyExtent,String> locations) throws Exception {
-    SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
+  private static List<KeyExtent> findTablets(boolean selectLocalTablets, TCredentials credentials, String tableName, Instance zki,
+      SortedMap<KeyExtent,String> tabletLocations) throws Exception {
     
-    MetadataTable.getEntries(zki, credentials, table, false, locations, tablets);
+    String tableId = Tables.getNameToIdMap(zki).get(tableName);
+    MetadataServicer.forTableId(zki, credentials, tableId).getTabletLocations(tabletLocations);
     
     InetAddress localaddress = InetAddress.getLocalHost();
     
     List<KeyExtent> candidates = new ArrayList<KeyExtent>();
     
-    for (Entry<KeyExtent,String> entry : locations.entrySet()) {
-      boolean isLocal = AddressUtil.parseAddress(entry.getValue(), 4).getAddress().equals(localaddress);
-      
-      if (selectLocalTablets && isLocal) {
-        candidates.add(entry.getKey());
-      } else if (!selectLocalTablets && !isLocal) {
-        candidates.add(entry.getKey());
+    for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
+      String loc = entry.getValue();
+      if (loc != null) {
+        boolean isLocal = AddressUtil.parseAddress(entry.getValue(), 4).getAddress().equals(localaddress);
+        
+        if (selectLocalTablets && isLocal) {
+          candidates.add(entry.getKey());
+        } else if (!selectLocalTablets && !isLocal) {
+          candidates.add(entry.getKey());
+        }
       }
     }
     return candidates;
@@ -373,7 +383,7 @@ public class CollectTabletStats {
   }
   
   private static List<FileRef> getTabletFiles(TCredentials token, Instance zki, String tableId, KeyExtent ke) throws IOException {
-    return new ArrayList<FileRef>(MetadataTable.getDataFileSizes(ke, token).keySet());
+    return new ArrayList<FileRef>(MetadataTableUtil.getDataFileSizes(ke, token).keySet());
   }
   
   private static void reportHdfsBlockLocations(List<FileRef> files) throws Exception {
@@ -456,9 +466,8 @@ public class CollectTabletStats {
     return columnSet;
   }
   
-  private static int readFilesUsingIterStack(VolumeManager fs, ServerConfiguration aconf, List<FileRef> files, Authorizations auths, KeyExtent ke, String[] columns,
-      boolean useTableIterators)
-      throws Exception {
+  private static int readFilesUsingIterStack(VolumeManager fs, ServerConfiguration aconf, List<FileRef> files, Authorizations auths, KeyExtent ke,
+      String[] columns, boolean useTableIterators) throws Exception {
     
     SortedKeyValueIterator<Key,Value> reader;
     
@@ -472,7 +481,7 @@ public class CollectTabletStats {
     List<IterInfo> emptyIterinfo = Collections.emptyList();
     Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
     TableConfiguration tconf = aconf.getTableConfiguration(ke.getTableId().toString());
-    reader = createScanIterator(ke, readers,auths, new byte[] {}, new HashSet<Column>(), emptyIterinfo, emptySsio, useTableIterators, tconf);
+    reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<Column>(), emptyIterinfo, emptySsio, useTableIterators, tconf);
     
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
     
@@ -489,7 +498,8 @@ public class CollectTabletStats {
     
   }
   
-  private static int scanTablet(Connector conn, String table, Authorizations auths, int batchSize, Text prevEndRow, Text endRow, String[] columns) throws Exception {
+  private static int scanTablet(Connector conn, String table, Authorizations auths, int batchSize, Text prevEndRow, Text endRow, String[] columns)
+      throws Exception {
     
     Scanner scanner = conn.createScanner(table, auths);
     scanner.setBatchSize(batchSize);

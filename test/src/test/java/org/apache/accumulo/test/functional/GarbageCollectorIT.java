@@ -28,9 +28,10 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
@@ -47,15 +48,15 @@ public class GarbageCollectorIT extends MacTest {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String, String> settings = new HashMap<String, String>();
+    Map<String,String> settings = new HashMap<String,String>();
     settings.put(Property.GC_CYCLE_START.getKey(), "1");
     settings.put(Property.GC_CYCLE_DELAY.getKey(), "1");
     settings.put(Property.TSERV_MAXMEM.getKey(), "5K");
     settings.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     cfg.setSiteConfig(settings);
   }
-
-  @Test(timeout=60*1000)
+  
+  @Test(timeout = 60 * 1000)
   public void gcTest() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -75,31 +76,32 @@ public class GarbageCollectorIT extends MacTest {
       before = more;
     }
     Process gc = cluster.exec(SimpleGarbageCollector.class);
-    UtilWaitThread.sleep(5*1000);
+    UtilWaitThread.sleep(5 * 1000);
     int after = countFiles();
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     assertTrue(after < before);
     gc.destroy();
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void gcLotsOfCandidatesIT() throws Exception {
     log.info("Filling !METADATA table with bogus delete flags");
     Connector c = getConnector();
     addEntries(c, new BatchWriterOpts());
     cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
     Process gc = cluster.exec(SimpleGarbageCollector.class);
-    UtilWaitThread.sleep(10*1000);
+    UtilWaitThread.sleep(10 * 1000);
     String output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
     gc.destroy();
     assertTrue(output.contains("delete candidates has exceeded"));
   }
-
+  
   private int countFiles() throws Exception {
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     int result = 0;
-    Path path = new Path(cluster.getConfig().getDir()+"/accumulo/tables/1/*/*.rf");
-    for (@SuppressWarnings("unused") FileStatus entry : fs.globStatus(path)) {
+    Path path = new Path(cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf");
+    for (@SuppressWarnings("unused")
+    FileStatus entry : fs.globStatus(path)) {
       result++;
     }
     return result;
@@ -111,7 +113,7 @@ public class GarbageCollectorIT extends MacTest {
     
     for (int i = 0; i < 100000; ++i) {
       final Text emptyText = new Text("");
-      Text row = new Text(String.format("%s%s%020d%s", MetadataTable.DELETED_RANGE.getStartKey().getRow().toString(), "/", i,
+      Text row = new Text(String.format("%s%s%020d%s", MetadataSchema.DeletesSection.getRowPrefix(), "/", i,
           "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
       Mutation delFlag = new Mutation(row);
       delFlag.put(emptyText, emptyText, new Value(new byte[] {}));

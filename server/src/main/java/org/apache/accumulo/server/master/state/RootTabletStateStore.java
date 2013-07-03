@@ -19,8 +19,9 @@ package org.apache.accumulo.server.master.state;
 import java.util.Iterator;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.RootTable;
 
 public class RootTabletStateStore extends MetaDataStateStore {
   
@@ -34,7 +35,7 @@ public class RootTabletStateStore extends MetaDataStateStore {
   
   @Override
   public Iterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(instance, auths, RootTable.METADATA_TABLETS_RANGE, state, RootTable.NAME);
+    return new MetaDataTableScanner(instance, auths, MetadataSchema.TabletsSection.getRange(), state, RootTable.NAME);
   }
   
   @Override

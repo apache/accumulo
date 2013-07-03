@@ -22,7 +22,7 @@ import java.net.InetSocketAddress;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.hadoop.io.Text;
 
@@ -58,19 +58,19 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
   
   public void putLocation(Mutation m) {
-    m.put(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY, asColumnQualifier(), asMutationValue());
+    m.put(TabletsSection.CurrentLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
   }
   
   public void putFutureLocation(Mutation m) {
-    m.put(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY, asColumnQualifier(), asMutationValue());
+    m.put(TabletsSection.FutureLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
   }
   
   public void putLastLocation(Mutation m) {
-    m.put(MetadataTable.LAST_LOCATION_COLUMN_FAMILY, asColumnQualifier(), asMutationValue());
+    m.put(TabletsSection.LastLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
   }
   
   public void clearLastLocation(Mutation m) {
-    m.putDelete(MetadataTable.LAST_LOCATION_COLUMN_FAMILY, asColumnQualifier());
+    m.putDelete(TabletsSection.LastLocationColumnFamily.NAME, asColumnQualifier());
   }
   
   @Override

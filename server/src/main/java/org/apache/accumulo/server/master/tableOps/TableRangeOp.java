@@ -20,6 +20,7 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.master.Master;
@@ -95,6 +96,10 @@ public class TableRangeOp extends MasterRepo {
   
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
+    
+    if (RootTable.ID.equals(tableId) && TableOperation.MERGE.equals(op)) {
+      log.warn("Attempt to merge tablets for " + RootTable.NAME + " does nothing. It is not splittable.");
+    }
     
     Text start = startRow.length == 0 ? null : new Text(startRow);
     Text end = endRow.length == 0 ? null : new Text(endRow);

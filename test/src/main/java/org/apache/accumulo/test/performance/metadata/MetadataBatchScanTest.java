@@ -35,9 +35,11 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
@@ -99,10 +101,10 @@ public class MetadataBatchScanTest {
         
         String dir = "/t-" + UUID.randomUUID();
         
-        MetadataTable.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
         
         for (int i = 0; i < 5; i++) {
-          mut.put(MetadataTable.DATAFILE_COLUMN_FAMILY, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes()));
+          mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes()));
         }
         
         bw.addMutation(mut);
@@ -165,8 +167,8 @@ public class MetadataBatchScanTest {
     Scanner scanner = null;
     
     BatchScanner bs = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
-    bs.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
-    MetadataTable.PREV_ROW_COLUMN.fetch(bs);
+    bs.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(bs);
     
     bs.setRanges(ranges);
     

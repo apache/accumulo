@@ -24,11 +24,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -46,10 +46,14 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
@@ -68,7 +72,7 @@ import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.tabletserver.TabletTime;
-import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
@@ -396,32 +400,32 @@ class TabletGroupWatcher extends Daemon {
           extent.getEndRow()), true);
       Scanner scanner = conn.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(deleteRange);
-      MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
-      MetadataTable.TIME_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
-      scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
+      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+      TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
       Set<FileRef> datafiles = new TreeSet<FileRef>();
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
-        if (key.compareColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY) == 0) {
+        if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
           datafiles.add(new FileRef(this.master.fs, key));
           if (datafiles.size() > 1000) {
-            MetadataTable.addDeleteEntries(extent, datafiles, SecurityConstants.getSystemCredentials());
+            MetadataTableUtil.addDeleteEntries(extent, datafiles, SecurityConstants.getSystemCredentials());
             datafiles.clear();
           }
-        } else if (MetadataTable.TIME_COLUMN.hasColumns(key)) {
+        } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           timeType = entry.getValue().toString().charAt(0);
-        } else if (key.compareColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
+        } else if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
           throw new IllegalStateException("Tablet " + key.getRow() + " is assigned during a merge!");
-        } else if (MetadataTable.DIRECTORY_COLUMN.hasColumns(key)) {
+        } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           datafiles.add(new FileRef(this.master.fs, key));
           if (datafiles.size() > 1000) {
-            MetadataTable.addDeleteEntries(extent, datafiles, SecurityConstants.getSystemCredentials());
+            MetadataTableUtil.addDeleteEntries(extent, datafiles, SecurityConstants.getSystemCredentials());
             datafiles.clear();
           }
         }
       }
-      MetadataTable.addDeleteEntries(extent, datafiles, SecurityConstants.getSystemCredentials());
+      MetadataTableUtil.addDeleteEntries(extent, datafiles, SecurityConstants.getSystemCredentials());
       BatchWriter bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       try {
         deleteTablets(info, deleteRange, bw, conn);
@@ -434,8 +438,8 @@ class TabletGroupWatcher extends Daemon {
         bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
         try {
           Mutation m = new Mutation(followingTablet.getMetadataEntry());
-          MetadataTable.PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(extent.getPrevEndRow()));
-          MetadataTable.CHOPPED_COLUMN.putDelete(m);
+          TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(extent.getPrevEndRow()));
+          ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
           bw.addMutation(m);
           bw.flush();
         } finally {
@@ -444,7 +448,7 @@ class TabletGroupWatcher extends Daemon {
       } else {
         // Recreate the default tablet to hold the end of the table
         Master.log.debug("Recreating the last tablet to point to " + extent.getPrevEndRow());
-        MetadataTable.addTablet(new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), Constants.DEFAULT_TABLET_LOCATION,
+        MetadataTableUtil.addTablet(new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), Constants.DEFAULT_TABLET_LOCATION,
             SecurityConstants.getSystemCredentials(), timeType, this.master.masterLock);
       }
     } catch (Exception ex) {
@@ -477,25 +481,25 @@ class TabletGroupWatcher extends Daemon {
       bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       Scanner scanner = conn.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(scanRange);
-      MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
-      MetadataTable.TIME_COLUMN.fetch(scanner);
-      MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
+      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       Mutation m = new Mutation(stopRow);
       String maxLogicalTime = null;
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         Value value = entry.getValue();
-        if (key.getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+        if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
           m.put(key.getColumnFamily(), key.getColumnQualifier(), value);
           fileCount++;
-        } else if (MetadataTable.PREV_ROW_COLUMN.hasColumns(key) && firstPrevRowValue == null) {
+        } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key) && firstPrevRowValue == null) {
           Master.log.debug("prevRow entry for lowest tablet is " + value);
           firstPrevRowValue = new Value(value);
-        } else if (MetadataTable.TIME_COLUMN.hasColumns(key)) {
+        } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, value.toString());
-        } else if (MetadataTable.DIRECTORY_COLUMN.hasColumns(key)) {
-          bw.addMutation(MetadataTable.createDeleteMutation(range.getTableId().toString(), entry.getValue().toString()));
+        } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+          bw.addMutation(MetadataTableUtil.createDeleteMutation(range.getTableId().toString(), entry.getValue().toString()));
         }
       }
       
@@ -503,15 +507,15 @@ class TabletGroupWatcher extends Daemon {
       // the loop above
       scanner = conn.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(new Range(stopRow));
-      MetadataTable.TIME_COLUMN.fetch(scanner);
+      TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       for (Entry<Key,Value> entry : scanner) {
-        if (MetadataTable.TIME_COLUMN.hasColumns(entry.getKey())) {
+        if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(entry.getKey())) {
           maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, entry.getValue().toString());
         }
       }
       
       if (maxLogicalTime != null)
-        MetadataTable.TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes()));
+        TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes()));
       
       if (!m.getUpdates().isEmpty()) {
         bw.addMutation(m);
@@ -536,7 +540,7 @@ class TabletGroupWatcher extends Daemon {
       
       // Clean-up the last chopped marker
       m = new Mutation(stopRow);
-      MetadataTable.CHOPPED_COLUMN.putDelete(m);
+      ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
       bw.addMutation(m);
       bw.flush();
       
@@ -586,7 +590,7 @@ class TabletGroupWatcher extends Daemon {
     try {
       Connector conn = this.master.getConnector();
       Scanner scanner = conn.createScanner(range.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
-      MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
+      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       KeyExtent start = new KeyExtent(range.getTableId(), range.getEndRow(), null);
       scanner.setRange(new Range(start.getMetadataEntry(), null));
       Iterator<Entry<Key,Value>> iterator = scanner.iterator();

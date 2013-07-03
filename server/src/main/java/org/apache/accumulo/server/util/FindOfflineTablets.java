@@ -23,8 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
@@ -48,10 +48,10 @@ public class FindOfflineTablets {
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
     final AtomicBoolean scanning = new AtomicBoolean(false);
     Instance instance = opts.getInstance();
-    MetaDataTableScanner rootScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), RootTable.METADATA_TABLETS_RANGE);
-    MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), MetadataTable.NON_ROOT_KEYSPACE);
+    MetaDataTableScanner rootScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), MetadataSchema.TabletsSection.getRange());
+    MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), MetadataSchema.TabletsSection.getRange());
     @SuppressWarnings("unchecked")
-    Iterator<TabletLocationState> scanner = (Iterator<TabletLocationState>)new IteratorChain(rootScanner, metaScanner);
+    Iterator<TabletLocationState> scanner = new IteratorChain(rootScanner, metaScanner);
     LiveTServerSet tservers = new LiveTServerSet(instance, DefaultConfiguration.getDefaultConfiguration(), new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
@@ -66,7 +66,8 @@ public class FindOfflineTablets {
     while (scanner.hasNext()) {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state != null && state != TabletState.HOSTED && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
+      if (state != null && state != TabletState.HOSTED
+          && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
         if (!locationState.extent.equals(RootTable.EXTENT))
           System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
     }

@@ -39,6 +39,8 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.ServerConstants;
@@ -53,7 +55,6 @@ import org.apache.log4j.Logger;
 import com.beust.jcommander.Parameter;
 
 public class TableDiskUsage {
-  
   
   private static final Logger log = Logger.getLogger(Logger.class);
   private int nextInternalId = 0;
@@ -91,7 +92,7 @@ public class TableDiskUsage {
   }
   
   Map<List<String>,Long> calculateUsage() {
-
+    
     Map<List<Integer>,Long> usage = new HashMap<List<Integer>,Long>();
     
     for (Entry<String,Integer[]> entry : tableFiles.entrySet()) {
@@ -138,8 +139,7 @@ public class TableDiskUsage {
     }, humanReadable);
   }
   
-  public static Map<TreeSet<String>,Long> getDiskUsage(AccumuloConfiguration acuConf, Set<String> tableIds, FileSystem fs, Connector conn)
-      throws IOException {
+  public static Map<TreeSet<String>,Long> getDiskUsage(AccumuloConfiguration acuConf, Set<String> tableIds, FileSystem fs, Connector conn) throws IOException {
     TableDiskUsage tdu = new TableDiskUsage();
     
     for (String tableId : tableIds)
@@ -155,7 +155,7 @@ public class TableDiskUsage {
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }
-      mdScanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+      mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       mdScanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
       
       if (!mdScanner.iterator().hasNext()) {
@@ -264,13 +264,12 @@ public class TableDiskUsage {
       printer.print(String.format(valueFormat + " %s", value, entry.getKey()));
     }
   }
-
   
   static class Opts extends ClientOpts {
-    @Parameter(description=" <table> { <table> ... } ")
+    @Parameter(description = " <table> { <table> ... } ")
     List<String> tables = new ArrayList<String>();
   }
-    
+  
   /**
    * @param args
    */

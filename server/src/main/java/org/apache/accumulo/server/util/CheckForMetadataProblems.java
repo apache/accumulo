@@ -30,6 +30,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -85,7 +88,7 @@ public class CheckForMetadataProblems {
       if (broke && opts.fix) {
         KeyExtent ke = new KeyExtent(tabke);
         ke.setPrevEndRow(lastEndRow);
-        MetadataTable.updateTabletPrevEndRow(ke, CredentialHelper.create(opts.principal, opts.getToken(), opts.instance));
+        MetadataTableUtil.updateTabletPrevEndRow(ke, CredentialHelper.create(opts.principal, opts.getToken(), opts.instance));
         System.out.println("KE " + tabke + " has been repaired to " + ke);
       }
       
@@ -108,9 +111,9 @@ public class CheckForMetadataProblems {
       scanner = opts.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     }
     
-    scanner.setRange(MetadataTable.KEYSPACE);
-    MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
+    scanner.setRange(MetadataSchema.TabletsSection.getRange());
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     
     Text colf = new Text();
     Text colq = new Text();
@@ -140,16 +143,16 @@ public class CheckForMetadataProblems {
         tables.put(tableName, tablets);
       }
       
-      if (MetadataTable.PREV_ROW_COLUMN.equals(colf, colq)) {
+      if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         KeyExtent tabletKe = new KeyExtent(entry.getKey().getRow(), entry.getValue());
         tablets.add(tabletKe);
         justLoc = false;
-      } else if (colf.equals(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY)) {
+      } else if (colf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
         if (justLoc) {
           System.out.println("Problem at key " + entry.getKey());
           sawProblems = true;
           if (opts.fix) {
-            Writer t = MetadataTable.getMetadataTable(CredentialHelper.create(opts.principal, opts.getToken(), opts.instance));
+            Writer t = MetadataTableUtil.getMetadataTable(CredentialHelper.create(opts.principal, opts.getToken(), opts.instance));
             Key k = entry.getKey();
             Mutation m = new Mutation(k.getRow());
             m.putDelete(k.getColumnFamily(), k.getColumnQualifier());

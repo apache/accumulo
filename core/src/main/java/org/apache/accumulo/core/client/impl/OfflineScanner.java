@@ -53,6 +53,9 @@ import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.CredentialHelper;
@@ -60,7 +63,6 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.commons.lang.NotImplementedException;
@@ -230,7 +232,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
-
+    
     String tablesDir = instance.getConfiguration().get(Property.INSTANCE_DFS_DIR) + "/tables";
     String[] volumes = instance.getConfiguration().get(Property.INSTANCE_VOLUMES).split(",");
     if (volumes.length > 1) {
@@ -271,16 +273,16 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       Entry<Key,Value> entry = row.next();
       Key key = entry.getKey();
       
-      if (key.getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+      if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         relFiles.add(key.getColumnQualifier().toString());
       }
       
-      if (key.getColumnFamily().equals(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY)
-          || key.getColumnFamily().equals(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY)) {
+      if (key.getColumnFamily().equals(TabletsSection.CurrentLocationColumnFamily.NAME)
+          || key.getColumnFamily().equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
         location = entry.getValue().toString();
       }
       
-      if (MetadataTable.PREV_ROW_COLUMN.hasColumns(key)) {
+      if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
         extent = new KeyExtent(key.getRow(), entry.getValue());
       }
       

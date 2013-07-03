@@ -28,9 +28,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
@@ -66,8 +66,6 @@ public class MergeStats {
   }
   
   public void update(KeyExtent ke, TabletState state, boolean chopped, boolean hasWALs) {
-    if (ke.isRootTablet())
-      return;
     if (info.getState().equals(MergeState.NONE))
       return;
     if (!upperSplit && info.getExtent().getEndRow().equals(ke.getPrevEndRow())) {

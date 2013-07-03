@@ -37,8 +37,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
 import org.apache.accumulo.test.TestIngest;
@@ -51,8 +52,8 @@ public class FunctionalTestUtils {
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     String tableId = c.tableOperations().tableIdMap().get(tableName);
     scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
-    scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
-    MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+    MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     
     HashMap<Text,Integer> tabletFileCounts = new HashMap<Text,Integer>();
     
@@ -63,7 +64,7 @@ public class FunctionalTestUtils {
       Integer count = tabletFileCounts.get(row);
       if (count == null)
         count = 0;
-      if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+      if (entry.getKey().getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
         count = count + 1;
       }
       
@@ -88,7 +89,7 @@ public class FunctionalTestUtils {
     fs.delete(failPath, true);
     fs.mkdirs(failPath);
     
-   c.tableOperations().importDirectory(table, dir, failDir, false);
+    c.tableOperations().importDirectory(table, dir, failDir, false);
     
     if (fs.listStatus(failPath).length > 0) {
       throw new Exception("Some files failed to bulk import");
@@ -159,6 +160,5 @@ public class FunctionalTestUtils {
   static Mutation nm(String row, String cf, String cq, String value) {
     return nm(row, cf, cq, new Value(value.getBytes()));
   }
-
   
 }

@@ -39,15 +39,16 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
@@ -173,7 +174,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     }
     
     if (hasProblems)
-      MetadataTable.getMetadataTable(SecurityConstants.getSystemCredentials()).update(delMut);
+      MetadataTableUtil.getMetadataTable(SecurityConstants.getSystemCredentials()).update(delMut);
   }
   
   public Iterator<ProblemReport> iterator(final String table) {

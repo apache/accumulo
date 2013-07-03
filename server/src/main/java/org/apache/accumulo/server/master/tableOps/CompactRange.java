@@ -41,9 +41,10 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
@@ -101,9 +102,9 @@ class CompactionDriver extends MasterRepo {
       range = range.clip(new Range(RootTable.EXTENT.getMetadataEntry(), false, null, true));
     
     scanner.setRange(range);
-    MetadataTable.COMPACT_COLUMN.fetch(scanner);
-    MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
+    TabletsSection.ServerColumnFamily.COMPACT_COLUMN.fetch(scanner);
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     
     long t1 = System.currentTimeMillis();
     RowIterator ri = new RowIterator(scanner);
@@ -122,10 +123,10 @@ class CompactionDriver extends MasterRepo {
         entry = row.next();
         Key key = entry.getKey();
         
-        if (MetadataTable.COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
+        if (TabletsSection.ServerColumnFamily.COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
           tabletCompactID = Long.parseLong(entry.getValue().toString());
         
-        if (MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily()))
+        if (TabletsSection.CurrentLocationColumnFamily.NAME.equals(key.getColumnFamily()))
           server = new TServerInstance(entry.getValue(), key.getColumnQualifier());
       }
       

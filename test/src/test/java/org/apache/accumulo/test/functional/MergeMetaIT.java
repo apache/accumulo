@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -26,16 +27,17 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class MergeMetaIT extends MacTest {
   
-  @Test(timeout=30*1000)
+  @Test(timeout = 30 * 1000)
   public void mergeMeta() throws Exception {
     Connector c = getConnector();
     SortedSet<Text> splits = new TreeSet<Text>();
@@ -47,11 +49,12 @@ public class MergeMetaIT extends MacTest {
       c.tableOperations().create(tableName);
     }
     c.tableOperations().merge(MetadataTable.NAME, null, null);
-    UtilWaitThread.sleep(2*1000);
+    UtilWaitThread.sleep(2 * 1000);
     Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataTable.DELETED_RANGE);
+    s.setRange(MetadataSchema.DeletesSection.getRange());
     int count = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> e : s) {
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> e : s) {
       count++;
     }
     assertTrue(count > 0);

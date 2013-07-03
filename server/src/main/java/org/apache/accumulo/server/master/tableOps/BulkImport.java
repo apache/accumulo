@@ -54,6 +54,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
@@ -68,7 +70,7 @@ import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.tabletserver.UniqueNameAllocator;
-import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.accumulo.trace.instrument.TraceExecutorService;
@@ -181,8 +183,7 @@ public class BulkImport extends MasterRepo {
   
   private Path createNewBulkDir(VolumeManager fs, String tableId) throws IOException {
     String tableDir = null;
-    loop:
-    for (String dir : fs.getFileSystems().keySet()) {
+    loop: for (String dir : fs.getFileSystems().keySet()) {
       if (this.sourceDir.startsWith(dir)) {
         for (String path : ServerConstants.getTablesDirs()) {
           if (path.startsWith(dir)) {
@@ -221,7 +222,7 @@ public class BulkImport extends MasterRepo {
   private String prepareBulkImport(VolumeManager fs, String dir, String tableId) throws IOException {
     Path bulkDir = createNewBulkDir(fs, tableId);
     
-    MetadataTable.addBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+    MetadataTableUtil.addBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     
     Path dirPath = new Path(dir);
     FileStatus[] mapFiles = fs.listStatus(dirPath);
@@ -308,11 +309,11 @@ class CleanUpBulkImport extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug("removing the bulk processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
-    MetadataTable.removeBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    MetadataTable.addDeleteEntry(tableId, "/" + bulkDir.getName());
+    MetadataTableUtil.removeBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+    MetadataTableUtil.addDeleteEntry(tableId, "/" + bulkDir.getName());
     log.debug("removing the metadata table markers for loaded files");
     Connector conn = master.getConnector();
-    MetadataTable.removeBulkLoadEntries(conn, tableId, tid);
+    MetadataTableUtil.removeBulkLoadEntries(conn, tableId, tid);
     log.debug("releasing HDFS reservations for " + source + " and " + error);
     Utils.unreserveHdfsDirectory(source, tid);
     Utils.unreserveHdfsDirectory(error, tid);
@@ -414,7 +415,7 @@ class CopyFailed extends MasterRepo {
     Connector conn = master.getConnector();
     Scanner mscanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
-    mscanner.fetchColumnFamily(MetadataTable.BULKFILE_COLUMN_FAMILY);
+    mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
     
     for (Entry<Key,Value> entry : mscanner) {
       if (Long.parseLong(entry.getValue().toString()) == tid) {

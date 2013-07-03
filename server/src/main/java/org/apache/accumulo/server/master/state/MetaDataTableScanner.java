@@ -36,10 +36,13 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -69,11 +72,11 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   }
   
   static public void configureScanner(ScannerBase scanner, CurrentState state) {
-    MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
-    scanner.fetchColumnFamily(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY);
-    scanner.fetchColumnFamily(MetadataTable.LOG_COLUMN_FAMILY);
-    scanner.fetchColumnFamily(MetadataTable.CHOPPED_COLUMN_FAMILY);
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+    scanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);
+    scanner.fetchColumnFamily(LogColumnFamily.NAME);
+    scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange = new IteratorSetting(1001, "tabletChange", TabletStateChangeIterator.class);
     if (state != null) {
@@ -142,30 +145,30 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       Text cf = key.getColumnFamily();
       Text cq = key.getColumnQualifier();
       
-      if (cf.compareTo(MetadataTable.FUTURE_LOCATION_COLUMN_FAMILY) == 0) {
+      if (cf.compareTo(TabletsSection.FutureLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (future != null) {
           throw new BadLocationStateException("found two assignments for the same extent " + key.getRow() + ": " + future + " and " + location);
         }
         future = location;
-      } else if (cf.compareTo(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
+      } else if (cf.compareTo(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (current != null) {
           throw new BadLocationStateException("found two locations for the same extent " + key.getRow() + ": " + current + " and " + location);
         }
         current = location;
-      } else if (cf.compareTo(MetadataTable.LOG_COLUMN_FAMILY) == 0) {
+      } else if (cf.compareTo(LogColumnFamily.NAME) == 0) {
         String[] split = entry.getValue().toString().split("\\|")[0].split(";");
         walogs.add(Arrays.asList(split));
-      } else if (cf.compareTo(MetadataTable.LAST_LOCATION_COLUMN_FAMILY) == 0) {
+      } else if (cf.compareTo(TabletsSection.LastLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (last != null) {
           throw new BadLocationStateException("found two last locations for the same extent " + key.getRow() + ": " + last + " and " + location);
         }
         last = new TServerInstance(entry.getValue(), cq);
-      } else if (cf.compareTo(MetadataTable.CHOPPED_COLUMN_FAMILY) == 0) {
+      } else if (cf.compareTo(ChoppedColumnFamily.NAME) == 0) {
         chopped = true;
-      } else if (MetadataTable.PREV_ROW_COLUMN.equals(cf, cq)) {
+      } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(cf, cq)) {
         extent = new KeyExtent(row, entry.getValue());
       }
     }

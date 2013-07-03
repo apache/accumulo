@@ -40,9 +40,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -193,8 +195,8 @@ public abstract class FunctionalTest {
     Scanner scanner = getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     String tableId = Tables.getNameToIdMap(getInstance()).get(tableName);
     scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
-    scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
-    MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     
     HashMap<Text,Integer> tabletFileCounts = new HashMap<Text,Integer>();
     
@@ -205,7 +207,7 @@ public abstract class FunctionalTest {
       Integer count = tabletFileCounts.get(row);
       if (count == null)
         count = 0;
-      if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         count = count + 1;
       }
       

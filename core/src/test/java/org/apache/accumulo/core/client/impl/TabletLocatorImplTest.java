@@ -47,10 +47,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.hadoop.io.Text;
 
 public class TabletLocatorImplTest extends TestCase {
@@ -454,7 +456,7 @@ public class TabletLocatorImplTest extends TestCase {
     public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
       return getConnector(auth.user, auth.getPassword());
     }
-
+    
     @Override
     public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
@@ -474,7 +476,8 @@ public class TabletLocatorImplTest extends TestCase {
     }
     
     @Override
-    public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials) throws AccumuloSecurityException {
+    public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials)
+        throws AccumuloSecurityException {
       
       // System.out.println("lookupTablet("+src+","+row+","+stopRow+","+ parent+")");
       // System.out.println(tservers);
@@ -503,7 +506,7 @@ public class TabletLocatorImplTest extends TestCase {
       
       SortedMap<Key,Value> results = tabletData.tailMap(startKey).headMap(stopKey);
       
-      Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> metadata = MetadataTable.getMetadataLocationEntries(results);
+      Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> metadata = MetadataLocationObtainer.getMetadataLocationEntries(results);
       
       for (Entry<KeyExtent,Text> entry : metadata.getFirst().entrySet()) {
         list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
@@ -559,7 +562,7 @@ public class TabletLocatorImplTest extends TestCase {
       if (failures.size() > 0)
         parent.invalidateCache(failures);
       
-      SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results).getFirst();
+      SortedMap<KeyExtent,Text> metadata = MetadataLocationObtainer.getMetadataLocationEntries(results).getFirst();
       
       for (Entry<KeyExtent,Text> entry : metadata.entrySet()) {
         list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
@@ -606,18 +609,19 @@ public class TabletLocatorImplTest extends TestCase {
     if (location != null) {
       if (instance == null)
         instance = "";
-      Key lk = new Key(mr, MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY, new Text(instance));
+      Key lk = new Key(mr, TabletsSection.CurrentLocationColumnFamily.NAME, new Text(instance));
       tabletData.put(lk, new Value(location.getBytes()));
     }
     
-    Key pk = new Key(mr, MetadataTable.PREV_ROW_COLUMN.getColumnFamily(), MetadataTable.PREV_ROW_COLUMN.getColumnQualifier());
+    Key pk = new Key(mr, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier());
     tabletData.put(pk, per);
   }
   
   static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke, String location) {
     setLocation(tservers, server, tablet, ke, location, "");
   }
-
+  
   static void deleteServer(TServers tservers, String server) {
     tservers.tservers.remove(server);
     
@@ -1274,7 +1278,6 @@ public class TabletLocatorImplTest extends TestCase {
     } catch (Exception e) {
       
     }
-
-
+    
   }
 }

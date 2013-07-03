@@ -40,10 +40,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -51,7 +51,7 @@ public class PermissionsIT extends MacTest {
   private static final String TEST_USER = "test_user";
   private static final PasswordToken TEST_PASS = new PasswordToken("test_password");
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void systemPermissionsTest() throws Exception {
     // verify that the test is being run by root
     Connector c = getConnector();
@@ -87,16 +87,16 @@ public class PermissionsIT extends MacTest {
     }
   }
   
-  static Map<String, String> map(Iterable<Entry<String,String>> i) {
-    Map<String, String> result = new HashMap<String, String>();
-    for (Entry<String, String> e : i) {
+  static Map<String,String> map(Iterable<Entry<String,String>> i) {
+    Map<String,String> result = new HashMap<String,String>();
+    for (Entry<String,String> e : i) {
       result.put(e.getKey(), e.getValue());
     }
     return result;
   }
   
   private static void testMissingSystemPermission(Connector root_conn, Connector test_user_conn, SystemPermission perm) throws AccumuloException,
-  TableExistsException, AccumuloSecurityException, TableNotFoundException {
+      TableExistsException, AccumuloSecurityException, TableNotFoundException {
     String tableName, user, password = "password";
     log.debug("Confirming that the lack of the " + perm + " permission properly restricts the user");
     
@@ -196,7 +196,7 @@ public class PermissionsIT extends MacTest {
   }
   
   private static void testGrantedSystemPermission(Connector root_conn, Connector test_user_conn, SystemPermission perm) throws AccumuloException,
-  AccumuloSecurityException, TableNotFoundException, TableExistsException {
+      AccumuloSecurityException, TableNotFoundException, TableExistsException {
     String tableName, user, password = "password";
     log.debug("Confirming that the presence of the " + perm + " permission properly permits the user");
     
@@ -260,7 +260,7 @@ public class PermissionsIT extends MacTest {
   }
   
   private static void verifyHasOnlyTheseSystemPermissions(Connector root_conn, String user, SystemPermission... perms) throws AccumuloException,
-  AccumuloSecurityException {
+      AccumuloSecurityException {
     List<SystemPermission> permList = Arrays.asList(perms);
     for (SystemPermission p : SystemPermission.values()) {
       if (permList.contains(p)) {
@@ -276,7 +276,7 @@ public class PermissionsIT extends MacTest {
   }
   
   private static void verifyHasNoSystemPermissions(Connector root_conn, String user, SystemPermission... perms) throws AccumuloException,
-  AccumuloSecurityException {
+      AccumuloSecurityException {
     for (SystemPermission p : perms)
       if (root_conn.securityOperations().hasSystemPermission(user, p))
         throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
@@ -292,8 +292,7 @@ public class PermissionsIT extends MacTest {
     Connector test_user_conn = c.getInstance().getConnector(TEST_USER, TEST_PASS);
     
     // check for read-only access to metadata table
-    verifyHasOnlyTheseTablePermissions(c, c.whoami(), MetadataTable.NAME, TablePermission.READ,
-        TablePermission.ALTER_TABLE);
+    verifyHasOnlyTheseTablePermissions(c, c.whoami(), MetadataTable.NAME, TablePermission.READ, TablePermission.ALTER_TABLE);
     verifyHasOnlyTheseTablePermissions(c, TEST_USER, MetadataTable.NAME, TablePermission.READ);
     
     // test each permission
@@ -313,8 +312,7 @@ public class PermissionsIT extends MacTest {
     }
   }
   
-  private void createTestTable(Connector c) throws Exception,
-  MutationsRejectedException {
+  private void createTestTable(Connector c) throws Exception, MutationsRejectedException {
     if (!c.tableOperations().exists(TEST_TABLE)) {
       // create the test table
       c.tableOperations().create(TEST_TABLE);
@@ -364,8 +362,7 @@ public class PermissionsIT extends MacTest {
             writer.close();
           } catch (MutationsRejectedException e1) {
             if (e1.getAuthorizationFailuresMap().size() > 0)
-              throw new AccumuloSecurityException(test_user_conn.whoami(), org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.PERMISSION_DENIED,
-                  e1);
+              throw new AccumuloSecurityException(test_user_conn.whoami(), org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.PERMISSION_DENIED, e1);
           }
           throw new IllegalStateException("Should NOT be able to write to a table");
         } catch (AccumuloSecurityException e) {
@@ -411,7 +408,7 @@ public class PermissionsIT extends MacTest {
   }
   
   private static void testGrantedTablePermission(Connector root_conn, Connector test_user_conn, TablePermission perm) throws AccumuloException,
-  TableExistsException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
+      TableExistsException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
     Scanner scanner;
     BatchWriter writer;
     Mutation m;
@@ -451,7 +448,7 @@ public class PermissionsIT extends MacTest {
   }
   
   private static void verifyHasOnlyTheseTablePermissions(Connector root_conn, String user, String table, TablePermission... perms) throws AccumuloException,
-  AccumuloSecurityException {
+      AccumuloSecurityException {
     List<TablePermission> permList = Arrays.asList(perms);
     for (TablePermission p : TablePermission.values()) {
       if (permList.contains(p)) {
@@ -467,7 +464,7 @@ public class PermissionsIT extends MacTest {
   }
   
   private static void verifyHasNoTablePermissions(Connector root_conn, String user, String table, TablePermission... perms) throws AccumuloException,
-  AccumuloSecurityException {
+      AccumuloSecurityException {
     for (TablePermission p : perms)
       if (root_conn.securityOperations().hasTablePermission(user, table, p))
         throw new IllegalStateException(user + " SHOULD NOT have table permission " + p + " for table " + table);

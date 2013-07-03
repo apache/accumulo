@@ -69,12 +69,15 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AgeOffStore;
@@ -131,7 +134,7 @@ import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.accumulo.server.util.DefaultMap;
 import org.apache.accumulo.server.util.Halt;
-import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TablePropUtil;
@@ -288,7 +291,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           @Override
           public void run() {
             try {
-              MetadataTable.moveMetaDeleteMarkers(instance, SecurityConstants.getSystemCredentials());
+              MetadataTableUtil.moveMetaDeleteMarkers(instance, SecurityConstants.getSystemCredentials());
               Accumulo.updateAccumuloVersion(fs);
               
               log.info("Upgrade complete");
@@ -379,8 +382,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   }
   
   private void checkNotMetadataTable(String tableName, TableOperation operation) throws ThriftTableOperationException {
-    if (tableName.compareTo(MetadataTable.NAME) == 0) {
-      String why = "Table names cannot be == " + MetadataTable.NAME;
+    if (MetadataTable.NAME.equals(tableName) || RootTable.NAME.equals(tableName)) {
+      String why = "Table names cannot be == " + RootTable.NAME + " or " + MetadataTable.NAME;
       log.warn(why);
       throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.OTHER, why);
     }
@@ -527,10 +530,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         try {
           Connector conn = getConnector();
           Scanner scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-          MetadataTable.FLUSH_COLUMN.fetch(scanner);
-          MetadataTable.DIRECTORY_COLUMN.fetch(scanner);
-          scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
-          scanner.fetchColumnFamily(MetadataTable.LOG_COLUMN_FAMILY);
+          TabletsSection.ServerColumnFamily.FLUSH_COLUMN.fetch(scanner);
+          TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+          scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+          scanner.fetchColumnFamily(LogColumnFamily.NAME);
           scanner.setRange(new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange());
           
           RowIterator ri = new RowIterator(scanner);
@@ -553,14 +556,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
               entry = row.next();
               Key key = entry.getKey();
               
-              if (MetadataTable.FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier())) {
+              if (TabletsSection.ServerColumnFamily.FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier())) {
                 tabletFlushID = Long.parseLong(entry.getValue().toString());
               }
               
-              if (MetadataTable.LOG_COLUMN_FAMILY.equals(key.getColumnFamily()))
+              if (LogColumnFamily.NAME.equals(key.getColumnFamily()))
                 logs++;
               
-              if (MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily())) {
+              if (TabletsSection.CurrentLocationColumnFamily.NAME.equals(key.getColumnFamily())) {
                 online = true;
                 server = new TServerInstance(entry.getValue(), key.getColumnQualifier());
               }
@@ -899,10 +902,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           Text startRow = ByteBufferUtil.toText(arguments.get(1));
           Text endRow = ByteBufferUtil.toText(arguments.get(2));
           final String tableId = checkTableId(tableName, TableOperation.MERGE);
-          if (tableId.equals(RootTable.ID)) {
-            throw new ThriftTableOperationException(null, tableName, TableOperation.MERGE, TableOperationExceptionType.OTHER,
-                "cannot merge or split the root table");
-          }
           log.debug("Creating merge op: " + tableId + " " + startRow + " " + endRow);
           
           if (!security.canMerge(c, tableId))
@@ -1027,8 +1026,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   }
   
   public MergeInfo getMergeInfo(KeyExtent tablet) {
-    if (tablet.isRootTablet())
-      return new MergeInfo();
     return getMergeInfo(tablet.getTableId());
   }
   
@@ -1251,7 +1248,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     private void cleanupMutations() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Connector connector = getConnector();
       Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
+      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<KeyExtent>();
       for (Entry<Key,Value> entry : scanner) {
         KeyExtent extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());

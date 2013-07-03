@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.fail;
+
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +36,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  * 
@@ -53,7 +54,7 @@ public class TimeoutIT extends MacTest {
     conn.tableOperations().addConstraint("foo1", SlowConstraint.class.getName());
     
     // give constraint time to propagate through zookeeper
-    UtilWaitThread.sleep(250);
+    UtilWaitThread.sleep(1000);
     
     BatchWriter bw = conn.createBatchWriter("foo1", new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
     

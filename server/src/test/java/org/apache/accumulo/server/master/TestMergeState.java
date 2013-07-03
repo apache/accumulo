@@ -34,10 +34,12 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
@@ -101,14 +103,14 @@ public class TestMergeState {
     for (String s : splits) {
       Text split = new Text(s);
       Mutation prevRow = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, split, pr));
-      prevRow.put(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY, new Text("123456"), new Value("127.0.0.1:1234".getBytes()));
-      MetadataTable.CHOPPED_COLUMN.put(prevRow, new Value("junk".getBytes()));
+      prevRow.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"), new Value("127.0.0.1:1234".getBytes()));
+      ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow, new Value("junk".getBytes()));
       bw.addMutation(prevRow);
       pr = split;
     }
     // Add the default tablet
     Mutation defaultTablet = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, null, pr));
-    defaultTablet.put(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY, new Text("123456"), new Value("127.0.0.1:1234".getBytes()));
+    defaultTablet.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"), new Value("127.0.0.1:1234".getBytes()));
     bw.addMutation(defaultTablet);
     bw.close();
     
@@ -128,8 +130,8 @@ public class TestMergeState {
     // Create the hole
     // Split the tablet at one end of the range
     Mutation m = new KeyExtent(tableId, new Text("t"), new Text("p")).getPrevRowUpdateMutation();
-    MetadataTable.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
-    MetadataTable.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(new Text("o")));
+    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
+    TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(new Text("o")));
     update(connector, m);
     
     // do the state check
@@ -139,7 +141,7 @@ public class TestMergeState {
     
     // unassign the tablets
     BatchDeleter deleter = connector.createBatchDeleter("!METADATA", Authorizations.EMPTY, 1000, new BatchWriterConfig());
-    deleter.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
+    deleter.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     deleter.setRanges(Collections.singletonList(new Range()));
     deleter.delete();
     
@@ -150,7 +152,7 @@ public class TestMergeState {
     // finish the split
     KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
     m = tablet.getPrevRowUpdateMutation();
-    MetadataTable.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
+    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
     update(connector, m);
     metaDataStateStore.setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
     
@@ -160,7 +162,7 @@ public class TestMergeState {
     
     // chop it
     m = tablet.getPrevRowUpdateMutation();
-    MetadataTable.CHOPPED_COLUMN.put(m, new Value("junk".getBytes()));
+    ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("junk".getBytes()));
     update(connector, m);
     
     stats = scan(state, metaDataStateStore);

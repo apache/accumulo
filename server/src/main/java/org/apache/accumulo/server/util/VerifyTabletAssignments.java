@@ -22,9 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -44,6 +43,7 @@ import org.apache.accumulo.core.data.thrift.MultiScanResult;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TRange;
+import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -85,32 +85,36 @@ public class VerifyTabletAssignments {
     else
       System.out.println("Checking table " + tableName + " again, failures " + check.size());
     
-    Map<KeyExtent,String> locations = new TreeMap<KeyExtent,String>();
-    SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
+    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
     
     Connector conn = opts.getConnector();
     Instance inst = conn.getInstance();
-    MetadataTable.getEntries(conn.getInstance(), CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), tableName, false, locations, tablets);
+    String tableId = Tables.getNameToIdMap(inst).get(tableName);
+    TCredentials credentials = CredentialHelper.create(opts.principal, opts.getToken(), opts.instance);
+    MetadataServicer.forTableId(conn.getInstance(), credentials, tableId).getTabletLocations(tabletLocations);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
     
-    for (KeyExtent keyExtent : tablets)
-      if (!locations.containsKey(keyExtent))
-        System.out.println(" Tablet " + keyExtent + " has no location");
-      else if (opts.verbose)
-        System.out.println(" Tablet " + keyExtent + " is located at " + locations.get(keyExtent));
-    
     Map<String,List<KeyExtent>> extentsPerServer = new TreeMap<String,List<KeyExtent>>();
     
-    for (Entry<KeyExtent,String> entry : locations.entrySet()) {
-      List<KeyExtent> extentList = extentsPerServer.get(entry.getValue());
-      if (extentList == null) {
-        extentList = new ArrayList<KeyExtent>();
-        extentsPerServer.put(entry.getValue(), extentList);
-      }
+    for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
+      KeyExtent keyExtent = entry.getKey();
+      String loc = entry.getValue();
+      if (loc == null)
+        System.out.println(" Tablet " + keyExtent + " has no location");
+      else if (opts.verbose)
+        System.out.println(" Tablet " + keyExtent + " is located at " + loc);
       
-      if (check == null || check.contains(entry.getKey()))
-        extentList.add(entry.getKey());
+      if (loc != null) {
+        List<KeyExtent> extentList = extentsPerServer.get(loc);
+        if (extentList == null) {
+          extentList = new ArrayList<KeyExtent>();
+          extentsPerServer.put(loc, extentList);
+        }
+        
+        if (check == null || check.contains(keyExtent))
+          extentList.add(keyExtent);
+      }
     }
     
     ExecutorService tp = Executors.newFixedThreadPool(20);

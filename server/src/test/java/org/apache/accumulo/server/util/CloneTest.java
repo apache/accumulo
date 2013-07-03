@@ -31,6 +31,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
@@ -43,8 +46,8 @@ public class CloneTest extends TestCase {
     KeyExtent ke = new KeyExtent(new Text("0"), null, null);
     Mutation mut = ke.getPrevRowUpdateMutation();
     
-    MetadataTable.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-    MetadataTable.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet".getBytes()));
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet".getBytes()));
     
     BatchWriter bw1 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     
@@ -54,9 +57,9 @@ public class CloneTest extends TestCase {
     
     BatchWriter bw2 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     
-    MetadataTable.initializeClone("0", "1", conn, bw2);
+    MetadataTableUtil.initializeClone("0", "1", conn, bw2);
     
-    int rc = MetadataTable.checkClone("0", "1", conn, bw2);
+    int rc = MetadataTableUtil.checkClone("0", "1", conn, bw2);
     
     assertEquals(0, rc);
     
@@ -71,9 +74,9 @@ public class CloneTest extends TestCase {
     KeyExtent ke = new KeyExtent(new Text("0"), null, null);
     Mutation mut = ke.getPrevRowUpdateMutation();
     
-    MetadataTable.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-    MetadataTable.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet".getBytes()));
-    mut.put(MetadataTable.DATAFILE_COLUMN_FAMILY.toString(), "/default_tablet/0_0.rf", "1,200");
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet".getBytes()));
+    mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf", "1,200");
     
     BatchWriter bw1 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     
@@ -83,20 +86,20 @@ public class CloneTest extends TestCase {
     
     BatchWriter bw2 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     
-    MetadataTable.initializeClone("0", "1", conn, bw2);
+    MetadataTableUtil.initializeClone("0", "1", conn, bw2);
     
     Mutation mut2 = new Mutation(ke.getMetadataEntry());
-    mut2.putDelete(MetadataTable.DATAFILE_COLUMN_FAMILY.toString(), "/default_tablet/0_0.rf");
-    mut2.put(MetadataTable.DATAFILE_COLUMN_FAMILY.toString(), "/default_tablet/1_0.rf", "2,300");
+    mut2.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
+    mut2.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/1_0.rf", "2,300");
     
     bw1.addMutation(mut2);
     bw1.flush();
     
-    int rc = MetadataTable.checkClone("0", "1", conn, bw2);
+    int rc = MetadataTableUtil.checkClone("0", "1", conn, bw2);
     
     assertEquals(1, rc);
     
-    rc = MetadataTable.checkClone("0", "1", conn, bw2);
+    rc = MetadataTableUtil.checkClone("0", "1", conn, bw2);
     
     assertEquals(0, rc);
     
@@ -106,7 +109,7 @@ public class CloneTest extends TestCase {
     HashSet<String> files = new HashSet<String>();
     
     for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY))
+      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME))
         files.add(entry.getKey().getColumnQualifier().toString());
     }
     
@@ -128,14 +131,14 @@ public class CloneTest extends TestCase {
     
     BatchWriter bw2 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     
-    MetadataTable.initializeClone("0", "1", conn, bw2);
+    MetadataTableUtil.initializeClone("0", "1", conn, bw2);
     
     bw1.addMutation(createTablet("0", "m", null, "/default_tablet", "/default_tablet/0_0.rf"));
     bw1.addMutation(createTablet("0", null, "m", "/t-1", "/default_tablet/0_0.rf"));
     
     bw1.flush();
     
-    int rc = MetadataTable.checkClone("0", "1", conn, bw2);
+    int rc = MetadataTableUtil.checkClone("0", "1", conn, bw2);
     
     assertEquals(0, rc);
     
@@ -146,7 +149,7 @@ public class CloneTest extends TestCase {
     
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         files.add(entry.getKey().getColumnQualifier().toString());
         count++;
       }
@@ -170,20 +173,20 @@ public class CloneTest extends TestCase {
     
     BatchWriter bw2 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     
-    MetadataTable.initializeClone("0", "1", conn, bw2);
+    MetadataTableUtil.initializeClone("0", "1", conn, bw2);
     
     bw1.addMutation(createTablet("0", "m", null, "/default_tablet", "/default_tablet/1_0.rf"));
     Mutation mut3 = createTablet("0", null, "m", "/t-1", "/default_tablet/1_0.rf");
-    mut3.putDelete(MetadataTable.DATAFILE_COLUMN_FAMILY.toString(), "/default_tablet/0_0.rf");
+    mut3.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
     bw1.addMutation(mut3);
     
     bw1.flush();
     
-    int rc = MetadataTable.checkClone("0", "1", conn, bw2);
+    int rc = MetadataTableUtil.checkClone("0", "1", conn, bw2);
     
     assertEquals(1, rc);
     
-    rc = MetadataTable.checkClone("0", "1", conn, bw2);
+    rc = MetadataTableUtil.checkClone("0", "1", conn, bw2);
     
     assertEquals(0, rc);
     
@@ -195,7 +198,7 @@ public class CloneTest extends TestCase {
     int count = 0;
     
     for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         files.add(entry.getKey().getColumnQualifier().toString());
         count++;
       }
@@ -209,10 +212,10 @@ public class CloneTest extends TestCase {
   private static Mutation deleteTablet(String tid, String endRow, String prevRow, String dir, String file) throws Exception {
     KeyExtent ke = new KeyExtent(new Text(tid), endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow));
     Mutation mut = new Mutation(ke.getMetadataEntry());
-    MetadataTable.PREV_ROW_COLUMN.putDelete(mut);
-    MetadataTable.TIME_COLUMN.putDelete(mut);
-    MetadataTable.DIRECTORY_COLUMN.putDelete(mut);
-    mut.putDelete(MetadataTable.DATAFILE_COLUMN_FAMILY.toString(), file);
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.putDelete(mut);
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.putDelete(mut);
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.putDelete(mut);
+    mut.putDelete(DataFileColumnFamily.NAME.toString(), file);
     
     return mut;
   }
@@ -221,9 +224,9 @@ public class CloneTest extends TestCase {
     KeyExtent ke = new KeyExtent(new Text(tid), endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow));
     Mutation mut = ke.getPrevRowUpdateMutation();
     
-    MetadataTable.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-    MetadataTable.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
-    mut.put(MetadataTable.DATAFILE_COLUMN_FAMILY.toString(), file, "10,200");
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
+    mut.put(DataFileColumnFamily.NAME.toString(), file, "10,200");
     
     return mut;
   }
@@ -242,7 +245,7 @@ public class CloneTest extends TestCase {
     
     BatchWriter bw2 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     
-    MetadataTable.initializeClone("0", "1", conn, bw2);
+    MetadataTableUtil.initializeClone("0", "1", conn, bw2);
     
     bw1.addMutation(createTablet("0", "f", null, "/d1", "/d1/file3"));
     bw1.addMutation(createTablet("0", "m", "f", "/d3", "/d1/file1"));
@@ -251,7 +254,7 @@ public class CloneTest extends TestCase {
     
     bw1.flush();
     
-    int rc = MetadataTable.checkClone("0", "1", conn, bw2);
+    int rc = MetadataTableUtil.checkClone("0", "1", conn, bw2);
     
     assertEquals(0, rc);
     
@@ -262,7 +265,7 @@ public class CloneTest extends TestCase {
     
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         files.add(entry.getKey().getColumnQualifier().toString());
         count++;
       }
@@ -289,7 +292,7 @@ public class CloneTest extends TestCase {
     
     BatchWriter bw2 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     
-    MetadataTable.initializeClone("0", "1", conn, bw2);
+    MetadataTableUtil.initializeClone("0", "1", conn, bw2);
     
     bw1.addMutation(deleteTablet("0", "m", null, "/d1", "/d1/file1"));
     bw1.addMutation(deleteTablet("0", null, "m", "/d2", "/d2/file2"));
@@ -303,7 +306,7 @@ public class CloneTest extends TestCase {
     
     bw1.flush();
     
-    int rc = MetadataTable.checkClone("0", "1", conn, bw2);
+    int rc = MetadataTableUtil.checkClone("0", "1", conn, bw2);
     
     assertEquals(1, rc);
     
@@ -315,7 +318,7 @@ public class CloneTest extends TestCase {
     
     bw1.flush();
     
-    rc = MetadataTable.checkClone("0", "1", conn, bw2);
+    rc = MetadataTableUtil.checkClone("0", "1", conn, bw2);
     
     assertEquals(0, rc);
     
@@ -326,7 +329,7 @@ public class CloneTest extends TestCase {
     
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         files.add(entry.getKey().getColumnQualifier().toString());
         count++;
       }
@@ -353,17 +356,17 @@ public class CloneTest extends TestCase {
     
     BatchWriter bw2 = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     
-    MetadataTable.initializeClone("0", "1", conn, bw2);
+    MetadataTableUtil.initializeClone("0", "1", conn, bw2);
     
     bw1.addMutation(deleteTablet("0", "m", null, "/d1", "/d1/file1"));
     Mutation mut = createTablet("0", null, null, "/d2", "/d2/file2");
-    mut.put(MetadataTable.DATAFILE_COLUMN_FAMILY.toString(), "/d1/file1", "10,200");
+    mut.put(DataFileColumnFamily.NAME.toString(), "/d1/file1", "10,200");
     bw1.addMutation(mut);
     
     bw1.flush();
     
     try {
-      MetadataTable.checkClone("0", "1", conn, bw2);
+      MetadataTableUtil.checkClone("0", "1", conn, bw2);
       assertTrue(false);
     } catch (TabletIterator.TabletDeletedException tde) {}
     

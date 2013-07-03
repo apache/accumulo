@@ -30,9 +30,11 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.hadoop.io.Text;
@@ -71,7 +73,7 @@ public class TestAccumuloSplitRecovery {
     String tableId = connector.tableOperations().tableIdMap().get(tablename);
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
-    scanner.fetchColumnFamily(MetadataTable.CURRENT_LOCATION_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
       return false;
@@ -104,8 +106,8 @@ public class TestAccumuloSplitRecovery {
       KeyExtent extent = new KeyExtent(new Text(tableId), null, new Text("b"));
       Mutation m = extent.getPrevRowUpdateMutation();
       
-      MetadataTable.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(0.5).getBytes()));
-      MetadataTable.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(null));
+      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(0.5).getBytes()));
+      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(null));
       bw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       bw.addMutation(m);
       
@@ -115,15 +117,15 @@ public class TestAccumuloSplitRecovery {
         
         Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         scanner.setRange(extent.toMetadataRange());
-        scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
+        scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
         
         KeyExtent extent2 = new KeyExtent(new Text(tableId), new Text("b"), null);
         m = extent2.getPrevRowUpdateMutation();
-        MetadataTable.DIRECTORY_COLUMN.put(m, new Value("/t2".getBytes()));
-        MetadataTable.TIME_COLUMN.put(m, new Value("M0".getBytes()));
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t2".getBytes()));
+        TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0".getBytes()));
         
         for (Entry<Key,Value> entry : scanner) {
-          m.put(MetadataTable.DATAFILE_COLUMN_FAMILY, entry.getKey().getColumnQualifier(), entry.getValue());
+          m.put(DataFileColumnFamily.NAME, entry.getKey().getColumnQualifier(), entry.getValue());
         }
         
         bw.addMutation(m);

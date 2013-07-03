@@ -40,9 +40,11 @@ import java.util.UUID;
 import java.util.WeakHashMap;
 
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
@@ -128,18 +130,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return getMetadataEntry(getTableId(), getEndRow());
   }
   
-  public static Text getMetadataEntry(Text table, Text row) {
-    Text entry = new Text(table);
-    
-    if (row == null) {
-      entry.append(new byte[] {'<'}, 0, 1);
-    } else {
-      entry.append(new byte[] {';'}, 0, 1);
-      entry.append(row.getBytes(), 0, row.getLength());
-    }
-    
-    return entry;
-    
+  public static Text getMetadataEntry(Text tableId, Text endRow) {
+    return MetadataSchema.TabletsSection.getRow(tableId, endRow);
   }
   
   // constructor for loading extents from metadata rows
@@ -398,7 +390,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   
   public static Mutation getPrevRowUpdateMutation(KeyExtent ke) {
     Mutation m = new Mutation(ke.getMetadataEntry());
-    MetadataTable.PREV_ROW_COLUMN.put(m, encodePrevEndRow(ke.getPrevEndRow()));
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, encodePrevEndRow(ke.getPrevEndRow()));
     return m;
   }
   

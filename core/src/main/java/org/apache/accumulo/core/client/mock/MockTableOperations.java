@@ -46,6 +46,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -122,7 +124,7 @@ public class MockTableOperations extends TableOperationsHelper {
       throw new TableNotFoundException(tableName, tableName, "");
     return acu.getSplits(tableName);
   }
-
+  
   @Override
   public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException {
     return listSplits(tableName);
@@ -297,20 +299,25 @@ public class MockTableOperations extends TableOperationsHelper {
   public Map<String,String> tableIdMap() {
     Map<String,String> result = new HashMap<String,String>();
     for (String table : acu.tables.keySet()) {
-      result.put(table, table);
+      if (RootTable.NAME.equals(table))
+        result.put(table, RootTable.ID);
+      else if (MetadataTable.NAME.equals(table))
+        result.put(table, MetadataTable.ID);
+      else
+        result.put(table, table);
     }
     return result;
   }
-
+  
   @Override
   public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException {
-
+    
     List<DiskUsage> diskUsages = new ArrayList<DiskUsage>();
     diskUsages.add(new DiskUsage(new TreeSet<String>(tables), 0l));
-
+    
     return diskUsages;
   }
-
+  
   @Override
   public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!exists(tableName))

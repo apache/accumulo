@@ -28,8 +28,8 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;

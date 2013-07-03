@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,8 +31,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
@@ -44,13 +46,13 @@ public class SplitIT extends MacTest {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String, String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "5K");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
+    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1s");
     cfg.setSiteConfig(siteConfig);
   }
-
-  @Test(timeout=60*1000)
+  
+  @Test(timeout = 120 * 1000)
   public void tabletShouldSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -62,12 +64,12 @@ public class SplitIT extends MacTest {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = opts.rows;
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    UtilWaitThread.sleep(10*1000);
+    UtilWaitThread.sleep(15 * 1000);
     String id = c.tableOperations().tableIdMap().get("test_ingest");
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     KeyExtent extent = new KeyExtent(new Text(id), null, null);
     s.setRange(extent.toMetadataRange());
-    MetadataTable.PREV_ROW_COLUMN.fetch(s);
+    MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
     int count = 0;
     int shortened = 0;
     for (Entry<Key,Value> entry : s) {
@@ -78,20 +80,23 @@ public class SplitIT extends MacTest {
     }
     assertTrue(shortened > 0);
     assertTrue(count > 10);
-    assertEquals(0, cluster.exec(CheckForMetadataProblems.class, "-i", cluster.getInstanceName(), "-u", "root", "-p", MacTest.PASSWORD, "-z", cluster.getZooKeepers()).waitFor());
+    assertEquals(0,
+        cluster.exec(CheckForMetadataProblems.class, "-i", cluster.getInstanceName(), "-u", "root", "-p", MacTest.PASSWORD, "-z", cluster.getZooKeepers())
+            .waitFor());
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void interleaveSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+    c.tableOperations().setProperty("test_ingest", Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
     ReadWriteIT.interleaveTest(c);
-    UtilWaitThread.sleep(10*1000);
-    assertTrue(c.tableOperations().listSplits("test_ingest").size() > 20);
+    UtilWaitThread.sleep(5 * 1000);
+    assertTrue(c.tableOperations().listSplits("test_ingest").size() > 10);
   }
   
-  @Test(timeout=120*1000)
+  @Test(timeout = 120 * 1000)
   public void deleteSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

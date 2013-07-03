@@ -28,7 +28,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
-import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
 import org.apache.hadoop.fs.Path;

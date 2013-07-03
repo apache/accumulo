@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.metadata;
 
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -28,8 +27,14 @@ public class RootTable {
   public static final String ID = "!!R";
   public static final String NAME = "!!ROOT";
   
+  /**
+   * DFS location relative to the Accumulo directory
+   */
   public static final String ROOT_TABLET_LOCATION = "/root_tablet";
   
+  /**
+   * ZK path relative to the instance directory for information about the root tablet
+   */
   public static final String ZROOT_TABLET = ROOT_TABLET_LOCATION;
   public static final String ZROOT_TABLET_LOCATION = ZROOT_TABLET + "/location";
   public static final String ZROOT_TABLET_FUTURE_LOCATION = ZROOT_TABLET + "/future_location";
@@ -37,6 +42,5 @@ public class RootTable {
   public static final String ZROOT_TABLET_WALOGS = ZROOT_TABLET + "/walogs";
   
   public static final KeyExtent EXTENT = new KeyExtent(new Text(ID), null, null);
-  public static final Range METADATA_TABLETS_RANGE = new Range(null, false, MetadataTable.RESERVED_RANGE_START_KEY, false);
   
 }

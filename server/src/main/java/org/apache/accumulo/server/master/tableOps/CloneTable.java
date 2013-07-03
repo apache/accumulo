@@ -33,7 +33,7 @@ import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.log4j.Logger;
 
 class CloneInfo implements Serializable {
@@ -108,14 +108,14 @@ class CloneMetadata extends MasterRepo {
     Instance instance = HdfsZooInstance.getInstance();
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
-    MetadataTable.deleteTable(cloneInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
-    MetadataTable.cloneTable(instance, cloneInfo.srcTableId, cloneInfo.tableId);
+    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
+    MetadataTableUtil.cloneTable(instance, cloneInfo.srcTableId, cloneInfo.tableId);
     return new FinishCloneTable(cloneInfo);
   }
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTable.deleteTable(cloneInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
   }
   
 }

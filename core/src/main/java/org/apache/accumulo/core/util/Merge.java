@@ -31,6 +31,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
@@ -216,8 +219,8 @@ public class Merge {
       throw new MergeException(e);
     }
     scanner.setRange(new KeyExtent(new Text(tableId), end, start).toMetadataRange());
-    scanner.fetchColumnFamily(MetadataTable.DATAFILE_COLUMN_FAMILY);
-    MetadataTable.PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     final Iterator<Entry<Key,Value>> iterator = scanner.iterator();
     
     Iterator<Size> result = new Iterator<Size>() {
@@ -233,12 +236,12 @@ public class Merge {
         while (iterator.hasNext()) {
           Entry<Key,Value> entry = iterator.next();
           Key key = entry.getKey();
-          if (key.getColumnFamily().equals(MetadataTable.DATAFILE_COLUMN_FAMILY)) {
+          if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             String[] sizeEntries = new String(entry.getValue().get()).split(",");
             if (sizeEntries.length == 2) {
               tabletSize += Long.parseLong(sizeEntries[0]);
             }
-          } else if (MetadataTable.PREV_ROW_COLUMN.hasColumns(key)) {
+          } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
             KeyExtent extent = new KeyExtent(key.getRow(), entry.getValue());
             return new Size(extent, tabletSize);
           }
