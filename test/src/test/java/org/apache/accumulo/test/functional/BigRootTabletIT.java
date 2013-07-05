@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,9 +26,9 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.junit.Test;
 
@@ -37,13 +37,13 @@ public class BigRootTabletIT extends MacTest {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String,String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TABLE_SCAN_MAXMEM.getKey(), "1024");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "60m");
-    cfg.setSiteConfig(siteConfig );
+    cfg.setSiteConfig(siteConfig);
   }
-
-  @Test(timeout=60*1000)
+  
+  @Test(timeout = 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().addSplits(MetadataTable.NAME, FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));
@@ -55,7 +55,8 @@ public class BigRootTabletIT extends MacTest {
     cluster.stop();
     cluster.start();
     int count = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : c.createScanner(RootTable.NAME, Authorizations.EMPTY))
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : c.createScanner(RootTable.NAME, Authorizations.EMPTY))
       count++;
     assertTrue(count > 0);
   }

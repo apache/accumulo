@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,10 +32,10 @@ import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.MetadataTable;
-import org.apache.accumulo.core.util.RootTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.util.Admin;
@@ -47,13 +47,13 @@ public class MetadataMaxFiles extends MacTest {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String,String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     siteConfig.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "10");
-    cfg.setSiteConfig(siteConfig );
+    cfg.setSiteConfig(siteConfig);
   }
-
-  @Test(timeout=240*1000)
+  
+  @Test(timeout = 240 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     SortedSet<Text> splits = new TreeSet<Text>();
@@ -71,15 +71,15 @@ public class MetadataMaxFiles extends MacTest {
       c.tableOperations().flush(MetadataTable.NAME, null, null, true);
       c.tableOperations().flush(RootTable.NAME, null, null, true);
     }
-    UtilWaitThread.sleep(20*1000);
+    UtilWaitThread.sleep(20 * 1000);
     log.info("shutting down");
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     cluster.stop();
     log.info("starting up");
     cluster.start();
-
-    UtilWaitThread.sleep(30*1000);
-
+    
+    UtilWaitThread.sleep(30 * 1000);
+    
     while (true) {
       MasterMonitorInfo stats = null;
       TCredentials creds = CredentialHelper.create("root", new PasswordToken(MacTest.PASSWORD), c.getInstance().getInstanceName());
