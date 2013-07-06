@@ -134,7 +134,7 @@ public class MiniAccumuloCluster {
     
     ArrayList<String> argList = new ArrayList<String>();
     
-    argList.addAll(Arrays.asList(javaBin, "-cp", classpath, "-Xmx128m", "-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75",
+    argList.addAll(Arrays.asList(javaBin, "-cp", classpath, "-Xmx128m", "-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", "-Djline.WindowsTerminal.directConsole=false",
         Main.class.getName(), className));
     
     argList.addAll(Arrays.asList(args));
@@ -143,6 +143,7 @@ public class MiniAccumuloCluster {
     
     builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", logDir.getAbsolutePath());
+
     
     // if we're running under accumulo.start, we forward these env vars
     String env = System.getenv("HADOOP_PREFIX");
@@ -296,7 +297,7 @@ public class MiniAccumuloCluster {
       }
     });
     
-    zooKeeperProcess = exec(Main.class, ZooKeeperServerMain.class.getName(), zooCfgFile.getAbsolutePath());
+    zooKeeperProcess = exec(ZooKeeperServerMain.class, zooCfgFile.getAbsolutePath());
     
     // sleep a little bit to let zookeeper come up before calling init, seems to work better
     UtilWaitThread.sleep(250);

@@ -157,8 +157,8 @@ public class LogService implements MutationLogger.Iface, Watcher {
     }
     final Set<String> rootDirs = new HashSet<String>();
     for (String root : ServerConfiguration.getSystemConfiguration().get(Property.LOGGER_DIR).split(",")) {
-      if (!root.startsWith("/"))
-        root = System.getenv("ACCUMULO_HOME") + "/" + root;
+      if (!(new File(root).isAbsolute()))
+        root = System.getenv("ACCUMULO_HOME") + File.separator + root;
       else if (root.equals(""))
         root = System.getProperty("org.apache.accumulo.core.dir.log");
       else if (root == null || root.isEmpty()) {

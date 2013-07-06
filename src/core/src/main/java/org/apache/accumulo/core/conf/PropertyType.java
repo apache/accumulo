@@ -49,7 +49,7 @@ public enum PropertyType {
   
   PATH("path", ".*",
       "A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property."),
-  ABSOLUTEPATH("absolute path", "[/].*",
+  ABSOLUTEPATH("absolute path", "([/]|[A-Z]:[\\\\]).*",
       "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified."),
   
   CLASSNAME("java class", "[\\w$.]*", "A fully qualified java class name representing a class on the classpath.<br />"
