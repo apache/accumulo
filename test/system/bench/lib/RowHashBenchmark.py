@@ -46,12 +46,12 @@ class RowHashBenchmark(Benchmark):
         file = os.path.join( dir, 'splits' )  
         code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % self.input_table) 
         if out.find('does not exist') == -1:
-           code, out, err = cloudshell.run(self.username, self.password, 'deletetable -f %s\n' % self.input_table) 
+           code, out, err = cloudshell.run(self.username, self.password, 'deletetable %s\n' % self.input_table) 
            self.sleep(15)
         code, out, err = cloudshell.run(self.username, self.password, "createtable %s -sf %s\n" % (self.input_table, file))
         code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % self.output_table) 
         if out.find('does not exist') == -1:
-            code, out, err = cloudshell.run(self.username, self.password, 'deletetable -f %s\n' %
+            code, out, err = cloudshell.run(self.username, self.password, 'deletetable %s\n' %
                     self.output_table) 
             self.sleep(15)
         code, out, err = cloudshell.run(self.username, self.password, "createtable %s -sf %s\n" % (self.output_table, file))
@@ -73,9 +73,9 @@ class RowHashBenchmark(Benchmark):
         Benchmark.setUp(self)
 
     def tearDown(self):
-        code, out, err = cloudshell.run(self.username, self.password, "deletetable -f %s\n" % self.input_table)
+        code, out, err = cloudshell.run(self.username, self.password, "deletetable %s\n" % self.input_table)
         self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.input_table, out))
-        code, out, err = cloudshell.run(self.username, self.password, "deletetable -f %s\n" % self.output_table)
+        code, out, err = cloudshell.run(self.username, self.password, "deletetable %s\n" % self.output_table)
         self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.output_table, out))
         Benchmark.tearDown(self)
 

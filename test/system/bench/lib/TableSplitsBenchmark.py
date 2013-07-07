@@ -39,7 +39,7 @@ class TableSplitsBenchmark(Benchmark):
         code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % self.tablename)
         if out.find('does not exist') == -1:
             log.debug('Deleting table %s' % self.tablename)
-            code, out, err = cloudshell.run(self.username, self.password, 'deletetable -f %s\n' % self.tablename)
+            code, out, err = cloudshell.run(self.username, self.password, 'deletetable %s\n' % self.tablename)
             self.assertEqual(code, 0, "Could not delete table")
         Benchmark.setUp(self)
 
@@ -54,7 +54,7 @@ class TableSplitsBenchmark(Benchmark):
         return 'Creates a table with splits. Lower score is better.'
         
     def tearDown(self):
-        command = 'deletetable -f %s\n' % self.tablename
+        command = 'deletetable %s\n' % self.tablename
         log.debug("Running Command %r", command)
         code, out, err = cloudshell.run(self.username, self.password, command)
         self.assertEqual(code, 0, "Could not delete table")

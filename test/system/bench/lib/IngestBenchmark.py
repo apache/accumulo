@@ -32,14 +32,14 @@ class IngestBenchmark(Benchmark):
         code, out, err = cloudshell.run(self.username, self.password, 'table test_ingest\n')
         if out.find('does not exist') == -1:
             log.debug("Deleting table test_ingest")
-            code, out, err = cloudshell.run(self.username, self.password, 'deletetable -f test_ingest\n')
+            code, out, err = cloudshell.run(self.username, self.password, 'deletetable test_ingest\n')
             self.assertEquals(code, 0, "Could not delete the table 'test_ingest'")
         code, out, err = cloudshell.run(self.username, self.password, 'createtable test_ingest\n')
         self.assertEqual(code, 0, "Could not create the table 'test_ingest'")
         Benchmark.setUp(self)
 
     def tearDown(self):
-        command = 'deletetable -f test_ingest\n'
+        command = 'deletetable test_ingest\n'
         log.debug("Running Command %r", command)
         code, out, err = cloudshell.run(self.username, self.password, command)
         self.assertEqual(code, 0, "Could not delete the table 'test_ingest'")

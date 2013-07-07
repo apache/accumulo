@@ -35,7 +35,7 @@ class CreateTablesBenchmark(Benchmark):
             log.debug("Checking for table existence: %s" % currentTable)
             code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % currentTable)
             if out.find('does not exist') == -1:
-                command = 'deletetable -f %s\n' % (currentTable)
+                command = 'deletetable %s\n' % (currentTable)
                 log.debug("Running Command %r", command)
                 code, out, err = cloudshell.run(self.username, self.password, command)
                 self.assertEqual(code, 0, 'Did not successfully delete table: %s' % currentTable)
@@ -51,7 +51,7 @@ class CreateTablesBenchmark(Benchmark):
             # print err
         for x in range(1, self.tables):
             currentTable = 'test_ingest%d' % (x)      
-            command = 'deletetable -f %s\n' % (currentTable)
+            command = 'deletetable %s\n' % (currentTable)
             log.debug("Running Command %r", command)
             code, out, err = cloudshell.run(self.username, self.password, command)
             self.assertEqual(code, 0, 'Did not successfully delete table: %s' % currentTable)
