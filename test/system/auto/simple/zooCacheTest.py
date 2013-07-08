@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import os
-
+import shutil
 import unittest
 import time
 
@@ -30,6 +30,7 @@ class ZooCacheTest(TestUtilsMixin, unittest.TestCase):
         self.create_config_file(self.settings.copy())
         
     def runTest(self):
+        shutil.rmtree('/tmp/zcTest-42')
         handleCC = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.CacheTestClean', ['/zcTest-42','/tmp/zcTest-42'])
         self.waitForStop(handleCC, 10)
         handleR1 = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.CacheTestReader', ['/zcTest-42','/tmp/zcTest-42', ZOOKEEPERS])
