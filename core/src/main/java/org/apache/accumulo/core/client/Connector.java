@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
+import org.apache.accumulo.core.client.admin.TableNamespaceOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.security.Authorizations;
 
@@ -208,6 +209,13 @@ public abstract class Connector {
    * @return an object to manipulate tables
    */
   public abstract TableOperations tableOperations();
+  
+  /**
+   * Retrieves a TableNamespaceOperations object to perform table namespace functions, such as create and delete.
+   * 
+   * @return an object to manipulate table namespaces
+   */
+  public abstract TableNamespaceOperations tableNamespaceOperations();
   
   /**
    * Retrieves a SecurityOperations object to perform user security operations, such as creating users.

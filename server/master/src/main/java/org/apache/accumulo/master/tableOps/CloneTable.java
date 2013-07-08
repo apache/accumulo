@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -147,6 +148,15 @@ class CloneZookeeper extends MasterRepo {
       TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId, cloneInfo.tableName, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
       Tables.clearCache(instance);
+      
+      String namespace = Tables.extractNamespace(cloneInfo.tableName);
+      String namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
+      TableManager tm = TableManager.getInstance();
+      if (!TableNamespaces.getNameToIdMap(instance).containsKey(namespace)) {
+        tm.addNamespace(namespaceId, namespace, NodeExistsPolicy.SKIP);
+      }
+      tm.addNamespaceToTable(cloneInfo.tableId, namespaceId);
+      
       return new CloneMetadata(cloneInfo);
     } finally {
       Utils.tableNameLock.unlock();

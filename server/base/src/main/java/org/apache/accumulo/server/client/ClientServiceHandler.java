@@ -33,6 +33,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
@@ -228,7 +230,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials, String tableName) throws TException, ThriftTableOperationException {
     String tableId = checkTableId(tableName, null);
-    return conf(credentials, new ServerConfiguration(instance).getTableConfiguration(tableId));
+    AccumuloConfiguration config = new ServerConfiguration(instance).getTableConfiguration(tableId);
+    return conf(credentials, config);
   }
   
   @Override
@@ -348,5 +351,18 @@ public class ClientServiceHandler implements ClientService.Iface {
     } catch (IOException e) {
       throw new TException(e);
     }
+  }
+  
+  @Override
+  public Map<String,String> getTableNamespaceConfiguration(TInfo tinfo, TCredentials credentials, String ns) throws ThriftTableOperationException, TException {
+    String namespaceId;
+    try {
+      namespaceId = TableNamespaces.getNamespaceId(instance, ns);
+    } catch (TableNamespaceNotFoundException e) {
+      String why = "Could not find table namespace while getting configuration.";
+      throw new ThriftTableOperationException(null, ns, null, null, why);
+    }
+    AccumuloConfiguration config = new ServerConfiguration(instance).getTableNamespaceConfiguration(namespaceId);
+    return conf(credentials, config);
   }
 }

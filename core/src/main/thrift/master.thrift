@@ -137,6 +137,9 @@ service MasterClientService {
     
     void setTableProperty(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property, 4:string value) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
     void removeTableProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+    
+    void setTableNamespaceProperty(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string ns, 3:string property, 4:string value) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+    void removeTableNamespaceProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string ns, 3:string property) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
 
     // system management methods
     void setMasterGoalState(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:MasterGoalState state) throws (1:client.ThriftSecurityException sec);
@@ -154,7 +157,14 @@ service MasterClientService {
 
    //table operations
    i64 beginTableOperation(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
-   void executeTableOperation(7:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid, 3:TableOperation op, 4:list<binary> arguments, 5:map<string, string> options, 6:bool autoClean)throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+   void executeTableOperation(7:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid, 3:TableOperation op, 4:list<binary> arguments, 5:map<string, string> options, 6:bool autoClean) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
    string waitForTableOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
    void finishTableOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec)
+
+   //table namespace operations
+   i64 beginTableNamespaceOperation(1:trace.TInfo tinfo, 2:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
+   void executeTableNamespaceOperation(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:i64 opid, 4:TableOperation op, 5:list<binary> arguments, 6:map<string, string> options, 7:bool autoClean) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+   string waitForTableNamespaceOperation(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:i64 opid) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+   void finishTableNamespaceOperation(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:i64 opid) throws (1:client.ThriftSecurityException sec)
+   
 }

@@ -36,6 +36,11 @@ public class Constants {
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
   public static final String ZTABLE_COMPACT_ID = "/compact-id";
   public static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
+  public static final String ZTABLE_NAMESPACE = "/namespace";
+
+  public static final String ZNAMESPACES = "/namespaces";
+  public static final String ZNAMESPACE_NAME = "/name";
+  public static final String ZNAMESPACE_CONF = "/conf";
 
   public static final String ZMASTERS = "/masters";
   public static final String ZMASTER_LOCK = ZMASTERS + "/lock";
@@ -96,7 +101,8 @@ public class Constants {
   
   public static final int MAX_DATA_TO_PRINT = 64;
   public static final String CORE_PACKAGE_NAME = "org.apache.accumulo.core";
-  public static final String VALID_TABLE_NAME_REGEX = "^\\w+$";
+  public static final String VALID_TABLE_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
+  public static final String VALID_TABLE_NAMESPACE_REGEX = "^\\w+$";
   public static final String MAPFILE_EXTENSION = "map";
   public static final String GENERATED_TABLET_DIRECTORY_PREFIX = "t-";
   
@@ -107,4 +113,8 @@ public class Constants {
   
   // Variables that will be substituted with environment vars in PropertyType.PATH values
   public static final String[] PATH_PROPERTY_ENV_VARS = new String[]{"$ACCUMULO_HOME", "$ACCUMULO_CONF_DIR"};
+  public static final String DEFAULT_TABLE_NAMESPACE = "_default_";
+  public static final String SYSTEM_TABLE_NAMESPACE = "_system_";
+  public static final String DEFAULT_TABLE_NAMESPACE_ID = "!DEF";
+  public static final String SYSTEM_TABLE_NAMESPACE_ID = "!SYS";
 }

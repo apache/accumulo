@@ -23,10 +23,15 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import jline.internal.Log;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 
@@ -51,11 +56,26 @@ public class Tables {
     
     for (String tableId : tableIds) {
       byte[] tblPath = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
+      byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
+      String name = "";
+      // create fully qualified table name if it's in a namespace other than default or system.
+      if (nId != null) {
+        String namespaceId = new String(nId, Constants.UTF8);
+        if (!namespaceId.equals(Constants.DEFAULT_TABLE_NAMESPACE_ID) && !namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID)) {
+          try {
+            name += TableNamespaces.getNamespaceName(instance, new String(namespaceId)) + ".";
+          } catch (TableNamespaceNotFoundException e) {
+            Log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist");
+            continue;
+          }
+        }
+      }
       if (tblPath != null) {
+        name += new String(tblPath, Constants.UTF8);
         if (nameAsKey)
-          tableMap.put(new String(tblPath), tableId);
+          tableMap.put(name, tableId);
         else
-          tableMap.put(tableId, new String(tblPath));
+          tableMap.put(tableId, name);
       }
     }
     
@@ -110,7 +130,7 @@ public class Tables {
     try {
       tableName = getTableName(instance, tableId);
     } catch (TableNotFoundException e) {
-      //handled in the string formatting
+      // handled in the string formatting
     }
     return tableName == null ? String.format("?(ID:%s)", tableId) : String.format("%s(ID:%s)", tableName, tableId);
   }
@@ -120,7 +140,7 @@ public class Tables {
     try {
       tableId = getTableId(instance, tableName);
     } catch (TableNotFoundException e) {
-      //handled in the string formatting
+      // handled in the string formatting
     }
     return tableId == null ? String.format("%s(?)", tableName) : String.format("%s(ID:%s)", tableName, tableId);
   }
@@ -137,5 +157,32 @@ public class Tables {
   
   public static long getCacheResetCount() {
     return cacheResetCount.get();
+  }
+  
+  public static String extractNamespace(String tableName) {
+    String[] s = tableName.split("\\.");
+    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+      return Constants.SYSTEM_TABLE_NAMESPACE;
+    } else if (s.length == 2 && !s[0].isEmpty()) {
+      return s[0];
+    } else {
+      return Constants.DEFAULT_TABLE_NAMESPACE;
+    }
+  }
+  
+  public static String extractTableName(String tableName) {
+    String[] s = tableName.split("\\.");
+    if (s.length == 2 && !s[1].isEmpty() && !s[0].isEmpty()) {
+      return s[1];
+    } else {
+      return tableName;
+    }
+  }
+  
+  public static String getNamespace(Instance instance, String tableId) {
+    ZooCache zc = getZooCache(instance);
+    zc.clear();
+    byte[] n = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
+    return new String(n, Constants.UTF8);
   }
 }

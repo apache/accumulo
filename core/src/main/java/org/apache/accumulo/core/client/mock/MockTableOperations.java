@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,6 +40,7 @@ import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
 import org.apache.accumulo.core.client.admin.TableOperationsHelper;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -73,16 +75,21 @@ public class MockTableOperations extends TableOperationsHelper {
     return new TreeSet<String>(acu.tables.keySet());
   }
   
+  /*
+   * @Override public SortedSet<String> listNamespaces() { return new TreeSet<String>(acu.namespaces.keySet()); }
+   */
+  
   @Override
   public boolean exists(String tableName) {
     return acu.tables.containsKey(tableName);
   }
   
+  private boolean namespaceExists(String namespace) {
+    return acu.namespaces.containsKey(namespace);
+  }
+  
   @Override
   public void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    if (!tableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
-      throw new IllegalArgumentException();
-    }
     create(tableName, true, TimeType.MILLIS);
   }
   
@@ -93,11 +100,16 @@ public class MockTableOperations extends TableOperationsHelper {
   
   @Override
   public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    String namespace = Tables.extractNamespace(tableName);
     if (!tableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
       throw new IllegalArgumentException();
     }
     if (exists(tableName))
       throw new TableExistsException(tableName, tableName, "");
+    
+    if (!namespaceExists(namespace)) {
+      throw new IllegalArgumentException("Table namespace (" + namespace + ") does not exist, create it first");
+    }
     acu.createTable(username, tableName, versioningIter, timeType);
   }
   
@@ -147,6 +159,14 @@ public class MockTableOperations extends TableOperationsHelper {
     if (exists(newTableName))
       throw new TableExistsException(newTableName, newTableName, "");
     MockTable t = acu.tables.remove(oldTableName);
+    String namespace = Tables.extractNamespace(newTableName);
+    MockTableNamespace n = acu.namespaces.get(namespace);
+    if (n == null) {
+      n = new MockTableNamespace();
+    }
+    t.setNamespaceName(namespace);
+    t.setNamespace(n);
+    acu.namespaces.put(namespace, n);
     acu.tables.put(newTableName, t);
   }
   
@@ -166,9 +186,26 @@ public class MockTableOperations extends TableOperationsHelper {
   
   @Override
   public Iterable<Entry<String,String>> getProperties(String tableName) throws TableNotFoundException {
-    if (!exists(tableName))
+    String namespace = Tables.extractNamespace(tableName);
+    
+    if (!namespaceExists(namespace)) {
+      throw new IllegalArgumentException("Table namespace (" + namespace + ") does not exist");
+    }
+    
+    Set<Entry<String,String>> props = new HashSet<Entry<String,String>>(acu.namespaces.get(namespace).settings.entrySet());
+    
+    if (!exists(tableName)) {
       throw new TableNotFoundException(tableName, tableName, "");
-    return acu.tables.get(tableName).settings.entrySet();
+    }
+    
+    Set<Entry<String,String>> tableProps = acu.tables.get(tableName).settings.entrySet();
+    for (Entry<String,String> e : tableProps) {
+      if (props.contains(e)) {
+        props.remove(e);
+      }
+      props.add(e);
+    }
+    return props;
   }
   
   @Override

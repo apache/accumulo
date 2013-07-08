@@ -832,6 +832,29 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
   }
 
+  @Test(timeout = 30 * 1000)
+  public void tablenamespaces() throws Exception {
+    exec("namespaces", true, Constants.DEFAULT_TABLE_NAMESPACE, true);
+    exec("createnamespace thing1", true);
+    String namespaces = exec("namespaces");
+    assertTrue(namespaces.contains("thing1"));
+    
+    exec("renamenamespace thing1 thing2");
+    namespaces = exec("namespaces");
+    assertTrue(namespaces.contains("thing2"));
+    assertTrue(!namespaces.contains("thing1"));
+    
+    exec("createtable thing2.thingy", true);
+    exec("deletenamespace thing2");
+    exec("y");
+    exec("namespaces", true, "thing2", true);
+    
+    exec("deletenamespace -f thing2", true);
+    namespaces = exec("namespaces");
+    assertTrue(!namespaces.contains("thing2"));
+    exec("tables", true, "thing2.thingy", false);
+  }
+  
   private int countkeys(String table) throws IOException {
     exec("scan -np -t " + table);
     return output.get().split("\n").length - 1;

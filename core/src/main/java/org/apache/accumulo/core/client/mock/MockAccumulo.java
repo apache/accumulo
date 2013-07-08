@@ -22,8 +22,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -36,6 +38,7 @@ import org.apache.hadoop.io.Text;
 
 public class MockAccumulo {
   final Map<String,MockTable> tables = new HashMap<String,MockTable>();
+  final Map<String,MockTableNamespace> namespaces = new HashMap<String,MockTableNamespace>();
   final Map<String,String> systemProperties = new HashMap<String,String>();
   Map<String,MockUser> users = new HashMap<String,MockUser>();
   final FileSystem fs;
@@ -48,6 +51,8 @@ public class MockAccumulo {
     MockUser root = new MockUser("root", new PasswordToken(new byte[0]), Authorizations.EMPTY);
     root.permissions.add(SystemPermission.SYSTEM);
     users.put(root.name, root);
+    namespaces.put(Constants.DEFAULT_TABLE_NAMESPACE, new MockTableNamespace());
+    namespaces.put(Constants.SYSTEM_TABLE_NAMESPACE, new MockTableNamespace());
     createTable("root", RootTable.NAME, true, TimeType.LOGICAL);
     createTable("root", MetadataTable.NAME, true, TimeType.LOGICAL);
   }
@@ -78,9 +83,26 @@ public class MockAccumulo {
   }
   
   public void createTable(String username, String tableName, boolean useVersions, TimeType timeType) {
-    MockTable t = new MockTable(useVersions, timeType);
+    String namespace = Tables.extractNamespace(tableName);
+    
+    if (!namespaceExists(namespace)) {
+      return;
+    }
+    
+    MockTableNamespace n = namespaces.get(namespace);
+    MockTable t = new MockTable(n, useVersions, timeType);
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
+    t.setNamespaceName(namespace);
+    t.setNamespace(n);
     tables.put(tableName, t);
+  }
+  
+  public void createNamespace(String username, String namespace) {
+    if (!namespaceExists(namespace)) {
+      MockTableNamespace n = new MockTableNamespace();
+      n.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
+      namespaces.put(namespace, n);
+    }
   }
   
   public void addSplits(String tableName, SortedSet<Text> partitionKeys) {
@@ -93,5 +115,9 @@ public class MockAccumulo {
   
   public void merge(String tableName, Text start, Text end) {
     tables.get(tableName).merge(start, end);
+  }
+  
+  private boolean namespaceExists(String namespace) {
+    return namespaces.containsKey(namespace);
   }
 }

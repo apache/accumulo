@@ -36,6 +36,8 @@ import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperationsImpl;
+import org.apache.accumulo.core.client.admin.TableNamespaceOperations;
+import org.apache.accumulo.core.client.admin.TableNamespaceOperationsImpl;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
@@ -51,6 +53,7 @@ public class ConnectorImpl extends Connector {
   private final Credentials credentials;
   private SecurityOperations secops = null;
   private TableOperations tableops = null;
+  private TableNamespaceOperations namespaceops = null;
   private InstanceOperations instanceops = null;
   
   public ConnectorImpl(final Instance instance, Credentials cred) throws AccumuloException, AccumuloSecurityException {
@@ -155,6 +158,13 @@ public class ConnectorImpl extends Connector {
     if (tableops == null)
       tableops = new TableOperationsImpl(instance, credentials);
     return tableops;
+  }
+  
+  @Override
+  public synchronized TableNamespaceOperations tableNamespaceOperations() {
+    if (namespaceops == null)
+      namespaceops = new TableNamespaceOperationsImpl(instance, credentials);
+    return namespaceops;
   }
   
   @Override

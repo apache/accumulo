@@ -21,7 +21,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.Token;
@@ -32,7 +35,7 @@ import org.apache.commons.cli.Options;
 
 public abstract class TableOperation extends Command {
   
-  protected Option optTablePattern, optTableName;
+  protected Option optTablePattern, optTableName, optTableNamespace;
   private boolean force = true;
   private boolean useCommandLine = true;
   
@@ -46,6 +49,12 @@ public abstract class TableOperation extends Command {
         }
     } else if (cl.hasOption(optTableName.getOpt())) {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
+    } else if (cl.hasOption(optTableNamespace.getOpt())) {
+      Instance instance = shellState.getInstance();
+      String namespaceId = TableNamespaces.getNamespaceId(instance, optTableNamespace.getValue());
+      for (String tableId : TableNamespaces.getTableIds(instance, namespaceId)) {
+        tableSet.add(Tables.getTableName(instance, tableId));
+      }
     } else if (useCommandLine && cl.getArgs().length > 0) {
       for (String tableName : cl.getArgs()) {
         tableSet.add(tableName);
@@ -99,10 +108,14 @@ public abstract class TableOperation extends Command {
     optTableName = new Option(Shell.tableOption, "table", true, "name of a table to operate on");
     optTableName.setArgName("tableName");
     
+    optTableNamespace = new Option("tn", "table-namespace", true, "name of a table namespace to operate on");
+    optTableName.setArgName("table-namespace");
+    
     final OptionGroup opg = new OptionGroup();
     
     opg.addOption(optTablePattern);
     opg.addOption(optTableName);
+    opg.addOption(optTableNamespace);
     
     o.addOptionGroup(opg);
     

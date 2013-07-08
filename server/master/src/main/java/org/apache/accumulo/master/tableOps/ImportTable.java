@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
+import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -444,6 +445,10 @@ class ImportPopulateZookeeper extends MasterRepo {
       Utils.checkTableDoesNotExist(instance, tableInfo.tableName, tableInfo.tableId, TableOperation.CREATE);
       
       TableManager.getInstance().addTable(tableInfo.tableId, tableInfo.tableName, NodeExistsPolicy.OVERWRITE);
+      
+      String namespace = Tables.extractNamespace(tableInfo.tableName);
+      String namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
+      TableManager.getInstance().addNamespaceToTable(tableInfo.tableId, namespaceId);
       
       Tables.clearCache(instance);
     } finally {

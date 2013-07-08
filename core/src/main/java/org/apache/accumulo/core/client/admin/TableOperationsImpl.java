@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.impl.AccumuloServerException;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
+import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
@@ -168,7 +170,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME))
       return true;
     
-    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if table " + tableName + "exists...");
+    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if table " + tableName + " exists...");
     boolean exists = Tables.getNameToIdMap(instance).containsKey(tableName);
     opTimer.stop("Checked existance of " + exists + " in %DURATION%");
     return exists;
@@ -217,6 +219,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(timeType.name().getBytes()));
     
     Map<String,String> opts = IteratorUtil.generateInitialTableProperties(limitVersion);
+    
+    String namespace = Tables.extractNamespace(tableName);
+    if (!namespaceExists(namespace)) {
+      String info = "Table namespace not found while trying to create table";
+      throw new RuntimeException(new TableNamespaceNotFoundException(null, namespace, info));
+    }
     
     try {
       doTableOperation(TableOperation.CREATE, args, opts);
@@ -674,6 +682,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     ArgumentChecker.notNull(srcTableName, newTableName);
     
+    String namespace = Tables.extractNamespace(newTableName);
+    if (!namespaceExists(namespace)) {
+      String info = "Table namespace not found while cloning table";
+      throw new RuntimeException(new TableNamespaceNotFoundException(null, namespace, info));
+    }
+    
     String srcTableId = Tables.getTableId(instance, srcTableName);
     
     if (flush)
@@ -722,6 +736,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
+    
+    String namespace = Tables.extractNamespace(newTableName);
+    if (!namespaceExists(namespace)) {
+      String info = "Table namespace not found while renaming table";
+      throw new RuntimeException(new TableNamespaceNotFoundException(null, namespace, info));
+    }
     
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes()), ByteBuffer.wrap(newTableName.getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
@@ -1462,6 +1482,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Logger.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : " + ioe.getMessage());
     }
     
+    String namespace = Tables.extractNamespace(tableName);
+    if (!namespaceExists(namespace)) {
+      String info = "Table namespace not found while importing to table";
+      throw new RuntimeException(new TableNamespaceNotFoundException(null, namespace, info));
+    }
+    
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(importDir.getBytes()));
     
     Map<String,String> opts = Collections.emptyMap();
@@ -1531,5 +1557,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public int addConstraint(String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     testClassLoad(tableName, constraintClassName, Constraint.class.getName());
     return super.addConstraint(tableName, constraintClassName);
+  }
+  
+  private boolean namespaceExists(String namespace) {
+    return TableNamespaces.getNameToIdMap(instance).containsKey(namespace);
   }
 }

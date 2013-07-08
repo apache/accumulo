@@ -29,11 +29,14 @@ import org.apache.hadoop.fs.Path;
 
 public class ServerConstants {
   
-  // versions should never be negative
-  public static final Integer WIRE_VERSION = 2;
+  /**
+   * current version (3) reflects additional namespace operations (ACCUMULO-802) in version 1.6.0 <br />
+   * (versions should never be negative)
+   */
+  public static final Integer WIRE_VERSION = 3;
   
   /**
-   * current version reflects the addition of a separate root table (ACCUMULO-1481)
+   * current version (6) reflects the addition of a separate root table (ACCUMULO-1481) in version 1.6.0
    */
   public static final int DATA_VERSION = 6;
   public static final int PREV_DATA_VERSION = 5;

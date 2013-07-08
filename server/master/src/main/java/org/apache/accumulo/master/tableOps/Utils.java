@@ -22,6 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -79,9 +80,28 @@ public class Utils {
         Instance instance = HdfsZooInstance.getInstance();
         IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId))
-          throw new ThriftTableOperationException(tableId, "", op, TableOperationExceptionType.NOTFOUND, "Table does not exists");
+          throw new ThriftTableOperationException(tableId, "", op, TableOperationExceptionType.NOTFOUND, "Table does not exist");
       }
       log.info("table " + tableId + " (" + Long.toHexString(tid) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
+      return 0;
+    } else
+      return 100;
+  }
+  
+  public static void unreserveTableNamespace(String namespaceId, long id, boolean writeLock) throws Exception {
+    getLock(namespaceId, id, writeLock).unlock();
+    log.info("table namespace " + namespaceId + " (" + Long.toHexString(id) + ") unlocked for " + (writeLock ? "write" : "read"));
+  }
+  
+  public static long reserveTableNamespace(String namespaceId, long id, boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
+    if (getLock(namespaceId, id, writeLock).tryLock()) {
+      if (mustExist) {
+        Instance instance = HdfsZooInstance.getInstance();
+        IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
+        if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES+ "/" + namespaceId))
+          throw new ThriftTableOperationException(namespaceId, "", op, TableOperationExceptionType.NOTFOUND, "Table namespace does not exist");
+      }
+      log.info("table namespace " + namespaceId + " (" + Long.toHexString(id) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
       return 0;
     } else
       return 100;
@@ -129,4 +149,12 @@ public class Utils {
     return Utils.getLock(tableId, tid, false);
   }
   
+  
+  static void checkTableNamespaceDoesNotExist(Instance instance, String namespace, String namespaceId, TableOperation operation) throws ThriftTableOperationException {
+    
+    String n = TableNamespaces.getNameToIdMap(instance).get(namespace);
+    
+    if (n != null && !n.equals(namespaceId))
+      throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.EXISTS, null);
+  }
 }

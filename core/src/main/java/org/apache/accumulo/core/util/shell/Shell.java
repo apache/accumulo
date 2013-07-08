@@ -78,6 +78,7 @@ import org.apache.accumulo.core.util.shell.commands.ClsCommand;
 import org.apache.accumulo.core.util.shell.commands.CompactCommand;
 import org.apache.accumulo.core.util.shell.commands.ConfigCommand;
 import org.apache.accumulo.core.util.shell.commands.ConstraintCommand;
+import org.apache.accumulo.core.util.shell.commands.CreateNamespaceCommand;
 import org.apache.accumulo.core.util.shell.commands.CreateTableCommand;
 import org.apache.accumulo.core.util.shell.commands.CreateUserCommand;
 import org.apache.accumulo.core.util.shell.commands.DUCommand;
@@ -85,6 +86,7 @@ import org.apache.accumulo.core.util.shell.commands.DebugCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteManyCommand;
+import org.apache.accumulo.core.util.shell.commands.DeleteNamespaceCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteRowsCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteScanIterCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteShellIterCommand;
@@ -119,6 +121,7 @@ import org.apache.accumulo.core.util.shell.commands.ListScansCommand;
 import org.apache.accumulo.core.util.shell.commands.ListShellIterCommand;
 import org.apache.accumulo.core.util.shell.commands.MaxRowCommand;
 import org.apache.accumulo.core.util.shell.commands.MergeCommand;
+import org.apache.accumulo.core.util.shell.commands.NamespacesCommand;
 import org.apache.accumulo.core.util.shell.commands.NoTableCommand;
 import org.apache.accumulo.core.util.shell.commands.OfflineCommand;
 import org.apache.accumulo.core.util.shell.commands.OnlineCommand;
@@ -127,6 +130,7 @@ import org.apache.accumulo.core.util.shell.commands.PingCommand;
 import org.apache.accumulo.core.util.shell.commands.QuestionCommand;
 import org.apache.accumulo.core.util.shell.commands.QuitCommand;
 import org.apache.accumulo.core.util.shell.commands.QuotedStringTokenizer;
+import org.apache.accumulo.core.util.shell.commands.RenameNamespaceCommand;
 import org.apache.accumulo.core.util.shell.commands.RenameTableCommand;
 import org.apache.accumulo.core.util.shell.commands.RevokeCommand;
 import org.apache.accumulo.core.util.shell.commands.ScanCommand;
@@ -354,7 +358,7 @@ public class Shell extends ShellOptions {
         new TableCommand(), new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(), new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(),
         new DUCommand(), new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(),
-        new TablesCommand()};
+        new TablesCommand(), new NamespacesCommand(), new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
     Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(),
@@ -721,6 +725,14 @@ public class Shell extends ShellOptions {
       userlist = Collections.emptySet();
     }
     
+    Set<String> tableNamespaces = null;
+    try {
+      tableNamespaces = connector.tableNamespaceOperations().list();
+    } catch (Exception e) {
+      log.debug("Unable to obtain list of table namespaces", e);
+      tableNamespaces = Collections.emptySet();
+    }
+    
     Map<Command.CompletionSet,Set<String>> options = new HashMap<Command.CompletionSet,Set<String>>();
     
     Set<String> commands = new HashSet<String>();
@@ -729,14 +741,18 @@ public class Shell extends ShellOptions {
     
     Set<String> modifiedUserlist = new HashSet<String>();
     Set<String> modifiedTablenames = new HashSet<String>();
+    Set<String> modifiedTableNamespaces = new HashSet<String>();
     
     for (String a : tableNames)
       modifiedTablenames.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
     for (String a : userlist)
       modifiedUserlist.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
+    for (String a : tableNamespaces)
+      modifiedTableNamespaces.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
     
     options.put(Command.CompletionSet.USERNAMES, modifiedUserlist);
     options.put(Command.CompletionSet.TABLENAMES, modifiedTablenames);
+    options.put(Command.CompletionSet.TABLENAMESPACES, modifiedTableNamespaces);
     options.put(Command.CompletionSet.COMMANDS, commands);
     
     for (Command[] cmdGroup : commandGrouping.values()) {
@@ -757,7 +773,7 @@ public class Shell extends ShellOptions {
   public static abstract class Command {
     // Helper methods for completion
     public enum CompletionSet {
-      TABLENAMES, USERNAMES, COMMANDS
+      TABLENAMES, USERNAMES, COMMANDS, TABLENAMESPACES
     }
     
     static Set<String> getCommandNames(Map<CompletionSet,Set<String>> objects) {
@@ -770,6 +786,10 @@ public class Shell extends ShellOptions {
     
     static Set<String> getUserNames(Map<CompletionSet,Set<String>> objects) {
       return objects.get(CompletionSet.USERNAMES);
+    }
+    
+    static Set<String> getTableNamespaces(Map<CompletionSet,Set<String>> objects) {
+      return objects.get(CompletionSet.TABLENAMESPACES);
     }
     
     public void registerCompletionGeneral(Token root, Set<String> args, boolean caseSens) {
@@ -792,6 +812,10 @@ public class Shell extends ShellOptions {
     
     public void registerCompletionForCommands(Token root, Map<CompletionSet,Set<String>> completionSet) {
       registerCompletionGeneral(root, completionSet.get(CompletionSet.COMMANDS), false);
+    }
+    
+    public void registerCompletionForTableNamespaces(Token root, Map<CompletionSet,Set<String>> completionSet) {
+      registerCompletionGeneral(root, completionSet.get(CompletionSet.TABLENAMESPACES), true);
     }
     
     // abstract methods to override

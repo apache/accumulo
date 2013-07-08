@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -29,55 +30,69 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 
 public class ServerConfiguration {
-  
+
   private static final Map<String,TableConfiguration> tableInstances = new HashMap<String,TableConfiguration>(1);
+  private static final Map<String,TableNamespaceConfiguration> tableNamespaceInstances = new HashMap<String,TableNamespaceConfiguration>(1);
   private static SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
-  
+
   public static synchronized SiteConfiguration getSiteConfiguration() {
     checkPermissions();
     return SiteConfiguration.getInstance(getDefaultConfiguration());
   }
-  
+
   private static void checkPermissions() {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(CONFIGURATION_PERMISSION);
     }
   }
-  
+
   private static synchronized ZooConfiguration getZooConfiguration(Instance instance) {
     checkPermissions();
     return ZooConfiguration.getInstance(instance, getSiteConfiguration());
   }
-  
+
   public static synchronized DefaultConfiguration getDefaultConfiguration() {
     checkPermissions();
     return DefaultConfiguration.getInstance();
   }
-  
+
   public static synchronized AccumuloConfiguration getSystemConfiguration(Instance instance) {
     return getZooConfiguration(instance);
   }
-  
+
+  public static TableNamespaceConfiguration getTableNamespaceConfiguration(Instance instance, String namespaceId) {
+    checkPermissions();
+    synchronized (tableNamespaceInstances) {
+      TableNamespaceConfiguration conf = tableNamespaceInstances.get(namespaceId);
+      if (conf == null) {
+        conf = new TableNamespaceConfiguration(instance, namespaceId, getSystemConfiguration(instance));
+        ConfigSanityCheck.validate(conf);
+        tableNamespaceInstances.put(namespaceId, conf);
+      }
+      return conf;
+    }
+  }
+
   public static TableConfiguration getTableConfiguration(Instance instance, String tableId) {
     checkPermissions();
     synchronized (tableInstances) {
       TableConfiguration conf = tableInstances.get(tableId);
-      if (conf == null) {
-        conf = new TableConfiguration(instance.getInstanceID(), tableId, getSystemConfiguration(instance));
+      if (conf == null && Tables.exists(instance, tableId)) {
+        conf = new TableConfiguration(instance.getInstanceID(), tableId, getTableNamespaceConfiguration(instance, Tables.getNamespace(instance, tableId)));
         ConfigSanityCheck.validate(conf);
         tableInstances.put(tableId, conf);
       }
       return conf;
     }
   }
-  
+
   static void removeTableIdInstance(String tableId) {
     synchronized (tableInstances) {
       tableInstances.remove(tableId);
     }
   }
-  
+
   static void expireAllTableObservers() {
     synchronized (tableInstances) {
       for (Entry<String,TableConfiguration> entry : tableInstances.entrySet()) {
@@ -85,27 +100,31 @@ public class ServerConfiguration {
       }
     }
   }
-  
+
   private final Instance instance;
-  
+
   public ServerConfiguration(Instance instance) {
     this.instance = instance;
   }
-  
+
   public TableConfiguration getTableConfiguration(String tableId) {
     return getTableConfiguration(instance, tableId);
   }
-  
+
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getTableConfiguration(extent.getTableId().toString());
   }
-  
+
+  public TableNamespaceConfiguration getTableNamespaceConfiguration(String namespaceId) {
+    return getTableNamespaceConfiguration(instance, namespaceId);
+  }
+
   public synchronized AccumuloConfiguration getConfiguration() {
     return getZooConfiguration(instance);
   }
-  
+
   public Instance getInstance() {
     return instance;
   }
-  
+
 }

@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
+import org.apache.accumulo.core.client.admin.TableNamespaceOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
@@ -134,6 +135,11 @@ public class MockConnector extends Connector {
   @Override
   public InstanceOperations instanceOperations() {
     return new MockInstanceOperations(acu);
+  }
+
+  @Override
+  public TableNamespaceOperations tableNamespaceOperations() {
+    return new MockTableNamespaceOperations(acu, username);
   }
   
   @Override

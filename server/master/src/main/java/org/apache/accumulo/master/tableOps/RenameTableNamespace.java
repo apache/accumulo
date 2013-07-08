@@ -18,7 +18,6 @@ package org.apache.accumulo.master.tableOps;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -28,81 +27,65 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
 
-public class RenameTable extends MasterRepo {
+public class RenameTableNamespace extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
-  private String tableId;
-  private String oldTableName;
-  private String newTableName;
+  private String namespaceId;
+  private String oldName;
+  private String newName;
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
+  public long isReady(long id, Master environment) throws Exception {
+    return Utils.reserveTableNamespace(namespaceId, id, true, true, TableOperation.RENAME);
   }
 
-  public RenameTable(String tableId, String oldTableName, String newTableName) {
-    this.tableId = tableId;
-    this.oldTableName = oldTableName;
-    this.newTableName = newTableName;
+  public RenameTableNamespace(String namespaceId, String oldName, String newName) {
+    this.namespaceId = namespaceId;
+    this.oldName = oldName;
+    this.newName = newName;
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Master> call(long id, Master master) throws Exception {
 
     Instance instance = master.getInstance();
-
-    final String namespace = Tables.extractNamespace(newTableName);
-    String namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
-    final String oldNamespace = Tables.extractNamespace(oldTableName);
-    String oldNamespaceId = TableNamespaces.getNamespaceId(instance, oldNamespace);
-
-    if (!namespaceId.equals(oldNamespaceId)) {
-      TableManager tm = TableManager.getInstance();
-      tm.addNamespaceToTable(tableId, namespaceId);
-    }
-
-    newTableName = Tables.extractTableName(newTableName);
-    oldTableName = Tables.extractTableName(oldTableName);
 
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
 
     Utils.tableNameLock.lock();
     try {
-      Utils.checkTableDoesNotExist(instance, newTableName, tableId, TableOperation.RENAME);
+      Utils.checkTableNamespaceDoesNotExist(instance, newName, namespaceId, TableOperation.RENAME);
 
-      final String tap = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
+      final String tap = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZNAMESPACE_NAME;
 
       zoo.mutate(tap, null, null, new Mutator() {
-        @Override
         public byte[] mutate(byte[] current) throws Exception {
           final String currentName = new String(current);
-          if (currentName.equals(newTableName))
+          if (currentName.equals(newName))
             return null; // assume in this case the operation is running again, so we are done
-          if (!currentName.equals(oldTableName)) {
-            throw new ThriftTableOperationException(null, oldTableName, TableOperation.RENAME, TableOperationExceptionType.NOTFOUND,
-                "Name changed while processing");
+          if (!currentName.equals(oldName)) {
+            throw new ThriftTableOperationException(null, oldName, TableOperation.RENAME, TableOperationExceptionType.NOTFOUND, "Name changed while processing");
           }
-          return newTableName.getBytes();
+          return newName.getBytes();
         }
       });
       Tables.clearCache(instance);
     } finally {
       Utils.tableNameLock.unlock();
-      Utils.unreserveTable(tableId, tid, true);
+      Utils.unreserveTable(namespaceId, id, true);
     }
 
-    Logger.getLogger(RenameTable.class).debug("Renamed table " + tableId + " " + oldTableName + " " + newTableName);
+    Logger.getLogger(RenameTableNamespace.class).debug("Renamed table namespace " + namespaceId + " " + oldName + " " + newName);
 
     return null;
   }
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveTable(tableId, tid, true);
+    Utils.unreserveTableNamespace(namespaceId, tid, true);
   }
 
 }

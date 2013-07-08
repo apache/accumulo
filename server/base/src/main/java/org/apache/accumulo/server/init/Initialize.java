@@ -412,6 +412,22 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZHDFS_RESERVATIONS, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNEXT_FILE, new byte[] {'0'}, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0], NodeExistsPolicy.FAIL);
+    
+    createInitialTableNamespace(zoo, zkInstanceRoot, Constants.DEFAULT_TABLE_NAMESPACE_ID, Constants.DEFAULT_TABLE_NAMESPACE);
+    createInitialTableNamespace(zoo, zkInstanceRoot, Constants.SYSTEM_TABLE_NAMESPACE_ID, Constants.SYSTEM_TABLE_NAMESPACE);
+    
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES + "/" + MetadataTable.ID + Constants.ZTABLE_NAMESPACE,
+        Constants.SYSTEM_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES + "/" + RootTable.ID + Constants.ZTABLE_NAMESPACE,
+        Constants.SYSTEM_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+  }
+  
+  private static void createInitialTableNamespace(IZooReaderWriter zoo, String root, String id, String namespace) throws KeeperException, InterruptedException {
+    String zPath = root + Constants.ZNAMESPACES + "/" + id;
+    zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], NodeExistsPolicy.FAIL);
   }
 
   private static String getInstanceNamePath(Opts opts) throws IOException, KeeperException, InterruptedException {
