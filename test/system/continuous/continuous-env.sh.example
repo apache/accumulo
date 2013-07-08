@@ -87,7 +87,7 @@ MASTER_KILL_SLEEP_TIME=60
 MASTER_RESTART_SLEEP_TIME=2
 
 #settings for the verification map reduce job
-VERFIY_OUT=/tmp/continuous_verify
+VERIFY_OUT=/tmp/continuous_verify
 VERIFY_MAX_MAPS=64
 VERIFY_REDUCERS=64
 SCAN_OFFLINE=false
