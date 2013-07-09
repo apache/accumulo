@@ -16,10 +16,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.log4j.Logger;
 import org.junit.After;
@@ -31,6 +34,8 @@ public class MacTest {
   public static TemporaryFolder folder = new TemporaryFolder();
   public static MiniAccumuloCluster cluster;
   public static final String PASSWORD = "secret";
+  static final ScannerOpts SOPTS = new ScannerOpts();
+  static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     return cluster.getConnector("root", PASSWORD);
@@ -50,7 +55,10 @@ public class MacTest {
   
   @After
   public void tearDown() throws Exception {
-    cluster.stop();
+    if (cluster != null)
+      cluster.stop();
+    for (LogWriter log : cluster.getLogWriters())
+      log.flush();
     folder.delete();
   }
   

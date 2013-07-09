@@ -284,7 +284,7 @@ public class PermissionsIT extends MacTest {
   
   private static final String TEST_TABLE = "__TABLE_PERMISSION_TEST__";
   
-  @Test
+  @Test(timeout=30*1000)
   public void tablePermissionTest() throws Exception {
     // create the test user
     Connector c = getConnector();

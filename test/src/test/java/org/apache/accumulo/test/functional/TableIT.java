@@ -26,6 +26,7 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
@@ -45,12 +46,13 @@ public class TableIT extends MacTest {
   @Test(timeout = 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
+    TableOperations to = c.tableOperations();
+    to.create("test_ingest");
     TestIngest.Opts opts = new TestIngest.Opts();
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    String id = c.tableOperations().tableIdMap().get("test_ingest");
+    String id = to.tableIdMap().get("test_ingest");
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(new KeyExtent(new Text(id), null, null).toMetadataRange());
     int count = 0;
@@ -61,7 +63,7 @@ public class TableIT extends MacTest {
     assertTrue(count > 0);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     assertTrue(fs.listStatus(new Path(cluster.getConfig().getDir() + "/accumulo/tables/" + id)).length > 0);
-    c.tableOperations().delete("test_ingest");
+    to.delete("test_ingest");
     count = 0;
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : s) {
@@ -69,10 +71,11 @@ public class TableIT extends MacTest {
     }
     assertEquals(0, count);
     assertEquals(0, fs.listStatus(new Path(cluster.getConfig().getDir() + "/accumulo/tables/" + id)).length);
-    assertNull(c.tableOperations().tableIdMap().get("test_ingest"));
-    c.tableOperations().create("test_ingest");
+    assertNull(to.tableIdMap().get("test_ingest"));
+    to.create("test_ingest");
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+    to.delete("test_ingest");
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
   

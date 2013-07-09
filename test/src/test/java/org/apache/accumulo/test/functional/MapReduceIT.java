@@ -43,7 +43,7 @@ public class MapReduceIT extends MacTest {
   static final String output_cq = "cq-MD4BASE64";
   static final String output_cfcq =  input_cf + ":" + output_cq;
   
-  @Test
+  @Test(timeout=30*1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create(tablename);

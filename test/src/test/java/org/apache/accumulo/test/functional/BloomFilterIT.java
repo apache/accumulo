@@ -49,15 +49,15 @@ public class BloomFilterIT extends MacTest {
     cfg.setDefaultMemory(500, MemoryUnit.MEGABYTE);
   }
   
-  @Test(timeout=500*1000)
+  @Test(timeout=200*1000)
   public void test() throws Exception {
     Connector c = getConnector();
     for (String table : "bt1 bt2 bt3 bt4".split(" ")) {
       c.tableOperations().create(table);
     }
-    write(c, "bt1", 1, 0, 1000000000, 100);
-    write(c, "bt2", 2, 0, 1000000000, 100);
-    write(c, "bt3", 3, 0, 1000000000, 100);
+    write(c, "bt1", 1, 0, 1000000000, 250);
+    write(c, "bt2", 2, 0, 1000000000, 250);
+    write(c, "bt3", 3, 0, 1000000000, 250);
     
     // test inserting an empty key
     BatchWriter bw = c.createBatchWriter("bt4", new BatchWriterConfig());
@@ -80,9 +80,9 @@ public class BloomFilterIT extends MacTest {
     FunctionalTestUtils.checkRFiles(c, "bt4", 1, 1, 1, 1);
     
     // these queries should only run quickly if bloom filters are working, so lets get a base
-    long t1 = query(c, "bt1", 1, 0, 1000000000, 100000, 100);
-    long t2 = query(c, "bt2", 2, 0, 1000000000, 100000, 100);
-    long t3 = query(c, "bt3", 3, 0, 1000000000, 100000, 100);
+    long t1 = query(c, "bt1", 1, 0, 1000000000, 100000, 250);
+    long t2 = query(c, "bt2", 2, 0, 1000000000, 100000, 250);
+    long t3 = query(c, "bt3", 3, 0, 1000000000, 100000, 250);
     
     c.tableOperations().setProperty("bt1", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     c.tableOperations().setProperty("bt1", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), RowFunctor.class.getName());
@@ -102,9 +102,9 @@ public class BloomFilterIT extends MacTest {
     
     // these queries should only run quickly if bloom
     // filters are working
-    long tb1 = query(c, "bt1", 1, 0, 1000000000, 100000, 100);
-    long tb2 = query(c, "bt2", 2, 0, 1000000000, 100000, 100);
-    long tb3 = query(c, "bt3", 3, 0, 1000000000, 100000, 100);
+    long tb1 = query(c, "bt1", 1, 0, 1000000000, 100000, 250);
+    long tb2 = query(c, "bt2", 2, 0, 1000000000, 100000, 250);
+    long tb3 = query(c, "bt3", 3, 0, 1000000000, 100000, 250);
     
     timeCheck(t1, tb1);
     timeCheck(t2, tb2);

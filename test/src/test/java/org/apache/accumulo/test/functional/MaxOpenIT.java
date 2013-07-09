@@ -53,7 +53,7 @@ public class MaxOpenIT extends MacTest {
   private static final int NUM_TABLETS = 16;
   private static final int NUM_TO_INGEST = 10000;
   
-  @Test
+  @Test(timeout=30*1000)
   public void run() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

@@ -66,9 +66,9 @@ public class TimeoutIT extends MacTest {
       bw.close();
       fail("batch writer did not timeout");
     } catch (MutationsRejectedException mre) {
-      if (!(mre.getCause() instanceof TimedOutException)) {
-        throw mre;
-      }
+      if (mre.getCause() instanceof TimedOutException)
+        return;
+      throw mre;
     }
   }
   

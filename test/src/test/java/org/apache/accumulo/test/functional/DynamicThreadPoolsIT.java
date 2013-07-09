@@ -20,7 +20,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -41,23 +40,23 @@ public class DynamicThreadPoolsIT extends MacTest {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1"));
+    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "100ms"));
   }
   
-  @Test(timeout = 90 * 1000)
+  @Test(timeout = 30 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
+    c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
     TestIngest.Opts opts = new TestIngest.Opts();
-    opts.rows = 100000;
+    opts.rows = 100*1000;
     opts.createTable = true;
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
+    TestIngest.ingest(c, opts, BWOPTS);
     c.tableOperations().flush("test_ingest", null, null, true);
     c.tableOperations().clone("test_ingest", "test_ingest2", true, null, null);
     c.tableOperations().clone("test_ingest", "test_ingest3", true, null, null);
     c.tableOperations().clone("test_ingest", "test_ingest4", true, null, null);
     c.tableOperations().clone("test_ingest", "test_ingest5", true, null, null);
     c.tableOperations().clone("test_ingest", "test_ingest6", true, null, null);
-    c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
     
     TCredentials creds = CredentialHelper.create("root", new PasswordToken(MacTest.PASSWORD), c.getInstance().getInstanceName());
     UtilWaitThread.sleep(10);
@@ -79,6 +78,8 @@ public class DynamicThreadPoolsIT extends MacTest {
           count += table.majors.running;
         }
       }
+      System.out.println("count " + count);
+      UtilWaitThread.sleep(1000);
     }
     assertTrue(count == 1 || count == 2); // sometimes we get two threads due to the way the stats are pulled
   }

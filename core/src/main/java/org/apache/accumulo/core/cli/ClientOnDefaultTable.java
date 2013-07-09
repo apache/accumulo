@@ -31,7 +31,7 @@ public class ClientOnDefaultTable extends ClientOpts {
   }
   
   @Parameter(names = "--table", description = "table to use")
-  String tableName;
+  public String tableName;
   
   public String getTableName() {
     if (tableName == null)

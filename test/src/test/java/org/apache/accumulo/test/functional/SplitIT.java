@@ -103,7 +103,7 @@ public class SplitIT extends MacTest {
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     DeleteIT.deleteTest(c);
     c.tableOperations().flush("test_ingest", null, null, true);
-    UtilWaitThread.sleep(5*1000);
+    UtilWaitThread.sleep(10*1000);
     assertTrue(c.tableOperations().listSplits("test_ingest").size() > 30);
   }
   

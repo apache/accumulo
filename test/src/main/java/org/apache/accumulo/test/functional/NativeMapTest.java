@@ -86,6 +86,7 @@ public class NativeMapTest {
     nmt.testBinary();
     nmt.testEmpty();
     nmt.testConcurrentIter();
+    System.out.println("Ran to completion");
   }
   
   // END JUnit methods

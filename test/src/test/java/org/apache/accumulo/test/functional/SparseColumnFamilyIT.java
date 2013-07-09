@@ -73,7 +73,6 @@ public class SparseColumnFamilyIT extends MacTest {
       scanner.setBatchSize(3);
       scanner.fetchColumnFamily(new Text(String.format("%03d", 1)));
       
-      long t1 = System.currentTimeMillis();
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
       if (iter.hasNext()) {
         Entry<Key,Value> entry = iter.next();
@@ -81,10 +80,6 @@ public class SparseColumnFamilyIT extends MacTest {
           throw new Exception();
         }
       }
-      long t2 = System.currentTimeMillis();
-      
-      System.out.println("time " + (t2 - t1));
-      
     }
   }
   

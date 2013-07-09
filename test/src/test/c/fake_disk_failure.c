@@ -25,16 +25,12 @@ void test_pause() {
   static char trickFile[1024] = "";
   static char pid[10] = "";
   if (trickFile[0] == '\0') {
-    strcpy(trickFile, getenv("HOME"));
-    strcat(trickFile, "/");
-    strcat(trickFile, "HOLD_IO_");
-    sprintf(pid, "%d", getpid());
-    strcat(trickFile, pid);
+    strcpy(trickFile, getenv("TRICK_FILE"));
   }
 
   while (access(trickFile, R_OK) == 0) {
-    fprintf(stderr, "sleeping\n");
-    fflush(stderr);
+    fprintf(stdout, "sleeping\n");
+    fflush(stdout);
     sleep(1);
   }
 }

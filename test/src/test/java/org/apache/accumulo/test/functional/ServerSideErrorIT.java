@@ -38,7 +38,7 @@ import org.junit.Test;
 
 public class ServerSideErrorIT extends MacTest {
   
-  @Test
+  @Test(timeout=60*1000)
   public void run() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("tt");

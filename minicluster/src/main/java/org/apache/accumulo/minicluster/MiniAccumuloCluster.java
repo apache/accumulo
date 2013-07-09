@@ -25,9 +25,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -39,6 +42,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.master.Master;
@@ -48,6 +52,7 @@ import org.apache.accumulo.server.util.Initialize;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.Main;
+import org.apache.commons.io.FileUtils;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 
 /**
@@ -58,7 +63,7 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
  */
 public class MiniAccumuloCluster {
   
-  public static class LogWriter extends Thread {
+  public static class LogWriter extends Daemon {
     private BufferedReader in;
     private BufferedWriter out;
 
@@ -66,7 +71,6 @@ public class MiniAccumuloCluster {
      * @throws IOException
      */
     public LogWriter(InputStream stream, File logFile) throws IOException {
-      this.setDaemon(true);
       this.in = new BufferedReader(new InputStreamReader(stream));
       out = new BufferedWriter(new FileWriter(logFile));
 
@@ -108,9 +112,9 @@ public class MiniAccumuloCluster {
   }
 
   private boolean initialized = false;
-  private Process zooKeeperProcess;
-  private Process masterProcess;
-  private Process[] tabletServerProcesses;
+  private Process zooKeeperProcess = null;
+  private Process masterProcess = null;
+  private List<Process> tabletServerProcesses = new ArrayList<Process>();
 
   private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<Pair<ServerType,Integer>>();
 
@@ -140,6 +144,7 @@ public class MiniAccumuloCluster {
 
     ArrayList<String> argList = new ArrayList<String>();
     argList.addAll(Arrays.asList(javaBin, "-cp", classpath));
+    argList.add("-Djava.library.path=" + config.getLibDir());
     argList.addAll(extraJvmOpts);
     argList.addAll(Arrays.asList("-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", Main.class.getName(), className));
     argList.addAll(Arrays.asList(args));
@@ -236,6 +241,15 @@ public class MiniAccumuloCluster {
     zooCfg.store(fileWriter, null);
 
     fileWriter.close();
+
+    File nativeMap = new File(config.getLibDir().getAbsolutePath() + "/native/map");
+    nativeMap.mkdirs();
+    String testRoot = new File(new File(System.getProperty("user.dir")).getParent() + "/server/src/main/c++/nativeMap").getAbsolutePath();
+    for (String file : new File(testRoot).list()) {
+      File src = new File(testRoot, file);
+      if (src.isFile() && file.startsWith("libNativeMap"))
+        FileUtils.copyFile(src, new File(nativeMap, file));
+    }
   }
 
   /**
@@ -247,8 +261,6 @@ public class MiniAccumuloCluster {
    *           if already started
    */
   public void start() throws IOException, InterruptedException {
-    if (zooKeeperProcess != null)
-      throw new IllegalStateException("Already started");
 
     if (!initialized) {
       
@@ -265,12 +277,13 @@ public class MiniAccumuloCluster {
         }
       });
     }
-      
-    zooKeeperProcess = exec(Main.class, ServerType.ZOOKEEPER, ZooKeeperServerMain.class.getName(), zooCfgFile.getAbsolutePath());
 
-    // sleep a little bit to let zookeeper come up before calling init, seems to work better
-    UtilWaitThread.sleep(250);
-    
+    if (zooKeeperProcess == null) {
+      zooKeeperProcess = exec(Main.class, ServerType.ZOOKEEPER, ZooKeeperServerMain.class.getName(), zooCfgFile.getAbsolutePath());
+      // sleep a little bit to let zookeeper come up before calling init, seems to work better
+      UtilWaitThread.sleep(250);
+    }
+
     if (!initialized) {
       Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword(), "--username", "root");
       int ret = initProcess.waitFor();
@@ -280,17 +293,17 @@ public class MiniAccumuloCluster {
       initialized = true; 
     }
 
-    tabletServerProcesses = new Process[config.getNumTservers()];
-    for (int i = 0; i < config.getNumTservers(); i++) {
-      tabletServerProcesses[i] = exec(TabletServer.class, ServerType.TABLET_SERVER);
+    for (int i = tabletServerProcesses.size(); i < config.getNumTservers(); i++) {
+      tabletServerProcesses.add(exec(TabletServer.class, ServerType.TABLET_SERVER));
     }
     Process goal = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString());
     int ret = goal.waitFor();
     if (ret != 0) {
       throw new RuntimeException("Could not set master goal state, process returned " + ret);
     }
-
-    masterProcess = exec(Master.class, ServerType.MASTER);
+    if (masterProcess == null) {
+      masterProcess = exec(Master.class, ServerType.MASTER);
+    }
   }
 
   private List<String> buildRemoteDebugParams(int port) {
@@ -304,6 +317,53 @@ public class MiniAccumuloCluster {
    */
   public Set<Pair<ServerType,Integer>> getDebugPorts() {
     return debugPorts;
+  }
+  
+  List<ProcessReference> references(Process... procs) {
+    List<ProcessReference> result = new ArrayList<ProcessReference>();
+    for (Process proc : procs) {
+      result.add(new ProcessReference(proc));
+    }
+    return result;
+  }
+  
+  public Map<ServerType, Collection<ProcessReference>> getProcesses() {
+    Map<ServerType, Collection<ProcessReference>> result = new HashMap<ServerType, Collection<ProcessReference>>();
+    result.put(ServerType.MASTER, references(masterProcess));
+    result.put(ServerType.TABLET_SERVER, references(tabletServerProcesses.toArray(new Process[0])));
+    result.put(ServerType.ZOOKEEPER, references(zooKeeperProcess));
+    return result;
+  }
+  
+  public void killProcess(ServerType type, ProcessReference proc) throws ProcessNotFoundException {
+    boolean found = false;
+    switch (type) {
+      case MASTER:
+        if (proc.equals(masterProcess)) {
+          masterProcess.destroy();
+          masterProcess = null;
+          found = true;
+        }
+        break;
+      case TABLET_SERVER:
+        for (Process tserver: tabletServerProcesses) {
+          if (proc.equals(tserver)) {
+            tabletServerProcesses.remove(tserver);
+            found = true;
+            break;
+          }
+        }
+        break;
+      case ZOOKEEPER:
+        if (proc.equals(zooKeeperProcess)) {
+          zooKeeperProcess.destroy();
+          zooKeeperProcess = null;
+          found = true;
+        }
+        break;
+    }
+    if (!found)
+      throw new ProcessNotFoundException();
   }
 
   /**
@@ -342,7 +402,7 @@ public class MiniAccumuloCluster {
       lw.flush();
     zooKeeperProcess = null;
     masterProcess = null;
-    tabletServerProcesses = null;
+    tabletServerProcesses.clear();
   }
 
   /**

@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.test.TestIngest;
@@ -49,24 +47,24 @@ public class BulkIT extends MacTest {
     for (int i = 0; i < COUNT; i++) {
       opts.outputFile = base + String.format("/testrf/rf%02d", i);
       opts.startRow = N * i;
-      TestIngest.ingest(c, opts , new BatchWriterOpts());
+      TestIngest.ingest(c, opts , BWOPTS);
     }
     opts.outputFile = base + String.format("/testrf/rf%02d", N);
     opts.startRow = N;
     opts.rows = 1;
     // create an rfile with one entry, there was a bug with this:
-    TestIngest.ingest(c, opts , new BatchWriterOpts());
+    TestIngest.ingest(c, opts , BWOPTS);
     c.tableOperations().importDirectory("test_ingest", base + "/testrf", base + "/testBulkFail", false);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.random = 56;
     for (int i = 0; i < COUNT; i++) {
       vopts.startRow = i * N;
       vopts.rows = N;
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      VerifyIngest.verifyIngest(c, vopts, SOPTS);
     }
     vopts.startRow = N;
     vopts.rows = 1;
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+    VerifyIngest.verifyIngest(c, vopts, SOPTS);
   }
   
   

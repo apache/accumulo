@@ -16,31 +16,15 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.io.File;
+import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.commons.io.FileUtils;
+import org.junit.Test;
 
-public class CacheTestClean {
+public class NativeMapIT extends MacTest {
   
-  /**
-   * @param args
-   */
-  public static void main(String[] args) throws Exception {
-    String rootDir = args[0];
-    File reportDir = new File(args[1]);
-    
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    
-    if (zoo.exists(rootDir)) {
-      zoo.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);
-    }
-    
-    if (reportDir.exists()) {
-      FileUtils.deleteDirectory(reportDir);
-    }
-    reportDir.mkdirs();
+  @Test
+  public void test() throws Exception {
+    assertEquals(0, cluster.exec(NativeMapTest.class).waitFor());
   }
+  
 }

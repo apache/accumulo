@@ -16,48 +16,44 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.Collections;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.apache.accumulo.server.master.balancer.ChaoticLoadBalancer;
+import org.apache.accumulo.minicluster.ProcessReference;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
-import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ChaoticBlancerIT extends MacTest {
+public class MasterFailoverIT extends MacTest {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String,String> siteConfig = new HashMap<String, String>();
-    siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
-    siteConfig.put(Property.TABLE_LOAD_BALANCER.getKey(), ChaoticLoadBalancer.class.getName());
-    cfg.setSiteConfig(siteConfig );
+    cfg.setSiteConfig(Collections.singletonMap(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s"));
   }
 
-  @Test(timeout=120*1000)
+  @Test(timeout=30*1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
-    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    SortedSet<Text> splits = new TreeSet<Text>();
-    for (int i = 0; i < 200; i++) {
-      splits.add(new Text(String.format("%03d", i)));
-    }
-    c.tableOperations().create("unused");
-    c.tableOperations().addSplits("unused", splits);
     TestIngest.Opts opts = new TestIngest.Opts();
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.rows = opts.rows = 200000;
     TestIngest.ingest(c, opts, BWOPTS);
-    c.tableOperations().flush("test_ingest", null, null, true);
-    VerifyIngest.verifyIngest(c, vopts, SOPTS);
+    for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
+      cluster.killProcess(ServerType.MASTER, master);
+    }
+    // start up a new one
+    Process p = cluster.exec(Master.class);
+    // talk to it
+    c.tableOperations().rename("test_ingest", "test_ingest2");
+    try {
+      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+      vopts.tableName = "test_ingest2";
+      VerifyIngest.verifyIngest(c, vopts, SOPTS);
+    } finally {
+      p.destroy();
+    }
   }
-  
 }

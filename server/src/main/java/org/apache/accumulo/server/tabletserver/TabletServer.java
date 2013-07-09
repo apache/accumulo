@@ -204,6 +204,7 @@ import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.commons.collections.map.LRUMap;
+import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -1549,6 +1550,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             
             break;
           } catch (IOException ex) {
+            log.warn("logging mutations failed, retrying");
+          } catch (FSError ex) { // happens when DFS is localFS
             log.warn("logging mutations failed, retrying");
           } catch (Throwable t) {
             log.error("Unknown exception logging mutations, counts for mutations in flight not decremented!", t);

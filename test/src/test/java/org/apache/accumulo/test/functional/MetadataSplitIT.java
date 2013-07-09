@@ -17,36 +17,34 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import org.apache.accumulo.core.cli.ScannerOpts;
+import java.util.Collections;
+
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.test.TestIngest;
-import org.apache.accumulo.test.TestRandomDeletes;
-import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.junit.Test;
 
-public class DeleteIT extends MacTest {
+public class MetadataSplitIT extends MacTest {
   
-  @Test(timeout=60*1000)
+  @Override
+  public void configure(MiniAccumuloConfig cfg) {
+    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "100ms"));
+  }
+ 
+  @Test(timeout = 30 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
-    deleteTest(c);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    assertEquals(1, c.tableOperations().listSplits(MetadataTable.NAME).size());
+    c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "500");
+    for (int i = 0; i < 10; i++) {
+      c.tableOperations().create("table" + i);
+      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+    }
+    UtilWaitThread.sleep(10*1000);
+    assertTrue(c.tableOperations().listSplits(MetadataTable.NAME).size() > 2);
   }
-
-  public static void deleteTest(Connector c) throws Exception {
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    TestIngest.Opts opts = new TestIngest.Opts();
-    vopts.rows = opts.rows = 1000;
-    vopts.cols = opts.cols = 1;
-    vopts.random = opts.random = 56;
-    TestIngest.ingest(c, opts, BWOPTS);
-    assertEquals(0, cluster.exec(TestRandomDeletes.class, "-p", MacTest.PASSWORD, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers()).waitFor());
-    TestIngest.ingest(c, opts, BWOPTS);
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-  }
-  
-  
 }

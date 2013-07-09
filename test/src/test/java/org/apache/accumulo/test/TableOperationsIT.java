@@ -72,7 +72,7 @@ public class TableOperationsIT {
     connector = accumuloCluster.getConnector(ROOT, ROOT_PASS);
   }
   
-  @Test
+  @Test(timeout=30*1000)
   public void getDiskUsageErrors() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
     connector.tableOperations().create("table1");
     List<DiskUsage> diskUsage = connector.tableOperations().getDiskUsage(Collections.singleton("table1"));
@@ -93,7 +93,7 @@ public class TableOperationsIT {
     } catch (TableNotFoundException e) {}
   }
   
-  @Test
+  @Test(timeout=30*1000)
   public void getDiskUsage() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
     
     connector.tableOperations().create("table1");
@@ -148,7 +148,7 @@ public class TableOperationsIT {
     connector.tableOperations().delete("table1");
   }
   
-  @Test
+  @Test(timeout=30*1000)
   public void createTable() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     connector.tableOperations().create("table1");
     Iterable<Map.Entry<String,String>> itrProps = connector.tableOperations().getProperties("table1");

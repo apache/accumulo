@@ -28,7 +28,7 @@ import org.junit.Test;
 
 public class BinaryIT extends MacTest {
   
-  @Test
+  @Test(timeout=30*1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bt");

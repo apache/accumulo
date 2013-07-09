@@ -16,31 +16,29 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.io.File;
+import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.commons.io.FileUtils;
+import java.util.Collections;
 
-public class CacheTestClean {
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.junit.Test;
+
+/**
+ * Fake the "tablet stops talking but holds its lock" problem we see when hard drives and NFS fail. 
+ * Start a ZombieTServer, and see that master stops it.
+ */
+public class LateLastContactIT extends MacTest {
   
-  /**
-   * @param args
-   */
-  public static void main(String[] args) throws Exception {
-    String rootDir = args[0];
-    File reportDir = new File(args[1]);
-    
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    
-    if (zoo.exists(rootDir)) {
-      zoo.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);
-    }
-    
-    if (reportDir.exists()) {
-      FileUtils.deleteDirectory(reportDir);
-    }
-    reportDir.mkdirs();
+  @Override
+  public void configure(MiniAccumuloConfig cfg) {
+    cfg.setSiteConfig(Collections.singletonMap(Property.GENERAL_RPC_TIMEOUT.getKey(), "2s"));
   }
+
+  @Test
+  public void test() throws Exception {
+    Process zombie = cluster.exec(ZombieTServer.class);
+    assertEquals(0, zombie.waitFor());
+  }
+  
 }

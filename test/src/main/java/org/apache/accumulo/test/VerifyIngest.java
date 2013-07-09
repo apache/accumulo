@@ -150,7 +150,7 @@ public class VerifyIngest {
         
         Key startKey = new Key(new Text("row_" + String.format("%010d", expectedRow)));
         
-        Scanner scanner = connector.createScanner("test_ingest", labelAuths);
+        Scanner scanner = connector.createScanner(opts.getTableName(), labelAuths);
         scanner.setBatchSize(scanOpts.scanBatchSize);
         scanner.setRange(new Range(startKey, endKey));
         for (int j = 0; j < opts.cols; j++) {

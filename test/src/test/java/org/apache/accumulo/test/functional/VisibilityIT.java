@@ -46,7 +46,7 @@ import org.junit.Test;
 
 public class VisibilityIT extends MacTest {
   
-  @Test
+  @Test(timeout=30*1000)
   public void run() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("vt");

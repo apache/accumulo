@@ -14,33 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test.functional;
 
-import java.io.File;
+package org.apache.accumulo.minicluster;
 
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.commons.io.FileUtils;
+/**
+ * Opaque handle to a process.
+ */
+public class ProcessReference {
+  private Process process;
 
-public class CacheTestClean {
+  ProcessReference(Process process) {
+    this.process = process;
+  }
   
-  /**
-   * @param args
-   */
-  public static void main(String[] args) throws Exception {
-    String rootDir = args[0];
-    File reportDir = new File(args[1]);
-    
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    
-    if (zoo.exists(rootDir)) {
-      zoo.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);
-    }
-    
-    if (reportDir.exists()) {
-      FileUtils.deleteDirectory(reportDir);
-    }
-    reportDir.mkdirs();
+  @Override
+  public String toString() {
+    return process.toString();
+  }
+  
+  @Override
+  public int hashCode() {
+    return process.hashCode();
+  }
+  
+  @Override
+  public boolean equals(Object obj) {
+    return process.equals(obj);
   }
 }

@@ -40,6 +40,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.shell.Shell;
@@ -52,12 +54,13 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class ShellServerTest {
+public class ShellServerIT {
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
     
@@ -152,6 +155,7 @@ public class ShellServerTest {
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
     
+    // history file is updated in $HOME
     System.setProperty("HOME", folder.getRoot().getAbsolutePath());
     
     // start the shell
@@ -180,7 +184,16 @@ public class ShellServerTest {
     folder.delete();
   }
   
-  @Test(timeout = 30000)
+  @After
+  public void tearDown() throws Exception {
+    Connector c = cluster.getConnector("root", secret);
+    for (String table : c.tableOperations().list()) {
+      if (!table.equals(MetadataTable.NAME) && !table.equals(RootTable.NAME))
+        c.tableOperations().delete(table);
+    }
+  }
+  
+  @Test(timeout = 30*1000)
   public void exporttableImporttable() throws Exception {
     // exporttable / importtable
     exec("createtable t -evc", true);
@@ -222,7 +235,7 @@ public class ShellServerTest {
     throw new RuntimeException("Unexpected constructors for DistCp");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void setscaniterDeletescaniter() throws Exception {
     // setscaniter, deletescaniter
     exec("createtable t");
@@ -238,7 +251,7 @@ public class ShellServerTest {
     
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void execfile() throws Exception {
     // execfile
     File file = folder.newFile();
@@ -249,7 +262,7 @@ public class ShellServerTest {
     
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void egrep() throws Exception {
     // egrep
     exec("createtable t");
@@ -259,7 +272,7 @@ public class ShellServerTest {
     exec("deletetable -f t");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void du() throws Exception {
     // du
     exec("createtable t");
@@ -284,7 +297,7 @@ public class ShellServerTest {
     exec("debug debug debug", false);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void user() throws Exception {
     // createuser, deleteuser, user, users, droptable, grant, revoke
     input.set("secret\nsecret\n");
@@ -318,7 +331,7 @@ public class ShellServerTest {
     exec("users", true, "xyzzy", false);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void iter() throws Exception {
     // setshelliter, listshelliter, deleteshelliter
     exec("createtable t");
@@ -327,6 +340,8 @@ public class ShellServerTest {
     exec("insert a cf cq 1");
     input.set("true\n\n\nSTRING\n");
     exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -pn sum -n name", true);
+    exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -pn sum -n name", false);
+    exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -pn sum -n other", false);
     input.set("true\n\n\nSTRING\n");
     exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -pn sum -n xyzzy", true);
     exec("scan -pn sum", true, "3", true);
@@ -347,6 +362,8 @@ public class ShellServerTest {
     exec("insert a cf cq 1");
     input.set("true\n\n\nSTRING\n");
     exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
+    exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -n name", false);
+    exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n other", false);
     input.set("true\n\n\nSTRING\n");
     exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -n xyzzy", true);
     exec("scan", true, "3", true);
@@ -361,7 +378,7 @@ public class ShellServerTest {
     
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void notable() throws Exception {
     // notable
     exec("createtable xyzzy", true);
@@ -373,7 +390,7 @@ public class ShellServerTest {
     exec("deletetable -f xyzzy");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void sleep() throws Exception {
     // sleep
     long now = System.currentTimeMillis();
@@ -383,7 +400,7 @@ public class ShellServerTest {
     assertTrue(diff < 400);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void addauths() throws Exception {
     // addauths
     exec("createtable xyzzy -evc");
@@ -397,7 +414,7 @@ public class ShellServerTest {
     exec("deletetable -f xyzzy");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void byeQuitExit() throws Exception {
     // bye, quit, exit
     for (String cmd : "bye quit exit".split(" ")) {
@@ -408,13 +425,13 @@ public class ShellServerTest {
     }
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void classpath() throws Exception {
     // classpath
     exec("classpath", true, "Level 2: Java Classloader (loads everything defined by java classpath) URL classpath items are", true);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void clearCls() throws Exception {
     // clear/cls
     if (shell.getReader().getTerminal().isAnsiSupported()) {
@@ -426,7 +443,7 @@ public class ShellServerTest {
     }
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void clonetable() throws Exception {
     // clonetable
     exec("createtable orig -evc");
@@ -471,7 +488,7 @@ public class ShellServerTest {
     exec("deletetable -f c");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void constraint() throws Exception {
     // constraint
     exec("constraint -l -t !METADATA", true, "MetadataConstraints=1", true);
@@ -482,7 +499,7 @@ public class ShellServerTest {
     exec("deletetable -f c");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void deletemany() throws Exception {
     // deletemany
     exec("createtable t");
@@ -509,7 +526,7 @@ public class ShellServerTest {
     exec("deletetable -f t");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void deleterows() throws Exception {
     // deleterows
     int base = countFiles();
@@ -523,7 +540,7 @@ public class ShellServerTest {
     exec("deletetable -f t");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void groups() throws Exception {
     exec("createtable t");
     exec("setgroups -t t alpha=a,b,c num=3,2,1");
@@ -532,7 +549,7 @@ public class ShellServerTest {
     exec("deletetable -f t");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void grep() throws Exception {
     exec("createtable t", true);
     make10();
@@ -542,7 +559,7 @@ public class ShellServerTest {
   }
   
   @Test
-  // (timeout = 30000)
+  // (timeout = 30 * 1000)
   public void help() throws Exception {
     exec("help -np", true, "Help Commands", true);
     exec("?", true, "Help Commands", true);
@@ -555,7 +572,7 @@ public class ShellServerTest {
     }
   }
   
-  // @Test(timeout = 30000)
+  // @Test(timeout = 30 * 1000)
   public void history() throws Exception {
     exec("history -c", true);
     exec("createtable unusualstring");
@@ -564,7 +581,7 @@ public class ShellServerTest {
     exec("history", true, "history", true);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void importDirectory() throws Exception {
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
@@ -590,6 +607,7 @@ public class ShellServerTest {
     }
     evenWriter.close();
     oddWriter.close();
+    assertEquals(0, shell.getExitCode());
     exec("createtable t", true);
     exec("importdirectory " + importDir + " " + errorsDir + " true", true);
     exec("scan -r 00000000", true, "00000000", true);
@@ -597,12 +615,12 @@ public class ShellServerTest {
     exec("deletetable -f t");
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void info() throws Exception {
     exec("info", true, Constants.VERSION, true);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void interpreter() throws Exception {
     exec("createtable t", true);
     exec("interpreter -l", true, "HexScan", false);
@@ -614,7 +632,7 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void listcompactions() throws Exception {
     exec("createtable t", true);
     exec("config -t t -s table.iterator.minc.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
@@ -633,7 +651,7 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void maxrow() throws Exception {
     exec("createtable t", true);
     exec("insert a cf cq value", true);
@@ -646,7 +664,7 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void merge() throws Exception {
     exec("createtable t");
     exec("addsplits a m z");
@@ -663,7 +681,7 @@ public class ShellServerTest {
     assertEquals(1, output.get().split("\n").length);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void ping() throws Exception {
     for (int i = 0; i < 10; i++) {
       exec("ping", true, "OK", true);
@@ -676,7 +694,7 @@ public class ShellServerTest {
     assertEquals(3, output.get().split("\n").length);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void renametable() throws Exception {
     exec("createtable aaaa");
     exec("insert this is a value");
@@ -687,7 +705,7 @@ public class ShellServerTest {
     exec("deletetable -f xyzzy", true);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void systempermission() throws Exception {
     exec("systempermissions");
     assertEquals(8, output.get().split("\n").length - 1);
@@ -695,7 +713,7 @@ public class ShellServerTest {
     assertEquals(6, output.get().split("\n").length - 1);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void listscans() throws Exception {
     exec("createtable t", true);
     exec("config -t t -s table.iterator.scan.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
@@ -730,7 +748,7 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void testPertableClasspath() throws Exception {
     File fooFilterJar = File.createTempFile("FooFilter", ".jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), fooFilterJar);
@@ -772,7 +790,7 @@ public class ShellServerTest {
     
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void trace() throws Exception {
     exec("trace on", true);
     exec("createtable t", true);
@@ -781,14 +799,56 @@ public class ShellServerTest {
     exec("deletetable -f t");
     exec("sleep 1");
     String trace = exec("trace off");
-    assertTrue(trace.contains("binMutations"));
-    assertTrue(trace.contains("update"));
+    System.out.println(trace);
+    assertTrue(trace.contains("sendMutations"));
+    assertTrue(trace.contains("startScan"));
     assertTrue(trace.contains("DeleteTable"));
+  }
+  
+  @Test(timeout=30 * 1000)
+  public void badLogin() throws Exception {
+    input.set(secret + "\n");
+    String err = exec("user NoSuchUser", false);
+    assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
   }
   
   private int countkeys(String table) throws IOException {
     exec("scan -np -t " + table);
     return output.get().split("\n").length - 1;
+  }
+  
+  @Test(timeout = 30 * 1000)
+  public void scans() throws Exception {
+    exec("createtable t");
+    make10();
+    String result = exec("scan -np -b row1 -e row1");
+    assertEquals(2, result.split("\n").length);
+    result = exec("scan -np -b row3 -e row5");
+    assertEquals(4, result.split("\n").length);
+    result = exec("scan -np -r row3");
+    assertEquals(2, result.split("\n").length);
+    result = exec("scan -np -b row:");
+    assertEquals(1, result.split("\n").length);
+    result = exec("scan -np -b row");
+    assertEquals(11, result.split("\n").length);
+    result = exec("scan -np -e row:");
+    assertEquals(11, result.split("\n").length);
+    exec("deletetable -f t");
+  }
+  
+  @Test(timeout = 30 * 1000)
+  public void whoami() throws Exception {
+    assertTrue(exec("whoami", true).contains("root"));
+    input.set("secret\nsecret\n");
+    exec("createuser test_user");
+    exec("setauths -u test_user -s 12,3,4");
+    String auths = exec("getauths -u test_user");
+    assertTrue(auths.contains("3") && auths.contains("12") && auths.contains("4"));
+    input.set("secret\n");
+    exec("user test_user", true);
+    assertTrue(exec("whoami", true).contains("test_user"));
+    input.set(secret + "\n");
+    exec("user root", true);
   }
   
   private void make10() throws IOException {
