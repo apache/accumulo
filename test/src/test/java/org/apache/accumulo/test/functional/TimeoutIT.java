@@ -42,7 +42,7 @@ import org.junit.Test;
  */
 public class TimeoutIT extends MacTest {
   
-  @Test(timeout=30*1000)
+  @Test(timeout=60*1000)
   public void run() throws Exception {
     Connector conn = getConnector();
     testBatchWriterTimeout(conn);
@@ -84,11 +84,9 @@ public class TimeoutIT extends MacTest {
     m.put("cf1", "cq4", "v4");
     
     bw.addMutation(m);
-    
     bw.close();
     
     BatchScanner bs = getConnector().createBatchScanner("timeout", Authorizations.EMPTY, 2);
-    bs.setTimeout(1, TimeUnit.SECONDS);
     bs.setRanges(Collections.singletonList(new Range()));
     
     // should not timeout
@@ -96,10 +94,10 @@ public class TimeoutIT extends MacTest {
       entry.getKey();
     }
     
+    bs.setTimeout(5, TimeUnit.SECONDS);
     IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
     iterSetting.addOption("sleepTime", 2000 + "");
-    getConnector().tableOperations().attachIterator("timeout", iterSetting);
-    UtilWaitThread.sleep(250);
+    bs.addScanIterator(iterSetting);
     
     try {
       for (Entry<Key,Value> entry : bs) {
@@ -109,7 +107,6 @@ public class TimeoutIT extends MacTest {
     } catch (TimedOutException toe) {
       // toe.printStackTrace();
     }
-    
     bs.close();
   }
   
