@@ -28,6 +28,7 @@ import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -43,7 +44,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class ConfigCommand extends Command {
-  private Option tableOpt, deleteOpt, setOpt, filterOpt, disablePaginationOpt, outputFileOpt;
+  private Option tableOpt, deleteOpt, setOpt, filterOpt, disablePaginationOpt, outputFileOpt, tableNamespaceOpt;
   
   private int COL1 = 8, COL2 = 7;
   private ConsoleReader reader;
@@ -62,11 +63,15 @@ public class ConfigCommand extends Command {
   }
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, IOException, ClassNotFoundException {
+      TableNotFoundException, IOException, ClassNotFoundException, TableNamespaceNotFoundException {
     reader = shellState.getReader();
     
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
     if (tableName != null && !shellState.getConnector().tableOperations().exists(tableName)) {
+      throw new TableNotFoundException(null, tableName, null);
+    }
+    final String tableNamespace = cl.getOptionValue(tableNamespaceOpt.getOpt());
+    if (tableNamespace != null && !shellState.getConnector().tableNamespaceOperations().exists(tableNamespace)) {
       throw new TableNotFoundException(null, tableName, null);
     }
     if (cl.hasOption(deleteOpt.getOpt())) {
@@ -81,6 +86,12 @@ public class ConfigCommand extends Command {
         }
         shellState.getConnector().tableOperations().removeProperty(tableName, property);
         Shell.log.debug("Successfully deleted table configuration option.");
+      } else if (tableNamespace != null) {
+        if (!Property.isValidTablePropertyKey(property)) {
+          Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if it's there.");
+        }
+        shellState.getConnector().tableNamespaceOperations().removeProperty(tableNamespace, property);
+        Shell.log.debug("Successfully deleted table namespace configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if it's there.");
@@ -107,6 +118,15 @@ public class ConfigCommand extends Command {
         }
         shellState.getConnector().tableOperations().setProperty(tableName, property, value);
         Shell.log.debug("Successfully set table configuration option.");
+      } else if (tableNamespace != null) {
+        if (!Property.isValidTablePropertyKey(property)) {
+          throw new BadArgumentException("Invalid per-table property.", fullCommand, fullCommand.indexOf(property));
+        }
+        if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
+          new ColumnVisibility(value); // validate that it is a valid expression
+        }
+        shellState.getConnector().tableNamespaceOperations().setProperty(tableNamespace, property, value);
+        Shell.log.debug("Successfully set table configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand, fullCommand.indexOf(property));
@@ -132,6 +152,8 @@ public class ConfigCommand extends Command {
       Iterable<Entry<String,String>> acuconf = shellState.getConnector().instanceOperations().getSystemConfiguration().entrySet();
       if (tableName != null) {
         acuconf = shellState.getConnector().tableOperations().getProperties(tableName);
+      } else if (tableNamespace != null) {
+        acuconf = shellState.getConnector().tableNamespaceOperations().getProperties(tableNamespace);
       }
       final TreeMap<String,String> sortedConf = new TreeMap<String,String>();
       for (Entry<String,String> propEntry : acuconf) {
@@ -145,7 +167,7 @@ public class ConfigCommand extends Command {
         if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
           continue;
         }
-        if (tableName != null && !Property.isValidTablePropertyKey(key)) {
+        if ((tableName != null || tableNamespace != null) && !Property.isValidTablePropertyKey(key)) {
           continue;
         }
         COL2 = Math.max(COL2, propEntry.getKey().length() + 3);
@@ -162,7 +184,7 @@ public class ConfigCommand extends Command {
         if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
           continue;
         }
-        if (tableName != null && !Property.isValidTablePropertyKey(key)) {
+        if ((tableName != null || tableNamespace != null) && !Property.isValidTablePropertyKey(key)) {
           continue;
         }
         String siteVal = siteConfig.get(key);
@@ -190,7 +212,7 @@ public class ConfigCommand extends Command {
         }
         
         // show per-table value only if it is different (overridden)
-        if (tableName != null && !curVal.equals(sysVal)) {
+        if ((tableName != null || tableNamespace != null) && !curVal.equals(sysVal)) {
           printConfLine(output, "table", printed ? "   @override" : key, curVal);
         }
       }
@@ -231,6 +253,7 @@ public class ConfigCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
     final OptionGroup og = new OptionGroup();
+    final OptionGroup tgroup = new OptionGroup();
     
     tableOpt = new Option(Shell.tableOption, "table", true, "table to display/set/delete properties for");
     deleteOpt = new Option("d", "delete", true, "delete a per-table property");
@@ -238,18 +261,23 @@ public class ConfigCommand extends Command {
     filterOpt = new Option("f", "filter", true, "show only properties that contain this string");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
+    tableNamespaceOpt = new Option("tn", "table-namespace", true, "table namespace to display/set/delete properties for");
 
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
     filterOpt.setArgName("string");
     outputFileOpt.setArgName("file");
+    tableNamespaceOpt.setArgName("tableNamespace");
     
     og.addOption(deleteOpt);
     og.addOption(setOpt);
     og.addOption(filterOpt);
     
-    o.addOption(tableOpt);
+    tgroup.addOption(tableOpt);
+    tgroup.addOption(tableNamespaceOpt);
+    
+    o.addOptionGroup(tgroup);
     o.addOptionGroup(og);
     o.addOption(disablePaginationOpt);
     o.addOption(outputFileOpt);

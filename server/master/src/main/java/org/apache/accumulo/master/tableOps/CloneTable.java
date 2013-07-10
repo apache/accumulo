@@ -151,11 +151,7 @@ class CloneZookeeper extends MasterRepo {
       
       String namespace = Tables.extractNamespace(cloneInfo.tableName);
       String namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
-      TableManager tm = TableManager.getInstance();
-      if (!TableNamespaces.getNameToIdMap(instance).containsKey(namespace)) {
-        tm.addNamespace(namespaceId, namespace, NodeExistsPolicy.SKIP);
-      }
-      tm.addNamespaceToTable(cloneInfo.tableId, namespaceId);
+      TableManager.getInstance().addNamespaceToTable(cloneInfo.tableId, namespaceId);
       
       return new CloneMetadata(cloneInfo);
     } finally {

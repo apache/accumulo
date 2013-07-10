@@ -51,7 +51,7 @@ public abstract class TableOperation extends Command {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
     } else if (cl.hasOption(optTableNamespace.getOpt())) {
       Instance instance = shellState.getInstance();
-      String namespaceId = TableNamespaces.getNamespaceId(instance, optTableNamespace.getValue());
+      String namespaceId = TableNamespaces.getNamespaceId(instance, cl.getOptionValue(optTableNamespace.getOpt()));
       for (String tableId : TableNamespaces.getTableIds(instance, namespaceId)) {
         tableSet.add(Tables.getTableName(instance, tableId));
       }
@@ -108,8 +108,8 @@ public abstract class TableOperation extends Command {
     optTableName = new Option(Shell.tableOption, "table", true, "name of a table to operate on");
     optTableName.setArgName("tableName");
     
-    optTableNamespace = new Option("tn", "table-namespace", true, "name of a table namespace to operate on");
-    optTableName.setArgName("table-namespace");
+    optTableNamespace = new Option("tn", "tableNamespace", true, "name of a table namespace to operate on");
+    optTableNamespace.setArgName("tableNamespace");
     
     final OptionGroup opg = new OptionGroup();
     

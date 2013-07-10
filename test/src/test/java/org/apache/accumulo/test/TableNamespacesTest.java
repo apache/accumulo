@@ -278,4 +278,50 @@ public class TableNamespacesTest {
     String tnamespace = TableNamespaces.getNamespaceName(instance, tnid);
     assertTrue(namespace2.equals(tnamespace));
   }
+  
+  /**
+   * This test clones a table to a different namespace and ensures it's properties are correct
+   */
+  @Test
+  public void testCloneTableProperties() throws Exception {
+    String n1 = "namespace1";
+    String n2 = "namespace2";
+    String t1 = n1 + ".table";
+    String t2 = n2 + ".table";
+    
+    String propKey = Property.TABLE_FILE_MAX.getKey();
+    String propVal1 = "55";
+    String propVal2 = "66";
+    
+    Connector c = accumulo.getConnector("root", secret);
+    
+    c.tableNamespaceOperations().create(n1);
+    c.tableOperations().create(t1);
+    
+    c.tableOperations().removeProperty(t1, Property.TABLE_FILE_MAX.getKey());
+    c.tableNamespaceOperations().setProperty(n1, propKey, propVal1);
+    
+    boolean itWorked = false;
+    for (Entry<String,String> prop : c.tableOperations().getProperties(t1)) {
+      if (prop.getKey().equals(propKey) && prop.getValue().equals(propVal1)) {
+        itWorked = true;
+        break;
+      }
+    }
+    assertTrue(itWorked);
+    
+    c.tableNamespaceOperations().create(n2);
+    c.tableNamespaceOperations().setProperty(n2, propKey, propVal2);
+    c.tableOperations().clone(t1, t2, true, null, null);
+    c.tableOperations().removeProperty(t2, propKey);
+    
+    itWorked = false;
+    for (Entry<String,String> prop : c.tableOperations().getProperties(t2)) {
+      if (prop.getKey().equals(propKey) && prop.getValue().equals(propVal2)) {
+        itWorked = true;
+        break;
+      }
+    }
+    assertTrue(itWorked);
+  }
 }

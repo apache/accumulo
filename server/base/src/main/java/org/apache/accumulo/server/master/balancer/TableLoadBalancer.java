@@ -30,10 +30,12 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
@@ -50,7 +52,9 @@ public class TableLoadBalancer extends TabletBalancer {
   }
   
   protected String getLoadBalancerClassNameForTable(String table) {
-    return configuration.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
+    if (TableManager.getInstance().getTableState(table).equals(TableState.ONLINE))
+      return configuration.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
+    return null;
   }
   
   protected TabletBalancer getBalancerForTable(String table) {
