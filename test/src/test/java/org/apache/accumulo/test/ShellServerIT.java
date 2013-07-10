@@ -831,8 +831,8 @@ public class ShellServerIT extends SimpleMacIT {
     String err = exec("user NoSuchUser", false);
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
   }
-
-  @Test(timeout = 30 * 1000)
+  
+  @Test(timeout = 30000)
   public void tablenamespaces() throws Exception {
     exec("namespaces", true, Constants.DEFAULT_TABLE_NAMESPACE, true);
     exec("createnamespace thing1", true);
@@ -849,9 +849,24 @@ public class ShellServerIT extends SimpleMacIT {
     exec("y");
     exec("namespaces", true, "thing2", true);
     
+    exec("du -tn thing2", true, "thing2.thingy", true);
+    
+    exec("offline -tn thing2", true);
+    exec("online -tn thing2", true);
+    
+    exec("config -tn thing2 -s table.file.max=44444", true);
+    exec("config -tn thing2", true, "44444", true);
+    exec("config -t thing2.thingy", true, "44444", true);
+    exec("config -t thing2.thingy -s table.file.max=55555", true);
+    exec("config -t thing2.thingy", true, "55555", true);
+    
+    exec("createnamespace thing3 -cc thing2", true);
+    exec("config -tn thing3", true, "44444", true);
+    exec("createnamespace thing4 -ctc thing2.thingy", true);
+    exec("config -tn thing4", true, "55555", true);
+    
     exec("deletenamespace -f thing2", true);
-    namespaces = exec("namespaces");
-    assertTrue(!namespaces.contains("thing2"));
+    exec("namespaces", true, "thing2", false);
     exec("tables", true, "thing2.thingy", false);
   }
   
