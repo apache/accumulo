@@ -25,6 +25,7 @@ import java.util.Random;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -44,6 +45,10 @@ public class CloneTable extends Test {
     boolean flush = rand.nextBoolean();
     
     try {
+      String n = Tables.extractNamespace(newTableName);
+      if (!conn.tableNamespaceOperations().exists(n)) {
+        conn.tableNamespaceOperations().create(n);
+      }
       log.debug("Cloning table " + srcTableName + " " + newTableName + " " + flush);
       conn.tableOperations().clone(srcTableName, newTableName, flush, new HashMap<String,String>(), new HashSet<String>());
     } catch (TableExistsException e) {
