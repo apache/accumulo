@@ -17,8 +17,10 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
@@ -46,7 +48,15 @@ public class BloomFilterIT extends MacTest {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    cfg.setDefaultMemory(500, MemoryUnit.MEGABYTE);
+    cfg.setDefaultMemory(1, MemoryUnit.GIGABYTE);
+    cfg.setNumTservers(1);
+    Map<String,String> siteConfig = new HashMap<String, String>();
+    siteConfig.put(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), "1");
+    siteConfig.put(Property.TABLE_BLOOM_SIZE.getKey(), "2000000");
+    siteConfig.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "1%");
+    siteConfig.put(Property.TABLE_BLOOM_LOAD_THRESHOLD.getKey(), "0");
+    siteConfig.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1G");
+    cfg.setSiteConfig(siteConfig );
   }
   
   @Test(timeout=200*1000)
@@ -54,10 +64,14 @@ public class BloomFilterIT extends MacTest {
     Connector c = getConnector();
     for (String table : "bt1 bt2 bt3 bt4".split(" ")) {
       c.tableOperations().create(table);
+      c.tableOperations().setProperty(table, Property.TABLE_INDEXCACHE_ENABLED.getKey(), "false");
+      c.tableOperations().setProperty(table, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "false");
     }
-    write(c, "bt1", 1, 0, 1000000000, 250);
-    write(c, "bt2", 2, 0, 1000000000, 250);
-    write(c, "bt3", 3, 0, 1000000000, 250);
+    log.info("Writing");
+    write(c, "bt1", 1, 0, 2000000000, 1000);
+    write(c, "bt2", 2, 0, 2000000000, 1000);
+    write(c, "bt3", 3, 0, 2000000000, 1000);
+    log.info("Writing complete");
     
     // test inserting an empty key
     BatchWriter bw = c.createBatchWriter("bt4", new BatchWriterConfig());
@@ -68,8 +82,6 @@ public class BloomFilterIT extends MacTest {
     c.tableOperations().flush("bt4", null, null, true);
     
     for (String table : new String[] {"bt1", "bt2", "bt3"}) {
-      c.tableOperations().setProperty(table, Property.TABLE_INDEXCACHE_ENABLED.getKey(), "false");
-      c.tableOperations().setProperty(table, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "false");
       c.tableOperations().compact(table, null, null, true, true);
     }
     
@@ -80,10 +92,13 @@ public class BloomFilterIT extends MacTest {
     FunctionalTestUtils.checkRFiles(c, "bt4", 1, 1, 1, 1);
     
     // these queries should only run quickly if bloom filters are working, so lets get a base
-    long t1 = query(c, "bt1", 1, 0, 1000000000, 100000, 250);
-    long t2 = query(c, "bt2", 2, 0, 1000000000, 100000, 250);
-    long t3 = query(c, "bt3", 3, 0, 1000000000, 100000, 250);
+    log.info("Base query");
+    long t1 = query(c, "bt1", 1, 0, 2000000000, 100000, 1000);
+    long t2 = query(c, "bt2", 2, 0, 2000000000, 100000, 1000);
+    long t3 = query(c, "bt3", 3, 0, 2000000000, 100000, 1000);
+    log.info("Base query complete");
     
+    log.info("Rewriting with bloom filters");
     c.tableOperations().setProperty("bt1", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     c.tableOperations().setProperty("bt1", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), RowFunctor.class.getName());
     c.tableOperations().compact("bt1", null, null, false, true);
@@ -99,16 +114,16 @@ public class BloomFilterIT extends MacTest {
     c.tableOperations().setProperty("bt4", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     c.tableOperations().setProperty("bt4", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), RowFunctor.class.getName());
     c.tableOperations().compact("bt4", null, null, false, true);
+    log.info("Rewriting with bloom filters complete");
     
     // these queries should only run quickly if bloom
     // filters are working
-    long tb1 = query(c, "bt1", 1, 0, 1000000000, 100000, 250);
-    long tb2 = query(c, "bt2", 2, 0, 1000000000, 100000, 250);
-    long tb3 = query(c, "bt3", 3, 0, 1000000000, 100000, 250);
-    
-    timeCheck(t1, tb1);
-    timeCheck(t2, tb2);
-    timeCheck(t3, tb3);
+    log.info("Bloom query");
+    long tb1 = query(c, "bt1", 1, 0, 2000000000, 100000, 1000);
+    long tb2 = query(c, "bt2", 2, 0, 2000000000, 100000, 1000);
+    long tb3 = query(c, "bt3", 3, 0, 2000000000, 100000, 1000);
+    log.info("Bloom query complete");
+    timeCheck(t1 + t2 + t3, tb1 + tb2 + tb3);
     
     // test querying for empty key
     Scanner scanner = c.createScanner("bt4", Authorizations.EMPTY);
@@ -121,9 +136,11 @@ public class BloomFilterIT extends MacTest {
   }
   
   private void timeCheck(long t1, long t2) throws Exception {
-    if (((t1 - t2) * 1.0 / t1) < .1) {
-      throw new Exception("Queries had less than 10% improvement (old: " + t1 + " new: " + t2 + " improvement: " + ((t1 - t2) * 100. / t1) + "%)");
+    double improvement = (t1 - t2) * 1.0 / t1;
+    if (improvement < .1) {
+      throw new Exception("Queries had less than 10% improvement (old: " + t1 + " new: " + t2 + " improvement: " + (improvement*100) + "%)");
     }
+    log.info("Improvement: " + (improvement * 100) + "%");
   }
   
   private long query(Connector c, String table, int depth, long start, long end, int num, int step) throws Exception {
@@ -161,24 +178,22 @@ public class BloomFilterIT extends MacTest {
       ranges.add(range);
     }
     
-    BatchScanner bs = c.createBatchScanner(table, Authorizations.EMPTY, 3);
+    BatchScanner bs = c.createBatchScanner(table, Authorizations.EMPTY, 1);
     bs.setRanges(ranges);
     
-    long t1 = System.currentTimeMillis();
-    
+    long t1 = System.currentTimeMillis();   
     for (Entry<Key,Value> entry : bs) {
       long v = Long.parseLong(entry.getValue().toString());
       if (!expected.remove(v)) {
         throw new Exception("Got unexpected return " + entry.getKey() + " " + entry.getValue());
       }
     }
-    
     long t2 = System.currentTimeMillis();
     
     if (expected.size() > 0) {
       throw new Exception("Did not get all expected values " + expected.size());
     }
-    
+
     bs.close();
     
     return t2 - t1;

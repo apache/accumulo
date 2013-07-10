@@ -188,7 +188,7 @@ public class ShellServerIT {
   public void tearDown() throws Exception {
     Connector c = cluster.getConnector("root", secret);
     for (String table : c.tableOperations().list()) {
-      if (!table.equals(MetadataTable.NAME) && !table.equals(RootTable.NAME))
+      if (!table.equals(MetadataTable.NAME) && !table.equals(RootTable.NAME) && !table.equals("trace"))
         c.tableOperations().delete(table);
     }
   }

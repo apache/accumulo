@@ -49,7 +49,7 @@ public class ShutdownIT extends MacTest {
     verify.destroy();
   }
   
-  @Test(timeout=30*1000)
+  @Test(timeout=60*1000)
   public void shutdownDuringDelete() throws Exception {
     assertEquals(0, cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", MacTest.PASSWORD, "--createTable").waitFor());
     Process deleter = cluster.exec(TestRandomDeletes.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", MacTest.PASSWORD);
