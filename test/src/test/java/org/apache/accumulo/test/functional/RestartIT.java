@@ -48,7 +48,7 @@ public class RestartIT extends MacTest {
   private static final VerifyIngest.Opts VOPTS = new VerifyIngest.Opts();
   private static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
   
-  @Test
+  @Test(timeout=30*1000)
   public void restartMaster() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -64,7 +64,7 @@ public class RestartIT extends MacTest {
     ingest.destroy();
   }
   
-  @Test
+  @Test(timeout=30*1000)
   public void restartMasterRecovery() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -84,7 +84,7 @@ public class RestartIT extends MacTest {
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
   
-  @Test
+  @Test(timeout=30*1000)
   public void restartMasterSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -101,7 +101,7 @@ public class RestartIT extends MacTest {
     ingest.destroy();
   }
   
-  @Test
+  @Test(timeout=30*1000)
   public void killedTabletServer() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -116,7 +116,7 @@ public class RestartIT extends MacTest {
     }
   }
 
-  @Test
+  @Test(timeout=60*1000)
   public void killedTabletServerDuringShutdown() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -127,7 +127,7 @@ public class RestartIT extends MacTest {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
   
-  @Test
+  @Test(timeout=30*1000)
   public void shutdownDuringCompactingSplitting() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -139,6 +139,4 @@ public class RestartIT extends MacTest {
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
-  
-  
 }

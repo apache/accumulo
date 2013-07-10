@@ -22,7 +22,7 @@ import org.junit.Test;
 
 public class NativeMapIT extends MacTest {
   
-  @Test
+  @Test(timeout=15*1000)
   public void test() throws Exception {
     assertEquals(0, cluster.exec(NativeMapTest.class).waitFor());
   }
