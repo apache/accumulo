@@ -201,7 +201,7 @@
           </description>
           <copyright>2011 The Apache Software Foundation.</copyright>
           <url>http://accumulo.apache.org</url>
-          <needarch>true</needarch>
+          <needarch>x86_64</needarch>
           <group>Utilities</group>
           <requires>
             <require>jdk</require>
