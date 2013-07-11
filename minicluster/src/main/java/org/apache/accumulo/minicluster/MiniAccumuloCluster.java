@@ -244,11 +244,14 @@ public class MiniAccumuloCluster {
 
     File nativeMap = new File(config.getLibDir().getAbsolutePath() + "/native/map");
     nativeMap.mkdirs();
-    String testRoot = new File(new File(System.getProperty("user.dir")).getParent() + "/server/src/main/c++/nativeMap").getAbsolutePath();
-    for (String file : new File(testRoot).list()) {
-      File src = new File(testRoot, file);
-      if (src.isFile() && file.startsWith("libNativeMap"))
-        FileUtils.copyFile(src, new File(nativeMap, file));
+    File testRoot = new File(new File(new File(System.getProperty("user.dir")).getParent() + "/server/src/main/c++/nativeMap").getAbsolutePath());
+    
+    if (testRoot.exists()) {
+      for (String file : testRoot.list()) {
+        File src = new File(testRoot, file);
+        if (src.isFile() && file.startsWith("libNativeMap"))
+          FileUtils.copyFile(src, new File(nativeMap, file));
+      }
     }
   }
 
