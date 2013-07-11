@@ -53,7 +53,7 @@ public class LargeRowIT extends MacTest {
   private static final int NUM_PRE_SPLITS = 9;
   private static final int SPLIT_THRESH = ROW_SIZE * NUM_ROWS / NUM_PRE_SPLITS;
   
-  @Test(timeout=60*1000)
+  @Test(timeout=2 * 60 * 1000)
   public void run() throws Exception {
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];

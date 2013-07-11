@@ -35,7 +35,7 @@ public class MetadataSplitIT extends MacTest {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "100ms"));
   }
  
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     assertEquals(1, c.tableOperations().listSplits(MetadataTable.NAME).size());

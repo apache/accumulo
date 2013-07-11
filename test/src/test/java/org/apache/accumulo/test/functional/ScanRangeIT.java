@@ -38,7 +38,7 @@ public class ScanRangeIT extends MacTest {
   private static final int CF_LIMIT = 5;
   private static final int ROW_LIMIT = 100;
   
-  @Test(timeout=30*1000)
+  @Test(timeout=60*1000)
   public void run() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("table1");

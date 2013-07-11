@@ -43,7 +43,7 @@ public class BigRootTabletIT extends MacTest {
     cfg.setSiteConfig(siteConfig);
   }
   
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().addSplits(MetadataTable.NAME, FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));

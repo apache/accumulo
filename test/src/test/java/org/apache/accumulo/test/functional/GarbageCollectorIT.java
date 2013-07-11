@@ -56,7 +56,7 @@ public class GarbageCollectorIT extends MacTest {
     cfg.setSiteConfig(settings);
   }
   
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void gcTest() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -83,7 +83,7 @@ public class GarbageCollectorIT extends MacTest {
     gc.destroy();
   }
   
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void gcLotsOfCandidatesIT() throws Exception {
     log.info("Filling !METADATA table with bogus delete flags");
     Connector c = getConnector();

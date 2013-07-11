@@ -43,7 +43,7 @@ import org.junit.Test;
 
 public class TableIT extends MacTest {
   
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     TableOperations to = c.tableOperations();
