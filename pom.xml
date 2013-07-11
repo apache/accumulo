@@ -632,6 +632,9 @@
               <goal>integration-test</goal>
             </goals>
             <phase>integration-test</phase>
+          	<configuration>
+              <redirectTestOutputToFile>true</redirectTestOutputToFile>
+          	</configuration>
           </execution>
           <execution>
             <id>verify-integration-tests</id>

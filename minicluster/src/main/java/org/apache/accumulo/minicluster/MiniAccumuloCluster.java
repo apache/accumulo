@@ -143,7 +143,7 @@ public class MiniAccumuloCluster {
     String className = clazz.getCanonicalName();
 
     ArrayList<String> argList = new ArrayList<String>();
-    argList.addAll(Arrays.asList(javaBin, "-cp", classpath));
+    argList.addAll(Arrays.asList(javaBin, "-Dproc=" + clazz.getSimpleName(), "-cp", classpath));
     argList.add("-Djava.library.path=" + config.getLibDir());
     argList.addAll(extraJvmOpts);
     argList.addAll(Arrays.asList("-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", Main.class.getName(), className));
