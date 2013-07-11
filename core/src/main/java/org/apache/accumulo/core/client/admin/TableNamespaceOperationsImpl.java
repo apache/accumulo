@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.admin;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNamespaceExistsException;
 import org.apache.accumulo.core.client.TableNamespaceNotEmptyException;
 import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
@@ -345,6 +347,71 @@ public class TableNamespaceOperationsImpl implements TableNamespaceOperations {
       throw new RuntimeException(e);
     }
 
+  }
+
+  /**
+   * Clone a all the tables in a table namespace to a new table namespace. Optionally copy all their properties as well.
+   * 
+   * @param srcName
+   *          The table namespace to clone
+   * @param newName
+   *          The new table namespace to clone to
+   * @param flush
+   *          Whether to flush each table before cloning
+   * @param propertiesToSet
+   *          Which table namespace properties to set
+   * @param propertiesToExclude
+   *          Which table namespace properties to exclude
+   * @param copyTableProps
+   *          Whether to copy each table's properties
+   * @throws AccumuloSecurityException
+   *           when the user does not have the proper permissions
+   * @throws AccumuloException
+   *           when there is a general accumulo error
+   * @throws TableNamespaceNotFoundException
+   *           If the old table namespace doesn't exist
+   * @throws TableNamespaceExistsException
+   *           If the new table namespace already exists
+   */
+  @Override
+  public void clone(String srcName, String newName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, Boolean copyTableProps)
+      throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException, TableNamespaceExistsException {
+
+    ArgumentChecker.notNull(srcName, newName);
+
+    String namespaceId = TableNamespaces.getNamespaceId(instance, srcName);
+
+    if (propertiesToExclude == null)
+      propertiesToExclude = Collections.emptySet();
+
+    if (propertiesToSet == null)
+      propertiesToSet = Collections.emptyMap();
+
+    if (!Collections.disjoint(propertiesToExclude, propertiesToSet.keySet()))
+      throw new IllegalArgumentException("propertiesToSet and propertiesToExclude not disjoint");
+
+    String srcNamespaceId = TableNamespaces.getNamespaceId(instance, srcName);
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcNamespaceId.getBytes()), ByteBuffer.wrap(newName.getBytes()));
+    Map<String,String> opts = new HashMap<String,String>();
+    opts.putAll(propertiesToSet);
+    for (String prop : propertiesToExclude)
+      opts.put(prop, null);
+    doTableNamespaceOperation(TableOperation.CLONE, args, opts);
+
+    for (String tableId : TableNamespaces.getTableIds(instance, namespaceId)) {
+      try {
+        String tableName = Tables.getTableName(instance, tableId);
+
+        String newTableName = newName + "." + Tables.extractTableName(tableName);
+        getTableOperations().clone(tableName, newTableName, flush, null, null);
+      } catch (TableNotFoundException e) {
+        String why = "Table (" + tableId + ") dissappeared while cloning namespace (" + srcName + ")";
+        throw new IllegalStateException(why);
+      } catch (TableExistsException e) {
+        String why = "Table somehow already existed in the newly created namespace (" + newName + ")";
+        throw new IllegalStateException(why);
+      }
+    }
   }
 
   /**

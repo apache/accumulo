@@ -20,13 +20,18 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNamespaceNotEmptyException;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
@@ -144,37 +149,15 @@ public class TableNamespacesTest {
     c.tableNamespaceOperations().setProperty(namespace, propKey, propVal);
     
     // check the namespace has the property
-    boolean itWorked = false;
-    for (Entry<String,String> prop : c.tableNamespaceOperations().getProperties(namespace)) {
-      if (prop.getKey().equals(propKey) && prop.getValue().equals(propVal)) {
-        itWorked = true;
-        break;
-      }
-    }
-    
-    assertTrue(itWorked);
+    assertTrue(checkTableNamespaceHasProp(c, namespace, propKey, propVal));
     
     // check that the table gets it from the namespace
-    itWorked = false;
-    for (Entry<String,String> prop : c.tableOperations().getProperties(tableName1)) {
-      if (prop.getKey().equals(propKey) && prop.getValue().equals(propVal)) {
-        itWorked = true;
-        break;
-      }
-    }
-    assertTrue(itWorked);
+    assertTrue(checkTableHasProp(c, tableName1, propKey, propVal));
     
     // test a second table to be sure the first wasn't magical
     // (also, changed the order, the namespace already exists with the property)
-    itWorked = false;
     c.tableOperations().create(tableName2);
-    for (Entry<String,String> prop : c.tableOperations().getProperties(tableName2)) {
-      if (prop.getKey().equals(propKey) && prop.getValue().equals(propVal)) {
-        itWorked = true;
-        break;
-      }
-    }
-    assertTrue(itWorked);
+    assertTrue(checkTableHasProp(c, tableName2, propKey, propVal));
     
     // test that table properties override namespace properties
     String propKey2 = Property.TABLE_FILE_MAX.getKey();
@@ -184,30 +167,15 @@ public class TableNamespacesTest {
     c.tableOperations().setProperty(tableName2, propKey2, tablePropVal);
     c.tableNamespaceOperations().setProperty("propchange", propKey2, propVal2);
     
-    itWorked = false;
-    for (Entry<String,String> prop : c.tableOperations().getProperties(tableName2)) {
-      if (prop.getKey().equals(propKey2) && prop.getValue().equals(tablePropVal)) {
-        itWorked = true;
-        break;
-      }
-    }
-    assertTrue(itWorked);
+    assertTrue(checkTableHasProp(c, tableName2, propKey2, tablePropVal));
     
     // now check that you can change the default namespace's properties
     propVal = "13K";
-    propVal2 = "44";
     String tableName = "some_table";
     c.tableOperations().create(tableName);
     c.tableNamespaceOperations().setProperty(Constants.DEFAULT_TABLE_NAMESPACE, propKey, propVal);
     
-    itWorked = false;
-    for (Entry<String,String> prop : c.tableOperations().getProperties(tableName)) {
-      if (prop.getKey().equals(propKey) && prop.getValue().equals(propVal)) {
-        itWorked = true;
-        break;
-      }
-    }
-    assertTrue(itWorked);
+    assertTrue(checkTableHasProp(c, tableName, propKey, propVal));
   }
   
   /**
@@ -301,27 +269,75 @@ public class TableNamespacesTest {
     c.tableOperations().removeProperty(t1, Property.TABLE_FILE_MAX.getKey());
     c.tableNamespaceOperations().setProperty(n1, propKey, propVal1);
     
-    boolean itWorked = false;
-    for (Entry<String,String> prop : c.tableOperations().getProperties(t1)) {
-      if (prop.getKey().equals(propKey) && prop.getValue().equals(propVal1)) {
-        itWorked = true;
-        break;
-      }
-    }
-    assertTrue(itWorked);
+    assertTrue(checkTableHasProp(c, t1, propKey, propVal1));
     
     c.tableNamespaceOperations().create(n2);
     c.tableNamespaceOperations().setProperty(n2, propKey, propVal2);
     c.tableOperations().clone(t1, t2, true, null, null);
     c.tableOperations().removeProperty(t2, propKey);
     
-    itWorked = false;
-    for (Entry<String,String> prop : c.tableOperations().getProperties(t2)) {
-      if (prop.getKey().equals(propKey) && prop.getValue().equals(propVal2)) {
-        itWorked = true;
-        break;
+    assertTrue(checkTableHasProp(c, t2, propKey, propVal2));
+    
+    c.tableNamespaceOperations().delete(n1, true);
+    c.tableNamespaceOperations().delete(n2, true);
+  }
+  
+  /**
+   * This test clones namespaces. First checks to see that the properties were correctly copied over, then checks to see that the correct properties were set
+   * when given that option and that table properties copy successfully.
+   */
+  @Test
+  public void testCloneNamespace() throws Exception {
+    String n1 = "nspace1";
+    String n2 = "nspace2";
+    String n3 = "nspace3";
+    String t = ".table";
+    
+    String propKey1 = Property.TABLE_FILE_MAX.getKey();
+    String propKey2 = Property.TABLE_SCAN_MAXMEM.getKey();
+    String propVal1 = "55";
+    String propVal2 = "66";
+    String propVal3 = "77K";
+    
+    Connector c = accumulo.getConnector("root", secret);
+    c.tableNamespaceOperations().create(n1);
+    c.tableOperations().create(n1 + t);
+    
+    c.tableNamespaceOperations().setProperty(n1, propKey1, propVal1);
+    c.tableOperations().setProperty(n1 + t, propKey1, propVal2);
+    c.tableNamespaceOperations().setProperty(n1, propKey2, propVal3);
+    
+    c.tableNamespaceOperations().clone(n1, n2, false, null, null, false);
+    assertTrue(c.tableNamespaceOperations().exists(n2));
+    assertTrue(checkTableNamespaceHasProp(c, n2, propKey1, propVal1));
+    assertTrue(checkTableHasProp(c, n2 + t, propKey1, propVal2));
+    assertTrue(checkTableNamespaceHasProp(c, n2, propKey2, propVal3));
+    
+    Map<String,String> propsToSet = new HashMap<String,String>();
+    propsToSet.put(propKey1, propVal1);
+    c.tableNamespaceOperations().clone(n1, n3, true, propsToSet, null, true);
+    
+    assertTrue(checkTableNamespaceHasProp(c, n3, propKey1, propVal1));
+    assertTrue(checkTableHasProp(c, n3 + t, propKey1, propVal2));
+    assertTrue(checkTableNamespaceHasProp(c, n3, propKey2, propVal3));
+    assertTrue(!checkTableHasProp(c, n3 + t, propKey2, propVal3));
+  }
+  
+  private boolean checkTableHasProp(Connector c, String t, String propKey, String propVal) throws AccumuloException, TableNotFoundException {
+    for (Entry<String,String> e : c.tableOperations().getProperties(t)) {
+      if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
+        return true;
       }
     }
-    assertTrue(itWorked);
+    return false;
+  }
+  
+  private boolean checkTableNamespaceHasProp(Connector c, String n, String propKey, String propVal) throws AccumuloException, TableNamespaceNotFoundException {
+    for (Entry<String,String> e : c.tableNamespaceOperations().getProperties(n)) {
+      if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

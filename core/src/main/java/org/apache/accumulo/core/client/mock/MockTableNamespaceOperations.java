@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.TableNamespaceOperations;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.commons.lang.NotImplementedException;
 
 public class MockTableNamespaceOperations implements TableNamespaceOperations {
 
@@ -173,5 +175,12 @@ public class MockTableNamespaceOperations implements TableNamespaceOperations {
     diskUsages.add(new DiskUsage(new TreeSet<String>(acu.namespaces.get(namespace).getTables(acu)), 0l));
 
     return diskUsages;
+  }
+
+  @Override
+  public void clone(String srcName, String newName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, Boolean copyTableProps)
+      throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException, TableNamespaceExistsException {
+    // TODO Implement clone in Mock
+    throw new NotImplementedException();
   }
 }

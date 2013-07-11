@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.admin;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -228,7 +229,37 @@ public interface TableNamespaceOperations {
    *
    * @return  a list of disk usage objects containing linked table names and sizes
    * @throws AccumuloException
+   *           when there is a general accumulo error
    * @throws AccumuloSecurityException
+   *           when the user does not have the proper permissions
    */
   public List<DiskUsage> getDiskUsage(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException;
+
+  
+  /**
+   * Clone a all the tables in a table namespace to a new table namespace. Optionally copy all their properties as well.
+   * 
+   * @param srcName
+   *          The table namespace to clone
+   * @param newName
+   *          The new table namespace to clone to
+   * @param flush
+   *          Whether to flush each table before cloning
+   * @param propertiesToSet
+   *          Which table namespace properties to set
+   * @param propertiesToExclude
+   *          Which table namespace properties to exclude
+   * @param copyTableProps
+   *          Whether to copy each table's properties
+   * @throws AccumuloSecurityException
+   *           when the user does not have the proper permissions
+   * @throws AccumuloException
+   *          when there is a general accumulo error
+   * @throws TableNamespaceNotFoundException
+   *          If the old table namespace doesn't exist
+   * @throws TableNamespaceExistsException
+   *          If the new table namespace already exists
+   */
+  public void clone(String srcName, String newName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, Boolean copyTableProps)
+      throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException, TableNamespaceExistsException;
 }

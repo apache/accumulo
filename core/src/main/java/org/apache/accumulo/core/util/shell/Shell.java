@@ -73,6 +73,7 @@ import org.apache.accumulo.core.util.shell.commands.AuthenticateCommand;
 import org.apache.accumulo.core.util.shell.commands.ByeCommand;
 import org.apache.accumulo.core.util.shell.commands.ClasspathCommand;
 import org.apache.accumulo.core.util.shell.commands.ClearCommand;
+import org.apache.accumulo.core.util.shell.commands.CloneNamespaceCommand;
 import org.apache.accumulo.core.util.shell.commands.CloneTableCommand;
 import org.apache.accumulo.core.util.shell.commands.ClsCommand;
 import org.apache.accumulo.core.util.shell.commands.CompactCommand;
@@ -358,7 +359,7 @@ public class Shell extends ShellOptions {
         new TableCommand(), new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(), new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(),
         new DUCommand(), new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(),
-        new TablesCommand(), new NamespacesCommand(), new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand()};
+        new TablesCommand(), new NamespacesCommand(), new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand(), new CloneNamespaceCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
     Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(),

@@ -63,6 +63,7 @@ public class RenameTable extends MasterRepo {
     if (!namespaceId.equals(oldNamespaceId)) {
       TableManager tm = TableManager.getInstance();
       tm.addNamespaceToTable(tableId, namespaceId);
+      // TODO change parent of table's configuration to new namespace...somehow...
     }
 
     newTableName = Tables.extractTableName(newTableName);

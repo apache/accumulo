@@ -694,10 +694,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
       _flush(srcTableId, null, null, true);
     
     if (propertiesToExclude == null)
-      propertiesToExclude = Collections.emptySet();
+      propertiesToExclude = new HashSet<String>();
     
     if (propertiesToSet == null)
       propertiesToSet = Collections.emptyMap();
+    
+    
+    Set<String> nProps = getUniqueNamespaceProperties(namespace, srcTableName);
+    for (String p : nProps) {
+      propertiesToExclude.add(p);
+    }
     
     if (!Collections.disjoint(propertiesToExclude, propertiesToSet.keySet()))
       throw new IllegalArgumentException("propertiesToSet and propertiesToExclude not disjoint");
@@ -715,6 +721,27 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
     
     doTableOperation(TableOperation.CLONE, args, opts);
+  }
+  
+  private Set<String> getUniqueNamespaceProperties(String namespace, String table) throws TableNotFoundException, AccumuloException {
+    Set<String> props = new HashSet<String>();
+    /*try {
+      Iterable<Entry<String,String>> n = new TableNamespaceOperationsImpl(instance, credentials).getProperties(namespace);
+      Iterable<Entry<String,String>> t = getProperties(table);
+      Map<String,String> tmap = new HashMap<String,String>();
+      for (Entry<String,String> e : t) {
+        tmap.put(e.getKey(), e.getValue());
+      }
+      for (Entry<String,String> e : n) {
+        String val = tmap.get(e.getKey());
+        if (e.getValue().equals(val)) {
+          props.add(e.getKey());
+        }
+      }
+    } catch (TableNamespaceNotFoundException e) {
+      throw new IllegalStateException(new TableNamespaceNotFoundException(null, namespace, null));
+    }*/
+    return props;
   }
   
   /**
