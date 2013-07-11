@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<configuration>
+	<!--
+  Put your site-specific accumulo configurations here.
+
+  The available configuration values along with their defaults
+  are documented in docs/config.html
+
+  Unless you are simply testing at your workstation, you will most
+  definitely need to change the three entries below.
+	-->
+
+    <property>
+      <name>instance.zookeeper.host</name>
+      <value>localhost:2181</value>
+      <description>comma separated list of zookeeper servers</description>
+    </property>
+
+    <property>
+      <name>logger.dir.walog</name>
+      <value>walogs</value>
+      <description>The directory used to store write-ahead logs on the local filesystem. It is possible to specify a comma-separated list of directories.</description>
+    </property>
+
+    <property>
+      <name>instance.secret</name>
+      <value>DEFAULT</value>
+      <description>A secret unique to a given instance that all servers must know in order to communicate with one another.
+                   Change it before initialization. To change it later use ./bin/accumulo org.apache.accumulo.server.util.ChangeSecret [oldpasswd] [newpasswd],
+                   and then update this file.
+      </description>
+    </property>
+
+    <property>
+      <name>tserver.memory.maps.max</name>
+      <value>80M</value>
+    </property>
+
+    <property>
+      <name>tserver.cache.data.size</name>
+      <value>7M</value>
+    </property>
+
+    <property>
+      <name>tserver.cache.index.size</name>
+      <value>20M</value>
+    </property>
+
+    <property>
+      <name>trace.password</name>
+      <!--
+        change this to the root user's password, and/or change the user below
+       -->
+      <value>password</value>
+    </property>
+
+    <property>
+      <name>trace.user</name>
+      <value>root</value>
+    </property>
+
+    <property>
+      <name>tserver.sort.buffer.size</name>
+      <value>50M</value>
+    </property>
+
+    <property>
+      <name>tserver.walog.max.size</name>
+      <value>100M</value>
+    </property>
+
+    <property>
+      <name>general.classpaths</name>
+      <value>
+    $ACCUMULO_HOME/server/target/classes/,
+    $ACCUMULO_HOME/core/target/classes/,
+    $ACCUMULO_HOME/start/target/classes/,
+    $ACCUMULO_HOME/fate/target/classes/,
+    $ACCUMULO_HOME/proxy/target/classes/,
+    $ACCUMULO_HOME/examples/target/classes/,
+	$ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar,
+	$ACCUMULO_HOME/lib/[^.].*.jar,
+	$ZOOKEEPER_HOME/zookeeper[^.].*.jar,
+	$HADOOP_CONF_DIR,
+	$HADOOP_PREFIX/[^.].*.jar,
+	$HADOOP_PREFIX/lib/[^.].*.jar,
+      </value>
+      <description>Classpaths that accumulo checks for updates and class files.
+      When using the Security Manager, please remove the ".../target/classes/" values.
+      </description>
+    </property>
+
+    <property>
+      <name>crypto.module.class</name>
+      <value>org.apache.accumulo.core.security.crypto.DefaultCryptoModule</value>
+    </property>
+    <property>
+      <name>crypto.cipher.suite</name>
+      <value>AES/CFB/PKCS5Padding</value>
+    </property>
+    <property>
+      <name>crypto.cipher.algorithm.name</name>
+      <value>AES</value>
+    </property>
+    <property>
+      <name>crypto.cipher.key.length</name>
+      <value>128</value>
+    </property>
+    <property>
+      <name>crypto.secure.rng</name>
+      <value>SHA1PRNG</value>
+    </property>
+    <property>
+      <name>crypto.secure.rng.provider</name>
+      <value>SUN</value>
+    </property>
+
+    <property>
+      <name>crypto.secret.key.encryption.strategy.class</name>
+      <value>org.apache.accumulo.core.security.crypto.DefaultSecretKeyEncryptionStrategy</value>
+    </property>
+
+    <property>
+        <name>crypto.default.key.strategy.cipher.suite</name>
+        <value>AES/ECB/NoPadding</value>
+    </property>
+<!--
+     These properties can be useful for situations where you are conducting unit tests without HDFS
+    running.
+-->
+
+<!--
+    <property>
+      <name>crypto.default.key.strategy.hdfs.uri</name>
+      <value>file:///</value>
+    </property>
+    <property>
+      <name>crypto.default.key.strategy.key.location</name>
+      <value>/tmp/test.secret.key</value>
+    </property>
+-->
+</configuration>

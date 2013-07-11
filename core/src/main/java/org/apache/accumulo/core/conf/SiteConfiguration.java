@@ -90,6 +90,17 @@ public class SiteConfiguration extends AccumuloConfiguration {
     getXmlConfig().clear();
   }
   
+  
+  /**
+   * method here to support testing, do not call
+   */
+  public synchronized void clearAndNull() {
+    if (xmlConfig != null) {
+      xmlConfig.clear();
+      xmlConfig = null;
+    }
+  }
+  
   /**
    * method here to support testing, do not call
    */

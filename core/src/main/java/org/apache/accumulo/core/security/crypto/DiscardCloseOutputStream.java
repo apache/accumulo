@@ -14,15 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.accumulo.core.security.crypto;
 
-/**
- * 
- */
-public interface SecretKeyEncryptionStrategy {  
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
+import org.apache.log4j.Logger;
+
+public class DiscardCloseOutputStream extends FilterOutputStream {
+
+  private static final Logger log = Logger.getLogger(DiscardCloseOutputStream.class);
   
-  public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters params);
-  public CryptoModuleParameters decryptSecretKey(CryptoModuleParameters params);
+  public DiscardCloseOutputStream(OutputStream out) {
+    super(out);
+  }
   
+  public void close() throws IOException {
+    // Discard
+    log.trace("Discarded close");
+  }
   
 }

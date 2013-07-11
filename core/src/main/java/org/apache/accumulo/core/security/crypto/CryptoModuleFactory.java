@@ -17,8 +17,6 @@
 package org.apache.accumulo.core.security.crypto;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -29,9 +27,8 @@ import org.apache.log4j.Logger;
 /**
  * This factory module exists to assist other classes in loading crypto modules.
  * 
- * @deprecated This feature is experimental and may go away in future versions.
+ * 
  */
-@Deprecated
 public class CryptoModuleFactory {
   
   private static Logger log = Logger.getLogger(CryptoModuleFactory.class);
@@ -50,9 +47,14 @@ public class CryptoModuleFactory {
   
   @SuppressWarnings({"rawtypes"})
   public static CryptoModule getCryptoModule(String cryptoModuleClassname) {
-    log.debug(String.format("About to instantiate crypto module %s", cryptoModuleClassname));
     
-    if (cryptoModuleClassname.equals("NullCryptoModule")) {
+    if (cryptoModuleClassname != null) {
+      cryptoModuleClassname = cryptoModuleClassname.trim();
+    }
+    
+    log.trace(String.format("About to instantiate crypto module %s", cryptoModuleClassname));
+    
+    if (cryptoModuleClassname == null || cryptoModuleClassname.equals("NullCryptoModule")) {
       return new NullCryptoModule();
     }
     
@@ -61,7 +63,7 @@ public class CryptoModuleFactory {
     try {
       cryptoModuleClazz = AccumuloVFSClassLoader.loadClass(cryptoModuleClassname);
     } catch (ClassNotFoundException e1) {
-      log.warn(String.format("Could not find configured crypto module \"%s\".  NO ENCRYPTION WILL BE USED.", cryptoModuleClassname));
+      log.warn(String.format("Could not find configured crypto module \"%s\".  No encryption will be used.", cryptoModuleClassname));
       return new NullCryptoModule();
     }
     
@@ -77,21 +79,21 @@ public class CryptoModuleFactory {
     }
     
     if (!implementsCryptoModule) {
-      log.warn("Configured Accumulo crypto module \"%s\" does not implement the CryptoModule interface. NO ENCRYPTION WILL BE USED.");
+      log.warn("Configured Accumulo crypto module \"%s\" does not implement the CryptoModule interface. No encryption will be used.");
       return new NullCryptoModule();
     } else {
       try {
         cryptoModule = (CryptoModule) cryptoModuleClazz.newInstance();
         
-        log.debug("Successfully instantiated crypto module");
+        log.trace("Successfully instantiated crypto module");
         
       } catch (InstantiationException e) {
-        log.warn(String.format("Got instantiation exception %s when instantiating crypto module \"%s\".  NO ENCRYPTION WILL BE USED.", e.getCause().getClass()
+        log.warn(String.format("Got instantiation exception %s when instantiating crypto module \"%s\".  No encryption will be used.", e.getCause().getClass()
             .getCanonicalName(), cryptoModuleClassname));
         log.warn(e.getCause());
         return new NullCryptoModule();
       } catch (IllegalAccessException e) {
-        log.warn(String.format("Got illegal access exception when trying to instantiate crypto module \"%s\".  NO ENCRYPTION WILL BE USED.",
+        log.warn(String.format("Got illegal access exception when trying to instantiate crypto module \"%s\".  No encryption will be used.",
             cryptoModuleClassname));
         log.warn(e);
         return new NullCryptoModule();
@@ -107,6 +109,11 @@ public class CryptoModuleFactory {
   
   @SuppressWarnings("rawtypes")
   public static SecretKeyEncryptionStrategy getSecretKeyEncryptionStrategy(String className) {
+    
+    if (className != null) {
+      className = className.trim();
+    }
+    
     if (className == null || className.equals("NullSecretKeyEncryptionStrategy")) {
       return new NullSecretKeyEncryptionStrategy();
     }
@@ -116,7 +123,7 @@ public class CryptoModuleFactory {
     try {
       keyEncryptionStrategyClazz = AccumuloVFSClassLoader.loadClass(className);
     } catch (ClassNotFoundException e1) {
-      log.warn(String.format("Could not find configured secret key encryption strategy \"%s\".  NO ENCRYPTION WILL BE USED.", className));
+      log.warn(String.format("Could not find configured secret key encryption strategy \"%s\".  No encryption will be used.", className));
       return new NullSecretKeyEncryptionStrategy();
     }
     
@@ -132,21 +139,21 @@ public class CryptoModuleFactory {
     }
     
     if (!implementsSecretKeyStrategy) {
-      log.warn("Configured Accumulo secret key encryption strategy \"%s\" does not implement the SecretKeyEncryptionStrategy interface. NO ENCRYPTION WILL BE USED.");
+      log.warn("Configured Accumulo secret key encryption strategy \"%s\" does not implement the SecretKeyEncryptionStrategy interface. No encryption will be used.");
       return new NullSecretKeyEncryptionStrategy();
     } else {
       try {
         strategy = (SecretKeyEncryptionStrategy) keyEncryptionStrategyClazz.newInstance();
         
-        log.debug("Successfully instantiated secret key encryption strategy");
+        log.trace("Successfully instantiated secret key encryption strategy");
         
       } catch (InstantiationException e) {
-        log.warn(String.format("Got instantiation exception %s when instantiating secret key encryption strategy \"%s\".  NO ENCRYPTION WILL BE USED.", e
+        log.warn(String.format("Got instantiation exception %s when instantiating secret key encryption strategy \"%s\".  No encryption will be used.", e
             .getCause().getClass().getCanonicalName(), className));
         log.warn(e.getCause());
         return new NullSecretKeyEncryptionStrategy();
       } catch (IllegalAccessException e) {
-        log.warn(String.format("Got illegal access exception when trying to instantiate secret key encryption strategy \"%s\".  NO ENCRYPTION WILL BE USED.",
+        log.warn(String.format("Got illegal access exception when trying to instantiate secret key encryption strategy \"%s\".  No encryption will be used.",
             className));
         log.warn(e);
         return new NullSecretKeyEncryptionStrategy();
@@ -156,99 +163,96 @@ public class CryptoModuleFactory {
     return strategy;
   }
   
-  private static class NullSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
+  static class NullSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
     
     @Override
-    public SecretKeyEncryptionStrategyContext encryptSecretKey(SecretKeyEncryptionStrategyContext context) {
-      context.setEncryptedSecretKey(context.getPlaintextSecretKey());
-      context.setOpaqueKeyEncryptionKeyID("");
+    public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters params) {
+      params.setEncryptedKey(params.getPlaintextKey());
+      params.setOpaqueKeyEncryptionKeyID("");
       
-      return context;
+      return params;
     }
-    
+
     @Override
-    public SecretKeyEncryptionStrategyContext decryptSecretKey(SecretKeyEncryptionStrategyContext context) {
-      context.setPlaintextSecretKey(context.getEncryptedSecretKey());
-      
-      return context;
-    }
-    
-    @Override
-    public SecretKeyEncryptionStrategyContext getNewContext() {
-      return new SecretKeyEncryptionStrategyContext() {
-        
-        @Override
-        public byte[] getPlaintextSecretKey() {
-          return plaintextSecretKey;
-        }
-        
-        @Override
-        public void setPlaintextSecretKey(byte[] plaintextSecretKey) {
-          this.plaintextSecretKey = plaintextSecretKey;
-        }
-        
-        @Override
-        public byte[] getEncryptedSecretKey() {
-          return encryptedSecretKey;
-        }
-        
-        @Override
-        public void setEncryptedSecretKey(byte[] encryptedSecretKey) {
-          this.encryptedSecretKey = encryptedSecretKey;
-        }
-        
-        @Override
-        public String getOpaqueKeyEncryptionKeyID() {
-          return opaqueKeyEncryptionKeyID;
-        }
-        
-        @Override
-        public void setOpaqueKeyEncryptionKeyID(String opaqueKeyEncryptionKeyID) {
-          this.opaqueKeyEncryptionKeyID = opaqueKeyEncryptionKeyID;
-        }
-        
-        @Override
-        public Map<String,String> getContext() {
-          return context;
-        }
-        
-        @Override
-        public void setContext(Map<String,String> context) {
-          this.context = context;
-        }
-        
-        private byte[] plaintextSecretKey;
-        private byte[] encryptedSecretKey;
-        private String opaqueKeyEncryptionKeyID;
-        private Map<String,String> context;
-      };
+    public CryptoModuleParameters decryptSecretKey(CryptoModuleParameters params) {
+      params.setPlaintextKey(params.getEncryptedKey());
+      return params;
     }
     
   }
   
-  private static class NullCryptoModule implements CryptoModule {
+  static class NullCryptoModule implements CryptoModule {
     
     @Override
-    public OutputStream getEncryptingOutputStream(OutputStream out, Map<String,String> cryptoOpts) throws IOException {
-      return out;
+    public CryptoModuleParameters getEncryptingOutputStream(CryptoModuleParameters params) throws IOException {
+      params.setEncryptedOutputStream(params.getPlaintextOutputStream());
+      return params;
     }
-    
+
     @Override
-    public InputStream getDecryptingInputStream(InputStream in, Map<String,String> cryptoOpts) throws IOException {
-      return in;
+    public CryptoModuleParameters getDecryptingInputStream(CryptoModuleParameters params) throws IOException {
+      params.setPlaintextInputStream(params.getEncryptedInputStream());
+      return params;
     }
-    
+
     @Override
-    public OutputStream getEncryptingOutputStream(OutputStream out, Map<String,String> conf, Map<CryptoInitProperty,Object> cryptoInitParams) {
-      return out;
+    public CryptoModuleParameters generateNewRandomSessionKey(CryptoModuleParameters params) {
+      params.setPlaintextKey(new byte[0]);
+      return params;
     }
-    
+
     @Override
-    public InputStream getDecryptingInputStream(InputStream in, Map<String,String> cryptoOpts, Map<CryptoInitProperty,Object> cryptoInitParams)
-        throws IOException {
-      return in;
+    public CryptoModuleParameters initializeCipher(CryptoModuleParameters params) {
+      return params;
     }
-    
+
   }
+  
+  public static String[] parseCipherTransform(String cipherTransform) {
+    if (cipherTransform == null) {
+      return new String[3];
+    }
+    
+    return cipherTransform.split("/");
+  }
+
+  
+  public static CryptoModuleParameters createParamsObjectFromAccumuloConfiguration(AccumuloConfiguration conf) {
+    
+    // Get all the options from the configuration
+    Map<String,String> cryptoOpts = conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
+    cryptoOpts.putAll(conf.getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX));
+    CryptoModuleParameters params = new CryptoModuleParameters();
+
+    return fillParamsObjectFromStringMap(params, cryptoOpts);
+  }
+
+  public static CryptoModuleParameters fillParamsObjectFromStringMap(CryptoModuleParameters params, Map<String,String> cryptoOpts) {
+
+    // Parse the cipher suite for the mode and padding options
+    String[] cipherTransformParts = parseCipherTransform(cryptoOpts.get(Property.CRYPTO_CIPHER_SUITE.getKey()));
+    
+    // If no encryption has been specified, then we abort here.
+    if (cipherTransformParts[0] == null || cipherTransformParts[0].equals("NullCipher")) {
+      params.setAllOptions(cryptoOpts);
+      params.setAlgorithmName("NullCipher");
+      return params;
+    }
+    
+    params.setAllOptions(cryptoOpts);
+    
+    // 
+    params.setAlgorithmName(cryptoOpts.get(Property.CRYPTO_CIPHER_ALGORITHM_NAME.getKey()));
+    params.setEncryptionMode(cipherTransformParts[1]);
+    params.setKeyEncryptionStrategyClass(cryptoOpts.get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()));
+    params.setKeyLength(Integer.parseInt(cryptoOpts.get(Property.CRYPTO_CIPHER_KEY_LENGTH.getKey())));
+    params.setOverrideStreamsSecretKeyEncryptionStrategy(Boolean.parseBoolean(cryptoOpts.get(Property.CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY.getKey())));
+    params.setPadding(cipherTransformParts[2]);
+    params.setRandomNumberGenerator(cryptoOpts.get(Property.CRYPTO_SECURE_RNG.getKey()));
+    params.setRandomNumberGeneratorProvider(cryptoOpts.get(Property.CRYPTO_SECURE_RNG_PROVIDER.getKey()));
+
+    return params;
+  }
+
   
 }

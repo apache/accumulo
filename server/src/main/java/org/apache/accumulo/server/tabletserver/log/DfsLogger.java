@@ -40,6 +40,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
+import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.ServerConstants;
@@ -271,22 +273,26 @@ public class DfsLogger {
       }
       
       // Initialize the crypto operations.
-      @SuppressWarnings("deprecation")
       org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory.getCryptoModule(conf
           .getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
       
       // Initialize the log file with a header and the crypto params used to set up this log file.
       logFile.write(LOG_FILE_HEADER_V2.getBytes());
-      Map<String,String> cryptoOpts = conf.getConfiguration().getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
+
+      CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
       
-      logFile.writeInt(cryptoOpts.size());
-      for (String key : cryptoOpts.keySet()) {
-        logFile.writeUTF(key);
-        logFile.writeUTF(cryptoOpts.get(key));
-      }
+      params.setPlaintextOutputStream(logFile);
       
-      @SuppressWarnings("deprecation")
-      OutputStream encipheringOutputStream = cryptoModule.getEncryptingOutputStream(logFile, cryptoOpts);
+      // In order to bootstrap the reading of this file later, we have to record the CryptoModule that was used to encipher it here,
+      // so that that crypto module can re-read its own parameters.
+      
+      logFile.writeUTF(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
+      
+      
+      //@SuppressWarnings("deprecation")
+      //OutputStream encipheringOutputStream = cryptoModule.getEncryptingOutputStream(logFile, cryptoOpts);
+      params = cryptoModule.getEncryptingOutputStream(params);
+      OutputStream encipheringOutputStream = params.getEncryptedOutputStream();
       
       // If the module just kicks back our original stream, then just use it, don't wrap it in
       // another data OutputStream.

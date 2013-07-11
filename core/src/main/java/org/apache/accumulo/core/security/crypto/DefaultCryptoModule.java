@@ -22,8 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PushbackInputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -41,250 +39,379 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.log4j.Logger;
 
 /**
- * This class contains the gritty details around setting up encrypted streams for reading and writing the log file. It obeys the interface CryptoModule, which
- * other developers can implement to change out this logic as necessary.
+ * This class implements the {@link CryptoModule} interface, defining how calling applications can receive encrypted 
+ * input and output streams.  While the default implementation given here allows for a lot of flexibility in terms of 
+ * choices of algorithm, key encryption strategies, and so on, some Accumulo users may choose to swap out this implementation
+ * for others, and can base their implementation details off of this class's work.
  * 
- * @deprecated This feature is experimental and may go away in future versions.
+ * In general, the module is quite straightforward: provide it with crypto-related settings and an input/output stream, and
+ * it will hand back those streams wrapped in encrypting (or decrypting) streams.
+ * 
  */
-@Deprecated
 public class DefaultCryptoModule implements CryptoModule {
-  
-  // This is how *I* like to format my variable declarations. Your mileage may vary.
   
   private static final String ENCRYPTION_HEADER_MARKER = "---Log File Encrypted (v1)---";
   private static Logger log = Logger.getLogger(DefaultCryptoModule.class);
   
   public DefaultCryptoModule() {}
   
-  @Override
-  public OutputStream getEncryptingOutputStream(OutputStream out, Map<String,String> cryptoOpts) throws IOException {
-    
-    log.debug("Initializing crypto output stream");
-    
-    String cipherSuite = cryptoOpts.get(Property.CRYPTO_CIPHER_SUITE.getKey());
-    
-    if (cipherSuite.equals("NullCipher")) {
-      return out;
-    }
-    
-    String algorithmName = cryptoOpts.get(Property.CRYPTO_CIPHER_ALGORITHM_NAME.getKey());
-    String secureRNG = cryptoOpts.get(Property.CRYPTO_SECURE_RNG.getKey());
-    String secureRNGProvider = cryptoOpts.get(Property.CRYPTO_SECURE_RNG_PROVIDER.getKey());
-    SecureRandom secureRandom = DefaultCryptoModuleUtils.getSecureRandom(secureRNG, secureRNGProvider);
-    int keyLength = Integer.parseInt(cryptoOpts.get(Property.CRYPTO_CIPHER_KEY_LENGTH.getKey()));
-    
-    byte[] randomKey = new byte[keyLength / 8];
-    
-    Map<CryptoInitProperty,Object> cryptoInitParams = new HashMap<CryptoInitProperty,Object>();
-    
-    secureRandom.nextBytes(randomKey);
-    cryptoInitParams.put(CryptoInitProperty.PLAINTEXT_SESSION_KEY, randomKey);
-    
-    SecretKeyEncryptionStrategy keyEncryptionStrategy = CryptoModuleFactory.getSecretKeyEncryptionStrategy(cryptoOpts
-        .get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()));
-    SecretKeyEncryptionStrategyContext keyEncryptionStrategyContext = keyEncryptionStrategy.getNewContext();
-    
-    keyEncryptionStrategyContext.setPlaintextSecretKey(randomKey);
-    keyEncryptionStrategyContext.setContext(cryptoOpts);
-    
-    keyEncryptionStrategyContext = keyEncryptionStrategy.encryptSecretKey(keyEncryptionStrategyContext);
-    
-    byte[] encryptedRandomKey = keyEncryptionStrategyContext.getEncryptedSecretKey();
-    String opaqueId = keyEncryptionStrategyContext.getOpaqueKeyEncryptionKeyID();
-    
-    OutputStream cipherOutputStream = getEncryptingOutputStream(out, cryptoOpts, cryptoInitParams);
-    
-    // Get the IV from the init params, since we didn't create it but the other getEncryptingOutputStream did
-    byte[] initVector = (byte[]) cryptoInitParams.get(CryptoInitProperty.INITIALIZATION_VECTOR);
-    
-    DataOutputStream dataOut = new DataOutputStream(out);
-    
-    // Write a marker to indicate this is an encrypted log file (in case we read it a plain one and need to
-    // not try to decrypt it. Can happen during a failure when the log's encryption settings are changing.
-    dataOut.writeUTF(ENCRYPTION_HEADER_MARKER);
-    
-    // Write out the cipher suite and algorithm used to encrypt this file. In case the admin changes, we want to still
-    // decode the old format.
-    dataOut.writeUTF(cipherSuite);
-    dataOut.writeUTF(algorithmName);
-    
-    // Write the init vector to the log file
-    dataOut.writeInt(initVector.length);
-    dataOut.write(initVector);
-    
-    // Write out the encrypted session key and the opaque ID
-    dataOut.writeUTF(opaqueId);
-    dataOut.writeInt(encryptedRandomKey.length);
-    dataOut.write(encryptedRandomKey);
-    
-    // Write the secret key (encrypted) into the log file
-    // dataOut.writeInt(randomKey.length);
-    // dataOut.write(randomKey);
-    
-    return cipherOutputStream;
-  }
   
   @Override
-  public InputStream getDecryptingInputStream(InputStream in, Map<String,String> cryptoOpts) throws IOException {
-    DataInputStream dataIn = new DataInputStream(in);
+  public CryptoModuleParameters initializeCipher(CryptoModuleParameters params) {
+    String cipherTransformation = getCipherTransformation(params); 
     
-    String marker = dataIn.readUTF();
+    log.trace(String.format("Using cipher suite \"%s\" with key length %d with RNG \"%s\" and RNG provider \"%s\" and key encryption strategy \"%s\"",
+        cipherTransformation, params.getKeyLength(), params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider(),
+        params.getKeyEncryptionStrategyClass()));
     
-    log.debug("Read encryption header");
-    if (marker.equals(ENCRYPTION_HEADER_MARKER)) {
+    if (params.getSecureRandom() == null) {
+      SecureRandom secureRandom = DefaultCryptoModuleUtils.getSecureRandom(params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider());
+      params.setSecureRandom(secureRandom);
+    }
+    
+    Cipher cipher = DefaultCryptoModuleUtils.getCipher(cipherTransformation);
+    
+    if (params.getInitializationVector() == null) {
+      try {
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName()), params.getSecureRandom());
+      } catch (InvalidKeyException e) {
+        log.error("Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
+        throw new RuntimeException(e);
+      }
       
-      String cipherSuiteFromFile = dataIn.readUTF();
-      String algorithmNameFromFile = dataIn.readUTF();
+      params.setInitializationVector(cipher.getIV());
       
-      // Read the secret key and initialization vector from the file
-      int initVectorLength = dataIn.readInt();
-      byte[] initVector = new byte[initVectorLength];
-      dataIn.read(initVector, 0, initVectorLength);
-      
-      // Read the opaque ID and encrypted session key
-      String opaqueId = dataIn.readUTF();
-      int encryptedSecretKeyLength = dataIn.readInt();
-      byte[] encryptedSecretKey = new byte[encryptedSecretKeyLength];
-      dataIn.read(encryptedSecretKey);
-      
-      SecretKeyEncryptionStrategy keyEncryptionStrategy = CryptoModuleFactory.getSecretKeyEncryptionStrategy(cryptoOpts
-          .get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()));
-      SecretKeyEncryptionStrategyContext keyEncryptionStrategyContext = keyEncryptionStrategy.getNewContext();
-      
-      keyEncryptionStrategyContext.setOpaqueKeyEncryptionKeyID(opaqueId);
-      keyEncryptionStrategyContext.setContext(cryptoOpts);
-      keyEncryptionStrategyContext.setEncryptedSecretKey(encryptedSecretKey);
-      
-      keyEncryptionStrategyContext = keyEncryptionStrategy.decryptSecretKey(keyEncryptionStrategyContext);
-      
-      byte[] secretKey = keyEncryptionStrategyContext.getPlaintextSecretKey();
-      
-      // int secretKeyLength = dataIn.readInt();
-      // byte[] secretKey = new byte[secretKeyLength];
-      // dataIn.read(secretKey, 0, secretKeyLength);
-      
-      Map<CryptoModule.CryptoInitProperty,Object> cryptoInitParams = new HashMap<CryptoModule.CryptoInitProperty,Object>();
-      cryptoInitParams.put(CryptoInitProperty.CIPHER_SUITE, cipherSuiteFromFile);
-      cryptoInitParams.put(CryptoInitProperty.ALGORITHM_NAME, algorithmNameFromFile);
-      cryptoInitParams.put(CryptoInitProperty.PLAINTEXT_SESSION_KEY, secretKey);
-      cryptoInitParams.put(CryptoInitProperty.INITIALIZATION_VECTOR, initVector);
-      
-      InputStream cipherInputStream = getDecryptingInputStream(dataIn, cryptoOpts, cryptoInitParams);
-      return cipherInputStream;
       
     } else {
-      // Push these bytes back on to the stream. This method is a bit roundabout but isolates our code
-      // from having to understand the format that DataOuputStream uses for its bytes.
-      ByteArrayOutputStream tempByteOut = new ByteArrayOutputStream();
-      DataOutputStream tempOut = new DataOutputStream(tempByteOut);
-      tempOut.writeUTF(marker);
-      
-      byte[] bytesToPutBack = tempByteOut.toByteArray();
-      
-      PushbackInputStream pushbackStream = new PushbackInputStream(in, bytesToPutBack.length);
-      pushbackStream.unread(bytesToPutBack);
-      
-      return pushbackStream;
-    }
-    
-  }
-  
-  @Override
-  public OutputStream getEncryptingOutputStream(OutputStream out, Map<String,String> conf, Map<CryptoModule.CryptoInitProperty,Object> cryptoInitParams) {
-    
-    log.debug("Initializing crypto output stream");
-    
-    String cipherSuite = conf.get(Property.CRYPTO_CIPHER_SUITE.getKey());
-    
-    if (cipherSuite.equals("NullCipher")) {
-      return out;
-    }
-    
-    String algorithmName = conf.get(Property.CRYPTO_CIPHER_ALGORITHM_NAME.getKey());
-    String secureRNG = conf.get(Property.CRYPTO_SECURE_RNG.getKey());
-    String secureRNGProvider = conf.get(Property.CRYPTO_SECURE_RNG_PROVIDER.getKey());
-    int keyLength = Integer.parseInt(conf.get(Property.CRYPTO_CIPHER_KEY_LENGTH.getKey()));
-    String keyStrategyName = conf.get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey());
-    
-    log.debug(String.format(
-        "Using cipher suite \"%s\" (algorithm \"%s\") with key length %d with RNG \"%s\" and RNG provider \"%s\" and key encryption strategy %s", cipherSuite,
-        algorithmName, keyLength, secureRNG, secureRNGProvider, keyStrategyName));
-    
-    SecureRandom secureRandom = DefaultCryptoModuleUtils.getSecureRandom(secureRNG, secureRNGProvider);
-    Cipher cipher = DefaultCryptoModuleUtils.getCipher(cipherSuite);
-    byte[] randomKey = (byte[]) cryptoInitParams.get(CryptoInitProperty.PLAINTEXT_SESSION_KEY);
-    byte[] initVector = (byte[]) cryptoInitParams.get(CryptoInitProperty.INITIALIZATION_VECTOR);
-    
-    // If they pass us an IV, use it...
-    if (initVector != null) {
-      
       try {
-        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(randomKey, algorithmName), new IvParameterSpec(initVector));
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName()), new IvParameterSpec(params.getInitializationVector()));
       } catch (InvalidKeyException e) {
         log.error("Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
         throw new RuntimeException(e);
       } catch (InvalidAlgorithmParameterException e) {
-        log.error("Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
+        log.error("Accumulo encountered an unknown error in setting up the initialization vector for an encrypted stream");
         throw new RuntimeException(e);
       }
-      
-    } else {
-      // We didn't get an IV, so we'll let the cipher make one for us and then put its value back into the map so
-      // that the caller has access to it, to persist it.
-      try {
-        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(randomKey, algorithmName), secureRandom);
-      } catch (InvalidKeyException e) {
-        log.error("Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for the write-ahead log");
-        throw new RuntimeException(e);
-      }
-      
-      // Since the IV length is determined by the algorithm, we let the cipher generate our IV for us,
-      // rather than calling secure random directly.
-      initVector = cipher.getIV();
-      cryptoInitParams.put(CryptoInitProperty.INITIALIZATION_VECTOR, initVector);
+    }
+
+    params.setCipher(cipher);
+    
+    return params;
+    
+  }
+
+  private String getCipherTransformation(CryptoModuleParameters params) {
+    String cipherSuite = params.getAlgorithmName() + "/" + params.getEncryptionMode() + "/" + params.getPadding();
+    return cipherSuite;
+  }
+  
+  private String[] parseCipherSuite(String cipherSuite) {
+    return cipherSuite.split("/");
+  }
+  
+  private boolean validateNotEmpty(String givenValue, boolean allIsWell, StringBuffer buf, String errorMessage) {
+    if (givenValue == null || givenValue.equals("")) {
+      buf.append(errorMessage);
+      buf.append("\n");
+      return false;
     }
     
-    CipherOutputStream cipherOutputStream = new CipherOutputStream(out, cipher);
-    BufferedOutputStream bufferedCipherOutputStream = new BufferedOutputStream(cipherOutputStream);
+    return true && allIsWell;
+  }
+
+  private boolean validateNotNull(Object givenValue, boolean allIsWell, StringBuffer buf, String errorMessage) {
+    if (givenValue == null) {
+      buf.append(errorMessage);
+      buf.append("\n");
+      return false;
+    }
     
-    return bufferedCipherOutputStream;
+    return true && allIsWell;
+  }
+
+  
+  private boolean validateNotZero(int givenValue, boolean allIsWell, StringBuffer buf, String errorMessage) {
+    if (givenValue == 0) {
+      buf.append(errorMessage);
+      buf.append("\n");
+      return false;
+    }
+    
+    return true && allIsWell;
+  }
+
+  private boolean validateParamsObject(CryptoModuleParameters params, int cipherMode) {
+    
+    if (cipherMode == Cipher.ENCRYPT_MODE) {
+      
+      StringBuffer errorBuf = new StringBuffer("The following problems were found with the CryptoModuleParameters object you provided for an encrypt operation:\n");
+      boolean allIsWell = true;
+      
+      allIsWell = validateNotEmpty(params.getAlgorithmName(), allIsWell, errorBuf, "No algorithm name was specified.");
+      
+      if (allIsWell && params.getAlgorithmName().equals("NullCipher")) {
+        return true;
+      }
+      
+      allIsWell = validateNotEmpty(params.getPadding(),                       allIsWell, errorBuf, "No padding was specified.");
+      allIsWell = validateNotZero (params.getKeyLength(),                     allIsWell, errorBuf, "No key length was specified.");
+      allIsWell = validateNotEmpty(params.getEncryptionMode(),                allIsWell, errorBuf, "No encryption mode was specified.");
+      allIsWell = validateNotEmpty(params.getRandomNumberGenerator(),         allIsWell, errorBuf, "No random number generator was specified.");
+      allIsWell = validateNotEmpty(params.getRandomNumberGeneratorProvider(), allIsWell, errorBuf, "No random number generate provider was specified.");
+      allIsWell = validateNotNull (params.getPlaintextOutputStream(),         allIsWell, errorBuf, "No plaintext output stream was specified.");
+
+      if (!allIsWell) {
+        log.error("CryptoModulesParameters object is not valid.");
+        log.error(errorBuf.toString());
+        throw new RuntimeException("CryptoModulesParameters object is not valid.");
+      }
+      
+      return allIsWell;
+      
+    } else if (cipherMode == Cipher.DECRYPT_MODE) {
+      StringBuffer errorBuf = new StringBuffer("The following problems were found with the CryptoModuleParameters object you provided for a decrypt operation:\n");
+      boolean allIsWell = true;
+
+      allIsWell = validateNotEmpty(params.getPadding(),                       allIsWell, errorBuf, "No padding was specified.");
+      allIsWell = validateNotZero (params.getKeyLength(),                     allIsWell, errorBuf, "No key length was specified.");
+      allIsWell = validateNotEmpty(params.getEncryptionMode(),                allIsWell, errorBuf, "No encryption mode was specified.");
+      allIsWell = validateNotEmpty(params.getRandomNumberGenerator(),         allIsWell, errorBuf, "No random number generator was specified.");
+      allIsWell = validateNotEmpty(params.getRandomNumberGeneratorProvider(), allIsWell, errorBuf, "No random number generate provider was specified.");
+      allIsWell = validateNotNull (params.getEncryptedInputStream(),          allIsWell, errorBuf, "No encrypted input stream was specified.");
+      allIsWell = validateNotNull (params.getInitializationVector(),          allIsWell, errorBuf, "No initialization vector was specified.");
+      allIsWell = validateNotNull (params.getEncryptedKey(),                  allIsWell, errorBuf, "No encrypted key was specified.");
+      
+      if (params.getKeyEncryptionStrategyClass() != null && !params.getKeyEncryptionStrategyClass().equals("NullSecretKeyEncryptionStrategy")) {
+        allIsWell = validateNotEmpty(params.getOpaqueKeyEncryptionKeyID(), allIsWell, errorBuf, "No opqaue key encryption ID was specified.");
+      }
+      
+      
+      if (!allIsWell) {
+        log.error("CryptoModulesParameters object is not valid.");
+        log.error(errorBuf.toString());
+        throw new RuntimeException("CryptoModulesParameters object is not valid.");
+      }
+      
+      return allIsWell;
+      
+    } 
+    
+    return false;
+  }
+  
+  
+  @Override
+  public CryptoModuleParameters getEncryptingOutputStream(CryptoModuleParameters params) throws IOException {
+    
+    log.trace("Initializing crypto output stream (new style)");
+    
+    boolean allParamsOK = validateParamsObject(params, Cipher.ENCRYPT_MODE);
+    if (!allParamsOK) {
+      // This would be weird because the above call should throw an exception, but if they don't we'll check and throw.
+      
+      log.error("CryptoModuleParameters was not valid.");
+      throw new RuntimeException("Invalid CryptoModuleParameters");
+    }
+    
+    
+    // If they want a null output stream, just return their plaintext stream as the encrypted stream
+    if (params.getAlgorithmName().equals("NullCipher")) {
+      params.setEncryptedOutputStream(params.getPlaintextOutputStream());
+      return params;
+    }
+    
+    // Get the secret key
+    
+    SecureRandom secureRandom = DefaultCryptoModuleUtils.getSecureRandom(params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider());
+    
+    if (params.getPlaintextKey() == null) {
+      byte[] randomKey = new byte[params.getKeyLength() / 8];
+      secureRandom.nextBytes(randomKey);
+      params.setPlaintextKey(randomKey);
+    }
+    
+    // Encrypt the secret key
+    
+    SecretKeyEncryptionStrategy keyEncryptionStrategy = CryptoModuleFactory.getSecretKeyEncryptionStrategy(params.getKeyEncryptionStrategyClass());
+    params = keyEncryptionStrategy.encryptSecretKey(params);
+    
+    // Now the encrypted version of the key and any opaque ID are within the params object.  Initialize the cipher.
+    
+    // Check if the caller wants us to close the downstream stream when close() is called on the
+    // cipher object.  Calling close() on a CipherOutputStream is necessary for it to write out
+    // padding bytes.
+    if (!params.getCloseUnderylingStreamAfterCryptoStreamClose()) {
+      params.setPlaintextOutputStream(new DiscardCloseOutputStream(params.getPlaintextOutputStream()));
+    }
+
+    if (params.getCipher() == null) {
+      initializeCipher(params);
+    }
+    
+    CipherOutputStream cipherOutputStream = new CipherOutputStream(params.getPlaintextOutputStream(), params.getCipher());
+    BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(cipherOutputStream);    
+    
+    params.setEncryptedOutputStream(bufferedOutputStream);
+    
+    if (params.getRecordParametersToStream()) {
+      DataOutputStream dataOut = new DataOutputStream(params.getPlaintextOutputStream());
+      
+      // Write a marker to indicate this is an encrypted log file (in case we read it a plain one and need to
+      // not try to decrypt it. Can happen during a failure when the log's encryption settings are changing.      
+      dataOut.writeUTF(ENCRYPTION_HEADER_MARKER);
+      
+      
+      // Write out all the parameters
+      dataOut.writeInt(params.getAllOptions().size());
+      for (String key : params.getAllOptions().keySet()) {
+        dataOut.writeUTF(key);
+        dataOut.writeUTF(params.getAllOptions().get(key));
+      }
+
+      // Write out the cipher suite and algorithm used to encrypt this file. In case the admin changes, we want to still
+      // decode the old format.
+      dataOut.writeUTF(getCipherTransformation(params));
+      dataOut.writeUTF(params.getAlgorithmName());
+      
+      // Write the init vector to the log file
+      dataOut.writeInt(params.getInitializationVector().length);
+      dataOut.write(params.getInitializationVector());
+      
+      // Write out the encrypted session key and the opaque ID
+      dataOut.writeUTF(params.getOpaqueKeyEncryptionKeyID());
+      dataOut.writeInt(params.getEncryptedKey().length);
+      dataOut.write(params.getEncryptedKey());
+    }
+    
+    return params;
   }
   
   @Override
-  public InputStream getDecryptingInputStream(InputStream in, Map<String,String> cryptoOpts, Map<CryptoModule.CryptoInitProperty,Object> cryptoInitParams)
-      throws IOException {
-    String cipherSuite = cryptoOpts.get(Property.CRYPTO_CIPHER_SUITE.getKey());
-    String algorithmName = cryptoOpts.get(Property.CRYPTO_CIPHER_ALGORITHM_NAME.getKey());
-    String cipherSuiteFromInitParams = (String) cryptoInitParams.get(CryptoInitProperty.CIPHER_SUITE);
-    String algorithmNameFromInitParams = (String) cryptoInitParams.get(CryptoInitProperty.ALGORITHM_NAME);
-    byte[] initVector = (byte[]) cryptoInitParams.get(CryptoInitProperty.INITIALIZATION_VECTOR);
-    byte[] secretKey = (byte[]) cryptoInitParams.get(CryptoInitProperty.PLAINTEXT_SESSION_KEY);
-    
-    if (initVector == null || secretKey == null || cipherSuiteFromInitParams == null || algorithmNameFromInitParams == null) {
-      log.error("Called getDecryptingInputStream() without proper crypto init params.  Need initVector, plaintext key, cipher suite and algorithm name");
-      throw new RuntimeException("Called getDecryptingInputStream() without initialization vector and/or plaintext session key");
+  public CryptoModuleParameters getDecryptingInputStream(CryptoModuleParameters params) throws IOException {
+    log.trace("About to initialize decryption stream (new style)");
+        
+    if (params.getRecordParametersToStream()) {
+      DataInputStream dataIn = new DataInputStream(params.getEncryptedInputStream());
+      log.trace("About to read encryption parameters from underlying stream");
+      
+      String marker = dataIn.readUTF();
+      if (marker.equals(ENCRYPTION_HEADER_MARKER)) {
+        
+        Map<String, String> paramsFromFile = new HashMap<String, String>();
+        
+        // Read in the bulk of parameters
+        int paramsCount = dataIn.readInt();
+        for (int i = 0; i < paramsCount; i++) {
+          String key = dataIn.readUTF();
+          String value = dataIn.readUTF();
+          
+          paramsFromFile.put(key, value);
+        }
+                
+        // Set the cipher parameters
+        String cipherSuiteFromFile = dataIn.readUTF();
+        String algorithmNameFromFile = dataIn.readUTF();
+        String[] cipherSuiteParts = parseCipherSuite(cipherSuiteFromFile);
+        params.setAlgorithmName(algorithmNameFromFile);
+        params.setEncryptionMode(cipherSuiteParts[1]);
+        params.setPadding(cipherSuiteParts[2]);
+        
+        
+        // Read the secret key and initialization vector from the file
+        int initVectorLength = dataIn.readInt();
+        byte[] initVector = new byte[initVectorLength];
+        dataIn.read(initVector, 0, initVectorLength);
+        
+        params.setInitializationVector(initVector);
+        
+        // Read the opaque ID and encrypted session key
+        String opaqueId = dataIn.readUTF();
+        params.setOpaqueKeyEncryptionKeyID(opaqueId);
+        
+        int encryptedSecretKeyLength = dataIn.readInt();
+        byte[] encryptedSecretKey = new byte[encryptedSecretKeyLength]; 
+        dataIn.read(encryptedSecretKey);
+        params.setEncryptedKey(encryptedSecretKey);
+        
+        
+        if (params.getOverrideStreamsSecretKeyEncryptionStrategy()) {
+          // Merge in options from file selectively
+          for (String name : paramsFromFile.keySet()) {
+            if (!name.equals(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey())) {
+              params.getAllOptions().put(name, paramsFromFile.get(name));
+            }
+          }
+          params.setKeyEncryptionStrategyClass(params.getAllOptions().get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()));
+        } else {
+          params = CryptoModuleFactory.fillParamsObjectFromStringMap(params, paramsFromFile);
+        }
+             
+        SecretKeyEncryptionStrategy keyEncryptionStrategy = CryptoModuleFactory.getSecretKeyEncryptionStrategy(params.getKeyEncryptionStrategyClass());
+        
+        params = keyEncryptionStrategy.decryptSecretKey(params);
+        
+      } else {
+        
+        log.trace("Read something off of the encrypted input stream that was not the encryption header marker, so pushing back bytes and returning the given stream");
+        // Push these bytes back on to the stream. This method is a bit roundabout but isolates our code
+        // from having to understand the format that DataOuputStream uses for its bytes.
+        ByteArrayOutputStream tempByteOut = new ByteArrayOutputStream();
+        DataOutputStream tempOut = new DataOutputStream(tempByteOut);
+        tempOut.writeUTF(marker);
+        
+        byte[] bytesToPutBack = tempByteOut.toByteArray();
+        
+        PushbackInputStream pushbackStream = new PushbackInputStream(params.getEncryptedInputStream(), bytesToPutBack.length);
+        pushbackStream.unread(bytesToPutBack);
+        
+        params.setPlaintextInputStream(pushbackStream);
+        
+        return params;
+      }      
     }
     
-    // Always use the init param's cipher suite, but check it against configured one and warn about discrepencies.
-    if (!cipherSuiteFromInitParams.equals(cipherSuite) || !algorithmNameFromInitParams.equals(algorithmName))
-      log.warn(String.format("Configured cipher suite and algorithm (\"%s\" and \"%s\") is different "
-          + "from cipher suite found in log file (\"%s\" and \"%s\")", cipherSuite, algorithmName, cipherSuiteFromInitParams, algorithmNameFromInitParams));
+    // We validate here after reading parameters from the stream, not at the top of the function.
+    boolean allParamsOK = validateParamsObject(params, Cipher.DECRYPT_MODE);
     
-    Cipher cipher = DefaultCryptoModuleUtils.getCipher(cipherSuiteFromInitParams);
+    if (!allParamsOK) {
+      log.error("CryptoModuleParameters object failed validation for decrypt");
+      throw new RuntimeException("CryptoModuleParameters object failed validation for decrypt");
+    }
+    
+    Cipher cipher = DefaultCryptoModuleUtils.getCipher(getCipherTransformation(params));
     
     try {
-      cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(secretKey, algorithmNameFromInitParams), new IvParameterSpec(initVector));
+      cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName()), new IvParameterSpec(params.getInitializationVector()));
     } catch (InvalidKeyException e) {
       log.error("Error when trying to initialize cipher with secret key");
       throw new RuntimeException(e);
     } catch (InvalidAlgorithmParameterException e) {
       log.error("Error when trying to initialize cipher with initialization vector");
       throw new RuntimeException(e);
-    }
+    }   
     
-    BufferedInputStream bufferedDecryptingInputStream = new BufferedInputStream(new CipherInputStream(in, cipher));
     
-    return bufferedDecryptingInputStream;
+    BufferedInputStream bufferedDecryptingInputStream = new BufferedInputStream(new CipherInputStream(params.getEncryptedInputStream(), cipher));
+
+    log.trace("Initialized cipher input stream with transformation ["+getCipherTransformation(params)+"]");
     
+    params.setPlaintextInputStream(bufferedDecryptingInputStream);
+
+    return params;
   }
+
+  @Override
+  public CryptoModuleParameters generateNewRandomSessionKey(CryptoModuleParameters params) {
+
+    if (params.getSecureRandom() == null) {
+      params.setSecureRandom(DefaultCryptoModuleUtils.getSecureRandom(params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider()));
+    }
+    byte[] newSessionKey = new byte[params.getKeyLength() / 8];
+
+    params.getSecureRandom().nextBytes(newSessionKey);
+    params.setPlaintextKey(newSessionKey);
+    
+    return params;
+  }
+  
 }

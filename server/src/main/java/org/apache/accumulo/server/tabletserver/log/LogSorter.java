@@ -19,8 +19,8 @@ package org.apache.accumulo.server.tabletserver.log;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -34,6 +34,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
+import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
+import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -111,45 +113,44 @@ public class LogSorter {
         fs.deleteRecursively(new Path(destPath));
         
         FSDataInputStream tmpInput = fs.open(srcPath);
-        DataInputStream tmpDecryptingInput = tmpInput;
-        
-        Map<String,String> cryptoOpts = new HashMap<String,String>();
-        tmpInput = DfsLogger.readHeader(fs, srcPath, cryptoOpts);
-        
-        if (!cryptoOpts.containsKey(Property.CRYPTO_MODULE_CLASS.getKey())) {
-          
-          log.debug("Log file " + name + " not encrypted");
-          
+                
+        byte[] magic = DfsLogger.LOG_FILE_HEADER_V2.getBytes();
+        byte[] magicBuffer = new byte[magic.length];
+        tmpInput.readFully(magicBuffer);
+        if (!Arrays.equals(magicBuffer, magic)) {
+          tmpInput.seek(0);
           synchronized (this) {
-            this.input = tmpInput;
-            this.decryptingInput = tmpInput;
+           this.input = tmpInput;
+           this.decryptingInput = tmpInput;
           }
-          
         } else {
+          // We read the crypto module class name here because we need to boot strap the class.  The class itself will read any 
+          // additional parameters it needs from the underlying stream.
+          String cryptoModuleClassname = tmpInput.readUTF();
+          org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+              .getCryptoModule(cryptoModuleClassname);
           
-          String cryptoModuleName = cryptoOpts.get(Property.CRYPTO_MODULE_CLASS.getKey());
-          if (cryptoModuleName == null) {
-            // If for whatever reason we didn't get a configured crypto module (old log file version, for instance)
-            // default to using the default configuration entry (usually NullCipher).
-            cryptoModuleName = AccumuloConfiguration.getDefaultConfiguration().get(Property.CRYPTO_MODULE_CLASS);
-          }
+          // Create the parameters and set the input stream into those parameters
+          CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+          params.setEncryptedInputStream(tmpInput);
           
+          // Create the plaintext input stream from the encrypted one
+          params = cryptoModule.getDecryptingInputStream(params);
+          
+          // Store the plaintext input stream into member variables
           synchronized (this) {
             this.input = tmpInput;
+            
+            if (params.getPlaintextInputStream() instanceof DataInputStream) {
+              this.decryptingInput = (DataInputStream)params.getPlaintextInputStream();              
+            } else {
+              this.decryptingInput = new DataInputStream(params.getPlaintextInputStream());
+            }
+            
           }
           
-          @SuppressWarnings("deprecation")
-          org.apache.accumulo.core.security.crypto.CryptoModule cryptoOps = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
-              .getCryptoModule(cryptoModuleName);
-          @SuppressWarnings("deprecation")
-          InputStream decryptingInputStream = cryptoOps.getDecryptingInputStream(input, cryptoOpts);
-          
-          tmpDecryptingInput = new DataInputStream(decryptingInputStream);
-          
-          synchronized (this) {
-            this.decryptingInput = tmpDecryptingInput;
-          }
         }
+                
         
         final long bufferSize = conf.getMemoryInBytes(Property.TSERV_SORT_BUFFER_SIZE);
         Thread.currentThread().setName("Sorting " + name + " for recovery");
