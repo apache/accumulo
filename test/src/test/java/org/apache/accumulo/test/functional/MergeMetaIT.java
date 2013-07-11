@@ -37,7 +37,7 @@ import org.junit.Test;
 
 public class MergeMetaIT extends MacTest {
   
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 60 * 1000)
   public void mergeMeta() throws Exception {
     Connector c = getConnector();
     SortedSet<Text> splits = new TreeSet<Text>();

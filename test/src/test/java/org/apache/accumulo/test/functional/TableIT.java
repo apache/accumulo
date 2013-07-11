@@ -50,6 +50,7 @@ public class TableIT extends MacTest {
     to.create("test_ingest");
     TestIngest.Opts opts = new TestIngest.Opts();
     TestIngest.ingest(c, opts, new BatchWriterOpts());
+    to.flush("test_ingest", null, null, true);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     String id = to.tableIdMap().get("test_ingest");
