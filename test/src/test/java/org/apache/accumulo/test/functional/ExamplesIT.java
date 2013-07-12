@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -157,7 +158,9 @@ public class ExamplesIT extends MacTest {
     bw = c.createBatchWriter("shard", bwc);
     Index.index(30, new File(System.getProperty("user.dir") + "/src"), "\\W+", bw);
     bw.close();
-    List<String> found = Query.query(c.createBatchScanner("shard", Authorizations.EMPTY, 4), Arrays.asList("foo", "bar"));
+    BatchScanner bs = c.createBatchScanner("shard", Authorizations.EMPTY, 4);
+    List<String> found = Query.query(bs, Arrays.asList("foo", "bar"));
+    bs.close();
     // should find ourselves
     boolean thisFile = false;
     for (String file : found) {

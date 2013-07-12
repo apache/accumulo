@@ -79,10 +79,12 @@ public class ServerSideErrorIT extends MacTest {
       for (Entry<Key,Value> entry : bs) {
         entry.getKey();
       }
-      bs.close();
     } catch (Exception e) {
       caught = true;
+    } finally {
+      bs.close();
     }
+    
     if (!caught)
       throw new Exception("batch scan did not fail");
     
