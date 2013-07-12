@@ -61,14 +61,14 @@ public class ServerConfiguration {
     return getZooConfiguration(instance);
   }
 
-  public static TableNamespaceConfiguration getTableNamespaceConfiguration(Instance instance, String namespaceId) {
+  public static TableNamespaceConfiguration getTableNamespaceConfiguration(Instance instance, String tableId) {
     checkPermissions();
     synchronized (tableNamespaceInstances) {
-      TableNamespaceConfiguration conf = tableNamespaceInstances.get(namespaceId);
+      TableNamespaceConfiguration conf = tableNamespaceInstances.get(tableId);
       if (conf == null) {
-        conf = new TableNamespaceConfiguration(instance, namespaceId, getSystemConfiguration(instance));
+        conf = new TableNamespaceConfiguration(tableId, getSystemConfiguration(instance));
         ConfigSanityCheck.validate(conf);
-        tableNamespaceInstances.put(namespaceId, conf);
+        tableNamespaceInstances.put(tableId, conf);
       }
       return conf;
     }
@@ -79,7 +79,7 @@ public class ServerConfiguration {
     synchronized (tableInstances) {
       TableConfiguration conf = tableInstances.get(tableId);
       if (conf == null && Tables.exists(instance, tableId)) {
-        conf = new TableConfiguration(instance.getInstanceID(), tableId, getTableNamespaceConfiguration(instance, Tables.getNamespace(instance, tableId)));
+        conf = new TableConfiguration(instance.getInstanceID(), tableId, getTableNamespaceConfiguration(instance, tableId));
         ConfigSanityCheck.validate(conf);
         tableInstances.put(tableId, conf);
       }
@@ -113,10 +113,6 @@ public class ServerConfiguration {
 
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getTableConfiguration(extent.getTableId().toString());
-  }
-
-  public TableNamespaceConfiguration getTableNamespaceConfiguration(String namespaceId) {
-    return getTableNamespaceConfiguration(instance, namespaceId);
   }
 
   public synchronized AccumuloConfiguration getConfiguration() {

@@ -23,6 +23,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -34,17 +35,18 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(TableNamespaceConfiguration.class);
   
   private final AccumuloConfiguration parent;
-  private final String instanceId;
   private static ZooCache propCache = null;
-  private String namespaceId = null;
+  private String tableId = null;
+  private Instance inst = null;
   
-  public TableNamespaceConfiguration (Instance inst, String namespaceId, AccumuloConfiguration parent) {
-      propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
-      this.instanceId = inst.getInstanceID();
-      this.parent = parent;
-      this.namespaceId = namespaceId;
+  public TableNamespaceConfiguration(String tableId, AccumuloConfiguration parent) {
+    inst = HdfsZooInstance.getInstance();
+    propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
+    this.parent = parent;
+    this.tableId = tableId;
   }
-
+  
+  @Override
   public void invalidateCache() {
     if (propCache != null)
       propCache.clear();
@@ -64,11 +66,12 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
   }
   
   private String get(String key) {
-    String zPath = ZooUtil.getRoot(instanceId) + Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZNAMESPACE_CONF + "/" + key;
+    String zPath = ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + Tables.getNamespace(inst, tableId) + Constants.ZNAMESPACE_CONF + "/"
+        + key;
     byte[] v = getPropCache().get(zPath);
     String value = null;
     if (v != null)
-      value = new String(v);
+      value = new String(v, Constants.UTF8);
     return value;
   }
   
@@ -89,7 +92,8 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     for (Entry<String,String> parentEntry : parent)
       entries.put(parentEntry.getKey(), parentEntry.getValue());
     
-    List<String> children = getPropCache().getChildren(ZooUtil.getRoot(instanceId) + Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZNAMESPACE_CONF);
+    List<String> children = getPropCache().getChildren(
+        ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + Tables.getNamespace(inst, tableId) + Constants.ZNAMESPACE_CONF);
     if (children != null) {
       for (String child : children) {
         String value = get(child);
