@@ -228,6 +228,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private static long gcTimeIncreasedCount;
   
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
+  private static final long RECENTLY_SPLIT_MILLIES = 60*1000;
   
   private TabletServerLogger logger;
   
@@ -1833,6 +1834,16 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             Set<KeyExtent> unopenedOverlapping = KeyExtent.findOverlapping(extent, unopenedTablets);
             Set<KeyExtent> openingOverlapping = KeyExtent.findOverlapping(extent, openingTablets);
             Set<KeyExtent> onlineOverlapping = KeyExtent.findOverlapping(extent, onlineTablets);
+            
+            // ignore any tablets that have recently split
+            Iterator<KeyExtent> each = onlineOverlapping.iterator();
+            while (each.hasNext()) {
+              Tablet tablet = onlineTablets.get(each.next());
+              if (System.currentTimeMillis() - tablet.getSplitCreationTime() < RECENTLY_SPLIT_MILLIES) {
+                each.remove();
+              }
+            }
+            
             Set<KeyExtent> all = new HashSet<KeyExtent>();
             all.addAll(unopenedOverlapping);
             all.addAll(openingOverlapping);
