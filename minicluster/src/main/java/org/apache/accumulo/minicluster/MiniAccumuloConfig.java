@@ -41,7 +41,7 @@ public class MiniAccumuloConfig {
   private int numTservers = 2;
   private Map<ServerType,Long> memoryConfig = new HashMap<ServerType,Long>();
   
-  private boolean jwdpEnabled = false;
+  private boolean jdwpEnabled = false;
   
   private String instanceName = "miniInstance";
   
@@ -332,23 +332,23 @@ public class MiniAccumuloConfig {
   }
   
   /**
-   * @return is the current configuration in jwdpEnabled mode?
+   * @return is the current configuration in jdwpEnabled mode?
    * 
    * @since 1.6.0
    */
-  public boolean isJWDPEnabled() {
-    return jwdpEnabled;
+  public boolean isJDWPEnabled() {
+    return jdwpEnabled;
   }
   
   /**
-   * @param jwdpEnabled
-   *          should the processes run remote jwdpEnabled servers?
+   * @param jdwpEnabled
+   *          should the processes run remote jdwpEnabled servers?
    * @return the current instance
    * 
    * @since 1.6.0
    */
-  public MiniAccumuloConfig setJWDPEnabled(boolean jwdpEnabled) {
-    this.jwdpEnabled = jwdpEnabled;
+  public MiniAccumuloConfig setJDWPEnabled(boolean jdwpEnabled) {
+    this.jdwpEnabled = jdwpEnabled;
     return this;
   }
   

@@ -59,7 +59,7 @@ public class MiniAccumuloClusterTest {
     Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
 
     folder.create();
-    MiniAccumuloConfig config = new MiniAccumuloConfig(folder.getRoot(), "superSecret").setJWDPEnabled(true);
+    MiniAccumuloConfig config = new MiniAccumuloConfig(folder.getRoot(), "superSecret").setJDWPEnabled(true);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
   }

@@ -44,7 +44,7 @@ import com.google.common.io.Files;
  * instanceName=testInstance
  * numTServers=1
  * zooKeeperPort=3191
- * jwdpEnabled=true
+ * jdwpEnabled=true
  * zooKeeperMemory=128M
  * tserverMemory=256M
  * masterMemory=128M
@@ -110,8 +110,8 @@ public class MiniAccumuloRunner {
       config.setNumTservers(Integer.parseInt(opts.prop.getProperty("numTServers")));
     if (opts.prop.containsKey("zooKeeperPort"))
       config.setZooKeeperPort(Integer.parseInt(opts.prop.getProperty("zooKeeperPort")));
-    if (opts.prop.containsKey("jwdpEnabled"))
-      config.setJWDPEnabled(Boolean.parseBoolean(opts.prop.getProperty("jwdpEnabled")));
+    if (opts.prop.containsKey("jdwpEnabled"))
+      config.setJDWPEnabled(Boolean.parseBoolean(opts.prop.getProperty("jdwpEnabled")));
     if (opts.prop.containsKey("zooKeeperMemory"))
       setMemoryOnConfig(config, opts.prop.getProperty("zooKeeperMemory"), ServerType.ZOOKEEPER);
     if (opts.prop.containsKey("tserverMemory"))

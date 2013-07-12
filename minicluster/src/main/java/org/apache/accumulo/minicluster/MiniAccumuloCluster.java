@@ -180,7 +180,7 @@ public class MiniAccumuloCluster {
     List<String> jvmOpts = new ArrayList<String>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
 
-    if (config.isJWDPEnabled()) {
+    if (config.isJDWPEnabled()) {
       Integer port = PortUtils.getRandomFreePort();
       jvmOpts.addAll(buildRemoteDebugParams(port));
       debugPorts.add(new Pair<ServerType,Integer>(serverType, port));
