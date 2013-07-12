@@ -44,8 +44,8 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
   @Override
   public void cleanup() throws Exception {
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    fs.delete(new Path("/tmp/testmf"), true);
-    fs.delete(new Path("/tmp/testmf_failures"), true);
+    fs.delete(new Path("tmp/testmf"), true);
+    fs.delete(new Path("tmp/testmf_failures"), true);
   }
   
   @Override
@@ -63,11 +63,11 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
   public void run() throws Exception {
     
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    fs.delete(new Path("/tmp/testmf"), true);
+    fs.delete(new Path("tmp/testmf"), true);
     AuthenticationToken token = this.getToken();
     CreateRFiles.main(new String[] {"--output", "tmp/testmf", "--numThreads", "8", "--start", "0", "--end", "100000", "--splits", "99"});
     
-    bulkImport(fs, TABLE_NAME, "/tmp/testmf");
+    bulkImport(fs, TABLE_NAME, "tmp/testmf");
     
     checkSplits(TABLE_NAME, 0, 0);
     checkRFiles(TABLE_NAME, 1, 1, 100, 100);

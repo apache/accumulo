@@ -42,13 +42,13 @@ class SimpleBulkTest(TestUtilsMixin, unittest.TestCase):
             self.masterHost(),
             'org.apache.accumulo.test.BulkImportDirectory',
             ['-u', ROOT, '-p', ROOT_PASSWORD,
-             '-t', 'test_ingest', '--source', dir, '--failures', '/testBulkFail', '-i', INSTANCE_NAME])
+             '-t', 'test_ingest', '--source', dir, '--failures', 'testBulkFail', '-i', INSTANCE_NAME])
         self.wait(handle)
         self.assert_(handle.returncode == 0)
         
 
     def createRFiles(self):
-        args = '--rfile /testrf/rf%02d --timestamp 1 --size 50 --random 56 --rows %1d --start %ld --cols 1 -u root -i ' + INSTANCE_NAME
+        args = '--rfile testrf/rf%02d --timestamp 1 --size 50 --random 56 --rows %1d --start %ld --cols 1 -u root -i ' + INSTANCE_NAME
         log.info('creating rfiles')
         handles = []
         for i in range(COUNT):
@@ -73,9 +73,9 @@ class SimpleBulkTest(TestUtilsMixin, unittest.TestCase):
 
         # initialize the database
         self.createTable('test_ingest')
-        self.execute(self.masterHost(), 'hadoop dfs -rmr /testrf'.split())
-        self.execute(self.masterHost(), 'hadoop dfs -rmr /testBulkFail'.split())
-        self.execute(self.masterHost(), 'hadoop dfs -mkdir /testBulkFail'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -rmr testrf'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -rmr testBulkFail'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -mkdir testBulkFail'.split())
 
         # insert some data
         self.createRFiles()
