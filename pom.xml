@@ -83,6 +83,7 @@
     <module>test</module>
     <module>minicluster</module>
     <module>docs</module>
+    <module>maven-plugin</module>
   </modules>
   <scm>
     <connection>scm:svn:http://svn.apache.org/repos/asf/accumulo/trunk</connection>
@@ -297,6 +298,16 @@
         <version>${hadoop.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-plugin-api</artifactId>
+        <version>${maven.min-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.plugin-tools</groupId>
+        <artifactId>maven-plugin-annotations</artifactId>
+        <version>3.2</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
         <version>0.9.0</version>
@@ -305,6 +316,11 @@
         <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper</artifactId>
         <version>${zookeeper.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-utils</artifactId>
+        <version>3.0.10</version>
       </dependency>
       <dependency>
         <groupId>org.easymock</groupId>
@@ -571,6 +587,19 @@
                 </pluginExecution>
                 <pluginExecution>
                   <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-invoker-plugin</artifactId>
+                    <versionRange>[1.7,)</versionRange>
+                    <goals>
+                      <goal>install</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
                     <groupId>com.google.code.sortpom</groupId>
                     <artifactId>maven-sortpom-plugin</artifactId>
                     <versionRange>[2.1.0,)</versionRange>
@@ -630,18 +659,11 @@
             <id>run-integration-tests</id>
             <goals>
               <goal>integration-test</goal>
-            </goals>
-            <phase>integration-test</phase>
-          	<configuration>
-              <redirectTestOutputToFile>true</redirectTestOutputToFile>
-          	</configuration>
-          </execution>
-          <execution>
-            <id>verify-integration-tests</id>
-            <goals>
               <goal>verify</goal>
             </goals>
-            <phase>verify</phase>
+            <configuration>
+              <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -839,6 +861,7 @@
       <id>seal-jars</id>
       <properties>
         <sealJars>true</sealJars>
+        <skipITs>true</skipITs>
         <skipTests>true</skipTests>
       </properties>
     </profile>
