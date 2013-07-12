@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -42,7 +44,13 @@ public class DeleteTableCommand extends TableOperation {
   protected void doTableOp(final Shell shellState, final String tableName) throws Exception {
     shellState.getConnector().tableOperations().delete(tableName);
     shellState.getReader().println("Table: [" + tableName + "] has been deleted.");
-    if (shellState.getTableName().equals(tableName)) {
+    
+    String n = Tables.extractNamespace(tableName);
+    String checkTable = tableName;
+    if (n.equals(Constants.DEFAULT_TABLE_NAMESPACE) || n.equals(Constants.SYSTEM_TABLE_NAMESPACE)) {
+      checkTable = Tables.extractTableName(tableName);
+    }
+    if (shellState.getTableName().equals(checkTable)) {
       shellState.setTableName("");
     }
   }

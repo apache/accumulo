@@ -61,7 +61,7 @@ public class ServerConfiguration {
     return getZooConfiguration(instance);
   }
 
-  public static TableNamespaceConfiguration getTableNamespaceConfiguration(Instance instance, String tableId) {
+  public static TableNamespaceConfiguration getTableNamespaceConfigurationForTable(Instance instance, String tableId) {
     checkPermissions();
     synchronized (tableNamespaceInstances) {
       TableNamespaceConfiguration conf = tableNamespaceInstances.get(tableId);
@@ -74,12 +74,25 @@ public class ServerConfiguration {
     }
   }
 
+  public static TableNamespaceConfiguration getTableNamespaceConfiguration(Instance instance, String namespaceId) {
+    checkPermissions();
+    synchronized (tableNamespaceInstances) {
+      TableNamespaceConfiguration conf = tableNamespaceInstances.get(namespaceId);
+      if (conf == null) {
+        conf = new TableNamespaceConfiguration(namespaceId, getSystemConfiguration(instance), true);
+        ConfigSanityCheck.validate(conf);
+        tableNamespaceInstances.put(namespaceId, conf);
+      }
+      return conf;
+    }
+  }
+
   public static TableConfiguration getTableConfiguration(Instance instance, String tableId) {
     checkPermissions();
     synchronized (tableInstances) {
       TableConfiguration conf = tableInstances.get(tableId);
       if (conf == null && Tables.exists(instance, tableId)) {
-        conf = new TableConfiguration(instance.getInstanceID(), tableId, getTableNamespaceConfiguration(instance, tableId));
+        conf = new TableConfiguration(instance.getInstanceID(), tableId, getTableNamespaceConfigurationForTable(instance, tableId));
         ConfigSanityCheck.validate(conf);
         tableInstances.put(tableId, conf);
       }
@@ -113,6 +126,10 @@ public class ServerConfiguration {
 
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return getTableConfiguration(extent.getTableId().toString());
+  }
+
+  public TableNamespaceConfiguration getTableNamespaceConfiguration(String namespaceId) {
+    return getTableNamespaceConfiguration(instance, namespaceId);
   }
 
   public synchronized AccumuloConfiguration getConfiguration() {

@@ -844,22 +844,40 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue(namespaces.contains("thing2"));
     assertTrue(!namespaces.contains("thing1"));
     
+    // can't delete a namespace that still contains tables, unless you do -f
     exec("createtable thing2.thingy", true);
     exec("deletenamespace thing2");
     exec("y");
     exec("namespaces", true, "thing2", true);
     
+    /* doesn't work yet, waiting on ACCUMULO-1565
+    exec("clonenamespace thing2 testers -e table.file.max", true);
+    exec("namespaces", true, "testers", true);
+    exec("tables", true, "testers.thingy", true);
+    exec("clonenamespace thing2 testers2 -s table.file.max=42", true);*/
+    
     exec("du -tn thing2", true, "thing2.thingy", true);
     
+    // all "TableOperation" commands can take a table namespace
     exec("offline -tn thing2", true);
     exec("online -tn thing2", true);
+    exec("flush -tn thing2", true);
+    exec("compact -tn thing2", true);
+    exec("createtable testers.1", true);
+    exec("createtable testers.2", true);
+    exec("deletetable -tn testers -f", true);
+    exec("tables", true, "testers.1", false);
+    exec("namespaces", true, "testers", true);
+    exec("deletenamespace testers -f", true);
     
+    // properties override and such
     exec("config -tn thing2 -s table.file.max=44444", true);
     exec("config -tn thing2", true, "44444", true);
     exec("config -t thing2.thingy", true, "44444", true);
     exec("config -t thing2.thingy -s table.file.max=55555", true);
     exec("config -t thing2.thingy", true, "55555", true);
     
+    // can copy properties when creating
     exec("createnamespace thing3 -cc thing2", true);
     exec("config -tn thing3", true, "44444", true);
     exec("createnamespace thing4 -ctc thing2.thingy", true);

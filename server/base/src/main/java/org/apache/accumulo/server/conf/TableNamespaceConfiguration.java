@@ -37,6 +37,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
   private final AccumuloConfiguration parent;
   private static ZooCache propCache = null;
   private String tableId = null;
+  private String namespaceId = null;
   private Instance inst = null;
   
   public TableNamespaceConfiguration(String tableId, AccumuloConfiguration parent) {
@@ -44,6 +45,13 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
     this.parent = parent;
     this.tableId = tableId;
+  }
+  
+  public TableNamespaceConfiguration(String namespaceId, AccumuloConfiguration parent, boolean notForSpecificTable) {
+    inst = HdfsZooInstance.getInstance();
+    propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
+    this.parent = parent;
+    this.namespaceId = namespaceId;
   }
   
   @Override
@@ -66,7 +74,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
   }
   
   private String get(String key) {
-    String zPath = ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + Tables.getNamespace(inst, tableId) + Constants.ZNAMESPACE_CONF + "/"
+    String zPath = ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF + "/"
         + key;
     byte[] v = getPropCache().get(zPath);
     String value = null;
@@ -93,7 +101,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
       entries.put(parentEntry.getKey(), parentEntry.getValue());
     
     List<String> children = getPropCache().getChildren(
-        ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + Tables.getNamespace(inst, tableId) + Constants.ZNAMESPACE_CONF);
+        ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF);
     if (children != null) {
       for (String child : children) {
         String value = get(child);
@@ -103,5 +111,12 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     }
     
     return entries.entrySet().iterator();
+  }
+  
+  private String getNamespaceId() {
+    if (tableId != null) {
+      return Tables.getNamespace(inst, tableId);
+    }
+    return namespaceId;
   }
 }

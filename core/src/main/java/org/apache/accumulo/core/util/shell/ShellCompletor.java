@@ -57,7 +57,7 @@ public class ShellCompletor implements Completer {
   }
   
   private int _complete(String fullBuffer, int cursor, List<String> candidates) {
-    boolean inTableFlag = false, inUserFlag = false;
+    boolean inTableFlag = false, inUserFlag = false, inNamespaceFlag = false;
     // Only want to grab the buffer up to the cursor because
     // the user could be trying to tab complete in the middle
     // of the line
@@ -98,7 +98,10 @@ public class ShellCompletor implements Completer {
           } else if (current_string_token.trim().equals("-" + Shell.userOption)) {
             candidates.addAll(options.get(Shell.Command.CompletionSet.USERNAMES));
             prefix += "-" + Shell.userOption + " ";
-          } else if (current_command_token != null) {
+          } else if (current_string_token.trim().equals("-" + Shell.tableNamespaceOption)) {
+            candidates.addAll(options.get(Shell.Command.CompletionSet.TABLENAMESPACES));
+            prefix += "-" + Shell.tableNamespaceOption + " ";
+          }else if (current_command_token != null) {
             Token next = current_command_token.getSubcommand(current_string_token);
             if (next != null) {
               current_command_token = next;
@@ -115,13 +118,17 @@ public class ShellCompletor implements Completer {
           return (prefix.length());
         }
         // need to match current command
-        // if we're in -t <table> or -u <user> complete those
+        // if we're in -t <table>, -u <user>, or -tn <tableNamespace> complete those
         if (inTableFlag) {
           for (String a : options.get(Shell.Command.CompletionSet.TABLENAMES))
             if (a.startsWith(current_string_token))
               candidates.add(a);
         } else if (inUserFlag) {
           for (String a : options.get(Shell.Command.CompletionSet.USERNAMES))
+            if (a.startsWith(current_string_token))
+              candidates.add(a);
+        } else if (inNamespaceFlag) {
+          for (String a : options.get(Shell.Command.CompletionSet.TABLENAMESPACES))
             if (a.startsWith(current_string_token))
               candidates.add(a);
         } else if (current_command_token != null)
@@ -135,8 +142,10 @@ public class ShellCompletor implements Completer {
         inTableFlag = true;
       else if (current_string_token.trim().equals("-" + Shell.userOption))
         inUserFlag = true;
+      else if (current_string_token.trim().equals("-" + Shell.tableNamespaceOption))
+        inNamespaceFlag = true;
       else
-        inUserFlag = inTableFlag = false;
+        inUserFlag = inTableFlag = inNamespaceFlag = false;
       
       if (current_command_token != null && current_command_token.getCaseSensitive())
         prefix += current_string_token + " ";

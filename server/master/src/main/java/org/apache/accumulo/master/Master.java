@@ -346,6 +346,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         zoo.putPersistentData(systemTableNamespace + Constants.ZNAMESPACE_NAME, Constants.SYSTEM_TABLE_NAMESPACE.getBytes(Constants.UTF8),
             NodeExistsPolicy.SKIP);
 
+        Map<String,String> opts = IteratorUtil.generateInitialTableProperties(true);
+        for (Entry<String,String> e : opts.entrySet()) {
+          zoo.putPersistentData(defaultTableNamespace + Constants.ZNAMESPACE_CONF + "/" + e.getKey(), e.getValue().getBytes(Constants.UTF8),
+              NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(systemTableNamespace + Constants.ZNAMESPACE_CONF + "/" + e.getKey(), e.getValue().getBytes(Constants.UTF8),
+              NodeExistsPolicy.SKIP);
+        }
+
         for (Entry<String,String> table : Tables.getIdToNameMap(instance).entrySet()) {
           if (table.getValue().equals(MetadataTable.NAME) || table.getValue().equals(RootTable.NAME)) {
             zoo.putPersistentData(tables + "/" + table.getKey() + Constants.ZTABLE_NAMESPACE, Constants.SYSTEM_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8),

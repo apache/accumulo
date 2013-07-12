@@ -25,6 +25,7 @@ public abstract class ShellOptions {
   // Global options flags
   public static final String userOption = "u";
   public static final String tableOption = "t";
+  public static final String tableNamespaceOption = "tn";
   public static final String helpOption = "?";
   public static final String helpLongOption = "help";
   

@@ -19,10 +19,12 @@ package org.apache.accumulo.core.util.shell.commands;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.Token;
@@ -30,11 +32,17 @@ import org.apache.commons.cli.CommandLine;
 
 public class RenameTableCommand extends Command {
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      TableExistsException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, TableExistsException {
     shellState.getConnector().tableOperations().rename(cl.getArgs()[0], cl.getArgs()[1]);
-    if (shellState.getTableName().equals(cl.getArgs()[0]))
-      shellState.setTableName(cl.getArgs()[1]);
+    if (shellState.getTableName().equals(cl.getArgs()[0])) {
+      String tableName = cl.getArgs()[1];
+      String n = Tables.extractNamespace(tableName);
+      if (n.equals(Constants.DEFAULT_TABLE_NAMESPACE) || n.equals(Constants.SYSTEM_TABLE_NAMESPACE)) {
+        tableName = Tables.extractTableName(tableName);
+      }
+      shellState.setTableName(tableName);
+    }
     return 0;
   }
   
