@@ -56,9 +56,9 @@ public class BulkSplitOptimizationIT extends MacTest {
     c.tableOperations().setProperty(TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1G");
     
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    FunctionalTestUtils.createRFiles(c, fs, "/tmp/testmf", ROWS, SPLITS, 8);
+    FunctionalTestUtils.createRFiles(c, fs, "tmp/testmf", ROWS, SPLITS, 8);
     
-    FunctionalTestUtils.bulkImport(c, fs, TABLE_NAME, "/tmp/testmf");
+    FunctionalTestUtils.bulkImport(c, fs, TABLE_NAME, "tmp/testmf");
     
     FunctionalTestUtils.checkSplits(c, TABLE_NAME, 0, 0);
     FunctionalTestUtils.checkRFiles(c, TABLE_NAME, 1, 1, 100, 100);

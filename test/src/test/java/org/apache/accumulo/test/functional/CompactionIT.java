@@ -60,8 +60,8 @@ public class CompactionIT extends MacTest {
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_MAJC_RATIO.getKey(), "1.0");
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    FunctionalTestUtils.createRFiles(c, fs, "/tmp/testrf", 500000, 59, 4);
-    FunctionalTestUtils.bulkImport(c, fs, "test_ingest", "/tmp/testrf");
+    FunctionalTestUtils.createRFiles(c, fs, "tmp/testrf", 500000, 59, 4);
+    FunctionalTestUtils.bulkImport(c, fs, "test_ingest", "tmp/testrf");
     int beforeCount = countFiles(c);
     
     final AtomicBoolean fail = new AtomicBoolean(false);
