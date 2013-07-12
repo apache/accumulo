@@ -42,13 +42,13 @@ class SimpleBulkTest(TestUtilsMixin, unittest.TestCase):
             self.masterHost(),
             'org.apache.accumulo.server.test.BulkImportDirectory',
             [ROOT, ROOT_PASSWORD,
-             'test_ingest', '/testmf', '/testmfFail'])
+             'test_ingest', 'testmf', 'testmfFail'])
         self.wait(handle)
         self.assert_(handle.returncode == 0)
         
 
     def createMapFiles(self):
-        args = '-mapFile /testmf/mf%02d -timestamp 1 -size 50 -random 56 %1d %ld 1'
+        args = '-mapFile testmf/mf%02d -timestamp 1 -size 50 -random 56 %1d %ld 1'
         log.info('creating map files')
         handles = []
         for i in range(COUNT):
@@ -73,9 +73,9 @@ class SimpleBulkTest(TestUtilsMixin, unittest.TestCase):
 
         # initialize the database
         self.createTable('test_ingest')
-        self.execute(self.masterHost(), 'hadoop dfs -rmr /testmf'.split())
-        self.execute(self.masterHost(), 'hadoop dfs -rmr /testmfFail'.split())
-        self.execute(self.masterHost(), 'hadoop dfs -mkdir /testmfFail'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -rmr testmf'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -rmr testmfFail'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -mkdir testmfFail'.split())
 
         # insert some data
         self.createMapFiles()

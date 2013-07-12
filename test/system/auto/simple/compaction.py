@@ -52,8 +52,8 @@ class CompactionTest(SimpleBulkTest):
 
         # initialize the database
         self.createTable('test_ingest')
-        self.execute(self.masterHost(), 'hadoop dfs -rmr /testmf'.split())
-        self.execute(self.masterHost(), 'hadoop dfs -rmr /testmfFail'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -rmr testmf'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -rmr testmfFail'.split())
 
         # insert some data
         self.createMapFiles(self.masterHost())
