@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.accumulo.maven.plugin;
+package org.apache.accumulo.maven.plugin;
 
 import java.io.File;
 import java.util.Collections;
@@ -42,26 +42,47 @@ public class StartMojo extends AbstractAccumuloMojo {
   private String instanceName;
   
   @Parameter(defaultValue = "secret", property = "rootPassword", required = true)
-  private String rootPassword = "secret";
+  private String rootPassword;
+  
+  private String miniClasspath;
   
   static Set<MiniAccumuloCluster> runningClusters = Collections.synchronizedSet(new HashSet<MiniAccumuloCluster>());
   
   @Override
   public void execute() throws MojoExecutionException {
     File subdir = new File(new File(outputDirectory, "accumulo-maven-plugin"), instanceName);
-    subdir.mkdirs();
     
     try {
-      configureMiniClasspath();
+      subdir = subdir.getCanonicalFile();
+      subdir.mkdirs();
+      configureMiniClasspath(miniClasspath);
       MiniAccumuloConfig cfg = new MiniAccumuloConfig(subdir, rootPassword);
       cfg.setInstanceName(instanceName);
       MiniAccumuloCluster mac = new MiniAccumuloCluster(cfg);
-      System.out.println("Starting MiniAccumuloCluster: " + mac.getInstanceName());
+      System.out.println("Starting MiniAccumuloCluster: " + mac.getInstanceName() + " in " + mac.getConfig().getDir());
       mac.start();
       runningClusters.add(mac);
     } catch (Exception e) {
       throw new MojoExecutionException("Unable to start " + MiniAccumuloCluster.class.getSimpleName(), e);
     }
     
+  }
+  
+  public static void main(String[] args) throws MojoExecutionException {
+    int a = 0;
+    for (String arg : args) {
+      if (a < 2) {
+        // skip the first two args
+        a++;
+        continue;
+      }
+      StartMojo starter = new StartMojo();
+      starter.outputDirectory = new File(args[0]);
+      String[] instArgs = arg.split(" ");
+      starter.instanceName = instArgs[0];
+      starter.rootPassword = instArgs[1];
+      starter.miniClasspath = args[1];
+      starter.execute();
+    }
   }
 }

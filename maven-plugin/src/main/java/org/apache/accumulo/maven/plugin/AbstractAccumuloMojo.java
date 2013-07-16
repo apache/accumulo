@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.accumulo.maven.plugin;
+package org.apache.accumulo.maven.plugin;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -29,14 +29,21 @@ public abstract class AbstractAccumuloMojo extends AbstractMojo {
   @Parameter(defaultValue = "${plugin.artifacts}", readonly = true, required = true)
   private List<Artifact> pluginArtifacts;
   
-  void configureMiniClasspath() {
-    for (Artifact artifact : pluginArtifacts) {
-      try {
-        System.setProperty("java.class.path", System.getProperty("java.class.path", "") + File.pathSeparator + artifact.getFile().toURI().toURL());
-      } catch (MalformedURLException e) {
-        e.printStackTrace();
+  void configureMiniClasspath(String miniClasspath) {
+    String classpath = "";
+    if (miniClasspath == null && pluginArtifacts != null) {
+      String sep = "";
+      for (Artifact artifact : pluginArtifacts) {
+        try {
+          classpath += sep + artifact.getFile().toURI().toURL();
+          sep = File.pathSeparator;
+        } catch (MalformedURLException e) {
+          e.printStackTrace();
+        }
       }
+    } else if (miniClasspath != null && !miniClasspath.isEmpty()) {
+      classpath = miniClasspath;
     }
-    
+    System.setProperty("java.class.path", System.getProperty("java.class.path", "") + File.pathSeparator + classpath);
   }
 }
