@@ -28,8 +28,8 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 . "$bin"/config.sh
 unset DISPLAY
 
-if [ ! -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
-   echo "${ACCUMULO_HOME}/conf/accumulo-env.sh does not exist. Please make sure you configure Accumulo before you run anything"
+if [ ! -f $ACCUMULO_CONF_DIR/accumulo-env.sh ] ; then
+   echo "${ACCUMULO_CONF_DIR}/accumulo-env.sh does not exist. Please make sure you configure Accumulo before you run anything"
    echo "We provide examples you can copy in ${ACCUMULO_HOME}/conf/examples/ which are set up for your memory footprint"
    exit 1
 fi
@@ -54,12 +54,12 @@ if [ "$1" != "--notSlaves" ]; then
 fi
 
 ${bin}/accumulo org.apache.accumulo.server.master.state.SetGoalState NORMAL
-for master in `egrep -v '(^#|^\s*$)' "$ACCUMULO_HOME/conf/masters"`; do
+for master in `egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters"`; do
    ${bin}/start-server.sh $master master
 done
 
 ${bin}/start-server.sh $GC gc "garbage collector"
 
-for tracer in `egrep -v '(^#|^\s*$)' "$ACCUMULO_HOME/conf/tracers"`; do
+for tracer in `egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/tracers"`; do
    ${bin}/start-server.sh $tracer tracer
 done

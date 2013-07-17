@@ -42,14 +42,14 @@ fi
 
 HOSTS="`hostname -a` `hostname` localhost 127.0.0.1 $ip"
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_HOME/conf/slaves; then
+   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/slaves; then
       ${bin}/start-server.sh $host tserver "tablet server"
       break
    fi
 done
 
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_HOME/conf/masters; then
+   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/masters; then
       ${bin}/accumulo org.apache.accumulo.server.master.state.SetGoalState NORMAL
       ${bin}/start-server.sh $host master
       break
@@ -71,7 +71,7 @@ for host in $HOSTS; do
 done
 
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_HOME/conf/tracers; then
+   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/tracers; then
       ${bin}/start-server.sh $host tracer 
       break
    fi

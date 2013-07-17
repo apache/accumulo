@@ -41,9 +41,9 @@ test -z "$HADOOP_CONF_DIR"       && export HADOOP_CONF_DIR="$HADOOP_PREFIX/conf"
 test -z "$JAVA_HOME"             && export JAVA_HOME=/path/to/java
 test -z "$ZOOKEEPER_HOME"        && export ZOOKEEPER_HOME=/path/to/zookeeper
 test -z "$ACCUMULO_LOG_DIR"      && export ACCUMULO_LOG_DIR=$ACCUMULO_HOME/logs
-if [ -f ${ACCUMULO_HOME}/conf/accumulo.policy ]
+if [ -f ${ACCUMULO_CONF_DIR}/accumulo.policy ]
 then
-   POLICY="-Djava.security.manager -Djava.security.policy=${ACCUMULO_HOME}/conf/accumulo.policy"
+   POLICY="-Djava.security.manager -Djava.security.policy=${ACCUMULO_CONF_DIR}/accumulo.policy"
 fi
 test -z "$ACCUMULO_TSERVER_OPTS" && export ACCUMULO_TSERVER_OPTS="${POLICY} -Xmx2g -Xms2g -XX:NewSize=1G -XX:MaxNewSize=1G "
 test -z "$ACCUMULO_MASTER_OPTS"  && export ACCUMULO_MASTER_OPTS="${POLICY} -Xmx1g -Xms1g"

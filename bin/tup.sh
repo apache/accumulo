@@ -27,7 +27,7 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 . "$bin"/config.sh
 
-SLAVES=$ACCUMULO_HOME/conf/slaves
+SLAVES=$ACCUMULO_CONF_DIR/slaves
 
 echo -n "Starting tablet servers ..."
 
