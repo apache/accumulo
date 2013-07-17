@@ -115,7 +115,7 @@ public class Admin {
   }
   
   /**
-   * flushing during shutdown is a perfomance optimization, its not required. The method will make an attempt to initiate flushes of all tables and give up if
+   * flushing during shutdown is a performance optimization, its not required. The method will make an attempt to initiate flushes of all tables and give up if
    * it takes too long.
    * 
    */
