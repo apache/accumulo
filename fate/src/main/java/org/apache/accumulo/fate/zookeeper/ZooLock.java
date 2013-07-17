@@ -431,16 +431,6 @@ public class ZooLock implements Watcher {
     return zc.get(path + "/" + lockNode, stat);
   }
   
-  private static ZooCache getLockDataZooCache;
-  
-  public static byte[] getLockData(String path) {
-    return getLockData(path, null);
-  }
-  
-  public static byte[] getLockData(String path, Stat stat) {
-    return getLockData(getLockDataZooCache, path, stat);
-  }
-  
   public static long getSessionId(ZooCache zc, String path) throws KeeperException, InterruptedException {
     List<String> children = zc.getChildren(path);
     
@@ -458,6 +448,8 @@ public class ZooLock implements Watcher {
       return stat.getEphemeralOwner();
     return 0;
   }
+  
+  private static ZooCache getLockDataZooCache;
   
   public long getSessionId() throws KeeperException, InterruptedException {
     return getSessionId(getLockDataZooCache, path);

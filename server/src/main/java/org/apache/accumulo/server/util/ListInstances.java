@@ -27,10 +27,10 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
@@ -42,6 +42,8 @@ public class ListInstances {
   private static final int NAME_WIDTH = 20;
   private static final int UUID_WIDTH = 37;
   private static final int MASTER_WIDTH = 30;
+  
+  private static final int ZOOKEEPER_TIMER_MILLIS = 30 * 1000;
   
   static class Opts extends Help {
     @Parameter(names="--print-errors", description="display errors while listing instances")
@@ -62,22 +64,24 @@ public class ListInstances {
     }
     
     System.out.println("INFO : Using ZooKeepers " + opts.keepers);
-    
-    TreeMap<String,UUID> instanceNames = getInstanceNames();
+    ZooReader rdr = new ZooReader(opts.keepers, ZOOKEEPER_TIMER_MILLIS); 
+    ZooCache cache = new ZooCache(opts.keepers, ZOOKEEPER_TIMER_MILLIS);
+
+    TreeMap<String,UUID> instanceNames = getInstanceNames(rdr);
     
     System.out.println();
     printHeader();
     
     for (Entry<String,UUID> entry : instanceNames.entrySet()) {
-      printInstanceInfo(entry.getKey(), entry.getValue());
+      printInstanceInfo(cache, entry.getKey(), entry.getValue());
     }
     
-    TreeSet<UUID> instancedIds = getInstanceIDs();
+    TreeSet<UUID> instancedIds = getInstanceIDs(rdr);
     instancedIds.removeAll(instanceNames.values());
     
     if (opts.printAll) {
       for (UUID uuid : instancedIds) {
-        printInstanceInfo(null, uuid);
+        printInstanceInfo(cache, null, uuid);
       }
     } else if (instancedIds.size() > 0) {
       System.out.println();
@@ -118,8 +122,8 @@ public class ListInstances {
     
   }
   
-  private static void printInstanceInfo(String instanceName, UUID iid) {
-    String master = getMaster(iid);
+  private static void printInstanceInfo(ZooCache cache, String instanceName, UUID iid) {
+    String master = getMaster(cache, iid);
     if (instanceName == null) {
       instanceName = "";
     }
@@ -130,8 +134,7 @@ public class ListInstances {
     
     System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MASTER_WIDTH + "s%n", "\"" + instanceName + "\"", iid, master);
   }
-  
-  private static String getMaster(UUID iid) {
+  private static String getMaster(ZooCache cache, UUID iid) {
     
     if (iid == null) {
       return null;
@@ -139,8 +142,7 @@ public class ListInstances {
     
     try {
       String masterLocPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
-      
-      byte[] master = ZooLock.getLockData(masterLocPath);
+      byte[] master = ZooLock.getLockData(cache, masterLocPath, null);
       if (master == null) {
         return null;
       }
@@ -151,9 +153,8 @@ public class ListInstances {
     }
   }
   
-  private static TreeMap<String,UUID> getInstanceNames() {
+  private static TreeMap<String,UUID> getInstanceNames(ZooReader zk) {
     
-    IZooReaderWriter zk = ZooReaderWriter.getInstance();
     String instancesPath = Constants.ZROOT + Constants.ZINSTANCES;
     
     TreeMap<String,UUID> tm = new TreeMap<String,UUID>();
@@ -181,10 +182,8 @@ public class ListInstances {
     return tm;
   }
   
-  private static TreeSet<UUID> getInstanceIDs() {
+  private static TreeSet<UUID> getInstanceIDs(ZooReader zk) {
     TreeSet<UUID> ts = new TreeSet<UUID>();
-    
-    IZooReaderWriter zk = ZooReaderWriter.getInstance();
     
     try {
       List<String> children = zk.getChildren(Constants.ZROOT);
