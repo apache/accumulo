@@ -39,7 +39,7 @@ public class PrintInfo {
   static class Opts extends Help {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
     boolean dump = false;
-    @Parameter(names = {"--historgram"}, description = "print a histogram of the key-value sizes")
+    @Parameter(names = {"--histogram"}, description = "print a histogram of the key-value sizes")
     boolean histogram = false;
     @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<String>();
