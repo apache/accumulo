@@ -181,6 +181,7 @@ public class Test extends TestCase {
   
   public void testChangingDirectory() throws Exception {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
+    // This does not use ACCUMULO_CONF_DIR since it is used to get to the conf/examples dirs
     String CONF_DIR = System.getenv("ACCUMULO_HOME") + "/conf/";
     String SITE_CONF = CONF_DIR + configFile;
     File oldConf = new File(SITE_CONF);

@@ -22,7 +22,7 @@ mkdir -p $CONTINUOUS_LOG_DIR
 
 CONFIG_OUT=$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_config.out
 
-cat $ACCUMULO_HOME/conf/accumulo-env.sh > $CONFIG_OUT
+cat $ACCUMULO_CONF_DIR/accumulo-env.sh > $CONFIG_OUT
 echo >> $CONFIG_OUT
 echo -e "config -np\nconfig -t $TABLE -np\nquit" | $ACCUMULO_HOME/bin/accumulo shell -u $USER -p $PASS >> $CONFIG_OUT
 echo >> $CONFIG_OUT

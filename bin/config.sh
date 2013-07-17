@@ -15,6 +15,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Guarantees that Accumulo and its environment variables are set.
+#
+# Values set by script that can be user provided.  If not provided script attempts to infer.
+#  ACCUMULO_CONF_DIR  Location where accumulo-env.sh, accumulo-site.xml and friends will be read from
+#  ACCUMULO_HOME      Home directory for Accumulo
+#  ACCUMULO_LOG_DIR   Directory for Accumulo daemon logs
+#  ACCUMULO_VERSION   Accumulo version name
+#  HADOOP_HOME        Home dir for hadoop.
+# 
+# Values always set by script.
+#  GC                 Machine to rn GC daemon on.  Used by start-here.sh script
+#  MONITOR            Machine to run monitor daemon on. Used by start-here.sh script
+#  SSH                Default ssh parameters used to start daemons
+
 this="$0"
 while [ -h "$this" ]; do
     ls=`ls -ld "$this"`
@@ -33,8 +47,17 @@ this="$bin/$script"
 ACCUMULO_HOME=`dirname "$this"`/..
 export ACCUMULO_HOME=`cd $ACCUMULO_HOME; pwd`
 
-if [ -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
-. $ACCUMULO_HOME/conf/accumulo-env.sh
+ACCUMULO_CONF_DIR="${ACCUMULO_CONF_DIR:-$ACCUMULO_HOME/conf}"
+export ACCUMULO_CONF_DIR
+if [ -z "$ACCUMULO_CONF_DIR" -o ! -d "$ACCUMULO_CONF_DIR" ]
+then
+  echo "ACCUMULO_CONF_DIR=$ACCUMULO_CONF_DIR is not a valid directory.  Please make sure it exists"
+  exit 1
+fi
+
+
+if [ -f $ACCUMULO_CONF_DIR/accumulo-env.sh ] ; then
+. $ACCUMULO_CONF_DIR/accumulo-env.sh
 fi
 
 if [ -z ${ACCUMULO_LOG_DIR} ]; then
@@ -67,17 +90,17 @@ then
 fi
 export HADOOP_HOME
 
-if [ ! -f "$ACCUMULO_HOME/conf/masters" -o ! -f "$ACCUMULO_HOME/conf/slaves" ]
+if [ ! -f "$ACCUMULO_CONF_DIR/masters" -o ! -f "$ACCUMULO_CONF_DIR/slaves" ]
 then
-    if [ ! -f "$ACCUMULO_HOME/conf/masters" -a ! -f "$ACCUMULO_HOME/conf/slaves" ]
+    if [ ! -f "$ACCUMULO_CONF_DIR/masters" -a ! -f "$ACCUMULO_CONF_DIR/slaves" ]
     then
         echo "STANDALONE: Missing both conf/masters and conf/slaves files"
         echo "STANDALONE: Assuming single-node (localhost only) instance"
-        echo "STANDALONE: echo "`hostname`" > $ACCUMULO_HOME/conf/masters"
-        echo `hostname` > "$ACCUMULO_HOME/conf/masters"
-        echo "STANDALONE: echo "`hostname`" > $ACCUMULO_HOME/conf/slaves"
-        echo `hostname` > "$ACCUMULO_HOME/conf/slaves"
-        fgrep -s logger.dir.walog "$ACCUMULO_HOME/conf/accumulo-site.xml" > /dev/null
+        echo "STANDALONE: echo "`hostname`" > $ACCUMULO_CONF_DIR/masters"
+        echo `hostname` > "$ACCUMULO_CONF_DIR/masters"
+        echo "STANDALONE: echo "`hostname`" > $ACCUMULO_CONF_DIR/slaves"
+        echo `hostname` > "$ACCUMULO_CONF_DIR/slaves"
+        fgrep -s logger.dir.walog "$ACCUMULO_CONF_DIR/accumulo-site.xml" > /dev/null
         WALOG_CONFIGURED=$?
         if [ $WALOG_CONFIGURED -ne 0 -a ! -e "$ACCUMULO_HOME/walogs" ]
         then
@@ -85,28 +108,28 @@ then
           mkdir "$ACCUMULO_HOME/walogs"
           echo "STANDALONE: mkdir \"$ACCUMULO_HOME/walogs\""
         fi
-        if [ ! -e "$ACCUMULO_HOME/conf/accumulo-metrics.xml" ]
+        if [ ! -e "$ACCUMULO_CONF_DIR/accumulo-metrics.xml" ]
         then
           echo "STANDALONE: Creating default metrics configuration"
-          cp "$ACCUMULO_HOME/conf/accumulo-metrics.xml.example" "$ACCUMULO_HOME/conf/accumulo-metrics.xml"
+          cp "$ACCUMULO_CONF_DIR/accumulo-metrics.xml.example" "$ACCUMULO_CONF_DIR/accumulo-metrics.xml"
         fi
     else
-        echo "You are missing either $ACCUMULO_HOME/conf/masters or $ACCUMULO_HOME/conf/slaves"
+        echo "You are missing either $ACCUMULO_CONF_DIR/masters or $ACCUMULO_CONF_DIR/slaves"
         echo "Please configure them both for a multi-node instance, or delete them both for a single-node (localhost only) instance"
         exit 1
     fi
 fi
-MASTER1=`grep -v '^#' "$ACCUMULO_HOME/conf/masters" | head -1`
+MASTER1=`grep -v '^#' "$ACCUMULO_CONF_DIR/masters" | head -1`
 GC=$MASTER1
 MONITOR=$MASTER1
-if [ -f "$ACCUMULO_HOME/conf/gc" ]; then
-    GC=`grep -v '^#' "$ACCUMULO_HOME/conf/gc" | head -1`
+if [ -f "$ACCUMULO_CONF_DIR/gc" ]; then
+    GC=`grep -v '^#' "$ACCUMULO_CONF_DIR/gc" | head -1`
 fi
-if [ -f "$ACCUMULO_HOME/conf/monitor" ]; then
-    MONITOR=`grep -v '^#' "$ACCUMULO_HOME/conf/monitor" | head -1`
+if [ -f "$ACCUMULO_CONF_DIR/monitor" ]; then
+    MONITOR=`grep -v '^#' "$ACCUMULO_CONF_DIR/monitor" | head -1`
 fi
-if [ ! -f "$ACCUMULO_HOME/conf/tracers" ]; then
-    echo "$MASTER1" > "$ACCUMULO_HOME/conf/tracers"
+if [ ! -f "$ACCUMULO_CONF_DIR/tracers" ]; then
+    echo "$MASTER1" > "$ACCUMULO_CONF_DIR/tracers"
 fi
 SSH='ssh -qnf -o ConnectTimeout=2'
 

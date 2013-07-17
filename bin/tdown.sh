@@ -23,7 +23,7 @@ bin=`cd "$bin"; pwd`
 
 HADOOP_CMD=$HADOOP_LOCATION/bin/hadoop
 
-SLAVES=$ACCUMULO_HOME/conf/slaves
+SLAVES=$ACCUMULO_CONF_DIR/slaves
 
 echo 'stopping unresponsive tablet servers (if any) ...'
 for server in `cat $SLAVES | grep -v '^#' `; do

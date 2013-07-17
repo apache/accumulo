@@ -27,7 +27,7 @@ bin=`cd "$bin"; pwd`
 HOSTS="`hostname -a` `hostname` localhost"
 for host in $HOSTS
 do
-    if grep -q "^${host}\$" $ACCUMULO_HOME/conf/slaves
+    if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/slaves
     then
        ${bin}/start-server.sh $host logger
        ${bin}/start-server.sh $host tserver "tablet server"
@@ -37,7 +37,7 @@ done
 
 for host in $HOSTS
 do
-    if grep -q "^${host}\$" $ACCUMULO_HOME/conf/masters
+    if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/masters
     then
        ${bin}/accumulo org.apache.accumulo.server.master.state.SetGoalState NORMAL
        ${bin}/start-server.sh $host master
@@ -65,7 +65,7 @@ done
 
 for host in $HOSTS
 do
-    if grep -q "^${host}\$" $ACCUMULO_HOME/conf/tracers
+    if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/tracers
     then
 	${bin}/start-server.sh $host tracer 
 	break

@@ -106,7 +106,9 @@ public class AccumuloClassLoader {
   
   public static final String DYNAMIC_CLASSPATH_PROPERTY_NAME = "general.dynamic.classpaths";
   
-  public static final String ACCUMULO_CLASSPATH_VALUE = "$ACCUMULO_HOME/conf,\n" + "$ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar,\n"
+  public static final String ACCUMULO_CLASSPATH_VALUE = 
+      "$ACCUMULO_CONF_DIR,\n" 
+      + "$ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar,\n"
       + "$ACCUMULO_HOME/lib/[^.].*.jar,\n" + "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,\n" + "$HADOOP_HOME/[^.].*.jar,\n" + "$HADOOP_HOME/conf,\n"
       + "$HADOOP_HOME/lib/[^.].*.jar,\n";
   
@@ -120,8 +122,11 @@ public class AccumuloClassLoader {
   private static final String SITE_CONF;
   static {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
-    if (System.getenv("ACCUMULO_HOME") != null) {
-      // accumulo home should be set
+    if (System.getenv("ACCUMULO_CONF_DIR") != null) {
+      // accumulo conf dir should be set.
+      SITE_CONF = System.getenv("ACCUMULO_CONF_DIR") + "/" + configFile;
+    } else if (System.getenv("ACCUMULO_HOME") != null) {
+      // if no accumulo conf dir, try accumulo home default
       SITE_CONF = System.getenv("ACCUMULO_HOME") + "/conf/" + configFile;
     } else {
       /*

@@ -15,11 +15,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# The main Accumulo command script.  
+#
+# Environment variables parameters: 
+#
+#  JAVA_HOME           The java implenetation to use. 
+#  ACCUMULO_CONF_DIR   Location where accumulo-env.sh, accumulo-site.xml and friends will be read from
+#  ACCUMULO_LOG_DIR    Directory for accmulo daemon logs.  defaults to $ACCUMULO_HOME/logs
+#  ACCUMULO_VERSION    This Accumulo's version number 
+#  HADOOP_HOME         The home diretcory for HADOOP.  Defaults to bin/hadoop's parent.
+# 
+# Java jvm paramters:  (-Xmx et al)
+# 
+#  ACCUMULO_TSERVER_OPTS
+#  ACCUMULO_MASTER_OPTS
+#  ACCUMULO_GC_OPTS
+#  ACCUMULO_MONITOR_OPTS
+#  ACCUMULO_LOGGER_OPTS
+#  ACCUMULO_GENERAL_OPTS
+#  ACCUMULO_OTHER_OPTS
+# 
+# Environment variables overriden by config.sh
+#
+#  ACCUMULO_HOME     Always the parent dir of bin/accumulo
 
 bin=`dirname "$0"`
 bin=`cd "$bin"; pwd`
 
 . "$bin"/config.sh
+
+if [ -z "$JAVA_HOME" -o ! -d "$JAVA_HOME" ]; then
+    echo "JAVA_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+    exit 1
+fi
+if [ -z "$HADOOP_HOME" -o ! -d "$HADOOP_HOME" ]; then
+    echo "HADOOP_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+    exit 1
+fi
+if [ -z "$ZOOKEEPER_HOME" -o ! -d "$ZOOKEEPER_HOME" ]; then
+    echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+    exit 1
+fi
+
+#Export the variables just in case they are not exported
+#This makes them available to java
+export JAVA_HOME=$JAVA_HOME
+export HADOOP_HOME=$HADOOP_HOME
+export ZOOKEEPER_HOME=$ZOOKEEPER_HOME
 
 START_JAR=$ACCUMULO_HOME/lib/accumulo-start-$ACCUMULO_VERSION.jar
 COMMONS_JCI_JARS=$ACCUMULO_HOME/lib/commons-jci-core-1.0.jar:$ACCUMULO_HOME/lib/commons-jci-fam-1.0.jar:$ACCUMULO_HOME/lib/log4j-1.2.16.jar:$ACCUMULO_HOME/lib/commons-logging-1.0.4.jar:$ACCUMULO_HOME/lib/commons-logging-api-1.0.4.jar
@@ -81,27 +123,8 @@ else
 	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_OTHER_OPTS}"
 fi
 
-XML_FILES=${ACCUMULO_HOME}/conf
+XML_FILES=${ACCUMULO_CONF_DIR}
 CLASSPATH=${XML_FILES}:${START_JAR}:${COMMONS_JCI_JARS}
-
-if [ -z $JAVA_HOME -o ! -d $JAVA_HOME ]; then
-    echo "JAVA_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-    exit 1
-fi
-if [ -z $HADOOP_HOME -o ! -d $HADOOP_HOME ]; then
-    echo "HADOOP_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-    exit 1
-fi
-if [ -z $ZOOKEEPER_HOME -o ! -d $ZOOKEEPER_HOME ]; then
-    echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-    exit 1
-fi
-
-#Export the variables just in case they are not exported
-#This makes them available to java
-export JAVA_HOME=$JAVA_HOME
-export HADOOP_HOME=$HADOOP_HOME
-export ZOOKEEPER_HOME=$ZOOKEEPER_HOME
 
 JAVA=$JAVA_HOME/bin/java
 PLATFORM="`$JAVA -cp $CLASSPATH org.apache.accumulo.start.Platform`"

@@ -57,7 +57,7 @@ def runTest(testName, siteConfig, testDir, numNodes, fdata):
     syscall('head -n %d %s > %s' % (numNodes,slavesPath,nodesPath))
 
     log('Copying slaves file to accumulo config')
-    syscall('cp '+nodesPath+' $ACCUMULO_HOME/conf/slaves');
+    syscall('cp '+nodesPath+' $ACCUMULO_CONF_DIR/slaves');
 
     log('Removing /accumulo directory in HDFS')
     syscall("hadoop fs -rmr /accumulo")

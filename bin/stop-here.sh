@@ -26,13 +26,13 @@ bin=`cd "$bin"; pwd`
 
 ACCUMULO="$ACCUMULO_HOME/.*/accumulo-start.*.jar"
 
-if grep -q localhost $ACCUMULO_HOME/conf/slaves
+if grep -q localhost $ACCUMULO_CONF_DIR/slaves
 then
     $bin/accumulo admin stop localhost
 else
     for host in `hostname -a`
     do
-       if grep -q $host $ACCUMULO_HOME/conf/slaves
+       if grep -q $host $ACCUMULO_CONF_DIR/slaves
        then
           $bin/accumulo admin stop $host
        fi
