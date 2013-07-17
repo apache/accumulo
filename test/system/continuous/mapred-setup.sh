@@ -19,6 +19,6 @@
 # for running a map reduce job
 
 . continuous-env.sh
-. $ACCUMULO_HOME/conf/accumulo-env.sh
+. $ACCUMULO_CONF_DIR/accumulo-env.sh
 
 SERVER_LIBJAR="$ACCUMULO_HOME/lib/accumulo-test.jar"

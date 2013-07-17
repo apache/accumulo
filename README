@@ -157,12 +157,12 @@ accumulo client code.  These directories must be at the same location on every
 node in the cluster.
 
 If you are configuring a larger cluster you will need to create the configuration
-files yourself and propogate the changes to the $ACCUMULO_HOME/conf directories:
+files yourself and propogate the changes to the $ACCUMULO_CONF_DIR directories:
 
-   Create a "slaves" file in $ACCUMULO_HOME/conf/.  This is a list of machines
+   Create a "slaves" file in $ACCUMULO_CONF_DIR/.  This is a list of machines
    where tablet servers and loggers will run.
 
-   Create a "masters" file in $ACCUMULO_HOME/conf/.  This is a list of
+   Create a "masters" file in $ACCUMULO_CONF_DIR/.  This is a list of
    machines where the master server will run. 
 
    Create conf/accumulo-env.sh following the template of
@@ -275,7 +275,7 @@ server, but you can also glob them if you wish.
 
   kadmin.local -q "xst -k accumulo.keytab -glob accumulo*"
 
-Place this file in $ACCUMULO_HOME/conf for every host. It should be owned by
+Place this file in $ACCUMULO_CONF_DIR for every host. It should be owned by
 the accumulo user and chmodded to 400. Add the following to the accumulo-env.sh
 
   kinit -kt $ACCUMULO_HOME/conf/accumulo.keytab accumulo/`hostname -f`
@@ -288,7 +288,7 @@ _HOST in lieu of your individual host names.
 
   <property>
     <name>general.kerberos.keytab</name>
-    <value>$ACCUMULO_HOME/conf/accumulo.keytab</value>
+    <value>$ACCUMULO_CONF_DIR/accumulo.keytab</value>
   </property>
 
   <property>

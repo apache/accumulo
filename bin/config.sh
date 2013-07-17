@@ -15,6 +15,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Guarantees that Accumulo and its environment variables are set.
+#
+# Values set by script that can be user provided.  If not provided script attempts to infer.
+#  ACCUMULO_CONF_DIR  Location where accumulo-env.sh, accumulo-site.xml and friends will be read from
+#  ACCUMULO_HOME      Home directory for Accumulo
+#  ACCUMULO_LOG_DIR   Directory for Accumulo daemon logs
+#  ACCUMULO_VERSION   Accumulo version name
+#  HADOOP_PREFIX      Prefix to the home dir for hadoop.
+# 
+# Values always set by script.
+#  GC                 Machine to rn GC daemon on.  Used by start-here.sh script
+#  MONITOR            Machine to run monitor daemon on. Used by start-here.sh script
+#  SSH                Default ssh parameters used to start daemons
+#  HADOOP_HOME        Home dir for hadoop.  TODO fix this.
+
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -29,8 +44,16 @@ script=$( basename "$SOURCE" )
 ACCUMULO_HOME=$( cd -P ${bin}/.. && pwd )
 export ACCUMULO_HOME
 
-if [ -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
-   . $ACCUMULO_HOME/conf/accumulo-env.sh
+ACCUMULO_CONF_DIR="${ACCUMULO_CONF_DIR:-$ACCUMULO_HOME/conf}"
+export ACCUMULO_CONF_DIR
+if [ -z "$ACCUMULO_CONF_DIR" -o ! -d "$ACCUMULO_CONF_DIR" ]
+then
+  echo "ACCUMULO_CONF_DIR=$ACCUMULO_CONF_DIR is not a valid directory.  Please make sure it exists"
+  exit 1
+fi
+
+if [ -f $ACCUMULO_CONF_DIR/accumulo-env.sh ] ; then
+   . $ACCUMULO_CONF_DIR/accumulo-env.sh
 elif [ -z "$ACCUMULO_TEST" ] ; then
    #
    # Attempt to bootstrap configuration and continue
@@ -70,17 +93,17 @@ then
 fi
 export HADOOP_PREFIX
 
-MASTER1=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_HOME/conf/masters" | head -1)
+MASTER1=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters" | head -1)
 GC=$MASTER1
 MONITOR=$MASTER1
-if [ -f "$ACCUMULO_HOME/conf/gc" ]; then
-   GC=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_HOME/conf/gc" | head -1)
+if [ -f "$ACCUMULO_CONF_DIR/gc" ]; then
+   GC=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/gc" | head -1)
 fi
-if [ -f "$ACCUMULO_HOME/conf/monitor" ]; then
-   MONITOR=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_HOME/conf/monitor" | head -1)
+if [ -f "$ACCUMULO_CONF_DIR/monitor" ]; then
+   MONITOR=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/monitor" | head -1)
 fi
-if [ ! -f "$ACCUMULO_HOME/conf/tracers" ]; then
-   echo "$MASTER1" > "$ACCUMULO_HOME/conf/tracers"
+if [ ! -f "$ACCUMULO_CONF_DIR/tracers" ]; then
+   echo "$MASTER1" > "$ACCUMULO_CONF_DIR/tracers"
 fi
 
 SSH='ssh -qnf -o ConnectTimeout=2'

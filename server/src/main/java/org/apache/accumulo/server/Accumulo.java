@@ -98,10 +98,10 @@ public class Accumulo {
       System.setProperty("org.apache.accumulo.core.host.log", localhost);
     
     // Use a specific log config, if it exists
-    String logConfig = String.format("%s/conf/%s_logger.xml", System.getenv("ACCUMULO_HOME"), application);
+    String logConfig = String.format("%s/%s_logger.xml", System.getenv("ACCUMULO_CONF_DIR"), application);
     if (!new File(logConfig).exists()) {
       // otherwise, use the generic config
-      logConfig = String.format("%s/conf/generic_logger.xml", System.getenv("ACCUMULO_HOME"));
+      logConfig = String.format("%s/generic_logger.xml", System.getenv("ACCUMULO_CONF_DIR"));
     }
     // Turn off messages about not being able to reach the remote logger... we protect against that.
     LogLog.setQuietMode(true);

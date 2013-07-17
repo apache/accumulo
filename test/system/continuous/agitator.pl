@@ -64,7 +64,7 @@ if($minKill > $maxKill){
 	die("minKill > maxKill $minKill > $maxKill");
 }
 
-@slavesRaw = `cat $ACCUMULO_HOME/conf/slaves`;
+@slavesRaw = `cat $ACCUMULO_CONF_DIR/slaves`;
 chomp(@slavesRaw);
 
 for $slave (@slavesRaw){

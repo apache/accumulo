@@ -29,7 +29,7 @@ $ACCUMULO_HOME="../../..";
 $sleep1 = $ARGV[0];
 $sleep2 = $ARGV[1];
 
-@mastersRaw = `cat $ACCUMULO_HOME/conf/masters`;
+@mastersRaw = `cat $ACCUMULO_CONF_DIR/masters`;
 chomp(@mastersRaw);
 
 for $master (@mastersRaw){
@@ -52,10 +52,10 @@ while(1){
 		system($cmd);
 	}else{
 		print STDERR "$t Killing all masters\n";
-		$cmd = "pssh -h $ACCUMULO_HOME/conf/masters \"pkill -f '[ ]org.apache.accumulo.start.*master'\" < /dev/null";
+		$cmd = "pssh -h $ACCUMULO_CONF_DIR/masters \"pkill -f '[ ]org.apache.accumulo.start.*master'\" < /dev/null";
 		print "$t $cmd\n";
 		system($cmd);
-		$cmd = "pssh -h $ACCUMULO_HOME/conf/masters \"pkill -f '[ ]org.apache.accumulo.start.*gc'\" < /dev/null";
+		$cmd = "pssh -h $ACCUMULO_CONF_DIR/masters \"pkill -f '[ ]org.apache.accumulo.start.*gc'\" < /dev/null";
 		print "$t $cmd\n";
 		system($cmd);
 	}

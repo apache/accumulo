@@ -4,7 +4,7 @@ The randomwalk framework needs to be configured for your Accumulo instance by
 doing the following steps:
 
 1.  Make sure you have both ACCUMULO_HOME and HADOOP_HOME set in your 
-    $ACCUMULO_HOME/conf/accumulo-env.sh.
+    $ACCUMULO_CONF_DIR/accumulo-env.sh.
 
 2.  Create 'randomwalk.conf' file in the conf directory containing settings
     needed by walkers to connect to Accumulo.

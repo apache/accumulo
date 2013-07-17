@@ -40,7 +40,7 @@ LONGNAME="$3"
 if [ -z "$LONGNAME" ]; then
    LONGNAME="$2"
 fi
-SLAVES=$( wc -l < ${ACCUMULO_HOME}/conf/slaves )
+SLAVES=$( wc -l < ${ACCUMULO_CONF_DIR}/slaves )
 
 IFCONFIG=/sbin/ifconfig
 if [ ! -x $IFCONFIG ]; then
