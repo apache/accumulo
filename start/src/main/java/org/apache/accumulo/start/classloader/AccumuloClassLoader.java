@@ -76,7 +76,7 @@ public class AccumuloClassLoader {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
     if (System.getenv("ACCUMULO_CONF_DIR") != null) {
       // accumulo conf dir should be set
-      SITE_CONF = System.getenv("ACCUMULO_CONF_DIR");
+      SITE_CONF = System.getenv("ACCUMULO_CONF_DIR") + "/" + configFile;
     } else if (System.getenv("ACCUMULO_HOME") != null) {
       // if no accumulo conf dir, try accumulo home default
       SITE_CONF = System.getenv("ACCUMULO_HOME") + "/conf/" + configFile;
