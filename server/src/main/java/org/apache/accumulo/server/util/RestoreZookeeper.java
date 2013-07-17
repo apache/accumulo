@@ -64,7 +64,10 @@ public class RestoreZookeeper {
         cwd.push(path);
       } else if ("dump".equals(name)) {
         String root = attributes.getValue("root");
-        cwd.push(root);
+        if (root.equals("/"))
+          cwd.push("");
+        else
+          cwd.push(root);
         create(root, "", "utf-8");
       }
     }
