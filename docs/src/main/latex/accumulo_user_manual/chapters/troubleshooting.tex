@@ -1,0 +1,520 @@
+ Licensed to the Apache Software Foundation (ASF) under one or more
+% contributor license agreements. See the NOTICE file distributed with
+% this work for additional information regarding copyright ownership.
+% The ASF licenses this file to You under the Apache License, Version 2.0
+% (the "License"); you may not use this file except in compliance with
+% the License. You may obtain a copy of the License at
+%
+%     http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+
+\chapter{Troubleshooting}
+
+\section{Logs}
+
+Q. The tablet server does not seem to be running!? What happened?
+
+Accumulo is a distributed system.  It is supposed to run on remote
+equipment, across hundreds of computers.  Each program that runs on
+these remote computers writes down events as they occur, into a local
+file. By default, this is defined in
+\texttt{\$ACCUMULO\_HOME}/conf/accumule-env.sh as ACCUMULO\_LOG\_DIR.
+
+A. Look in the \texttt{\$ACCUMULO\_LOG\_DIR}/tserver*.log file.  Specifically, check the end of the file.
+
+Q. The tablet server did not start and the debug log does not exists!  What happened?
+
+When the individual programs are started, the stdout and stderr output
+of these programs are stored in ``.out'' and ``.err'' files in
+\texttt{\$ACCUMULO\_LOG\_DIR}.  Often, when there are missing configuration
+options, files or permissions, messages will be left in these files.
+
+A. Probably a start-up problem.  Look in \texttt{\$ACCUMULO\_LOG\_DIR}/tserver*.err
+
+\section{Monitor}
+
+Q. Accumulo is not working, what's wrong?
+
+There's a small web server that collects information about all the
+components that make up a running Accumulo instance. It will highlight
+unusual or unexpected conditions.
+
+A. Point your browser to the monitor (typically the master host, on port 50095).  Is anything red or yellow?
+
+Q. My browser is reporting connection refused, and I cannot get to the monitor
+
+The monitor program's output is also written to .err and .out files in
+the \texttt{\$ACCUMULO\_LOG\_DIR}. Look for problems in this file if the
+\texttt{\$ACCUMULO\_LOG\_DIR/monitor*.log} file does not exist.
+
+A. The monitor program is probably not running.  Check the log files for errors.
+
+Q. My browser hangs trying to talk to the monitor.
+
+Your browser needs to be able to reach the monitor program.  Often
+large clusters are firewalled, or use a VPN for internal
+communications. You can use SSH to proxy your browser to the cluster,
+or consult with your system administrator to gain access to the server
+from your browser.
+
+It is sometimes helpful to use a text-only browser to sanity-check the
+monitor while on the machine running the monitor:
+
+\small
+\begin{verbatim}
+  $ links http://localhost:50095
+\end{verbatim}
+\normalsize
+
+A. Verify that you are not firewalled from the monitor if it is running on a remote host.
+
+Q. The monitor responds, but there are no numbers for tservers and tables.  The summary page says the master is down.
+
+The monitor program gathers all the details about the master and the
+tablet servers through the master. It will be mostly blank if the
+master is down.
+
+A. Check for a running master.
+
+\section{HDFS}
+
+Accumulo reads and writes to the Hadoop Distributed File System.
+Accumulo needs this file system available at all times for normal operations.
+
+Q. Accumulo is having problems ``getting a block blk\_1234567890123.'' How do I fix it?
+
+This troubleshooting guide does not cover HDFS, but in general, you
+want to make sure that all the datanodes are running and an fsck check
+finds the file system clean:
+
+\small
+\begin{verbatim}
+  $ hadoop fsck /accumulo
+\end{verbatim}
+\normalsize
+
+On a larger cluster, you may need to increase the number of Xceivers
+
+\small
+\begin{verbatim}
+  <property>
+    <name>dfs.datanode.max.xcievers</name>
+    <value>4096</value>
+  </property>
+\end{verbatim}
+\normalsize
+
+A. Verify HDFS is healthy, check the datanode logs.
+
+\section{Zookeeper}
+
+Q. \texttt{accumulo init} is hanging.  It says something about talking to zookeeper.
+
+Zookeeper is also a distributed service.  You will need to ensure that
+it is up.  You can run the zookeeper command line tool to connect to
+any one of the zookeeper servers:
+
+\small
+\begin{verbatim}
+  $ zkCli.sh -server zoohost
+...
+[zk: zoohost:2181(CONNECTED) 0] 
+\end{verbatim}
+\normalsize
+
+It is important to see the word \texttt{CONNECTED}!  If you only see
+\texttt{CONNECTING} you will need to diagnose zookeeper errors.
+
+A. Check to make sure that zookeeper is up, and that
+\texttt{\$ACCUMULO\_HOME/conf/accumulo-site.xml} has been pointed to
+your zookeeper server(s).
+
+Q. Zookeeper is running, but it does not say \texttt{CONNECTED}
+
+Zookeeper processes talk to each other to elect a leader.  All updates
+go through the leader and propagate to a majority of all the other
+nodes.  If a majority of the nodes cannot be reached, zookeeper will
+not allow updates.  Zookeeper also limits the number connections to a
+server from any other single host.  By default, this limit is 10, and
+can be reached in some everything-on-one-machine test configurations.
+
+You can check the election status and connection status of clients by
+asking the zookeeper nodes for their status.  You connect to zookeeper
+and ask it with the four-letter ``stat'' command:
+
+\small
+\begin{verbatim}
+$ nc zoohost 2181
+stat
+Zookeeper version: 3.4.5-1392090, built on 09/30/2012 17:52 GMT
+Clients:
+ /127.0.0.1:58289[0](queued=0,recved=1,sent=0)
+ /127.0.0.1:60231[1](queued=0,recved=53910,sent=53915)
+
+Latency min/avg/max: 0/5/3008
+Received: 1561459
+Sent: 1561592
+Connections: 2
+Outstanding: 0
+Zxid: 0x621a3b
+Mode: standalone
+Node count: 22524
+$
+\end{verbatim}
+\normalsize
+
+
+A. Check zookeeper status, verify that it has a quorum, and has not exceeded maxClientCnxns.
+
+Q. My tablet server crashed!  The logs say that it lost it's zookeeper lock.
+
+Tablet servers reserve a lock in zookeeper to maintain their ownership
+over the tablets that have been assigned to them.  Part of their
+responsibility for keeping the lock is to send zookeeper a keep-alive
+message periodically.  If the tablet server fails to send a message in
+a timely fashion, zookeeper will remove the lock and notify the tablet
+server.  If the tablet server does not receive a message from
+zookeeper, it will assume its lock has been lost, too.  If a tablet
+server loses its lock, it kills itself: everything assumes it is dead
+already.
+
+A. Investigate why the tablet server did not send a timely message to
+zookeeper.
+
+\subsection{Keeping the tablet server lock}
+
+Q. My tablet server lost its lock.  Why?
+
+The primary reason a tablet server loses its lock is that it has been pushed into swap.
+
+A large java program (like the tablet server) may have a large portion
+of its memory image unused.  The operation system will favor pushing
+this allocated, but unused memory into swap so that the memory can be
+re-used as a disk buffer.  When the java virtual machine decides to
+access this memory, the OS will begin flushing disk buffers to return that
+memory to the VM.  This can cause the entire process to block long
+enough for the zookeeper lock to be lost.
+
+A. Configure your system to reduce the kernel parameter ``swappiness'' from the default (30) to zero.
+
+Q. My tablet server lost its lock, and I have already set swappiness to
+zero.  Why?
+
+Be careful not to over-subscribe memory.  This can be easy to do if
+your accumulo processes run on the same nodes as hadoop's map-reduce
+framework.  Remember to add up:
+
+\begin{itemize}
+\item{size of the JVM for the tablet server}
+\item{size of the in-memory map, if using the native map implementation}
+\item{size of the JVM for the data node}
+\item{size of the JVM for the task tracker}
+\item{size of the JVM times the maximum number of mappers and reducers}
+\item{size of the kernel and any support processes}
+\end{itemize}
+
+If a 16G node can run 2 mappers and 2 reducers, and each can be 2G,
+then there is only 8G for the data node, tserver, task tracker and OS.
+
+A. Reduce the memory footprint of each component until it fits comfortably.
+
+Q. My tablet server lost its lock, swappiness is zero, and my node has lots of unused memory!
+
+The JVM memory garbage collector may fall behind and cause a
+``stop-the-world'' garbage collection. On a large memory virtual
+machine, this collection can take a long time.  This happens more
+frequently when the JVM is getting low on free memory.  Check the logs
+of the tablet server.  You will see lines like this:
+
+\small
+\begin{verbatim}
+2013-06-20 13:43:20,607 [tabletserver.TabletServer] DEBUG: gc ParNew=0.00(+0.00) secs ConcurrentMarkSweep=0.00(+0.00) secs freemem=1,868,325,952(+1,868,325,952) totalmem=2,040,135,680
+\end{verbatim}
+\normalsize
+
+When ``freemem'' becomes small relative to the amount of memory
+needed, the JVM will spend more time finding free memory than
+performing work.  This can cause long delays in sending keep-alive
+messages to zookeeper.
+
+A. Ensure the tablet server JVM is not running low on memory.
+
+\section{Tools}
+
+The accumulo script can be used to run classes from the command line.
+This section shows how a few of the utilities work, but there are many
+more.
+
+There's a class that will examine an accumulo storage file and print
+out basic metadata.  
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo /accumulo/tables/1/default_tablet/A000000n.rf
+2013-07-16 08:17:14,778 [util.NativeCodeLoader] INFO : Loaded the native-hadoop library
+Locality group         : <DEFAULT>
+        Start block          : 0
+        Num   blocks         : 1
+        Index level 0        : 62 bytes  1 blocks
+        First key            : 288be9ab4052fe9e span:34078a86a723e5d3:3da450f02108ced5 [] 1373373521623 false
+        Last key             : start:13fc375709e id:615f5ee2dd822d7a [] 1373373821660 false
+        Num entries          : 466
+        Column families      : [waitForCommits, start, md major compactor 1, md major compactor 2, md major compactor 3, bringOnline, prep, md major compactor 4, md major compactor 5, md root major compactor 3, minorCompaction, wal, compactFiles, md root major compactor 4, md root major compactor 1, md root major compactor 2, compact, id, client:update, span, update, commit, write, majorCompaction]
+
+Meta block     : BCFile.index
+      Raw size             : 4 bytes
+      Compressed size      : 12 bytes
+      Compression type     : gz
+
+Meta block     : RFile.index
+      Raw size             : 780 bytes
+      Compressed size      : 344 bytes
+      Compression type     : gz
+\end{verbatim}
+\normalsize
+
+When trying to diagnose problems related to key size, the PrintInfo tool can provide a histogram of the individual key sizes:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo --histogram /accumulo/tables/1/default_tablet/A000000n.rf
+...
+Up to size      count      %-age
+         10 :        222  28.23%
+        100 :        244  71.77%
+       1000 :          0   0.00%
+      10000 :          0   0.00%
+     100000 :          0   0.00%
+    1000000 :          0   0.00%
+   10000000 :          0   0.00%
+  100000000 :          0   0.00%
+ 1000000000 :          0   0.00%
+10000000000 :          0   0.00%
+\end{verbatim}
+\normalsize
+
+Likewise, PrintInfo will dump the key-value pairs and show you the contents of the RFile:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo --dump /accumulo/tables/1/default_tablet/A000000n.rf
+row columnFamily:columnQualifier [visibility] timestamp deleteFlag -> Value
+...
+\end{verbatim}
+\normalsize
+
+Q. Accumulo is not showing me any data!
+
+A. Do you have your auths set so that it matches your visibilities?
+
+Q. What are my visibilities?
+
+A. Use ``PrintInfo'' on a representative file to get some idea of the visibilities in the underlying data.
+
+Note that the use of PrintInfo is an administrative tool and can only
+by used by someone who can access the underlying Accumulo data. It
+does not provide the normal access controls in Accumulo.
+
+If you would like to backup, or otherwise examine the contents of Zookeeper, there are commands to dump and load to/from XML.
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.server.util.DumpZookeeper --root /accumulo >dump.xml
+$ ./bin/accumulo org.apache.accumulo.server.util.RestoreZookeeper --overwrite < dump.xml
+\end{verbatim}
+\normalsize
+
+Q. How can I get the information in the monitor page for my cluster monitoring system?
+
+A. Use GetMasterStats:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.test.GetMasterStats | grep Load
+ OS Load Average: 0.27
+\end{verbatim}
+\normalsize
+
+Q. The monitor page is showing an offline tablet.  How can I find out which tablet it is?
+
+A. Use FindOfflineTablets:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.server.util.FindOfflineTablets
+2<<@(null,null,localhost:9997) is UNASSIGNED  #walogs:2
+\end{verbatim}
+\normalsize
+
+Here's what the output means:
+
+\begin{enumerate}
+\item{\texttt{2\<\<} This is the tablet from (-inf, +inf) for the
+  table with id 2.  ``tables -l'' in the shell will show table ids for
+  tables.}
+\item{\@(null, null, localhost:9997)} Location information.  The
+  format is \textt{@(assigned, hosted, last)}.  In this case, the
+  tablet has not been assigned, is not hosted anywhere, and was once
+  hosted on localhost.
+\item{#walogs:2} The number of write-ahead logs that this tablet requires for recovery.
+\end{enumerate}
+
+An unassigned tablet with write-ahead logs is probably waiting for
+logs to be sorted for efficient recovery.
+
+Q. How can I be sure that the !METADATA table is up and consistent?
+
+A. \texttt{CheckForMetadataProblems} will verify the start/end of
+every tablet matches, and the start and stop for the table is empty:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.server.util.CheckForMetadataProblems -u root --password
+Enter the connection password: 
+All is well for table !0
+All is well for table 1
+\end{verbatim}
+\normalsize
+
+Q. My hadoop cluster has lost a file due to a NameNode failure.  How can I remove the file?
+
+A. There's a utility that will check every file reference and ensure
+that the file exists in HDFS.  Optionally, it will remove the
+reference:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.server.util.RemoveEntriesForMissingFiles -u root --password
+Enter the connection password: 
+2013-07-16 13:10:57,293 [util.RemoveEntriesForMissingFiles] INFO : File /accumulo/tables/2/default_tablet/F0000005.rf is missing
+2013-07-16 13:10:57,296 [util.RemoveEntriesForMissingFiles] INFO : 1 files of 3 missing
+\end{verbatim}
+\normalsize
+
+Q. I have many entries in zookeeper for old instances I no longer need.  How can I remove them?
+
+A. Use CleanZookeeper:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.server.util.CleanZookeeper
+\end{verbatim}
+\normalsize
+
+This command will not delete the instance pointed to by the local \texttt{conf/accumulo-site.xml} file.
+
+Q. I need to decommission a node.  How do I stop the tablet server on it?
+
+A. Use the admin command:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo admin stop hostname:9997
+2013-07-16 13:15:38,403 [util.Admin] INFO : Stopping server 12.34.56.78:9997
+\end{verbatim}
+\normalsize
+
+Q. I cannot login to a tablet server host, and the tablet server will not shut down.  How can I kill the server?
+
+A. Sometimes you can kill a ``stuck'' tablet server by deleting it's lock in zookeeper:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.server.util.TabletServerLocks --list
+                  127.0.0.1:9997 TSERV_CLIENT=127.0.0.1:9997
+$ ./bin/accumulo org.apache.accumulo.server.util.TabletServerLocks -delete 127.0.0.1:9997
+$ ./bin/accumulo org.apache.accumulo.server.util.TabletServerLocks -list
+                  127.0.0.1:9997             null
+\end{verbatim}
+\normalsize
+
+You can find the master and instance id for any accumulo instances using the same zookeeper instance:
+
+\small
+\begin{verbatim}
+$ ./bin/accumulo org.apache.accumulo.server.util.ListInstances
+INFO : Using ZooKeepers localhost:2181
+
+ Instance Name       | Instance ID                          | Master                        
+---------------------+--------------------------------------+-------------------------------
+              "test" | 6140b72e-edd8-4126-b2f5-e74a8bbe323b |                127.0.0.1:9999
+\end{verbatim}
+\normalsize
+
+\section{METADATA Table}
+
+Accumulo tracks information about all other tables in the !METADATA
+table.  The !METADATA table information is tracked in a very simple
+table that always consists of a single tablet, called the !ROOT table.
+The root table information, such as its location and write-ahead logs
+are stored in Zookeeper.
+
+Let's create a table and put some data into it:
+
+\small
+\begin{verbatim}
+shell> createtable test
+shell> tables -l
+!METADATA       =>         !0
+test            =>          3
+trace           =>          1
+shell> insert a b c d
+shell> flush -w
+\end{verbatim}
+\normalsize
+
+Now let's take a look at the !METADATA table information for this table:
+
+\small
+\begin{verbatim}
+shell> table !METADATA
+shell> scan -b 3; -e 3<
+3< file:/default_tablet/F000009y.rf []    186,1
+3< last:13fe86cd27101e5 []    127.0.0.1:9997
+3< loc:13fe86cd27101e5 []    127.0.0.1:9997
+3< log:127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995 []    127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995|6
+3< srv:dir []    /default_tablet
+3< srv:flush []    1
+3< srv:lock []    tservers/127.0.0.1:9997/zlock-0000000001$13fe86cd27101e5
+3< srv:time []    M1373998392323
+3< ~tab:~pr []    \x00
+\end{verbatim}
+\normalsize
+
+Let's decode this little session:
+
+\begin{enumerate}
+\item{\texttt{scan -b 3; -e 3<} Every tablet gets its own row. Every row starts with the table id followed by ``;'' or ``<'', and followed by the end row split point for that tablet.}
+\item{\texttt{file:/default\_tablet/F000009y.rf [] 186,1} File entry for this tablet.  This tablet contains a single file reference. The file is ``/accumulo/tables/3/default\_tablet/F000009y.rf''.  It contains 1 key/value pair, and is 186 bytes long. }
+\item{\texttt{last:13fe86cd27101e5 []    127.0.0.1:9997} Last location for this tablet.  It was last held on 127.0.0.1:9997, and the unique tablet server lock data was ``13fe86cd27101e5''. The default balancer will tend to put tablets back on their last location. }
+\item{\texttt{loc:13fe86cd27101e5 []    127.0.0.1:9997} The current location of this tablet.}
+\item{\texttt{log:127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995 []    127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995|6} This tablet has a reference to a single write-ahead log.  This file can be found in /accumulo/wal/127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995.  The value of this entry could refer to multiple files.  This tablet's data is encoded as ``6'' within the log.}
+\item{\texttt{srv:dir []    /default\_tablet} Files written for this tablet will be placed into /accumulo/tables/3/default\_tablet.}
+\item{\texttt{srv:flush []    1} Flush id.  This table has successfully completed the flush with the id of ``1''. }
+\item{\texttt{srv:lock []    tservers/127.0.0.1:9997/zlock-0000000001\$13fe86cd27101e5}  This is the lock information for the tablet holding the present lock.  This information is checked against zookeeper whenever this is updated, which prevents a !METADATA table update from a tablet server that no longer holds its lock.}
+\item{\texttt{srv:time []    M1373998392323} }
+\item{\texttt{~tab:~pr []    \x00} The end-row marker for the previous tablet (prev-row).  The first byte indicates the presence of a prev-row.  This tablet has the range (-inf, +inf), so it has no prev-row (or end row). }
+\end{enumerate}
+
+Besides these columns, you may see:
+
+\begin{enumerate}
+\item{\texttt{rowId future:zooKeeperID location} Tablet has been assigned to a tablet, but not yet loaded.}
+\item{\texttt{~del:filename} When a tablet server is done use a file, it will create a delete marker in the !METADATA table, unassociated with any table.  The garbage collector will remove the marker, and the file, when no other reference to the file exists.}
+\item{\texttt{~blip:txid} Bulk-Load In Progress marker}
+\item{\texttt{rowId loaded:filename} A file has been bulk-loaded into this tablet, however the bulk load has not yet completed on other tablets, so this is marker prevents the file from being loaded multiple times.}
+\item{\texttt{rowId !cloned} A marker that indicates that this tablet has been successfully cloned.}
+\item{\texttt{rowId splitRatio:ratio} A marker that indicates a split is in progress, and the files are being split at the given ratio.}
+\item{\texttt{rowId chopped} A marker that indicates that the files in the tablet do not contain keys outside the range of the tablet.}
+\item{\texttt{rowId scan} A marker that ....}
+
+\end{enumerate}
+
+
+\section{}
+
