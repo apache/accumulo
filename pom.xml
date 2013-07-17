@@ -107,6 +107,7 @@
     </site>
   </distributionManagement>
   <properties>
+    <accumulo.it.threads>1</accumulo.it.threads>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
@@ -667,6 +668,9 @@
               <goal>verify</goal>
             </goals>
             <configuration>
+              <!--parallel>classes</parallel-->
+              <perCoreThreadCount>false</perCoreThreadCount>
+              <threadCount>${accumulo.it.threads}</threadCount> 
               <redirectTestOutputToFile>true</redirectTestOutputToFile>
             </configuration>
           </execution>

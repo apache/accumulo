@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.Collections;
 
@@ -40,30 +40,28 @@ public class DynamicThreadPoolsIT extends MacTest {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
+    cfg.setNumTservers(1);
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "100ms"));
   }
   
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 60 * 1000)
   public void test() throws Exception {
+    final int TABLES = 15;
     Connector c = getConnector();
-    c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
+    c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "5");
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.rows = 100*1000;
     opts.createTable = true;
     TestIngest.ingest(c, opts, BWOPTS);
     c.tableOperations().flush("test_ingest", null, null, true);
-    c.tableOperations().clone("test_ingest", "test_ingest2", true, null, null);
-    c.tableOperations().clone("test_ingest", "test_ingest3", true, null, null);
-    c.tableOperations().clone("test_ingest", "test_ingest4", true, null, null);
-    c.tableOperations().clone("test_ingest", "test_ingest5", true, null, null);
-    c.tableOperations().clone("test_ingest", "test_ingest6", true, null, null);
-    
+    for (int i = 1; i < TABLES; i++)
+      c.tableOperations().clone("test_ingest", "test_ingest" + i, true, null, null);
+    UtilWaitThread.sleep(11*1000); // time between checks of the thread pool sizes
     TCredentials creds = CredentialHelper.create("root", new PasswordToken(MacTest.PASSWORD), c.getInstance().getInstanceName());
-    UtilWaitThread.sleep(10);
-    for (int i = 2; i < 7; i++)
+    for (int i = 1; i < TABLES; i++)
       c.tableOperations().compact("test_ingest" + i, null, null, true, false);
-    int count = 0;
-    while (count == 0) {
+    for (int i = 0; i < 30; i++) {
+      int count = 0;
       MasterClientService.Iface client = null;
       MasterMonitorInfo stats = null;
       try {
@@ -79,9 +77,10 @@ public class DynamicThreadPoolsIT extends MacTest {
         }
       }
       System.out.println("count " + count);
+      if (count > 3)
+        return;
       UtilWaitThread.sleep(1000);
     }
-    assertTrue(count == 1 || count == 2); // sometimes we get two threads due to the way the stats are pulled
+    fail("Could not observe higher number of threads after changing the config");
   }
-  
 }

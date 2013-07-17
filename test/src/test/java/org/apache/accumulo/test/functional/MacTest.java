@@ -44,7 +44,7 @@ public class MacTest {
   @Before
   public void setUp() throws Exception {
     folder.create();
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), PASSWORD);
+    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder(this.getClass().getSimpleName()), PASSWORD);
     configure(cfg);
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();

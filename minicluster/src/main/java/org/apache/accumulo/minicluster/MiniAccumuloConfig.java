@@ -121,6 +121,7 @@ public class MiniAccumuloConfig {
       mergePropWithRandomPort(Property.TRACE_PORT.getKey());
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
+      mergePropWithRandomPort(Property.GC_PORT.getKey());
       
       // zookeeper port should be set explicitly in this class, not just on the site config
       if (zooKeeperPort == null)
