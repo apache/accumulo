@@ -28,6 +28,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.codehaus.plexus.util.FileUtils;
 
 /**
  * Goal which starts an instance of {@link MiniAccumuloCluster}.
@@ -54,6 +55,8 @@ public class StartMojo extends AbstractAccumuloMojo {
     
     try {
       subdir = subdir.getCanonicalFile();
+      if (subdir.exists())
+        FileUtils.forceDelete(subdir);
       subdir.mkdirs();
       configureMiniClasspath(miniClasspath);
       MiniAccumuloConfig cfg = new MiniAccumuloConfig(subdir, rootPassword);
