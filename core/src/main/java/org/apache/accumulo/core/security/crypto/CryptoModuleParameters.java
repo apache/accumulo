@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.core.security.crypto;
 
+import java.io.FilterOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.SecureRandom;
@@ -297,7 +298,6 @@ public class CryptoModuleParameters {
    * Gets the opaque ID associated with the encrypted version of the plaintext key.
    * 
    * @see CryptoModuleParameters#setOpaqueKeyEncryptionKeyID(String)
-   * @return
    */
   public String getOpaqueKeyEncryptionKeyID() {
     return opaqueKeyEncryptionKeyID;
@@ -340,9 +340,9 @@ public class CryptoModuleParameters {
    * 
    * <p>
    * 
-   * If this is set to <i>true</i>, then the stream passed to {@link CryptoModule#getEncryptingOutputStream(CryptoModuleParameters)} will be <i>written to by the module</i> before it
-   * is returned to the caller. There are situations where it is easier to let the crypto module do this writing on behalf of the caller, and other times where
-   * it is not appropriate (if the format of the underlying stream must be carefully maintained, for instance).
+   * If this is set to <i>true</i>, then the stream passed to {@link CryptoModule#getEncryptingOutputStream(CryptoModuleParameters)} will be <i>written to by
+   * the module</i> before it is returned to the caller. There are situations where it is easier to let the crypto module do this writing on behalf of the
+   * caller, and other times where it is not appropriate (if the format of the underlying stream must be carefully maintained, for instance).
    * 
    * @param recordParametersToStream
    *          whether or not to require the module to record its parameters to the stream by itself
@@ -456,13 +456,13 @@ public class CryptoModuleParameters {
     this.encryptedOutputStream = encryptedOutputStream;
   }
   
-
   /**
    * Gets the plaintext input stream, which is nearly always a wrapped version of the output from {@link CryptoModuleParameters#getEncryptedInputStream()}.
    * 
    * <p>
    * 
-   * Generally this method is used by {@link CryptoModule} classes as an <i>out</i> parameter from calling {@link CryptoModule#getDecryptingInputStream(CryptoModuleParameters)}.
+   * Generally this method is used by {@link CryptoModule} classes as an <i>out</i> parameter from calling
+   * {@link CryptoModule#getDecryptingInputStream(CryptoModuleParameters)}.
    * 
    * 
    * @see CryptoModuleParameters#setPlaintextInputStream(InputStream)
