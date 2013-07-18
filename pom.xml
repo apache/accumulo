@@ -305,6 +305,11 @@
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
+        <artifactId>maven-core</artifactId>
+        <version>${maven.min-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
         <artifactId>maven-plugin-api</artifactId>
         <version>${maven.min-version}</version>
       </dependency>
@@ -670,7 +675,7 @@
             <configuration>
               <!--parallel>classes</parallel-->
               <perCoreThreadCount>false</perCoreThreadCount>
-              <threadCount>${accumulo.it.threads}</threadCount> 
+              <threadCount>${accumulo.it.threads}</threadCount>
               <redirectTestOutputToFile>true</redirectTestOutputToFile>
             </configuration>
           </execution>

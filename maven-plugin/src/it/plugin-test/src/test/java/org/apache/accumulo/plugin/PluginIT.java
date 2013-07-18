@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -38,7 +39,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MiniAccumuloInstance;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -92,7 +92,45 @@ public class PluginIT {
     assertTrue(new File("target/accumulo-maven-plugin/" + instance.getInstanceName() + "/testWriteToTablePassed").createNewFile());
   }
   
-  @AfterClass
-  public static void tearDown() throws Exception {}
+  @Test
+  public void checkIterator() throws IOException, AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+    String tableName = "checkIterator";
+    connector.tableOperations().create(tableName);
+    BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
+    Mutation m = new Mutation("ROW1");
+    m.put("allowed", "CQ1", "V1");
+    m.put("denied", "CQ2", "V2");
+    m.put("allowed", "CQ3", "V3");
+    bw.addMutation(m);
+    m = new Mutation("ROW2");
+    m.put("allowed", "CQ1", "V1");
+    m.put("denied", "CQ2", "V2");
+    m.put("allowed", "CQ3", "V3");
+    bw.addMutation(m);
+    bw.close();
+    
+    // check filter
+    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
+    IteratorSetting is = new IteratorSetting(5, CustomFilter.class);
+    scanner.addScanIterator(is);
+    int count = 0;
+    for (Entry<Key,Value> entry : scanner) {
+      count++;
+      assertEquals("allowed", entry.getKey().getColumnFamily().toString());
+    }
+    assertEquals(4, count);
+    
+    // check filter negated
+    scanner.clearScanIterators();
+    CustomFilter.setNegate(is, true);
+    scanner.addScanIterator(is);
+    count = 0;
+    for (Entry<Key,Value> entry : scanner) {
+      count++;
+      assertEquals("denied", entry.getKey().getColumnFamily().toString());
+    }
+    assertEquals(2, count);
+    assertTrue(new File("target/accumulo-maven-plugin/" + instance.getInstanceName() + "/testCheckIteratorPassed").createNewFile());
+  }
   
 }
