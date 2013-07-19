@@ -182,7 +182,7 @@ public class MiniAccumuloCluster {
     
     List<String> jvmOpts = new ArrayList<String>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
-
+    
     if (config.isJDWPEnabled()) {
       Integer port = PortUtils.getRandomFreePort();
       jvmOpts.addAll(buildRemoteDebugParams(port));
@@ -232,13 +232,13 @@ public class MiniAccumuloCluster {
       miniDFS = new MiniDFSCluster(conf, 1, true, null);
       miniDFS.waitClusterUp();
       InetSocketAddress dfsAddress = miniDFS.getNameNode().getNameNodeAddress();
-      String uri = "hdfs://"+ dfsAddress.getHostName() + ":" + dfsAddress.getPort();
+      String uri = "hdfs://" + dfsAddress.getHostName() + ":" + dfsAddress.getPort();
       File coreFile = new File(config.getConfDir(), "core-site.xml");
       writeConfig(coreFile, Collections.singletonMap("fs.default.name", uri));
       File hdfsFile = new File(config.getConfDir(), "hdfs-site.xml");
       writeConfig(hdfsFile, Collections.singletonMap("dfs.support.append", "true"));
       
-      Map<String, String> siteConfig = config.getSiteConfig();
+      Map<String,String> siteConfig = config.getSiteConfig();
       siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), uri);
       siteConfig.put(Property.INSTANCE_DFS_DIR.getKey(), "/accumulo");
       config.setSiteConfig(siteConfig);
@@ -283,7 +283,7 @@ public class MiniAccumuloCluster {
     }
   }
   
-  private void writeConfig(File file, Map<String, String> settings) throws IOException {
+  private void writeConfig(File file, Map<String,String> settings) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
     fileWriter.append("<configuration>\n");
     
@@ -427,7 +427,7 @@ public class MiniAccumuloCluster {
     for (LogWriter lw : logWriters) {
       lw.flush();
     }
-
+    
     if (zooKeeperProcess != null) {
       zooKeeperProcess.destroy();
     }
