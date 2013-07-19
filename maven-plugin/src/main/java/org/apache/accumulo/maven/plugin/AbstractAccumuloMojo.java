@@ -18,32 +18,35 @@ package org.apache.accumulo.maven.plugin;
 
 import java.io.File;
 import java.net.MalformedURLException;
-import java.util.List;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.project.MavenProject;
 
 public abstract class AbstractAccumuloMojo extends AbstractMojo {
   
-  @Parameter(defaultValue = "${plugin.artifacts}", readonly = true, required = true)
-  private List<Artifact> pluginArtifacts;
+  @Component
+  private MavenProject project;
   
-  void configureMiniClasspath(String miniClasspath) {
+  void configureMiniClasspath(String miniClasspath) throws MalformedURLException {
     String classpath = "";
-    if (miniClasspath == null && pluginArtifacts != null) {
-      String sep = "";
-      for (Artifact artifact : pluginArtifacts) {
-        try {
-          classpath += sep + artifact.getFile().toURI().toURL();
-          sep = File.pathSeparator;
-        } catch (MalformedURLException e) {
-          e.printStackTrace();
-        }
+    StringBuilder sb = new StringBuilder();
+    if (miniClasspath == null && project != null) {
+      sb.append(project.getBuild().getOutputDirectory());
+      String sep = File.pathSeparator;
+      sb.append(sep).append(project.getBuild().getTestOutputDirectory());
+      for (Artifact artifact : project.getArtifacts()) {
+        addArtifact(sb, sep, artifact);
       }
+      classpath = sb.toString();
     } else if (miniClasspath != null && !miniClasspath.isEmpty()) {
       classpath = miniClasspath;
     }
     System.setProperty("java.class.path", System.getProperty("java.class.path", "") + File.pathSeparator + classpath);
+  }
+  
+  private void addArtifact(StringBuilder classpath, String separator, Artifact artifact) throws MalformedURLException {
+    classpath.append(separator).append(artifact.getFile().toURI().toURL());
   }
 }

@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.http.annotation.ThreadSafe;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -33,6 +34,7 @@ import org.codehaus.plexus.util.FileUtils;
 /**
  * Goal which starts an instance of {@link MiniAccumuloCluster}.
  */
+@ThreadSafe
 @Mojo(name = "start", defaultPhase = LifecyclePhase.PRE_INTEGRATION_TEST, requiresDependencyResolution = ResolutionScope.TEST)
 public class StartMojo extends AbstractAccumuloMojo {
   

@@ -14,14 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-File outputDirectory = new File(basedir, "target/accumulo-maven-plugin/plugin-it-instance");
-assert outputDirectory.isDirectory()
+package org.apache.accumulo.plugin;
 
-File testCreateTable = new File(basedir, "target/accumulo-maven-plugin/plugin-it-instance/testCreateTablePassed");
-assert testCreateTable.isFile()
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
 
-File testWriteToTable = new File(basedir, "target/accumulo-maven-plugin/plugin-it-instance/testWriteToTablePassed");
-assert testWriteToTable.isFile()
-
-File testCheckIterator = new File(basedir, "target/accumulo-maven-plugin/plugin-it-instance/testCheckIteratorPassed");
-assert testCheckIterator.isFile()
+/**
+ * 
+ */
+public class CustomFilter extends Filter {
+  
+  @Override
+  public boolean accept(Key k, Value v) {
+    return k.getColumnFamily().toString().equals("allowed");
+  }
+  
+}
