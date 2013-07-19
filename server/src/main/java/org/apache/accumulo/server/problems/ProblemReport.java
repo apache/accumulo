@@ -34,7 +34,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
@@ -125,13 +125,13 @@ public class ProblemReport {
   void removeFromMetadataTable() throws Exception {
     Mutation m = new Mutation(new Text("~err_" + tableName));
     m.putDelete(new Text(problemType.name()), new Text(resource));
-    MetadataTableUtil.getMetadataTable(SecurityConstants.getSystemCredentials()).update(m);
+    MetadataTableUtil.getMetadataTable(SystemCredentials.get().getAsThrift()).update(m);
   }
   
   void saveToMetadataTable() throws Exception {
     Mutation m = new Mutation(new Text("~err_" + tableName));
     m.put(new Text(problemType.name()), new Text(resource), new Value(encode()));
-    MetadataTableUtil.getMetadataTable(SecurityConstants.getSystemCredentials()).update(m);
+    MetadataTableUtil.getMetadataTable(SystemCredentials.get().getAsThrift()).update(m);
   }
   
   void removeFromZooKeeper() throws Exception {

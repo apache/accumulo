@@ -24,20 +24,30 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 /**
  * A wrapper for internal use. This class carries the instance, principal, and authentication token for use in the public API, in a non-serialized form. This is
  * important, so that the authentication token carried in a {@link Connector} can be destroyed, invalidating future RPC operations from that {@link Connector}.
+ * <p>
+ * See ACCUMULO-1312
+ * 
+ * @since 1.6.0
  */
 public class Credentials {
   
-  private Instance instance;
   private String principal;
   private AuthenticationToken token;
   
-  public Credentials(Instance instance, String principal, AuthenticationToken token) {
-    this.instance = instance;
+  public Credentials(String principal, AuthenticationToken token) {
     this.principal = principal;
     this.token = token;
   }
   
-  public TCredentials toThrift() {
+  public String getPrincipal() {
+    return principal;
+  }
+  
+  public AuthenticationToken getToken() {
+    return token;
+  }
+  
+  public TCredentials toThrift(Instance instance) {
     return CredentialHelper.createSquelchError(principal, token, instance.getInstanceID());
   }
   

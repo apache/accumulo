@@ -47,7 +47,7 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -155,7 +155,7 @@ class CleanUp extends MasterRepo {
       // Intentionally do not pass master lock. If master loses lock, this operation may complete before master can kill itself.
       // If the master lock passed to deleteTable, it is possible that the delete mutations will be dropped. If the delete operations
       // are dropped and the operation completes, then the deletes will not be repeated.
-      MetadataTableUtil.deleteTable(tableId, refCount != 0, SecurityConstants.getSystemCredentials(), null);
+      MetadataTableUtil.deleteTable(tableId, refCount != 0, SystemCredentials.get().getAsThrift(), null);
     } catch (Exception e) {
       log.error("error deleting " + tableId + " from metadata table", e);
     }
@@ -189,7 +189,7 @@ class CleanUp extends MasterRepo {
     
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableId);
+      AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().getAsThrift(), tableId);
     } catch (ThriftSecurityException e) {
       log.error(e.getMessage(), e);
     }

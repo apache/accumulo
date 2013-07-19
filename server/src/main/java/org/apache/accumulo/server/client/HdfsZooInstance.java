@@ -145,7 +145,6 @@ public class HdfsZooInstance implements Instance {
   }
   
   @Override
-  // Not really deprecated, just not for client use
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
   }
@@ -156,13 +155,11 @@ public class HdfsZooInstance implements Instance {
   }
   
   @Override
-  // Not really deprecated, just not for client use
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, new PasswordToken(pass));
   }
   
   @Override
-  // Not really deprecated, just not for client use
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }

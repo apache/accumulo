@@ -69,7 +69,6 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     super(author, authent, pm, instanceId);
   }
   
-  @SuppressWarnings("deprecation")
   public WalkingSecurity(State state2) {
     super(state2.getInstance().getInstanceID());
     this.state = state2;
@@ -401,7 +400,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public boolean validTokenClass(String tokenClass) {
     return tokenClass.equals(PasswordToken.class.getCanonicalName());
   }
-
+  
   public static void clearInstance() {
     instance = null;
   }

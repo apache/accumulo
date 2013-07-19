@@ -81,7 +81,7 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
@@ -490,7 +490,7 @@ public class MetadataTableUtil {
   }
   
   public static void addDeleteEntry(String tableId, String path) throws IOException {
-    update(SecurityConstants.getSystemCredentials(), createDeleteMutation(tableId, path), new KeyExtent(new Text(tableId), null, null));
+    update(SystemCredentials.get().getAsThrift(), createDeleteMutation(tableId, path), new KeyExtent(new Text(tableId), null, null));
   }
   
   public static Mutation createDeleteMutation(String tableId, String pathToRemove) throws IOException {
@@ -975,7 +975,7 @@ public class MetadataTableUtil {
       } else {
         Mutation m = new Mutation(entry.extent.getMetadataEntry());
         m.putDelete(LogColumnFamily.NAME, new Text(entry.server + "/" + entry.filename));
-        update(SecurityConstants.getSystemCredentials(), zooLock, m, entry.extent);
+        update(SystemCredentials.get().getAsThrift(), zooLock, m, entry.extent);
       }
     }
   }
@@ -1126,7 +1126,7 @@ public class MetadataTableUtil {
   
   public static void cloneTable(Instance instance, String srcTableId, String tableId) throws Exception {
     
-    Connector conn = instance.getConnector(SecurityConstants.SYSTEM_PRINCIPAL, SecurityConstants.getSystemToken());
+    Connector conn = instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     
     while (true) {
@@ -1151,7 +1151,7 @@ public class MetadataTableUtil {
         bw.flush();
         
         // delete what we have cloned and try again
-        deleteTable(tableId, false, SecurityConstants.getSystemCredentials(), null);
+        deleteTable(tableId, false, SystemCredentials.get().getAsThrift(), null);
         
         log.debug("Tablets merged in table " + srcTableId + " while attempting to clone, trying again");
         
@@ -1181,7 +1181,7 @@ public class MetadataTableUtil {
   public static void chopped(KeyExtent extent, ZooLock zooLock) {
     Mutation m = new Mutation(extent.getMetadataEntry());
     ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("chopped".getBytes()));
-    update(SecurityConstants.getSystemCredentials(), zooLock, m, extent);
+    update(SystemCredentials.get().getAsThrift(), zooLock, m, extent);
   }
   
   public static void removeBulkLoadEntries(Connector conn, String tableId, long tid) throws Exception {
@@ -1242,7 +1242,7 @@ public class MetadataTableUtil {
     
     // new KeyExtent is only added to force update to write to the metadata table, not the root table
     // because bulk loads aren't supported to the metadata table
-    update(SecurityConstants.getSystemCredentials(), m, new KeyExtent(new Text("anythingNotMetadata"), null, null));
+    update(SystemCredentials.get().getAsThrift(), m, new KeyExtent(new Text("anythingNotMetadata"), null, null));
   }
   
   public static void removeBulkLoadInProgressFlag(String path) {
@@ -1252,7 +1252,7 @@ public class MetadataTableUtil {
     
     // new KeyExtent is only added to force update to write to the metadata table, not the root table
     // because bulk loads aren't supported to the metadata table
-    update(SecurityConstants.getSystemCredentials(), m, new KeyExtent(new Text("anythingNotMetadata"), null, null));
+    update(SystemCredentials.get().getAsThrift(), m, new KeyExtent(new Text("anythingNotMetadata"), null, null));
   }
   
   public static void moveMetaDeleteMarkers(Instance instance, TCredentials creds) {

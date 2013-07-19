@@ -40,7 +40,7 @@ import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil.LogEntry;
@@ -165,7 +165,7 @@ public class GarbageCollectWriteAheadLogs {
           Client tserver = null;
           try {
             tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
-            tserver.removeLogs(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), paths2strings(entry.getValue()));
+            tserver.removeLogs(Tracer.traceInfo(), SystemCredentials.get().getAsThrift(), paths2strings(entry.getValue()));
             log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
             status.currentLog.deleted += entry.getValue().size();
           } catch (TException e) {
@@ -206,7 +206,7 @@ public class GarbageCollectWriteAheadLogs {
       result.add(path.toString());
     return result;
   }
-
+  
   private static Map<String,ArrayList<Path>> mapServersToFiles(Map<Path,String> fileToServerMap) {
     Map<String,ArrayList<Path>> result = new HashMap<String,ArrayList<Path>>();
     for (Entry<Path,String> fileServer : fileToServerMap.entrySet()) {
@@ -223,7 +223,7 @@ public class GarbageCollectWriteAheadLogs {
   private static int removeMetadataEntries(Map<Path,String> fileToServerMap, Set<Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
       InterruptedException {
     int count = 0;
-    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SecurityConstants.getSystemCredentials());
+    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get().getAsThrift());
     while (iterator.hasNext()) {
       for (String filename : iterator.next().logSet) {
         Path path;

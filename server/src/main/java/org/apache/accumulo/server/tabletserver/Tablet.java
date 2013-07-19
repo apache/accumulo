@@ -106,7 +106,7 @@ import org.apache.accumulo.server.master.tableOps.CompactRange.CompactionIterato
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tabletserver.Compactor.CompactionCanceledException;
 import org.apache.accumulo.server.tabletserver.Compactor.CompactionEnv;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
@@ -583,7 +583,7 @@ public class Tablet {
       
       if (filesToDelete.size() > 0) {
         log.debug("Removing scan refs from metadata " + extent + " " + filesToDelete);
-        MetadataTableUtil.removeScanFiles(extent, filesToDelete, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+        MetadataTableUtil.removeScanFiles(extent, filesToDelete, SystemCredentials.get().getAsThrift(), tabletServer.getLock());
       }
     }
     
@@ -604,7 +604,7 @@ public class Tablet {
       
       if (filesToDelete.size() > 0) {
         log.debug("Removing scan refs from metadata " + extent + " " + filesToDelete);
-        MetadataTableUtil.removeScanFiles(extent, filesToDelete, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+        MetadataTableUtil.removeScanFiles(extent, filesToDelete, SystemCredentials.get().getAsThrift(), tabletServer.getLock());
       }
     }
     
@@ -680,7 +680,7 @@ public class Tablet {
       }
       
       synchronized (bulkFileImportLock) {
-        TCredentials auths = SecurityConstants.getSystemCredentials();
+        TCredentials auths = SystemCredentials.get().getAsThrift();
         Connector conn;
         try {
           conn = HdfsZooInstance.getInstance().getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths));
@@ -838,7 +838,7 @@ public class Tablet {
       // very important to write delete entries outside of log lock, because
       // this !METADATA write does not go up... it goes sideways or to itself
       if (absMergeFile != null)
-        MetadataTableUtil.addDeleteEntries(extent, Collections.singleton(absMergeFile), SecurityConstants.getSystemCredentials());
+        MetadataTableUtil.addDeleteEntries(extent, Collections.singleton(absMergeFile), SystemCredentials.get().getAsThrift());
       
       Set<String> unusedWalLogs = beginClearingUnusedLogs();
       try {
@@ -846,7 +846,7 @@ public class Tablet {
         // need to write to !METADATA before writing to walog, when things are done in the reverse order
         // data could be lost... the minor compaction start even should be written before the following metadata
         // write is made
-        TCredentials creds = SecurityConstants.getSystemCredentials();
+        TCredentials creds = SystemCredentials.get().getAsThrift();
         
         synchronized (timeLock) {
           if (commitSession.getMaxCommittedTime() > persistedTime)
@@ -1037,7 +1037,7 @@ public class Tablet {
         Set<FileRef> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
         if (filesInUseByScans.size() > 0)
           log.debug("Adding scan refs to metadata " + extent + " " + filesInUseByScans);
-        MetadataTableUtil.replaceDatafiles(extent, oldDatafiles, filesInUseByScans, newDatafile, compactionId, dfv, SecurityConstants.getSystemCredentials(),
+        MetadataTableUtil.replaceDatafiles(extent, oldDatafiles, filesInUseByScans, newDatafile, compactionId, dfv, SystemCredentials.get().getAsThrift(),
             tabletServer.getClientAddressString(), lastLocation, tabletServer.getLock());
         removeFilesAfterScan(filesInUseByScans);
       }
@@ -1131,7 +1131,7 @@ public class Tablet {
       Text rowName = extent.getMetadataEntry();
       
       String tableId = extent.isMeta() ? RootTable.ID : MetadataTable.ID;
-      ScannerImpl mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), tableId, Authorizations.EMPTY);
+      ScannerImpl mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), SystemCredentials.get().getAsThrift(), tableId, Authorizations.EMPTY);
       
       // Commented out because when no data file is present, each tablet will scan through metadata table and return nothing
       // reduced batch size to improve performance
@@ -1161,7 +1161,7 @@ public class Tablet {
     
     if (ke.isMeta()) {
       try {
-        logEntries = MetadataTableUtil.getLogEntries(SecurityConstants.getSystemCredentials(), ke);
+        logEntries = MetadataTableUtil.getLogEntries(SystemCredentials.get().getAsThrift(), ke);
       } catch (Exception ex) {
         throw new RuntimeException("Unable to read tablet log entries", ex);
       }
@@ -2213,7 +2213,7 @@ public class Tablet {
       }
       
       if (updateMetadata) {
-        TCredentials creds = SecurityConstants.getSystemCredentials();
+        TCredentials creds = SystemCredentials.get().getAsThrift();
         // if multiple threads were allowed to update this outside of a sync block, then it would be
         // a race condition
         MetadataTableUtil.updateTabletFlushID(extent, tableFlushID, creds, tabletServer.getLock());
@@ -2729,7 +2729,7 @@ public class Tablet {
     }
     
     try {
-      Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> fileLog = MetadataTableUtil.getFileAndLogEntries(SecurityConstants.getSystemCredentials(), extent);
+      Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> fileLog = MetadataTableUtil.getFileAndLogEntries(SystemCredentials.get().getAsThrift(), extent);
       
       if (fileLog.getFirst().size() != 0) {
         String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " " + fileLog.getFirst();
@@ -3516,12 +3516,12 @@ public class Tablet {
       // it is possible that some of the bulk loading flags will be deleted after being read below because the bulk load
       // finishes.... therefore split could propogate load flags for a finished bulk load... there is a special iterator
       // on the !METADATA table to clean up this type of garbage
-      Map<FileRef,Long> bulkLoadedFiles = MetadataTableUtil.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), extent);
+      Map<FileRef,Long> bulkLoadedFiles = MetadataTableUtil.getBulkFilesLoaded(SystemCredentials.get().getAsThrift(), extent);
       
-      MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
-      MetadataTableUtil.addNewTablet(low, lowDirectory, tabletServer.getTabletSession(), lowDatafileSizes, bulkLoadedFiles,
-          SecurityConstants.getSystemCredentials(), time, lastFlushID, lastCompactID, tabletServer.getLock());
-      MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+      MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, SystemCredentials.get().getAsThrift(), tabletServer.getLock());
+      MetadataTableUtil.addNewTablet(low, lowDirectory, tabletServer.getTabletSession(), lowDatafileSizes, bulkLoadedFiles, SystemCredentials.get()
+          .getAsThrift(), time, lastFlushID, lastCompactID, tabletServer.getLock());
+      MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SystemCredentials.get().getAsThrift(), tabletServer.getLock());
       
       log.log(TLevel.TABLET_HIST, extent + " split " + low + " " + high);
       
@@ -3807,7 +3807,7 @@ public class Tablet {
       try {
         // if multiple threads were allowed to update this outside of a sync block, then it would be
         // a race condition
-        MetadataTableUtil.updateTabletCompactID(extent, compactionId, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
+        MetadataTableUtil.updateTabletCompactID(extent, compactionId, SystemCredentials.get().getAsThrift(), tabletServer.getLock());
       } finally {
         synchronized (this) {
           majorCompactionInProgress = false;

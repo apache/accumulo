@@ -47,7 +47,7 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.collections.map.LRUMap;
@@ -155,7 +155,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
       return;
     }
     
-    Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemPrincipal(), SecurityConstants.getSystemToken());
+    Connector connector = HdfsZooInstance.getInstance().getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.addScanIterator(new IteratorSetting(1, "keys-only", SortedKeyIterator.class));
     
@@ -174,7 +174,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     }
     
     if (hasProblems)
-      MetadataTableUtil.getMetadataTable(SecurityConstants.getSystemCredentials()).update(delMut);
+      MetadataTableUtil.getMetadataTable(SystemCredentials.get().getAsThrift()).update(delMut);
   }
   
   public Iterator<ProblemReport> iterator(final String table) {
@@ -210,7 +210,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
           if (iter2 == null) {
             try {
               if ((table == null || !table.equals(MetadataTable.ID)) && iter1Count == 0) {
-                Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemPrincipal(), SecurityConstants.getSystemToken());
+                Connector connector = HdfsZooInstance.getInstance().getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
                 Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
                 
                 scanner.setTimeout(3, TimeUnit.SECONDS);

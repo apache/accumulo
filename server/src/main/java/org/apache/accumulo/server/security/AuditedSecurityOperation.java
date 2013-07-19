@@ -92,7 +92,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   
   // Is INFO the right level to check? Do we even need that check?
   private static boolean shouldAudit(TCredentials credentials) {
-    return !credentials.getPrincipal().equals(SecurityConstants.SYSTEM_PRINCIPAL);
+    return !SystemCredentials.get().getToken().getClass().getName().equals(credentials.getTokenClassName());
   }
   
   /*

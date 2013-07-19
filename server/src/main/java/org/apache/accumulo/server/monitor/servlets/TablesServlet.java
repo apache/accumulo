@@ -47,7 +47,7 @@ import org.apache.accumulo.server.monitor.util.celltypes.DurationType;
 import org.apache.accumulo.server.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.server.monitor.util.celltypes.TableLinkType;
 import org.apache.accumulo.server.monitor.util.celltypes.TableStateType;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.io.Text;
 
 public class TablesServlet extends BasicServlet {
@@ -151,8 +151,8 @@ public class TablesServlet extends BasicServlet {
       locs.add(instance.getRootTabletLocation());
     } else {
       String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
-      MetaDataTableScanner scanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), new Range(KeyExtent.getMetadataEntry(
-          new Text(tableId), new Text()), KeyExtent.getMetadataEntry(new Text(tableId), null)), systemTableName);
+      MetaDataTableScanner scanner = new MetaDataTableScanner(instance, SystemCredentials.get().getAsThrift(), new Range(KeyExtent.getMetadataEntry(new Text(
+          tableId), new Text()), KeyExtent.getMetadataEntry(new Text(tableId), null)), systemTableName);
       
       while (scanner.hasNext()) {
         TabletLocationState state = scanner.next();

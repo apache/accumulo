@@ -64,7 +64,7 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
@@ -439,7 +439,7 @@ public class Initialize {
   }
   
   private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {
-    AuditedSecurityOperation.getInstance(iid, true).initializeSecurity(SecurityConstants.getSystemCredentials(), DEFAULT_ROOT_USER, opts.rootpass);
+    AuditedSecurityOperation.getInstance(iid, true).initializeSecurity(SystemCredentials.get().getAsThrift(), DEFAULT_ROOT_USER, opts.rootpass);
   }
   
   protected static void initMetadataConfig() throws IOException {

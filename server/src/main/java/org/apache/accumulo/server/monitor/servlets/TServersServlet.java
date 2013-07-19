@@ -27,7 +27,6 @@ import java.util.Map.Entry;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -51,8 +50,9 @@ import org.apache.accumulo.server.monitor.util.celltypes.PercentageType;
 import org.apache.accumulo.server.monitor.util.celltypes.ProgressChartType;
 import org.apache.accumulo.server.monitor.util.celltypes.TServerLinkType;
 import org.apache.accumulo.server.monitor.util.celltypes.TableLinkType;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tabletserver.TabletStatsKeeper;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.commons.codec.binary.Base64;
 
 public class TServersServlet extends BasicServlet {
@@ -126,9 +126,9 @@ public class TServersServlet extends BasicServlet {
       TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, Monitor.getSystemConfiguration());
       try {
         for (String tableId : Monitor.getMmi().tableMap.keySet()) {
-          tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), tableId));
+          tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), SystemCredentials.get().getAsThrift(), tableId));
         }
-        historical = client.getHistoricalStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
+        historical = client.getHistoricalStats(Tracer.traceInfo(), SystemCredentials.get().getAsThrift());
       } finally {
         ThriftUtil.returnClient(client);
       }
@@ -239,12 +239,10 @@ public class TServersServlet extends BasicServlet {
     
     opHistoryDetails.addRow("Split", historical.splits.num, historical.splits.fail, null, null,
         historical.splits.num != 0 ? (historical.splits.elapsed / historical.splits.num) : null, splitStdDev, historical.splits.elapsed);
-    opHistoryDetails.addRow("Major&nbsp;Compaction", total.majors.num, total.majors.fail,
-        total.majors.num != 0 ? (total.majors.queueTime / total.majors.num) : null, majorQueueStdDev,
-        total.majors.num != 0 ? (total.majors.elapsed / total.majors.num) : null, majorStdDev, total.majors.elapsed);
-    opHistoryDetails.addRow("Minor&nbsp;Compaction", total.minors.num, total.minors.fail,
-        total.minors.num != 0 ? (total.minors.queueTime / total.minors.num) : null, minorQueueStdDev,
-        total.minors.num != 0 ? (total.minors.elapsed / total.minors.num) : null, minorStdDev, total.minors.elapsed);
+    opHistoryDetails.addRow("Major&nbsp;Compaction", total.majors.num, total.majors.fail, total.majors.num != 0 ? (total.majors.queueTime / total.majors.num)
+        : null, majorQueueStdDev, total.majors.num != 0 ? (total.majors.elapsed / total.majors.num) : null, majorStdDev, total.majors.elapsed);
+    opHistoryDetails.addRow("Minor&nbsp;Compaction", total.minors.num, total.minors.fail, total.minors.num != 0 ? (total.minors.queueTime / total.minors.num)
+        : null, minorQueueStdDev, total.minors.num != 0 ? (total.minors.elapsed / total.minors.num) : null, minorStdDev, total.minors.elapsed);
     opHistoryDetails.generate(req, sb);
   }
   

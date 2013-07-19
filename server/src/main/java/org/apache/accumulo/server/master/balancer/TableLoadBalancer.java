@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
@@ -119,7 +119,7 @@ public class TableLoadBalancer extends TabletBalancer {
   protected TableOperations getTableOperations() {
     if (tops == null)
       try {
-        tops = configuration.getInstance().getConnector(SecurityConstants.getSystemPrincipal(), SecurityConstants.getSystemToken()).tableOperations();
+        tops = configuration.getInstance().getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken()).tableOperations();
       } catch (AccumuloException e) {
         log.error("Unable to access table operations from within table balancer", e);
       } catch (AccumuloSecurityException e) {

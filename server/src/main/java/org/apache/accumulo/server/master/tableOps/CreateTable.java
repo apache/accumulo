@@ -36,8 +36,8 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
@@ -115,7 +115,7 @@ class PopulateMetadata extends MasterRepo {
   public Repo<Master> call(long tid, Master environment) throws Exception {
     
     KeyExtent extent = new KeyExtent(new Text(tableInfo.tableId), null, null);
-    MetadataTableUtil.addTablet(extent, Constants.DEFAULT_TABLET_LOCATION, SecurityConstants.getSystemCredentials(), tableInfo.timeType,
+    MetadataTableUtil.addTablet(extent, Constants.DEFAULT_TABLET_LOCATION, SystemCredentials.get().getAsThrift(), tableInfo.timeType,
         environment.getMasterLock());
     
     return new FinishCreateTable(tableInfo);
@@ -124,7 +124,7 @@ class PopulateMetadata extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(tableInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(tableInfo.tableId, false, SystemCredentials.get().getAsThrift(), environment.getMasterLock());
   }
   
 }
@@ -153,7 +153,7 @@ class CreateDir extends MasterRepo {
   @Override
   public void undo(long tid, Master master) throws Exception {
     VolumeManager fs = master.getFileSystem();
-    for(String dir : ServerConstants.getTablesDirs()) {
+    for (String dir : ServerConstants.getTablesDirs()) {
       fs.deleteRecursively(new Path(dir + "/" + tableInfo.tableId));
     }
     
@@ -225,7 +225,7 @@ class SetupPermissions extends MasterRepo {
     SecurityOperation security = AuditedSecurityOperation.getInstance();
     for (TablePermission permission : TablePermission.values()) {
       try {
-        security.grantTablePermission(SecurityConstants.getSystemCredentials(), tableInfo.user, tableInfo.tableId, permission);
+        security.grantTablePermission(SystemCredentials.get().getAsThrift(), tableInfo.user, tableInfo.tableId, permission);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCreateTable.class).error(e.getMessage(), e);
         throw e;
@@ -240,7 +240,7 @@ class SetupPermissions extends MasterRepo {
   
   @Override
   public void undo(long tid, Master env) throws Exception {
-    AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableInfo.tableId);
+    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().getAsThrift(), tableInfo.tableId);
   }
   
 }

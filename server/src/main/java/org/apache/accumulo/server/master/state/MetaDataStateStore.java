@@ -32,7 +32,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.io.Text;
 
 public class MetaDataStateStore extends TabletStateStore {
@@ -59,7 +59,7 @@ public class MetaDataStateStore extends TabletStateStore {
   }
   
   protected MetaDataStateStore(String tableName) {
-    this(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), null, tableName);
+    this(HdfsZooInstance.getInstance(), SystemCredentials.get().getAsThrift(), null, tableName);
   }
   
   public MetaDataStateStore() {

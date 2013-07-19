@@ -85,7 +85,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.state.tables.TableManager;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TabletIterator;
@@ -162,7 +162,7 @@ public class SimpleGarbageCollector implements Iface {
     if (opts.address != null)
       gc.useAddress(address);
     
-    gc.init(fs, instance, SecurityConstants.getSystemCredentials(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
+    gc.init(fs, instance, SystemCredentials.get().getAsThrift(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
     Accumulo.enableTracing(address, "gc");
     gc.run();
   }
@@ -582,8 +582,7 @@ public class SimpleGarbageCollector implements Iface {
       Map<Key,Value> tabletKeyValues = tabletIterator.next();
       
       for (Entry<Key,Value> entry : tabletKeyValues.entrySet()) {
-        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)
-            || entry.getKey().getColumnFamily().equals(ScanFileColumnFamily.NAME)) {
+        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME) || entry.getKey().getColumnFamily().equals(ScanFileColumnFamily.NAME)) {
           
           String cf = entry.getKey().getColumnQualifier().toString();
           String delete = cf;
@@ -638,7 +637,7 @@ public class SimpleGarbageCollector implements Iface {
     if (!offline) {
       Connector c;
       try {
-        c = instance.getConnector(SecurityConstants.SYSTEM_PRINCIPAL, SecurityConstants.getSystemToken());
+        c = instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
         writer = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
         rootWriter = c.createBatchWriter(RootTable.NAME, new BatchWriterConfig());
       } catch (AccumuloException e) {

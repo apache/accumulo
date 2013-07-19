@@ -33,7 +33,7 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.tables.TableManager;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.log4j.Logger;
 
@@ -48,8 +48,8 @@ public class FindOfflineTablets {
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
     final AtomicBoolean scanning = new AtomicBoolean(false);
     Instance instance = opts.getInstance();
-    MetaDataTableScanner rootScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), MetadataSchema.TabletsSection.getRange());
-    MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), MetadataSchema.TabletsSection.getRange());
+    MetaDataTableScanner rootScanner = new MetaDataTableScanner(instance, SystemCredentials.get().getAsThrift(), MetadataSchema.TabletsSection.getRange());
+    MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, SystemCredentials.get().getAsThrift(), MetadataSchema.TabletsSection.getRange());
     @SuppressWarnings("unchecked")
     Iterator<TabletLocationState> scanner = new IteratorChain(rootScanner, metaScanner);
     LiveTServerSet tservers = new LiveTServerSet(instance, DefaultConfiguration.getDefaultConfiguration(), new Listener() {

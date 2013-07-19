@@ -36,7 +36,7 @@ import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.log4j.Logger;
 
@@ -88,8 +88,8 @@ public class Admin {
       String principal;
       AuthenticationToken token;
       if (opts.getToken() == null) {
-        principal = SecurityConstants.getSystemPrincipal();
-        token = SecurityConstants.getSystemToken();
+        principal = SystemCredentials.get().getPrincipal();
+        token = SystemCredentials.get().getToken();
       } else {
         principal = opts.principal;
         token = opts.getToken();

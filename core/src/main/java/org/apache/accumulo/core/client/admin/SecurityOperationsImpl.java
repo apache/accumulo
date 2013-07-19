@@ -157,7 +157,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
         client.changeLocalUserPassword(Tracer.traceInfo(), credentials, principal, ByteBuffer.wrap(token.getPassword()));
       }
     });
-    if (this.credentials.principal.equals(principal)) {
+    if (this.credentials.getPrincipal().equals(principal)) {
       this.credentials = toChange;
     }
   }

@@ -42,7 +42,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -56,8 +56,8 @@ public class MetadataBatchScanTest {
   
   public static void main(String[] args) throws Exception {
     
-    final Connector connector = new ZooKeeperInstance("acu14", "localhost")
-        .getConnector(SecurityConstants.SYSTEM_PRINCIPAL, SecurityConstants.getSystemToken());
+    final Connector connector = new ZooKeeperInstance("acu14", "localhost").getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get()
+        .getToken());
     
     TreeSet<Long> splits = new TreeSet<Long>();
     Random r = new Random(42);

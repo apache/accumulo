@@ -77,7 +77,7 @@ public class CredentialHelper {
   }
   
   public static AuthenticationToken extractToken(TCredentials toAuth) throws AccumuloSecurityException {
-    return extractToken(toAuth.tokenClassName, toAuth.getToken());
+    return extractToken(toAuth.getTokenClassName(), toAuth.getToken());
   }
   
   public static TCredentials createSquelchError(String principal, AuthenticationToken token, String instanceID) {

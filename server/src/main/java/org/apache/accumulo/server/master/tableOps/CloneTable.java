@@ -32,7 +32,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.log4j.Logger;
 
@@ -108,14 +108,14 @@ class CloneMetadata extends MasterRepo {
     Instance instance = HdfsZooInstance.getInstance();
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SystemCredentials.get().getAsThrift(), environment.getMasterLock());
     MetadataTableUtil.cloneTable(instance, cloneInfo.srcTableId, cloneInfo.tableId);
     return new FinishCloneTable(cloneInfo);
   }
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SecurityConstants.getSystemCredentials(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SystemCredentials.get().getAsThrift(), environment.getMasterLock());
   }
   
 }
@@ -183,7 +183,7 @@ class ClonePermissions extends MasterRepo {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
-        AuditedSecurityOperation.getInstance().grantTablePermission(SecurityConstants.getSystemCredentials(), cloneInfo.user, cloneInfo.tableId, permission);
+        AuditedSecurityOperation.getInstance().grantTablePermission(SystemCredentials.get().getAsThrift(), cloneInfo.user, cloneInfo.tableId, permission);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
         throw e;
@@ -198,7 +198,7 @@ class ClonePermissions extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), cloneInfo.tableId);
+    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().getAsThrift(), cloneInfo.tableId);
   }
 }
 

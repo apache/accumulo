@@ -137,15 +137,14 @@ public class PasswordToken implements AuthenticationToken {
       }
     }
   }
-
+  
   @Override
   public void init(Properties properties) {
-    if (properties.containsKey("password")){
+    if (properties.containsKey("password")) {
       setPassword(CharBuffer.wrap(properties.get("password")));
-    }else
+    } else
       throw new IllegalArgumentException("Missing 'password' property");
   }
-
   
   @Override
   public Set<TokenProperty> getProperties() {

@@ -58,9 +58,8 @@ public class ConnectorImpl extends Connector {
     
     this.credentials = cred;
     
-    // hardcoded string for SYSTEM user since the definition is
-    // in server code
-    if (!cred.getPrincipal().equals("!SYSTEM")) {
+    // Skip fail fast for system services; string literal for class name, to avoid
+    if (!"org.apache.accumulo.server.security.SystemCredentials$SystemToken".equals(cred.getTokenClassName())) {
       ServerClient.execute(instance, new ClientExec<ClientService.Client>() {
         @Override
         public void execute(ClientService.Client iface) throws Exception {
