@@ -33,7 +33,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class CreateAndUseIT extends MacTest {
+public class CreateAndUseIT extends SimpleMacIT {
   
   @Test(timeout=60*1000)
   public void run() throws Exception {
@@ -48,9 +48,10 @@ public class CreateAndUseIT extends MacTest {
     Text cf = new Text("cf1");
     Text cq = new Text("cq1");
     
-    getConnector().tableOperations().create("t1");
-    getConnector().tableOperations().addSplits("t1", splits);
-    BatchWriter bw = getConnector().createBatchWriter("t1", new BatchWriterConfig());
+    String tableName = makeTableName();
+    getConnector().tableOperations().create(tableName);
+    getConnector().tableOperations().addSplits(tableName, splits);
+    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     
     for (int i = 1; i < 257; i++) {
       Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
@@ -62,7 +63,7 @@ public class CreateAndUseIT extends MacTest {
     bw.close();
     
     // verify data is there
-    Scanner scanner1 = getConnector().createScanner("t1", Authorizations.EMPTY);
+    Scanner scanner1 = getConnector().createScanner(tableName, Authorizations.EMPTY);
     
     int ei = 1;
     
@@ -83,9 +84,10 @@ public class CreateAndUseIT extends MacTest {
     }
     
     // TEST 2 create a table and immediately scan it
-    getConnector().tableOperations().create("t2");
-    getConnector().tableOperations().addSplits("t2", splits);
-    Scanner scanner2 = getConnector().createScanner("t2", Authorizations.EMPTY);
+    String table2 = makeTableName();
+    getConnector().tableOperations().create(table2);
+    getConnector().tableOperations().addSplits(table2, splits);
+    Scanner scanner2 = getConnector().createScanner(table2, Authorizations.EMPTY);
     int count = 0;
     for (Entry<Key,Value> entry : scanner2) {
       if (entry != null)
@@ -102,10 +104,11 @@ public class CreateAndUseIT extends MacTest {
     for (int i = 1; i < 257; i++) {
       ranges.add(new Range(new Text(String.format("%08x", (i << 8) - 16))));
     }
-    
-    getConnector().tableOperations().create("t3");
-    getConnector().tableOperations().addSplits("t3", splits);
-    BatchScanner bs = getConnector().createBatchScanner("t3", Authorizations.EMPTY, 3);
+
+    String table3 = makeTableName();
+    getConnector().tableOperations().create(table3);
+    getConnector().tableOperations().addSplits(table3, splits);
+    BatchScanner bs = getConnector().createBatchScanner(table3, Authorizations.EMPTY, 3);
     bs.setRanges(ranges);
     count = 0;
     for (Entry<Key,Value> entry : bs) {

@@ -44,21 +44,23 @@ import org.apache.accumulo.core.util.ByteArraySet;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class VisibilityIT extends MacTest {
+public class VisibilityIT extends SimpleMacIT {
   
   @Test(timeout=30*1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("vt");
-    c.tableOperations().create("vt2");
-    c.tableOperations().setProperty("vt2", Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "DEFLABEL");
+    String table = makeTableName();
+    c.tableOperations().create(table);
+    String table2 = makeTableName();
+    c.tableOperations().create(table2);
+    c.tableOperations().setProperty(table2, Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "DEFLABEL");
     
-    insertData(c);
-    queryData(c);
-    deleteData(c);
+    insertData(c, table);
+    queryData(c, table);
+    deleteData(c, table);
     
-    insertDefaultData(c);
-    queryDefaultData(c);
+    insertDefaultData(c, table2);
+    queryDefaultData(c, table2);
     
   }
   
@@ -82,9 +84,9 @@ public class VisibilityIT extends MacTest {
     m.putDelete(new Text(cf), new Text(cq), le);
   }
   
-  private void insertData(Connector c) throws Exception {
+  private void insertData(Connector c, String tableName) throws Exception {
     
-    BatchWriter bw = c.createBatchWriter("vt", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
     
     mput(m1, "cf1", "cq1", "", "v1");
@@ -105,9 +107,9 @@ public class VisibilityIT extends MacTest {
     bw.close();
   }
   
-  private void deleteData(Connector c) throws Exception {
+  private void deleteData(Connector c, String tableName) throws Exception {
     
-    BatchWriter bw = c.createBatchWriter("vt", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
     
     mputDelete(m1, "cf1", "cq1", "");
@@ -134,11 +136,11 @@ public class VisibilityIT extends MacTest {
     expected.put(nss("FOO"), nss("v11"));
     expected.put(nss("A", "FOO"), nss("v9"));
     
-    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "FOO", "L", "M", "Z"), expected);
+    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "FOO", "L", "M", "Z"), expected);
   }
   
-  private void insertDefaultData(Connector c) throws Exception {
-    BatchWriter bw = c.createBatchWriter("vt2", new BatchWriterConfig());
+  private void insertDefaultData(Connector c, String tableName) throws Exception {
+    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
     
     mput(m1, "cf1", "cq1", "BASE", "v1");
@@ -164,7 +166,7 @@ public class VisibilityIT extends MacTest {
     }
   }
   
-  private void queryData(Connector c) throws Exception {
+  private void queryData(Connector c, String tableName) throws Exception {
     Map<Set<String>,Set<String>> expected = new HashMap<Set<String>,Set<String>>();
     expected.put(nss(), nss("v1"));
     expected.put(nss("A"), nss("v2"));
@@ -185,14 +187,14 @@ public class VisibilityIT extends MacTest {
     expected.put(nss("B", "FOO", "L"), nss("v12"));
     expected.put(nss("B", "FOO", "M"), nss("v12"));
     
-    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "FOO", "L", "M", "Z"), expected);
-    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "L", "M", "Z"), expected);
-    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "Z"), expected);
-    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss("Z"), expected);
-    queryData(c, nss("A", "B", "FOO", "L", "M", "Z"), nss(), expected);
+    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "FOO", "L", "M", "Z"), expected);
+    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "B", "L", "M", "Z"), expected);
+    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "Z"), expected);
+    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("Z"), expected);
+    queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss(), expected);
   }
   
-  private void queryData(Connector c, Set<String> allAuths, Set<String> userAuths, Map<Set<String>,Set<String>> expected) throws Exception {
+  private void queryData(Connector c, String tableName, Set<String> allAuths, Set<String> userAuths, Map<Set<String>,Set<String>> expected) throws Exception {
     
     c.securityOperations().changeUserAuthorizations("root", new Authorizations(nbas(userAuths)));
     
@@ -212,25 +214,25 @@ public class VisibilityIT extends MacTest {
       }
       
       set1.retainAll(userAuths);
-      verify(c, set1, e);
+      verify(c, tableName, set1, e);
     }
     
   }
   
-  private void queryDefaultData(Connector c) throws Exception {
+  private void queryDefaultData(Connector c, String tableName) throws Exception {
     Scanner scanner;
     
     // should return no records
     c.securityOperations().changeUserAuthorizations("root", new Authorizations("BASE", "DEFLABEL"));
-    scanner = getConnector().createScanner("vt2", new Authorizations());
+    scanner = getConnector().createScanner(tableName, new Authorizations());
     verifyDefault(scanner, 0);
     
     // should return one record
-    scanner = getConnector().createScanner("vt2", new Authorizations("BASE"));
+    scanner = getConnector().createScanner(tableName, new Authorizations("BASE"));
     verifyDefault(scanner, 1);
     
     // should return all three records
-    scanner = getConnector().createScanner("vt2", new Authorizations("BASE", "DEFLABEL"));
+    scanner = getConnector().createScanner(tableName, new Authorizations("BASE", "DEFLABEL"));
     verifyDefault(scanner, 3);
   }
   
@@ -242,11 +244,11 @@ public class VisibilityIT extends MacTest {
       throw new Exception(" expected count !=0 " + expectedCount);
   }
   
-  private void verify(Connector c, Set<String> auths, Set<String> expectedValues) throws Exception {
+  private void verify(Connector c, String tableName, Set<String> auths, Set<String> expectedValues) throws Exception {
     ByteArraySet bas = nbas(auths);
     
     try {
-      verify(c, bas, expectedValues.toArray(new String[0]));
+      verify(c, tableName, bas, expectedValues.toArray(new String[0]));
     } catch (Exception e) {
       throw new Exception("Verification failed auths=" + auths + " exp=" + expectedValues, e);
     }
@@ -260,11 +262,11 @@ public class VisibilityIT extends MacTest {
     return bas;
   }
   
-  private void verify(Connector c, ByteArraySet nss, String... expected) throws Exception {
-    Scanner scanner = c.createScanner("vt", new Authorizations(nss));
+  private void verify(Connector c, String tableName, ByteArraySet nss, String... expected) throws Exception {
+    Scanner scanner = c.createScanner(tableName, new Authorizations(nss));
     verify(scanner.iterator(), expected);
     
-    BatchScanner bs = getConnector().createBatchScanner("vt", new Authorizations(nss), 3);
+    BatchScanner bs = getConnector().createBatchScanner(tableName, new Authorizations(nss), 3);
     bs.setRanges(Collections.singleton(new Range()));
     verify(bs.iterator(), expected);
     bs.close();

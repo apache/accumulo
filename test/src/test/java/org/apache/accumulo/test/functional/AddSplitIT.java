@@ -24,7 +24,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -37,32 +36,33 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class AddSplitIT extends MacTest {
+public class AddSplitIT extends SimpleMacIT {
   
   @Test(timeout=30*1000)
   public void addSplitTest() throws Exception {
 
+    String tableName = makeTableName();
     Connector c = getConnector();
-    c.tableOperations().create("foo");
+    c.tableOperations().create(tableName);
     
-    insertData(1l);
+    insertData(tableName, 1l);
     
     TreeSet<Text> splits = new TreeSet<Text>();
     splits.add(new Text(String.format("%09d", 333)));
     splits.add(new Text(String.format("%09d", 666)));
     
-    c.tableOperations().addSplits("foo", splits);
+    c.tableOperations().addSplits(tableName, splits);
     
     UtilWaitThread.sleep(100);
     
-    Collection<Text> actualSplits = c.tableOperations().listSplits("foo");
+    Collection<Text> actualSplits = c.tableOperations().listSplits(tableName);
     
     if (!splits.equals(new TreeSet<Text>(actualSplits))) {
       throw new Exception(splits + " != " + actualSplits);
     }
     
-    verifyData(1l);
-    insertData(2l);
+    verifyData(tableName, 1l);
+    insertData(tableName, 2l);
     
     // did not clear splits on purpose, it should ignore existing split points
     // and still create the three additional split points
@@ -71,21 +71,21 @@ public class AddSplitIT extends MacTest {
     splits.add(new Text(String.format("%09d", 500)));
     splits.add(new Text(String.format("%09d", 800)));
     
-    c.tableOperations().addSplits("foo", splits);
+    c.tableOperations().addSplits(tableName, splits);
     
     UtilWaitThread.sleep(100);
     
-    actualSplits = c.tableOperations().listSplits("foo");
+    actualSplits = c.tableOperations().listSplits(tableName);
     
     if (!splits.equals(new TreeSet<Text>(actualSplits))) {
       throw new Exception(splits + " != " + actualSplits);
     }
     
-    verifyData(2l);
+    verifyData(tableName, 2l);
   }
   
-  private void verifyData(long ts) throws Exception {
-    Scanner scanner = getConnector().createScanner("foo", Authorizations.EMPTY);
+  private void verifyData(String tableName, long ts) throws Exception {
+    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
     
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
     
@@ -117,8 +117,8 @@ public class AddSplitIT extends MacTest {
     
   }
   
-  private void insertData(long ts) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = getConnector().createBatchWriter("foo", new BatchWriterConfig());
+  private void insertData(String tableName, long ts) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
+    BatchWriter bw = getConnector().createBatchWriter(tableName, null);
     
     for (int i = 0; i < 10000; i++) {
       String row = String.format("%09d", i);

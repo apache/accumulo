@@ -42,6 +42,7 @@ public class RestartIT extends MacTest {
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     cfg.setSiteConfig(Collections.singletonMap(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s"));
+    cfg.useMiniDFS(true);
   }
 
   private static final ScannerOpts SOPTS = new ScannerOpts();
@@ -111,9 +112,9 @@ public class RestartIT extends MacTest {
     List<ProcessReference> procs = new ArrayList<ProcessReference>(cluster.getProcesses().get(ServerType.TABLET_SERVER));
     for (ProcessReference tserver : procs) {
       cluster.killProcess(ServerType.TABLET_SERVER, tserver);
-      cluster.start();
-      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     }
+    cluster.start();
+    VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
 
   @Test(timeout=2 * 60 * 1000)

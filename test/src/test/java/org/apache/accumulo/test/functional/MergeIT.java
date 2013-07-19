@@ -16,17 +16,17 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -38,7 +38,7 @@ import org.apache.accumulo.core.util.Merge;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MergeIT extends MacTest {
+public class MergeIT extends SimpleMacIT {
   
   SortedSet<Text> splits(String [] points) {
     SortedSet<Text> result = new TreeSet<Text>();
@@ -50,38 +50,40 @@ public class MergeIT extends MacTest {
   @Test(timeout=30*1000)
   public void merge() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test");
-    c.tableOperations().addSplits("test", splits("a b c d e f g h i j k".split(" ")));
-    BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
+    String tableName = makeTableName();
+    c.tableOperations().create(tableName);
+    c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
+    BatchWriter bw = c.createBatchWriter(tableName, null);
     for (String row : "a b c d e f g h i j k".split(" ")) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", "value");
       bw.addMutation(m);
     }
     bw.close();
-    c.tableOperations().flush("test", null, null, true);
-    c.tableOperations().merge("test", new Text("c1"), new Text("f1"));
-    assertEquals(8, c.tableOperations().listSplits("test").size());
+    c.tableOperations().flush(tableName, null, null, true);
+    c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));
+    assertEquals(8, c.tableOperations().listSplits(tableName).size());
   }
   
   @Test(timeout=30*1000)
   public void mergeSize() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("merge");
-    c.tableOperations().addSplits("merge", splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
-    BatchWriter bw = c.createBatchWriter("merge", new BatchWriterConfig());
+    String tableName = makeTableName();
+    c.tableOperations().create(tableName);
+    c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
+    BatchWriter bw = c.createBatchWriter(tableName, null);
     for (String row : "c e f y".split(" ")) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", "mersydotesanddozeydotesanlittolamsiedives");
       bw.addMutation(m);
     }
     bw.close();
-    c.tableOperations().flush("merge", null, null, true);
+    c.tableOperations().flush(tableName, null, null, true);
     Merge merge = new Merge();
-    merge.mergomatic(c, "merge", null, null, 100, false);
-    assertArrayEquals("b c d e f x y".split(" "), toStrings(c.tableOperations().listSplits("merge")));
-    merge.mergomatic(c, "merge", null, null, 100, true);
-    assertArrayEquals("c e f y".split(" "), toStrings(c.tableOperations().listSplits("merge")));
+    merge.mergomatic(c, tableName, null, null, 100, false);
+    assertArrayEquals("b c d e f x y".split(" "), toStrings(c.tableOperations().listSplits(tableName)));
+    merge.mergomatic(c, tableName, null, null, 100, true);
+    assertArrayEquals("c e f y".split(" "), toStrings(c.tableOperations().listSplits(tableName)));
   }
 
   private String[] toStrings(Collection<Text> listSplits) {
@@ -101,22 +103,23 @@ public class MergeIT extends MacTest {
   public void mergeTest() throws Exception {
     int tc = 0;
     Connector c = getConnector();
-    runMergeTest(c, "foo" + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
+    String tableName = makeTableName();
+    runMergeTest(c, tableName + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
     
-    runMergeTest(c, "foo" + tc++, ns("m"), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
-    runMergeTest(c, "foo" + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns("m", "n"), ns(null, "z"));
-    runMergeTest(c, "foo" + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns(null, "b"), ns("l", "m"));
+    runMergeTest(c, tableName + tc++, ns("m"), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
+    runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns("m", "n"), ns(null, "z"));
+    runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns(null, "b"), ns("l", "m"));
     
-    runMergeTest(c, "foo" + tc++, ns("b", "m", "r"), ns(), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns(null, "s"));
-    runMergeTest(c, "foo" + tc++, ns("b", "m", "r"), ns("m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("c", "m"));
-    runMergeTest(c, "foo" + tc++, ns("b", "m", "r"), ns("r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("n", "r"));
-    runMergeTest(c, "foo" + tc++, ns("b", "m", "r"), ns("b"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns(null, "s"));
-    runMergeTest(c, "foo" + tc++, ns("b", "m", "r"), ns("b", "m"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns(null, "s"));
-    runMergeTest(c, "foo" + tc++, ns("b", "m", "r"), ns("b", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("q", "r"));
-    runMergeTest(c, "foo" + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("aa", "b"));
-    runMergeTest(c, "foo" + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("r", "s"), ns(null, "z"));
-    runMergeTest(c, "foo" + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("l", "m"));
-    runMergeTest(c, "foo" + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns("q", "r"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns(), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns(null, "s"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("c", "m"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("n", "r"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns(null, "s"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns(null, "s"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("q", "r"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("aa", "b"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("r", "s"), ns(null, "z"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("l", "m"));
+    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns("q", "r"));
     
   }
   
@@ -140,7 +143,7 @@ public class MergeIT extends MacTest {
     }
     conn.tableOperations().addSplits(table, splitSet);
     
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(table, null);
     HashSet<String> expected = new HashSet<String>();
     for (String row : inserts) {
       Mutation m = new Mutation(row);

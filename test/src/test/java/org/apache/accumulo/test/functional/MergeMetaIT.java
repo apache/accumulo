@@ -35,7 +35,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MergeMetaIT extends MacTest {
+public class MergeMetaIT extends SimpleMacIT {
   
   @Test(timeout = 60 * 1000)
   public void mergeMeta() throws Exception {

@@ -24,18 +24,18 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
-public class ZooCacheIT extends MacTest {
+public class ZooCacheIT extends SimpleMacIT {
   
   @Test(timeout=200*1000)
   public void test() throws Exception {
-    assertEquals(0, cluster.exec(CacheTestClean.class, "/zcTest-42", "/tmp/zcTest-42").waitFor());
+    assertEquals(0, exec(CacheTestClean.class, "/zcTest-42", "/tmp/zcTest-42").waitFor());
     final AtomicReference<Exception> ref = new AtomicReference<Exception>();
     List<Thread> threads = new ArrayList<Thread>();
     for (int i = 0; i < 3; i++) {
       Thread reader = new Thread() {
         public void run() {
           try {
-            CacheTestReader.main(new String[]{"/zcTest-42", "/tmp/zcTest-42", cluster.getZooKeepers()});
+            CacheTestReader.main(new String[]{"/zcTest-42", "/tmp/zcTest-42", getConnector().getInstance().getZooKeepers()});
           } catch(Exception ex) {
             ref.set(ex);
           }
@@ -44,7 +44,7 @@ public class ZooCacheIT extends MacTest {
       reader.start();
       threads.add(reader);
     }
-    assertEquals(0, cluster.exec(CacheTestWriter.class, "/zcTest-42", "/tmp/zcTest-42", "3","500").waitFor());
+    assertEquals(0, exec(CacheTestWriter.class, "/zcTest-42", "/tmp/zcTest-42", "3","500").waitFor());
     for (Thread t: threads) {
       t.join();
       if (ref.get() != null)

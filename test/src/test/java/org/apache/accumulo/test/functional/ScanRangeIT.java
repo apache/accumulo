@@ -31,7 +31,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ScanRangeIT extends MacTest {
+public class ScanRangeIT extends SimpleMacIT {
   
   private static final int TS_LIMIT = 1;
   private static final int CQ_LIMIT = 5;
@@ -41,19 +41,21 @@ public class ScanRangeIT extends MacTest {
   @Test(timeout=60*1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("table1");
-    c.tableOperations().create("table2");
+    String table1 = makeTableName();
+    c.tableOperations().create(table1);
+    String table2 = makeTableName();
+    c.tableOperations().create(table2);
     TreeSet<Text> splitRows = new TreeSet<Text>();
     int splits = 3;
     for (int i = (ROW_LIMIT / splits); i < ROW_LIMIT; i += (ROW_LIMIT / splits))
       splitRows.add(createRow(i));
-    c.tableOperations().addSplits("table2", splitRows);
+    c.tableOperations().addSplits(table2, splitRows);
     
-    insertData(c, "table1");
-    scanTable(c, "table1");
+    insertData(c, table1);
+    scanTable(c, table1);
     
-    insertData(c, "table2");
-    scanTable(c, "table2");
+    insertData(c, table2);
+    scanTable(c, table2);
   }
   
   private void scanTable(Connector c, String table) throws Exception {

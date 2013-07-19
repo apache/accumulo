@@ -103,7 +103,7 @@ public class TestIngest {
 
     @Parameter(names={"-cv","--columnVisibility"}, description="place columns in this column family", converter=VisibilityConverter.class)
     public ColumnVisibility columnVisibility = new ColumnVisibility();
-
+    
     public Opts() { super("test_ingest"); }
   }
   
@@ -191,7 +191,8 @@ public class TestIngest {
     try {
       opts.startTracing(name);
       
-      Logger.getLogger(TabletServerBatchWriter.class.getName()).setLevel(Level.TRACE);
+      if (opts.debug)
+        Logger.getLogger(TabletServerBatchWriter.class.getName()).setLevel(Level.TRACE);
       
       // test batch update
       

@@ -20,14 +20,15 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.junit.Test;
 
-public class CreateManyScannersIT extends MacTest {
+public class CreateManyScannersIT extends SimpleMacIT {
   
-  @Test(timeout=10*1000)
+  @Test(timeout=20*1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("mscant");
+    String tableName = makeTableName();
+    c.tableOperations().create(tableName);
     for (int i = 0; i < 100000; i++) {
-      c.createScanner("mscant", Authorizations.EMPTY);
+      c.createScanner(tableName, Authorizations.EMPTY);
     }
   }
   

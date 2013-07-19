@@ -32,8 +32,9 @@ import org.junit.rules.TemporaryFolder;
 public class MacTest {
   public static final Logger log = Logger.getLogger(MacTest.class);
   public static final String PASSWORD = "secret";
-  static final ScannerOpts SOPTS = new ScannerOpts();
-  static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
+  public static final ScannerOpts SOPTS = new ScannerOpts();
+  public static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
+  
   public TemporaryFolder folder = new TemporaryFolder();
   public MiniAccumuloCluster cluster;
   

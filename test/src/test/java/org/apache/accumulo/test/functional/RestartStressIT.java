@@ -40,6 +40,7 @@ public class RestartStressIT extends MacTest {
     opts.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
     opts.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "50K");
     cfg.setSiteConfig(opts);
+    cfg.useMiniDFS(true);
   }
 
   private static final TestIngest.Opts IOPTS;
@@ -52,7 +53,7 @@ public class RestartStressIT extends MacTest {
   private static final ScannerOpts SOPTS = new ScannerOpts();
   
   
-  @Test(timeout=120*1000)
+  @Test(timeout=600*1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -61,7 +62,7 @@ public class RestartStressIT extends MacTest {
         "-u", "root", "-p", MacTest.PASSWORD, 
         "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), 
         "--rows", "" + IOPTS.rows);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 2; i++) {
       UtilWaitThread.sleep(10*1000);
       cluster.killProcess(ServerType.TABLET_SERVER, cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
       cluster.start();

@@ -40,7 +40,7 @@ import org.junit.Test;
 /**
  * 
  */
-public class TimeoutIT extends MacTest {
+public class TimeoutIT extends SimpleMacIT {
   
   @Test(timeout=60*1000)
   public void run() throws Exception {
@@ -50,13 +50,14 @@ public class TimeoutIT extends MacTest {
   }
   
   public void testBatchWriterTimeout(Connector conn) throws Exception {
-    conn.tableOperations().create("foo1");
-    conn.tableOperations().addConstraint("foo1", SlowConstraint.class.getName());
+    String tableName = makeTableName();
+    conn.tableOperations().create(tableName);
+    conn.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
     
     // give constraint time to propagate through zookeeper
     UtilWaitThread.sleep(1000);
     
-    BatchWriter bw = conn.createBatchWriter("foo1", new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
+    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
     
     Mutation mut = new Mutation("r1");
     mut.put("cf1", "cq1", "v1");
@@ -73,9 +74,10 @@ public class TimeoutIT extends MacTest {
   }
   
   public void testBatchScannerTimeout(Connector conn) throws Exception {
-    getConnector().tableOperations().create("timeout");
+    String tableName = makeTableName();
+    getConnector().tableOperations().create(tableName);
     
-    BatchWriter bw = getConnector().createBatchWriter("timeout", new BatchWriterConfig());
+    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     
     Mutation m = new Mutation("r1");
     m.put("cf1", "cq1", "v1");
@@ -86,7 +88,7 @@ public class TimeoutIT extends MacTest {
     bw.addMutation(m);
     bw.close();
     
-    BatchScanner bs = getConnector().createBatchScanner("timeout", Authorizations.EMPTY, 2);
+    BatchScanner bs = getConnector().createBatchScanner(tableName, Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singletonList(new Range()));
     
     // should not timeout

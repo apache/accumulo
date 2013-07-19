@@ -450,7 +450,7 @@ INFO : Using ZooKeepers localhost:2181
 
 Accumulo tracks information about all other tables in the !METADATA
 table.  The !METADATA table information is tracked in a very simple
-table that always consists of a single tablet, called the !ROOT table.
+table that always consists of a single tablet, called the !!ROOT table.
 The root table information, such as its location and write-ahead logs
 are stored in Zookeeper.
 
@@ -511,7 +511,7 @@ Besides these columns, you may see:
 \item{\texttt{rowId !cloned} A marker that indicates that this tablet has been successfully cloned.}
 \item{\texttt{rowId splitRatio:ratio} A marker that indicates a split is in progress, and the files are being split at the given ratio.}
 \item{\texttt{rowId chopped} A marker that indicates that the files in the tablet do not contain keys outside the range of the tablet.}
-\item{\texttt{rowId scan} A marker that ....}
+\item{\texttt{rowId scan} A marker that prevents a file from being removed while there are still active scans using it.}
 
 \end{enumerate}
 

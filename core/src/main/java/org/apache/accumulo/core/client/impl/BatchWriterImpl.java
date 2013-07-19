@@ -30,7 +30,9 @@ public class BatchWriterImpl implements BatchWriter {
   private TabletServerBatchWriter bw;
   
   public BatchWriterImpl(Instance instance, TCredentials credentials, String table, BatchWriterConfig config) {
-    ArgumentChecker.notNull(instance, credentials, table, config);
+    ArgumentChecker.notNull(instance, credentials, table);
+    if (config == null)
+      config= new BatchWriterConfig();
     this.table = table;
     this.bw = new TabletServerBatchWriter(instance, credentials, config);
   }

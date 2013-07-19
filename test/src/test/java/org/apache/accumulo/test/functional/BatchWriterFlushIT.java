@@ -38,24 +38,26 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class BatchWriterFlushIT extends MacTest {
+public class BatchWriterFlushIT extends SimpleMacIT {
   
   private static final int NUM_TO_FLUSH = 100000;
   
   @Test(timeout=30*1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("bwft");
-    c.tableOperations().create("bwlt");
-    runFlushTest();
-    runLatencyTest();
+    String bwft = makeTableName();
+    c.tableOperations().create(bwft);
+    String bwlt = makeTableName();
+    c.tableOperations().create(bwlt);
+    runFlushTest(bwft);
+    runLatencyTest(bwlt);
     
   }
   
-  private void runLatencyTest() throws Exception {
+  private void runLatencyTest(String tableName) throws Exception {
     // should automatically flush after 2 seconds
-    BatchWriter bw = getConnector().createBatchWriter("bwlt", new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS));
-    Scanner scanner = getConnector().createScanner("bwlt", Authorizations.EMPTY);
+    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS));
+    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
     
     Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
     m.put(new Text("cf"), new Text("cq"), new Value(("" + 1).getBytes()));
@@ -87,9 +89,9 @@ public class BatchWriterFlushIT extends MacTest {
     bw.close();
   }
   
-  private void runFlushTest() throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException, Exception {
-    BatchWriter bw = getConnector().createBatchWriter("bwft", new BatchWriterConfig());
-    Scanner scanner = getConnector().createScanner("bwft", Authorizations.EMPTY);
+  private void runFlushTest(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException, Exception {
+    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
+    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
     Random r = new Random();
     
     for (int i = 0; i < 4; i++) {

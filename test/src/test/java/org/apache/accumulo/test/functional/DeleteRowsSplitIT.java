@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -39,7 +38,7 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 // attempt to reproduce ACCUMULO-315
-public class DeleteRowsSplitIT extends MacTest {
+public class DeleteRowsSplitIT extends SimpleMacIT {
   
   private static final Logger log = Logger.getLogger(DeleteRowsSplitIT.class);
   
@@ -53,25 +52,20 @@ public class DeleteRowsSplitIT extends MacTest {
     }
   }
   
-  static final String TABLE;
-  static {
-    Random random = new Random();
-    TABLE = "table" + Long.toHexString(random.nextLong());
-  }
-  
   @Test(timeout=200*1000)
   public void run() throws Exception {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
+    final String tableName = makeTableName();
     
     // Eliminate whole tablets
     for (int test = 0; test < 50; test++) {
       // create a table
       log.info("Test " + test);
-      getConnector().tableOperations().create(TABLE);
+      getConnector().tableOperations().create(tableName);
       
       // put some data in it
-      fillTable(TABLE);
+      fillTable(tableName);
       
       // generate a random delete range
       final Text start = new Text();
@@ -86,7 +80,7 @@ public class DeleteRowsSplitIT extends MacTest {
           try {
             // split the table
             final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end.toString() + "\0"));
-            getConnector().tableOperations().addSplits(TABLE, afterEnd);
+            getConnector().tableOperations().addSplits(tableName, afterEnd);
           } catch (Exception ex) {
             log.error(ex, ex);
             synchronized (fail) {
@@ -99,7 +93,7 @@ public class DeleteRowsSplitIT extends MacTest {
       
       UtilWaitThread.sleep(test * 2);
       
-      getConnector().tableOperations().deleteRows(TABLE, start, end);
+      getConnector().tableOperations().deleteRows(tableName, start, end);
       
       t.join();
       synchronized (fail) {
@@ -107,14 +101,14 @@ public class DeleteRowsSplitIT extends MacTest {
       }
       
       // scan the table
-      Scanner scanner = getConnector().createScanner(TABLE, Authorizations.EMPTY);
+      Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
       for (Entry<Key,Value> entry : scanner) {
         Text row = entry.getKey().getRow();
         assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
       }
       
       // delete the table
-      getConnector().tableOperations().delete(TABLE);
+      getConnector().tableOperations().delete(tableName);
     }
   }
   
@@ -132,7 +126,7 @@ public class DeleteRowsSplitIT extends MacTest {
   }
   
   private void fillTable(String table) throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter(TABLE, new BatchWriterConfig());
+    BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
     for (String row : ROWS) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", "value");

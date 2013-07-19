@@ -21,13 +21,13 @@ import static org.junit.Assert.*;
 import org.apache.accumulo.start.TestMain;
 import org.junit.Test;
 
-public class StartIT extends MacTest {
+public class StartIT extends SimpleMacIT {
   
   @Test(timeout=10*1000)
   public void test() throws Exception {
-    assertTrue(cluster.exec(TestMain.class, "exception").waitFor() != 0);
-    assertEquals(0, cluster.exec(TestMain.class, "success").waitFor());
-    assertTrue(cluster.exec(TestMain.class).waitFor() != 0);
+    assertTrue(exec(TestMain.class, "exception").waitFor() != 0);
+    assertEquals(0, exec(TestMain.class, "success").waitFor());
+    assertTrue(exec(TestMain.class).waitFor() != 0);
   }
   
 }

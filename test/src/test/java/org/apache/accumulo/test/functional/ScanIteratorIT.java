@@ -36,14 +36,15 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ScanIteratorIT extends MacTest {
+public class ScanIteratorIT extends SimpleMacIT {
   
   @Test(timeout=30*1000)
   public void run() throws Exception {
+    String tableName = makeTableName();
     Connector c = getConnector();
-    c.tableOperations().create("foo");
+    c.tableOperations().create(tableName);
     
-    BatchWriter bw = c.createBatchWriter("foo", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     
     for (int i = 0; i < 1000; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
@@ -55,12 +56,12 @@ public class ScanIteratorIT extends MacTest {
     
     bw.close();
     
-    Scanner scanner = c.createScanner("foo", new Authorizations());
+    Scanner scanner = c.createScanner(tableName, new Authorizations());
     
     setupIter(scanner);
     verify(scanner, 1, 999);
     
-    BatchScanner bscanner = c.createBatchScanner("foo", new Authorizations(), 3);
+    BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3);
     bscanner.setRanges(Collections.singleton(new Range((Key) null, null)));
     
     setupIter(bscanner);

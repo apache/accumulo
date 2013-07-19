@@ -36,17 +36,18 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ServerSideErrorIT extends MacTest {
+public class ServerSideErrorIT extends SimpleMacIT {
   
   @Test(timeout=60*1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("tt");
+    String tableName = makeTableName();
+    c.tableOperations().create(tableName);
     IteratorSetting is = new IteratorSetting(5, "Bad Aggregator", BadCombiner.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("acf")));
-    c.tableOperations().attachIterator("tt", is);
+    c.tableOperations().attachIterator(tableName, is);
     
-    BatchWriter bw = c.createBatchWriter("tt", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
@@ -56,7 +57,7 @@ public class ServerSideErrorIT extends MacTest {
     bw.close();
     
     // try to scan table
-    Scanner scanner = c.createScanner("tt", Authorizations.EMPTY);
+    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
     
     boolean caught = false;
     try {
@@ -71,7 +72,7 @@ public class ServerSideErrorIT extends MacTest {
       throw new Exception("Scan did not fail");
     
     // try to batch scan the table
-    BatchScanner bs = c.createBatchScanner("tt", Authorizations.EMPTY, 2);
+    BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singleton(new Range()));
     
     caught = false;
@@ -90,14 +91,14 @@ public class ServerSideErrorIT extends MacTest {
     
     // remove the bad agg so accumulo can shutdown
     TableOperations to = c.tableOperations();
-    for (Entry<String,String> e : to.getProperties("tt")) {
-      to.removeProperty("tt", e.getKey());
+    for (Entry<String,String> e : to.getProperties(tableName)) {
+      to.removeProperty(tableName, e.getKey());
     }
     
     UtilWaitThread.sleep(500);
     
     // should be able to scan now
-    scanner = c.createScanner("tt", Authorizations.EMPTY);
+    scanner = c.createScanner(tableName, Authorizations.EMPTY);
     for (Entry<Key,Value> entry : scanner) {
       entry.getKey();
     }

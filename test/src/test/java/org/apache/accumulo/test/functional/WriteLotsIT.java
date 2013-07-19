@@ -27,12 +27,13 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
-public class WriteLotsIT extends MacTest {
+public class WriteLotsIT extends SimpleMacIT {
   
   @Test(timeout=20*1000)
   public void writeLots() throws Exception {
     final Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
+    final String tableName = makeTableName();
+    c.tableOperations().create(tableName);
     final AtomicReference<Exception> ref = new AtomicReference<Exception>();
     List<Thread> threads = new ArrayList<Thread>();
     for (int i = 0; i < 10; i++) {
@@ -43,6 +44,7 @@ public class WriteLotsIT extends MacTest {
             TestIngest.Opts opts = new TestIngest.Opts();
             opts.startRow = index * 10000;
             opts.rows = 10000;
+            opts.tableName = tableName;
             TestIngest.ingest(c, opts, new BatchWriterOpts());
           } catch (Exception ex) {
             ref.set(ex);
@@ -60,6 +62,7 @@ public class WriteLotsIT extends MacTest {
     }
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = 10000 * 10;
+    vopts.tableName = tableName;
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }
   

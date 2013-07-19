@@ -35,13 +35,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.util.Admin;
 import org.junit.Test;
 
-public class CombinerIT extends MacTest {
+public class CombinerIT extends SimpleMacIT {
   
-  private void checkSum(Connector c) throws Exception {
-    Scanner s = c.createScanner("test", Authorizations.EMPTY);
+  private void checkSum(String tableName, Connector c) throws Exception {
+    Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> i = s.iterator();
     assertTrue(i.hasNext());
     Entry<Key,Value> entry = i.next();
@@ -52,23 +51,20 @@ public class CombinerIT extends MacTest {
   @Test(timeout=60*1000)
   public void aggregationTest() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test");
+    String tableName = makeTableName();
+    c.tableOperations().create(tableName);
     IteratorSetting setting = new IteratorSetting(10, SummingCombiner.class);
     SummingCombiner.setEncodingType(setting, Type.STRING);
     SummingCombiner.setColumns(setting, Collections.singletonList(new IteratorSetting.Column("cf")));
-    c.tableOperations().attachIterator("test", setting);
-    BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
+    c.tableOperations().attachIterator(tableName, setting);
+    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {
       Mutation m = new Mutation("row1");
       m.put("cf".getBytes(), "col1".getBytes(), ("" + i).getBytes());
       bw.addMutation(m);
     }
     bw.close();
-    checkSum(c);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
-    cluster.stop();
-    cluster.start();
-    checkSum(c);
+    checkSum(tableName, c);
   }
   
 }

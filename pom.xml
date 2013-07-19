@@ -670,7 +670,7 @@
             <configuration>
               <!--parallel>classes</parallel-->
               <perCoreThreadCount>false</perCoreThreadCount>
-              <threadCount>${accumulo.it.threads}</threadCount> 
+              <threadCount>${accumulo.it.threads}</threadCount>
               <redirectTestOutputToFile>true</redirectTestOutputToFile>
             </configuration>
           </execution>

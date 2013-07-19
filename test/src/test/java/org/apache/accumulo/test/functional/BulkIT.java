@@ -25,7 +25,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
-public class BulkIT extends MacTest {
+public class BulkIT extends SimpleMacIT {
   
   static final int N = 100000;
   static final int COUNT = 5;
@@ -33,17 +33,19 @@ public class BulkIT extends MacTest {
   @Test(timeout=120*1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
+    String tableName = makeTableName();
+    c.tableOperations().create(tableName);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    String base = cluster.getConfig().getDir().getAbsolutePath();
-    fs.mkdirs(new Path(base + "/testBulkFail"));
+    String base = "target/accumulo-maven-plugin";
+    fs.mkdirs(new Path("target/accumulo-maven-plugin/testBulkFail"));
     
     Opts opts = new Opts();
     opts.timestamp = 1;
     opts.random = 56;
     opts.rows = N;
-    opts.instance = cluster.getInstanceName();
+    opts.instance = c.getInstance().getInstanceName();
     opts.cols = 1;
+    opts.tableName = tableName;
     for (int i = 0; i < COUNT; i++) {
       opts.outputFile = base + String.format("/testrf/rf%02d", i);
       opts.startRow = N * i;
@@ -54,8 +56,9 @@ public class BulkIT extends MacTest {
     opts.rows = 1;
     // create an rfile with one entry, there was a bug with this:
     TestIngest.ingest(c, opts , BWOPTS);
-    c.tableOperations().importDirectory("test_ingest", base + "/testrf", base + "/testBulkFail", false);
+    c.tableOperations().importDirectory(tableName, base + "/testrf", base + "/testBulkFail", false);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+    vopts.tableName = tableName;
     vopts.random = 56;
     for (int i = 0; i < COUNT; i++) {
       vopts.startRow = i * N;

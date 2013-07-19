@@ -34,7 +34,7 @@ import org.apache.hadoop.io.Text;
 import org.codehaus.plexus.util.Base64;
 import org.junit.Test;
 
-public class MapReduceIT extends MacTest {
+public class MapReduceIT extends SimpleMacIT {
   
   static final String tablename = "mapredf";
   static final String input_cf = "cf-HASHTYPE";
@@ -55,9 +55,9 @@ public class MapReduceIT extends MacTest {
     }
     bw.close();
     
-    Process hash = cluster.exec(RowHash.class, 
-        "-i", cluster.getInstanceName(),
-        "-z", cluster.getZooKeepers(),
+    Process hash = exec(RowHash.class, 
+        "-i", c.getInstance().getInstanceName(),
+        "-z", c.getInstance().getZooKeepers(),
         "-u", "root",
         "-p", MacTest.PASSWORD,
         "-t", tablename,

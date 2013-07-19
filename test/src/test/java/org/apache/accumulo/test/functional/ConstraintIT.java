@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -38,34 +37,33 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.Test;
 
-public class ConstraintIT extends MacTest {
+public class ConstraintIT extends SimpleMacIT {
   
   @Test(timeout=30*1000)
   public void run() throws Exception {
+    String[] tableNames = { makeTableName(), makeTableName(), makeTableName() }; 
     Connector c = getConnector();
-    for (String table : "ct ct2 ct3".split(" ")) {
+    for (String table : tableNames) {
       c.tableOperations().create(table);
       c.tableOperations().addConstraint(table, NumericValueConstraint.class.getName());
       c.tableOperations().addConstraint(table, AlphaNumKeyConstraint.class.getName());
     }
       
-    Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
-    logger.setLevel(Level.TRACE);
+//    Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
+    //logger.setLevel(Level.TRACE);
     
-    test1();
+    test1(tableNames[0]);
     
-    logger.setLevel(Level.TRACE);
+    //logger.setLevel(Level.TRACE);
     
-    test2("ct2", false);
-    test2("ct3", true);
+    test2(tableNames[1], false);
+    test2(tableNames[2], true);
   }
   
-  private void test1() throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
+  private void test1(String tableName) throws Exception {
+    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     
     Mutation mut1 = new Mutation(new Text("r1"));
     mut1.put(new Text("cf1"), new Text("cq1"), new Value("123".getBytes()));
@@ -75,7 +73,7 @@ public class ConstraintIT extends MacTest {
     // should not throw any exceptions
     bw.close();
     
-    bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
+    bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     
     // create a mutation with a non numeric value
     Mutation mut2 = new Mutation(new Text("r1"));
@@ -115,7 +113,7 @@ public class ConstraintIT extends MacTest {
     }
     
     // verify mutation did not go through
-    Scanner scanner = getConnector().createScanner("ct", Authorizations.EMPTY);
+    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(new Range(new Text("r1")));
     
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
@@ -132,11 +130,11 @@ public class ConstraintIT extends MacTest {
     }
     
     // remove the numeric value constraint
-    getConnector().tableOperations().removeConstraint("ct", 2);
+    getConnector().tableOperations().removeConstraint(tableName, 2);
     UtilWaitThread.sleep(1000);
     
     // now should be able to add a non numeric value
-    bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
+    bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     bw.addMutation(mut2);
     bw.close();
     
@@ -155,11 +153,11 @@ public class ConstraintIT extends MacTest {
     }
     
     // add a constraint that references a non-existant class
-    getConnector().tableOperations().setProperty("ct", Property.TABLE_CONSTRAINT_PREFIX + "1", "com.foobar.nonExistantClass");
+    getConnector().tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX + "1", "com.foobar.nonExistantClass");
     UtilWaitThread.sleep(1000);
     
     // add a mutation
-    bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
+    bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     
     Mutation mut3 = new Mutation(new Text("r1"));
     mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes()));
@@ -195,11 +193,11 @@ public class ConstraintIT extends MacTest {
     }
     
     // remove the bad constraint
-    getConnector().tableOperations().removeConstraint("ct", 1);
+    getConnector().tableOperations().removeConstraint(tableName, 1);
     UtilWaitThread.sleep(1000);
     
     // try the mutation again
-    bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
+    bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     bw.addMutation(mut3);
     bw.close();
     

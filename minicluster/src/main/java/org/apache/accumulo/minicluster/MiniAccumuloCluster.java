@@ -23,6 +23,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
@@ -53,6 +55,10 @@ import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.Main;
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hdfs.server.datanode.DataNode;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 
 /**
@@ -124,6 +130,7 @@ public class MiniAccumuloCluster {
   private List<LogWriter> logWriters = new ArrayList<MiniAccumuloCluster.LogWriter>();
   
   private MiniAccumuloConfig config;
+  private MiniDFSCluster miniDFS;
   
   public Process exec(Class<? extends Object> clazz, String... args) throws IOException {
     return exec(clazz, Collections.singletonList("-Xmx" + config.getDefaultMemory()), args);
@@ -211,7 +218,34 @@ public class MiniAccumuloCluster {
     config.getWalogDir().mkdirs();
     config.getLibDir().mkdirs();
     
+    if (config.useMiniDFS()) {
+      File nn = new File(config.getAccumuloDir(), "nn");
+      nn.mkdirs();
+      File dn = new File(config.getAccumuloDir(), "dn");
+      dn.mkdirs();
+      Configuration conf = new Configuration();
+      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, nn.getAbsolutePath());
+      conf.set(DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY, dn.getAbsolutePath());
+      conf.set(DFSConfigKeys.DFS_REPLICATION_KEY, "1");
+      conf.set(DFSConfigKeys.DFS_SUPPORT_APPEND_KEY, "true");
+      conf.set(DataNode.DATA_DIR_PERMISSION_KEY, "775");
+      miniDFS = new MiniDFSCluster(conf, 1, true, null);
+      miniDFS.waitClusterUp();
+      InetSocketAddress dfsAddress = miniDFS.getNameNode().getNameNodeAddress();
+      String uri = "hdfs://"+ dfsAddress.getHostName() + ":" + dfsAddress.getPort();
+      File coreFile = new File(config.getConfDir(), "core-site.xml");
+      writeConfig(coreFile, Collections.singletonMap("fs.default.name", uri));
+      File hdfsFile = new File(config.getConfDir(), "hdfs-site.xml");
+      writeConfig(hdfsFile, Collections.singletonMap("dfs.support.append", "true"));
+      
+      Map<String, String> siteConfig = config.getSiteConfig();
+      siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), uri);
+      siteConfig.put(Property.INSTANCE_DFS_DIR.getKey(), "/accumulo");
+      config.setSiteConfig(siteConfig);
+    }
+    
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
+    writeConfig(siteFile, config.getSiteConfig());
     
     FileWriter fileWriter = new FileWriter(siteFile);
     fileWriter.append("<configuration>\n");
@@ -247,6 +281,16 @@ public class MiniAccumuloCluster {
           FileUtils.copyFile(src, new File(nativeMap, file));
       }
     }
+  }
+  
+  private void writeConfig(File file, Map<String, String> settings) throws IOException {
+    FileWriter fileWriter = new FileWriter(file);
+    fileWriter.append("<configuration>\n");
+    
+    for (Entry<String,String> entry : settings.entrySet())
+      fileWriter.append("<property><name>" + entry.getKey() + "</name><value>" + entry.getValue() + "</value></property>\n");
+    fileWriter.append("</configuration>\n");
+    fileWriter.close();
   }
   
   /**
@@ -329,7 +373,7 @@ public class MiniAccumuloCluster {
     return result;
   }
   
-  public void killProcess(ServerType type, ProcessReference proc) throws ProcessNotFoundException {
+  public void killProcess(ServerType type, ProcessReference proc) throws ProcessNotFoundException, InterruptedException {
     boolean found = false;
     switch (type) {
       case MASTER:
@@ -343,6 +387,7 @@ public class MiniAccumuloCluster {
         for (Process tserver : tabletServerProcesses) {
           if (proc.equals(tserver)) {
             tabletServerProcesses.remove(tserver);
+            tserver.destroy();
             found = true;
             break;
           }
@@ -379,21 +424,28 @@ public class MiniAccumuloCluster {
    * call stop in a finally block as soon as possible.
    */
   public void stop() throws IOException, InterruptedException {
-    if (zooKeeperProcess != null)
+    for (LogWriter lw : logWriters) {
+      lw.flush();
+    }
+
+    if (zooKeeperProcess != null) {
       zooKeeperProcess.destroy();
-    if (masterProcess != null)
+    }
+    if (masterProcess != null) {
       masterProcess.destroy();
+    }
     if (tabletServerProcesses != null) {
       for (Process tserver : tabletServerProcesses) {
         tserver.destroy();
       }
     }
     
-    for (LogWriter lw : logWriters)
-      lw.flush();
     zooKeeperProcess = null;
     masterProcess = null;
     tabletServerProcesses.clear();
+    if (config.useMiniDFS() && miniDFS != null)
+      miniDFS.shutdown();
+    miniDFS = null;
   }
   
   /**

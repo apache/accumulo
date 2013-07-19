@@ -29,14 +29,15 @@ import org.junit.Test;
 /**
  * See ACCUMULO-779
  */
-public class FateStarvationIT extends MacTest {
+public class FateStarvationIT extends SimpleMacIT {
   
   @Test(timeout=2 * 60 * 1000)
   public void run() throws Exception {
+    String tableName = makeTableName();
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
+    c.tableOperations().create(tableName);
     
-    c.tableOperations().addSplits("test_ingest", TestIngest.getSplitPoints(0, 100000, 50));
+    c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, 100000, 50));
     
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.random = 89;
@@ -44,9 +45,10 @@ public class FateStarvationIT extends MacTest {
     opts.dataSize = 50;
     opts.rows = 100000;
     opts.cols = 1;
+    opts.tableName = tableName;
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     
-    c.tableOperations().flush("test_ingest", null, null, true);
+    c.tableOperations().flush(tableName, null, null, true);
     
     List<Text> splits = new ArrayList<Text>(TestIngest.getSplitPoints(0, 100000, 67));
     Random rand = new Random();
@@ -55,10 +57,10 @@ public class FateStarvationIT extends MacTest {
       int idx1 = rand.nextInt(splits.size() - 1);
       int idx2 = rand.nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
       
-      c.tableOperations().compact("test_ingest", splits.get(idx1), splits.get(idx2), false, false);
+      c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, false);
     }
     
-    c.tableOperations().offline("test_ingest");
+    c.tableOperations().offline(tableName);
   }
   
 }

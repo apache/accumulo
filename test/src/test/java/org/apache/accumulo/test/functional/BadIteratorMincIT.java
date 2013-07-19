@@ -33,29 +33,31 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class BadIteratorMincIT extends MacTest {
+public class BadIteratorMincIT extends SimpleMacIT {
   
   @Test(timeout=60*1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("foo");
+    
+    String tableName = makeTableName();
+    c.tableOperations().create(tableName);
     IteratorSetting is = new IteratorSetting(30, BadIterator.class);
-    c.tableOperations().attachIterator("foo", is, EnumSet.of(IteratorScope.minc));
-    BatchWriter bw = c.createBatchWriter("foo", new BatchWriterConfig());
+    c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
+    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
+    m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes()));
     bw.addMutation(m);
     bw.close();
     
-    c.tableOperations().flush("foo", null, null, false);
+    c.tableOperations().flush(tableName, null, null, false);
     UtilWaitThread.sleep(1000);
     
     // minc should fail, so there should be no files
-    FunctionalTestUtils.checkRFiles(c, "foo", 1, 1, 0, 0);
+    FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
     
     // try to scan table
-    Scanner scanner = c.createScanner("foo", Authorizations.EMPTY);
+    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
     
     int count = 0;
     for (@SuppressWarnings("unused")
@@ -67,12 +69,12 @@ public class BadIteratorMincIT extends MacTest {
       throw new Exception("Did not see expected # entries " + count);
     
     // remove the bad iterator
-    c.tableOperations().removeIterator("foo", BadIterator.class.getSimpleName(), EnumSet.of(IteratorScope.minc));
+    c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(), EnumSet.of(IteratorScope.minc));
     
     UtilWaitThread.sleep(5000);
     
     // minc should complete
-    FunctionalTestUtils.checkRFiles(c, "foo", 1, 1, 1, 1);
+    FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
     
     count = 0;
     for (@SuppressWarnings("unused")
@@ -84,23 +86,23 @@ public class BadIteratorMincIT extends MacTest {
       throw new Exception("Did not see expected # entries " + count);
     
     // now try putting bad iterator back and deleting the table
-    c.tableOperations().attachIterator("foo", is, EnumSet.of(IteratorScope.minc));
-    bw = c.createBatchWriter("foo", new BatchWriterConfig());
+    c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
+    bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     m = new Mutation(new Text("r2"));
-    m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
+    m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes()));
     bw.addMutation(m);
     bw.close();
     
     // make sure property is given time to propagate
     UtilWaitThread.sleep(500);
     
-    c.tableOperations().flush("foo", null, null, false);
+    c.tableOperations().flush(tableName, null, null, false);
     
     // make sure the flush has time to start
     UtilWaitThread.sleep(1000);
     
     // this should not hang
-    c.tableOperations().delete("foo");
+    c.tableOperations().delete(tableName);
   }
   
 

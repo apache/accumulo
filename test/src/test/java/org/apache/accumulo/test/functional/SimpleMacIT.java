@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
@@ -45,21 +44,24 @@ public class SimpleMacIT {
   }
   
   @BeforeClass
-  public static void setUp() throws Exception {
-    folder.create();
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("mac"), ROOT_PASSWORD);
-    cluster = new MiniAccumuloCluster(cfg);
-    cluster.start();
+  synchronized public static void setUp() throws Exception {
+    if (cluster == null) {
+      folder.create();
+      MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("mac"), ROOT_PASSWORD);
+      cluster = new MiniAccumuloCluster(cfg);
+      cluster.start();
+      Runtime.getRuntime().addShutdownHook(new Thread() {
+        @Override
+        public void run() {
+          folder.delete();
+        }
+      });
+    }
   }
   
   
   @AfterClass
   public static void tearDown() throws Exception {
-    if (cluster != null)
-      cluster.stop();
-    for (LogWriter log : cluster.getLogWriters())
-      log.flush();
-    folder.delete();
   }
   
   static AtomicInteger tableCount = new AtomicInteger();

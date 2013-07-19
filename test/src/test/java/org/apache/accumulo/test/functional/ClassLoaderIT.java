@@ -42,7 +42,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
-public class ClassLoaderIT extends MacTest {
+public class ClassLoaderIT extends SimpleMacIT {
   
   @Test(timeout=60*1000)
   public void test() throws Exception {
@@ -55,7 +55,7 @@ public class ClassLoaderIT extends MacTest {
     bw.close();
     scanCheck(c, "Test");
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    Path jarPath = new Path(cluster.getConfig().getDir().getAbsolutePath() + "/lib/Test.jar");
+    Path jarPath = new Path(rootPath() + "/lib/Test.jar");
     fs.copyFromLocalFile(new Path(System.getProperty("user.dir")+"/system/auto/TestCombinerX.jar"), jarPath);
     UtilWaitThread.sleep(1000);
     IteratorSetting is = new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");

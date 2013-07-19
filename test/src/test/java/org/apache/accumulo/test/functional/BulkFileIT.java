@@ -39,16 +39,17 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class BulkFileIT extends MacTest {
+public class BulkFileIT extends SimpleMacIT {
   
   @Test(timeout=60*1000)
   public void testBulkFile() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("bulkFile");
+    String tableName = makeTableName();
+    c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<Text>();
     for (String split : "0333 0666 0999 1333 1666".split(" "))
       splits.add(new Text(split));
-    c.tableOperations().addSplits("bulkFile", splits);
+    c.tableOperations().addSplits(tableName, splits);
     Configuration conf = new Configuration();
     AccumuloConfiguration aconf = ServerConfiguration.getDefaultConfiguration();
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, aconf));
@@ -72,11 +73,11 @@ public class BulkFileIT extends MacTest {
     writeData(writer3, 1000, 1999);
     writer3.close();
     
-    FunctionalTestUtils.bulkImport(c,  fs, "bulkFile", dir);
+    FunctionalTestUtils.bulkImport(c,  fs, tableName, dir);
     
-    FunctionalTestUtils.checkRFiles(c, "bulkFile", 6, 6, 1, 1);
+    FunctionalTestUtils.checkRFiles(c, tableName, 6, 6, 1, 1);
     
-    verifyData("bulkFile", 0, 1999);
+    verifyData(tableName, 0, 1999);
     
   }
   

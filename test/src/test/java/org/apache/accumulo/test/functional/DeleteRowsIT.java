@@ -28,7 +28,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -38,7 +38,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-public class DeleteRowsIT extends MacTest {
+public class DeleteRowsIT extends SimpleMacIT {
   private static final Logger log = Logger.getLogger(DeleteRowsIT.class);
   
   private static final int ROWS_PER_TABLET = 10;
@@ -62,37 +62,39 @@ public class DeleteRowsIT extends MacTest {
     // Delete ranges of rows, and verify the tablets are removed.
     int i = 0;
     // Eliminate whole tablets
-    testSplit("test" + i++, "f", "h", "abcdefijklmnopqrstuvwxyz", 260);
+    String tableName = makeTableName();
+    testSplit(tableName + i++, "f", "h", "abcdefijklmnopqrstuvwxyz", 260);
     // Eliminate whole tablets, partial first tablet
-    testSplit("test" + i++, "f1", "h", "abcdeff1ijklmnopqrstuvwxyz", 262);
+    testSplit(tableName + i++, "f1", "h", "abcdeff1ijklmnopqrstuvwxyz", 262);
     // Eliminate whole tablets, partial last tablet
-    testSplit("test" + i++, "f", "h1", "abcdefijklmnopqrstuvwxyz", 258);
+    testSplit(tableName + i++, "f", "h1", "abcdefijklmnopqrstuvwxyz", 258);
     // Eliminate whole tablets, partial first and last tablet
-    testSplit("test" + i++, "f1", "h1", "abcdeff1ijklmnopqrstuvwxyz", 260);
+    testSplit(tableName + i++, "f1", "h1", "abcdeff1ijklmnopqrstuvwxyz", 260);
     // Eliminate one tablet
-    testSplit("test" + i++, "f", "g", "abcdefhijklmnopqrstuvwxyz", 270);
+    testSplit(tableName + i++, "f", "g", "abcdefhijklmnopqrstuvwxyz", 270);
     // Eliminate partial tablet, matches start split
-    testSplit("test" + i++, "f", "f1", "abcdefghijklmnopqrstuvwxyz", 278);
+    testSplit(tableName + i++, "f", "f1", "abcdefghijklmnopqrstuvwxyz", 278);
     // Eliminate partial tablet, matches end split
-    testSplit("test" + i++, "f1", "g", "abcdeff1hijklmnopqrstuvwxyz", 272);
+    testSplit(tableName + i++, "f1", "g", "abcdeff1hijklmnopqrstuvwxyz", 272);
     // Eliminate tablets starting at -inf
-    testSplit("test" + i++, null, "h", "ijklmnopqrstuvwxyz", 200);
+    testSplit(tableName + i++, null, "h", "ijklmnopqrstuvwxyz", 200);
     // Eliminate tablets ending at +inf
-    testSplit("test" + i++, "t", null, "abcdefghijklmnopqrst", 200);
+    testSplit(tableName + i++, "t", null, "abcdefghijklmnopqrst", 200);
     // Eliminate some rows inside one tablet
-    testSplit("test" + i++, "t0", "t2", "abcdefghijklmnopqrstt0uvwxyz", 278);
+    testSplit(tableName + i++, "t0", "t2", "abcdefghijklmnopqrstt0uvwxyz", 278);
     // Eliminate some rows in the first tablet
-    testSplit("test" + i++, null, "A1", "abcdefghijklmnopqrstuvwxyz", 278);
+    testSplit(tableName + i++, null, "A1", "abcdefghijklmnopqrstuvwxyz", 278);
     // Eliminate some rows in the last tablet
-    testSplit("test" + i++, "{1", null, "abcdefghijklmnopqrstuvwxyz{1", 272);
+    testSplit(tableName + i++, "{1", null, "abcdefghijklmnopqrstuvwxyz{1", 272);
     // Delete everything
-    testSplit("test" + i++, null, null, "", 0);
+    testSplit(tableName + i++, null, null, "", 0);
   }
   
   private void testSplit(String table, String start, String end, String result, int entries) throws Exception {
     // Put a bunch of rows on each tablet
-    this.getConnector().tableOperations().create(table);
-    BatchWriter bw = this.getConnector().createBatchWriter(table, new BatchWriterConfig());
+    Connector c = getConnector();
+    c.tableOperations().create(table);
+    BatchWriter bw = c.createBatchWriter(table, null);
     for (String row : ROWS) {
       for (int j = 0; j < ROWS_PER_TABLET; j++) {
         Mutation m = new Mutation(row + j);
@@ -103,19 +105,19 @@ public class DeleteRowsIT extends MacTest {
     bw.flush();
     bw.close();
     // Split the table
-    this.getConnector().tableOperations().addSplits(table, SPLITS);
+    c.tableOperations().addSplits(table, SPLITS);
     
     Text startText = start == null ? null : new Text(start);
     Text endText = end == null ? null : new Text(end);
-    this.getConnector().tableOperations().deleteRows(table, startText, endText);
-    Collection<Text> remainingSplits = this.getConnector().tableOperations().listSplits(table);
+    c.tableOperations().deleteRows(table, startText, endText);
+    Collection<Text> remainingSplits = c.tableOperations().listSplits(table);
     StringBuilder sb = new StringBuilder();
     // See that whole tablets are removed
     for (Text split : remainingSplits)
       sb.append(split.toString());
     assertEquals(result, sb.toString());
     // See that the rows are really deleted
-    Scanner scanner = this.getConnector().createScanner(table, Authorizations.EMPTY);
+    Scanner scanner = c.createScanner(table, Authorizations.EMPTY);
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
       Text row = entry.getKey().getRow();

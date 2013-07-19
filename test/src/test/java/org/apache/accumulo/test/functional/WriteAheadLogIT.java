@@ -45,9 +45,10 @@ public class WriteAheadLogIT extends MacTest {
     siteConfig.put(Property.MASTER_RECOVERY_DELAY.getKey(), "0");
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "200K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
+    cfg.useMiniDFS(true);
   }
 
-  @Test(timeout=60*1000)
+  @Test(timeout=100*1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

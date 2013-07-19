@@ -34,14 +34,15 @@ import org.junit.Test;
 /**
  * This test recreates issue ACCUMULO-516. Until that issue is fixed this test should time out.
  */
-public class SparseColumnFamilyIT extends MacTest {
+public class SparseColumnFamilyIT extends SimpleMacIT {
   
   @Test(timeout=30*1000)
   public void sparceColumnFamily() throws Exception {
+    String scftt = makeTableName();
     Connector c = getConnector();
-    c.tableOperations().create("scftt");
+    c.tableOperations().create(scftt);
     
-    BatchWriter bw = c.createBatchWriter("scftt", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(scftt, new BatchWriterConfig());
     
     // create file in the tablet that has mostly column family 0, with a few entries for column family 1
     
@@ -52,7 +53,7 @@ public class SparseColumnFamilyIT extends MacTest {
     bw.addMutation(nm(99999 * 2, 1, 99999));
     bw.flush();
     
-    c.tableOperations().flush("scftt", null, null, true);
+    c.tableOperations().flush(scftt, null, null, true);
     
     // create a file that has column family 1 and 0 interleaved
     for (int i = 0; i < 100000; i++) {
@@ -60,9 +61,9 @@ public class SparseColumnFamilyIT extends MacTest {
     }
     bw.close();
     
-    c.tableOperations().flush("scftt", null, null, true);
+    c.tableOperations().flush(scftt, null, null, true);
     
-    Scanner scanner = c.createScanner("scftt", Authorizations.EMPTY);
+    Scanner scanner = c.createScanner(scftt, Authorizations.EMPTY);
     
     for (int i = 0; i < 200; i++) {
       

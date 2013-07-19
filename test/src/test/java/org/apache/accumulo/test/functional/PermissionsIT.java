@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -47,20 +48,28 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class PermissionsIT extends MacTest {
-  private static final String TEST_USER = "test_user";
-  private static final PasswordToken TEST_PASS = new PasswordToken("test_password");
+public class PermissionsIT extends SimpleMacIT {
+
+  static AtomicInteger userId = new AtomicInteger(0);
+  
+  static String makeUserName() {
+    return "user_" + userId.getAndIncrement();
+  }
+  
   
   @Test(timeout = 60 * 1000)
   public void systemPermissionsTest() throws Exception {
+    String testUser = makeUserName();
+    PasswordToken testPasswd = new PasswordToken("test_password");
+
     // verify that the test is being run by root
     Connector c = getConnector();
     verifyHasOnlyTheseSystemPermissions(c, c.whoami(), SystemPermission.values());
     
     // create the test user
-    c.securityOperations().createLocalUser(TEST_USER, TEST_PASS);
-    Connector test_user_conn = c.getInstance().getConnector(TEST_USER, TEST_PASS);
-    verifyHasNoSystemPermissions(c, TEST_USER, SystemPermission.values());
+    c.securityOperations().createLocalUser(testUser, testPasswd);
+    Connector test_user_conn = c.getInstance().getConnector(testUser, testPasswd);
+    verifyHasNoSystemPermissions(c, testUser, SystemPermission.values());
     
     // test each permission
     for (SystemPermission perm : SystemPermission.values()) {
@@ -69,9 +78,9 @@ public class PermissionsIT extends MacTest {
       // verify GRANT can't be granted
       if (perm.equals(SystemPermission.GRANT)) {
         try {
-          c.securityOperations().grantSystemPermission(TEST_USER, perm);
+          c.securityOperations().grantSystemPermission(testUser, perm);
         } catch (AccumuloSecurityException e) {
-          verifyHasNoSystemPermissions(c, TEST_USER, perm);
+          verifyHasNoSystemPermissions(c, testUser, perm);
           continue;
         }
         throw new IllegalStateException("Should NOT be able to grant GRANT");
@@ -79,11 +88,11 @@ public class PermissionsIT extends MacTest {
       
       // test permission before and after granting it
       testMissingSystemPermission(c, test_user_conn, perm);
-      c.securityOperations().grantSystemPermission(TEST_USER, perm);
-      verifyHasOnlyTheseSystemPermissions(c, TEST_USER, perm);
+      c.securityOperations().grantSystemPermission(testUser, perm);
+      verifyHasOnlyTheseSystemPermissions(c, testUser, perm);
       testGrantedSystemPermission(c, test_user_conn, perm);
-      c.securityOperations().revokeSystemPermission(TEST_USER, perm);
-      verifyHasNoSystemPermissions(c, TEST_USER, perm);
+      c.securityOperations().revokeSystemPermission(testUser, perm);
+      verifyHasNoSystemPermissions(c, testUser, perm);
     }
   }
   
@@ -103,7 +112,7 @@ public class PermissionsIT extends MacTest {
     // test permission prior to granting it
     switch (perm) {
       case CREATE_TABLE:
-        tableName = "__CREATE_TABLE_WITHOUT_PERM_TEST__";
+        tableName = makeTableName() + "__CREATE_TABLE_WITHOUT_PERM_TEST__";
         try {
           test_user_conn.tableOperations().create(tableName);
           throw new IllegalStateException("Should NOT be able to create a table");
@@ -113,7 +122,7 @@ public class PermissionsIT extends MacTest {
         }
         break;
       case DROP_TABLE:
-        tableName = "__DROP_TABLE_WITHOUT_PERM_TEST__";
+        tableName = makeTableName() + "__DROP_TABLE_WITHOUT_PERM_TEST__";
         root_conn.tableOperations().create(tableName);
         try {
           test_user_conn.tableOperations().delete(tableName);
@@ -124,7 +133,7 @@ public class PermissionsIT extends MacTest {
         }
         break;
       case ALTER_TABLE:
-        tableName = "__ALTER_TABLE_WITHOUT_PERM_TEST__";
+        tableName = makeTableName() + "__ALTER_TABLE_WITHOUT_PERM_TEST__";
         root_conn.tableOperations().create(tableName);
         try {
           test_user_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
@@ -203,20 +212,20 @@ public class PermissionsIT extends MacTest {
     // test permission after granting it
     switch (perm) {
       case CREATE_TABLE:
-        tableName = "__CREATE_TABLE_WITH_PERM_TEST__";
+        tableName = makeTableName() + "__CREATE_TABLE_WITH_PERM_TEST__";
         test_user_conn.tableOperations().create(tableName);
         if (!root_conn.tableOperations().list().contains(tableName))
           throw new IllegalStateException("Should be able to create a table");
         break;
       case DROP_TABLE:
-        tableName = "__DROP_TABLE_WITH_PERM_TEST__";
+        tableName = makeTableName() + "__DROP_TABLE_WITH_PERM_TEST__";
         root_conn.tableOperations().create(tableName);
         test_user_conn.tableOperations().delete(tableName);
         if (root_conn.tableOperations().list().contains(tableName))
           throw new IllegalStateException("Should be able to delete a table");
         break;
       case ALTER_TABLE:
-        tableName = "__ALTER_TABLE_WITH_PERM_TEST__";
+        tableName = makeTableName() + "__ALTER_TABLE_WITH_PERM_TEST__";
         String table2 = tableName + "2";
         root_conn.tableOperations().create(tableName);
         test_user_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
@@ -282,55 +291,58 @@ public class PermissionsIT extends MacTest {
         throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
   }
   
-  private static final String TEST_TABLE = "__TABLE_PERMISSION_TEST__";
   
   @Test(timeout=30*1000)
   public void tablePermissionTest() throws Exception {
     // create the test user
+    String testUser = makeUserName();
+    PasswordToken testPasswd = new PasswordToken("test_password");
+
     Connector c = getConnector();
-    c.securityOperations().createLocalUser(TEST_USER, TEST_PASS);
-    Connector test_user_conn = c.getInstance().getConnector(TEST_USER, TEST_PASS);
+    c.securityOperations().createLocalUser(testUser, testPasswd);
+    Connector test_user_conn = c.getInstance().getConnector(testUser, testPasswd);
     
     // check for read-only access to metadata table
     verifyHasOnlyTheseTablePermissions(c, c.whoami(), MetadataTable.NAME, TablePermission.READ, TablePermission.ALTER_TABLE);
-    verifyHasOnlyTheseTablePermissions(c, TEST_USER, MetadataTable.NAME, TablePermission.READ);
-    
+    verifyHasOnlyTheseTablePermissions(c, testUser, MetadataTable.NAME, TablePermission.READ);
+    String tableName = makeTableName() + "__TABLE_PERMISSION_TEST__";
+      
     // test each permission
     for (TablePermission perm : TablePermission.values()) {
       log.debug("Verifying the " + perm + " permission");
       
       // test permission before and after granting it
-      createTestTable(c);
-      testMissingTablePermission(c, test_user_conn, perm);
-      c.securityOperations().grantTablePermission(TEST_USER, TEST_TABLE, perm);
-      verifyHasOnlyTheseTablePermissions(c, TEST_USER, TEST_TABLE, perm);
-      testGrantedTablePermission(c, test_user_conn, perm);
+      createTestTable(c, testUser, tableName);
+      testMissingTablePermission(c, test_user_conn, perm, tableName);
+      c.securityOperations().grantTablePermission(testUser, tableName, perm);
+      verifyHasOnlyTheseTablePermissions(c, testUser, tableName, perm);
+      testGrantedTablePermission(c, test_user_conn, perm, tableName);
       
-      createTestTable(c);
-      c.securityOperations().revokeTablePermission(TEST_USER, TEST_TABLE, perm);
-      verifyHasNoTablePermissions(c, TEST_USER, TEST_TABLE, perm);
+      createTestTable(c, testUser, tableName);
+      c.securityOperations().revokeTablePermission(testUser, tableName, perm);
+      verifyHasNoTablePermissions(c, testUser, tableName, perm);
     }
   }
   
-  private void createTestTable(Connector c) throws Exception, MutationsRejectedException {
-    if (!c.tableOperations().exists(TEST_TABLE)) {
+  private void createTestTable(Connector c, String testUser, String tableName) throws Exception, MutationsRejectedException {
+    if (!c.tableOperations().exists(tableName)) {
       // create the test table
-      c.tableOperations().create(TEST_TABLE);
+      c.tableOperations().create(tableName);
       // put in some initial data
-      BatchWriter writer = c.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
+      BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig());
       Mutation m = new Mutation(new Text("row"));
       m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes()));
       writer.addMutation(m);
       writer.close();
       
       // verify proper permissions for creator and test user
-      verifyHasOnlyTheseTablePermissions(c, c.whoami(), TEST_TABLE, TablePermission.values());
-      verifyHasNoTablePermissions(c, TEST_USER, TEST_TABLE, TablePermission.values());
+      verifyHasOnlyTheseTablePermissions(c, c.whoami(), tableName, TablePermission.values());
+      verifyHasNoTablePermissions(c, testUser, tableName, TablePermission.values());
       
     }
   }
   
-  private static void testMissingTablePermission(Connector root_conn, Connector test_user_conn, TablePermission perm) throws Exception {
+  private static void testMissingTablePermission(Connector root_conn, Connector test_user_conn, TablePermission perm, String tableName) throws Exception {
     Scanner scanner;
     BatchWriter writer;
     Mutation m;
@@ -340,7 +352,7 @@ public class PermissionsIT extends MacTest {
     switch (perm) {
       case READ:
         try {
-          scanner = test_user_conn.createScanner(TEST_TABLE, Authorizations.EMPTY);
+          scanner = test_user_conn.createScanner(tableName, Authorizations.EMPTY);
           int i = 0;
           for (Entry<Key,Value> entry : scanner)
             i += 1 + entry.getKey().getRowData().length();
@@ -354,7 +366,7 @@ public class PermissionsIT extends MacTest {
         break;
       case WRITE:
         try {
-          writer = test_user_conn.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
+          writer = test_user_conn.createBatchWriter(tableName, new BatchWriterConfig());
           m = new Mutation(new Text("row"));
           m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
           writer.addMutation(m);
@@ -377,7 +389,7 @@ public class PermissionsIT extends MacTest {
         Map<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
         groups.put("tgroup", new HashSet<Text>(Arrays.asList(new Text("t1"), new Text("t2"))));
         try {
-          test_user_conn.tableOperations().setLocalityGroups(TEST_TABLE, groups);
+          test_user_conn.tableOperations().setLocalityGroups(tableName, groups);
           throw new IllegalStateException("User should not be able to set locality groups");
         } catch (AccumuloSecurityException e) {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
@@ -386,7 +398,7 @@ public class PermissionsIT extends MacTest {
         break;
       case DROP_TABLE:
         try {
-          test_user_conn.tableOperations().delete(TEST_TABLE);
+          test_user_conn.tableOperations().delete(tableName);
           throw new IllegalStateException("User should not be able delete the table");
         } catch (AccumuloSecurityException e) {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
@@ -395,7 +407,7 @@ public class PermissionsIT extends MacTest {
         break;
       case GRANT:
         try {
-          test_user_conn.securityOperations().grantTablePermission("root", TEST_TABLE, TablePermission.GRANT);
+          test_user_conn.securityOperations().grantTablePermission("root", tableName, TablePermission.GRANT);
           throw new IllegalStateException("User should not be able grant permissions");
         } catch (AccumuloSecurityException e) {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
@@ -407,7 +419,7 @@ public class PermissionsIT extends MacTest {
     }
   }
   
-  private static void testGrantedTablePermission(Connector root_conn, Connector test_user_conn, TablePermission perm) throws AccumuloException,
+  private static void testGrantedTablePermission(Connector root_conn, Connector test_user_conn, TablePermission perm, String tableName) throws AccumuloException,
       TableExistsException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
     Scanner scanner;
     BatchWriter writer;
@@ -417,13 +429,13 @@ public class PermissionsIT extends MacTest {
     // test permission after granting it
     switch (perm) {
       case READ:
-        scanner = test_user_conn.createScanner(TEST_TABLE, Authorizations.EMPTY);
+        scanner = test_user_conn.createScanner(tableName, Authorizations.EMPTY);
         Iterator<Entry<Key,Value>> iter = scanner.iterator();
         while (iter.hasNext())
           iter.next();
         break;
       case WRITE:
-        writer = test_user_conn.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
+        writer = test_user_conn.createBatchWriter(tableName, new BatchWriterConfig());
         m = new Mutation(new Text("row"));
         m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
         writer.addMutation(m);
@@ -437,10 +449,10 @@ public class PermissionsIT extends MacTest {
         groups.put("tgroup", new HashSet<Text>(Arrays.asList(new Text("t1"), new Text("t2"))));
         break;
       case DROP_TABLE:
-        test_user_conn.tableOperations().delete(TEST_TABLE);
+        test_user_conn.tableOperations().delete(tableName);
         break;
       case GRANT:
-        test_user_conn.securityOperations().grantTablePermission("root", TEST_TABLE, TablePermission.GRANT);
+        test_user_conn.securityOperations().grantTablePermission("root", tableName, TablePermission.GRANT);
         break;
       default:
         throw new IllegalArgumentException("Unrecognized table Permission: " + perm);

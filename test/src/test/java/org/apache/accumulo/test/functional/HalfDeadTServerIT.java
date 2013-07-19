@@ -49,7 +49,8 @@ public class HalfDeadTServerIT extends MacTest {
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     siteConfig.put(Property.GENERAL_RPC_TIMEOUT.getKey(), "5s");
-    cfg.setSiteConfig(siteConfig );
+    cfg.setSiteConfig(siteConfig);
+    cfg.useMiniDFS(true);
   }
   
   class DumpOutput extends Daemon {
@@ -84,12 +85,12 @@ public class HalfDeadTServerIT extends MacTest {
   }
   
   
-  @Test(timeout=30*1000)
+  @Test(timeout=100*1000)
   public void testRecover() throws Exception {
     test(10);
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout=120*1000)
   public void testTimeout() throws Exception {
     String results = test(40);
     if (results != null)
@@ -101,8 +102,6 @@ public class HalfDeadTServerIT extends MacTest {
       return null;
     Connector c = getConnector();
     assertEquals(1, c.instanceOperations().getTabletServers().size());
-    // don't need the regular tablet server
-    cluster.killProcess(ServerType.TABLET_SERVER, cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
     
     // create our own tablet server with the special test library
     String javaHome = System.getProperty("java.home");
@@ -126,8 +125,12 @@ public class HalfDeadTServerIT extends MacTest {
     Process tserver = builder.start();
     DumpOutput t = new DumpOutput(tserver.getInputStream());
     t.start();
+    UtilWaitThread.sleep(1000);
+    // don't need the regular tablet server
+    cluster.killProcess(ServerType.TABLET_SERVER, cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
+    UtilWaitThread.sleep(1000);
     c.tableOperations().create("test_ingest");
-    assertTrue(c.instanceOperations().getTabletServers().size() > 1);
+    assertEquals(1, c.instanceOperations().getTabletServers().size());
     int rows = 100*1000;
     Process ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", MacTest.PASSWORD, "--rows", rows + "");
     UtilWaitThread.sleep(500);
@@ -151,7 +154,9 @@ public class HalfDeadTServerIT extends MacTest {
     assertTrue(results.contains("sleeping\nsleeping\nsleeping\n"));
     assertTrue(results.contains("Zookeeper error, will retry"));
     ingest.destroy();
+    ingest.waitFor();
     tserver.destroy();
+    tserver.waitFor();
     t.join();
     return results;
   }

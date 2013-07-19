@@ -21,8 +21,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -64,10 +64,10 @@ public class TestRandomDeletes {
     }
   }
   
-  private static TreeSet<RowColumn> scanAll(ClientOpts opts, ScannerOpts scanOpts, Text t) throws Exception {
+  private static TreeSet<RowColumn> scanAll(ClientOnDefaultTable opts, ScannerOpts scanOpts, String tableName) throws Exception {
     TreeSet<RowColumn> result = new TreeSet<RowColumn>();
     Connector conn = opts.getConnector();
-    Scanner scanner = conn.createScanner(t.toString(), auths);
+    Scanner scanner = conn.createScanner(tableName, auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();
@@ -78,13 +78,13 @@ public class TestRandomDeletes {
     return result;
   }
   
-  private static long scrambleDeleteHalfAndCheck(ClientOpts opts, ScannerOpts scanOpts, BatchWriterOpts bwOpts, Text t, Set<RowColumn> rows) throws Exception {
+  private static long scrambleDeleteHalfAndCheck(ClientOnDefaultTable opts, ScannerOpts scanOpts, BatchWriterOpts bwOpts, String tableName, Set<RowColumn> rows) throws Exception {
     int result = 0;
     ArrayList<RowColumn> entries = new ArrayList<RowColumn>(rows);
     java.util.Collections.shuffle(entries);
     
     Connector connector = opts.getConnector();
-    BatchWriter mutations = connector.createBatchWriter(t.toString(), bwOpts.getBatchWriterConfig());
+    BatchWriter mutations = connector.createBatchWriter(tableName, bwOpts.getBatchWriterConfig());
     
     for (int i = 0; i < (entries.size() + 1) / 2; i++) {
       RowColumn rc = entries.get(i);
@@ -97,7 +97,7 @@ public class TestRandomDeletes {
     
     mutations.close();
     
-    Set<RowColumn> current = scanAll(opts, scanOpts, t);
+    Set<RowColumn> current = scanAll(opts, scanOpts, tableName);
     current.removeAll(rows);
     if (current.size() > 0) {
       throw new RuntimeException(current.size() + " records not deleted");
@@ -107,22 +107,25 @@ public class TestRandomDeletes {
   
   static public void main(String[] args) {
     
-    ClientOpts opts = new ClientOpts();
+    ClientOnDefaultTable opts = new ClientOnDefaultTable("test_ingest");
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(TestRandomDeletes.class.getName(), args, scanOpts, bwOpts);
     
+    log.info("starting random delete test");
+
+    
     try {
       long deleted = 0;
       
-      Text t = new Text("test_ingest");
+      String tableName = opts.getTableName();
       
-      TreeSet<RowColumn> doomed = scanAll(opts, scanOpts, t);
+      TreeSet<RowColumn> doomed = scanAll(opts, scanOpts, tableName);
       log.info("Got " + doomed.size() + " rows");
       
       long startTime = System.currentTimeMillis();
       while (true) {
-        long half = scrambleDeleteHalfAndCheck(opts, scanOpts, bwOpts, t, doomed);
+        long half = scrambleDeleteHalfAndCheck(opts, scanOpts, bwOpts, tableName, doomed);
         deleted += half;
         if (half == 0)
           break;
