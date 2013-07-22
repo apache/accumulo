@@ -42,6 +42,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -221,8 +222,7 @@ public class ClientOpts extends Help {
       };
       this.zookeepers = config.get(Property.INSTANCE_ZK_HOST);
       Path instanceDir = new Path(config.get(Property.INSTANCE_DFS_DIR), "instance_id");
-      @SuppressWarnings("deprecation")
-      String instanceIDFromFile = ZooKeeperInstance.getInstanceIDFromHdfs(instanceDir);
+      String instanceIDFromFile = ZooUtil.getInstanceIDFromHdfs(instanceDir);
       return cachedInstance = new ZooKeeperInstance(UUID.fromString(instanceIDFromFile), zookeepers);
     }
     return cachedInstance = new ZooKeeperInstance(this.instance, this.zookeepers);

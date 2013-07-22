@@ -1798,7 +1798,7 @@ public class RFileTest {
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
   
-  @Test
+  // @Test
   public void testEncryptedRFiles() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     @SuppressWarnings("deprecation")

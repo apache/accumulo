@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -38,13 +37,11 @@ import org.apache.accumulo.core.client.mapreduce.lib.util.OutputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -534,167 +531,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     } catch (Exception e) {
       throw new IOException(e);
     }
-  }
-  
-  // ----------------------------------------------------------------------------------------------------
-  // Everything below this line is deprecated and should go away in future versions
-  // ----------------------------------------------------------------------------------------------------
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, String, AuthenticationToken)}, {@link #setCreateTables(Job, boolean)}, and
-   *             {@link #setDefaultTableName(Job, String)} instead.
-   */
-  @Deprecated
-  public static void setOutputInfo(Configuration conf, String user, byte[] passwd, boolean createTables, String defaultTable) {
-    try {
-      OutputConfigurator.setConnectorInfo(CLASS, conf, user, new PasswordToken(passwd));
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
-    OutputConfigurator.setCreateTables(CLASS, conf, createTables);
-    OutputConfigurator.setDefaultTableName(CLASS, conf, defaultTable);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setZooKeeperInstance(Job, String, String)} instead.
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
-    OutputConfigurator.setZooKeeperInstance(CLASS, conf, instanceName, zooKeepers);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setMockInstance(Job, String)} instead.
-   */
-  @Deprecated
-  public static void setMockInstance(Configuration conf, String instanceName) {
-    OutputConfigurator.setMockInstance(CLASS, conf, instanceName);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setBatchWriterOptions(Job, BatchWriterConfig)} instead.
-   */
-  @Deprecated
-  public static void setMaxMutationBufferSize(Configuration conf, long numberOfBytes) {
-    BatchWriterConfig bwConfig = OutputConfigurator.getBatchWriterOptions(CLASS, conf);
-    bwConfig.setMaxMemory(numberOfBytes);
-    OutputConfigurator.setBatchWriterOptions(CLASS, conf, bwConfig);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setBatchWriterOptions(Job, BatchWriterConfig)} instead.
-   */
-  @Deprecated
-  public static void setMaxLatency(Configuration conf, int numberOfMilliseconds) {
-    BatchWriterConfig bwConfig = OutputConfigurator.getBatchWriterOptions(CLASS, conf);
-    bwConfig.setMaxLatency(numberOfMilliseconds, TimeUnit.MILLISECONDS);
-    OutputConfigurator.setBatchWriterOptions(CLASS, conf, bwConfig);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setBatchWriterOptions(Job, BatchWriterConfig)} instead.
-   */
-  @Deprecated
-  public static void setMaxWriteThreads(Configuration conf, int numberOfThreads) {
-    BatchWriterConfig bwConfig = OutputConfigurator.getBatchWriterOptions(CLASS, conf);
-    bwConfig.setMaxWriteThreads(numberOfThreads);
-    OutputConfigurator.setBatchWriterOptions(CLASS, conf, bwConfig);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setLogLevel(Job, Level)} instead.
-   */
-  @Deprecated
-  public static void setLogLevel(Configuration conf, Level level) {
-    OutputConfigurator.setLogLevel(CLASS, conf, level);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setSimulationMode(Job, boolean)} instead.
-   */
-  @Deprecated
-  public static void setSimulationMode(Configuration conf) {
-    OutputConfigurator.setSimulationMode(CLASS, conf, true);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getToken(JobContext)} instead.
-   */
-  @Deprecated
-  protected static String getPrincipal(Configuration conf) {
-    return OutputConfigurator.getPrincipal(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getToken(JobContext)} instead.
-   */
-  @Deprecated
-  protected static byte[] getToken(Configuration conf) {
-    return OutputConfigurator.getToken(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #canCreateTables(JobContext)} instead.
-   */
-  @Deprecated
-  protected static boolean canCreateTables(Configuration conf) {
-    return OutputConfigurator.canCreateTables(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getDefaultTableName(JobContext)} instead.
-   */
-  @Deprecated
-  protected static String getDefaultTableName(Configuration conf) {
-    return OutputConfigurator.getDefaultTableName(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getInstance(JobContext)} instead.
-   */
-  @Deprecated
-  protected static Instance getInstance(Configuration conf) {
-    return OutputConfigurator.getInstance(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getBatchWriterOptions(JobContext)} instead.
-   */
-  @Deprecated
-  protected static long getMaxMutationBufferSize(Configuration conf) {
-    return OutputConfigurator.getBatchWriterOptions(CLASS, conf).getMaxMemory();
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getBatchWriterOptions(JobContext)} instead.
-   */
-  @Deprecated
-  protected static int getMaxLatency(Configuration conf) {
-    return (int) OutputConfigurator.getBatchWriterOptions(CLASS, conf).getMaxLatency(TimeUnit.MILLISECONDS);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getBatchWriterOptions(JobContext)} instead.
-   */
-  @Deprecated
-  protected static int getMaxWriteThreads(Configuration conf) {
-    return OutputConfigurator.getBatchWriterOptions(CLASS, conf).getMaxWriteThreads();
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getLogLevel(JobContext)} instead.
-   */
-  @Deprecated
-  protected static Level getLogLevel(Configuration conf) {
-    return OutputConfigurator.getLogLevel(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getSimulationMode(JobContext)} instead.
-   */
-  @Deprecated
-  protected static boolean getSimulationMode(Configuration conf) {
-    return OutputConfigurator.getSimulationMode(CLASS, conf);
   }
   
 }

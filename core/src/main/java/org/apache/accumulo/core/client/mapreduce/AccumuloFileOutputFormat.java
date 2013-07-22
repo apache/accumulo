@@ -19,7 +19,6 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.mapreduce.lib.util.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -28,14 +27,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -175,52 +172,6 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
         out.append(key, value);
       }
     };
-  }
-  
-  // ----------------------------------------------------------------------------------------------------
-  // Everything below this line is deprecated and should go away in future versions
-  // ----------------------------------------------------------------------------------------------------
-  
-  /**
-   * @deprecated since 1.5.0; Retrieve the relevant block size from {@link #getAccumuloConfiguration(JobContext)} and configure hadoop's
-   *             io.seqfile.compress.blocksize with the same value. No longer needed, as {@link RFile} does not use this field.
-   */
-  @Deprecated
-  protected static void handleBlockSize(Configuration conf) {
-    conf.setInt("io.seqfile.compress.blocksize",
-        (int) FileOutputConfigurator.getAccumuloConfiguration(CLASS, conf).getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-  }
-  
-  /**
-   * @deprecated since 1.5.0; This method does nothing. Only 'rf' type is supported.
-   */
-  @Deprecated
-  public static void setFileType(Configuration conf, String type) {}
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setFileBlockSize(Job, long)}, {@link #setDataBlockSize(Job, long)}, or {@link #setIndexBlockSize(Job, long)} instead.
-   */
-  @Deprecated
-  public static void setBlockSize(Configuration conf, int blockSize) {
-    FileOutputConfigurator.setDataBlockSize(CLASS, conf, blockSize);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; This {@link OutputFormat} does not communicate with Accumulo. If this is needed, subclasses must implement their own
-   *             configuration.
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
-    FileOutputConfigurator.setZooKeeperInstance(CLASS, conf, instanceName, zooKeepers);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; This {@link OutputFormat} does not communicate with Accumulo. If this is needed, subclasses must implement their own
-   *             configuration.
-   */
-  @Deprecated
-  protected static Instance getInstance(Configuration conf) {
-    return FileOutputConfigurator.getInstance(CLASS, conf);
   }
   
 }

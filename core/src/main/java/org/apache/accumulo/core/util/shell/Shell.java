@@ -140,6 +140,7 @@ import org.apache.accumulo.core.util.shell.commands.UserCommand;
 import org.apache.accumulo.core.util.shell.commands.UserPermissionsCommand;
 import org.apache.accumulo.core.util.shell.commands.UsersCommand;
 import org.apache.accumulo.core.util.shell.commands.WhoAmICommand;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -396,11 +397,10 @@ public class Shell extends ShellOptions {
     }
   }
   
-  @SuppressWarnings("deprecation")
   private static Instance getDefaultInstance(AccumuloConfiguration conf) {
     String keepers = conf.get(Property.INSTANCE_ZK_HOST);
     Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
-    return new ZooKeeperInstance(UUID.fromString(ZooKeeperInstance.getInstanceIDFromHdfs(instanceDir)), keepers);
+    return new ZooKeeperInstance(UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir)), keepers);
   }
   
   public Connector getConnector() {
