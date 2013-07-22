@@ -114,10 +114,6 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
     getZooKeeper().delete(path, version);
   }
   
-  public interface Mutator {
-    byte[] mutate(byte[] currentValue) throws Exception;
-  }
-  
   @Override
   public byte[] mutate(String zPath, byte[] createValue, List<ACL> acl, Mutator mutator) throws Exception {
     if (createValue != null) {

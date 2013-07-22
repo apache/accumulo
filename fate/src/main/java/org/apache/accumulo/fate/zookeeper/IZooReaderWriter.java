@@ -18,7 +18,6 @@ package org.apache.accumulo.fate.zookeeper;
 
 import java.util.List;
 
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
@@ -53,6 +52,10 @@ public interface IZooReaderWriter extends IZooReader {
   public abstract void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy) throws KeeperException, InterruptedException;
   
   public abstract void delete(String path, int version) throws InterruptedException, KeeperException;
+  
+  public interface Mutator {
+    byte[] mutate(byte[] currentValue) throws Exception;
+  }
   
   public abstract byte[] mutate(String zPath, byte[] createValue, List<ACL> acl, Mutator mutator) throws Exception;
   
