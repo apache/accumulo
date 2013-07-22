@@ -187,12 +187,6 @@ public enum Property {
       "A long running scan could possibly hold memory that has been minor compacted.  To prevent this, the in memory map is dumped to a local file and the "
           + "scan is switched to that local file.  We can not switch to the minor compacted file because it may have been modified by iterators.  The file "
           + "dumped to the local dir is an exact copy of what was in memory."),
-  TSERV_LOCK_MEMORY("tserver.memory.lock", "false", PropertyType.BOOLEAN,
-      "The tablet server must communicate with zookeeper frequently to maintain its locks.  If the tablet server's memory is swapped out"
-          + " the java garbage collector can stop all processing for long periods.  Change this property to true and the tablet server will "
-          + " attempt to lock all of its memory to RAM, which may reduce delays during java garbage collection.  You will have to modify the "
-          + " system limit for \"max locked memory\". This feature is only available when running on Linux.  Alternatively you may also "
-          + " want to set /proc/sys/vm/swappiness to zero (again, this is Linux-specific)."),
   TSERV_BULK_PROCESS_THREADS("tserver.bulk.process.threads", "1", PropertyType.COUNT,
       "The master will task a tablet server with pre-processing a bulk file prior to assigning it to the appropriate tablet servers.  This configuration"
           + " value controls the number of threads used to process the files."),
