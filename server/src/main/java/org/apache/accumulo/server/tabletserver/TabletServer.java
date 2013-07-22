@@ -3036,21 +3036,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     clientAddress = new InetSocketAddress(hostname, 0);
     logger = new TabletServerLogger(this, getSystemConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE));
     
-    if (getSystemConfiguration().getBoolean(Property.TSERV_LOCK_MEMORY)) {
-      String path = "lib/native/mlock/" + System.mapLibraryName("MLock-" + Platform.getPlatform());
-      path = new File(path).getAbsolutePath();
-      try {
-        System.load(path);
-        log.info("Trying to lock memory pages to RAM");
-        if (MLock.lockMemoryPages() < 0)
-          log.error("Failed to lock memory pages to RAM");
-        else
-          log.info("Memory pages are now locked into RAM");
-      } catch (Throwable t) {
-        log.error("Failed to load native library for locking pages to RAM " + path + " (" + t + ")", t);
-      }
-    }
-    
     try {
       AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
         @Override
