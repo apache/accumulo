@@ -138,7 +138,6 @@ public abstract class AbstractMetricsImpl {
     if (null == getObjectName())
       throw new IllegalArgumentException("MBean object name must be set.");
     mbs.registerMBean(this, getObjectName());
-    
     setupLogging();
   }
   

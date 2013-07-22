@@ -101,6 +101,8 @@ public class TServerUtils {
     boolean portSearch = false;
     if (portSearchProperty != null)
       portSearch = conf.getBoolean(portSearchProperty);
+    // create the TimedProcessor outside the port search loop so we don't try to register the same metrics mbean more than once
+    TServerUtils.TimedProcessor timedProcessor = new TServerUtils.TimedProcessor(processor, serverName, threadName);
     Random random = new Random();
     for (int j = 0; j < 100; j++) {
       
@@ -116,7 +118,7 @@ public class TServerUtils {
         if (port > 65535)
           port = 1024 + port % (65535 - 1024);
         try {
-          return TServerUtils.startTServer(port, processor, serverName, threadName, minThreads, timeBetweenThreadChecks, maxMessageSize);
+          return TServerUtils.startTServer(port, timedProcessor, serverName, threadName, minThreads, timeBetweenThreadChecks, maxMessageSize);
         } catch (Exception ex) {
           log.info("Unable to use port " + port + ", retrying. (Thread Name = " + threadName + ")");
           UtilWaitThread.sleep(250);
@@ -246,7 +248,6 @@ public class TServerUtils {
       }
     }, timeBetweenThreadChecks, timeBetweenThreadChecks);
     options.executorService(pool);
-    processor = new TServerUtils.TimedProcessor(processor, serverName, threadName);
     options.processorFactory(new TProcessorFactory(processor));
     return new ServerPort(new THsHaServer(options), port);
   }
@@ -268,12 +269,16 @@ public class TServerUtils {
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory());
-    processor = new TServerUtils.TimedProcessor(processor, serverName, threadName);
     options.processorFactory(new ClientInfoProcessorFactory(processor));
     return new ServerPort(new TThreadPoolServer(options), port);
   }
   
   public static ServerPort startTServer(int port, TProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
+      throws TTransportException {
+    return startTServer(port, new TimedProcessor(processor, serverName, threadName), serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
+  }
+  
+  public static ServerPort startTServer(int port, TimedProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
       throws TTransportException {
     ServerPort result = startHsHaServer(port, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
     // ServerPort result = startThreadPoolServer(port, processor, serverName, threadName, -1);
