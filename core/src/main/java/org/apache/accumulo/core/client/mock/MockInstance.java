@@ -148,12 +148,6 @@ public class MockInstance implements Instance {
     this.conf = conf;
   }
   
-  @Deprecated
-  @Override
-  public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(auth.user, auth.password);
-  }
-  
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     Connector conn = new MockConnector(principal, acu, this);

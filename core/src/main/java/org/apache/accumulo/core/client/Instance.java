@@ -90,21 +90,6 @@ public interface Instance {
   /**
    * Returns a connection to accumulo.
    * 
-   * @param auth
-   *          An Credentials object.
-   * @return the accumulo Connector
-   * @throws AccumuloException
-   *           when a generic exception occurs
-   * @throws AccumuloSecurityException
-   *           when a user's credentials are invalid
-   * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
-   */
-  @Deprecated
-  public abstract Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException;
-  
-  /**
-   * Returns a connection to accumulo.
-   * 
    * @param user
    *          a valid accumulo user
    * @param pass

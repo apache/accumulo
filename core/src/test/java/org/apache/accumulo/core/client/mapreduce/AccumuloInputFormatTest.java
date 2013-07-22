@@ -55,46 +55,6 @@ public class AccumuloInputFormatTest {
   private static final String TEST_TABLE_1 = PREFIX + "_mapreduce_table_1";
   
   /**
-   * Test basic setting & getting of max versions.
-   * 
-   * @throws IOException
-   *           Signals that an I/O exception has occurred.
-   */
-  @Deprecated
-  @Test
-  public void testMaxVersions() throws IOException {
-    Job job = new Job();
-    AccumuloInputFormat.setMaxVersions(job.getConfiguration(), 1);
-    int version = AccumuloInputFormat.getMaxVersions(job.getConfiguration());
-    assertEquals(1, version);
-  }
-  
-  /**
-   * Test max versions with an invalid value.
-   * 
-   * @throws IOException
-   *           Signals that an I/O exception has occurred.
-   */
-  @Deprecated
-  @Test(expected = IOException.class)
-  public void testMaxVersionsLessThan1() throws IOException {
-    Job job = new Job();
-    AccumuloInputFormat.setMaxVersions(job.getConfiguration(), 0);
-  }
-  
-  /**
-   * Test no max version configured.
-   * 
-   * @throws IOException
-   */
-  @Deprecated
-  @Test
-  public void testNoMaxVersion() throws IOException {
-    Job job = new Job();
-    assertEquals(-1, AccumuloInputFormat.getMaxVersions(job.getConfiguration()));
-  }
-  
-  /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
    * 
    * @throws IOException

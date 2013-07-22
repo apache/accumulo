@@ -34,7 +34,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.StringUtil;
@@ -123,8 +122,7 @@ public class HdfsZooInstance implements Instance {
   
   private static synchronized void _getInstanceID() {
     if (instanceId == null) {
-      @SuppressWarnings("deprecation")
-      String instanceIdFromFile = ZooKeeperInstance.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation());
+      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation());
       instanceId = instanceIdFromFile;
     }
   }
@@ -146,12 +144,7 @@ public class HdfsZooInstance implements Instance {
   
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
-  }
-  
-  @SuppressWarnings("deprecation")
-  private Connector getConnector(TCredentials cred) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, cred);
+    return new ConnectorImpl(this, CredentialHelper.create(principal, token, getInstanceID()));
   }
   
   @Override
@@ -191,9 +184,4 @@ public class HdfsZooInstance implements Instance {
     System.out.println("Masters: " + StringUtil.join(instance.getMasterLocations(), ", "));
   }
   
-  @Deprecated
-  @Override
-  public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(auth.user, auth.getPassword());
-  }
 }
