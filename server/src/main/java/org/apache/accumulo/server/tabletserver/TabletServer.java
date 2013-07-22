@@ -18,7 +18,6 @@ package org.apache.accumulo.server.tabletserver;
 
 import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
@@ -196,7 +195,6 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.start.Platform;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.trace.instrument.Span;
