@@ -34,7 +34,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class DeleteEverythingIT extends MacTest {
+public class DeleteEverythingIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

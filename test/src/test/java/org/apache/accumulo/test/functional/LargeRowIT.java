@@ -38,7 +38,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-public class LargeRowIT extends MacTest {
+public class LargeRowIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

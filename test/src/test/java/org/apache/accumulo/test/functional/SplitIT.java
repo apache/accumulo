@@ -42,7 +42,7 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class SplitIT extends MacTest {
+public class SplitIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
@@ -81,7 +81,7 @@ public class SplitIT extends MacTest {
     assertTrue(shortened > 0);
     assertTrue(count > 10);
     assertEquals(0,
-        cluster.exec(CheckForMetadataProblems.class, "-i", cluster.getInstanceName(), "-u", "root", "-p", MacTest.PASSWORD, "-z", cluster.getZooKeepers())
+        cluster.exec(CheckForMetadataProblems.class, "-i", cluster.getInstanceName(), "-u", "root", "-p", ROOT_PASSWORD, "-z", cluster.getZooKeepers())
             .waitFor());
   }
   

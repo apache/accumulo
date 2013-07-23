@@ -30,7 +30,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
-public class BinaryStressIT extends MacTest {
+public class BinaryStressIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

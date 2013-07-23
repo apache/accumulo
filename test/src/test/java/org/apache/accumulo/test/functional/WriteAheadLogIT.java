@@ -34,7 +34,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
-public class WriteAheadLogIT extends MacTest {
+public class WriteAheadLogIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

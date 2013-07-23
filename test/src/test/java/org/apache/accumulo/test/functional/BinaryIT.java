@@ -26,7 +26,7 @@ import org.apache.accumulo.test.TestBinaryRows;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class BinaryIT extends MacTest {
+public class BinaryIT extends ConfigurableMacIT {
   
   @Test(timeout=60*1000)
   public void test() throws Exception {

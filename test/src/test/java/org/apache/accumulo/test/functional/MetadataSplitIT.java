@@ -28,7 +28,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.junit.Test;
 
-public class MetadataSplitIT extends MacTest {
+public class MetadataSplitIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

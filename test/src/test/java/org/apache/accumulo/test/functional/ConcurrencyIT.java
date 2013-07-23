@@ -36,7 +36,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ConcurrencyIT extends MacTest {
+public class ConcurrencyIT extends ConfigurableMacIT {
   
   static class ScanTask extends Thread {
     

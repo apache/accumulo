@@ -41,7 +41,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
-public class HalfDeadTServerIT extends MacTest {
+public class HalfDeadTServerIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
@@ -132,7 +132,7 @@ public class HalfDeadTServerIT extends MacTest {
     c.tableOperations().create("test_ingest");
     assertEquals(1, c.instanceOperations().getTabletServers().size());
     int rows = 100*1000;
-    Process ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", MacTest.PASSWORD, "--rows", rows + "");
+    Process ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows + "");
     UtilWaitThread.sleep(500);
     
     // block I/O with some side-channel trickiness

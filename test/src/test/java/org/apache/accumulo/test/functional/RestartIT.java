@@ -38,7 +38,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
-public class RestartIT extends MacTest {
+public class RestartIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     cfg.setSiteConfig(Collections.singletonMap(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s"));
@@ -54,7 +54,7 @@ public class RestartIT extends MacTest {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
     Process ingest = cluster.exec(TestIngest.class, 
-        "-u", "root", "-p", MacTest.PASSWORD, 
+        "-u", "root", "-p", ROOT_PASSWORD, 
         "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers());
     for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
       cluster.killProcess(ServerType.MASTER, master);
@@ -91,7 +91,7 @@ public class RestartIT extends MacTest {
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
     Process ingest = cluster.exec(TestIngest.class, 
-        "-u", "root", "-p", MacTest.PASSWORD, 
+        "-u", "root", "-p", ROOT_PASSWORD, 
         "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers());
     for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
       cluster.killProcess(ServerType.MASTER, master);

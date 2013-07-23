@@ -59,7 +59,7 @@ public class MapReduceIT extends SimpleMacIT {
         "-i", c.getInstance().getInstanceName(),
         "-z", c.getInstance().getZooKeepers(),
         "-u", "root",
-        "-p", MacTest.PASSWORD,
+        "-p", ROOT_PASSWORD,
         "-t", tablename,
         "--column", input_cfcq);
     assertEquals(0, hash.waitFor());

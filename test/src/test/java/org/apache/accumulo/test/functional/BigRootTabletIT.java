@@ -32,7 +32,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.junit.Test;
 
-public class BigRootTabletIT extends MacTest {
+public class BigRootTabletIT extends ConfigurableMacIT {
   // ACCUMULO-542: A large root tablet will fail to load if it does't fit in the tserver scan buffers
   
   @Override

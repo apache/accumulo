@@ -36,7 +36,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.junit.Test;
 
-public class DynamicThreadPoolsIT extends MacTest {
+public class DynamicThreadPoolsIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
@@ -57,7 +57,7 @@ public class DynamicThreadPoolsIT extends MacTest {
     for (int i = 1; i < TABLES; i++)
       c.tableOperations().clone("test_ingest", "test_ingest" + i, true, null, null);
     UtilWaitThread.sleep(11*1000); // time between checks of the thread pool sizes
-    TCredentials creds = CredentialHelper.create("root", new PasswordToken(MacTest.PASSWORD), c.getInstance().getInstanceName());
+    TCredentials creds = CredentialHelper.create("root", new PasswordToken(ROOT_PASSWORD), c.getInstance().getInstanceName());
     for (int i = 1; i < TABLES; i++)
       c.tableOperations().compact("test_ingest" + i, null, null, true, false);
     for (int i = 0; i < 30; i++) {

@@ -26,7 +26,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.test.CreateTestTable;
 import org.junit.Test;
 
-public class TabletIT extends MacTest {
+public class TabletIT extends ConfigurableMacIT {
   
   private static final int N = 1000;
 

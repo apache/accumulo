@@ -35,7 +35,7 @@ import org.junit.Test;
  * 
  */
 
-public class BulkSplitOptimizationIT extends MacTest {
+public class BulkSplitOptimizationIT extends ConfigurableMacIT {
   
   private static final String TABLE_NAME = "test_ingest";
   
@@ -79,7 +79,7 @@ public class BulkSplitOptimizationIT extends MacTest {
     opts.rows = 100000;
     opts.startRow = 0;
     opts.cols = 1;
-    opts.password = new Password(PASSWORD);
+    opts.password = new Password(ROOT_PASSWORD);
     VerifyIngest.verifyIngest(c, opts, SOPTS);
     
     // ensure each tablet does not have all map files

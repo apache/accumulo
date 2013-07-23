@@ -40,7 +40,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.junit.Test;
 
-public class SimpleBalancerFairnessIT extends MacTest {
+public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
@@ -63,7 +63,7 @@ public class SimpleBalancerFairnessIT extends MacTest {
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().flush("test_ingest", null, null, false);
     UtilWaitThread.sleep(15*1000);
-    TCredentials creds = CredentialHelper.create("root", new PasswordToken(MacTest.PASSWORD), c.getInstance().getInstanceName());
+    TCredentials creds = CredentialHelper.create("root", new PasswordToken(ROOT_PASSWORD), c.getInstance().getInstanceName());
     
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;

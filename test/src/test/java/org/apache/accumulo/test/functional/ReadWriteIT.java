@@ -55,7 +55,7 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ReadWriteIT extends MacTest {
+public class ReadWriteIT extends ConfigurableMacIT {
   
   static final int ROWS = 200000;
   static final int COLS = 1;
@@ -121,8 +121,8 @@ public class ReadWriteIT extends MacTest {
     // Write to multiple tables
     String instance = cluster.getInstanceName();
     String keepers = cluster.getZooKeepers();
-    TestMultiTableIngest.main(args("--count", "" + ROWS, "-u", "root", "-i", instance, "-z", keepers, "-p", PASSWORD));
-    TestMultiTableIngest.main(args("--count", "" + ROWS, "--readonly", "-u", "root", "-i", instance, "-z", keepers, "-p", PASSWORD));
+    TestMultiTableIngest.main(args("--count", "" + ROWS, "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
+    TestMultiTableIngest.main(args("--count", "" + ROWS, "--readonly", "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
   }
   
   @Test(timeout = 60 * 1000)

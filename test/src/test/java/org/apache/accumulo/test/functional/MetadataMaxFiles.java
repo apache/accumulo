@@ -43,7 +43,7 @@ import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MetadataMaxFiles extends MacTest {
+public class MetadataMaxFiles extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
@@ -82,7 +82,7 @@ public class MetadataMaxFiles extends MacTest {
     
     while (true) {
       MasterMonitorInfo stats = null;
-      TCredentials creds = CredentialHelper.create("root", new PasswordToken(MacTest.PASSWORD), c.getInstance().getInstanceName());
+      TCredentials creds = CredentialHelper.create("root", new PasswordToken(ROOT_PASSWORD), c.getInstance().getInstanceName());
       Client client = null;
       try {
         client = MasterClient.getConnectionWithRetry(c.getInstance());

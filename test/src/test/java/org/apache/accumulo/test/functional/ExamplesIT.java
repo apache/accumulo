@@ -76,7 +76,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ExamplesIT extends MacTest {
+public class ExamplesIT extends ConfigurableMacIT {
   
   BatchWriterOpts bwOpts = new BatchWriterOpts();
   
@@ -91,7 +91,7 @@ public class ExamplesIT extends MacTest {
     String instance = c.getInstance().getInstanceName();
     String keepers = c.getInstance().getZooKeepers();
     String user = "root";
-    String passwd = MacTest.PASSWORD;
+    String passwd = ROOT_PASSWORD;
     String visibility = "A|B";
     String auths = "A,B";
     BatchWriterConfig bwc = new BatchWriterConfig();
@@ -137,17 +137,17 @@ public class ExamplesIT extends MacTest {
     c.tableOperations().create("bloom_test");
     c.tableOperations().setProperty("bloom_test", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     assertEquals(0, cluster.exec(RandomBatchWriter.class, "--seed", "7", "-i", instance, "-z",
-        keepers, "-u", user, "-p", MacTest.PASSWORD, "--num", "100000", "--min", "0", "--max", "1000000000", "--size", "50",
+        keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "100000", "--min", "0", "--max", "1000000000", "--size", "50",
         "--batchMemmory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", "bloom_test").waitFor());
     c.tableOperations().flush("bloom_test", null, null, true);
     long now = System.currentTimeMillis();
     assertEquals(0,  cluster.exec(RandomBatchScanner.class,"--seed", "7", "-i", instance, "-z",
-        keepers, "-u", user, "-p", MacTest.PASSWORD, "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50",
+        keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50",
         "--scanThreads", "4","-t", "bloom_test").waitFor());
     long diff = System.currentTimeMillis() - now;
     now = System.currentTimeMillis();
     assertEquals(0,  cluster.exec(RandomBatchScanner.class,"--seed", "8", "-i", instance, "-z",
-        keepers, "-u", user, "-p", MacTest.PASSWORD, "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50",
+        keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50",
         "--scanThreads", "4","-t", "bloom_test").waitFor());
     long diff2 = System.currentTimeMillis() - now;
     assertTrue(diff2 < diff);

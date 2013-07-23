@@ -30,7 +30,7 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ChaoticBlancerIT extends MacTest {
+public class ChaoticBlancerIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

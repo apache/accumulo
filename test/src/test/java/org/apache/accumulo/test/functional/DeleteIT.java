@@ -27,7 +27,7 @@ import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
-public class DeleteIT extends MacTest {
+public class DeleteIT extends ConfigurableMacIT {
   
   @Test(timeout=60*1000)
   public void test() throws Exception {
@@ -44,7 +44,7 @@ public class DeleteIT extends MacTest {
     vopts.cols = opts.cols = 1;
     vopts.random = opts.random = 56;
     TestIngest.ingest(c, opts, BWOPTS);
-    assertEquals(0, cluster.exec(TestRandomDeletes.class, "-u", "root", "-p", MacTest.PASSWORD, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers()).waitFor());
+    assertEquals(0, cluster.exec(TestRandomDeletes.class, "-u", "root", "-p", ROOT_PASSWORD, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers()).waitFor());
     TestIngest.ingest(c, opts, BWOPTS);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }

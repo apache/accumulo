@@ -39,7 +39,7 @@ import org.apache.accumulo.minicluster.ProcessReference;
 import org.apache.accumulo.minicluster.ServerType;
 import org.junit.Test;
 
-public class ZookeeperRestartIT extends MacTest {
+public class ZookeeperRestartIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

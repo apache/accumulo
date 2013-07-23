@@ -43,7 +43,7 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.fs.FileSystem;
 import org.junit.Test;
 
-public class CompactionIT extends MacTest {
+public class CompactionIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

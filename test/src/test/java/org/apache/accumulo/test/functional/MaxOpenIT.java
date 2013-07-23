@@ -39,7 +39,7 @@ import org.junit.Test;
  * A functional test that exercises hitting the max open file limit on a tablet server. This test assumes there are one or two tablet servers.
  */
 
-public class MaxOpenIT extends MacTest {
+public class MaxOpenIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

@@ -16,14 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.log4j.Logger;
@@ -31,17 +23,11 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.rules.TemporaryFolder;
 
-public class SimpleMacIT {
+public class SimpleMacIT extends AbstractMacIT {
   public static final Logger log = Logger.getLogger(SimpleMacIT.class);
       
-  public static final String ROOT_PASSWORD = "secret";
-  
   static private TemporaryFolder folder = new TemporaryFolder();
   static private MiniAccumuloCluster cluster;
-  
-  public static Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return cluster.getConnector("root", ROOT_PASSWORD);
-  }
   
   @BeforeClass
   synchronized public static void setUp() throws Exception {
@@ -53,30 +39,18 @@ public class SimpleMacIT {
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
-          folder.delete();
+          cleanUp(cluster, folder);
         }
       });
     }
   }
   
+  @Override
+  public MiniAccumuloCluster getCluster() {
+    return cluster;
+  }
   
   @AfterClass
   public static void tearDown() throws Exception {
   }
-  
-  static AtomicInteger tableCount = new AtomicInteger();
-  static public String makeTableName() {
-    return "table" + tableCount.getAndIncrement();
-  }
-  
-  static public String rootPath() {
-    return cluster.getConfig().getDir().getAbsolutePath();
-  }
-  
-  static Process exec(Class<? extends Object> clazz, String... args) throws IOException {
-    return cluster.exec(clazz, args);
-  }
-  
-  public static BatchWriterOpts BWOPTS = MacTest.BWOPTS;
-  public static ScannerOpts SOPTS = MacTest.SOPTS;
 }

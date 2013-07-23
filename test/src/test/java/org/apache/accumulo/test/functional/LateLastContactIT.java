@@ -28,7 +28,7 @@ import org.junit.Test;
  * Fake the "tablet stops talking but holds its lock" problem we see when hard drives and NFS fail. 
  * Start a ZombieTServer, and see that master stops it.
  */
-public class LateLastContactIT extends MacTest {
+public class LateLastContactIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

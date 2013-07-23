@@ -38,7 +38,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class BatchScanSplitIT extends MacTest {
+public class BatchScanSplitIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

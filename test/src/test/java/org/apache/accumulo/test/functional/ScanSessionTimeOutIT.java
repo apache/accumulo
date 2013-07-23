@@ -34,7 +34,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ScanSessionTimeOutIT extends MacTest {
+public class ScanSessionTimeOutIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {

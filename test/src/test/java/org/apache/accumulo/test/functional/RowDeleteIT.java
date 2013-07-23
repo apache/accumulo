@@ -41,7 +41,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class RowDeleteIT extends MacTest {
+public class RowDeleteIT extends ConfigurableMacIT {
 
   
   @Override
