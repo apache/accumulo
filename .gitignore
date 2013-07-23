@@ -161,3 +161,15 @@
 /test/system/continuous/continuous-env.sh
 /test/system/continuous/walkers.txt
 /test/system/continuous/ingesters.txt
+
+# src/minicluster
+src/minicluster/.classpath
+src/minicluster/.project
+src/minicluster/.settings
+src/minicluster/target
+
+# src/proxy
+src/proxy/.classpath
+src/proxy/.project
+src/proxy/.settings
+src/proxy/target
