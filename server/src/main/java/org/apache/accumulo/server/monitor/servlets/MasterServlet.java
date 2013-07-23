@@ -34,6 +34,7 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
@@ -45,7 +46,6 @@ import org.apache.accumulo.server.monitor.util.celltypes.DurationType;
 import org.apache.accumulo.server.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.server.monitor.util.celltypes.ProgressChartType;
 import org.apache.accumulo.server.monitor.util.celltypes.StringType;
-import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.log4j.Level;
 
 public class MasterServlet extends BasicServlet {

@@ -19,11 +19,10 @@ package org.apache.accumulo.server.master.state;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.server.util.AddressUtil;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -50,11 +49,11 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
   
   public TServerInstance(String address, long session) {
-    this(AddressUtil.parseAddress(address, Property.TSERV_CLIENTPORT), Long.toHexString(session));
+    this(AddressUtil.parseAddress(address), Long.toHexString(session));
   }
   
   public TServerInstance(Value address, Text session) {
-    this(AddressUtil.parseAddress(new String(address.get()), Property.TSERV_CLIENTPORT), session.toString());
+    this(AddressUtil.parseAddress(new String(address.get())), session.toString());
   }
   
   public void putLocation(Mutation m) {
