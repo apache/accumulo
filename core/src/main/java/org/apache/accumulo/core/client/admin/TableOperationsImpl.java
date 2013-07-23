@@ -703,7 +703,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (propertiesToSet == null)
       propertiesToSet = Collections.emptyMap();
     
-    HashSet<String> excludeProps = getUniqueNamespaceProperties(namespace, srcTableName);
+    // TODO ACCUMULO-1565 needs to be fixed before the commented-out code below will work.
+    HashSet<String> excludeProps = new HashSet<String>();//getUniqueNamespaceProperties(namespace, srcTableName);
     for (String p : propertiesToExclude) {
       excludeProps.add(p);
     }
