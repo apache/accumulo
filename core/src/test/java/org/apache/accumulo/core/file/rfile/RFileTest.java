@@ -70,11 +70,9 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-
 public class RFileTest {
   
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
-  
   
   static {
     Logger.getLogger(org.apache.hadoop.io.compress.CodecPool.class).setLevel(Level.OFF);
@@ -174,7 +172,7 @@ public class RFileTest {
     private FSDataInputStream in;
     public Reader reader;
     public SortedKeyValueIterator<Key,Value> iter;
-
+    
     public void openWriter(boolean startDLG) throws IOException {
       
       if (outputFile == null) {
@@ -183,7 +181,7 @@ public class RFileTest {
         dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
       } else {
         BufferedOutputStream bufos = new BufferedOutputStream(new FileOutputStream(outputFile));
-        dos = new FSDataOutputStream(bufos, new FileSystem.Statistics("a"));       
+        dos = new FSDataOutputStream(bufos, new FileSystem.Statistics("a"));
       }
       CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", conf);
       writer = new RFile.Writer(_cbw, 1000, 1000);
@@ -191,7 +189,7 @@ public class RFileTest {
       if (startDLG)
         writer.startDefaultLocalityGroup();
     }
-        
+    
     public void openWriter() throws IOException {
       openWriter(true);
     }
@@ -263,7 +261,7 @@ public class RFileTest {
     
     trf.openWriter();
     trf.closeWriter();
-        
+    
     trf.openReader();
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
@@ -352,10 +350,10 @@ public class RFileTest {
         }
       }
     }
-		
+    
     // trf.writer.append(nk("r1","cf1","cq1","L1", 55), nv("foo"));
     trf.closeWriter();
-
+    
     trf.openReader();
     // seek before everything
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
@@ -448,7 +446,7 @@ public class RFileTest {
         trf.iter.next();
       }
     }
-
+    
     trf.closeReader();
   }
   
@@ -1266,8 +1264,8 @@ public class RFileTest {
       count++;
       indexIter.next();
     }
-
-    assert(count > 4);
+    
+    assertTrue(count > 4);
     
     trf.iter.seek(new Range(nk("r0000", "cf1", "cq1", "", 1), true, nk("r0001", "cf1", "cq1", "", 1), false), EMPTY_COL_FAMS, false);
     
@@ -1281,7 +1279,7 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
     
     trf.iter.seek(new Range(nk("r0000", "cf1", "cq1", "", 1), false, nk("r0001", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
-		
+    
     for (int i = 2048; i < 4096; i++) {
       assertTrue(trf.iter.hasTop());
       assertEquals(nk("r0001", "cf1", "cq1", "", 1), trf.iter.getTopKey());
@@ -1495,14 +1493,14 @@ public class RFileTest {
     trf.openReader();
     
     Set<ByteSequence> cfs = Collections.emptySet();
-
+    
     Random rand = new Random();
-
+    
     for (int count = 0; count < 100; count++) {
       
       int start = rand.nextInt(2300);
       Range range = new Range(nk(nf("r_", start), "cf1", "cq1", "L1", 42), nk(nf("r_", start + 100), "cf1", "cq1", "L1", 42));
-
+      
       trf.reader.seek(range, cfs, false);
       
       int numToScan = rand.nextInt(100);
@@ -1515,12 +1513,12 @@ public class RFileTest {
       
       assertTrue(trf.reader.hasTop());
       assertEquals(nk(nf("r_", start + numToScan), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
-
+      
       // seek a little forward from the last range and read a few keys within the unconsumed portion of the last range
-
+      
       int start2 = start + numToScan + rand.nextInt(3);
       int end2 = start2 + rand.nextInt(3);
-
+      
       range = new Range(nk(nf("r_", start2), "cf1", "cq1", "L1", 42), nk(nf("r_", end2), "cf1", "cq1", "L1", 42));
       trf.reader.seek(range, cfs, false);
       
@@ -1531,13 +1529,12 @@ public class RFileTest {
       }
       
       assertFalse(trf.reader.hasTop());
-
+      
     }
     
     trf.closeReader();
   }
-
-
+  
   @Test(expected = NullPointerException.class)
   public void testMissingUnreleasedVersions() throws Exception {
     runVersionTest(5);
@@ -1604,12 +1601,11 @@ public class RFileTest {
     reader.close();
   }
   
-  
-  private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {  
+  private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
     @SuppressWarnings("deprecation")
     AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
     System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, cryptoConfSetting);
-    ((SiteConfiguration)conf).clearAndNull();
+    ((SiteConfiguration) conf).clearAndNull();
     return conf;
   }
   
@@ -1619,25 +1615,24 @@ public class RFileTest {
     } else {
       System.clearProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     }
-    ((SiteConfiguration)conf).clearAndNull();
+    ((SiteConfiguration) conf).clearAndNull();
   }
-
-
+  
   @Test
   public void testEncRFile1() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test1();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
-
+  
   @Test
   public void testEncRFile2() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test2();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
@@ -1647,57 +1642,57 @@ public class RFileTest {
   public void testEncRFile3() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test3();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
-
+  
   @Test
   public void testEncRFile4() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test4();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
-
+  
   @Test
   public void testEncRFile5() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test5();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
-
+  
   @Test
   public void testEncRFile6() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test6();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
-
+  
   @Test
   public void testEncRFile7() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test7();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
-
+  
   @Test
   public void testEncRFile8() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test8();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
@@ -1707,38 +1702,37 @@ public class RFileTest {
   public void testEncRFile9() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test9();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
-
+  
   @Test
   public void testEncRFile10() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test10();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
-
+  
   @Test
   public void testEncRFile11() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test11();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
   
-  
   @Test
   public void testEncRFile12() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test12();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
@@ -1748,17 +1742,17 @@ public class RFileTest {
   public void testEncRFile13() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test13();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
-
+  
   @Test
   public void testEncRFile14() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test14();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
@@ -1768,7 +1762,7 @@ public class RFileTest {
   public void testEncRFile16() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test16();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
@@ -1778,7 +1772,7 @@ public class RFileTest {
   public void testEncRFile17() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test17();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
@@ -1788,7 +1782,7 @@ public class RFileTest {
   public void testEncRFile18() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test18();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
@@ -1798,19 +1792,19 @@ public class RFileTest {
   public void testEncRFile19() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
+    
     test19();
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
-
-  //@Test
+  
+  // @Test
   public void testEncryptedRFiles() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     @SuppressWarnings("deprecation")
     AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
     System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, CryptoTest.CRYPTO_ON_CONF);
-    ((SiteConfiguration)conf).clearAndNull();
+    ((SiteConfiguration) conf).clearAndNull();
     
     test1();
     test2();
@@ -1821,71 +1815,66 @@ public class RFileTest {
     test7();
     test8();
     
-    
     if (oldSiteConfigProperty != null) {
       System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, oldSiteConfigProperty);
     } else {
       System.clearProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     }
-    ((SiteConfiguration)conf).clearAndNull();
+    ((SiteConfiguration) conf).clearAndNull();
   }
   
-  //@Test
+  // @Test
   public void testRootTabletFromServer() throws Exception {
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     @SuppressWarnings("deprecation")
     AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
     System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, CryptoTest.CRYPTO_ON_CONF);
-    ((SiteConfiguration)conf).clearAndNull();
-
+    ((SiteConfiguration) conf).clearAndNull();
+    
     TestRFile trf = new TestRFile();
     trf.preGeneratedInputFile = new File("/tmp/should_work.rf");
     
     trf.openReader();
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
-    assert(trf.iter.hasTop());
+    assertTrue(trf.iter.hasTop());
     
-    assert(trf.reader.getLastKey() != null);
+    assertTrue(trf.reader.getLastKey() != null);
     
     trf.closeReader();
-   
     
     if (oldSiteConfigProperty != null) {
       System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, oldSiteConfigProperty);
     } else {
       System.clearProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     }
-    ((SiteConfiguration)conf).clearAndNull();
-
-  }  
+    ((SiteConfiguration) conf).clearAndNull();
+    
+  }
   
   private static final int TOTAL_NUM_ROWS = 10;
   private static final int ROW_MOD_VALUE = 10;
   
-  //@Test
+  // @Test
   // These tests will purge the disk cache when the run, so it's not recommended that they be run in development systems.
   public void testEncryptedRFileWriteSpeed() throws Exception {
-
     
-    System.out.println("Unencrypted Write, Unencrypted Read (Cache), Unencrypted Read (FS only), Encrypted Write, Encrypted Read (Cache), Encrypted Read (FS Only)");
+    System.out
+        .println("Unencrypted Write, Unencrypted Read (Cache), Unencrypted Read (FS only), Encrypted Write, Encrypted Read (Cache), Encrypted Read (FS Only)");
     int numIterations = 1;
     
     for (int i = 0; i < numIterations; i++) {
       @SuppressWarnings("deprecation")
       AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
       System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, CryptoTest.CRYPTO_OFF_CONF);
-      ((SiteConfiguration)conf).clearAndNull();
-   
+      ((SiteConfiguration) conf).clearAndNull();
+      
       TestRFile trf = new TestRFile();
       trf.outputFile = new File("/tmp/testUnencryptedRfile.rf");
       trf.openWriter();
       
-      
-
       double timeTickSize = 1000.0;
       int numRowsRead = 0;
-
-
+      
       try {
         
         performUnencryptedTests(trf, TOTAL_NUM_ROWS, ROW_MOD_VALUE, timeTickSize, true);
@@ -1895,28 +1884,26 @@ public class RFileTest {
       } catch (Exception e) {
         e.printStackTrace();
         throw e;
-      }      
-      
-     
+      }
       
     }
     
   }
-
-  private void performUnencryptedTests(TestRFile trf, int totalNumRows, int rowModValue, double timeTickSize, boolean first) throws IOException, InterruptedException {
+  
+  private void performUnencryptedTests(TestRFile trf, int totalNumRows, int rowModValue, double timeTickSize, boolean first) throws IOException,
+      InterruptedException {
     long start = System.currentTimeMillis();
-    
     
     writeRowsToRfile(trf, totalNumRows, rowModValue);
     
     long end = System.currentTimeMillis();
     
-    System.out.print(""+((end - start) / timeTickSize) + ", ");
+    System.out.print("" + ((end - start) / timeTickSize) + ", ");
     
     trf.preGeneratedInputFile = trf.outputFile;
-          
+    
     start = System.currentTimeMillis();
- 
+    
     trf.openReader();
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     int numRowsRead = 0;
@@ -1933,10 +1920,10 @@ public class RFileTest {
     
     end = System.currentTimeMillis();
     
-    System.out.print(""+((end - start) / timeTickSize) + ", ");
-
+    System.out.print("" + ((end - start) / timeTickSize) + ", ");
+    
     Runtime.getRuntime().exec("purge").waitFor();
-
+    
     start = System.currentTimeMillis();
     
     trf.openReader();
@@ -1955,21 +1942,19 @@ public class RFileTest {
     
     end = System.currentTimeMillis();
     
-    
     if (first) {
-      System.out.print(""+((end - start) / timeTickSize)+", ");
+      System.out.print("" + ((end - start) / timeTickSize) + ", ");
     } else {
-      System.out.println(""+((end - start) / timeTickSize));
+      System.out.println("" + ((end - start) / timeTickSize));
       
     }
     
-    
-    
-    //trf.outputFile.delete();
+    // trf.outputFile.delete();
   }
-
+  
   @SuppressWarnings("deprecation")
-  private void performEncryptedTests(int totalNumRows, int rowModValue, double timeTickSize, int numRowsRead, boolean first) throws IOException, InterruptedException {
+  private void performEncryptedTests(int totalNumRows, int rowModValue, double timeTickSize, int numRowsRead, boolean first) throws IOException,
+      InterruptedException {
     AccumuloConfiguration conf;
     TestRFile trf;
     long start;
@@ -1978,7 +1963,7 @@ public class RFileTest {
     
     conf = AccumuloConfiguration.getSiteConfiguration();
     System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, CryptoTest.CRYPTO_ON_CONF);
-    ((SiteConfiguration)conf).clearAndNull();
+    ((SiteConfiguration) conf).clearAndNull();
     
     trf = new TestRFile();
     trf.outputFile = new File("/tmp/testEncryptedRfile.rf");
@@ -1989,13 +1974,13 @@ public class RFileTest {
     writeRowsToRfile(trf, totalNumRows, rowModValue);
     
     end = System.currentTimeMillis();
- 
-    System.out.print(""+((end - start) / timeTickSize) + ", ");
- 
+    
+    System.out.print("" + ((end - start) / timeTickSize) + ", ");
+    
     trf.preGeneratedInputFile = trf.outputFile;
     
     start = System.currentTimeMillis();
- 
+    
     trf.openReader();
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     
@@ -2011,10 +1996,10 @@ public class RFileTest {
     
     end = System.currentTimeMillis();
     
-    System.out.print(""+((end - start) / timeTickSize)+", ");
-
+    System.out.print("" + ((end - start) / timeTickSize) + ", ");
+    
     Runtime.getRuntime().exec("purge").waitFor();
-
+    
     start = System.currentTimeMillis();
     
     trf.openReader();
@@ -2034,16 +2019,15 @@ public class RFileTest {
     end = System.currentTimeMillis();
     
     if (first) {
-      System.out.print(""+((end - start) / timeTickSize)+", ");
+      System.out.print("" + ((end - start) / timeTickSize) + ", ");
     } else {
-      System.out.println(""+((end - start) / timeTickSize));
+      System.out.println("" + ((end - start) / timeTickSize));
       
     }
     
-    
     trf.outputFile.delete();
   }
-
+  
   private int readRandomRowsFromRfile(TestRFile trf, int totalRowCount, int maxRowsToRead) throws IOException {
     if (maxRowsToRead <= 0) {
       return 0;
@@ -2053,7 +2037,7 @@ public class RFileTest {
     Random rand = new Random(System.nanoTime());
     
     int firstKeyNum = Math.abs(rand.nextInt()) % totalRowCount;
-    //int lastKeyNum = Math.abs(rand.nextInt()) % totalRowCount;
+    // int lastKeyNum = Math.abs(rand.nextInt()) % totalRowCount;
     int lastKeyNum = firstKeyNum + 1;
     
     if (lastKeyNum >= totalRowCount) {
@@ -2088,7 +2072,7 @@ public class RFileTest {
     return numRowsRead;
     
   }
-
+  
   private void writeRowsToRfile(TestRFile trf, int numRowsToWriteAndRead, int rowModValue) throws IOException {
     for (int i = 0; i < numRowsToWriteAndRead; i++) {
       String rowID = nf("r_", (i % rowModValue));
@@ -2097,32 +2081,31 @@ public class RFileTest {
       String colVis = "vis";
       
       Key k = nk(rowID, colFam, colQual, colVis, i);
-      Value v = nv(""+i);
+      Value v = nv("" + i);
       
       trf.writer.append(k, v);
     }
     
     trf.closeWriter();
   }
-    
   
   @Test
   public void testRootTabletEncryption() throws Exception {
     
-    // This tests that the normal set of operations used to populate a root tablet 
+    // This tests that the normal set of operations used to populate a root tablet
     
     String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     @SuppressWarnings("deprecation")
     AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
     System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, CryptoTest.CRYPTO_ON_CONF);
-    ((SiteConfiguration)conf).clearAndNull();
-
+    ((SiteConfiguration) conf).clearAndNull();
+    
     // populate the root tablet with info about the default tablet
     // the root tablet contains the key extent and locations of all the
     // metadata tablets
-    //String initRootTabFile = ServerConstants.getMetadataTableDir() + "/root_tablet/00000_00000."
-      //  + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
-    //FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, fs, conf, AccumuloConfiguration.getDefaultConfiguration());
+    // String initRootTabFile = ServerConstants.getMetadataTableDir() + "/root_tablet/00000_00000."
+    // + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
+    // FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, fs, conf, AccumuloConfiguration.getDefaultConfiguration());
     
     TestRFile testRfile = new TestRFile();
     testRfile.openWriter();
@@ -2131,19 +2114,19 @@ public class RFileTest {
     
     // mfw.startDefaultLocalityGroup();
     
-    //mfw.startDefaultLocalityGroup();
+    // mfw.startDefaultLocalityGroup();
     
     Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
     
     // table tablet's directory
     Key tableDirKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableDirKey, new Value(/*TABLE_TABLETS_TABLET_DIR*/"/table_info".getBytes()));
+    mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info".getBytes()));
     
     // table tablet time
     Key tableTimeKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableTimeKey, new Value((/*TabletTime.LOGICAL_TIME_ID*/ 'L' + "0").getBytes()));
+    mfw.append(tableTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
     
     // table tablet's prevrow
     Key tablePrevRowKey = new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
@@ -2161,13 +2144,12 @@ public class RFileTest {
     // default's time
     Key defaultTimeKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultTimeKey, new Value((/*TabletTime.LOGICAL_TIME_ID*/ 'L' + "0").getBytes()));
+    mfw.append(defaultTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
     
     // default's prevrow
     Key defaultPrevRowKey = new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
-    
     
     testRfile.closeWriter();
     
@@ -2178,27 +2160,20 @@ public class RFileTest {
       fileOutputStream.close();
     }
     
-    
-    
-    
     testRfile.openReader();
     testRfile.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
-    assert(testRfile.iter.hasTop());
+    assertTrue(testRfile.iter.hasTop());
     
-    assert(testRfile.reader.getLastKey() != null);
-    
-    
-    
+    assertTrue(testRfile.reader.getLastKey() != null);
     
     testRfile.closeReader();
-
+    
     if (oldSiteConfigProperty != null) {
       System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, oldSiteConfigProperty);
     } else {
       System.clearProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     }
-    ((SiteConfiguration)conf).clearAndNull();
-
-  }  
+    ((SiteConfiguration) conf).clearAndNull();
+    
+  }
 }
-

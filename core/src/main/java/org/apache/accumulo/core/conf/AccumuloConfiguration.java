@@ -32,6 +32,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   
   public abstract String get(Property property);
   
+  @Override
   public abstract Iterator<Entry<String,String>> iterator();
   
   private void checkType(Property property, PropertyType type) {
@@ -45,15 +46,17 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   
   /**
    * This method returns all properties in a map of string->string under the given prefix property.
-   * @param property the prefix property, and must be of type PropertyType.PREFIX
+   * 
+   * @param property
+   *          the prefix property, and must be of type PropertyType.PREFIX
    * @return a map of strings to strings of the resulting properties
    */
-  public Map<String, String> getAllPropertiesWithPrefix(Property property) {
+  public Map<String,String> getAllPropertiesWithPrefix(Property property) {
     checkType(property, PropertyType.PREFIX);
     
-    Map<String, String> propMap = new HashMap<String, String>(); 
+    Map<String,String> propMap = new HashMap<String,String>();
     
-    for (Entry<String, String> entry : this) {
+    for (Entry<String,String> entry : this) {
       if (entry.getKey().startsWith(property.getKey())) {
         propMap.put(entry.getKey(), entry.getValue());
       }
@@ -153,8 +156,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return DefaultConfiguration.getInstance();
   }
   
-  // Only here for Shell option-free start-up
   /**
+   * Only here for Shell option-free start-up
    * 
    * @deprecated not for client use
    */
@@ -178,7 +181,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return maxFilesPerTablet;
   }
   
-  public void invalidateCache() {
-    // overridden in ZooConfiguration
-  }
+  // overridden in ZooConfiguration
+  public void invalidateCache() {}
 }

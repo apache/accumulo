@@ -137,16 +137,15 @@ public class FateCommand extends Command {
     return failedCommand ? 1 : 0;
   }
   
-  @SuppressWarnings("deprecation")
   protected synchronized IZooReaderWriter getZooReaderWriter(Instance instance, String secret) {
-
+    
     if (secret == null) {
+      @SuppressWarnings("deprecation")
       AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
       secret = conf.get(Property.INSTANCE_SECRET);
     }
     
-    return new ZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), SCHEME,
-        (USER + ":" + secret).getBytes());
+    return new ZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), SCHEME, (USER + ":" + secret).getBytes());
   }
   
   @Override

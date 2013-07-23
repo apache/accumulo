@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -29,20 +27,14 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -220,12 +212,7 @@ public class ZooKeeperInstance implements Instance {
   
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
-  }
-  
-  @SuppressWarnings("deprecation")
-  private Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, credential);
+    return new ConnectorImpl(this, CredentialHelper.create(principal, token, getInstanceID()));
   }
   
   @Override
@@ -249,19 +236,7 @@ public class ZooKeeperInstance implements Instance {
   }
   
   /**
-   * @deprecated Use {@link #lookupInstanceName(org.apache.accumulo.fate.zookeeper.ZooCache, UUID)} instead
-   */
-  @Deprecated
-  public static String lookupInstanceName(org.apache.accumulo.core.zookeeper.ZooCache zooCache, UUID instanceId) {
-    return lookupInstanceName((ZooCache) zooCache, instanceId);
-  }
-  
-  /**
    * Given a zooCache and instanceId, look up the instance name.
-   * 
-   * @param zooCache
-   * @param instanceId
-   * @return the instance name
    */
   public static String lookupInstanceName(ZooCache zooCache, UUID instanceId) {
     ArgumentChecker.notNull(zooCache, instanceId);
@@ -275,38 +250,4 @@ public class ZooKeeperInstance implements Instance {
     return null;
   }
   
-  /**
-   * To be moved to server code. Only lives here to support certain client side utilities to minimize command-line options.
-   */
-  @Deprecated
-  public static String getInstanceIDFromHdfs(Path instanceDirectory) {
-    try {
-      FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), AccumuloConfiguration.getSiteConfiguration());
-      FileStatus[] files = null;
-      try {
-        files = fs.listStatus(instanceDirectory);
-      } catch (FileNotFoundException ex) {
-        // ignored
-      }
-      log.debug("Trying to read instance id from " + instanceDirectory);
-      if (files == null || files.length == 0) {
-        log.error("unable obtain instance id at " + instanceDirectory);
-        throw new RuntimeException("Accumulo not initialized, there is no instance id at " + instanceDirectory);
-      } else if (files.length != 1) {
-        log.error("multiple potential instances in " + instanceDirectory);
-        throw new RuntimeException("Accumulo found multiple possible instance ids in " + instanceDirectory);
-      } else {
-        String result = files[0].getPath().getName();
-        return result;
-      }
-    } catch (IOException e) {
-      throw new RuntimeException("Accumulo not initialized, there is no instance id at " + instanceDirectory, e);
-    }
-  }
-  
-  @Deprecated
-  @Override
-  public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(auth.user, auth.password);
-  }
 }

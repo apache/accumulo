@@ -451,12 +451,6 @@ public class TabletLocatorImplTest extends TestCase {
       throw new UnsupportedOperationException();
     }
     
-    @Deprecated
-    @Override
-    public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
-      return getConnector(auth.user, auth.getPassword());
-    }
-    
     @Override
     public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
