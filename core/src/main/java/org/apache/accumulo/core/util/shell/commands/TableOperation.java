@@ -108,7 +108,7 @@ public abstract class TableOperation extends Command {
     optTableName = new Option(Shell.tableOption, "table", true, "name of a table to operate on");
     optTableName.setArgName("tableName");
     
-    optTableNamespace = new Option("tn", "tableNamespace", true, "name of a table namespace to operate on");
+    optTableNamespace = new Option(Shell.tableNamespaceOption, "table-namespace", true, "name of a table namespace to operate on");
     optTableNamespace.setArgName("tableNamespace");
     
     final OptionGroup opg = new OptionGroup();

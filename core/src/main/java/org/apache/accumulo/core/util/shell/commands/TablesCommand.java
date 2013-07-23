@@ -17,13 +17,17 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -34,33 +38,46 @@ import org.apache.commons.collections.iterators.AbstractIteratorDecorator;
 
 public class TablesCommand extends Command {
   private static final String NAME_AND_ID_FORMAT = "%-15s => %10s%n";
-  
+
   private Option tableIdOption;
   private Option sortByTableIdOption;
   private Option disablePaginationOpt;
-  
+  private Option tableNamespaceOpt;
+
   @SuppressWarnings("unchecked")
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
-    Iterator<String> it = null;
-    if (cl.hasOption(tableIdOption.getOpt())) {
-      it = new TableIdIterator(shellState.getConnector().tableOperations().tableIdMap(), cl.hasOption(sortByTableIdOption.getOpt()));
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException,
+      TableNamespaceNotFoundException {
+
+    final Iterator<String> tableNames;
+    final Iterator<String> tableIds;
+
+    if (cl.hasOption(tableNamespaceOpt.getOpt())) {
+      String namespace = shellState.getConnector().tableNamespaceOperations().namespaceIdMap().get(cl.getOptionValue(tableNamespaceOpt.getOpt()));
+      tableNames = TableNamespaces.getTableNames(shellState.getConnector().getInstance(), namespace).iterator();
+      List<String> tableIdStrings = TableNamespaces.getTableIds(shellState.getConnector().getInstance(), namespace);
+      if (cl.hasOption(sortByTableIdOption.getOpt()))
+        Collections.sort(tableIdStrings);
+      tableIds = tableIdStrings.iterator();
     } else {
-      it = shellState.getConnector().tableOperations().list().iterator();
+      tableNames = shellState.getConnector().tableOperations().list().iterator();
+      tableIds = new TableIdIterator(shellState.getConnector().tableOperations().tableIdMap(), cl.hasOption(sortByTableIdOption.getOpt()));
     }
-    
+
+    Iterator<String> it = cl.hasOption(tableIdOption.getOpt()) ? tableIds : tableNames;
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));
     return 0;
   }
-  
+
   /**
    * Decorator that formats table name and id for display.
    */
   private static final class TableIdIterator extends AbstractIteratorDecorator {
     private final boolean sortByTableId;
-    
+
     /**
-     * @param tableIdMap tableName -> tableId
+     * @param tableIdMap
+     *          tableName -> tableId
      * @param sortByTableId
      */
     @SuppressWarnings("unchecked")
@@ -68,7 +85,7 @@ public class TablesCommand extends Command {
       super(new TreeMap<String,String>((sortByTableId ? MapUtils.invertMap(tableIdMap) : tableIdMap)).entrySet().iterator());
       this.sortByTableId = sortByTableId;
     }
-    
+
     @SuppressWarnings("rawtypes")
     @Override
     public Object next() {
@@ -80,12 +97,12 @@ public class TablesCommand extends Command {
       }
     }
   }
-  
+
   @Override
   public String description() {
     return "displays a list of all existing tables";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
@@ -95,9 +112,11 @@ public class TablesCommand extends Command {
     o.addOption(sortByTableIdOption);
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     o.addOption(disablePaginationOpt);
+    tableNamespaceOpt = new Option(Shell.tableNamespaceOption, "table-namespace", true, "name of table namespace to list only its tables");
+    o.addOption(tableNamespaceOpt);
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

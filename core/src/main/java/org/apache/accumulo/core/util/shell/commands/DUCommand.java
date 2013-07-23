@@ -96,7 +96,7 @@ public class DUCommand extends Command {
     optHumanReadble = new Option("h", "human-readable", false, "format large sizes to human readable units");
     optHumanReadble.setArgName("human readable output");
     
-    optTableNamespace = new Option("tn", "table-namespace", true, "name of a table namespace");
+    optTableNamespace = new Option(Shell.tableNamespaceOption, "table-namespace", true, "name of a table namespace");
     optTableNamespace.setArgName("table-namespace");
     
     o.addOption(OptUtil.tableOpt("table to examine"));

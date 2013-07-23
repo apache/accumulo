@@ -261,7 +261,7 @@ public class ConfigCommand extends Command {
     filterOpt = new Option("f", "filter", true, "show only properties that contain this string");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
-    tableNamespaceOpt = new Option("tn", "table-namespace", true, "table namespace to display/set/delete properties for");
+    tableNamespaceOpt = new Option(Shell.tableNamespaceOption, "table-namespace", true, "table namespace to display/set/delete properties for");
 
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
