@@ -202,14 +202,12 @@ public class TraceServer implements Watcher {
     int port = conf.getPort(Property.TRACE_PORT);
     final ServerSocket sock = ServerSocketChannel.open().socket();
     sock.setReuseAddress(true);
-    sock.bind(new InetSocketAddress(port));
+    sock.bind(new InetSocketAddress(hostname, port));
     final TServerTransport transport = new TServerSocket(sock);
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
-    final InetSocketAddress address = new InetSocketAddress(hostname, sock.getLocalPort());
-    registerInZooKeeper(AddressUtil.toString(address));
-    
+    registerInZooKeeper(sock.getInetAddress() + ":" + sock.getLocalPort());
     writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS));
   }
   
