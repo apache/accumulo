@@ -930,7 +930,7 @@
         </property>
       </activation>
       <properties>
-        <hadoop.version>2.0.4-alpha</hadoop.version>
+        <hadoop.version>2.0.5-alpha</hadoop.version>
         <httpclient.version>3.1</httpclient.version>
         <slf4j.version>1.6.1</slf4j.version>
       </properties>
