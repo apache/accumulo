@@ -67,7 +67,7 @@ import org.apache.thrift.transport.TTransportException;
  * Provides a class for administering table namespaces
  * 
  */
-public class TableNamespaceOperationsImpl implements TableNamespaceOperations {
+public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper {
   private Instance instance;
   private Credentials credentials;
 

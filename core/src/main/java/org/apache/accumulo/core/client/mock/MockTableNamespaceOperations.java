@@ -33,12 +33,12 @@ import org.apache.accumulo.core.client.TableNamespaceNotEmptyException;
 import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
-import org.apache.accumulo.core.client.admin.TableNamespaceOperations;
+import org.apache.accumulo.core.client.admin.TableNamespaceOperationsHelper;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.commons.lang.NotImplementedException;
 
-public class MockTableNamespaceOperations implements TableNamespaceOperations {
+public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper {
 
   final private MockAccumulo acu;
   final private String username;

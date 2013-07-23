@@ -20,21 +20,35 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNamespaceNotEmptyException;
 import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -155,7 +169,7 @@ public class TableNamespacesTest {
     assertTrue(checkTableHasProp(c, tableName1, propKey, propVal));
     
     // test a second table to be sure the first wasn't magical
-    // (also, changed the order, the namespace already exists with the property)
+    // (also, changed the order, the namespace has the property already)
     c.tableOperations().create(tableName2);
     assertTrue(checkTableHasProp(c, tableName2, propKey, propVal));
     
@@ -176,6 +190,24 @@ public class TableNamespacesTest {
     c.tableNamespaceOperations().setProperty(Constants.DEFAULT_TABLE_NAMESPACE, propKey, propVal);
     
     assertTrue(checkTableHasProp(c, tableName, propKey, propVal));
+    
+    // test the properties server-side by configuring an iterator.
+    // should not show anything with column-family = 'a'
+    String tableName3 = namespace + ".table3";
+    c.tableOperations().create(tableName3);
+    
+    IteratorSetting setting = new IteratorSetting(250, "thing", SimpleFilter.class.getName());
+    c.tableNamespaceOperations().attachIterator(namespace, setting);
+    
+    BatchWriter bw = c.createBatchWriter(tableName3, new BatchWriterConfig());
+    Mutation m = new Mutation("r");
+    m.put("a", "b", new Value("abcde".getBytes()));
+    bw.addMutation(m);
+    bw.flush();
+    bw.close();
+    
+    Scanner s = c.createScanner(tableName3, Authorizations.EMPTY);
+    assertTrue(!s.iterator().hasNext());
   }
   
   /**
@@ -323,6 +355,53 @@ public class TableNamespacesTest {
     assertTrue(!checkTableHasProp(c, n3 + t, propKey2, propVal3));
   }
   
+  /**
+   * This tests adding iterators to a namespace, listing them, and removing them as well as adding and removing constraints
+   */
+  @Test
+  public void testNamespaceIterators() throws Exception {
+    Connector c = accumulo.getConnector("root", secret);
+    
+    String namespace = "iterator";
+    String tableName = namespace + ".table";
+    String iter = "thing";
+    
+    c.tableNamespaceOperations().create(namespace);
+    c.tableOperations().create(tableName);
+    
+    IteratorSetting setting = new IteratorSetting(250, iter, SimpleFilter.class.getName());
+    HashSet<IteratorScope> scope = new HashSet<IteratorScope>();
+    scope.add(IteratorScope.scan);
+    c.tableNamespaceOperations().attachIterator(namespace, setting, EnumSet.copyOf(scope));
+    
+    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+    Mutation m = new Mutation("r");
+    m.put("a", "b", new Value("abcde".getBytes(Constants.UTF8)));
+    bw.addMutation(m);
+    bw.flush();
+    
+    Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
+    assertTrue(!s.iterator().hasNext());
+    
+    assertTrue(c.tableNamespaceOperations().listIterators(namespace).containsKey(iter));
+    c.tableNamespaceOperations().removeIterator(namespace, iter, EnumSet.copyOf(scope));
+    
+    c.tableNamespaceOperations().addConstraint(namespace, NumericValueConstraint.class.getName());
+    m = new Mutation("rowy");
+    m.put("a", "b", new Value("abcde".getBytes(Constants.UTF8)));
+    try {
+      bw.addMutation(m);
+      bw.flush();
+      fail();
+    } catch (MutationsRejectedException e) {
+      // supposed to be thrown
+    }
+    bw.close();
+    
+    int num = c.tableNamespaceOperations().listConstraints(namespace).get(NumericValueConstraint.class.getName());
+    c.tableNamespaceOperations().removeConstraint(namespace, num);
+  }
+  
   private boolean checkTableHasProp(Connector c, String t, String propKey, String propVal) throws AccumuloException, TableNotFoundException {
     for (Entry<String,String> e : c.tableOperations().getProperties(t)) {
       if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
@@ -339,5 +418,13 @@ public class TableNamespacesTest {
       }
     }
     return false;
+  }
+  
+  public static class SimpleFilter extends Filter {
+    public boolean accept(Key k, Value v) {
+      if (k.getColumnFamily().toString().equals("a"))
+        return false;
+      return true;
+    }
   }
 }
