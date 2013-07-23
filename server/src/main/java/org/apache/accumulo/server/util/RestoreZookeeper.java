@@ -23,6 +23,7 @@ import java.util.Stack;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -68,7 +69,7 @@ public class RestoreZookeeper {
           cwd.push("");
         else
           cwd.push(root);
-        create(root, "", "utf-8");
+        create(root, "", Constants.UTF8.name());
       }
     }
     
@@ -77,10 +78,11 @@ public class RestoreZookeeper {
       cwd.pop();
     }
     
+    // assume UTF-8 if not "base64"
     private void create(String path, String value, String encoding) {
-      byte[] data = value.getBytes();
+      byte[] data = value.getBytes(Constants.UTF8);
       if ("base64".equals(encoding))
-        data = Base64.decodeBase64(value.getBytes());
+        data = Base64.decodeBase64(data);
       try {
         try {
           zk.putPersistentData(path, data, overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
@@ -96,11 +98,11 @@ public class RestoreZookeeper {
   }
   
   static class Opts extends Help {
-    @Parameter(names={"-z", "--keepers"})
+    @Parameter(names = {"-z", "--keepers"})
     String keepers = "localhost:2181";
-    @Parameter(names="--overwrite")
+    @Parameter(names = "--overwrite")
     boolean overwrite = false;
-    @Parameter(names="--file")
+    @Parameter(names = "--file")
     String file;
   }
   

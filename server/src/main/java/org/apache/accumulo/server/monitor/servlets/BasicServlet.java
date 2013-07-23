@@ -50,6 +50,7 @@ abstract public class BasicServlet extends HttpServlet {
   
   abstract protected String getTitle(HttpServletRequest req);
   
+  @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     StringBuilder sb = new StringBuilder();
     try {
@@ -73,6 +74,7 @@ abstract public class BasicServlet extends HttpServlet {
     }
   }
   
+  @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     doGet(req, resp);
   }
@@ -222,11 +224,10 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("</body>\n");
     sb.append("</html>\n");
   }
-
+  
   /**
-   * Allow the concrete servlet implementation to provide attributes on the body HTML tag,
-   * such as 'onload', which can be used to call Javascript methods on page load.
-   * By default, nothing is specified.
+   * Allow the concrete servlet implementation to provide attributes on the body HTML tag, such as 'onload', which can be used to call Javascript methods on
+   * page load. By default, nothing is specified.
    */
   protected String getBodyAttributes() {
     return "";
@@ -234,18 +235,18 @@ abstract public class BasicServlet extends HttpServlet {
   
   public static String encode(String s) {
     try {
-      return URLEncoder.encode(s, "UTF-8");
+      return URLEncoder.encode(s, Constants.UTF8.name());
     } catch (UnsupportedEncodingException e) {
-      Logger.getLogger(BasicServlet.class).fatal("UTF-8 is not a recognized encoding", e);
+      Logger.getLogger(BasicServlet.class).fatal(Constants.UTF8.name() + " is not a recognized encoding", e);
       throw new RuntimeException(e);
     }
   }
   
   public static String decode(String s) {
     try {
-      return URLDecoder.decode(s, "UTF-8");
+      return URLDecoder.decode(s, Constants.UTF8.name());
     } catch (UnsupportedEncodingException e) {
-      Logger.getLogger(BasicServlet.class).fatal("UTF-8 is not a recognized encoding", e);
+      Logger.getLogger(BasicServlet.class).fatal(Constants.UTF8.name() + " is not a recognized encoding", e);
       throw new RuntimeException(e);
     }
   }

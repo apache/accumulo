@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.io.IOException;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -30,12 +30,12 @@ import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -220,7 +220,7 @@ public class ConfiguratorBase {
     } else {
       token = readTokenFile(implementingClass, conf).split(":")[2];
     }
-    return Base64.decodeBase64(token.getBytes(Charset.forName("UTF-8")));
+    return Base64.decodeBase64(token.getBytes(Constants.UTF8));
   }
   
   /**

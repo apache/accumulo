@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -54,7 +55,7 @@ public class RegExFilter extends Filter {
   public static final String ENCODING = "encoding";
   public static final String MATCH_SUBSTRING = "matchSubstring";
   
-  public static final String ENCODING_DEFAULT = "UTF-8";
+  public static final String ENCODING_DEFAULT = Constants.UTF8.name();
   
   private Matcher rowMatcher;
   private Matcher colfMatcher;

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import java.io.UnsupportedEncodingException;
+import org.apache.accumulo.core.Constants;
 
 /**
  * This lexicoder encodes/decodes a given String to/from bytes without further processing. It can be combined with other encoders like the
@@ -29,20 +29,12 @@ public class StringLexicoder implements Lexicoder<String> {
   
   @Override
   public byte[] encode(String data) {
-    try {
-      return data.getBytes("UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException(e);
-    }
+    return data.getBytes(Constants.UTF8);
   }
   
   @Override
   public String decode(byte[] data) {
-    try {
-      return new String(data, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException(e);
-    }
+    return new String(data, Constants.UTF8);
   }
   
 }

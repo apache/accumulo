@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -122,7 +123,7 @@ public class AuditMessageTest {
     for (File file : logDir.listFiles()) {
       // We want to grab the files called .out
       if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
-        LineIterator it = FileUtils.lineIterator(file, "UTF-8");
+        LineIterator it = FileUtils.lineIterator(file, Constants.UTF8.name());
         try {
           while (it.hasNext()) {
             String line = it.nextLine();
@@ -181,7 +182,7 @@ public class AuditMessageTest {
     
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   @SuppressWarnings("unchecked")
   public void testTableOperationsAudits() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
@@ -212,7 +213,7 @@ public class AuditMessageTest {
     
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void testUserOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, InterruptedException, IOException {
     
     conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
@@ -261,7 +262,7 @@ public class AuditMessageTest {
     assertEquals(1, findAuditMessage(auditMessages, "action: dropUser; targetUser: " + AUDIT_USER_2).size());
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void testImportExportOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException,
       IOException, InterruptedException {
     
@@ -292,7 +293,7 @@ public class AuditMessageTest {
     // We've exported the table metadata to the MiniAccumuloCluster root dir. Grab the .rf file path to re-import it
     File distCpTxt = new File(exportDir.toString() + "/distcp.txt");
     File importFile = null;
-    LineIterator it = FileUtils.lineIterator(distCpTxt, "UTF-8");
+    LineIterator it = FileUtils.lineIterator(distCpTxt, Constants.UTF8.name());
     
     // Just grab the first rf file, it will do for now.
     String filePrefix = "file:";
@@ -341,7 +342,7 @@ public class AuditMessageTest {
     
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void testDataOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
     
@@ -394,7 +395,7 @@ public class AuditMessageTest {
     
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void testDeniedAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
     
@@ -461,7 +462,7 @@ public class AuditMessageTest {
             "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, "myRow", "myRow~")).size());
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void testFailedAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
     

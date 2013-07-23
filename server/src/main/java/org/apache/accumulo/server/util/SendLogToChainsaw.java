@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 
 import javax.net.SocketFactory;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang.math.LongRange;
@@ -125,24 +126,24 @@ public class SendLogToChainsaw extends XMLLayout {
         } catch (FileNotFoundException e) {
           System.out.println("Unable to find file: " + log.getAbsolutePath());
           throw e;
-	    }
+        }
         reader = new BufferedReader(fReader);
         
         try {
           line = reader.readLine();
           while (null != line) {
-                out = convertLine(line, threadName);
-                if (null != out) {
-                  if (socket != null && socket.isConnected())
-                    socket.getOutputStream().write(out.getBytes());
-                  else
-                    System.err.println("Unable to send data to transport");
-                }
-              line = reader.readLine();
+            out = convertLine(line, threadName);
+            if (null != out) {
+              if (socket != null && socket.isConnected())
+                socket.getOutputStream().write(out.getBytes());
+              else
+                System.err.println("Unable to send data to transport");
             }
+            line = reader.readLine();
+          }
         } catch (IOException e) {
-            System.out.println("Error processing line: " + line + ". Output was " + out);
-            throw e;
+          System.out.println("Error processing line: " + line + ". Output was " + out);
+          throw e;
         } finally {
           if (reader != null) {
             reader.close();
@@ -181,7 +182,7 @@ public class SendLogToChainsaw extends XMLLayout {
           return null;
       }
       // URL encode the message
-      message = URLEncoder.encode(message, "UTF-8");
+      message = URLEncoder.encode(message, Constants.UTF8.name());
       // Assume that we are processing logs from today.
       // If the date in the line is greater than today, then it must be
       // from the previous month.
@@ -225,46 +226,44 @@ public class SendLogToChainsaw extends XMLLayout {
   
   private static class Opts extends Help {
     
-    @Parameter(names={"-d", "--logDirectory"}, description="ACCUMULO log directory path", required=true)
+    @Parameter(names = {"-d", "--logDirectory"}, description = "ACCUMULO log directory path", required = true)
     String dir;
     
-    @Parameter(names={"-f", "--fileFilter"}, description="filter to apply to names of logs")
+    @Parameter(names = {"-f", "--fileFilter"}, description = "filter to apply to names of logs")
     String filter;
     
-    @Parameter(names={"-h", "--host"}, description="host where chainsaw is running", required=true)
+    @Parameter(names = {"-h", "--host"}, description = "host where chainsaw is running", required = true)
     String hostname;
     
-    @Parameter(names={"-p", "--port"}, description="port where XMLSocketReceiver is listening", required=true)
+    @Parameter(names = {"-p", "--port"}, description = "port where XMLSocketReceiver is listening", required = true)
     int portnum;
     
-    @Parameter(names={"-s", "--start"}, description="start date filter (yyyyMMddHHmmss)", required=true, converter=DateConverter.class)
+    @Parameter(names = {"-s", "--start"}, description = "start date filter (yyyyMMddHHmmss)", required = true, converter = DateConverter.class)
     Date startDate;
     
-    @Parameter(names={"-e", "--end"}, description="end date filter (yyyyMMddHHmmss)", required=true, converter=DateConverter.class)
+    @Parameter(names = {"-e", "--end"}, description = "end date filter (yyyyMMddHHmmss)", required = true, converter = DateConverter.class)
     Date endDate;
     
-    @Parameter(names={"-l", "--level"}, description="filter log level")
+    @Parameter(names = {"-l", "--level"}, description = "filter log level")
     String level;
     
-    @Parameter(names={"-m", "--messageFilter"}, description="regex filter for log messages")
+    @Parameter(names = {"-m", "--messageFilter"}, description = "regex filter for log messages")
     String regex;
   }
-  
-  
-  
   
   /**
    * 
    * @param args
-   *   0: path to log directory parameter 
-   *   1: filter to apply for logs to include (uses wildcards (i.e. logger* and IS case sensitive) parameter
-   *   2: chainsaw host parameter 
-   *   3: chainsaw port parameter 
-   *   4: start date filter parameter 
-   *   5: end date filter parameter 
-   *   6: optional regex filter to match on each log4j message parameter 
-   *   7: optional level filter
-   * @throws Exception
+   *          <ol>
+   *          <li>path to log directory</li>
+   *          <li>filter to apply for logs to include (uses wildcards (i.e. logger* and IS case sensitive)</li>
+   *          <li>chainsaw host</li>
+   *          <li>chainsaw port</li>
+   *          <li>start date filter</li>
+   *          <li>end date filter</li>
+   *          <li>optional regex filter to match on each log4j message</li>
+   *          <li>optional level filter</li>
+   *          </ol>
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
