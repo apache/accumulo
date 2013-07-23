@@ -45,6 +45,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -256,11 +257,13 @@ public class TraceServer implements Watcher {
   
   public static void main(String[] args) throws Exception {
     SecurityUtil.serverLogin();
+    ServerOpts opts = new ServerOpts();
+    opts.parseArgs("tracer", args);
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfiguration conf = new ServerConfiguration(instance);
     VolumeManager fs = VolumeManagerImpl.get();
     Accumulo.init(fs, conf, "tracer");
-    String hostname = Accumulo.getLocalAddress(args);
+    String hostname = opts.getAddress();
     TraceServer server = new TraceServer(conf, hostname);
     Accumulo.enableTracing(hostname, "tserver");
     server.run();

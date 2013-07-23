@@ -117,7 +117,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
@@ -136,6 +135,7 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -187,7 +187,7 @@ import org.apache.accumulo.server.util.MapCounter;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil.LogEntry;
 import org.apache.accumulo.server.util.TServerUtils;
-import org.apache.accumulo.server.util.TServerUtils.ServerPort;
+import org.apache.accumulo.server.util.TServerUtils.ServerAddress;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -2611,11 +2611,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     MetadataTableUtil.addLogEntry(SystemCredentials.get().getAsThrift(), entry, getLock());
   }
   
-  private int startServer(AccumuloConfiguration conf, Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
-    ServerPort sp = TServerUtils.startServer(conf, portHint, processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
+  private int startServer(AccumuloConfiguration conf, String address, Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
+    ServerAddress sp = TServerUtils.startServer(conf, address, portHint, processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
         Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     this.server = sp.server;
-    return sp.port;
+    return sp.address.getPort();
   }
   
   private String getMasterAddress() {
@@ -2655,7 +2655,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     // start listening for client connection last
     Iface tch = TraceWrap.service(new ThriftClientHandler());
     Processor<Iface> processor = new Processor<Iface>(tch);
-    int port = startServer(getSystemConfiguration(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
+    int port = startServer(getSystemConfiguration(), clientAddress.getHostName(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
     log.info("port = " + port);
     return port;
   }
@@ -2733,7 +2733,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     if (clientPort == 0) {
       throw new RuntimeException("Failed to start the tablet client service");
     }
-    clientAddress = new InetSocketAddress(clientAddress.getAddress(), clientPort);
+    clientAddress = new InetSocketAddress(clientAddress.getHostName(), clientPort);
     announceExistence();
     
     ThreadPoolExecutor distWorkQThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
@@ -3012,7 +3012,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   public String getClientAddressString() {
     if (clientAddress == null)
       return null;
-    return AddressUtil.toString(clientAddress);
+    return clientAddress.getHostName() + ":" + clientAddress.getPort();
   }
   
   TServerInstance getTabletSession() {
@@ -3213,7 +3213,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     try {
       SecurityUtil.serverLogin();
       VolumeManager fs = VolumeManagerImpl.get();
-      String hostname = Accumulo.getLocalAddress(args);
+      ServerOpts opts = new ServerOpts();
+      opts.parseArgs("tserver", args);
+      String hostname = opts.getAddress();
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfiguration conf = new ServerConfiguration(instance);
       Accumulo.init(fs, conf, "tserver");

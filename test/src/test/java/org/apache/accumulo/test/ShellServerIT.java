@@ -627,6 +627,7 @@ public class ShellServerIT {
     exec("insert \\x02 cf cq value", true);
     exec("scan -b 02", true, "value", false);
     exec("interpreter -i org.apache.accumulo.core.util.interpret.HexScanInterpreter", true);
+    UtilWaitThread.sleep(500);
     exec("interpreter -l", true, "HexScan", true);
     exec("scan -b 02", true, "value", true);
     exec("deletetable -f t", true);

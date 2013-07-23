@@ -37,7 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -79,6 +78,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -107,7 +107,7 @@ import com.beust.jcommander.Parameter;
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
   
-  static class Opts extends Help {
+  static class Opts extends ServerOpts {
     @Parameter(names = {"-v", "--verbose"}, description = "extra information will get printed to stdout also")
     boolean verbose = false;
     @Parameter(names = {"-s", "--safemode"}, description = "safe mode will not delete files")
@@ -115,8 +115,6 @@ public class SimpleGarbageCollector implements Iface {
     @Parameter(names = {"-o", "--offline"},
         description = "offline mode will run once and check data files directly; this is dangerous if accumulo is running or not shut down properly")
     boolean offline = false;
-    @Parameter(names = {"-a", "--address"}, description = "specify our local address")
-    String address = null;
   }
   
   // how much of the JVM's available memory should it use gathering candidates
@@ -130,8 +128,7 @@ public class SimpleGarbageCollector implements Iface {
   private boolean checkForBulkProcessingFiles;
   private VolumeManager fs;
   private boolean useTrash = true;
-  private boolean safemode = false, offline = false, verbose = false;
-  private String address = "localhost";
+  private Opts opts = new Opts();
   private ZooLock lock;
   private Key continueKey = null;
   
@@ -143,46 +140,21 @@ public class SimpleGarbageCollector implements Iface {
   
   public static void main(String[] args) throws UnknownHostException, IOException {
     SecurityUtil.serverLogin();
-    
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfiguration serverConf = new ServerConfiguration(instance);
     final VolumeManager fs = VolumeManagerImpl.get();
     Accumulo.init(fs, serverConf, "gc");
-    String address = "localhost";
-    SimpleGarbageCollector gc = new SimpleGarbageCollector();
     Opts opts = new Opts();
-    opts.parseArgs(SimpleGarbageCollector.class.getName(), args);
-    
-    if (opts.safeMode)
-      gc.setSafeMode();
-    if (opts.offline)
-      gc.setOffline();
-    if (opts.verbose)
-      gc.setVerbose();
-    if (opts.address != null)
-      gc.useAddress(address);
+    opts.parseArgs("gc", args);
+    SimpleGarbageCollector gc = new SimpleGarbageCollector(opts);
     
     gc.init(fs, instance, SystemCredentials.get().getAsThrift(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
-    Accumulo.enableTracing(address, "gc");
+    Accumulo.enableTracing(opts.getAddress(), "gc");
     gc.run();
   }
   
-  public SimpleGarbageCollector() {}
-  
-  public void setSafeMode() {
-    this.safemode = true;
-  }
-  
-  public void setOffline() {
-    this.offline = true;
-  }
-  
-  public void setVerbose() {
-    this.verbose = true;
-  }
-  
-  public void useAddress(String address) {
-    this.address = address;
+  public SimpleGarbageCollector(Opts opts) {
+    this.opts = opts;
   }
   
   public void init(VolumeManager fs, Instance instance, TCredentials credentials, boolean noTrash) throws IOException {
@@ -193,11 +165,11 @@ public class SimpleGarbageCollector implements Iface {
     gcStartDelay = instance.getConfiguration().getTimeInMillis(Property.GC_CYCLE_START);
     long gcDelay = instance.getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
     numDeleteThreads = instance.getConfiguration().getCount(Property.GC_DELETE_THREADS);
-    log.info("start delay: " + (offline ? 0 + " sec (offline)" : gcStartDelay + " milliseconds"));
+    log.info("start delay: " + (opts.offline ? 0 + " sec (offline)" : gcStartDelay + " milliseconds"));
     log.info("time delay: " + gcDelay + " milliseconds");
-    log.info("safemode: " + safemode);
-    log.info("offline: " + offline);
-    log.info("verbose: " + verbose);
+    log.info("safemode: " + opts.safeMode);
+    log.info("offline: " + opts.offline);
+    log.info("verbose: " + opts.verbose);
     log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
     log.info("delete threads: " + numDeleteThreads);
     useTrash = !noTrash;
@@ -208,7 +180,7 @@ public class SimpleGarbageCollector implements Iface {
     
     // Sleep for an initial period, giving the master time to start up and
     // old data files to be unused
-    if (!offline) {
+    if (!opts.offline) {
       try {
         getZooLock(startStatsService());
       } catch (Exception ex) {
@@ -254,8 +226,8 @@ public class SimpleGarbageCollector implements Iface {
         confirmDeletesSpan.stop();
         
         // STEP 3: delete files
-        if (safemode) {
-          if (verbose)
+        if (opts.safeMode) {
+          if (opts.verbose)
             System.out.println("SAFEMODE: There are " + candidates.size() + " data file candidates marked for deletion.%n"
                 + "          Examine the log files to identify them.%n" + "          They can be removed by executing: bin/accumulo gc --offline%n"
                 + "WARNING:  Do not run the garbage collector in offline mode unless you are positive%n"
@@ -289,7 +261,7 @@ public class SimpleGarbageCollector implements Iface {
       tStop = System.currentTimeMillis();
       log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
       
-      if (offline)
+      if (opts.offline)
         break;
       
       if (candidateMemExceeded) {
@@ -421,13 +393,14 @@ public class SimpleGarbageCollector implements Iface {
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(this));
     int port = instance.getConfiguration().getPort(Property.GC_PORT);
     long maxMessageSize = instance.getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
+    InetSocketAddress result = new InetSocketAddress(opts.getAddress(), port);
     try {
-      TServerUtils.startTServer(port, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize);
+      TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize);
     } catch (Exception ex) {
       log.fatal(ex, ex);
       throw new RuntimeException(ex);
     }
-    return new InetSocketAddress(Accumulo.getLocalAddress(new String[] {"--address", address}), port);
+    return result;
   }
   
   /**
@@ -436,7 +409,7 @@ public class SimpleGarbageCollector implements Iface {
   SortedSet<String> getCandidates() throws Exception {
     TreeSet<String> candidates = new TreeSet<String>();
     
-    if (offline) {
+    if (opts.offline) {
       checkForBulkProcessingFiles = true;
       try {
         for (String validExtension : FileOperations.getValidExtensions()) {
@@ -521,7 +494,7 @@ public class SimpleGarbageCollector implements Iface {
   
   private void confirmDeletes(String tableName, SortedSet<String> candidates) throws AccumuloException {
     Scanner scanner;
-    if (offline) {
+    if (opts.offline) {
       // TODO
       throw new RuntimeException("Offline scanner no longer supported");
       // try {
@@ -634,7 +607,7 @@ public class SimpleGarbageCollector implements Iface {
     // deletes; Need separate writer for the root tablet.
     BatchWriter writer = null;
     BatchWriter rootWriter = null;
-    if (!offline) {
+    if (!opts.offline) {
       Connector c;
       try {
         c = instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());

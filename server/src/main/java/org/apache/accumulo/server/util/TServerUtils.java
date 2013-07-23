@@ -55,13 +55,13 @@ public class TServerUtils {
   
   public static final ThreadLocal<String> clientAddress = new ThreadLocal<String>();
   
-  public static class ServerPort {
+  public static class ServerAddress {
     public final TServer server;
-    public final int port;
+    public final InetSocketAddress address;
     
-    public ServerPort(TServer server, int port) {
+    public ServerAddress(TServer server, InetSocketAddress address) {
       this.server = server;
-      this.port = port;
+      this.address = address;
     }
   }
   
@@ -83,7 +83,7 @@ public class TServerUtils {
    * @throws UnknownHostException
    *           when we don't know our own address
    */
-  public static ServerPort startServer(AccumuloConfiguration conf, Property portHintProperty, TProcessor processor, String serverName, String threadName,
+  public static ServerAddress startServer(AccumuloConfiguration conf, String address, Property portHintProperty, TProcessor processor, String serverName, String threadName,
       Property portSearchProperty,
       Property minThreadProperty, 
       Property timeBetweenThreadChecksProperty, 
@@ -118,7 +118,8 @@ public class TServerUtils {
         if (port > 65535)
           port = 1024 + port % (65535 - 1024);
         try {
-          return TServerUtils.startTServer(port, timedProcessor, serverName, threadName, minThreads, timeBetweenThreadChecks, maxMessageSize);
+          InetSocketAddress addr = new InetSocketAddress(address, port);
+          return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads, timeBetweenThreadChecks, maxMessageSize);
         } catch (Exception ex) {
           log.info("Unable to use port " + port + ", retrying. (Thread Name = " + threadName + ")");
           UtilWaitThread.sleep(250);
@@ -212,9 +213,9 @@ public class TServerUtils {
     }
   }
   
-  public static ServerPort startHsHaServer(int port, TProcessor processor, final String serverName, String threadName, final int numThreads,
+  public static ServerAddress startHsHaServer(InetSocketAddress address, TProcessor processor, final String serverName, String threadName, final int numThreads,
       long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
-    TNonblockingServerSocket transport = new TNonblockingServerSocket(port);
+    TNonblockingServerSocket transport = new TNonblockingServerSocket(address);
     THsHaServer.Args options = new THsHaServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
@@ -249,10 +250,10 @@ public class TServerUtils {
     }, timeBetweenThreadChecks, timeBetweenThreadChecks);
     options.executorService(pool);
     options.processorFactory(new TProcessorFactory(processor));
-    return new ServerPort(new THsHaServer(options), port);
+    return new ServerAddress(new THsHaServer(options), address);
   }
   
-  public static ServerPort startThreadPoolServer(int port, TProcessor processor, String serverName, String threadName, int numThreads)
+  public static ServerAddress startThreadPoolServer(InetSocketAddress address, TProcessor processor, String serverName, String threadName, int numThreads)
       throws TTransportException {
     
     // if port is zero, then we must bind to get the port number
@@ -260,8 +261,8 @@ public class TServerUtils {
     try {
       sock = ServerSocketChannel.open().socket();
       sock.setReuseAddress(true);
-      sock.bind(new InetSocketAddress(port));
-      port = sock.getLocalPort();
+      sock.bind(address);
+      address = new InetSocketAddress(address.getHostName(), sock.getLocalPort());
     } catch (IOException ex) {
       throw new TTransportException(ex);
     }
@@ -270,17 +271,17 @@ public class TServerUtils {
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory());
     options.processorFactory(new ClientInfoProcessorFactory(processor));
-    return new ServerPort(new TThreadPoolServer(options), port);
+    return new ServerAddress(new TThreadPoolServer(options), address);
   }
   
-  public static ServerPort startTServer(int port, TProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
+  public static ServerAddress startTServer(InetSocketAddress address, TProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
       throws TTransportException {
-    return startTServer(port, new TimedProcessor(processor, serverName, threadName), serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
+    return startTServer(address, new TimedProcessor(processor, serverName, threadName), serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
   }
   
-  public static ServerPort startTServer(int port, TimedProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
+  public static ServerAddress startTServer(InetSocketAddress address, TimedProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
       throws TTransportException {
-    ServerPort result = startHsHaServer(port, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
+    ServerAddress result = startHsHaServer(address, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
     // ServerPort result = startThreadPoolServer(port, processor, serverName, threadName, -1);
     final TServer finalServer = result.server;
     Runnable serveTask = new Runnable() {

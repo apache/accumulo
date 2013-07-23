@@ -169,18 +169,6 @@ public class Accumulo {
     }, 1000, 10 * 60 * 1000);
   }
   
-  public static String getLocalAddress(String[] args) throws UnknownHostException {
-    InetAddress result = InetAddress.getLocalHost();
-    for (int i = 0; i < args.length - 1; i++) {
-      if (args[i].equals("-a") || args[i].equals("--address")) {
-        result = InetAddress.getByName(args[i + 1]);
-        log.debug("Local address is: " + args[i + 1] + " (" + result.toString() + ")");
-        break;
-      }
-    }
-    return result.getHostName();
-  }
-  
   public static void waitForZookeeperAndHdfs(VolumeManager fs) {
     log.info("Attempting to talk to zookeeper");
     while (true) {

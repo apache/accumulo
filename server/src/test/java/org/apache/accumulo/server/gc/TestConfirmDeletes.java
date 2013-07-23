@@ -37,6 +37,7 @@ import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.gc.SimpleGarbageCollector.Opts;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -98,7 +99,7 @@ public class TestConfirmDeletes {
     
     load(instance, metadata, deletes);
     
-    SimpleGarbageCollector gc = new SimpleGarbageCollector();
+    SimpleGarbageCollector gc = new SimpleGarbageCollector(new Opts());
     gc.init(fs, instance, auth, false);
     SortedSet<String> candidates = gc.getCandidates();
     Assert.assertEquals(expectedInitial, candidates.size());

@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.log4j.Logger;
 import org.junit.After;
@@ -58,8 +57,6 @@ public class MacTest {
   public void tearDown() throws Exception {
     if (cluster != null)
       cluster.stop();
-    for (LogWriter log : cluster.getLogWriters())
-      log.flush();
     folder.delete();
   }
   

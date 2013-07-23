@@ -49,6 +49,7 @@ import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -450,7 +451,9 @@ public class Monitor {
     SecurityUtil.serverLogin();
     
     VolumeManager fs = VolumeManagerImpl.get();
-    String hostname = Accumulo.getLocalAddress(args);
+    ServerOpts opts = new ServerOpts();
+    opts.parseArgs("monitor", args);
+    String hostname = opts.getAddress();
     instance = HdfsZooInstance.getInstance();
     config = new ServerConfiguration(instance);
     Accumulo.init(fs, config, "monitor");
