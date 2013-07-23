@@ -206,7 +206,7 @@ public class TraceServer implements Watcher {
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
-    registerInZooKeeper(sock.getInetAddress() + ":" + sock.getLocalPort());
+    registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort());
     writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS));
   }
   
