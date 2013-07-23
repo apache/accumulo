@@ -47,7 +47,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-test</artifactId>
+      <artifactId>hadoop-minicluster</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-configuration</groupId>

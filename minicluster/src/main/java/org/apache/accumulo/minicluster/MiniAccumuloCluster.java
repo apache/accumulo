@@ -58,7 +58,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.hdfs.server.datanode.DataNode;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 
 /**
@@ -228,7 +227,7 @@ public class MiniAccumuloCluster {
       conf.set(DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY, dn.getAbsolutePath());
       conf.set(DFSConfigKeys.DFS_REPLICATION_KEY, "1");
       conf.set(DFSConfigKeys.DFS_SUPPORT_APPEND_KEY, "true");
-      conf.set(DataNode.DATA_DIR_PERMISSION_KEY, "775");
+      conf.set("dfs.datanode.data.dir.perm", "775");
       miniDFS = new MiniDFSCluster(conf, 1, true, null);
       miniDFS.waitClusterUp();
       InetSocketAddress dfsAddress = miniDFS.getNameNode().getNameNodeAddress();
