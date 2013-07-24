@@ -86,9 +86,9 @@
     <module>maven-plugin</module>
   </modules>
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/accumulo/trunk</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/accumulo/trunk</developerConnection>
-    <url>http://svn.apache.org/viewvc/accumulo/trunk</url>
+    <connection>scm:git:git://git.apache.org/accumulo.git</connection>
+    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/accumulo.git</developerConnection>
+    <url>https://git-wip-us.apache.org/repos/asf?p=accumulo.git</url>
   </scm>
   <issueManagement>
     <system>JIRA</system>
@@ -481,6 +481,7 @@
             <tagNameFormat>@{project.version}-RC</tagNameFormat>
             <releaseProfiles>seal-jars</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
+            <pushChanges>false</pushChanges>
           </configuration>
         </plugin>
         <plugin>
