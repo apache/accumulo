@@ -219,7 +219,7 @@ public class TabletLocatorImplTest extends TestCase {
   }
   
   private void runTest(TabletLocatorImpl metaCache, List<Mutation> ml, Map<String,Map<KeyExtent,List<String>>> emb, String... efailures) throws Exception {
-    Map<String,TabletServerMutations> binnedMutations = new HashMap<String,TabletServerMutations>();
+    Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<String,TabletServerMutations<Mutation>>();
     List<Mutation> afailures = new ArrayList<Mutation>();
     metaCache.binMutations(ml, binnedMutations, afailures, credential);
     
@@ -239,11 +239,11 @@ public class TabletLocatorImplTest extends TestCase {
     
   }
   
-  private void verify(Map<String,Map<KeyExtent,List<String>>> expected, Map<String,TabletServerMutations> actual) {
+  private void verify(Map<String,Map<KeyExtent,List<String>>> expected, Map<String,TabletServerMutations<Mutation>> actual) {
     assertEquals(expected.keySet(), actual.keySet());
     
     for (String server : actual.keySet()) {
-      TabletServerMutations atb = actual.get(server);
+      TabletServerMutations<Mutation> atb = actual.get(server);
       Map<KeyExtent,List<String>> etb = expected.get(server);
       
       assertEquals(etb.keySet(), atb.getMutations().keySet());

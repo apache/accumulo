@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.hadoop.io.Text;
 
 public class ByteBufferUtil {
@@ -75,5 +76,17 @@ public class ByteBufferUtil {
   
   public static String toString(ByteBuffer bytes) {
     return new String(bytes.array(), bytes.position(), bytes.remaining());
+  }
+  
+  public static ByteBuffer toByteBuffers(ByteSequence bs) {
+    if (bs == null)
+      return null;
+
+    if (bs.isBackedByArray()) {
+      return ByteBuffer.wrap(bs.getBackingArray(), bs.offset(), bs.length());
+    } else {
+      // TODO create more efficient impl
+      return ByteBuffer.wrap(bs.toArray());
+    }
   }
 }

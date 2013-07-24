@@ -1651,7 +1651,7 @@ public class Tablet {
     }
   }
   
-  private Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, int num, HashSet<Column> columns) throws IOException {
+  private Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, int num, Set<Column> columns) throws IOException {
     
     // log.info("In nextBatch..");
     
@@ -1739,7 +1739,7 @@ public class Tablet {
     public long numBytes;
   }
   
-  Scanner createScanner(Range range, int num, HashSet<Column> columns, Authorizations authorizations, List<IterInfo> ssiList,
+  Scanner createScanner(Range range, int num, Set<Column> columns, Authorizations authorizations, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, boolean isolated, AtomicBoolean interruptFlag) {
     // do a test to see if this range falls within the tablet, if it does not
     // then clip will throw an exception
@@ -1873,14 +1873,14 @@ public class Tablet {
     // scan options
     Authorizations authorizations;
     byte[] defaultLabels;
-    HashSet<Column> columnSet;
+    Set<Column> columnSet;
     List<IterInfo> ssiList;
     Map<String,Map<String,String>> ssio;
     AtomicBoolean interruptFlag;
     int num;
     boolean isolated;
     
-    ScanOptions(int num, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
+    ScanOptions(int num, Authorizations authorizations, byte[] defaultLabels, Set<Column> columnSet, List<IterInfo> ssiList,
         Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, boolean isolated) {
       this.num = num;
       this.authorizations = authorizations;

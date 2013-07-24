@@ -17,10 +17,13 @@
 package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -30,13 +33,19 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 public class SlowIterator extends WrappingIterator {
 
   static private final String SLEEP_TIME = "sleepTime";
+  static private final String SEEK_SLEEP_TIME = "seekSleepTime";
   
-  long sleepTime;
+  private long sleepTime = 0;
+  private long seekSleepTime = 0;
   
   public static void setSleepTime(IteratorSetting is, long millis) {
     is.addOption(SLEEP_TIME, Long.toString(millis));  
   }
   
+  public static void setSeekSleepTime(IteratorSetting is, long t) {
+    is.addOption(SEEK_SLEEP_TIME, Long.toString(t));
+  }
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     throw new UnsupportedOperationException();
@@ -49,9 +58,20 @@ public class SlowIterator extends WrappingIterator {
   }
   
   @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    UtilWaitThread.sleep(seekSleepTime);
+    super.seek(range, columnFamilies, inclusive);
+  }
+  
+  @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    sleepTime = Long.parseLong(options.get(SLEEP_TIME));
+    if (options.containsKey(SLEEP_TIME))
+      sleepTime = Long.parseLong(options.get(SLEEP_TIME));
+    
+    if (options.containsKey(SEEK_SLEEP_TIME))
+      seekSleepTime = Long.parseLong(options.get(SEEK_SLEEP_TIME));
   }
+
   
 }

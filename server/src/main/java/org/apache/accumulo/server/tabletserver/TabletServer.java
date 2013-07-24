@@ -65,6 +65,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.CompressedIterators;
+import org.apache.accumulo.core.client.impl.CompressedIterators.IterConfig;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.client.impl.Translator;
@@ -87,7 +89,12 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.MapFileInfo;
 import org.apache.accumulo.core.data.thrift.MultiScanResult;
 import org.apache.accumulo.core.data.thrift.ScanResult;
+import org.apache.accumulo.core.data.thrift.TCMResult;
+import org.apache.accumulo.core.data.thrift.TCMStatus;
 import org.apache.accumulo.core.data.thrift.TColumn;
+import org.apache.accumulo.core.data.thrift.TCondition;
+import org.apache.accumulo.core.data.thrift.TConditionalMutation;
+import org.apache.accumulo.core.data.thrift.TConditionalSession;
 import org.apache.accumulo.core.data.thrift.TKey;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TKeyValue;
@@ -140,6 +147,7 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.data.ServerConditionalMutation;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -158,6 +166,7 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tabletserver.Compactor.CompactionInfo;
+import org.apache.accumulo.server.tabletserver.RowLocks.RowLock;
 import org.apache.accumulo.server.tabletserver.Tablet.CommitSession;
 import org.apache.accumulo.server.tabletserver.Tablet.KVEntry;
 import org.apache.accumulo.server.tabletserver.Tablet.LookupResult;
@@ -336,12 +345,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     SecureRandom random;
     Map<Long,Session> sessions;
+    long maxIdle;
     
     SessionManager(AccumuloConfiguration conf) {
       random = new SecureRandom();
       sessions = new HashMap<Long,Session>();
       
-      final long maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
+      maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
       
       Runnable r = new Runnable() {
         @Override
@@ -369,6 +379,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       return sid;
     }
     
+    long getMaxIdleTime() {
+      return maxIdle;
+    }
+
     /**
      * while a session is reserved, it cannot be canceled or removed
      * 
@@ -387,9 +401,30 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
     }
     
+    synchronized Session reserveSession(long sessionId, boolean wait) {
+      Session session = sessions.get(sessionId);
+      if (session != null) {
+        while(wait && session.reserved){
+          try {
+            wait(1000);
+          } catch (InterruptedException e) {
+            throw new RuntimeException();
+          }
+        }
+        
+        if (session.reserved)
+          throw new IllegalStateException();
+        session.reserved = true;
+      }
+      
+      return session;
+      
+    }
+    
     synchronized void unreserveSession(Session session) {
       if (!session.reserved)
         throw new IllegalStateException();
+      notifyAll();
       session.reserved = false;
       session.lastAccessTime = System.currentTimeMillis();
     }
@@ -399,7 +434,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (session != null)
         unreserveSession(session);
     }
-    
+        
     synchronized Session getSession(long sessionId) {
       Session session = sessions.get(sessionId);
       if (session != null)
@@ -408,9 +443,15 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     Session removeSession(long sessionId) {
+      return removeSession(sessionId, false);
+    }
+    
+    Session removeSession(long sessionId, boolean unreserve) {
       Session session = null;
       synchronized (this) {
         session = sessions.remove(sessionId);
+        if(unreserve && session != null)
+          unreserveSession(session);
       }
       
       // do clean up out side of lock..
@@ -709,6 +750,18 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
   }
   
+  private static class ConditionalSession extends Session {
+    public TCredentials credentials;
+    public Authorizations auths;
+    public String tableId;
+    public AtomicBoolean interruptFlag;
+    
+    @Override
+    public void cleanup() {
+      interruptFlag.set(true);
+    }
+  }
+  
   private static class UpdateSession extends Session {
     public Tablet currentTablet;
     public MapCounter<Tablet> successfulCommits = new MapCounter<Tablet>();
@@ -858,6 +911,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     WriteTracker writeTracker = new WriteTracker();
     
+    private RowLocks rowLocks = new RowLocks();
+
     ThriftClientHandler() {
       super(instance, watcher);
       log.debug(ThriftClientHandler.class.getName() + " created");
@@ -1686,6 +1741,250 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       } finally {
         writeTracker.finishWrite(opid);
       }
+    }
+
+    private void checkConditions(Map<KeyExtent,List<ServerConditionalMutation>> updates, ArrayList<TCMResult> results, ConditionalSession cs,
+        List<String> symbols) throws IOException {
+      Iterator<Entry<KeyExtent,List<ServerConditionalMutation>>> iter = updates.entrySet().iterator();
+      
+      CompressedIterators compressedIters = new CompressedIterators(symbols);
+
+      while (iter.hasNext()) {
+        Entry<KeyExtent,List<ServerConditionalMutation>> entry = iter.next();
+        Tablet tablet = onlineTablets.get(entry.getKey());
+        
+        if (tablet == null || tablet.isClosed()) {
+          for (ServerConditionalMutation scm : entry.getValue())
+            results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
+          iter.remove();
+        } else {
+          List<ServerConditionalMutation> okMutations = new ArrayList<ServerConditionalMutation>(entry.getValue().size());
+
+          for (ServerConditionalMutation scm : entry.getValue()) {
+            if (checkCondition(results, cs, compressedIters, tablet, scm))
+              okMutations.add(scm);
+          }
+          
+          entry.setValue(okMutations);
+        }
+        
+      }
+    }
+
+    boolean checkCondition(ArrayList<TCMResult> results, ConditionalSession cs, CompressedIterators compressedIters,
+        Tablet tablet, ServerConditionalMutation scm) throws IOException {
+      boolean add = true;
+      
+      Set<Column> emptyCols = Collections.emptySet();
+
+      for(TCondition tc : scm.getConditions()){
+      
+        Range range;
+        if (tc.hasTimestamp)
+          range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()), new Text(tc.getCv()), tc.getTs());
+        else
+          range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()), new Text(tc.getCv()));
+        
+        IterConfig ic = compressedIters.decompress(tc.iterators);
+
+        Scanner scanner = tablet.createScanner(range, 1, emptyCols, cs.auths, ic.ssiList, ic.ssio, false, cs.interruptFlag);
+        
+        try {
+          ScanBatch batch = scanner.read();
+          
+          Value val = null;
+          
+          for (KVEntry entry2 : batch.results) {
+            val = entry2.getValue();
+            break;
+          }
+          
+          if ((val == null ^ tc.getVal() == null) || (val != null && !Arrays.equals(tc.getVal(), val.get()))) {
+            results.add(new TCMResult(scm.getID(), TCMStatus.REJECTED));
+            add = false;
+            break;
+          }
+          
+        } catch (TabletClosedException e) {
+          results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
+          add = false;
+          break;
+        } catch (IterationInterruptedException iie) {
+          results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
+          add = false;
+          break;
+        } catch (TooManyFilesException tmfe) {
+          results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
+          add = false;
+          break;
+        }
+      }
+      return add;
+    }
+
+    private void writeConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates, ArrayList<TCMResult> results, ConditionalSession sess) {
+      Set<Entry<KeyExtent,List<ServerConditionalMutation>>> es = updates.entrySet();
+      
+      Map<CommitSession,List<Mutation>> sendables = new HashMap<CommitSession,List<Mutation>>();
+
+      boolean sessionCanceled = sess.interruptFlag.get();
+
+      for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
+        Tablet tablet = onlineTablets.get(entry.getKey());
+        if (tablet == null || tablet.isClosed() || sessionCanceled) {
+          for (ServerConditionalMutation scm : entry.getValue())
+            results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
+        } else {
+          try {
+            
+            List<Mutation> mutations = (List<Mutation>) (List<? extends Mutation>) entry.getValue();
+            if (mutations.size() > 0) {
+
+              CommitSession cs = tablet.prepareMutationsForCommit(new TservConstraintEnv(security, sess.credentials), mutations);
+              
+              if (cs == null) {
+                for (ServerConditionalMutation scm : entry.getValue())
+                  results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
+              } else {
+                for (ServerConditionalMutation scm : entry.getValue())
+                  results.add(new TCMResult(scm.getID(), TCMStatus.ACCEPTED));
+                sendables.put(cs, mutations);
+              }
+            }
+          } catch (TConstraintViolationException e) {
+            if (e.getNonViolators().size() > 0) {
+              sendables.put(e.getCommitSession(), e.getNonViolators());
+              for (Mutation m : e.getNonViolators())
+                results.add(new TCMResult(((ServerConditionalMutation) m).getID(), TCMStatus.ACCEPTED));
+            }
+            
+            for (Mutation m : e.getViolators())
+              results.add(new TCMResult(((ServerConditionalMutation) m).getID(), TCMStatus.VIOLATED));
+          }
+        }
+      }
+      
+      while (true && sendables.size() > 0) {
+        try {
+          logger.logManyTablets(sendables);
+          break;
+        } catch (IOException ex) {
+          log.warn("logging mutations failed, retrying");
+        } catch (FSError ex) { // happens when DFS is localFS
+          log.warn("logging mutations failed, retrying");
+        } catch (Throwable t) {
+          log.error("Unknown exception logging mutations, counts for mutations in flight not decremented!", t);
+          throw new RuntimeException(t);
+        }
+      }
+      
+      for (Entry<CommitSession,? extends List<Mutation>> entry : sendables.entrySet()) {
+        CommitSession commitSession = entry.getKey();
+        List<Mutation> mutations = entry.getValue();
+        
+        commitSession.commit(mutations);
+      }
+
+    }
+
+    private Map<KeyExtent,List<ServerConditionalMutation>> conditionalUpdate(ConditionalSession cs, Map<KeyExtent,List<ServerConditionalMutation>> updates,
+        ArrayList<TCMResult> results, List<String> symbols) throws IOException {
+      // sort each list of mutations, this is done to avoid deadlock and doing seeks in order is more efficient and detect duplicate rows.
+      ConditionalMutationSet.sortConditionalMutations(updates);
+      
+      Map<KeyExtent,List<ServerConditionalMutation>> deferred = new HashMap<KeyExtent,List<ServerConditionalMutation>>();
+
+      // can not process two mutations for the same row, because one will not see what the other writes
+      ConditionalMutationSet.deferDuplicatesRows(updates, deferred);
+
+      // get as many locks as possible w/o blocking... defer any rows that are locked
+      List<RowLock> locks = rowLocks.acquireRowlocks(updates, deferred);
+      try {
+        checkConditions(updates, results, cs, symbols);
+        writeConditionalMutations(updates, results, cs);
+      } finally {
+        rowLocks.releaseRowLocks(locks);
+      }
+      return deferred;
+    }
+    
+    @Override
+    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableID)
+        throws ThriftSecurityException, TException {
+      
+      Authorizations userauths = null;
+      if (!security.canConditionallyUpdate(credentials, tableID, authorizations))
+        throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+      
+      userauths = security.getUserAuthorizations(credentials);
+      for (ByteBuffer auth : authorizations)
+        if (!userauths.contains(ByteBufferUtil.toBytes(auth)))
+          throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
+
+      ConditionalSession cs = new ConditionalSession();
+      cs.auths = new Authorizations(authorizations);
+      cs.credentials = credentials;
+      cs.tableId = tableID;
+      cs.interruptFlag = new AtomicBoolean();
+      
+      long sid = sessionManager.createSession(cs, false);
+      return new TConditionalSession(sid, lockID, sessionManager.getMaxIdleTime());
+    }
+
+    @Override
+    public List<TCMResult> conditionalUpdate(TInfo tinfo, long sessID, Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
+        throws NoSuchScanIDException, TException {
+      
+      ConditionalSession cs = (ConditionalSession) sessionManager.reserveSession(sessID);
+      
+      if (cs == null || cs.interruptFlag.get())
+        throw new NoSuchScanIDException();
+      
+      Text tid = new Text(cs.tableId);
+      long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
+      
+      try{
+        Map<KeyExtent,List<ServerConditionalMutation>> updates = Translator.translate(mutations, Translator.TKET,
+            new Translator.ListTranslator<TConditionalMutation,ServerConditionalMutation>(ServerConditionalMutation.TCMT));
+
+        for(KeyExtent ke : updates.keySet())
+          if(!ke.getTableId().equals(tid))
+            throw new IllegalArgumentException("Unexpected table id "+tid+" != "+ke.getTableId());
+        
+        ArrayList<TCMResult> results = new ArrayList<TCMResult>();
+        
+        Map<KeyExtent,List<ServerConditionalMutation>> deferred = conditionalUpdate(cs, updates, results, symbols);
+  
+        while (deferred.size() > 0) {
+          deferred = conditionalUpdate(cs, deferred, results, symbols);
+        }
+  
+        return results;
+      } catch (IOException ioe) {
+        throw new TException(ioe);
+      }finally{
+        writeTracker.finishWrite(opid);
+        sessionManager.unreserveSession(sessID);
+      }
+    }
+
+    @Override
+    public void invalidateConditionalUpdate(TInfo tinfo, long sessID) throws TException {
+      //this method should wait for any running conditional update to complete
+      //after this method returns a conditional update should not be able to start
+      
+      ConditionalSession cs = (ConditionalSession) sessionManager.getSession(sessID);
+      if (cs != null)
+        cs.interruptFlag.set(true);
+      
+      cs = (ConditionalSession) sessionManager.reserveSession(sessID, true);
+      if(cs != null)
+        sessionManager.removeSession(sessID, true);
+    }
+
+    @Override
+    public void closeConditionalUpdate(TInfo tinfo, long sessID) throws TException {
+      sessionManager.removeSession(sessID, false);
     }
     
     @Override
@@ -2584,6 +2883,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   private DistributedWorkQueue bulkFailedCopyQ;
   
+  private String lockID;
+  
   private static final String METRICS_PREFIX = "tserver";
   
   private static ObjectName OBJECT_NAME = null;
@@ -2705,6 +3006,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         
         if (tabletServerLock.tryLock(lw, lockContent)) {
           log.debug("Obtained tablet server lock " + tabletServerLock.getLockPath());
+          lockID = tabletServerLock.getLockID().serialize(ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/");
           return;
         }
         log.info("Waiting for tablet server lock");
@@ -2735,7 +3037,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     clientAddress = new InetSocketAddress(clientAddress.getHostName(), clientPort);
     announceExistence();
-    
+
     ThreadPoolExecutor distWorkQThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
     
     bulkFailedCopyQ = new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZBULK_FAILED_COPYQ);

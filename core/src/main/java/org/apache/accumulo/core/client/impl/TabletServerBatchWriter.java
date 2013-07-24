@@ -415,13 +415,13 @@ public class TabletServerBatchWriter {
     totalSendTime.addAndGet(time);
   }
   
-  public void updateBinningStats(int count, long time, Map<String,TabletServerMutations> binnedMutations) {
+  public void updateBinningStats(int count, long time, Map<String,TabletServerMutations<Mutation>> binnedMutations) {
     totalBinTime.addAndGet(time);
     totalBinned.addAndGet(count);
     updateBatchStats(binnedMutations);
   }
   
-  private synchronized void updateBatchStats(Map<String,TabletServerMutations> binnedMutations) {
+  private synchronized void updateBatchStats(Map<String,TabletServerMutations<Mutation>> binnedMutations) {
     tabletServersBatchSum += binnedMutations.size();
     
     minTabletServersBatch = Math.min(minTabletServersBatch, binnedMutations.size());
@@ -429,8 +429,8 @@ public class TabletServerBatchWriter {
     
     int numTablets = 0;
     
-    for (Entry<String,TabletServerMutations> entry : binnedMutations.entrySet()) {
-      TabletServerMutations tsm = entry.getValue();
+    for (Entry<String,TabletServerMutations<Mutation>> entry : binnedMutations.entrySet()) {
+      TabletServerMutations<Mutation> tsm = entry.getValue();
       numTablets += tsm.getMutations().size();
     }
     
@@ -577,7 +577,7 @@ public class TabletServerBatchWriter {
       init().addAll(failures);
     }
     
-    synchronized void add(String location, TabletServerMutations tsm) {
+    synchronized void add(String location, TabletServerMutations<Mutation> tsm) {
       init();
       for (Entry<KeyExtent,List<Mutation>> entry : tsm.getMutations().entrySet()) {
         recentFailures.addAll(entry.getKey().getTableId().toString(), entry.getValue());
@@ -617,12 +617,12 @@ public class TabletServerBatchWriter {
     
     private static final int MUTATION_BATCH_SIZE = 1 << 17;
     private ExecutorService sendThreadPool;
-    private Map<String,TabletServerMutations> serversMutations;
+    private Map<String,TabletServerMutations<Mutation>> serversMutations;
     private Set<String> queued;
     private Map<String,TabletLocator> locators;
     
     public MutationWriter(int numSendThreads) {
-      serversMutations = new HashMap<String,TabletServerMutations>();
+      serversMutations = new HashMap<String,TabletServerMutations<Mutation>>();
       queued = new HashSet<String>();
       sendThreadPool = new SimpleThreadPool(numSendThreads, this.getClass().getName());
       locators = new HashMap<String,TabletLocator>();
@@ -639,7 +639,7 @@ public class TabletServerBatchWriter {
       return ret;
     }
     
-    private void binMutations(MutationSet mutationsToProcess, Map<String,TabletServerMutations> binnedMutations) {
+    private void binMutations(MutationSet mutationsToProcess, Map<String,TabletServerMutations<Mutation>> binnedMutations) {
       try {
         Set<Entry<String,List<Mutation>>> es = mutationsToProcess.getMutations().entrySet();
         for (Entry<String,List<Mutation>> entry : es) {
@@ -687,7 +687,7 @@ public class TabletServerBatchWriter {
     }
     
     void addMutations(MutationSet mutationsToSend) {
-      Map<String,TabletServerMutations> binnedMutations = new HashMap<String,TabletServerMutations>();
+      Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<String,TabletServerMutations<Mutation>>();
       Span span = Trace.start("binMutations");
       try {
         long t1 = System.currentTimeMillis();
@@ -700,15 +700,15 @@ public class TabletServerBatchWriter {
       addMutations(binnedMutations);
     }
     
-    private synchronized void addMutations(Map<String,TabletServerMutations> binnedMutations) {
+    private synchronized void addMutations(Map<String,TabletServerMutations<Mutation>> binnedMutations) {
       
       int count = 0;
       
       // merge mutations into existing mutations for a tablet server
-      for (Entry<String,TabletServerMutations> entry : binnedMutations.entrySet()) {
+      for (Entry<String,TabletServerMutations<Mutation>> entry : binnedMutations.entrySet()) {
         String server = entry.getKey();
         
-        TabletServerMutations currentMutations = serversMutations.get(server);
+        TabletServerMutations<Mutation> currentMutations = serversMutations.get(server);
         
         if (currentMutations == null) {
           serversMutations.put(server, entry.getValue());
@@ -740,8 +740,8 @@ public class TabletServerBatchWriter {
         }
     }
     
-    private synchronized TabletServerMutations getMutationsToSend(String server) {
-      TabletServerMutations tsmuts = serversMutations.remove(server);
+    private synchronized TabletServerMutations<Mutation> getMutationsToSend(String server) {
+      TabletServerMutations<Mutation> tsmuts = serversMutations.remove(server);
       if (tsmuts == null)
         queued.remove(server);
       
@@ -759,7 +759,7 @@ public class TabletServerBatchWriter {
       @Override
       public void run() {
         try {
-          TabletServerMutations tsmuts = getMutationsToSend(location);
+          TabletServerMutations<Mutation> tsmuts = getMutationsToSend(location);
           
           while (tsmuts != null) {
             send(tsmuts);
@@ -772,7 +772,7 @@ public class TabletServerBatchWriter {
         }
       }
       
-      public void send(TabletServerMutations tsm) throws AccumuloServerException, AccumuloSecurityException {
+      public void send(TabletServerMutations<Mutation> tsm) throws AccumuloServerException, AccumuloSecurityException {
         
         MutationSet failures = null;
         
@@ -846,6 +846,8 @@ public class TabletServerBatchWriter {
         return new MutationSet();
       }
       TInfo tinfo = Tracer.traceInfo();
+      
+      // TODO remove this
       TTransport transport = null;
       
       timeoutTracker.startingWrite();

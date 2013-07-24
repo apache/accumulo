@@ -76,8 +76,8 @@ public class TimeoutTabletLocator extends TabletLocator {
   }
   
   @Override
-  public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public <T extends Mutation> void binMutations(List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures,
+      TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try {
       locator.binMutations(mutations, binnedMutations, failures, credentials);
       

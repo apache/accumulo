@@ -42,12 +42,12 @@ public class RootTabletLocator extends TabletLocator {
   }
   
   @Override
-  public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public <T extends Mutation> void binMutations(List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures,
+      TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String rootTabletLocation = instance.getRootTabletLocation();
     if (rootTabletLocation != null) {
-      TabletServerMutations tsm = new TabletServerMutations();
-      for (Mutation mutation : mutations) {
+      TabletServerMutations<T> tsm = new TabletServerMutations<T>();
+      for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }
       binnedMutations.put(rootTabletLocation, tsm);

@@ -110,9 +110,45 @@ struct UpdateErrors {
 	3:map<TKeyExtent, client.SecurityErrorCode> authorizationFailures
 }
 
+enum TCMStatus {
+	ACCEPTED,
+	REJECTED,
+	VIOLATED,
+	IGNORED
+}
+
+struct TCMResult {
+	1:i64 cmid,
+	2:TCMStatus status
+}
+
 struct MapFileInfo {
 	1:i64 estimatedSize
 }
+
+struct TCondition {
+	1:binary cf;
+	2:binary cq;
+	3:binary cv;
+	4:i64 ts;
+	5:bool hasTimestamp;
+	6:binary val;
+	7:binary iterators;
+}
+
+struct TConditionalMutation {
+	1:list<TCondition> conditions;
+	2:TMutation mutation;
+	3:i64 id;
+}
+
+struct TConditionalSession {
+	1:i64 sessionId;
+	2:string tserverLock;
+        3:i64 ttl;
+}
+
+typedef map<TKeyExtent,list<TConditionalMutation>> CMBatch
 
 typedef map<TKeyExtent,list<TMutation>> UpdateBatch
 

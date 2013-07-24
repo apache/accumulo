@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.data;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 public class ArrayByteSequence extends ByteSequence implements Serializable {
   
@@ -48,6 +49,18 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
     this(s.getBytes());
   }
   
+  public ArrayByteSequence(ByteBuffer buffer) {
+    if (buffer.hasArray()) {
+      this.data = buffer.array();
+      this.offset = buffer.arrayOffset();
+      this.length = buffer.limit();
+    } else {
+      this.data = new byte[buffer.remaining()];
+      this.offset = 0;
+      buffer.get(data);
+    }
+  }
+
   @Override
   public byte byteAt(int i) {
     

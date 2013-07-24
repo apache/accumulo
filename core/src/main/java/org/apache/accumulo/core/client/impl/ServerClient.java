@@ -25,8 +25,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -45,7 +45,7 @@ public class ServerClient {
   private static final Logger log = Logger.getLogger(ServerClient.class);
   private static final Map<String,ZooCache> zooCaches = new HashMap<String,ZooCache>();
   
-  private synchronized static ZooCache getZooCache(Instance instance) {
+  synchronized static ZooCache getZooCache(Instance instance) {
     ZooCache result = zooCaches.get(instance.getZooKeepers());
     if (result == null) {
       result = new ZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), null);

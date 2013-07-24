@@ -40,10 +40,10 @@ public class MockTabletLocator extends TabletLocator {
   }
   
   @Override
-  public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
-    TabletServerMutations tsm = new TabletServerMutations();
-    for (Mutation m : mutations)
+  public <T extends Mutation> void binMutations(List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures,
+      TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    TabletServerMutations<T> tsm = new TabletServerMutations<T>();
+    for (T m : mutations)
       tsm.addMutation(new KeyExtent(), m);
     binnedMutations.put("", tsm);
   }

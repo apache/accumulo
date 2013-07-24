@@ -43,7 +43,7 @@ public abstract class TabletLocator {
   public abstract TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException;
   
-  public abstract void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures,
+  public abstract <T extends Mutation> void binMutations(List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures,
       TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   
   public abstract List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials)
@@ -187,24 +187,24 @@ public abstract class TabletLocator {
     }
   }
   
-  public static class TabletServerMutations {
-    private Map<KeyExtent,List<Mutation>> mutations;
+  public static class TabletServerMutations<T extends Mutation> {
+    private Map<KeyExtent,List<T>> mutations;
     
     public TabletServerMutations() {
-      mutations = new HashMap<KeyExtent,List<Mutation>>();
+      mutations = new HashMap<KeyExtent,List<T>>();
     }
     
-    public void addMutation(KeyExtent ke, Mutation m) {
-      List<Mutation> mutList = mutations.get(ke);
+    public void addMutation(KeyExtent ke, T m) {
+      List<T> mutList = mutations.get(ke);
       if (mutList == null) {
-        mutList = new ArrayList<Mutation>();
+        mutList = new ArrayList<T>();
         mutations.put(ke, mutList);
       }
       
       mutList.add(m);
     }
     
-    public Map<KeyExtent,List<Mutation>> getMutations() {
+    public Map<KeyExtent,List<T>> getMutations() {
       return mutations;
     }
   }

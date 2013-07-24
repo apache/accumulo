@@ -27,6 +27,7 @@ import java.util.List;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
@@ -65,121 +66,8 @@ public class Mutation implements Writable {
   private byte[] data;
   private int entries;
   private List<byte[]> values;
-
-  // created this little class instead of using ByteArrayOutput stream and DataOutputStream
-  // because both are synchronized... lots of small syncs slow things down
-  private static class ByteBuffer {
-    
-    int offset;
-    byte data[] = new byte[64];
-    
-    private void reserve(int l) {
-      if (offset + l > data.length) {
-        int newSize = data.length * 2;
-        while (newSize <= offset + l)
-          newSize = newSize * 2;
-        
-        byte[] newData = new byte[newSize];
-        System.arraycopy(data, 0, newData, 0, offset);
-        data = newData;
-      }
-      
-    }
-    
-    public void add(byte[] bytes, int off, int length) {
-      reserve(length);
-      System.arraycopy(bytes, off, data, offset, length);
-      offset += length;
-    }
-    
-    void add(boolean b) {
-      reserve(1);
-      if (b)
-        data[offset++] = 1;
-      else
-        data[offset++] = 0;
-    }
-    
-    public byte[] toArray() {
-      byte ret[] = new byte[offset];
-      System.arraycopy(data, 0, ret, 0, offset);
-      return ret;
-    }
-    
-    public void writeVLong(long i) {
-      reserve(9);
-      if (i >= -112 && i <= 127) {
-        data[offset++] = (byte)i;
-        return;
-      }
-        
-      int len = -112;
-      if (i < 0) {
-        i ^= -1L; // take one's complement'
-        len = -120;
-      }
-        
-      long tmp = i;
-      while (tmp != 0) {
-        tmp = tmp >> 8;
-        len--;
-      }
-        
-      data[offset++] = (byte)len;
-        
-      len = (len < -120) ? -(len + 120) : -(len + 112);
-        
-      for (int idx = len; idx != 0; idx--) {
-        int shiftbits = (idx - 1) * 8;
-        long mask = 0xFFL << shiftbits;
-        data[offset++] = (byte)((i & mask) >> shiftbits);
-      }
-    }
-  }
   
-  private static class SimpleReader {
-    int offset;
-    byte data[];
-    
-    SimpleReader(byte b[]) {
-      this.data = b;
-    }
-
-    int readInt() {
-      return (data[offset++] << 24) + ((data[offset++] & 255) << 16) + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0);
-    }
-    
-    long readLong() {
-      return (((long) data[offset++] << 56) + ((long) (data[offset++] & 255) << 48) + ((long) (data[offset++] & 255) << 40)
-          + ((long) (data[offset++] & 255) << 32) + ((long) (data[offset++] & 255) << 24) + ((data[offset++] & 255) << 16) + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0));
-    }
-    
-    void readBytes(byte b[]) {
-      System.arraycopy(data, offset, b, 0, b.length);
-      offset += b.length;
-    }
-    
-    boolean readBoolean() {
-      return (data[offset++] == 1);
-    }
-    
-    long readVLong() {
-      byte firstByte = data[offset++];
-      int len =  WritableUtils.decodeVIntSize(firstByte);
-      if (len == 1) {
-        return firstByte;
-      }
-      long i = 0;
-      for (int idx = 0; idx < len-1; idx++) {
-        byte b = data[offset++];
-        i = i << 8;
-        i = i | (b & 0xFF);
-      }
-      return (WritableUtils.isNegativeVInt(firstByte) ? (i ^ -1L) : i);
-    }
-  }
-  
-  private ByteBuffer buffer;
+  private UnsynchronizedBuffer.Writer buffer;
   
   private List<ColumnUpdate> updates;
   
@@ -205,7 +93,7 @@ public class Mutation implements Writable {
   public Mutation(byte[] row, int start, int length) {
     this.row = new byte[length];
     System.arraycopy(row, start, this.row, 0, length);
-    buffer = new ByteBuffer();
+    buffer = new UnsynchronizedBuffer.Writer();
   }
   
   public Mutation(Text row) {
@@ -445,7 +333,7 @@ public class Mutation implements Writable {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
   }
 
-  private byte[] oldReadBytes(SimpleReader in) {
+  private byte[] oldReadBytes(UnsynchronizedBuffer.Reader in) {
     int len = in.readInt();
     if (len == 0)
       return EMPTY_BYTES;
@@ -455,7 +343,7 @@ public class Mutation implements Writable {
     return bytes;
   }
   
-  private byte[] readBytes(SimpleReader in) {
+  private byte[] readBytes(UnsynchronizedBuffer.Reader in) {
     int len = (int)in.readVLong();
     if (len == 0)
       return EMPTY_BYTES;
@@ -468,7 +356,7 @@ public class Mutation implements Writable {
   public List<ColumnUpdate> getUpdates() {
     serialize();
     
-    SimpleReader in = new SimpleReader(data);
+    UnsynchronizedBuffer.Reader in = new UnsynchronizedBuffer.Reader(data);
     
     if (updates == null) {
       if (entries == 1) {
@@ -490,7 +378,7 @@ public class Mutation implements Writable {
     return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
   }
 
-  private ColumnUpdate deserializeColumnUpdate(SimpleReader in) {
+  private ColumnUpdate deserializeColumnUpdate(UnsynchronizedBuffer.Reader in) {
     byte[] cf = readBytes(in);
     byte[] cq = readBytes(in);
     byte[] cv = readBytes(in);
@@ -623,8 +511,8 @@ public class Mutation implements Writable {
     }
     
     // convert data to new format
-    SimpleReader din = new SimpleReader(localData);
-    buffer = new ByteBuffer();
+    UnsynchronizedBuffer.Reader din = new UnsynchronizedBuffer.Reader(localData);
+    buffer = new UnsynchronizedBuffer.Writer();
     for (int i = 0; i < localEntries; i++) {
       byte[] cf = oldReadBytes(din);
       byte[] cq = oldReadBytes(din);

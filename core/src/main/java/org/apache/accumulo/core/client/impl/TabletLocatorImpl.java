@@ -113,14 +113,14 @@ public class TabletLocatorImpl extends TabletLocator {
   }
   
   @Override
-  public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures, TCredentials credentials)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public <T extends Mutation> void binMutations(List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures,
+      TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
     OpTimer opTimer = null;
     if (log.isTraceEnabled())
       opTimer = new OpTimer(log, Level.TRACE).start("Binning " + mutations.size() + " mutations for table " + tableId);
     
-    ArrayList<Mutation> notInCache = new ArrayList<Mutation>();
+    ArrayList<T> notInCache = new ArrayList<T>();
     Text row = new Text();
     
     rLock.lock();
@@ -133,7 +133,7 @@ public class TabletLocatorImpl extends TabletLocator {
       // For this to be efficient, need to avoid fine grained synchronization and fine grained logging.
       // Therefore methods called by this are not synchronized and should not log.
       
-      for (Mutation mutation : mutations) {
+      for (T mutation : mutations) {
         row.set(mutation.getRow());
         TabletLocation tl = locateTabletInCache(row);
         if (tl == null)
@@ -157,7 +157,7 @@ public class TabletLocatorImpl extends TabletLocator {
       wLock.lock();
       try {
         boolean failed = false;
-        for (Mutation mutation : notInCache) {
+        for (T mutation : notInCache) {
           if (failed) {
             // when one table does not return a location, something is probably
             // screwy, go ahead and fail everything.
@@ -185,11 +185,11 @@ public class TabletLocatorImpl extends TabletLocator {
       opTimer.stop("Binned " + mutations.size() + " mutations for table " + tableId + " to " + binnedMutations.size() + " tservers in %DURATION%");
   }
   
-  private void addMutation(Map<String,TabletServerMutations> binnedMutations, Mutation mutation, TabletLocation tl) {
-    TabletServerMutations tsm = binnedMutations.get(tl.tablet_location);
+  private <T extends Mutation> void addMutation(Map<String,TabletServerMutations<T>> binnedMutations, T mutation, TabletLocation tl) {
+    TabletServerMutations<T> tsm = binnedMutations.get(tl.tablet_location);
     
     if (tsm == null) {
-      tsm = new TabletServerMutations();
+      tsm = new TabletServerMutations<T>();
       binnedMutations.put(tl.tablet_location, tsm);
     }
     
