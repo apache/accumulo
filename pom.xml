@@ -84,9 +84,9 @@
     <module>minicluster</module>
   </modules>
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/accumulo/branches/1.5</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/accumulo/branches/1.5</developerConnection>
-    <url>http://svn.apache.org/viewvc/accumulo/branches/1.5</url>
+    <connection>scm:git:git://git.apache.org/accumulo.git</connection>
+    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/accumulo.git</developerConnection>
+    <url>https://git-wip-us.apache.org/repos/asf?p=accumulo.git</url>
   </scm>
   <issueManagement>
     <system>JIRA</system>
@@ -94,7 +94,7 @@
   </issueManagement>
   <ciManagement>
     <system>Apache Jenkins</system>
-    <url>https://builds.apache.org/view/A-F/view/Accumulo/</url>
+    <url>https://builds.apache.org/view/A-D/view/Accumulo/</url>
   </ciManagement>
   <distributionManagement>
     <site>
@@ -460,6 +460,7 @@
             <tagNameFormat>@{project.version}-RC</tagNameFormat>
             <releaseProfiles>seal-jars</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
+            <pushChanges>false</pushChanges>
           </configuration>
         </plugin>
         <plugin>
@@ -478,6 +479,7 @@
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
+          <version>0.9</version>
           <configuration>
             <excludes>
               <exclude>docs/apidocs/package-list</exclude>
