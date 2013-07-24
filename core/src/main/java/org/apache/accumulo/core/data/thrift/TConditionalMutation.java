@@ -512,14 +512,14 @@ import org.slf4j.LoggerFactory;
           case 1: // CONDITIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list106 = iprot.readListBegin();
-                struct.conditions = new ArrayList<TCondition>(_list106.size);
-                for (int _i107 = 0; _i107 < _list106.size; ++_i107)
+                org.apache.thrift.protocol.TList _list78 = iprot.readListBegin();
+                struct.conditions = new ArrayList<TCondition>(_list78.size);
+                for (int _i79 = 0; _i79 < _list78.size; ++_i79)
                 {
-                  TCondition _elem108; // required
-                  _elem108 = new TCondition();
-                  _elem108.read(iprot);
-                  struct.conditions.add(_elem108);
+                  TCondition _elem80; // required
+                  _elem80 = new TCondition();
+                  _elem80.read(iprot);
+                  struct.conditions.add(_elem80);
                 }
                 iprot.readListEnd();
               }
@@ -564,9 +564,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(CONDITIONS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.conditions.size()));
-          for (TCondition _iter109 : struct.conditions)
+          for (TCondition _iter81 : struct.conditions)
           {
-            _iter109.write(oprot);
+            _iter81.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -611,9 +611,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetConditions()) {
         {
           oprot.writeI32(struct.conditions.size());
-          for (TCondition _iter110 : struct.conditions)
+          for (TCondition _iter82 : struct.conditions)
           {
-            _iter110.write(oprot);
+            _iter82.write(oprot);
           }
         }
       }
@@ -631,14 +631,14 @@ import org.slf4j.LoggerFactory;
       BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list111 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.conditions = new ArrayList<TCondition>(_list111.size);
-          for (int _i112 = 0; _i112 < _list111.size; ++_i112)
+          org.apache.thrift.protocol.TList _list83 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.conditions = new ArrayList<TCondition>(_list83.size);
+          for (int _i84 = 0; _i84 < _list83.size; ++_i84)
           {
-            TCondition _elem113; // required
-            _elem113 = new TCondition();
-            _elem113.read(iprot);
-            struct.conditions.add(_elem113);
+            TCondition _elem85; // required
+            _elem85 = new TCondition();
+            _elem85.read(iprot);
+            struct.conditions.add(_elem85);
           }
         }
         struct.setConditionsIsSet(true);

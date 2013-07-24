@@ -382,7 +382,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     long getMaxIdleTime() {
       return maxIdle;
     }
-
+    
     /**
      * while a session is reserved, it cannot be canceled or removed
      * 
@@ -404,7 +404,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     synchronized Session reserveSession(long sessionId, boolean wait) {
       Session session = sessions.get(sessionId);
       if (session != null) {
-        while(wait && session.reserved){
+        while (wait && session.reserved) {
           try {
             wait(1000);
           } catch (InterruptedException e) {
@@ -434,7 +434,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (session != null)
         unreserveSession(session);
     }
-        
+    
     synchronized Session getSession(long sessionId) {
       Session session = sessions.get(sessionId);
       if (session != null)
@@ -450,7 +450,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       Session session = null;
       synchronized (this) {
         session = sessions.remove(sessionId);
-        if(unreserve && session != null)
+        if (unreserve && session != null)
           unreserveSession(session);
       }
       
@@ -912,7 +912,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     WriteTracker writeTracker = new WriteTracker();
     
     private RowLocks rowLocks = new RowLocks();
-
+    
     ThriftClientHandler() {
       super(instance, watcher);
       log.debug(ThriftClientHandler.class.getName() + " created");
@@ -1742,13 +1742,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         writeTracker.finishWrite(opid);
       }
     }
-
+    
     private void checkConditions(Map<KeyExtent,List<ServerConditionalMutation>> updates, ArrayList<TCMResult> results, ConditionalSession cs,
         List<String> symbols) throws IOException {
       Iterator<Entry<KeyExtent,List<ServerConditionalMutation>>> iter = updates.entrySet().iterator();
       
       CompressedIterators compressedIters = new CompressedIterators(symbols);
-
+      
       while (iter.hasNext()) {
         Entry<KeyExtent,List<ServerConditionalMutation>> entry = iter.next();
         Tablet tablet = onlineTablets.get(entry.getKey());
@@ -1759,7 +1759,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           iter.remove();
         } else {
           List<ServerConditionalMutation> okMutations = new ArrayList<ServerConditionalMutation>(entry.getValue().size());
-
+          
           for (ServerConditionalMutation scm : entry.getValue()) {
             if (checkCondition(results, cs, compressedIters, tablet, scm))
               okMutations.add(scm);
@@ -1770,15 +1770,15 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         
       }
     }
-
-    boolean checkCondition(ArrayList<TCMResult> results, ConditionalSession cs, CompressedIterators compressedIters,
-        Tablet tablet, ServerConditionalMutation scm) throws IOException {
+    
+    boolean checkCondition(ArrayList<TCMResult> results, ConditionalSession cs, CompressedIterators compressedIters, Tablet tablet,
+        ServerConditionalMutation scm) throws IOException {
       boolean add = true;
       
       Set<Column> emptyCols = Collections.emptySet();
-
-      for(TCondition tc : scm.getConditions()){
       
+      for (TCondition tc : scm.getConditions()) {
+        
         Range range;
         if (tc.hasTimestamp)
           range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()), new Text(tc.getCv()), tc.getTs());
@@ -1786,7 +1786,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()), new Text(tc.getCv()));
         
         IterConfig ic = compressedIters.decompress(tc.iterators);
-
+        
         Scanner scanner = tablet.createScanner(range, 1, emptyCols, cs.auths, ic.ssiList, ic.ssio, false, cs.interruptFlag);
         
         try {
@@ -1821,14 +1821,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
       return add;
     }
-
+    
     private void writeConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates, ArrayList<TCMResult> results, ConditionalSession sess) {
       Set<Entry<KeyExtent,List<ServerConditionalMutation>>> es = updates.entrySet();
       
       Map<CommitSession,List<Mutation>> sendables = new HashMap<CommitSession,List<Mutation>>();
-
+      
       boolean sessionCanceled = sess.interruptFlag.get();
-
+      
       for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
         Tablet tablet = onlineTablets.get(entry.getKey());
         if (tablet == null || tablet.isClosed() || sessionCanceled) {
@@ -1837,9 +1837,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         } else {
           try {
             
+            @SuppressWarnings("unchecked")
             List<Mutation> mutations = (List<Mutation>) (List<? extends Mutation>) entry.getValue();
             if (mutations.size() > 0) {
-
+              
               CommitSession cs = tablet.prepareMutationsForCommit(new TservConstraintEnv(security, sess.credentials), mutations);
               
               if (cs == null) {
@@ -1884,19 +1885,19 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         
         commitSession.commit(mutations);
       }
-
+      
     }
-
+    
     private Map<KeyExtent,List<ServerConditionalMutation>> conditionalUpdate(ConditionalSession cs, Map<KeyExtent,List<ServerConditionalMutation>> updates,
         ArrayList<TCMResult> results, List<String> symbols) throws IOException {
       // sort each list of mutations, this is done to avoid deadlock and doing seeks in order is more efficient and detect duplicate rows.
       ConditionalMutationSet.sortConditionalMutations(updates);
       
       Map<KeyExtent,List<ServerConditionalMutation>> deferred = new HashMap<KeyExtent,List<ServerConditionalMutation>>();
-
+      
       // can not process two mutations for the same row, because one will not see what the other writes
       ConditionalMutationSet.deferDuplicatesRows(updates, deferred);
-
+      
       // get as many locks as possible w/o blocking... defer any rows that are locked
       List<RowLock> locks = rowLocks.acquireRowlocks(updates, deferred);
       try {
@@ -1920,7 +1921,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       for (ByteBuffer auth : authorizations)
         if (!userauths.contains(ByteBufferUtil.toBytes(auth)))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
-
+      
       ConditionalSession cs = new ConditionalSession();
       cs.auths = new Authorizations(authorizations);
       cs.credentials = credentials;
@@ -1930,7 +1931,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       long sid = sessionManager.createSession(cs, false);
       return new TConditionalSession(sid, lockID, sessionManager.getMaxIdleTime());
     }
-
+    
     @Override
     public List<TCMResult> conditionalUpdate(TInfo tinfo, long sessID, Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
         throws NoSuchScanIDException, TException {
@@ -1943,45 +1944,45 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       Text tid = new Text(cs.tableId);
       long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
       
-      try{
+      try {
         Map<KeyExtent,List<ServerConditionalMutation>> updates = Translator.translate(mutations, Translator.TKET,
             new Translator.ListTranslator<TConditionalMutation,ServerConditionalMutation>(ServerConditionalMutation.TCMT));
-
-        for(KeyExtent ke : updates.keySet())
-          if(!ke.getTableId().equals(tid))
-            throw new IllegalArgumentException("Unexpected table id "+tid+" != "+ke.getTableId());
+        
+        for (KeyExtent ke : updates.keySet())
+          if (!ke.getTableId().equals(tid))
+            throw new IllegalArgumentException("Unexpected table id " + tid + " != " + ke.getTableId());
         
         ArrayList<TCMResult> results = new ArrayList<TCMResult>();
         
         Map<KeyExtent,List<ServerConditionalMutation>> deferred = conditionalUpdate(cs, updates, results, symbols);
-  
+        
         while (deferred.size() > 0) {
           deferred = conditionalUpdate(cs, deferred, results, symbols);
         }
-  
+        
         return results;
       } catch (IOException ioe) {
         throw new TException(ioe);
-      }finally{
+      } finally {
         writeTracker.finishWrite(opid);
         sessionManager.unreserveSession(sessID);
       }
     }
-
+    
     @Override
     public void invalidateConditionalUpdate(TInfo tinfo, long sessID) throws TException {
-      //this method should wait for any running conditional update to complete
-      //after this method returns a conditional update should not be able to start
+      // this method should wait for any running conditional update to complete
+      // after this method returns a conditional update should not be able to start
       
       ConditionalSession cs = (ConditionalSession) sessionManager.getSession(sessID);
       if (cs != null)
         cs.interruptFlag.set(true);
       
       cs = (ConditionalSession) sessionManager.reserveSession(sessID, true);
-      if(cs != null)
+      if (cs != null)
         sessionManager.removeSession(sessID, true);
     }
-
+    
     @Override
     public void closeConditionalUpdate(TInfo tinfo, long sessID) throws TException {
       sessionManager.removeSession(sessID, false);
@@ -3037,7 +3038,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     clientAddress = new InetSocketAddress(clientAddress.getHostName(), clientPort);
     announceExistence();
-
+    
     ThreadPoolExecutor distWorkQThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
     
     bulkFailedCopyQ = new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZBULK_FAILED_COPYQ);
