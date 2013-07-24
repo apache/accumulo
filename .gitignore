@@ -74,3 +74,14 @@ target/
 /test/system/continuous/walkers.txt
 /test/system/continuous/ingesters.txt
 
+# src/minicluster
+minicluster/.classpath
+minicluster/.project
+minicluster/.settings
+minicluster/target
+
+# src/proxy
+proxy/.classpath
+proxy/.project
+proxy/.settings
+proxy/target
