@@ -37,15 +37,17 @@ public class MilliSpan implements Span {
   final private Span parent;
   final private String description;
   final private long spanId;
+  final private long traceId;
   private Map<String,String> traceInfo = null;
   
   public Span child(String description) {
-    return new MilliSpan(description, next.nextLong(), this);
+    return new MilliSpan(description, next.nextLong(), traceId, this);
   }
   
-  public MilliSpan(String description, long id, Span parent) {
+  public MilliSpan(String description, long id, long traceId, Span parent) {
     this.description = description;
     this.spanId = id;
+    this.traceId = traceId;
     this.parent = parent;
     this.start = 0;
     this.stop = 0;
@@ -110,9 +112,7 @@ public class MilliSpan implements Span {
   
   @Override
   public long traceId() {
-    if (parent == this)
-      throw new RuntimeException("loop found in trace!");
-    return parent.traceId();
+    return traceId;
   }
   
   @Override
