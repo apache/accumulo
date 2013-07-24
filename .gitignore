@@ -50,6 +50,7 @@ target/
 # /docs/
 /docs/config.html
 /docs/accumulo_user_manual.pdf
+/docs/apidocs
 
 # /docs/src/user_manual/
 /docs/src/user_manual/accumulo_user_manual.toc
@@ -65,6 +66,7 @@ target/
 
 # /server/src/main/c++/nativeMap/
 /server/src/main/c++/nativeMap/*.jnilib
+/server/src/main/c++/nativeMap/*.so
 
 # /test/system/auto/
 /test/system/auto/fake_disk_failure.so
@@ -73,15 +75,3 @@ target/
 /test/system/continuous/continuous-env.sh
 /test/system/continuous/walkers.txt
 /test/system/continuous/ingesters.txt
-
-# src/minicluster
-minicluster/.classpath
-minicluster/.project
-minicluster/.settings
-minicluster/target
-
-# src/proxy
-proxy/.classpath
-proxy/.project
-proxy/.settings
-proxy/target
