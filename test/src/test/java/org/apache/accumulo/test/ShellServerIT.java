@@ -850,11 +850,10 @@ public class ShellServerIT extends SimpleMacIT {
     exec("y");
     exec("namespaces", true, "thing2", true);
     
-    /* doesn't work yet, waiting on ACCUMULO-1565
-    exec("clonenamespace thing2 testers -e table.file.max", true);
-    exec("namespaces", true, "testers", true);
-    exec("tables", true, "testers.thingy", true);
-    exec("clonenamespace thing2 testers2 -s table.file.max=42", true);*/
+    /*
+     * doesn't work yet, waiting on ACCUMULO-1565 exec("clonenamespace thing2 testers -e table.file.max", true); exec("namespaces", true, "testers", true);
+     * exec("tables", true, "testers.thingy", true); exec("clonenamespace thing2 testers2 -s table.file.max=42", true);
+     */
     
     exec("du -tn thing2", true, "thing2.thingy", true);
     
@@ -863,6 +862,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("online -tn thing2", true);
     exec("flush -tn thing2", true);
     exec("compact -tn thing2", true);
+    exec("createnamespace testers", true);
     exec("createtable testers.1", true);
     exec("createtable testers.2", true);
     exec("deletetable -tn testers -f", true);
@@ -886,6 +886,17 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletenamespace -f thing2", true);
     exec("namespaces", true, "thing2", false);
     exec("tables", true, "thing2.thingy", false);
+    
+    // put constraints on a table namespace
+    exec("constraint -tn thing4 -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", true);
+    exec("createtable thing4.constrained", true);
+    exec("table thing4.constrained", true);
+    // should fail
+    exec("insert r cf cq abc", false);
+    exec("constraint -l", true, "NumericValueConstraint", true);
+    exec("constraint -tn thing4 -d 2");
+    exec("sleep 1");
+    exec("insert r cf cq abc", true);
   }
   
   private int countkeys(String table) throws IOException {

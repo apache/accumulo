@@ -43,7 +43,11 @@ public class ConstraintCommand extends Command {
       namespace = null;
     }
     
-    tableName = OptUtil.getTableOpt(cl, shellState);
+    if (cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty()) {
+      tableName = OptUtil.getTableOpt(cl, shellState);
+    } else {
+      tableName = null;
+    }
     
     int i;
     

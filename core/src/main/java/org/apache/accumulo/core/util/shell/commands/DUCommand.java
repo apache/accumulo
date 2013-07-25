@@ -71,15 +71,10 @@ public class DUCommand extends Command {
     }
     try {
       String valueFormat = prettyPrint ? "%9s" : "%,24d";
-      Long total = 0L;
       for (DiskUsage usage : shellState.getConnector().tableOperations().getDiskUsage(tables)) {
         Object value = prettyPrint ? NumUtil.bigNumberForSize(usage.getUsage()) : usage.getUsage();
         shellState.getReader().println(String.format(valueFormat + " %s", value, usage.getTables()));
-        for (@SuppressWarnings("unused") String t : usage.getTables()) {
-          total += usage.getUsage();
-        }
       }
-      shellState.getReader().println(String.format(valueFormat + " %s", total, "Total"));
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
