@@ -83,6 +83,8 @@ do_start()
 #
 do_stop()
 {
+    TARGET_USER_NAME="ACCUMULO_USER"
+    TARGET_USER=$(eval "echo \$$TARGET_USER_NAME")
 	# Return
 	#  0 if daemon has been stopped
 	#  1 if daemon was already stopped
