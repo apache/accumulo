@@ -85,8 +85,7 @@ import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -117,7 +116,7 @@ import org.apache.thrift.transport.TTransportException;
  */
 public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
-  private TCredentials credentials;
+  private Credentials credentials;
   
   private static final Logger log = Logger.getLogger(TableOperations.class);
   
@@ -127,7 +126,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @param credentials
    *          the username/password for this connection
    */
-  public TableOperationsImpl(Instance instance, TCredentials credentials) {
+  public TableOperationsImpl(Instance instance, Credentials credentials) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;
@@ -222,7 +221,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        return client.beginTableOperation(Tracer.traceInfo(), credentials);
+        return client.beginTableOperation(Tracer.traceInfo(), credentials.toThrift(instance));
       } catch (TTransportException tte) {
         log.debug("Failed to call beginTableOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
@@ -238,7 +237,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        client.executeTableOperation(Tracer.traceInfo(), credentials, opid, op, args, opts, autoCleanUp);
+        client.executeTableOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid, op, args, opts, autoCleanUp);
         break;
       } catch (TTransportException tte) {
         log.debug("Failed to call executeTableOperation(), retrying ... ", tte);
@@ -254,7 +253,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        return client.waitForTableOperation(Tracer.traceInfo(), credentials, opid);
+        return client.waitForTableOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForTableOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
@@ -269,7 +268,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        client.finishTableOperation(Tracer.traceInfo(), credentials, opid);
+        client.finishTableOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid);
         break;
       } catch (TTransportException tte) {
         log.debug("Failed to call finishTableOperation(), retrying ... ", tte);
@@ -450,7 +449,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         
         attempt++;
         
-        TabletLocation tl = tabLocator.locateTablet(split, false, false, credentials);
+        TabletLocation tl = tabLocator.locateTablet(credentials, split, false, false);
         
         if (tl == null) {
           if (!Tables.exists(instance, tableId))
@@ -467,7 +466,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             if (log.isTraceEnabled())
               opTimer = new OpTimer(log, Level.TRACE).start("Splitting tablet " + tl.tablet_extent + " on " + tl.tablet_location + " at " + split);
             
-            client.splitTablet(Tracer.traceInfo(), credentials, tl.tablet_extent.toThrift(), TextUtil.getByteBuffer(split));
+            client.splitTablet(Tracer.traceInfo(), credentials.toThrift(instance), tl.tablet_extent.toThrift(), TextUtil.getByteBuffer(split));
             
             // just split it, might as well invalidate it in the cache
             tabLocator.invalidateCache(tl.tablet_extent);
@@ -578,6 +577,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return endRows;
   }
   
+  @Deprecated
   @Override
   public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
     try {
@@ -620,6 +620,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return subset;
   }
   
+  @Deprecated
   @Override
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
     try {
@@ -800,7 +801,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         MasterClientService.Iface client = null;
         try {
           client = MasterClient.getConnectionWithRetry(instance);
-          flushID = client.initiateFlush(Tracer.traceInfo(), credentials, tableId);
+          flushID = client.initiateFlush(Tracer.traceInfo(), credentials.toThrift(instance), tableId);
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
@@ -814,7 +815,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         MasterClientService.Iface client = null;
         try {
           client = MasterClient.getConnectionWithRetry(instance);
-          client.waitForFlush(Tracer.traceInfo(), credentials, tableId, TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID,
+          client.waitForFlush(Tracer.traceInfo(), credentials.toThrift(instance), tableId, TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID,
               wait ? Long.MAX_VALUE : 1);
           break;
         } catch (TTransportException tte) {
@@ -863,7 +864,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
-        client.setTableProperty(Tracer.traceInfo(), credentials, tableName, property, value);
+        client.setTableProperty(Tracer.traceInfo(), credentials.toThrift(instance), tableName, property, value);
       }
     });
   }
@@ -886,7 +887,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
-        client.removeTableProperty(Tracer.traceInfo(), credentials, tableName, property);
+        client.removeTableProperty(Tracer.traceInfo(), credentials.toThrift(instance), tableName, property);
       }
     });
   }
@@ -907,7 +908,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
         @Override
         public Map<String,String> execute(ClientService.Client client) throws Exception {
-          return client.getTableConfiguration(Tracer.traceInfo(), credentials, tableName);
+          return client.getTableConfiguration(Tracer.traceInfo(), credentials.toThrift(instance), tableName);
         }
       }).entrySet();
     } catch (ThriftTableOperationException e) {
@@ -1039,7 +1040,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     TabletLocator tl = TabletLocator.getLocator(instance, new Text(tableId));
     // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
     tl.invalidateCache();
-    while (!tl.binRanges(Collections.singletonList(range), binnedRanges, credentials).isEmpty()) {
+    while (!tl.binRanges(credentials, Collections.singletonList(range), binnedRanges).isEmpty()) {
       if (!Tables.exists(instance, tableId))
         throw new TableDeletedException(tableId);
       if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
@@ -1196,7 +1197,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, auths);
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(tableName, auths);
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
   }
   
@@ -1210,7 +1211,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         // this operation may us a lot of memory... its likely that connections to tabletservers hosting metadata tablets will be cached, so do not use cached
         // connections
         pair = ServerClient.getConnection(instance, false);
-        diskUsages = pair.getSecond().getDiskUsage(tableNames, credentials);
+        diskUsages = pair.getSecond().getDiskUsage(tableNames, credentials.toThrift(instance));
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
           case NOTFOUND:
@@ -1324,7 +1325,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Boolean,ClientService.Client>() {
         @Override
         public Boolean execute(ClientService.Client client) throws Exception {
-          return client.checkTableClass(Tracer.traceInfo(), credentials, tableName, className, asTypeName);
+          return client.checkTableClass(Tracer.traceInfo(), credentials.toThrift(instance), tableName, className, asTypeName);
         }
       });
     } catch (ThriftTableOperationException e) {

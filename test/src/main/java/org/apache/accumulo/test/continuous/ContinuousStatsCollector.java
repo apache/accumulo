@@ -134,7 +134,7 @@ public class ContinuousStatsCollector {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(opts.getInstance());
-        MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().getAsThrift());
+        MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(opts.getInstance()));
         
         TableInfo all = new TableInfo();
         Map<String,TableInfo> tableSummaries = new HashMap<String,TableInfo>();

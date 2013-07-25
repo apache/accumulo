@@ -18,6 +18,7 @@ package org.apache.accumulo.test.randomwalk.concurrent;
 
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -40,8 +41,9 @@ public class StartAll extends Test {
     exec.waitFor();
     while (true) {
       try {
-        Client client = MasterClient.getConnection(HdfsZooInstance.getInstance());
-        MasterMonitorInfo masterStats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().getAsThrift());
+        Instance instance = HdfsZooInstance.getInstance();
+        Client client = MasterClient.getConnection(instance);
+        MasterMonitorInfo masterStats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
         if (!masterStats.tServerInfo.isEmpty())
           break;
       } catch (Exception ex) {

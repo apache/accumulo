@@ -41,8 +41,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -53,14 +52,14 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   BatchScanner mdScanner;
   Iterator<Entry<Key,Value>> iter;
   
-  public MetaDataTableScanner(Instance instance, TCredentials auths, Range range, CurrentState state) {
-    this(instance, auths, range, state, MetadataTable.NAME);
+  public MetaDataTableScanner(Instance instance, Credentials credentials, Range range, CurrentState state) {
+    this(instance, credentials, range, state, MetadataTable.NAME);
   }
   
-  MetaDataTableScanner(Instance instance, TCredentials auths, Range range, CurrentState state, String tableName) {
+  MetaDataTableScanner(Instance instance, Credentials credentials, Range range, CurrentState state, String tableName) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
     try {
-      Connector connector = instance.getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths));
+      Connector connector = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
       mdScanner = connector.createBatchScanner(tableName, Authorizations.EMPTY, 8);
       configureScanner(mdScanner, state);
       mdScanner.setRanges(Collections.singletonList(range));
@@ -87,12 +86,12 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     scanner.addScanIterator(tabletChange);
   }
   
-  public MetaDataTableScanner(Instance instance, TCredentials auths, Range range) {
-    this(instance, auths, range, MetadataTable.NAME);
+  public MetaDataTableScanner(Instance instance, Credentials credentials, Range range) {
+    this(instance, credentials, range, MetadataTable.NAME);
   }
   
-  public MetaDataTableScanner(Instance instance, TCredentials auths, Range range, String tableName) {
-    this(instance, auths, range, null, tableName);
+  public MetaDataTableScanner(Instance instance, Credentials credentials, Range range, String tableName) {
+    this(instance, credentials, range, null, tableName);
   }
   
   public void close() {

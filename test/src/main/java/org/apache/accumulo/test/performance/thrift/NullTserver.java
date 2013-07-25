@@ -204,20 +204,19 @@ public class NullTserver {
     public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return new ArrayList<ActiveCompaction>();
     }
-
+    
     @Override
     public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableID)
-        throws ThriftSecurityException,
-        TException {
+        throws ThriftSecurityException, TException {
       return null;
     }
-
+    
     @Override
     public List<TCMResult> conditionalUpdate(TInfo tinfo, long sessID, Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
         throws NoSuchScanIDException, TException {
       return null;
     }
-
+    
     @Override
     public void invalidateConditionalUpdate(TInfo tinfo, long sessID) throws TException {}
     
@@ -253,7 +252,7 @@ public class NullTserver {
     
     // read the locations for the table
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-    MetaDataTableScanner s = new MetaDataTableScanner(zki, SystemCredentials.get().getAsThrift(), tableRange);
+    MetaDataTableScanner s = new MetaDataTableScanner(zki, SystemCredentials.get(), tableRange);
     long randomSessionID = opts.port;
     TServerInstance instance = new TServerInstance(addr, randomSessionID);
     List<Assignment> assignments = new ArrayList<Assignment>();

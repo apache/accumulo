@@ -69,11 +69,13 @@ public class TableOperationsHelperTest {
     @Override
     public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {}
     
+    @Deprecated
     @Override
     public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
       return null;
     }
     
+    @Deprecated
     @Override
     public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
       return null;
@@ -184,12 +186,12 @@ public class TableOperationsHelperTest {
     public Map<String,String> tableIdMap() {
       return null;
     }
-
+    
     @Override
     public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       return null;
     }
-
+    
     void check(String tablename, String[] values) {
       Map<String,String> expected = new TreeMap<String,String>();
       for (String value : values) {

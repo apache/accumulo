@@ -24,8 +24,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 
 /**
@@ -33,14 +32,13 @@ import org.apache.accumulo.core.util.ArgumentChecker;
  */
 public abstract class MetadataServicer {
   
-  public static MetadataServicer forTableName(Instance instance, TCredentials credentials, String tableName) throws AccumuloException,
-      AccumuloSecurityException {
+  public static MetadataServicer forTableName(Instance instance, Credentials credentials, String tableName) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName);
-    Connector conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
+    Connector conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
     return forTableId(instance, credentials, conn.tableOperations().tableIdMap().get(tableName));
   }
   
-  public static MetadataServicer forTableId(Instance instance, TCredentials credentials, String tableId) {
+  public static MetadataServicer forTableId(Instance instance, Credentials credentials, String tableId) {
     ArgumentChecker.notNull(tableId);
     if (RootTable.ID.equals(tableId))
       return new ServicerForRootTable(instance, credentials);

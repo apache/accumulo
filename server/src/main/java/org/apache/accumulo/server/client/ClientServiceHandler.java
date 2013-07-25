@@ -42,12 +42,14 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -135,14 +137,14 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public void changeLocalUserPassword(TInfo tinfo, TCredentials credentials, String principal, ByteBuffer password) throws ThriftSecurityException {
     PasswordToken token = new PasswordToken(password);
-    TCredentials toChange = CredentialHelper.createSquelchError(principal, token, credentials.getInstanceId());
+    Credentials toChange = new Credentials(principal, token);
     security.changePassword(credentials, toChange);
   }
   
   @Override
   public void createLocalUser(TInfo tinfo, TCredentials credentials, String principal, ByteBuffer password) throws ThriftSecurityException {
     PasswordToken token = new PasswordToken(password);
-    TCredentials newUser = CredentialHelper.createSquelchError(principal, token, credentials.getInstanceId());
+    Credentials newUser = new Credentials(principal, token);
     security.createUser(credentials, newUser, new Authorizations());
   }
   
@@ -238,7 +240,8 @@ public class ClientServiceHandler implements ClientService.Iface {
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {
-          return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, credentials, tid, tableId, files, errorDir, setTime);
+          return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, new Credentials(credentials.getPrincipal(),
+              AuthenticationTokenSerializer.deserialize(credentials.getTokenClassName(), credentials.getToken())), tid, tableId, files, errorDir, setTime);
         }
       });
     } catch (AccumuloSecurityException e) {
@@ -317,7 +320,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials) throws ThriftTableOperationException, ThriftSecurityException, TException {
     try {
-      Connector conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
+      AuthenticationToken token = AuthenticationTokenSerializer.deserialize(credentials.getTokenClassName(), credentials.getToken());
+      Connector conn = instance.getConnector(credentials.getPrincipal(), token);
       
       HashSet<String> tableIds = new HashSet<String>();
       

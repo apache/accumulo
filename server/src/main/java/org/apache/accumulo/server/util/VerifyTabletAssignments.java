@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -90,7 +91,7 @@ public class VerifyTabletAssignments {
     Connector conn = opts.getConnector();
     Instance inst = conn.getInstance();
     String tableId = Tables.getNameToIdMap(inst).get(tableName);
-    TCredentials credentials = CredentialHelper.create(opts.principal, opts.getToken(), opts.instance);
+    Credentials credentials = new Credentials(opts.principal, opts.getToken());
     MetadataServicer.forTableId(conn.getInstance(), credentials, tableId).getTabletLocations(tabletLocations);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();

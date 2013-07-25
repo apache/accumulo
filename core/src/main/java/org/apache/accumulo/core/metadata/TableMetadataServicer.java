@@ -31,8 +31,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -41,11 +40,11 @@ import org.apache.hadoop.io.Text;
 abstract class TableMetadataServicer extends MetadataServicer {
   
   private Instance instance;
-  private TCredentials credentials;
+  private Credentials credentials;
   private String tableIdBeingServiced;
   private String serviceTableName;
   
-  public TableMetadataServicer(Instance instance, TCredentials credentials, String serviceTableName, String tableIdBeingServiced) {
+  public TableMetadataServicer(Instance instance, Credentials credentials, String serviceTableName, String tableIdBeingServiced) {
     this.instance = instance;
     this.credentials = credentials;
     this.serviceTableName = serviceTableName;
@@ -64,8 +63,7 @@ abstract class TableMetadataServicer extends MetadataServicer {
   @Override
   public void getTabletLocations(SortedMap<KeyExtent,String> tablets) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(getServicingTableName(),
-        Authorizations.EMPTY);
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(getServicingTableName(), Authorizations.EMPTY);
     
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);

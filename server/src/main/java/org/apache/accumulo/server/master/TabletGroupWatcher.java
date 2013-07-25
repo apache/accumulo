@@ -410,7 +410,7 @@ class TabletGroupWatcher extends Daemon {
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
           datafiles.add(new FileRef(this.master.fs, key));
           if (datafiles.size() > 1000) {
-            MetadataTableUtil.addDeleteEntries(extent, datafiles, SystemCredentials.get().getAsThrift());
+            MetadataTableUtil.addDeleteEntries(extent, datafiles, SystemCredentials.get());
             datafiles.clear();
           }
         } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
@@ -420,12 +420,12 @@ class TabletGroupWatcher extends Daemon {
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           datafiles.add(new FileRef(this.master.fs, key));
           if (datafiles.size() > 1000) {
-            MetadataTableUtil.addDeleteEntries(extent, datafiles, SystemCredentials.get().getAsThrift());
+            MetadataTableUtil.addDeleteEntries(extent, datafiles, SystemCredentials.get());
             datafiles.clear();
           }
         }
       }
-      MetadataTableUtil.addDeleteEntries(extent, datafiles, SystemCredentials.get().getAsThrift());
+      MetadataTableUtil.addDeleteEntries(extent, datafiles, SystemCredentials.get());
       BatchWriter bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       try {
         deleteTablets(info, deleteRange, bw, conn);
@@ -448,8 +448,8 @@ class TabletGroupWatcher extends Daemon {
       } else {
         // Recreate the default tablet to hold the end of the table
         Master.log.debug("Recreating the last tablet to point to " + extent.getPrevEndRow());
-        MetadataTableUtil.addTablet(new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), Constants.DEFAULT_TABLET_LOCATION, SystemCredentials
-            .get().getAsThrift(), timeType, this.master.masterLock);
+        MetadataTableUtil.addTablet(new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), Constants.DEFAULT_TABLET_LOCATION,
+            SystemCredentials.get(), timeType, this.master.masterLock);
       }
     } catch (Exception ex) {
       throw new AccumuloException(ex);

@@ -197,7 +197,7 @@ public class IteratorSetting implements Writable {
     this.properties = new HashMap<String,String>();
     this.readFields(din);
   }
-
+  
   /**
    * Add another option to the iterator.
    * 
@@ -277,9 +277,6 @@ public class IteratorSetting implements Writable {
     return result;
   }
   
-  /**
-   * @see java.lang.Object#equals()
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj)
@@ -308,7 +305,7 @@ public class IteratorSetting implements Writable {
       return false;
     return true;
   }
-
+  
   /**
    * @see java.lang.Object#toString()
    */

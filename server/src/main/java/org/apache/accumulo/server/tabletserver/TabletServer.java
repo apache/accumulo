@@ -2057,7 +2057,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       } catch (ThriftSecurityException e) {
         log.warn("Got " + request + " message from unauthenticatable user: " + e.getUser());
-        if (SystemCredentials.get().getAsThrift().getTokenClassName().equals(credentials.getTokenClassName())) {
+        if (SystemCredentials.get().getToken().getClass().getName().equals(credentials.getTokenClassName())) {
           log.fatal("Got message from a service with a mismatched configuration. Please ensure a compatible configuration.", e);
           fatal = true;
         }
@@ -2910,7 +2910,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     entry.server = logs.get(0).getLogger();
     entry.filename = logs.get(0).getFileName();
     entry.logSet = logSet;
-    MetadataTableUtil.addLogEntry(SystemCredentials.get().getAsThrift(), entry, getLock());
+    MetadataTableUtil.addLogEntry(SystemCredentials.get(), entry, getLock());
   }
   
   private int startServer(AccumuloConfiguration conf, String address, Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
@@ -3091,7 +3091,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           while (!serverStopRequested && mm != null && client != null && client.getOutputProtocol() != null
               && client.getOutputProtocol().getTransport() != null && client.getOutputProtocol().getTransport().isOpen()) {
             try {
-              mm.send(SystemCredentials.get().getAsThrift(), getClientAddressString(), iface);
+              mm.send(SystemCredentials.get().toThrift(instance), getClientAddressString(), iface);
               mm = null;
             } catch (TException ex) {
               log.warn("Error sending message: queuing message again");
@@ -3198,7 +3198,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN, TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
         TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN, TabletsSection.ServerColumnFamily.TIME_COLUMN});
     
-    ScannerImpl scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SystemCredentials.get().getAsThrift(), tableToVerify, Authorizations.EMPTY);
+    ScannerImpl scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SystemCredentials.get(), tableToVerify, Authorizations.EMPTY);
     scanner.setRange(extent.toMetadataRange());
     
     TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
@@ -3232,7 +3232,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       KeyExtent fke;
       try {
-        fke = MetadataTableUtil.fixSplit(metadataEntry, tabletEntries.get(metadataEntry), instance, SystemCredentials.get().getAsThrift(), lock);
+        fke = MetadataTableUtil.fixSplit(metadataEntry, tabletEntries.get(metadataEntry), instance, SystemCredentials.get(), lock);
       } catch (IOException e) {
         log.error("Error fixing split " + metadataEntry);
         throw new AccumuloException(e.toString());

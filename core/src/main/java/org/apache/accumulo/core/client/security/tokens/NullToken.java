@@ -49,10 +49,12 @@ public class NullToken implements AuthenticationToken {
     return false;
   }
   
+  @Override
   public NullToken clone() {
     return new NullToken();
   }
   
+  @Override
   public boolean equals(Object obj) {
     return obj instanceof NullToken;
   }
@@ -63,5 +65,10 @@ public class NullToken implements AuthenticationToken {
   @Override
   public Set<TokenProperty> getProperties() {
     return Collections.emptySet();
+  }
+  
+  @Override
+  public int hashCode() {
+    return 0;
   }
 }

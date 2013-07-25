@@ -108,14 +108,14 @@ class CloneMetadata extends MasterRepo {
     Instance instance = HdfsZooInstance.getInstance();
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SystemCredentials.get().getAsThrift(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SystemCredentials.get(), environment.getMasterLock());
     MetadataTableUtil.cloneTable(instance, cloneInfo.srcTableId, cloneInfo.tableId);
     return new FinishCloneTable(cloneInfo);
   }
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SystemCredentials.get().getAsThrift(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SystemCredentials.get(), environment.getMasterLock());
   }
   
 }
@@ -183,7 +183,8 @@ class ClonePermissions extends MasterRepo {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
-        AuditedSecurityOperation.getInstance().grantTablePermission(SystemCredentials.get().getAsThrift(), cloneInfo.user, cloneInfo.tableId, permission);
+        AuditedSecurityOperation.getInstance().grantTablePermission(SystemCredentials.get().toThrift(environment.getInstance()), cloneInfo.user,
+            cloneInfo.tableId, permission);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
         throw e;
@@ -198,7 +199,7 @@ class ClonePermissions extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().getAsThrift(), cloneInfo.tableId);
+    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(environment.getInstance()), cloneInfo.tableId);
   }
 }
 

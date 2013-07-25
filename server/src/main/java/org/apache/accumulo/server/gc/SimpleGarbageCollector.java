@@ -67,7 +67,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -78,8 +78,8 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -123,7 +123,7 @@ public class SimpleGarbageCollector implements Iface {
   
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
   
-  private TCredentials credentials;
+  private Credentials credentials;
   private long gcStartDelay;
   private boolean checkForBulkProcessingFiles;
   private VolumeManager fs;
@@ -148,7 +148,7 @@ public class SimpleGarbageCollector implements Iface {
     opts.parseArgs("gc", args);
     SimpleGarbageCollector gc = new SimpleGarbageCollector(opts);
     
-    gc.init(fs, instance, SystemCredentials.get().getAsThrift(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
+    gc.init(fs, instance, SystemCredentials.get(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
     Accumulo.enableTracing(opts.getAddress(), "gc");
     gc.run();
   }
@@ -157,7 +157,7 @@ public class SimpleGarbageCollector implements Iface {
     this.opts = opts;
   }
   
-  public void init(VolumeManager fs, Instance instance, TCredentials credentials, boolean noTrash) throws IOException {
+  public void init(VolumeManager fs, Instance instance, Credentials credentials, boolean noTrash) throws IOException {
     this.fs = fs;
     this.credentials = credentials;
     this.instance = instance;
@@ -283,7 +283,7 @@ public class SimpleGarbageCollector implements Iface {
       
       // we just made a lot of changes to the !METADATA table: flush them out
       try {
-        Connector connector = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
+        Connector connector = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
         connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
         connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
       } catch (Exception e) {
@@ -458,8 +458,7 @@ public class SimpleGarbageCollector implements Iface {
       continueKey = null;
     }
     
-    Scanner scanner = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(tableName,
-        Authorizations.EMPTY);
+    Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(range);
     List<String> result = new ArrayList<String>();
     // find candidates for deletion; chop off the prefix
@@ -504,8 +503,7 @@ public class SimpleGarbageCollector implements Iface {
       // }
     } else {
       try {
-        scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials)).createScanner(tableName,
-            Authorizations.EMPTY));
+        scanner = new IsolatedScanner(instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName, Authorizations.EMPTY));
       } catch (AccumuloSecurityException ex) {
         throw new AccumuloException(ex);
       } catch (TableNotFoundException ex) {

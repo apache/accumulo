@@ -33,10 +33,9 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
@@ -44,7 +43,7 @@ import org.apache.accumulo.trace.instrument.Tracer;
 public class SecurityOperationsImpl implements SecurityOperations {
   
   private Instance instance;
-  private TCredentials credentials;
+  private Credentials credentials;
   
   private void execute(ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
@@ -82,7 +81,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     }
   }
   
-  public SecurityOperationsImpl(Instance instance, TCredentials credentials) {
+  public SecurityOperationsImpl(Instance instance, Credentials credentials) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;
@@ -101,7 +100,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.createLocalUser(Tracer.traceInfo(), credentials, principal, ByteBuffer.wrap(password.getPassword()));
+        client.createLocalUser(Tracer.traceInfo(), credentials.toThrift(instance), principal, ByteBuffer.wrap(password.getPassword()));
       }
     });
   }
@@ -118,7 +117,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.dropLocalUser(Tracer.traceInfo(), credentials, principal);
+        client.dropLocalUser(Tracer.traceInfo(), credentials.toThrift(instance), principal);
       }
     });
   }
@@ -132,11 +131,11 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Override
   public boolean authenticateUser(final String principal, final AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, token);
-    final TCredentials toAuth = CredentialHelper.create(principal, token, instance.getInstanceID());
+    final Credentials toAuth = new Credentials(principal, token);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
-        return client.authenticateUser(Tracer.traceInfo(), credentials, toAuth);
+        return client.authenticateUser(Tracer.traceInfo(), credentials.toThrift(instance), toAuth.toThrift(instance));
       }
     });
   }
@@ -150,11 +149,11 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Override
   public void changeLocalUserPassword(final String principal, final PasswordToken token) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, token);
-    final TCredentials toChange = CredentialHelper.create(principal, token, instance.getInstanceID());
+    final Credentials toChange = new Credentials(principal, token);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.changeLocalUserPassword(Tracer.traceInfo(), credentials, principal, ByteBuffer.wrap(token.getPassword()));
+        client.changeLocalUserPassword(Tracer.traceInfo(), credentials.toThrift(instance), principal, ByteBuffer.wrap(token.getPassword()));
       }
     });
     if (this.credentials.getPrincipal().equals(principal)) {
@@ -168,7 +167,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.changeAuthorizations(Tracer.traceInfo(), credentials, principal, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
+        client.changeAuthorizations(Tracer.traceInfo(), credentials.toThrift(instance), principal,
+            ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
       }
     });
   }
@@ -179,7 +179,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     return execute(new ClientExecReturn<Authorizations,ClientService.Client>() {
       @Override
       public Authorizations execute(ClientService.Client client) throws Exception {
-        return new Authorizations(client.getUserAuthorizations(Tracer.traceInfo(), credentials, principal));
+        return new Authorizations(client.getUserAuthorizations(Tracer.traceInfo(), credentials.toThrift(instance), principal));
       }
     });
   }
@@ -190,7 +190,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
-        return client.hasSystemPermission(Tracer.traceInfo(), credentials, principal, perm.getId());
+        return client.hasSystemPermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, perm.getId());
       }
     });
   }
@@ -201,7 +201,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
-        return client.hasTablePermission(Tracer.traceInfo(), credentials, principal, table, perm.getId());
+        return client.hasTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, perm.getId());
       }
     });
   }
@@ -212,7 +212,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.grantSystemPermission(Tracer.traceInfo(), credentials, principal, permission.getId());
+        client.grantSystemPermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, permission.getId());
       }
     });
   }
@@ -224,7 +224,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.grantTablePermission(Tracer.traceInfo(), credentials, principal, table, permission.getId());
+        client.grantTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
       }
     });
   }
@@ -235,7 +235,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.revokeSystemPermission(Tracer.traceInfo(), credentials, principal, permission.getId());
+        client.revokeSystemPermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, permission.getId());
       }
     });
   }
@@ -247,7 +247,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
-        client.revokeTablePermission(Tracer.traceInfo(), credentials, principal, table, permission.getId());
+        client.revokeTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
       }
     });
   }
@@ -263,7 +263,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     return execute(new ClientExecReturn<Set<String>,ClientService.Client>() {
       @Override
       public Set<String> execute(ClientService.Client client) throws Exception {
-        return client.listLocalUsers(Tracer.traceInfo(), credentials);
+        return client.listLocalUsers(Tracer.traceInfo(), credentials.toThrift(instance));
       }
     });
   }

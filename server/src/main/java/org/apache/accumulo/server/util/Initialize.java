@@ -439,7 +439,8 @@ public class Initialize {
   }
   
   private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {
-    AuditedSecurityOperation.getInstance(iid, true).initializeSecurity(SystemCredentials.get().getAsThrift(), DEFAULT_ROOT_USER, opts.rootpass);
+    AuditedSecurityOperation.getInstance(iid, true).initializeSecurity(SystemCredentials.get().toThrift(HdfsZooInstance.getInstance()), DEFAULT_ROOT_USER,
+        opts.rootpass);
   }
   
   protected static void initMetadataConfig() throws IOException {

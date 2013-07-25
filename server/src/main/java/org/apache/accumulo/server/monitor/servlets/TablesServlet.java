@@ -151,8 +151,8 @@ public class TablesServlet extends BasicServlet {
       locs.add(instance.getRootTabletLocation());
     } else {
       String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
-      MetaDataTableScanner scanner = new MetaDataTableScanner(instance, SystemCredentials.get().getAsThrift(), new Range(KeyExtent.getMetadataEntry(new Text(
-          tableId), new Text()), KeyExtent.getMetadataEntry(new Text(tableId), null)), systemTableName);
+      MetaDataTableScanner scanner = new MetaDataTableScanner(instance, SystemCredentials.get(), new Range(KeyExtent.getMetadataEntry(new Text(tableId),
+          new Text()), KeyExtent.getMetadataEntry(new Text(tableId), null)), systemTableName);
       
       while (scanner.hasNext()) {
         TabletLocationState state = scanner.next();

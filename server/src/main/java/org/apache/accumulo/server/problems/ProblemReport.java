@@ -125,13 +125,13 @@ public class ProblemReport {
   void removeFromMetadataTable() throws Exception {
     Mutation m = new Mutation(new Text("~err_" + tableName));
     m.putDelete(new Text(problemType.name()), new Text(resource));
-    MetadataTableUtil.getMetadataTable(SystemCredentials.get().getAsThrift()).update(m);
+    MetadataTableUtil.getMetadataTable(SystemCredentials.get()).update(m);
   }
   
   void saveToMetadataTable() throws Exception {
     Mutation m = new Mutation(new Text("~err_" + tableName));
     m.put(new Text(problemType.name()), new Text(resource), new Value(encode()));
-    MetadataTableUtil.getMetadataTable(SystemCredentials.get().getAsThrift()).update(m);
+    MetadataTableUtil.getMetadataTable(SystemCredentials.get()).update(m);
   }
   
   void removeFromZooKeeper() throws Exception {

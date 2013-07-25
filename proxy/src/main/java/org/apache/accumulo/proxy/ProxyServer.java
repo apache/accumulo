@@ -32,6 +32,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -65,10 +66,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
@@ -172,11 +172,13 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   protected Connector getConnector(ByteBuffer login) throws Exception {
-    TCredentials user = CredentialHelper.fromByteArray(ByteBufferUtil.toBytes(login));
-    if (user == null)
-      throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException("unknown user");
-    Connector connector = instance.getConnector(user.getPrincipal(), CredentialHelper.extractToken(user));
-    return connector;
+    String[] pair = new String(login.array(), Constants.UTF8).split(",", 2);
+    if (instance.getInstanceID().equals(pair[0])) {
+      Credentials creds = Credentials.deserialize(pair[1]);
+      return instance.getConnector(creds.getPrincipal(), creds.getToken());
+    } else {
+      throw new IllegalArgumentException("Instance ID doesn't match");
+    }
   }
   
   private void handleAccumuloException(AccumuloException e) throws org.apache.accumulo.proxy.thrift.TableNotFoundException,
@@ -196,7 +198,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
     throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
   }
-
+  
   private void handleExceptionTNF(Exception ex) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
@@ -211,7 +213,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
     }
   }
-
+  
   private void handleExceptionTEE(Exception ex) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException,
       org.apache.accumulo.proxy.thrift.TableExistsException, TException {
@@ -260,7 +262,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
     }
   }
-
+  
   @Override
   public int addConstraint(ByteBuffer login, String tableName, String constraintClassName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
@@ -306,7 +308,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloException, TException {
     try {
       getConnector(login).tableOperations().compact(tableName, ByteBufferUtil.toText(startRow), ByteBufferUtil.toText(endRow), getIteratorSettings(iterators),
-              flush, wait);
+          flush, wait);
     } catch (Exception e) {
       handleExceptionTNF(e);
     }
@@ -582,21 +584,21 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw new TException(e);
     }
   }
-
+  
   @Override
   public List<DiskUsage> getDiskUsage(ByteBuffer login, Set<String> tables) throws org.apache.accumulo.proxy.thrift.AccumuloException,
-          org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       List<org.apache.accumulo.core.client.admin.DiskUsage> diskUsages = getConnector(login).tableOperations().getDiskUsage(tables);
       List<DiskUsage> retUsages = new ArrayList<DiskUsage>();
-      for(org.apache.accumulo.core.client.admin.DiskUsage diskUsage : diskUsages) {
+      for (org.apache.accumulo.core.client.admin.DiskUsage diskUsage : diskUsages) {
         DiskUsage usage = new DiskUsage();
         usage.setTables(new ArrayList<String>(diskUsage.getTables()));
         usage.setUsage(diskUsage.getUsage());
         retUsages.add(usage);
       }
       return retUsages;
-    } catch(Exception e) {
+    } catch (Exception e) {
       handleExceptionTNF(e);
       return null;
     }
@@ -1082,7 +1084,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       return ret;
     }
   }
-
+  
   @Override
   public void closeScanner(String scanner) throws UnknownScanner, TException {
     UUID uuid = null;
@@ -1091,7 +1093,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     } catch (IllegalArgumentException e) {
       throw new UnknownScanner(e.getMessage());
     }
-
+    
     try {
       if (scannerCache.asMap().remove(uuid) == null) {
         throw new UnknownScanner("Scanner never existed or no longer exists");
@@ -1220,7 +1222,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw new TException(e);
     }
   }
-
+  
   private BatchWriterPlusException getWriter(String writer) throws UnknownWriter {
     UUID uuid = null;
     try {
@@ -1453,8 +1455,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public ByteBuffer login(String principal, Map<String,String> loginProperties) throws org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
     try {
       AuthenticationToken token = getToken(principal, loginProperties);
-      TCredentials credential = CredentialHelper.create(principal, token, instance.getInstanceID());
-      ByteBuffer login = ByteBuffer.wrap(CredentialHelper.asByteArray(credential));
+      ByteBuffer login = ByteBuffer.wrap((instance.getInstanceID() + "," + new Credentials(principal, token).serialize()).getBytes(Constants.UTF8));
       getConnector(login); // check to make sure user exists
       return login;
     } catch (AccumuloSecurityException e) {

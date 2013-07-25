@@ -155,7 +155,7 @@ class CleanUp extends MasterRepo {
       // Intentionally do not pass master lock. If master loses lock, this operation may complete before master can kill itself.
       // If the master lock passed to deleteTable, it is possible that the delete mutations will be dropped. If the delete operations
       // are dropped and the operation completes, then the deletes will not be repeated.
-      MetadataTableUtil.deleteTable(tableId, refCount != 0, SystemCredentials.get().getAsThrift(), null);
+      MetadataTableUtil.deleteTable(tableId, refCount != 0, SystemCredentials.get(), null);
     } catch (Exception e) {
       log.error("error deleting " + tableId + " from metadata table", e);
     }
@@ -189,7 +189,7 @@ class CleanUp extends MasterRepo {
     
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().getAsThrift(), tableId);
+      AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(master.getInstance()), tableId);
     } catch (ThriftSecurityException e) {
       log.error(e.getMessage(), e);
     }

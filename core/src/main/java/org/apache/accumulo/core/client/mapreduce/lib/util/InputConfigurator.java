@@ -41,10 +41,10 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mock.MockTabletLocator;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
@@ -503,9 +503,9 @@ public class InputConfigurator extends ConfiguratorBase {
     // validate that we can connect as configured
     try {
       Connector c = getInstance(implementingClass, conf).getConnector(getPrincipal(implementingClass, conf),
-          CredentialHelper.extractToken(getTokenClass(implementingClass, conf), getToken(implementingClass, conf)));
+          AuthenticationTokenSerializer.deserialize(getTokenClass(implementingClass, conf), getToken(implementingClass, conf)));
       if (!c.securityOperations().authenticateUser(getPrincipal(implementingClass, conf),
-          CredentialHelper.extractToken(getTokenClass(implementingClass, conf), getToken(implementingClass, conf))))
+          AuthenticationTokenSerializer.deserialize(getTokenClass(implementingClass, conf), getToken(implementingClass, conf))))
         throw new IOException("Unable to authenticate user");
       if (!c.securityOperations().hasTablePermission(getPrincipal(implementingClass, conf), getInputTableName(implementingClass, conf), TablePermission.READ))
         throw new IOException("Unable to access table");

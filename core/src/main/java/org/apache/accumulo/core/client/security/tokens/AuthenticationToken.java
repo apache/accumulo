@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.core.client.security.tokens;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,12 +30,108 @@ import java.util.Set;
 import javax.security.auth.DestroyFailedException;
 import javax.security.auth.Destroyable;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.hadoop.io.Writable;
 
 /**
+ * 
  * @since 1.5.0
  */
 public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
+  
+  /**
+   * A utility class to serialize/deserialize {@link AuthenticationToken} objects.<br/>
+   * Unfortunately, these methods are provided in an inner-class, to avoid breaking the interface API.
+   * 
+   * @since 1.6.0
+   */
+  public static class AuthenticationTokenSerializer {
+    /**
+     * A convenience method to create tokens from serialized bytes, created by {@link #serialize(AuthenticationToken)}
+     * <p>
+     * The specified tokenType will be instantiated, and used to deserialize the decoded bytes. The resulting object will then be returned to the caller.
+     * 
+     * @param tokenType
+     *          the token class to use to deserialize the bytes
+     * @param tokenBytes
+     *          the token-specific serialized bytes
+     * @return an {@link AuthenticationToken} instance of the type specified by tokenType
+     * @throws AccumuloSecurityException
+     *           if there is any error during deserialization
+     * @see #serialize(AuthenticationToken)
+     */
+    public static <T extends AuthenticationToken> T deserialize(Class<T> tokenType, byte[] tokenBytes) throws AccumuloSecurityException {
+      T type = null;
+      try {
+        type = tokenType.newInstance();
+      } catch (Exception e) {
+        throw new AccumuloSecurityException(null, SecurityErrorCode.SERIALIZATION_ERROR, e);
+      }
+      ByteArrayInputStream bais = new ByteArrayInputStream(tokenBytes);
+      DataInputStream in = new DataInputStream(bais);
+      try {
+        type.readFields(in);
+      } catch (IOException e) {
+        throw new AccumuloSecurityException(null, SecurityErrorCode.SERIALIZATION_ERROR, e);
+      }
+      try {
+        in.close();
+      } catch (IOException e) {
+        throw new IllegalStateException("Shouldn't happen", e);
+      }
+      return type;
+    }
+    
+    /**
+     * An alternate version of {@link #deserialize(Class, byte[])} that accepts a token class name rather than a token class.
+     * 
+     * @param tokenClassName
+     *          the fully-qualified class name to be returned
+     * @see #serialize(AuthenticationToken)
+     */
+    public static AuthenticationToken deserialize(String tokenClassName, byte[] tokenBytes) throws AccumuloSecurityException {
+      Class<? extends AuthenticationToken> tokenType = null;
+      try {
+        @SuppressWarnings("unchecked")
+        Class<? extends AuthenticationToken> tmpTokenType = (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
+        tokenType = tmpTokenType;
+      } catch (ClassNotFoundException e) {
+        throw new AccumuloSecurityException(null, SecurityErrorCode.INVALID_TOKEN, e);
+      }
+      return deserialize(tokenType, tokenBytes);
+    }
+    
+    /**
+     * A convenience method to serialize tokens.
+     * <p>
+     * The provided {@link AuthenticationToken} will be serialized to bytes by its own implementation and returned to the caller.
+     * 
+     * @param token
+     *          the token to serialize
+     * @return a serialized representation of the provided {@link AuthenticationToken}
+     * @throws AccumuloSecurityException
+     *           if there is any error during serialization
+     * @see #deserialize(Class, byte[])
+     */
+    public static byte[] serialize(AuthenticationToken token) throws AccumuloSecurityException {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      DataOutputStream out = new DataOutputStream(baos);
+      try {
+        token.write(out);
+      } catch (IOException e) {
+        throw new AccumuloSecurityException(null, SecurityErrorCode.SERIALIZATION_ERROR, e);
+      }
+      byte[] bytes = baos.toByteArray();
+      try {
+        out.close();
+      } catch (IOException e) {
+        throw new IllegalStateException("Shouldn't happen with ByteArrayOutputStream", e);
+      }
+      return bytes;
+    }
+  }
+  
   public class Properties implements Destroyable, Map<String,char[]> {
     
     private boolean destroyed = false;
@@ -49,13 +150,13 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       return map.put(key, toPut);
     }
     
-    public void putAllStrings(Map<String, ? extends CharSequence> map) {
+    public void putAllStrings(Map<String,? extends CharSequence> map) {
       checkDestroyed();
       for (Map.Entry<String,? extends CharSequence> entry : map.entrySet()) {
         put(entry.getKey(), entry.getValue());
       }
     }
-
+    
     @Override
     public void destroy() throws DestroyFailedException {
       for (String key : this.keySet()) {
@@ -65,7 +166,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       this.clear();
       destroyed = true;
     }
-
+    
     @Override
     public boolean isDestroyed() {
       return destroyed;
@@ -154,6 +255,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       this.masked = mask;
     }
     
+    @Override
     public String toString() {
       return this.key + " - " + description;
     }
@@ -170,10 +272,12 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       return this.masked;
     }
     
+    @Override
     public int hashCode() {
       return key.hashCode();
     }
     
+    @Override
     public boolean equals(Object o) {
       if (o instanceof TokenProperty)
         return ((TokenProperty) o).key.equals(key);
@@ -189,5 +293,6 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
   public void init(Properties properties);
   
   public Set<TokenProperty> getProperties();
+  
   public AuthenticationToken clone();
 }

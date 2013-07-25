@@ -26,7 +26,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -47,7 +46,7 @@ public class SystemCredentialsTest {
   }
   
   /**
-   * This is a test to ensure the string literal in {@link ConnectorImpl#ConnectorImpl(Instance, TCredentials)} is kept up-to-date if we move the
+   * This is a test to ensure the string literal in {@link ConnectorImpl#ConnectorImpl(Instance, Credentials)} is kept up-to-date if we move the
    * {@link SystemToken}<br/>
    * This check will not be needed after ACCUMULO-1578
    */
@@ -55,7 +54,6 @@ public class SystemCredentialsTest {
   public void testSystemToken() {
     assertEquals("org.apache.accumulo.server.security.SystemCredentials$SystemToken", SystemToken.class.getName());
     assertEquals(SystemCredentials.get().getToken().getClass(), SystemToken.class);
-    assertEquals(SystemCredentials.get().getAsThrift().getTokenClassName(), SystemToken.class.getName());
   }
   
   @Test

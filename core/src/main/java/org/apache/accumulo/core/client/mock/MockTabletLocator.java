@@ -28,20 +28,21 @@ import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.hadoop.io.Text;
 
 public class MockTabletLocator extends TabletLocator {
   public MockTabletLocator() {}
   
   @Override
-  public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException {
     throw new UnsupportedOperationException();
   }
   
   @Override
-  public <T extends Mutation> void binMutations(List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures,
-      TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TabletServerMutations<T> tsm = new TabletServerMutations<T>();
     for (T m : mutations)
       tsm.addMutation(new KeyExtent(), m);
@@ -49,8 +50,8 @@ public class MockTabletLocator extends TabletLocator {
   }
   
   @Override
-  public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
     binnedRanges.put("", Collections.singletonMap(new KeyExtent(new Text(), null, null), ranges));
     return Collections.emptyList();
   }

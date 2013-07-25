@@ -34,8 +34,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.util.Admin;
@@ -82,11 +81,11 @@ public class MetadataMaxFiles extends ConfigurableMacIT {
     
     while (true) {
       MasterMonitorInfo stats = null;
-      TCredentials creds = CredentialHelper.create("root", new PasswordToken(ROOT_PASSWORD), c.getInstance().getInstanceName());
+      Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
       Client client = null;
       try {
         client = MasterClient.getConnectionWithRetry(c.getInstance());
-        stats = client.getMasterStats(Tracer.traceInfo(), creds);
+        stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
       } finally {
         if (client != null)
           MasterClient.close(client);
@@ -104,5 +103,4 @@ public class MetadataMaxFiles extends ConfigurableMacIT {
       UtilWaitThread.sleep(1000);
     }
   }
-  
 }

@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -51,6 +50,7 @@ import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -61,14 +61,12 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -188,11 +186,11 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * Gets the password file from the configuration.
    * 
-   * @param job
+   * @param context
    *          the Hadoop context for the configured job
    * @return path to the password file as a String
    * @since 1.6.0
-   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
+   * @see #setConnectorInfo(Job, String, AuthenticationToken)
    */
   protected static String getTokenFile(JobContext context) {
     return InputConfigurator.getTokenFile(CLASS, getConfiguration(context));
@@ -613,11 +611,11 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       
       try {
         log.debug("Creating connector with user: " + principal);
-        Connector conn = instance.getConnector(principal, CredentialHelper.extractToken(tokenClass, token));
+        Connector conn = instance.getConnector(principal, AuthenticationTokenSerializer.deserialize(tokenClass, token));
         log.debug("Creating scanner for table: " + getInputTableName(attempt));
         log.debug("Authorizations are: " + authorizations);
         if (isOfflineScan(attempt)) {
-          scanner = new OfflineScanner(instance, new TCredentials(principal, tokenClass, ByteBuffer.wrap(token), instance.getInstanceID()), Tables.getTableId(
+          scanner = new OfflineScanner(instance, new Credentials(principal, AuthenticationTokenSerializer.deserialize(tokenClass, token)), Tables.getTableId(
               instance, getInputTableName(attempt)), authorizations);
         } else {
           scanner = conn.createScanner(getInputTableName(attempt), authorizations);
@@ -686,7 +684,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     
     Instance instance = getInstance(context);
-    Connector conn = instance.getConnector(getPrincipal(context), CredentialHelper.extractToken(getTokenClass(context), getToken(context)));
+    Connector conn = instance.getConnector(getPrincipal(context), AuthenticationTokenSerializer.deserialize(getTokenClass(context), getToken(context)));
     String tableId = Tables.getTableId(instance, tableName);
     
     if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
@@ -812,9 +810,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         tl = getTabletLocator(context);
         // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
         tl.invalidateCache();
-        while (!tl.binRanges(ranges, binnedRanges,
-            new TCredentials(getPrincipal(context), getTokenClass(context), ByteBuffer.wrap(getToken(context)), getInstance(context).getInstanceID()))
-            .isEmpty()) {
+        while (!tl.binRanges(new Credentials(getPrincipal(context), AuthenticationTokenSerializer.deserialize(getTokenClass(context), getToken(context))),
+            ranges, binnedRanges).isEmpty()) {
           if (!(instance instanceof MockInstance)) {
             if (tableId == null)
               tableId = Tables.getTableId(instance, tableName);

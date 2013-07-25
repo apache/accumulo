@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.KeyExtent;
  */
 public class MutationsRejectedException extends AccumuloException {
   private static final long serialVersionUID = 1L;
-   
+  
   private List<ConstraintViolationSummary> cvsl;
   private Map<KeyExtent,Set<SecurityErrorCode>> af;
   private Collection<String> es;
@@ -62,12 +62,12 @@ public class MutationsRejectedException extends AccumuloException {
   }
   
   private static String format(HashMap<KeyExtent,Set<SecurityErrorCode>> hashMap, Instance instance) {
-    Map<String, Set<SecurityErrorCode>> errorMap = new HashMap<String,Set<SecurityErrorCode>>();
+    Map<String,Set<SecurityErrorCode>> errorMap = new HashMap<String,Set<SecurityErrorCode>>();
     
-    for(KeyExtent ke : hashMap.keySet()) {
+    for (KeyExtent ke : hashMap.keySet()) {
       String tableInfo = Tables.getPrintableTableInfoFromId(instance, ke.getTableId().toString());
       
-      if(!errorMap.containsKey(tableInfo)) {
+      if (!errorMap.containsKey(tableInfo)) {
         errorMap.put(tableInfo, new HashSet<SecurityErrorCode>());
       }
       
@@ -76,7 +76,7 @@ public class MutationsRejectedException extends AccumuloException {
     
     return errorMap.toString();
   }
-    
+  
   /**
    * @return the internal list of constraint violations
    */
@@ -88,6 +88,7 @@ public class MutationsRejectedException extends AccumuloException {
    * @return the internal list of authorization failures
    * @deprecated since 1.5, see {@link #getAuthorizationFailuresMap()}
    */
+  @Deprecated
   public List<KeyExtent> getAuthorizationFailures() {
     return new ArrayList<KeyExtent>(af.keySet());
   }

@@ -38,8 +38,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
@@ -116,10 +115,10 @@ public class TestMergeState {
     
     // Read out the TabletLocationStates
     MockCurrentState state = new MockCurrentState(new MergeInfo(new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
-    TCredentials auths = CredentialHelper.create("root", new PasswordToken(new byte[0]), "instance");
+    Credentials credentials = new Credentials("root", new PasswordToken(new byte[0]));
     
     // Verify the tablet state: hosted, and count
-    MetaDataStateStore metaDataStateStore = new MetaDataStateStore(instance, auths, state);
+    MetaDataStateStore metaDataStateStore = new MetaDataStateStore(instance, credentials, state);
     int count = 0;
     for (TabletLocationState tss : metaDataStateStore) {
       Assert.assertEquals(TabletState.HOSTED, tss.getState(state.onlineTabletServers()));

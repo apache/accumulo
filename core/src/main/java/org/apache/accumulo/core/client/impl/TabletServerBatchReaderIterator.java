@@ -56,7 +56,7 @@ import org.apache.accumulo.core.data.thrift.TKeyValue;
 import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -78,7 +78,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private static final Logger log = Logger.getLogger(TabletServerBatchReaderIterator.class);
   
   private final Instance instance;
-  private final TCredentials credentials;
+  private final Credentials credentials;
   private final String table;
   private Authorizations authorizations = Authorizations.EMPTY;
   private final int numThreads;
@@ -132,7 +132,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     
   }
   
-  public TabletServerBatchReaderIterator(Instance instance, TCredentials credentials, String table, Authorizations authorizations, ArrayList<Range> ranges,
+  public TabletServerBatchReaderIterator(Instance instance, Credentials credentials, String table, Authorizations authorizations, ArrayList<Range> ranges,
       int numThreads, ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
     
     this.instance = instance;
@@ -254,7 +254,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     while (true) {
       
       binnedRanges.clear();
-      List<Range> failures = tabletLocator.binRanges(ranges, binnedRanges, credentials);
+      List<Range> failures = tabletLocator.binRanges(credentials, ranges, binnedRanges);
       
       if (failures.size() > 0) {
         // tried to only do table state checks when failures.size() == ranges.size(), however this did
@@ -361,8 +361,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           timeoutTracker = new TimeoutTracker(tsLocation, timedoutServers, timeout);
           timeoutTrackers.put(tsLocation, timeoutTracker);
         }
-        doLookup(tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns, credentials, options, authorizations, instance.getConfiguration(),
-            timeoutTracker);
+        doLookup(instance, credentials, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns, options, authorizations,
+            instance.getConfiguration(), timeoutTracker);
         if (tsFailures.size() > 0) {
           locator.invalidateCache(tsFailures.keySet());
           synchronized (failures) {
@@ -604,14 +604,15 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
   
-  public static void doLookup(String server, Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned,
-      ResultReceiver receiver, List<Column> columns, TCredentials credentials, ScannerOptions options, Authorizations authorizations, AccumuloConfiguration conf)
-      throws IOException, AccumuloSecurityException, AccumuloServerException {
-    doLookup(server, requested, failures, unscanned, receiver, columns, credentials, options, authorizations, conf, new TimeoutTracker(Long.MAX_VALUE));
+  public static void doLookup(Instance instance, Credentials credentials, String server, Map<KeyExtent,List<Range>> requested,
+      Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned, ResultReceiver receiver, List<Column> columns, ScannerOptions options,
+      Authorizations authorizations, AccumuloConfiguration conf) throws IOException, AccumuloSecurityException, AccumuloServerException {
+    doLookup(instance, credentials, server, requested, failures, unscanned, receiver, columns, options, authorizations, conf,
+        new TimeoutTracker(Long.MAX_VALUE));
   }
   
-  static void doLookup(String server, Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned,
-      ResultReceiver receiver, List<Column> columns, TCredentials credentials, ScannerOptions options, Authorizations authorizations,
+  static void doLookup(Instance instance, Credentials credentials, String server, Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures,
+      Map<KeyExtent,List<Range>> unscanned, ResultReceiver receiver, List<Column> columns, ScannerOptions options, Authorizations authorizations,
       AccumuloConfiguration conf, TimeoutTracker timeoutTracker) throws IOException, AccumuloSecurityException, AccumuloServerException {
     
     if (requested.size() == 0) {
@@ -646,8 +647,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         
         Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested, Translator.KET, new Translator.ListTranslator<Range,TRange>(
             Translator.RT));
-        InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), credentials, thriftTabletRanges, Translator.translate(columns, Translator.CT),
-            options.serverSideIteratorList, options.serverSideIteratorOptions, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites);
+        InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), credentials.toThrift(instance), thriftTabletRanges,
+            Translator.translate(columns, Translator.CT), options.serverSideIteratorList, options.serverSideIteratorOptions,
+            ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites);
         if (waitForWrites)
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server);
         

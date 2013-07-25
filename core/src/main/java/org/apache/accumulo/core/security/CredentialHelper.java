@@ -34,16 +34,13 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 
+@Deprecated
 public class CredentialHelper {
   static Logger log = Logger.getLogger(CredentialHelper.class);
   
   public static TCredentials create(String principal, AuthenticationToken token, String instanceID) throws AccumuloSecurityException {
     String className = token.getClass().getName();
     return new TCredentials(principal, className, ByteBuffer.wrap(toBytes(token)), instanceID);
-  }
-  
-  public static String asBase64String(TCredentials cred) throws AccumuloSecurityException {
-    return new String(Base64.encodeBase64(asByteArray(cred)), Constants.UTF8);
   }
   
   public static byte[] asByteArray(TCredentials cred) throws AccumuloSecurityException {
@@ -55,10 +52,6 @@ public class CredentialHelper {
       log.error(e, e);
       throw new AccumuloSecurityException(cred.getPrincipal(), SecurityErrorCode.SERIALIZATION_ERROR);
     }
-  }
-  
-  public static TCredentials fromBase64String(String string) throws AccumuloSecurityException {
-    return fromByteArray(Base64.decodeBase64(string.getBytes(Constants.UTF8)));
   }
   
   public static TCredentials fromByteArray(byte[] serializedCredential) throws AccumuloSecurityException {

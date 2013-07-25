@@ -108,11 +108,13 @@ public class MockTableOperations extends TableOperationsHelper {
     acu.addSplits(tableName, partitionKeys);
   }
   
+  @Deprecated
   @Override
   public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
     return listSplits(tableName);
   }
   
+  @Deprecated
   @Override
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
     return listSplits(tableName);

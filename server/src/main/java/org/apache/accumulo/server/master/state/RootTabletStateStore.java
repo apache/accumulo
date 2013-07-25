@@ -21,12 +21,12 @@ import java.util.Iterator;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 
 public class RootTabletStateStore extends MetaDataStateStore {
   
-  public RootTabletStateStore(Instance instance, TCredentials auths, CurrentState state) {
-    super(instance, auths, state, RootTable.NAME);
+  public RootTabletStateStore(Instance instance, Credentials credentials, CurrentState state) {
+    super(instance, credentials, state, RootTable.NAME);
   }
   
   public RootTabletStateStore() {
@@ -35,7 +35,7 @@ public class RootTabletStateStore extends MetaDataStateStore {
   
   @Override
   public Iterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(instance, auths, MetadataSchema.TabletsSection.getRange(), state, RootTable.NAME);
+    return new MetaDataTableScanner(instance, credentials, MetadataSchema.TabletsSection.getRange(), state, RootTable.NAME);
   }
   
   @Override

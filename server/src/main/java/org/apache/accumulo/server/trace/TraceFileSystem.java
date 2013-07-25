@@ -266,6 +266,7 @@ public class TraceFileSystem extends FileSystem {
     }
   }
   
+  @Deprecated
   @Override
   public boolean isDirectory(Path f) throws IOException {
     Span span = Trace.start("isDirectory");

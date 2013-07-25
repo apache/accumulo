@@ -26,8 +26,7 @@ import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.util.PortUtils;
 
 /**
- * Holds configuration for {@link org.apache.accumulo.server.mini.MiniAccumuloCluster}. Required configurations must be passed to constructor(s) and all other
- * configurations are optional.
+ * Holds configuration for {@link MiniAccumuloCluster}. Required configurations must be passed to constructor(s) and all other configurations are optional.
  * 
  * @since 1.5.0
  */
@@ -76,10 +75,10 @@ public class MiniAccumuloConfig {
    */
   MiniAccumuloConfig initialize() {
     
-    //Sanity checks
+    // Sanity checks
     if (this.getDir().exists() && !this.getDir().isDirectory())
       throw new IllegalArgumentException("Must pass in directory, " + this.getDir() + " is a file");
-
+    
     if (this.getDir().exists() && this.getDir().list().length != 0)
       throw new IllegalArgumentException("Directory " + this.getDir() + " is not empty");
     
@@ -91,16 +90,9 @@ public class MiniAccumuloConfig {
       logDir = new File(dir, "logs");
       walogDir = new File(dir, "walogs");
       
-      String[] paths = {
-          "$ACCUMULO_HOME/lib/.*.jar",
-          "$ZOOKEEPER_HOME/zookeeper[^.].*.jar",
-          "$HADOOP_PREFIX/[^.].*.jar",
-          "$HADOOP_PREFIX/lib/[^.].*.jar",
-          "$HADOOP_PREFIX/share/hadoop/common/.*.jar",
-          "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar",
-          "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar",
-          "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar"
-      };
+      String[] paths = {"$ACCUMULO_HOME/lib/.*.jar", "$ZOOKEEPER_HOME/zookeeper[^.].*.jar", "$HADOOP_PREFIX/[^.].*.jar", "$HADOOP_PREFIX/lib/[^.].*.jar",
+          "$HADOOP_PREFIX/share/hadoop/common/.*.jar", "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar", "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar",
+          "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar"};
       
       String classpath = StringUtil.join(Arrays.asList(paths), ",");
       

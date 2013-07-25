@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 
 /**
  * A metadata servicer for the root table.<br />
@@ -33,7 +33,7 @@ class ServicerForRootTable extends MetadataServicer {
   
   private Instance instance;
   
-  public ServicerForRootTable(Instance instance, TCredentials credentials) {
+  public ServicerForRootTable(Instance instance, Credentials credentials) {
     this.instance = instance;
   }
   

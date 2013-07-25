@@ -31,8 +31,7 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.log4j.Logger;
 
 public class State {
@@ -109,10 +108,8 @@ public class State {
     return connector;
   }
   
-  public TCredentials getCredentials() {
-    String username = getUserName();
-    AuthenticationToken password = getToken();
-    return CredentialHelper.createSquelchError(username, password, getInstance().getInstanceID());
+  public Credentials getCredentials() {
+    return new Credentials(getUserName(), getToken());
   }
   
   public String getUserName() {
@@ -169,7 +166,7 @@ public class State {
     
     File libdir = new File(acuHome + "/lib");
     for (String jar : "accumulo-core accumulo-server accumulo-fate accumulo-trace libthrift".split(" ")) {
-      retval += String.format(",%s/%s.jar", libdir.getAbsolutePath(), jar);      
+      retval += String.format(",%s/%s.jar", libdir.getAbsolutePath(), jar);
     }
     
     return retval;
