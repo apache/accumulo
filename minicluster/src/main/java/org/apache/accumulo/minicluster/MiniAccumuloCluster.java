@@ -142,7 +142,7 @@ public class MiniAccumuloCluster {
     
     classpath = config.getConfDir().getAbsolutePath() + File.pathSeparator + classpath;
     
-    String className = clazz.getCanonicalName();
+    String className = clazz.getName();
     
     ArrayList<String> argList = new ArrayList<String>();
     argList.addAll(Arrays.asList(javaBin, "-Dproc=" + clazz.getSimpleName(), "-cp", classpath));

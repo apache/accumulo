@@ -398,7 +398,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   @Override
   public boolean validTokenClass(String tokenClass) {
-    return tokenClass.equals(PasswordToken.class.getCanonicalName());
+    return tokenClass.equals(PasswordToken.class.getName());
   }
   
   public static void clearInstance() {

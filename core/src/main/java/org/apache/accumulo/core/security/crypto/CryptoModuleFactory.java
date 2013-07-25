@@ -89,7 +89,7 @@ public class CryptoModuleFactory {
         
       } catch (InstantiationException e) {
         log.warn(String.format("Got instantiation exception %s when instantiating crypto module \"%s\".  No encryption will be used.", e.getCause().getClass()
-            .getCanonicalName(), cryptoModuleClassname));
+            .getName(), cryptoModuleClassname));
         log.warn(e.getCause());
         return new NullCryptoModule();
       } catch (IllegalAccessException e) {
@@ -149,7 +149,7 @@ public class CryptoModuleFactory {
         
       } catch (InstantiationException e) {
         log.warn(String.format("Got instantiation exception %s when instantiating secret key encryption strategy \"%s\".  No encryption will be used.", e
-            .getCause().getClass().getCanonicalName(), className));
+            .getCause().getClass().getName(), className));
         log.warn(e.getCause());
         return new NullSecretKeyEncryptionStrategy();
       } catch (IllegalAccessException e) {
@@ -172,7 +172,7 @@ public class CryptoModuleFactory {
       
       return params;
     }
-
+    
     @Override
     public CryptoModuleParameters decryptSecretKey(CryptoModuleParameters params) {
       params.setPlaintextKey(params.getEncryptedKey());
@@ -188,24 +188,24 @@ public class CryptoModuleFactory {
       params.setEncryptedOutputStream(params.getPlaintextOutputStream());
       return params;
     }
-
+    
     @Override
     public CryptoModuleParameters getDecryptingInputStream(CryptoModuleParameters params) throws IOException {
       params.setPlaintextInputStream(params.getEncryptedInputStream());
       return params;
     }
-
+    
     @Override
     public CryptoModuleParameters generateNewRandomSessionKey(CryptoModuleParameters params) {
       params.setPlaintextKey(new byte[0]);
       return params;
     }
-
+    
     @Override
     public CryptoModuleParameters initializeCipher(CryptoModuleParameters params) {
       return params;
     }
-
+    
   }
   
   public static String[] parseCipherTransform(String cipherTransform) {
@@ -215,7 +215,6 @@ public class CryptoModuleFactory {
     
     return cipherTransform.split("/");
   }
-
   
   public static CryptoModuleParameters createParamsObjectFromAccumuloConfiguration(AccumuloConfiguration conf) {
     
@@ -223,12 +222,12 @@ public class CryptoModuleFactory {
     Map<String,String> cryptoOpts = conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
     cryptoOpts.putAll(conf.getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX));
     CryptoModuleParameters params = new CryptoModuleParameters();
-
+    
     return fillParamsObjectFromStringMap(params, cryptoOpts);
   }
-
+  
   public static CryptoModuleParameters fillParamsObjectFromStringMap(CryptoModuleParameters params, Map<String,String> cryptoOpts) {
-
+    
     // Parse the cipher suite for the mode and padding options
     String[] cipherTransformParts = parseCipherTransform(cryptoOpts.get(Property.CRYPTO_CIPHER_SUITE.getKey()));
     
@@ -241,18 +240,18 @@ public class CryptoModuleFactory {
     
     params.setAllOptions(cryptoOpts);
     
-    // 
+    //
     params.setAlgorithmName(cryptoOpts.get(Property.CRYPTO_CIPHER_ALGORITHM_NAME.getKey()));
     params.setEncryptionMode(cipherTransformParts[1]);
     params.setKeyEncryptionStrategyClass(cryptoOpts.get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()));
     params.setKeyLength(Integer.parseInt(cryptoOpts.get(Property.CRYPTO_CIPHER_KEY_LENGTH.getKey())));
-    params.setOverrideStreamsSecretKeyEncryptionStrategy(Boolean.parseBoolean(cryptoOpts.get(Property.CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY.getKey())));
+    params.setOverrideStreamsSecretKeyEncryptionStrategy(Boolean.parseBoolean(cryptoOpts.get(Property.CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY
+        .getKey())));
     params.setPadding(cipherTransformParts[2]);
     params.setRandomNumberGenerator(cryptoOpts.get(Property.CRYPTO_SECURE_RNG.getKey()));
     params.setRandomNumberGeneratorProvider(cryptoOpts.get(Property.CRYPTO_SECURE_RNG_PROVIDER.getKey()));
-
+    
     return params;
   }
-
   
 }
