@@ -356,7 +356,7 @@ public class ConditionalWriterTest {
 
     try {
       cw2.write(cm8).getStatus();
-      Assert.assertTrue(false);
+      Assert.fail();
     } catch (AccumuloSecurityException ase) {}
     
 
@@ -1108,7 +1108,7 @@ public class ConditionalWriterTest {
       else if (cf.equals("data") && cq.equals("x"))
         Assert.assertEquals("a", val);
       else
-        Assert.assertTrue(false);
+        Assert.fail();
     }
     
     ConditionalMutation cm3 = new ConditionalMutation("r1", new Condition("tx", "seq").setValue("1"));
@@ -1231,6 +1231,6 @@ public class ConditionalWriterTest {
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
-    // folder.delete();
+    folder.delete();
   }
 }
