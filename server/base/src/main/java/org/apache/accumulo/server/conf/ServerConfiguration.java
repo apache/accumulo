@@ -63,12 +63,13 @@ public class ServerConfiguration {
 
   public static TableNamespaceConfiguration getTableNamespaceConfigurationForTable(Instance instance, String tableId) {
     checkPermissions();
+    String namespaceId = Tables.getNamespace(instance, tableId);
     synchronized (tableNamespaceInstances) {
-      TableNamespaceConfiguration conf = tableNamespaceInstances.get(tableId);
+      TableNamespaceConfiguration conf = tableNamespaceInstances.get(namespaceId);
       if (conf == null) {
-        conf = new TableNamespaceConfiguration(tableId, getSystemConfiguration(instance));
+        conf = new TableNamespaceConfiguration(namespaceId, getSystemConfiguration(instance));
         ConfigSanityCheck.validate(conf);
-        tableNamespaceInstances.put(tableId, conf);
+        tableNamespaceInstances.put(namespaceId, conf);
       }
       return conf;
     }
@@ -79,7 +80,7 @@ public class ServerConfiguration {
     synchronized (tableNamespaceInstances) {
       TableNamespaceConfiguration conf = tableNamespaceInstances.get(namespaceId);
       if (conf == null) {
-        conf = new TableNamespaceConfiguration(namespaceId, getSystemConfiguration(instance), true);
+        conf = new TableNamespaceConfiguration(namespaceId, getSystemConfiguration(instance));
         ConfigSanityCheck.validate(conf);
         tableNamespaceInstances.put(namespaceId, conf);
       }
@@ -103,6 +104,12 @@ public class ServerConfiguration {
   static void removeTableIdInstance(String tableId) {
     synchronized (tableInstances) {
       tableInstances.remove(tableId);
+    }
+  }
+
+  static void removeNamespaceIdInstance(String namespaceId) {
+    synchronized (tableNamespaceInstances) {
+      tableNamespaceInstances.remove(namespaceId);
     }
   }
 

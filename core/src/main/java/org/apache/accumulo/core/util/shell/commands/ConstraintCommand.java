@@ -19,40 +19,77 @@ package org.apache.accumulo.core.util.shell.commands;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.constraints.Constraint;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.ShellCommandException.ErrorCode;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class ConstraintCommand extends Command {
+  protected Option tableNamespaceOpt;
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    final String tableName = OptUtil.getTableOpt(cl, shellState);
+    final String tableName;
+    final String namespace;
+    
+    if (cl.hasOption(tableNamespaceOpt.getOpt())) {
+      namespace = cl.getOptionValue(tableNamespaceOpt.getOpt());
+    } else {
+      namespace = null;
+    }
+    
+    tableName = OptUtil.getTableOpt(cl, shellState);
+    
     int i;
     
     switch (OptUtil.getAldOpt(cl)) {
       case ADD:
         for (String constraint : cl.getArgs()) {
-          if (!shellState.getConnector().tableOperations().testClassLoad(tableName, constraint, Constraint.class.getName())) {
+          if (!shellState.getConnector().tableOperations().testClassLoad(MetadataTable.NAME, constraint, Constraint.class.getName())) {
             throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + constraint + " as type "
                 + Constraint.class.getName());
           }
-          i = shellState.getConnector().tableOperations().addConstraint(tableName, constraint);
-          shellState.getReader().println("Added constraint " + constraint + " to table " + tableName + " with number " + i);
+          if (namespace != null) {
+            i = shellState.getConnector().tableNamespaceOperations().addConstraint(namespace, constraint);
+            shellState.getReader().println("Added constraint " + constraint + " to table namespace " + namespace + " with number " + i);
+          } else if (tableName != null){
+            i = shellState.getConnector().tableOperations().addConstraint(tableName, constraint);
+            shellState.getReader().println("Added constraint " + constraint + " to table " + tableName + " with number " + i);
+          } else {
+            throw new IllegalArgumentException("Please specify either a table or a table namespace");
+          }
         }
         break;
       case DELETE:
         for (String constraint : cl.getArgs()) {
           i = Integer.parseInt(constraint);
-          shellState.getConnector().tableOperations().removeConstraint(tableName, i);
-          shellState.getReader().println("Removed constraint " + i + " from table " + tableName);
+          if (namespace != null) {
+            shellState.getConnector().tableNamespaceOperations().removeConstraint(namespace, i);
+            shellState.getReader().println("Removed constraint " + i + " from table namespace " + namespace);
+          } else if (tableName != null){
+            shellState.getConnector().tableOperations().removeConstraint(tableName, i);
+            shellState.getReader().println("Removed constraint " + i + " from table " + tableName);
+          } else {
+            throw new IllegalArgumentException("Please specify either a table or a table namespace");
+          }
         }
         break;
       case LIST:
-        for (Entry<String,Integer> property : shellState.getConnector().tableOperations().listConstraints(tableName).entrySet()) {
-          shellState.getReader().println(property.toString());
+        if (namespace != null) {
+          for (Entry<String,Integer> property : shellState.getConnector().tableNamespaceOperations().listConstraints(namespace).entrySet()) {
+            shellState.getReader().println(property.toString());
+          }
+        } else if (tableName != null){
+          for (Entry<String,Integer> property : shellState.getConnector().tableOperations().listConstraints(tableName).entrySet()) {
+            shellState.getReader().println(property.toString());
+          }
+        } else {
+          throw new IllegalArgumentException("Please specify either a table or a table namespace");
         }
     }
     
@@ -78,7 +115,14 @@ public class ConstraintCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
     o.addOptionGroup(OptUtil.addListDeleteGroup("constraint"));
-    o.addOption(OptUtil.tableOpt("table to add, delete, or list constraints for"));
+    
+    OptionGroup grp = new OptionGroup();
+    grp.addOption(OptUtil.tableOpt("table to add, delete, or list constraints for"));
+    tableNamespaceOpt = new Option(Shell.tableNamespaceOption, "table-namespace", true, "name of a table namespace to operate on");
+    tableNamespaceOpt.setArgName("tableNamespace");
+    grp.addOption(tableNamespaceOpt);
+    
+    o.addOptionGroup(grp);
     return o;
   }
 }

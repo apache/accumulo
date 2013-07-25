@@ -59,6 +59,7 @@ public class ConstraintChecker {
       
       for (Entry<String,String> entry : conf) {
         if (entry.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
+          System.err.println("FOUND A CONSTRAINT: " + entry.toString() + " for table " + conf.getTableId());
           String className = entry.getValue();
           Class<? extends Constraint> clazz = loader.loadClass(className).asSubclass(Constraint.class);
           log.debug("Loaded constraint " + clazz.getName() + " for " + conf.getTableId());

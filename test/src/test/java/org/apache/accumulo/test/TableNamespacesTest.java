@@ -48,6 +48,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.junit.AfterClass;
@@ -65,6 +67,7 @@ public class TableNamespacesTest {
   @BeforeClass
   static public void setUp() throws Exception {
     folder.create();
+    System.out.println(folder.getRoot());
     accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
     accumulo.start();
   }
@@ -72,7 +75,7 @@ public class TableNamespacesTest {
   @AfterClass
   static public void tearDown() throws Exception {
     accumulo.stop();
-    folder.delete();
+    // folder.delete();
   }
   
   /**
@@ -387,6 +390,13 @@ public class TableNamespacesTest {
     c.tableNamespaceOperations().removeIterator(namespace, iter, EnumSet.copyOf(scope));
     
     c.tableNamespaceOperations().addConstraint(namespace, NumericValueConstraint.class.getName());
+    c.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
+    
+    for (Entry<String,Integer> e : c.tableOperations().listConstraints(tableName).entrySet()) {
+      System.out.println(e.toString());
+    }
+    //UtilWaitThread.sleep(10000);
+    
     m = new Mutation("rowy");
     m.put("a", "b", new Value("abcde".getBytes(Constants.UTF8)));
     try {
