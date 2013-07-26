@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -195,7 +196,7 @@ public class ConfiguratorBase {
     if (tokenFile.isEmpty()) {
       return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS));
     } else {
-      return readTokenFile(implementingClass, conf).split(":")[1];
+      return readTokenFile(implementingClass, conf).getToken().getClass().getName();
     }
   }
   
@@ -216,10 +217,10 @@ public class ConfiguratorBase {
     String token = null;
     if (tokenFile.isEmpty()) {
       token = conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN));
-    } else {
-      token = readTokenFile(implementingClass, conf).split(":")[2];
+      return Base64.decodeBase64(token.getBytes(Constants.UTF8));
     }
-    return Base64.decodeBase64(token.getBytes(Constants.UTF8));
+    
+    return AuthenticationTokenSerializer.serialize(readTokenFile(implementingClass, conf).getToken());
   }
   
   /**
@@ -244,7 +245,7 @@ public class ConfiguratorBase {
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
-  public static String readTokenFile(Class<?> implementingClass, Configuration conf) {
+  private static Credentials readTokenFile(Class<?> implementingClass, Configuration conf) {
     String tokenFile = getTokenFile(implementingClass, conf);
     FSDataInputStream in = null;
     try {
@@ -265,20 +266,14 @@ public class ConfiguratorBase {
     }
     java.util.Scanner fileScanner = new java.util.Scanner(in);
     try {
-      String line = null;
-      boolean found = false;
       String principal = getPrincipal(implementingClass, conf);
-      while (!found && fileScanner.hasNextLine()) {
-        line = fileScanner.nextLine();
-        if (line.startsWith(principal + ":")) {
-          found = true;
-          break;
+      while (fileScanner.hasNextLine()) {
+        Credentials creds = Credentials.deserialize(fileScanner.nextLine());
+        if (principal.equals(creds.getPrincipal())) {
+          return creds;
         }
       }
-      if (found)
-        return line;
-      else
-        throw new IllegalArgumentException("Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
+      throw new IllegalArgumentException("Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
     } finally {
       if (fileScanner != null && fileScanner.ioException() == null)
         fileScanner.close();

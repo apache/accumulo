@@ -282,19 +282,11 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   public TCredentials getSysCredentials() {
-    try {
-      return new Credentials(getSysUserName(), getSysToken()).toThrift(this.state.getInstance());
-    } catch (ThriftSecurityException e) {
-      throw new RuntimeException(e);
-    }
+    return new Credentials(getSysUserName(), getSysToken()).toThrift(this.state.getInstance());
   }
   
   public TCredentials getTabCredentials() {
-    try {
-      return new Credentials(getTabUserName(), getTabToken()).toThrift(this.state.getInstance());
-    } catch (ThriftSecurityException e) {
-      throw new RuntimeException(e);
-    }
+    return new Credentials(getTabUserName(), getTabToken()).toThrift(this.state.getInstance());
   }
   
   public AuthenticationToken getSysToken() {

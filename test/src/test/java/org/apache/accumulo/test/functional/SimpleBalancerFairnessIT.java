@@ -32,8 +32,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.test.TestIngest;
@@ -44,13 +43,13 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String,String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
-    cfg.setSiteConfig(siteConfig );
+    cfg.setSiteConfig(siteConfig);
   }
   
-  @Test(timeout=120*1000)
+  @Test(timeout = 120 * 1000)
   public void simpleBalancerFairness() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -62,20 +61,20 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     opts.rows = 200000;
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().flush("test_ingest", null, null, false);
-    UtilWaitThread.sleep(15*1000);
-    TCredentials creds = CredentialHelper.create("root", new PasswordToken(ROOT_PASSWORD), c.getInstance().getInstanceName());
+    UtilWaitThread.sleep(15 * 1000);
+    Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
     
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
     try {
       client = MasterClient.getConnectionWithRetry(c.getInstance());
-      stats = client.getMasterStats(Tracer.traceInfo(), creds);
+      stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
     } finally {
       if (client != null)
         MasterClient.close(client);
     }
     List<Integer> counts = new ArrayList<Integer>();
-    for (TabletServerStatus server: stats.tServerInfo) {
+    for (TabletServerStatus server : stats.tServerInfo) {
       int count = 0;
       for (TableInfo table : server.tableMap.values()) {
         count += table.onlineTablets;

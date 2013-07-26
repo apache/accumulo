@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -55,12 +54,7 @@ public final class SystemCredentials extends Credentials {
   
   private SystemCredentials() {
     super(SYSTEM_PRINCIPAL, SYSTEM_TOKEN);
-    try {
-      AS_THRIFT = super.toThrift(HdfsZooInstance.getInstance());
-    } catch (ThriftSecurityException e) {
-      // shouldn't happen
-      throw new RuntimeException(e);
-    }
+    AS_THRIFT = super.toThrift(HdfsZooInstance.getInstance());
   }
   
   public static SystemCredentials get() {

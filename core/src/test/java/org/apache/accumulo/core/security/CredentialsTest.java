@@ -16,60 +16,19 @@
  */
 package org.apache.accumulo.core.security;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 
 /**
  * 
  */
 public class CredentialsTest {
-  
-  @Test
-  public void testSerializeDeserializeToken() throws AccumuloSecurityException, IOException {
-    Random random = new Random();
-    byte[] randomBytes = new byte[12];
-    random.nextBytes(randomBytes);
-    boolean allZero = true;
-    for (byte b : randomBytes)
-      allZero = allZero && b == 0;
-    assertFalse(allZero);
-    
-    byte[] serialized = AuthenticationTokenSerializer.serialize(new PasswordToken(randomBytes));
-    PasswordToken passwordToken = AuthenticationTokenSerializer.deserialize(PasswordToken.class, serialized);
-    assertArrayEquals(randomBytes, passwordToken.getPassword());
-    
-    serialized = AuthenticationTokenSerializer.serialize(new NullToken());
-    AuthenticationToken nullToken = AuthenticationTokenSerializer.deserialize(NullToken.class, serialized);
-    assertEquals(new NullToken(), nullToken);
-  }
-  
-  @Deprecated
-  @Test
-  public void testSameAsCredentialHelper() throws AccumuloSecurityException {
-    byte[] serialized = AuthenticationTokenSerializer.serialize(new PasswordToken("myPass"));
-    AuthenticationToken token = CredentialHelper.extractToken(PasswordToken.class.getName(), serialized);
-    assertTrue(token instanceof PasswordToken);
-    assertArrayEquals(serialized, Base64.decodeBase64(CredentialHelper.tokenAsBase64(new PasswordToken("myPass"))));
-    assertEquals("myPass", new String(((PasswordToken) token).getPassword(), Constants.UTF8));
-    
-    String expected = CredentialHelper.tokenAsBase64(token);
-    String result = Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token));
-    assertEquals(expected, result);
-  }
   
   @Test
   public void testEqualsAndHashCode() {

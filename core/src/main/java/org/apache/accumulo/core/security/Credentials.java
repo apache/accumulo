@@ -22,7 +22,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -58,21 +57,15 @@ public class Credentials {
    * Converts the current object to the relevant thrift type. The object returned from this contains a non-destroyable version of the
    * {@link AuthenticationToken}, so this should be used just before placing on the wire, and references to it should be tightly controlled.
    */
-  public TCredentials toThrift(Instance instance) throws ThriftSecurityException {
-    try {
-      String className = token.getClass().getName();
-      return new TCredentials(principal, className, ByteBuffer.wrap(AuthenticationTokenSerializer.serialize(token)), instance.getInstanceID());
-    } catch (AccumuloSecurityException e) {
-      
-      return null;
-    }
+  public TCredentials toThrift(Instance instance) {
+    return new TCredentials(principal, token.getClass().getName(), ByteBuffer.wrap(AuthenticationTokenSerializer.serialize(token)), instance.getInstanceID());
   }
   
   /**
    * Converts the current object to a serialized form. The object returned from this contains a non-destroyable version of the {@link AuthenticationToken}, so
    * references to it should be tightly controlled.
    */
-  public String serialize() throws AccumuloSecurityException {
+  public final String serialize() throws AccumuloSecurityException {
     return (getPrincipal() == null ? "-" : Base64.encodeBase64String(getPrincipal().getBytes(Constants.UTF8))) + ":"
         + (getToken() == null ? "-" : Base64.encodeBase64String(getToken().getClass().getName().getBytes(Constants.UTF8))) + ":"
         + (getToken() == null ? "-" : Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(getToken())));
@@ -81,7 +74,7 @@ public class Credentials {
   /**
    * Converts the serialized form to an instance of {@link Credentials}. The original serialized form will not be affected.
    */
-  public static Credentials deserialize(String serializedForm) throws AccumuloSecurityException {
+  public static final Credentials deserialize(String serializedForm) {
     String[] split = serializedForm.split(":", 3);
     String principal = split[0].equals("-") ? null : new String(Base64.decodeBase64(split[0]), Constants.UTF8);
     String tokenType = split[1].equals("-") ? null : new String(Base64.decodeBase64(split[1]), Constants.UTF8);

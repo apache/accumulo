@@ -51,7 +51,6 @@ public class TestProxySecurityOperations {
   protected static final String testuser = "VonJines";
   protected static final ByteBuffer testpw = ByteBuffer.wrap("fiveones".getBytes());
   
-  @SuppressWarnings("serial")
   @BeforeClass
   public static void setup() throws Exception {
     Properties prop = new Properties();
@@ -69,7 +68,13 @@ public class TestProxySecurityOperations {
     thread.start();
     
     tpc = new TestProxyClient("localhost", port);
-    userpass = tpc.proxy().login("root", new TreeMap<String, String>() {{put("password",""); }});
+    userpass = tpc.proxy().login("root", new TreeMap<String,String>() {
+      private static final long serialVersionUID = 1L;
+      
+      {
+        put("password", "");
+      }
+    });
   }
   
   @AfterClass
@@ -143,10 +148,10 @@ public class TestProxySecurityOperations {
     }
   }
   
-  private Map<String, String> bb2pp(ByteBuffer cf) {
-    Map<String, String> toRet = new TreeMap<String, String>();
+  private Map<String,String> bb2pp(ByteBuffer cf) {
+    Map<String,String> toRet = new TreeMap<String,String>();
     toRet.put("password", ByteBufferUtil.toString(cf));
     return toRet;
   }
-
+  
 }

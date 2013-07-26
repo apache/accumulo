@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
@@ -153,7 +153,7 @@ public class TokenFileTest {
     String tokenFile = "root_test.pw";
     File tf = File.createTempFile(tokenFile, "");
     PrintStream out = new PrintStream(tf);
-    String outString = "root:" + PasswordToken.class.getName() + ":" + CredentialHelper.tokenAsBase64(new PasswordToken(""));
+    String outString = new Credentials("root", new PasswordToken("")).serialize();
     out.println(outString);
     out.close();
     

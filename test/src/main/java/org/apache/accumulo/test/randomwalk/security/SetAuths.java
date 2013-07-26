@@ -24,14 +24,14 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class SetAuths extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {    
+  public void visit(State state, Properties props) throws Exception {
     String authsString = props.getProperty("auths", "_random");
     
     String targetUser = props.getProperty("system");
@@ -50,7 +50,7 @@ public class SetAuths extends Test {
     Connector conn = state.getInstance().getConnector(authPrincipal, authToken);
     
     boolean exists = WalkingSecurity.get(state).userExists(target);
-    boolean hasPermission = WalkingSecurity.get(state).canChangeAuthorizations(CredentialHelper.create(authPrincipal, authToken, state.getInstance().getInstanceID()), target);
+    boolean hasPermission = WalkingSecurity.get(state).canChangeAuthorizations(new Credentials(authPrincipal, authToken).toThrift(state.getInstance()), target);
     
     Authorizations auths;
     if (authsString.equals("_random")) {

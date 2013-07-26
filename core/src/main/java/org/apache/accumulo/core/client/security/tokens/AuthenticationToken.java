@@ -30,8 +30,6 @@ import java.util.Set;
 import javax.security.auth.DestroyFailedException;
 import javax.security.auth.Destroyable;
 
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.hadoop.io.Writable;
 
 /**
@@ -46,7 +44,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
    * 
    * @since 1.6.0
    */
-  public static class AuthenticationTokenSerializer {
+  public static final class AuthenticationTokenSerializer {
     /**
      * A convenience method to create tokens from serialized bytes, created by {@link #serialize(AuthenticationToken)}
      * <p>
@@ -57,23 +55,21 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
      * @param tokenBytes
      *          the token-specific serialized bytes
      * @return an {@link AuthenticationToken} instance of the type specified by tokenType
-     * @throws AccumuloSecurityException
-     *           if there is any error during deserialization
      * @see #serialize(AuthenticationToken)
      */
-    public static <T extends AuthenticationToken> T deserialize(Class<T> tokenType, byte[] tokenBytes) throws AccumuloSecurityException {
+    public static <T extends AuthenticationToken> T deserialize(Class<T> tokenType, byte[] tokenBytes) {
       T type = null;
       try {
         type = tokenType.newInstance();
       } catch (Exception e) {
-        throw new AccumuloSecurityException(null, SecurityErrorCode.SERIALIZATION_ERROR, e);
+        throw new IllegalArgumentException("Cannot instantiate " + tokenType.getName(), e);
       }
       ByteArrayInputStream bais = new ByteArrayInputStream(tokenBytes);
       DataInputStream in = new DataInputStream(bais);
       try {
         type.readFields(in);
       } catch (IOException e) {
-        throw new AccumuloSecurityException(null, SecurityErrorCode.SERIALIZATION_ERROR, e);
+        throw new IllegalArgumentException("Cannot deserialize provided byte array as class " + tokenType.getName(), e);
       }
       try {
         in.close();
@@ -90,14 +86,14 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
      *          the fully-qualified class name to be returned
      * @see #serialize(AuthenticationToken)
      */
-    public static AuthenticationToken deserialize(String tokenClassName, byte[] tokenBytes) throws AccumuloSecurityException {
+    public static AuthenticationToken deserialize(String tokenClassName, byte[] tokenBytes) {
       Class<? extends AuthenticationToken> tokenType = null;
       try {
         @SuppressWarnings("unchecked")
         Class<? extends AuthenticationToken> tmpTokenType = (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
         tokenType = tmpTokenType;
       } catch (ClassNotFoundException e) {
-        throw new AccumuloSecurityException(null, SecurityErrorCode.INVALID_TOKEN, e);
+        throw new IllegalArgumentException("Class not available " + tokenClassName, e);
       }
       return deserialize(tokenType, tokenBytes);
     }
@@ -110,17 +106,15 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
      * @param token
      *          the token to serialize
      * @return a serialized representation of the provided {@link AuthenticationToken}
-     * @throws AccumuloSecurityException
-     *           if there is any error during serialization
      * @see #deserialize(Class, byte[])
      */
-    public static byte[] serialize(AuthenticationToken token) throws AccumuloSecurityException {
+    public static byte[] serialize(AuthenticationToken token) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       DataOutputStream out = new DataOutputStream(baos);
       try {
         token.write(out);
       } catch (IOException e) {
-        throw new AccumuloSecurityException(null, SecurityErrorCode.SERIALIZATION_ERROR, e);
+        throw new RuntimeException("Bug found in serialization code", e);
       }
       byte[] bytes = baos.toByteArray();
       try {
