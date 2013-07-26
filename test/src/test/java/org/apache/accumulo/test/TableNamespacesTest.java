@@ -390,11 +390,11 @@ public class TableNamespacesTest {
     c.tableNamespaceOperations().removeIterator(namespace, iter, EnumSet.copyOf(scope));
     
     c.tableNamespaceOperations().addConstraint(namespace, NumericValueConstraint.class.getName());
-    c.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
+    //c.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
     
-    for (Entry<String,Integer> e : c.tableOperations().listConstraints(tableName).entrySet()) {
+    /*for (Entry<String,Integer> e : c.tableOperations().listConstraints(tableName).entrySet()) {
       System.out.println(e.toString());
-    }
+    }*/
     //UtilWaitThread.sleep(10000);
     
     m = new Mutation("rowy");
