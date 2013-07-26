@@ -44,7 +44,6 @@ class TableConfWatcher implements Watcher {
       log.trace("WatchEvent : " + path + " " + event.getState() + " " + event.getType());
     
     String tablesPrefix = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/";
-    String namespacesPrefix = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/";
     
     String tableId = null;
     String key = null;
