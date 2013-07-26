@@ -38,12 +38,12 @@ public class TableConfiguration extends AccumuloConfiguration {
   
   private static ZooCache tablePropCache = null;
   private final String instanceId;
-  private final AccumuloConfiguration parent;
+  private final TableNamespaceConfiguration parent;
   
   private String table = null;
   private Set<ConfigurationObserver> observers;
   
-  public TableConfiguration(String instanceId, String table, AccumuloConfiguration parent) {
+  public TableConfiguration(String instanceId, String table, TableNamespaceConfiguration parent) {
     this.instanceId = instanceId;
     this.table = table;
     this.parent = parent;
@@ -140,5 +140,9 @@ public class TableConfiguration extends AccumuloConfiguration {
   
   public String getTableId() {
     return table;
+  }
+  
+  public TableNamespaceConfiguration getNamespaceConfiguration() {
+    return parent;
   }
 }
