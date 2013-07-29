@@ -681,7 +681,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = new HashMap<String,String>();
     opts.putAll(propertiesToSet);
     for (String prop : propertiesToExclude)
-      opts.put(prop, null);
+      opts.put(prop, "");
     
     doTableOperation(TableOperation.CLONE, args, opts);
   }
