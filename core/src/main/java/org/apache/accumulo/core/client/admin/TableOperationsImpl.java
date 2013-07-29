@@ -728,6 +728,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
   
   // get the properties that are only in the table namespace so that we can exclude them when copying table properties
+  // TODO ACCUMULO-1565 needs fixed first
   private HashSet<String> getUniqueNamespaceProperties(String namespace, String table) throws TableNotFoundException, AccumuloException {
     HashSet<String> props = new HashSet<String>();
     try {

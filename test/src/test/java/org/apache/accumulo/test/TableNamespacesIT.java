@@ -56,7 +56,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class TableNamespacesTest {
+public class TableNamespacesIT {
   
   Random random = new Random();
   public static TemporaryFolder folder = new TemporaryFolder();
