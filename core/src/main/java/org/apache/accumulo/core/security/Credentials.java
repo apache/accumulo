@@ -22,6 +22,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -58,7 +59,11 @@ public class Credentials {
    * {@link AuthenticationToken}, so this should be used just before placing on the wire, and references to it should be tightly controlled.
    */
   public TCredentials toThrift(Instance instance) {
-    return new TCredentials(principal, token.getClass().getName(), ByteBuffer.wrap(AuthenticationTokenSerializer.serialize(token)), instance.getInstanceID());
+    TCredentials tCreds = new TCredentials(getPrincipal(), getToken().getClass().getName(),
+        ByteBuffer.wrap(AuthenticationTokenSerializer.serialize(getToken())), instance.getInstanceID());
+    if (getToken().isDestroyed())
+      throw new RuntimeException("Token has been destroyed", new AccumuloSecurityException(getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED));
+    return tCreds;
   }
   
   /**

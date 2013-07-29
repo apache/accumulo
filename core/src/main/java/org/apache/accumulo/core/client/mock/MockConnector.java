@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.mock;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -32,7 +33,10 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.Credentials;
 
 public class MockConnector extends Connector {
   
@@ -40,12 +44,14 @@ public class MockConnector extends Connector {
   private final MockAccumulo acu;
   private final Instance instance;
   
-  MockConnector(String username, MockInstance instance) {
-    this(username, new MockAccumulo(MockInstance.getDefaultFileSystem()), instance);
+  MockConnector(String username, MockInstance instance) throws AccumuloSecurityException {
+    this(new Credentials(username, new NullToken()), new MockAccumulo(MockInstance.getDefaultFileSystem()), instance);
   }
   
-  MockConnector(String username, MockAccumulo acu, MockInstance instance) {
-    this.username = username;
+  MockConnector(Credentials credentials, MockAccumulo acu, MockInstance instance) throws AccumuloSecurityException {
+    if (credentials.getToken().isDestroyed())
+      throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED);
+    this.username = credentials.getPrincipal();
     this.acu = acu;
     this.instance = instance;
   }

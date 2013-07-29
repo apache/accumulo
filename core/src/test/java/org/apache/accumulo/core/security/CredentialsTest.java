@@ -16,19 +16,70 @@
  */
 package org.apache.accumulo.core.security;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import javax.security.auth.DestroyFailedException;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.junit.Test;
 
 /**
  * 
  */
 public class CredentialsTest {
+  
+  @Test
+  public void testToThrift() throws DestroyFailedException {
+    // verify thrift serialization
+    Credentials creds = new Credentials("test", new PasswordToken("testing"));
+    TCredentials tCreds = creds.toThrift(new MockInstance());
+    assertEquals("test", tCreds.getPrincipal());
+    assertEquals(PasswordToken.class.getName(), tCreds.getTokenClassName());
+    assertArrayEquals(AuthenticationTokenSerializer.serialize(new PasswordToken("testing")), tCreds.getToken());
+    
+    // verify that we can't serialize if it's destroyed
+    creds.getToken().destroy();
+    try {
+      creds.toThrift(new MockInstance());
+      fail();
+    } catch (Exception e) {
+      assertTrue(e instanceof RuntimeException);
+      assertTrue(e.getCause() instanceof AccumuloSecurityException);
+      assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
+    }
+  }
+  
+  @Test
+  public void testMockConnector() throws AccumuloException, DestroyFailedException, AccumuloSecurityException {
+    Instance inst = new MockInstance();
+    Connector rootConnector = inst.getConnector("root", new PasswordToken());
+    PasswordToken testToken = new PasswordToken("testPass");
+    rootConnector.securityOperations().createLocalUser("testUser", testToken);
+    
+    assertFalse(testToken.isDestroyed());
+    testToken.destroy();
+    assertTrue(testToken.isDestroyed());
+    try {
+      inst.getConnector("testUser", testToken);
+      fail();
+    } catch (AccumuloSecurityException e) {
+      assertTrue(e.getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
+    }
+  }
   
   @Test
   public void testEqualsAndHashCode() {
