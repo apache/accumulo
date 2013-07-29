@@ -34,7 +34,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -88,7 +88,7 @@ public class CheckForMetadataProblems {
       if (broke && opts.fix) {
         KeyExtent ke = new KeyExtent(tabke);
         ke.setPrevEndRow(lastEndRow);
-        MetadataTableUtil.updateTabletPrevEndRow(ke, CredentialHelper.create(opts.principal, opts.getToken(), opts.instance));
+        MetadataTableUtil.updateTabletPrevEndRow(ke, new Credentials(opts.principal, opts.getToken()));
         System.out.println("KE " + tabke + " has been repaired to " + ke);
       }
       
@@ -152,7 +152,7 @@ public class CheckForMetadataProblems {
           System.out.println("Problem at key " + entry.getKey());
           sawProblems = true;
           if (opts.fix) {
-            Writer t = MetadataTableUtil.getMetadataTable(CredentialHelper.create(opts.principal, opts.getToken(), opts.instance));
+            Writer t = MetadataTableUtil.getMetadataTable(new Credentials(opts.principal, opts.getToken()));
             Key k = entry.getKey();
             Mutation m = new Mutation(k.getRow());
             m.putDelete(k.getColumnFamily(), k.getColumnQualifier());

@@ -49,7 +49,7 @@ import org.apache.accumulo.core.data.thrift.ScanResult;
 import org.apache.accumulo.core.data.thrift.TKeyValue;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -78,9 +78,10 @@ public class ThriftScanner {
     }
   }
   
-  public static boolean getBatchFromServer(TCredentials credentials, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
-      SortedSet<Column> fetchedColumns, List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, int size,
-      Authorizations authorizations, boolean retry, AccumuloConfiguration conf) throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
+  public static boolean getBatchFromServer(Instance instance, Credentials credentials, Range range, KeyExtent extent, String server,
+      SortedMap<Key,Value> results, SortedSet<Column> fetchedColumns, List<IterInfo> serverSideIteratorList,
+      Map<String,Map<String,String>> serverSideIteratorOptions, int size, Authorizations authorizations, boolean retry, AccumuloConfiguration conf)
+      throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
     if (server == null)
       throw new AccumuloException(new IOException());
     
@@ -89,12 +90,12 @@ public class ThriftScanner {
       TabletClientService.Client client = ThriftUtil.getTServerClient(server, conf);
       try {
         // not reading whole rows (or stopping on row boundries) so there is no need to enable isolation below
-        ScanState scanState = new ScanState(credentials, extent.getTableId(), authorizations, range, fetchedColumns, size, serverSideIteratorList,
+        ScanState scanState = new ScanState(instance, credentials, extent.getTableId(), authorizations, range, fetchedColumns, size, serverSideIteratorList,
             serverSideIteratorOptions, false);
         
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
-        InitialScan isr = client.startScan(tinfo, scanState.credentials, extent.toThrift(), scanState.range.toThrift(),
+        InitialScan isr = client.startScan(tinfo, scanState.credentials.toThrift(instance), extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated);
         if (waitForWrites)
@@ -136,7 +137,8 @@ public class ThriftScanner {
     
     int size;
     
-    TCredentials credentials;
+    Instance instance;
+    Credentials credentials;
     Authorizations authorizations;
     List<Column> columns;
     
@@ -149,8 +151,9 @@ public class ThriftScanner {
     
     Map<String,Map<String,String>> serverSideIteratorOptions;
     
-    public ScanState(TCredentials credentials, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
-        List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated) {
+    public ScanState(Instance instance, Credentials credentials, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns,
+        int size, List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated) {
+      this.instance = instance;
       this.credentials = credentials;
       this.authorizations = authorizations;
       
@@ -186,7 +189,7 @@ public class ThriftScanner {
     
   }
   
-  public static List<KeyValue> scan(Instance instance, TCredentials credentials, ScanState scanState, int timeOut, AccumuloConfiguration conf)
+  public static List<KeyValue> scan(Instance instance, Credentials credentials, ScanState scanState, int timeOut, AccumuloConfiguration conf)
       throws ScanTimedOutException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TabletLocation loc = null;
     
@@ -211,7 +214,7 @@ public class ThriftScanner {
           
           Span locateSpan = Trace.start("scan:locateTablet");
           try {
-            loc = TabletLocator.getLocator(instance, scanState.tableId).locateTablet(scanState.startRow, scanState.skipStartRow, false, credentials);
+            loc = TabletLocator.getLocator(instance, scanState.tableId).locateTablet(credentials, scanState.startRow, scanState.skipStartRow, false);
             
             if (loc == null) {
               if (!Tables.exists(instance, scanState.tableId.toString()))
@@ -384,7 +387,7 @@ public class ThriftScanner {
         
         TabletType ttype = TabletType.type(loc.tablet_extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
-        InitialScan is = client.startScan(tinfo, scanState.credentials, loc.tablet_extent.toThrift(), scanState.range.toThrift(),
+        InitialScan is = client.startScan(tinfo, scanState.credentials.toThrift(scanState.instance), loc.tablet_extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated);
         if (waitForWrites)

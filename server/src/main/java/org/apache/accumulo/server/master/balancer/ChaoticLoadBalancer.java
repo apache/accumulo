@@ -136,6 +136,8 @@ public class ChaoticLoadBalancer extends TabletBalancer {
   }
   
   @Override
-  public void init(ServerConfiguration conf) {}
+  public void init(ServerConfiguration conf) {
+    super.init(conf);
+  }
   
 }

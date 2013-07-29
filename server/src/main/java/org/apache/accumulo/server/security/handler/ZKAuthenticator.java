@@ -53,6 +53,7 @@ public final class ZKAuthenticator implements Authenticator {
     zooCache = new ZooCache();
   }
   
+  @Override
   public void initialize(String instanceId, boolean initialize) {
     ZKUserPath = Constants.ZROOT + "/" + instanceId + "/users";
   }
@@ -205,9 +206,9 @@ public final class ZKAuthenticator implements Authenticator {
     cs.add(PasswordToken.class);
     return cs;
   }
-
+  
   @Override
   public boolean validTokenClass(String tokenClass) {
-    return tokenClass.equals(PasswordToken.class.getCanonicalName());
+    return tokenClass.equals(PasswordToken.class.getName());
   }
 }

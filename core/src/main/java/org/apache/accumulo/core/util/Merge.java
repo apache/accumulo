@@ -85,7 +85,7 @@ public class Merge {
   
   public void start(String[] args) throws MergeException, ParseException {
     Opts opts = new Opts();
-    opts.parseArgs(Merge.class.getCanonicalName(), args);
+    opts.parseArgs(Merge.class.getName(), args);
     
     try {
       Connector conn = opts.getConnector();

@@ -17,7 +17,7 @@
 package org.apache.accumulo.core.metadata;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 
 /**
  * A metadata servicer for the metadata table (which holds metadata for user tables).<br />
@@ -25,7 +25,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
  */
 class ServicerForMetadataTable extends TableMetadataServicer {
   
-  public ServicerForMetadataTable(Instance instance, TCredentials credentials) {
+  public ServicerForMetadataTable(Instance instance, Credentials credentials) {
     super(instance, credentials, RootTable.NAME, MetadataTable.ID);
   }
   

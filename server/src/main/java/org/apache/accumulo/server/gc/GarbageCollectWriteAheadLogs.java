@@ -165,7 +165,7 @@ public class GarbageCollectWriteAheadLogs {
           Client tserver = null;
           try {
             tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
-            tserver.removeLogs(Tracer.traceInfo(), SystemCredentials.get().getAsThrift(), paths2strings(entry.getValue()));
+            tserver.removeLogs(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance), paths2strings(entry.getValue()));
             log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
             status.currentLog.deleted += entry.getValue().size();
           } catch (TException e) {
@@ -223,7 +223,7 @@ public class GarbageCollectWriteAheadLogs {
   private static int removeMetadataEntries(Map<Path,String> fileToServerMap, Set<Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
       InterruptedException {
     int count = 0;
-    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get().getAsThrift());
+    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
     while (iterator.hasNext()) {
       for (String filename : iterator.next().logSet) {
         Path path;

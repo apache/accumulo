@@ -293,7 +293,7 @@ public class Monitor {
         try {
           client = MasterClient.getConnection(HdfsZooInstance.getInstance());
           if (client != null) {
-            mmi = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().getAsThrift());
+            mmi = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(HdfsZooInstance.getInstance()));
             retry = false;
           } else {
             mmi = null;
@@ -433,7 +433,7 @@ public class Monitor {
           address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null, null))).getAddress(Service.GC_CLIENT);
           GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
           try {
-            result = client.getStatus(Tracer.traceInfo(), SystemCredentials.get().getAsThrift());
+            result = client.getStatus(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
           } finally {
             ThriftUtil.returnClient(client);
           }

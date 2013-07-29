@@ -45,8 +45,7 @@ import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -88,10 +87,10 @@ public class VerifyTabletAssignments {
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
     
     Connector conn = opts.getConnector();
-    Instance inst = conn.getInstance();
+    final Instance inst = conn.getInstance();
     String tableId = Tables.getNameToIdMap(inst).get(tableName);
-    TCredentials credentials = CredentialHelper.create(opts.principal, opts.getToken(), opts.instance);
-    MetadataServicer.forTableId(conn.getInstance(), credentials, tableId).getTabletLocations(tabletLocations);
+    Credentials credentials = new Credentials(opts.principal, opts.getToken());
+    MetadataServicer.forTableId(inst, credentials, tableId).getTabletLocations(tabletLocations);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
     
@@ -125,7 +124,7 @@ public class VerifyTabletAssignments {
         @Override
         public void run() {
           try {
-            checkTabletServer(conf.getConfiguration(), CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), entry, failures);
+            checkTabletServer(inst, conf.getConfiguration(), new Credentials(opts.principal, opts.getToken()), entry, failures);
           } catch (Exception e) {
             System.err.println("Failure on ts " + entry.getKey() + " " + e.getMessage());
             e.printStackTrace();
@@ -154,8 +153,8 @@ public class VerifyTabletAssignments {
     }
   }
   
-  private static void checkTabletServer(AccumuloConfiguration conf, TCredentials st, Entry<String,List<KeyExtent>> entry, HashSet<KeyExtent> failures)
-      throws ThriftSecurityException, TException, NoSuchScanIDException {
+  private static void checkTabletServer(Instance inst, AccumuloConfiguration conf, Credentials creds, Entry<String,List<KeyExtent>> entry,
+      HashSet<KeyExtent> failures) throws ThriftSecurityException, TException, NoSuchScanIDException {
     TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), conf);
     
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<TKeyExtent,List<TRange>>();
@@ -190,7 +189,7 @@ public class VerifyTabletAssignments {
     Map<String,Map<String,String>> emptyMapSMapSS = Collections.emptyMap();
     List<IterInfo> emptyListIterInfo = Collections.emptyList();
     List<TColumn> emptyListColumn = Collections.emptyList();
-    InitialMultiScan is = client.startMultiScan(tinfo, st, batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS,
+    InitialMultiScan is = client.startMultiScan(tinfo, creds.toThrift(inst), batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS,
         Authorizations.EMPTY.getAuthorizationsBB(), false);
     if (is.result.more) {
       MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);

@@ -48,8 +48,8 @@ public class FindOfflineTablets {
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
     final AtomicBoolean scanning = new AtomicBoolean(false);
     Instance instance = opts.getInstance();
-    MetaDataTableScanner rootScanner = new MetaDataTableScanner(instance, SystemCredentials.get().getAsThrift(), MetadataSchema.TabletsSection.getRange());
-    MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, SystemCredentials.get().getAsThrift(), MetadataSchema.TabletsSection.getRange());
+    MetaDataTableScanner rootScanner = new MetaDataTableScanner(instance, SystemCredentials.get(), MetadataSchema.TabletsSection.getRange());
+    MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, SystemCredentials.get(), MetadataSchema.TabletsSection.getRange());
     @SuppressWarnings("unchecked")
     Iterator<TabletLocationState> scanner = new IteratorChain(rootScanner, metaScanner);
     LiveTServerSet tservers = new LiveTServerSet(instance, DefaultConfiguration.getDefaultConfiguration(), new Listener() {

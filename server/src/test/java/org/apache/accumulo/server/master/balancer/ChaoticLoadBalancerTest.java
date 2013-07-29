@@ -106,7 +106,7 @@ public class ChaoticLoadBalancerTest {
       current.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
     }
     
-    Map<KeyExtent, TServerInstance> assignments = new HashMap<KeyExtent, TServerInstance>();
+    Map<KeyExtent,TServerInstance> assignments = new HashMap<KeyExtent,TServerInstance>();
     balancer.getAssignments(getAssignments(servers), metadataTable, assignments);
     
     assertEquals(assignments.size(), metadataTable.size());
@@ -125,7 +125,7 @@ public class ChaoticLoadBalancerTest {
     servers.clear();
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
-      InetSocketAddress fakeAddress = AddressUtil.parseAddress("127.0.0.1", (int) c);
+      InetSocketAddress fakeAddress = AddressUtil.parseAddress("127.0.0.1", c);
       String fakeInstance = cString;
       TServerInstance tsi = new TServerInstance(fakeAddress, fakeInstance);
       FakeTServer fakeTServer = new FakeTServer();

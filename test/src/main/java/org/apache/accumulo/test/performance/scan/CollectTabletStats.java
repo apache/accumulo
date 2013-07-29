@@ -60,8 +60,7 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
@@ -117,8 +116,8 @@ public class CollectTabletStats {
     }
     
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
-    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), opts.tableName,
-        instance, tabletLocations);
+    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, new Credentials(opts.principal, opts.getToken()), opts.tableName, instance,
+        tabletLocations);
     
     if (candidates.size() < opts.numThreads) {
       System.err.println("ERROR : Unable to find " + opts.numThreads + " " + (opts.selectFarTablets ? "far" : "local") + " tablets");
@@ -130,7 +129,7 @@ public class CollectTabletStats {
     Map<KeyExtent,List<FileRef>> tabletFiles = new HashMap<KeyExtent,List<FileRef>>();
     
     for (KeyExtent ke : tabletsToTest) {
-      List<FileRef> files = getTabletFiles(CredentialHelper.create(opts.principal, opts.getToken(), opts.instance), opts.getInstance(), tableId, ke);
+      List<FileRef> files = getTabletFiles(new Credentials(opts.principal, opts.getToken()), opts.getInstance(), tableId, ke);
       tabletFiles.put(ke, files);
     }
     
@@ -344,7 +343,7 @@ public class CollectTabletStats {
     
   }
   
-  private static List<KeyExtent> findTablets(boolean selectLocalTablets, TCredentials credentials, String tableName, Instance zki,
+  private static List<KeyExtent> findTablets(boolean selectLocalTablets, Credentials credentials, String tableName, Instance zki,
       SortedMap<KeyExtent,String> tabletLocations) throws Exception {
     
     String tableId = Tables.getNameToIdMap(zki).get(tableName);
@@ -382,8 +381,8 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
   
-  private static List<FileRef> getTabletFiles(TCredentials token, Instance zki, String tableId, KeyExtent ke) throws IOException {
-    return new ArrayList<FileRef>(MetadataTableUtil.getDataFileSizes(ke, token).keySet());
+  private static List<FileRef> getTabletFiles(Credentials credentials, Instance zki, String tableId, KeyExtent ke) throws IOException {
+    return new ArrayList<FileRef>(MetadataTableUtil.getDataFileSizes(ke, credentials).keySet());
   }
   
   private static void reportHdfsBlockLocations(List<FileRef> files) throws Exception {

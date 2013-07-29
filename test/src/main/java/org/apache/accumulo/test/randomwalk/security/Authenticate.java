@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -51,7 +51,7 @@ public class Authenticate extends Test {
     boolean exists = WalkingSecurity.get(state).userExists(target);
     // Copy so if failed it doesn't mess with the password stored in state
     byte[] password = Arrays.copyOf(WalkingSecurity.get(state).getUserPassword(target), WalkingSecurity.get(state).getUserPassword(target).length);
-    boolean hasPermission = WalkingSecurity.get(state).canAskAboutUser(CredentialHelper.create(principal, token, state.getInstance().getInstanceID()), target);
+    boolean hasPermission = WalkingSecurity.get(state).canAskAboutUser(new Credentials(principal, token).toThrift(state.getInstance()), target);
     
     if (!success)
       for (int i = 0; i < password.length; i++)

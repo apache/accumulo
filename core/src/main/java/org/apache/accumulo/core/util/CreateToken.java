@@ -28,10 +28,11 @@ import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.TokenProperty;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.commons.codec.binary.Base64;
 
 import com.beust.jcommander.Parameter;
 
@@ -94,7 +95,7 @@ public class CreateToken {
         props.put(tp.getKey(), input);
         token.init(props);
       }
-      String tokenBase64 = CredentialHelper.tokenAsBase64(token);
+      String tokenBase64 = Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token));
       
       String tokenFile = opts.tokenFile;
       if (tokenFile == null) {

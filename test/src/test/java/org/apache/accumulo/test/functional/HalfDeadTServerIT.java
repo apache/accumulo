@@ -62,6 +62,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
       rdr = new BufferedReader(new InputStreamReader(is));
       output = new StringBuilder();
     }
+    
     @Override
     public void run() {
       try {
@@ -84,13 +85,12 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     }
   }
   
-  
-  @Test(timeout=100*1000)
+  @Test(timeout = 100 * 1000)
   public void testRecover() throws Exception {
     test(10);
   }
   
-  @Test(timeout=120*1000)
+  @Test(timeout = 120 * 1000)
   public void testTimeout() throws Exception {
     String results = test(40);
     if (results != null)
@@ -108,7 +108,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
     String classpath = System.getProperty("java.class.path");
     classpath = new File(cluster.getConfig().getDir(), "conf") + File.pathSeparator + classpath;
-    String className = TabletServer.class.getCanonicalName();
+    String className = TabletServer.class.getName();
     ArrayList<String> argList = new ArrayList<String>();
     argList.addAll(Arrays.asList(javaBin, "-cp", classpath));
     argList.addAll(Arrays.asList(Main.class.getName(), className));
@@ -131,25 +131,26 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     UtilWaitThread.sleep(1000);
     c.tableOperations().create("test_ingest");
     assertEquals(1, c.instanceOperations().getTabletServers().size());
-    int rows = 100*1000;
-    Process ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows + "");
+    int rows = 100 * 1000;
+    Process ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", ROOT_PASSWORD,
+        "--rows", rows + "");
     UtilWaitThread.sleep(500);
     
     // block I/O with some side-channel trickiness
     File trickFile = new File(trickFilename);
     trickFile.createNewFile();
-    UtilWaitThread.sleep(seconds*1000);
+    UtilWaitThread.sleep(seconds * 1000);
     trickFile.delete();
-
+    
     if (seconds <= 10) {
       assertEquals(0, ingest.waitFor());
       VerifyIngest.Opts vopts = new VerifyIngest.Opts();
       vopts.rows = rows;
       VerifyIngest.verifyIngest(c, vopts, SOPTS);
     } else {
-      UtilWaitThread.sleep(5*1000);
+      UtilWaitThread.sleep(5 * 1000);
     }
-    // verify the process was blocked 
+    // verify the process was blocked
     String results = t.toString();
     assertTrue(results.contains("sleeping\nsleeping\nsleeping\n"));
     assertTrue(results.contains("Zookeeper error, will retry"));
@@ -160,7 +161,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     t.join();
     return results;
   }
-
+  
   private boolean makeDiskFailureLibrary() throws Exception {
     String root = System.getProperty("user.dir");
     String source = root + "/src/test/c/fake_disk_failure.c";
@@ -168,9 +169,9 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     String platform = System.getProperty("os.name");
     String cmd[];
     if (platform.equals("Darwin")) {
-      cmd = new String[]{"gcc","-arch","x86_64","-arch","i386","-dynamiclib","-O3","-fPIC", source,"-o",lib};
+      cmd = new String[] {"gcc", "-arch", "x86_64", "-arch", "i386", "-dynamiclib", "-O3", "-fPIC", source, "-o", lib};
     } else {
-      cmd = new String[]{"gcc","-D_GNU_SOURCE","-Wall","-fPIC", source,"-shared", "-o", lib, "-ldl"};
+      cmd = new String[] {"gcc", "-D_GNU_SOURCE", "-Wall", "-fPIC", source, "-shared", "-o", lib, "-ldl"};
     }
     Process gcc = Runtime.getRuntime().exec(cmd);
     return gcc.waitFor() == 0;

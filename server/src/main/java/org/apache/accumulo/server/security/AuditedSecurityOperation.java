@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.master.thrift.TableOperation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -184,7 +185,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String CHANGE_PASSWORD_AUDIT_TEMPLATE = "action: changePassword; targetUser: %s;";
   
   @Override
-  public void changePassword(TCredentials credentials, TCredentials newInfo) throws ThriftSecurityException {
+  public void changePassword(TCredentials credentials, Credentials newInfo) throws ThriftSecurityException {
     try {
       super.changePassword(credentials, newInfo);
       audit(credentials, CHANGE_PASSWORD_AUDIT_TEMPLATE, newInfo.getPrincipal());
@@ -197,7 +198,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public static final String CREATE_USER_AUDIT_TEMPLATE = "action: createUser; targetUser: %s; Authorizations: %s;";
   
   @Override
-  public void createUser(TCredentials credentials, TCredentials newUser, Authorizations authorizations) throws ThriftSecurityException {
+  public void createUser(TCredentials credentials, Credentials newUser, Authorizations authorizations) throws ThriftSecurityException {
     try {
       super.createUser(credentials, newUser, authorizations);
       audit(credentials, CREATE_USER_AUDIT_TEMPLATE, newUser.getPrincipal(), authorizations);

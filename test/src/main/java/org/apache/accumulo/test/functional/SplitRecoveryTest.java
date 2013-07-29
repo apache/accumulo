@@ -140,7 +140,7 @@ public class SplitRecoveryTest extends FunctionalTest {
       KeyExtent extent = extents[i];
       
       String tdir = ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId().toString() + "/dir_" + i;
-      MetadataTableUtil.addTablet(extent, tdir, SystemCredentials.get().getAsThrift(), TabletTime.LOGICAL_TIME_ID, zl);
+      MetadataTableUtil.addTablet(extent, tdir, SystemCredentials.get(), TabletTime.LOGICAL_TIME_ID, zl);
       SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<FileRef,DataFileValue>();
       mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"), new DataFileValue(1000017 + i, 10000 + i));
       
@@ -149,7 +149,7 @@ public class SplitRecoveryTest extends FunctionalTest {
       }
       int tid = 0;
       TransactionWatcher.ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
-      MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles, "L0", SystemCredentials.get().getAsThrift(), zl);
+      MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles, "L0", SystemCredentials.get(), zl);
     }
     
     KeyExtent extent = extents[extentToSplit];
@@ -170,21 +170,21 @@ public class SplitRecoveryTest extends FunctionalTest {
     MetadataTableUtil.splitDatafiles(extent.getTableId(), midRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), mapFiles, lowDatafileSizes,
         highDatafileSizes, highDatafilesToRemove);
     
-    MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, SystemCredentials.get().getAsThrift(), zl);
+    MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, SystemCredentials.get(), zl);
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
-    Writer writer = new Writer(HdfsZooInstance.getInstance(), SystemCredentials.get().getAsThrift(), MetadataTable.ID);
+    Writer writer = new Writer(HdfsZooInstance.getInstance(), SystemCredentials.get(), MetadataTable.ID);
     Assignment assignment = new Assignment(high, instance);
     Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
     m.put(TabletsSection.FutureLocationColumnFamily.NAME, assignment.server.asColumnQualifier(), assignment.server.asMutationValue());
     writer.update(m);
     
     if (steps >= 1) {
-      Map<FileRef,Long> bulkFiles = MetadataTableUtil.getBulkFilesLoaded(SystemCredentials.get().getAsThrift(), extent);
-      MetadataTableUtil.addNewTablet(low, "/lowDir", instance, lowDatafileSizes, bulkFiles, SystemCredentials.get().getAsThrift(), TabletTime.LOGICAL_TIME_ID
-          + "0", -1l, -1l, zl);
+      Map<FileRef,Long> bulkFiles = MetadataTableUtil.getBulkFilesLoaded(SystemCredentials.get(), extent);
+      MetadataTableUtil.addNewTablet(low, "/lowDir", instance, lowDatafileSizes, bulkFiles, SystemCredentials.get(), TabletTime.LOGICAL_TIME_ID + "0", -1l,
+          -1l, zl);
     }
     if (steps >= 2)
-      MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SystemCredentials.get().getAsThrift(), zl);
+      MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SystemCredentials.get(), zl);
     
     TabletServer.verifyTabletInformation(high, instance, null, "127.0.0.1:0", zl);
     
@@ -192,8 +192,8 @@ public class SplitRecoveryTest extends FunctionalTest {
       ensureTabletHasNoUnexpectedMetadataEntries(low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(high, highDatafileSizes);
       
-      Map<FileRef,Long> lowBulkFiles = MetadataTableUtil.getBulkFilesLoaded(SystemCredentials.get().getAsThrift(), low);
-      Map<FileRef,Long> highBulkFiles = MetadataTableUtil.getBulkFilesLoaded(SystemCredentials.get().getAsThrift(), high);
+      Map<FileRef,Long> lowBulkFiles = MetadataTableUtil.getBulkFilesLoaded(SystemCredentials.get(), low);
+      Map<FileRef,Long> highBulkFiles = MetadataTableUtil.getBulkFilesLoaded(SystemCredentials.get(), high);
       
       if (!lowBulkFiles.equals(highBulkFiles)) {
         throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
@@ -208,7 +208,7 @@ public class SplitRecoveryTest extends FunctionalTest {
   }
   
   private void ensureTabletHasNoUnexpectedMetadataEntries(KeyExtent extent, SortedMap<FileRef,DataFileValue> expectedMapFiles) throws Exception {
-    Scanner scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SystemCredentials.get().getAsThrift(), MetadataTable.ID, Authorizations.EMPTY);
+    Scanner scanner = new ScannerImpl(HdfsZooInstance.getInstance(), SystemCredentials.get(), MetadataTable.ID, Authorizations.EMPTY);
     scanner.setRange(extent.toMetadataRange());
     
     HashSet<ColumnFQ> expectedColumns = new HashSet<ColumnFQ>();
@@ -247,7 +247,7 @@ public class SplitRecoveryTest extends FunctionalTest {
       throw new Exception("Not all expected columns seen " + extent + " " + expectedColumns);
     }
     
-    SortedMap<FileRef,DataFileValue> fixedMapFiles = MetadataTableUtil.getDataFileSizes(extent, SystemCredentials.get().getAsThrift());
+    SortedMap<FileRef,DataFileValue> fixedMapFiles = MetadataTableUtil.getDataFileSizes(extent, SystemCredentials.get());
     verifySame(expectedMapFiles, fixedMapFiles);
   }
   

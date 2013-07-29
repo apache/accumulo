@@ -32,11 +32,9 @@ import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.log4j.Logger;
@@ -97,14 +95,14 @@ public class Admin {
       }
       
       if (cl.getParsedCommand().equals("stop")) {
-        stopTabletServer(instance, CredentialHelper.create(principal, token, instance.getInstanceID()), stopOpts.args, opts.force);
+        stopTabletServer(instance, new Credentials(principal, token), stopOpts.args, opts.force);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
         
         if (everything)
           flushAll(instance, principal, token);
         
-        stopServer(instance, CredentialHelper.create(principal, token, instance.getInstanceID()), everything);
+        stopServer(instance, new Credentials(principal, token), everything);
       }
     } catch (AccumuloException e) {
       log.error(e, e);
@@ -168,26 +166,26 @@ public class Admin {
     }
   }
   
-  private static void stopServer(Instance instance, final TCredentials credentials, final boolean tabletServersToo) throws AccumuloException,
+  private static void stopServer(final Instance instance, final Credentials credentials, final boolean tabletServersToo) throws AccumuloException,
       AccumuloSecurityException {
-    MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {
+    MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
-        client.shutdown(Tracer.traceInfo(), credentials, tabletServersToo);
+        client.shutdown(Tracer.traceInfo(), credentials.toThrift(instance), tabletServersToo);
       }
     });
   }
   
-  private static void stopTabletServer(Instance instance, final TCredentials creds, List<String> servers, final boolean force) throws AccumuloException,
+  private static void stopTabletServer(final Instance instance, final Credentials creds, List<String> servers, final boolean force) throws AccumuloException,
       AccumuloSecurityException {
     for (String server : servers) {
       InetSocketAddress address = AddressUtil.parseAddress(server);
       final String finalServer = org.apache.accumulo.core.util.AddressUtil.toString(address);
       log.info("Stopping server " + finalServer);
-      MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {
+      MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
         @Override
         public void execute(MasterClientService.Client client) throws Exception {
-          client.shutdownTabletServer(Tracer.traceInfo(), creds, finalServer, force);
+          client.shutdownTabletServer(Tracer.traceInfo(), creds.toThrift(instance), finalServer, force);
         }
       });
     }

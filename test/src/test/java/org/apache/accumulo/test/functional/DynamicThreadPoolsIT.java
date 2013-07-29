@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 import java.util.Collections;
 
@@ -28,8 +28,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.test.TestIngest;
@@ -50,14 +49,14 @@ public class DynamicThreadPoolsIT extends ConfigurableMacIT {
     Connector c = getConnector();
     c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "5");
     TestIngest.Opts opts = new TestIngest.Opts();
-    opts.rows = 100*1000;
+    opts.rows = 100 * 1000;
     opts.createTable = true;
     TestIngest.ingest(c, opts, BWOPTS);
     c.tableOperations().flush("test_ingest", null, null, true);
     for (int i = 1; i < TABLES; i++)
       c.tableOperations().clone("test_ingest", "test_ingest" + i, true, null, null);
-    UtilWaitThread.sleep(11*1000); // time between checks of the thread pool sizes
-    TCredentials creds = CredentialHelper.create("root", new PasswordToken(ROOT_PASSWORD), c.getInstance().getInstanceName());
+    UtilWaitThread.sleep(11 * 1000); // time between checks of the thread pool sizes
+    Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
     for (int i = 1; i < TABLES; i++)
       c.tableOperations().compact("test_ingest" + i, null, null, true, false);
     for (int i = 0; i < 30; i++) {
@@ -66,7 +65,7 @@ public class DynamicThreadPoolsIT extends ConfigurableMacIT {
       MasterMonitorInfo stats = null;
       try {
         client = MasterClient.getConnectionWithRetry(c.getInstance());
-        stats = client.getMasterStats(Tracer.traceInfo(), creds);
+        stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
       } finally {
         if (client != null)
           MasterClient.close(client);

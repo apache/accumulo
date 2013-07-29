@@ -115,8 +115,7 @@ class PopulateMetadata extends MasterRepo {
   public Repo<Master> call(long tid, Master environment) throws Exception {
     
     KeyExtent extent = new KeyExtent(new Text(tableInfo.tableId), null, null);
-    MetadataTableUtil.addTablet(extent, Constants.DEFAULT_TABLET_LOCATION, SystemCredentials.get().getAsThrift(), tableInfo.timeType,
-        environment.getMasterLock());
+    MetadataTableUtil.addTablet(extent, Constants.DEFAULT_TABLET_LOCATION, SystemCredentials.get(), tableInfo.timeType, environment.getMasterLock());
     
     return new FinishCreateTable(tableInfo);
     
@@ -124,7 +123,7 @@ class PopulateMetadata extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    MetadataTableUtil.deleteTable(tableInfo.tableId, false, SystemCredentials.get().getAsThrift(), environment.getMasterLock());
+    MetadataTableUtil.deleteTable(tableInfo.tableId, false, SystemCredentials.get(), environment.getMasterLock());
   }
   
 }
@@ -225,7 +224,7 @@ class SetupPermissions extends MasterRepo {
     SecurityOperation security = AuditedSecurityOperation.getInstance();
     for (TablePermission permission : TablePermission.values()) {
       try {
-        security.grantTablePermission(SystemCredentials.get().getAsThrift(), tableInfo.user, tableInfo.tableId, permission);
+        security.grantTablePermission(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.user, tableInfo.tableId, permission);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCreateTable.class).error(e.getMessage(), e);
         throw e;
@@ -240,7 +239,7 @@ class SetupPermissions extends MasterRepo {
   
   @Override
   public void undo(long tid, Master env) throws Exception {
-    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().getAsThrift(), tableInfo.tableId);
+    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.tableId);
   }
   
 }

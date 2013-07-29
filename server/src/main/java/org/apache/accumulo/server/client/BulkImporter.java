@@ -52,7 +52,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LoggingRunnable;
@@ -69,12 +69,11 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TServiceClient;
 
-
 public class BulkImporter {
   
   private static final Logger log = Logger.getLogger(BulkImporter.class);
   
-  public static List<String> bulkLoad(AccumuloConfiguration conf, Instance instance, TCredentials creds, long tid, String tableId, List<String> files,
+  public static List<String> bulkLoad(AccumuloConfiguration conf, Instance instance, Credentials creds, long tid, String tableId, List<String> files,
       String errorDir, boolean setTime) throws IOException, AccumuloException, AccumuloSecurityException, ThriftTableOperationException {
     AssignmentStats stats = new BulkImporter(conf, instance, creds, tid, tableId, setTime).importFiles(files, new Path(errorDir));
     List<String> result = new ArrayList<String>();
@@ -91,13 +90,13 @@ public class BulkImporter {
   }
   
   private Instance instance;
-  private TCredentials credentials;
+  private Credentials credentials;
   private String tableId;
   private long tid;
   private AccumuloConfiguration acuConf;
   private boolean setTime;
   
-  public BulkImporter(AccumuloConfiguration conf, Instance instance, TCredentials credentials, long tid, String tableId, boolean setTime) {
+  public BulkImporter(AccumuloConfiguration conf, Instance instance, Credentials credentials, long tid, String tableId, boolean setTime) {
     this.instance = instance;
     this.credentials = credentials;
     this.tid = tid;
@@ -143,6 +142,7 @@ public class BulkImporter {
       for (Path path : paths) {
         final Path mapFile = path;
         Runnable getAssignments = new Runnable() {
+          @Override
           public void run() {
             List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
             try {
@@ -180,9 +180,9 @@ public class BulkImporter {
       for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet())
         failureCount.put(entry.getKey(), 1);
       
-      long sleepTime = 2*1000;
+      long sleepTime = 2 * 1000;
       while (assignmentFailures.size() > 0) {
-        sleepTime = Math.min(sleepTime*2, 60*1000);
+        sleepTime = Math.min(sleepTime * 2, 60 * 1000);
         locator.invalidateCache();
         // assumption about assignment failures is that it caused by a split
         // happening or a missing location
@@ -309,7 +309,7 @@ public class BulkImporter {
       for (KeyExtent keyExtent : extents)
         log.debug("\t" + entry.getKey() + " -> " + keyExtent);
     }
-
+    
     return Collections.emptySet();
   }
   
@@ -361,6 +361,7 @@ public class BulkImporter {
       }
       
       Runnable estimationTask = new Runnable() {
+        @Override
         public void run() {
           Map<KeyExtent,Long> estimatedSizes = null;
           
@@ -418,8 +419,8 @@ public class BulkImporter {
     return result;
   }
   
-  private Map<Path,List<KeyExtent>> assignMapFiles(AccumuloConfiguration acuConf, Instance instance, Configuration conf, TCredentials credentials, FileSystem fs,
-      String tableId, Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads, int numMapThreads) {
+  private Map<Path,List<KeyExtent>> assignMapFiles(AccumuloConfiguration acuConf, Instance instance, Configuration conf, Credentials credentials,
+      FileSystem fs, String tableId, Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads, int numMapThreads) {
     timer.start(Timers.EXAMINE_MAP_FILES);
     Map<Path,List<AssignmentInfo>> assignInfo = estimateSizes(acuConf, conf, fs, assignments, paths, numMapThreads);
     timer.stop(Timers.EXAMINE_MAP_FILES);
@@ -436,10 +437,10 @@ public class BulkImporter {
   private class AssignmentTask implements Runnable {
     final Map<Path,List<KeyExtent>> assignmentFailures;
     String location;
-    TCredentials credentials;
+    Credentials credentials;
     private Map<KeyExtent,List<PathSize>> assignmentsPerTablet;
     
-    public AssignmentTask(TCredentials credentials, Map<Path,List<KeyExtent>> assignmentFailures, String tableName, String location,
+    public AssignmentTask(Credentials credentials, Map<Path,List<KeyExtent>> assignmentFailures, String tableName, String location,
         Map<KeyExtent,List<PathSize>> assignmentsPerTablet) {
       this.assignmentFailures = assignmentFailures;
       this.location = location;
@@ -466,6 +467,7 @@ public class BulkImporter {
       }
     }
     
+    @Override
     public void run() {
       HashSet<Path> uniqMapFiles = new HashSet<Path>();
       for (List<PathSize> mapFiles : assignmentsPerTablet.values())
@@ -495,12 +497,13 @@ public class BulkImporter {
     Path path;
     long estSize;
     
+    @Override
     public String toString() {
       return path + " " + estSize;
     }
   }
   
-  private Map<Path,List<KeyExtent>> assignMapFiles(TCredentials credentials, String tableName, Map<Path,List<AssignmentInfo>> assignments,
+  private Map<Path,List<KeyExtent>> assignMapFiles(Credentials credentials, String tableName, Map<Path,List<AssignmentInfo>> assignments,
       Map<KeyExtent,String> locations, int numThreads) {
     
     // group assignments by tablet
@@ -578,8 +581,8 @@ public class BulkImporter {
     return assignmentFailures;
   }
   
-  private List<KeyExtent> assignMapFiles(TCredentials credentials, String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet) throws AccumuloException,
-      AccumuloSecurityException {
+  private List<KeyExtent> assignMapFiles(Credentials credentials, String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet)
+      throws AccumuloException, AccumuloSecurityException {
     try {
       long timeInMillis = instance.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
       TabletClientService.Iface client = ThriftUtil.getTServerClient(location, timeInMillis);
@@ -596,7 +599,8 @@ public class BulkImporter {
         }
         
         log.debug("Asking " + location + " to bulk load " + files);
-        List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), credentials, tid, Translator.translate(files, Translator.KET), setTime);
+        List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), credentials.toThrift(instance), tid, Translator.translate(files, Translator.KET),
+            setTime);
         
         return Translator.translate(failures, Translator.TKET);
       } finally {
@@ -610,12 +614,13 @@ public class BulkImporter {
     }
   }
   
-  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, TCredentials credentials) throws Exception {
+  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file,
+      Credentials credentials) throws Exception {
     return findOverlappingTablets(acuConf, fs, locator, file, null, null, credentials);
   }
   
-  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, KeyExtent failed, TCredentials credentials)
-      throws Exception {
+  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, KeyExtent failed,
+      Credentials credentials) throws Exception {
     locator.invalidateCache(failed);
     Text start = failed.getPrevEndRow();
     if (start != null)
@@ -624,9 +629,9 @@ public class BulkImporter {
   }
   
   final static byte[] byte0 = {0};
-
+  
   public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, Text startRow,
-      Text endRow, TCredentials credentials) throws Exception {
+      Text endRow, Credentials credentials) throws Exception {
     List<TabletLocation> result = new ArrayList<TabletLocation>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     String filename = file.toString();
@@ -644,7 +649,7 @@ public class BulkImporter {
           break;
         }
         row = reader.getTopKey().getRow();
-        TabletLocation tabletLocation = locator.locateTablet(row, false, true, credentials);
+        TabletLocation tabletLocation = locator.locateTablet(credentials, row, false, true);
         // log.debug(filename + " found row " + row + " at location " + tabletLocation);
         result.add(tabletLocation);
         row = tabletLocation.tablet_extent.getEndRow();
@@ -720,6 +725,7 @@ public class BulkImporter {
       this.failedFailures = failedFailures;
     }
     
+    @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
       int totalAssignments = 0;

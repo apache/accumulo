@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -35,7 +35,7 @@ public class AlterTablePerm extends Test {
     alter(state, props);
   }
   
-  public static void alter(State state, Properties props) throws Exception {    
+  public static void alter(State state, Properties props) throws Exception {
     String action = props.getProperty("task", "toggle");
     String perm = props.getProperty("perm", "random");
     String sourceUserProp = props.getProperty("source", "system");
@@ -75,8 +75,9 @@ public class AlterTablePerm extends Test {
     }
     Connector conn = state.getInstance().getConnector(sourceUser, sourceToken);
     
-    canGive = WalkingSecurity.get(state).canGrantTable(CredentialHelper.create(sourceUser, sourceToken, state.getInstance().getInstanceID()), target, WalkingSecurity.get(state).getTableName());
-
+    canGive = WalkingSecurity.get(state).canGrantTable(new Credentials(sourceUser, sourceToken).toThrift(state.getInstance()), target,
+        WalkingSecurity.get(state).getTableName());
+    
     // toggle
     if (!"take".equals(action) && !"give".equals(action)) {
       try {

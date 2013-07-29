@@ -174,7 +174,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     }
     
     if (hasProblems)
-      MetadataTableUtil.getMetadataTable(SystemCredentials.get().getAsThrift()).update(delMut);
+      MetadataTableUtil.getMetadataTable(SystemCredentials.get()).update(delMut);
   }
   
   public Iterator<ProblemReport> iterator(final String table) {

@@ -28,8 +28,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.junit.Test;
 
 public class MetadataServicerTest {
@@ -47,7 +46,7 @@ public class MetadataServicerTest {
     Connector connector = instance.getConnector("root", new PasswordToken(""));
     connector.tableOperations().create(userTableName);
     String userTableId = connector.tableOperations().tableIdMap().get(userTableName);
-    TCredentials credentials = CredentialHelper.createSquelchError("root", new PasswordToken(""), instance.getInstanceID());
+    Credentials credentials = new Credentials("root", new PasswordToken(""));
     
     MetadataServicer ms = MetadataServicer.forTableId(instance, credentials, RootTable.ID);
     assertTrue(ms instanceof ServicerForRootTable);

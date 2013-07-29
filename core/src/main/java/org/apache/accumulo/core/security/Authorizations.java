@@ -195,8 +195,6 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   
   /**
    * Retrieve authorizations as a list of strings that have been encoded as UTF-8 bytes.
-   * 
-   * @see #Authorizations(List)
    */
   public List<ByteBuffer> getAuthorizationsBB() {
     return ByteBufferUtil.toImmutableByteBufferList(getAuthorizations());

@@ -21,7 +21,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 
 public class BatchWriterImpl implements BatchWriter {
@@ -29,10 +29,10 @@ public class BatchWriterImpl implements BatchWriter {
   private String table;
   private TabletServerBatchWriter bw;
   
-  public BatchWriterImpl(Instance instance, TCredentials credentials, String table, BatchWriterConfig config) {
+  public BatchWriterImpl(Instance instance, Credentials credentials, String table, BatchWriterConfig config) {
     ArgumentChecker.notNull(instance, credentials, table);
     if (config == null)
-      config= new BatchWriterConfig();
+      config = new BatchWriterConfig();
     this.table = table;
     this.bw = new TabletServerBatchWriter(instance, credentials, config);
   }

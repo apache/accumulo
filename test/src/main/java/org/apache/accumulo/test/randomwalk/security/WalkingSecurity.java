@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -282,11 +282,11 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   public TCredentials getSysCredentials() {
-    return CredentialHelper.createSquelchError(getSysUserName(), getSysToken(), state.getInstance().getInstanceID());
+    return new Credentials(getSysUserName(), getSysToken()).toThrift(this.state.getInstance());
   }
   
   public TCredentials getTabCredentials() {
-    return CredentialHelper.createSquelchError(getTabUserName(), getTabToken(), state.getInstance().getInstanceID());
+    return new Credentials(getTabUserName(), getTabToken()).toThrift(this.state.getInstance());
   }
   
   public AuthenticationToken getSysToken() {
@@ -398,7 +398,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   @Override
   public boolean validTokenClass(String tokenClass) {
-    return tokenClass.equals(PasswordToken.class.getCanonicalName());
+    return tokenClass.equals(PasswordToken.class.getName());
   }
   
   public static void clearInstance() {

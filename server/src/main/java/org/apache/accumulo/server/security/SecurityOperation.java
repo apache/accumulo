@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.admin.SecurityOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.TColumn;
@@ -37,7 +38,7 @@ import org.apache.accumulo.core.master.thrift.TableOperation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -155,7 +156,7 @@ public class SecurityOperation {
       authenticateSystemUser(credentials);
     } else {
       try {
-        AuthenticationToken token = reassembleToken(credentials);
+        AuthenticationToken token = AuthenticationTokenSerializer.deserialize(credentials.getTokenClassName(), credentials.getToken());
         if (!authenticator.authenticateUser(credentials.getPrincipal(), token)) {
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
         }
@@ -194,7 +195,7 @@ public class SecurityOperation {
   private AuthenticationToken reassembleToken(TCredentials toAuth) throws AccumuloSecurityException {
     String tokenClass = toAuth.getTokenClassName();
     if (authenticator.validTokenClass(tokenClass)) {
-      return CredentialHelper.extractToken(toAuth);
+      return AuthenticationTokenSerializer.deserialize(toAuth.getTokenClassName(), toAuth.getToken());
     }
     throw new AccumuloSecurityException(toAuth.getPrincipal(), SecurityErrorCode.INVALID_TOKEN);
   }
@@ -334,7 +335,7 @@ public class SecurityOperation {
     
     return hasTablePermission(credentials, tableID, TablePermission.WRITE, true) && hasTablePermission(credentials, tableID, TablePermission.READ, true);
   }
-
+  
   public boolean canSplitTablet(TCredentials credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermission(credentials, SystemPermission.ALTER_TABLE, false) || hasSystemPermission(credentials, SystemPermission.SYSTEM, false)
@@ -482,11 +483,11 @@ public class SecurityOperation {
     }
   }
   
-  public void changePassword(TCredentials credentials, TCredentials toChange) throws ThriftSecurityException {
+  public void changePassword(TCredentials credentials, Credentials toChange) throws ThriftSecurityException {
     if (!canChangePassword(credentials, toChange.getPrincipal()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     try {
-      AuthenticationToken token = reassembleToken(toChange);
+      AuthenticationToken token = toChange.getToken();
       authenticator.changePassword(toChange.getPrincipal(), token);
       log.info("Changed password for user " + toChange.getPrincipal() + " at the request of user " + credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
@@ -494,11 +495,11 @@ public class SecurityOperation {
     }
   }
   
-  public void createUser(TCredentials credentials, TCredentials newUser, Authorizations authorizations) throws ThriftSecurityException {
+  public void createUser(TCredentials credentials, Credentials newUser, Authorizations authorizations) throws ThriftSecurityException {
     if (!canCreateUser(credentials, newUser.getPrincipal()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     try {
-      AuthenticationToken token = reassembleToken(newUser);
+      AuthenticationToken token = newUser.getToken();
       authenticator.createUser(newUser.getPrincipal(), token);
       authorizor.initUser(newUser.getPrincipal());
       permHandle.initUser(newUser.getPrincipal());

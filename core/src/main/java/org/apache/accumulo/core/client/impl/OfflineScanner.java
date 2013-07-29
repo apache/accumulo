@@ -58,8 +58,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -119,13 +118,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private ScannerOptions options;
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
   
-  /**
-   * @param instance
-   * @param credentials
-   * @param authorizations
-   * @param table
-   */
-  public OfflineIterator(ScannerOptions options, Instance instance, TCredentials credentials, Authorizations authorizations, Text table, Range range) {
+  public OfflineIterator(ScannerOptions options, Instance instance, Credentials credentials, Authorizations authorizations, Text table, Range range) {
     this.options = new ScannerOptions(options);
     this.instance = instance;
     this.range = range;
@@ -139,7 +132,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<SortedKeyValueIterator<Key,Value>>();
     
     try {
-      conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
+      conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
       nextTablet();
       
       while (iter != null && !iter.hasTop())
@@ -357,11 +350,11 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private Range range;
   
   private Instance instance;
-  private TCredentials credentials;
+  private Credentials credentials;
   private Authorizations authorizations;
   private Text tableId;
   
-  public OfflineScanner(Instance instance, TCredentials credentials, String tableId, Authorizations authorizations) {
+  public OfflineScanner(Instance instance, Credentials credentials, String tableId, Authorizations authorizations) {
     ArgumentChecker.notNull(instance, credentials, tableId, authorizations);
     this.instance = instance;
     this.credentials = credentials;

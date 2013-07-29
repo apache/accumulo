@@ -26,7 +26,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -34,7 +35,6 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -45,7 +45,7 @@ import org.apache.log4j.Logger;
 public class ConfiguratorBase {
   
   /**
-   * Configuration keys for {@link Instance#getConnector(String, byte[])}.
+   * Configuration keys for {@link Instance#getConnector(String, AuthenticationToken)}.
    * 
    * @since 1.5.0
    */
@@ -111,8 +111,8 @@ public class ConfiguratorBase {
     ArgumentChecker.notNull(principal, token);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS), token.getClass().getCanonicalName());
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), CredentialHelper.tokenAsBase64(token));
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS), token.getClass().getName());
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
   }
   
   /**
@@ -196,7 +196,7 @@ public class ConfiguratorBase {
     if (tokenFile.isEmpty()) {
       return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS));
     } else {
-      return readTokenFile(implementingClass, conf).split(":")[1];
+      return readTokenFile(implementingClass, conf).getToken().getClass().getName();
     }
   }
   
@@ -217,20 +217,20 @@ public class ConfiguratorBase {
     String token = null;
     if (tokenFile.isEmpty()) {
       token = conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN));
-    } else {
-      token = readTokenFile(implementingClass, conf).split(":")[2];
+      return Base64.decodeBase64(token.getBytes(Constants.UTF8));
     }
-    return Base64.decodeBase64(token.getBytes(Constants.UTF8));
+    
+    return AuthenticationTokenSerializer.serialize(readTokenFile(implementingClass, conf).getToken());
   }
   
   /**
    * Grabs the token file's path out of the Configuration.
    * 
-   * @param job
+   * @param conf
    *          the Hadoop context for the configured job
    * @return path to the token file as a String
    * @since 1.6.0
-   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
+   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
   public static String getTokenFile(Class<?> implementingClass, Configuration conf) {
     return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_FILE), "");
@@ -239,13 +239,13 @@ public class ConfiguratorBase {
   /**
    * Reads from the token file in distributed cache. Currently, the token file stores data separated by colons e.g. principal:token_class:token
    * 
-   * @param job
+   * @param conf
    *          the Hadoop context for the configured job
    * @return path to the token file as a String
    * @since 1.6.0
-   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
+   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
-  public static String readTokenFile(Class<?> implementingClass, Configuration conf) {
+  private static Credentials readTokenFile(Class<?> implementingClass, Configuration conf) {
     String tokenFile = getTokenFile(implementingClass, conf);
     FSDataInputStream in = null;
     try {
@@ -266,20 +266,14 @@ public class ConfiguratorBase {
     }
     java.util.Scanner fileScanner = new java.util.Scanner(in);
     try {
-      String line = null;
-      boolean found = false;
       String principal = getPrincipal(implementingClass, conf);
-      while (!found && fileScanner.hasNextLine()) {
-        line = fileScanner.nextLine();
-        if (line.startsWith(principal + ":")) {
-          found = true;
-          break;
+      while (fileScanner.hasNextLine()) {
+        Credentials creds = Credentials.deserialize(fileScanner.nextLine());
+        if (principal.equals(creds.getPrincipal())) {
+          return creds;
         }
       }
-      if (found)
-        return line;
-      else
-        throw new IllegalArgumentException("Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
+      throw new IllegalArgumentException("Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
     } finally {
       if (fileScanner != null && fileScanner.ioException() == null)
         fileScanner.close();

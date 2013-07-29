@@ -39,7 +39,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -96,10 +96,10 @@ public class TabletLocatorImpl extends TabletLocator {
     /**
      * @return null when unable to read information successfully
      */
-    TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials) throws AccumuloSecurityException,
+    TabletLocations lookupTablet(Credentials credentials, TabletLocation src, Text row, Text stopRow, TabletLocator parent) throws AccumuloSecurityException,
         AccumuloException;
     
-    List<TabletLocation> lookupTablets(String tserver, Map<KeyExtent,List<Range>> map, TabletLocator parent, TCredentials credentials)
+    List<TabletLocation> lookupTablets(Credentials credentials, String tserver, Map<KeyExtent,List<Range>> map, TabletLocator parent)
         throws AccumuloSecurityException, AccumuloException;
   }
   
@@ -113,8 +113,8 @@ public class TabletLocatorImpl extends TabletLocator {
   }
   
   @Override
-  public <T extends Mutation> void binMutations(List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures,
-      TCredentials credentials) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
     OpTimer opTimer = null;
     if (log.isTraceEnabled())
@@ -167,7 +167,7 @@ public class TabletLocatorImpl extends TabletLocator {
           
           row.set(mutation.getRow());
           
-          TabletLocation tl = _locateTablet(row, false, false, false, credentials);
+          TabletLocation tl = _locateTablet(credentials, row, false, false, false);
           
           if (tl == null) {
             failures.add(mutation);
@@ -196,7 +196,7 @@ public class TabletLocatorImpl extends TabletLocator {
     tsm.addMutation(tl.tablet_extent, mutation);
   }
   
-  private List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, boolean useCache, TCredentials credentials)
+  private List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, boolean useCache)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     List<Range> failures = new ArrayList<Range>();
     List<TabletLocation> tabletLocations = new ArrayList<TabletLocation>();
@@ -218,7 +218,7 @@ public class TabletLocatorImpl extends TabletLocator {
       if (useCache)
         tl = locateTabletInCache(startRow);
       else if (!lookupFailed)
-        tl = _locateTablet(startRow, false, false, false, credentials);
+        tl = _locateTablet(credentials, startRow, false, false, false);
       
       if (tl == null) {
         failures.add(range);
@@ -235,7 +235,7 @@ public class TabletLocatorImpl extends TabletLocator {
           row.append(new byte[] {0}, 0, 1);
           tl = locateTabletInCache(row);
         } else {
-          tl = _locateTablet(tl.tablet_extent.getEndRow(), true, false, false, credentials);
+          tl = _locateTablet(credentials, tl.tablet_extent.getEndRow(), true, false, false);
         }
         
         if (tl == null) {
@@ -257,7 +257,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
   
   @Override
-  public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException,
+  public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     
     /*
@@ -279,7 +279,7 @@ public class TabletLocatorImpl extends TabletLocator {
       // sort ranges... therefore try binning ranges using only the cache
       // and sort whatever fails and retry
       
-      failures = binRanges(ranges, binnedRanges, true, credentials);
+      failures = binRanges(credentials, ranges, binnedRanges, true);
     } finally {
       rLock.unlock();
     }
@@ -291,7 +291,7 @@ public class TabletLocatorImpl extends TabletLocator {
       // try lookups again
       wLock.lock();
       try {
-        failures = binRanges(failures, binnedRanges, false, credentials);
+        failures = binRanges(credentials, failures, binnedRanges, false);
       } finally {
         wLock.unlock();
       }
@@ -362,7 +362,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
   
   @Override
-  public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
+  public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     
     OpTimer opTimer = null;
@@ -374,7 +374,7 @@ public class TabletLocatorImpl extends TabletLocator {
       
       TabletLocation tl;
       
-      tl = _locateTablet(row, skipRow, retry, true, credentials);
+      tl = _locateTablet(credentials, row, skipRow, retry, true);
       
       if (retry && tl == null) {
         UtilWaitThread.sleep(100);
@@ -390,23 +390,23 @@ public class TabletLocatorImpl extends TabletLocator {
     }
   }
   
-  private void lookupTabletLocation(Text row, boolean retry, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
+  private void lookupTabletLocation(Credentials credentials, Text row, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     Text metadataRow = new Text(tableId);
     metadataRow.append(new byte[] {';'}, 0, 1);
     metadataRow.append(row.getBytes(), 0, row.getLength());
-    TabletLocation ptl = parent.locateTablet(metadataRow, false, retry, credentials);
+    TabletLocation ptl = parent.locateTablet(credentials, metadataRow, false, retry);
     
     if (ptl != null) {
-      TabletLocations locations = locationObtainer.lookupTablet(ptl, metadataRow, lastTabletRow, parent, credentials);
+      TabletLocations locations = locationObtainer.lookupTablet(credentials, ptl, metadataRow, lastTabletRow, parent);
       while (locations != null && locations.getLocations().isEmpty() && locations.getLocationless().isEmpty()) {
         // try the next tablet, the current tablet does not have any tablets that overlap the row
         Text er = ptl.tablet_extent.getEndRow();
         if (er != null && er.compareTo(lastTabletRow) < 0) {
           // System.out.println("er "+er+"  ltr "+lastTabletRow);
-          ptl = parent.locateTablet(er, true, retry, credentials);
+          ptl = parent.locateTablet(credentials, er, true, retry);
           if (ptl != null)
-            locations = locationObtainer.lookupTablet(ptl, metadataRow, lastTabletRow, parent, credentials);
+            locations = locationObtainer.lookupTablet(credentials, ptl, metadataRow, lastTabletRow, parent);
           else
             break;
         } else {
@@ -523,7 +523,7 @@ public class TabletLocatorImpl extends TabletLocator {
     return null;
   }
   
-  protected TabletLocation _locateTablet(Text row, boolean skipRow, boolean retry, boolean lock, TCredentials credentials) throws AccumuloException,
+  protected TabletLocation _locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry, boolean lock) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     
     if (skipRow) {
@@ -548,7 +548,7 @@ public class TabletLocatorImpl extends TabletLocator {
         wLock.lock();
       try {
         // not in cache, so obtain info
-        lookupTabletLocation(row, retry, credentials);
+        lookupTabletLocation(credentials, row, retry);
         
         tl = locateTabletInCache(row);
       } finally {
@@ -560,7 +560,7 @@ public class TabletLocatorImpl extends TabletLocator {
     return tl;
   }
   
-  private void processInvalidated(TCredentials credentials) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  private void processInvalidated(Credentials credentials) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     
     if (badExtents.size() == 0)
       return;
@@ -585,14 +585,14 @@ public class TabletLocatorImpl extends TabletLocator {
       
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
       
-      parent.binRanges(lookups, binnedRanges, credentials);
+      parent.binRanges(credentials, lookups, binnedRanges);
       
       // randomize server order
       ArrayList<String> tabletServers = new ArrayList<String>(binnedRanges.keySet());
       Collections.shuffle(tabletServers);
       
       for (String tserver : tabletServers) {
-        List<TabletLocation> locations = locationObtainer.lookupTablets(tserver, binnedRanges.get(tserver), parent, credentials);
+        List<TabletLocation> locations = locationObtainer.lookupTablets(credentials, tserver, binnedRanges.get(tserver), parent);
         
         for (TabletLocation tabletLocation : locations) {
           updateCache(tabletLocation);

@@ -74,8 +74,8 @@ public class MetadataSchema {
      */
     public static class TabletColumnFamily {
       /**
-       * This needs to sort after all other column families for that tablet, because the {@link PREV_ROW_COLUMN} sits in this and that needs to sort last
-       * because the {@link SimpleGarbageCollector} relies on this.
+       * This needs to sort after all other column families for that tablet, because the {@link #PREV_ROW_COLUMN} sits in this and that needs to sort last
+       * because the SimpleGarbageCollector relies on this.
        */
       public static final Text NAME = new Text("~tab");
       /**

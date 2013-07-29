@@ -25,6 +25,7 @@ import java.security.SecurityPermission;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -53,7 +54,7 @@ public final class SystemCredentials extends Credentials {
   
   private SystemCredentials() {
     super(SYSTEM_PRINCIPAL, SYSTEM_TOKEN);
-    AS_THRIFT = toThrift(HdfsZooInstance.getInstance());
+    AS_THRIFT = super.toThrift(HdfsZooInstance.getInstance());
   }
   
   public static SystemCredentials get() {
@@ -63,12 +64,14 @@ public final class SystemCredentials extends Credentials {
     }
     if (SYSTEM_CREDS == null) {
       SYSTEM_CREDS = new SystemCredentials();
-      
     }
     return SYSTEM_CREDS;
   }
   
-  public TCredentials getAsThrift() {
+  @Override
+  public TCredentials toThrift(Instance instance) {
+    if (!AS_THRIFT.getInstanceId().equals(instance.getInstanceID()))
+      throw new IllegalArgumentException("Unexpected instance used for " + SystemCredentials.class.getSimpleName() + ": " + instance.getInstanceID());
     return AS_THRIFT;
   }
   

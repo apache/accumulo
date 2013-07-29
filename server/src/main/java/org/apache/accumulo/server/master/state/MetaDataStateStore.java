@@ -29,8 +29,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.security.CredentialHelper;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.io.Text;
@@ -44,22 +43,22 @@ public class MetaDataStateStore extends TabletStateStore {
   
   final protected Instance instance;
   final protected CurrentState state;
-  final protected TCredentials auths;
+  final protected Credentials credentials;
   final private String targetTableName;
   
-  protected MetaDataStateStore(Instance instance, TCredentials auths, CurrentState state, String targetTableName) {
+  protected MetaDataStateStore(Instance instance, Credentials credentials, CurrentState state, String targetTableName) {
     this.instance = instance;
     this.state = state;
-    this.auths = auths;
+    this.credentials = credentials;
     this.targetTableName = targetTableName;
   }
   
-  public MetaDataStateStore(Instance instance, TCredentials auths, CurrentState state) {
-    this(instance, auths, state, MetadataTable.NAME);
+  public MetaDataStateStore(Instance instance, Credentials credentials, CurrentState state) {
+    this(instance, credentials, state, MetadataTable.NAME);
   }
   
   protected MetaDataStateStore(String tableName) {
-    this(HdfsZooInstance.getInstance(), SystemCredentials.get().getAsThrift(), null, tableName);
+    this(HdfsZooInstance.getInstance(), SystemCredentials.get(), null, tableName);
   }
   
   public MetaDataStateStore() {
@@ -68,7 +67,7 @@ public class MetaDataStateStore extends TabletStateStore {
   
   @Override
   public Iterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(instance, auths, MetadataSchema.TabletsSection.getRange(), state);
+    return new MetaDataTableScanner(instance, credentials, MetadataSchema.TabletsSection.getRange(), state);
   }
   
   @Override
@@ -95,7 +94,7 @@ public class MetaDataStateStore extends TabletStateStore {
   
   BatchWriter createBatchWriter() {
     try {
-      return instance.getConnector(auths.getPrincipal(), CredentialHelper.extractToken(auths)).createBatchWriter(targetTableName,
+      return instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createBatchWriter(targetTableName,
           new BatchWriterConfig().setMaxMemory(MAX_MEMORY).setMaxLatency(LATENCY, TimeUnit.MILLISECONDS).setMaxWriteThreads(THREADS));
     } catch (TableNotFoundException e) {
       // ya, I don't think so

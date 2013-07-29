@@ -18,6 +18,7 @@ package org.apache.accumulo.test.randomwalk.concurrent;
 
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -42,8 +43,9 @@ public class Shutdown extends Test {
     
     while (true) {
       try {
-        Client client = MasterClient.getConnection(HdfsZooInstance.getInstance());
-        client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().getAsThrift());
+        Instance instance = HdfsZooInstance.getInstance();
+        Client client = MasterClient.getConnection(instance);
+        client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
       } catch (Exception e) {
         // assume this is due to server shutdown
         break;

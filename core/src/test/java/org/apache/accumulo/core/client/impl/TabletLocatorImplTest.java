@@ -51,7 +51,7 @@ import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
@@ -59,7 +59,7 @@ public class TabletLocatorImplTest extends TestCase {
   
   private static final KeyExtent RTE = RootTable.EXTENT;
   private static final KeyExtent MTE = new KeyExtent(new Text(MetadataTable.ID), null, RTE.getEndRow());
-  private static TCredentials credential = null;
+  private static Credentials credentials = null;
   
   static KeyExtent nke(String t, String er, String per) {
     return new KeyExtent(new Text(t), er == null ? null : new Text(er), per == null ? null : new Text(per));
@@ -167,7 +167,7 @@ public class TabletLocatorImplTest extends TestCase {
       List<Range> efailures) throws Exception {
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
-    List<Range> f = tab1TabletCache.binRanges(ranges, binnedRanges, credential);
+    List<Range> f = tab1TabletCache.binRanges(credentials, ranges, binnedRanges);
     assertEquals(expected, binnedRanges);
     
     HashSet<Range> f1 = new HashSet<Range>(f);
@@ -221,7 +221,7 @@ public class TabletLocatorImplTest extends TestCase {
   private void runTest(TabletLocatorImpl metaCache, List<Mutation> ml, Map<String,Map<KeyExtent,List<String>>> emb, String... efailures) throws Exception {
     Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<String,TabletServerMutations<Mutation>>();
     List<Mutation> afailures = new ArrayList<Mutation>();
-    metaCache.binMutations(ml, binnedMutations, afailures, credential);
+    metaCache.binMutations(credentials, ml, binnedMutations, afailures);
     
     verify(emb, binnedMutations);
     
@@ -470,7 +470,7 @@ public class TabletLocatorImplTest extends TestCase {
     }
     
     @Override
-    public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent, TCredentials credentials)
+    public TabletLocations lookupTablet(Credentials credentials, TabletLocation src, Text row, Text stopRow, TabletLocator parent)
         throws AccumuloSecurityException {
       
       // System.out.println("lookupTablet("+src+","+row+","+stopRow+","+ parent+")");
@@ -510,7 +510,7 @@ public class TabletLocatorImplTest extends TestCase {
     }
     
     @Override
-    public List<TabletLocation> lookupTablets(String tserver, Map<KeyExtent,List<Range>> map, TabletLocator parent, TCredentials credentials)
+    public List<TabletLocation> lookupTablets(Credentials credentials, String tserver, Map<KeyExtent,List<Range>> map, TabletLocator parent)
         throws AccumuloSecurityException {
       
       ArrayList<TabletLocation> list = new ArrayList<TabletLocation>();
@@ -621,9 +621,9 @@ public class TabletLocatorImplTest extends TestCase {
     
   }
   
-  private void locateTabletTest(TabletLocatorImpl cache, String row, boolean skipRow, KeyExtent expected, String server, TCredentials credentials)
+  private void locateTabletTest(TabletLocatorImpl cache, String row, boolean skipRow, KeyExtent expected, String server, Credentials credentials)
       throws Exception {
-    TabletLocation tl = cache.locateTablet(new Text(row), skipRow, false, credentials);
+    TabletLocation tl = cache.locateTablet(credentials, new Text(row), skipRow, false);
     
     if (expected == null) {
       if (tl != null)
@@ -636,7 +636,7 @@ public class TabletLocatorImplTest extends TestCase {
     }
   }
   
-  private void locateTabletTest(TabletLocatorImpl cache, String row, KeyExtent expected, String server, TCredentials credentials) throws Exception {
+  private void locateTabletTest(TabletLocatorImpl cache, String row, KeyExtent expected, String server, Credentials credentials) throws Exception {
     locateTabletTest(cache, row, false, expected, server, credentials);
   }
   
@@ -649,15 +649,15 @@ public class TabletLocatorImplTest extends TestCase {
     TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(new Text(MetadataTable.ID), rtl, ttlo);
     TabletLocatorImpl tab1TabletCache = new TabletLocatorImpl(new Text("tab1"), rootTabletCache, ttlo);
     
-    locateTabletTest(tab1TabletCache, "r1", null, null, credential);
+    locateTabletTest(tab1TabletCache, "r1", null, null, credentials);
     
     KeyExtent tab1e = nke("tab1", null, null);
     
     setLocation(tservers, "tserver1", RTE, MTE, "tserver2");
     setLocation(tservers, "tserver2", MTE, tab1e, "tserver3");
     
-    locateTabletTest(tab1TabletCache, "r1", tab1e, "tserver3", credential);
-    locateTabletTest(tab1TabletCache, "r2", tab1e, "tserver3", credential);
+    locateTabletTest(tab1TabletCache, "r1", tab1e, "tserver3", credentials);
+    locateTabletTest(tab1TabletCache, "r2", tab1e, "tserver3", credentials);
     
     // simulate a split
     KeyExtent tab1e1 = nke("tab1", "g", null);
@@ -666,41 +666,41 @@ public class TabletLocatorImplTest extends TestCase {
     setLocation(tservers, "tserver2", MTE, tab1e1, "tserver4");
     setLocation(tservers, "tserver2", MTE, tab1e2, "tserver5");
     
-    locateTabletTest(tab1TabletCache, "r1", tab1e, "tserver3", credential);
+    locateTabletTest(tab1TabletCache, "r1", tab1e, "tserver3", credentials);
     tab1TabletCache.invalidateCache(tab1e);
-    locateTabletTest(tab1TabletCache, "r1", tab1e2, "tserver5", credential);
-    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4", credential);
-    locateTabletTest(tab1TabletCache, "a", true, tab1e1, "tserver4", credential);
-    locateTabletTest(tab1TabletCache, "g", tab1e1, "tserver4", credential);
-    locateTabletTest(tab1TabletCache, "g", true, tab1e2, "tserver5", credential);
+    locateTabletTest(tab1TabletCache, "r1", tab1e2, "tserver5", credentials);
+    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4", credentials);
+    locateTabletTest(tab1TabletCache, "a", true, tab1e1, "tserver4", credentials);
+    locateTabletTest(tab1TabletCache, "g", tab1e1, "tserver4", credentials);
+    locateTabletTest(tab1TabletCache, "g", true, tab1e2, "tserver5", credentials);
     
     // simulate a partial split
     KeyExtent tab1e22 = nke("tab1", null, "m");
     setLocation(tservers, "tserver2", MTE, tab1e22, "tserver6");
-    locateTabletTest(tab1TabletCache, "r1", tab1e2, "tserver5", credential);
+    locateTabletTest(tab1TabletCache, "r1", tab1e2, "tserver5", credentials);
     tab1TabletCache.invalidateCache(tab1e2);
-    locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6", credential);
-    locateTabletTest(tab1TabletCache, "h", null, null, credential);
-    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4", credential);
+    locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6", credentials);
+    locateTabletTest(tab1TabletCache, "h", null, null, credentials);
+    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4", credentials);
     KeyExtent tab1e21 = nke("tab1", "m", "g");
     setLocation(tservers, "tserver2", MTE, tab1e21, "tserver7");
-    locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6", credential);
-    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver7", credential);
-    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4", credential);
+    locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6", credentials);
+    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver7", credentials);
+    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4", credentials);
     
     // simulate a migration
     setLocation(tservers, "tserver2", MTE, tab1e21, "tserver8");
     tab1TabletCache.invalidateCache(tab1e21);
-    locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6", credential);
-    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credential);
-    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4", credential);
+    locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6", credentials);
+    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credentials);
+    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4", credentials);
     
     // simulate a server failure
     setLocation(tservers, "tserver2", MTE, tab1e21, "tserver9");
     tab1TabletCache.invalidateCache("tserver8");
-    locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6", credential);
-    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver9", credential);
-    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4", credential);
+    locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6", credentials);
+    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver9", credentials);
+    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4", credentials);
     
     // simulate all servers failing
     deleteServer(tservers, "tserver1");
@@ -709,9 +709,9 @@ public class TabletLocatorImplTest extends TestCase {
     tab1TabletCache.invalidateCache("tserver6");
     tab1TabletCache.invalidateCache("tserver9");
     
-    locateTabletTest(tab1TabletCache, "r1", null, null, credential);
-    locateTabletTest(tab1TabletCache, "h", null, null, credential);
-    locateTabletTest(tab1TabletCache, "a", null, null, credential);
+    locateTabletTest(tab1TabletCache, "r1", null, null, credentials);
+    locateTabletTest(tab1TabletCache, "h", null, null, credentials);
+    locateTabletTest(tab1TabletCache, "a", null, null, credentials);
     
     testInstance.setRootTabletLocation("tserver4");
     setLocation(tservers, "tserver4", RTE, MTE, "tserver5");
@@ -719,9 +719,9 @@ public class TabletLocatorImplTest extends TestCase {
     setLocation(tservers, "tserver5", MTE, tab1e21, "tserver2");
     setLocation(tservers, "tserver5", MTE, tab1e22, "tserver3");
     
-    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver1", credential);
-    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver2", credential);
-    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver3", credential);
+    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver1", credentials);
+    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver2", credentials);
+    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver3", credentials);
     
     // simulate the !METADATA table splitting
     KeyExtent mte1 = new KeyExtent(new Text(MetadataTable.ID), tab1e21.getMetadataEntry(), RTE.getEndRow());
@@ -738,29 +738,29 @@ public class TabletLocatorImplTest extends TestCase {
     tab1TabletCache.invalidateCache(tab1e21);
     tab1TabletCache.invalidateCache(tab1e22);
     
-    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver7", credential);
-    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credential);
-    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credential);
+    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver7", credentials);
+    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credentials);
+    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credentials);
     
     // simulate metadata and regular server down and the reassigned
     deleteServer(tservers, "tserver5");
     tab1TabletCache.invalidateCache("tserver7");
-    locateTabletTest(tab1TabletCache, "a", null, null, credential);
-    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credential);
-    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credential);
+    locateTabletTest(tab1TabletCache, "a", null, null, credentials);
+    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credentials);
+    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credentials);
     
     setLocation(tservers, "tserver4", RTE, mte1, "tserver10");
     setLocation(tservers, "tserver10", mte1, tab1e1, "tserver7");
     setLocation(tservers, "tserver10", mte1, tab1e21, "tserver8");
     
-    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver7", credential);
-    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credential);
-    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credential);
+    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver7", credentials);
+    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credentials);
+    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credentials);
     tab1TabletCache.invalidateCache("tserver7");
     setLocation(tservers, "tserver10", mte1, tab1e1, "tserver2");
-    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver2", credential);
-    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credential);
-    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credential);
+    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver2", credentials);
+    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credentials);
+    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credentials);
     
     // simulate a hole in the !METADATA table, caused by a partial split
     KeyExtent mte11 = new KeyExtent(new Text(MetadataTable.ID), tab1e1.getMetadataEntry(), RTE.getEndRow());
@@ -772,16 +772,16 @@ public class TabletLocatorImplTest extends TestCase {
     // at this point should be no info in !METADATA about tab1e1
     tab1TabletCache.invalidateCache(tab1e1);
     tab1TabletCache.invalidateCache(tab1e21);
-    locateTabletTest(tab1TabletCache, "a", null, null, credential);
-    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver12", credential);
-    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credential);
+    locateTabletTest(tab1TabletCache, "a", null, null, credentials);
+    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver12", credentials);
+    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credentials);
     
     setLocation(tservers, "tserver4", RTE, mte11, "tserver5");
     setLocation(tservers, "tserver5", mte11, tab1e1, "tserver13");
     
-    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver13", credential);
-    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver12", credential);
-    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credential);
+    locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver13", credentials);
+    locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver12", credentials);
+    locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credentials);
   }
   
   public void test2() throws Exception {
@@ -794,13 +794,13 @@ public class TabletLocatorImplTest extends TestCase {
     setLocation(tservers, "tserver2", MTE, ke1, null);
     setLocation(tservers, "tserver2", MTE, ke2, "L1");
     
-    locateTabletTest(metaCache, "a", null, null, credential);
-    locateTabletTest(metaCache, "r", ke2, "L1", credential);
+    locateTabletTest(metaCache, "a", null, null, credentials);
+    locateTabletTest(metaCache, "r", ke2, "L1", credentials);
     
     setLocation(tservers, "tserver2", MTE, ke1, "L2");
     
-    locateTabletTest(metaCache, "a", ke1, "L2", credential);
-    locateTabletTest(metaCache, "r", ke2, "L1", credential);
+    locateTabletTest(metaCache, "a", ke1, "L2", credentials);
+    locateTabletTest(metaCache, "r", ke2, "L1", credentials);
   }
   
   public void testBinRanges1() throws Exception {
@@ -1192,7 +1192,7 @@ public class TabletLocatorImplTest extends TestCase {
     setLocation(tservers, "tserver3", mte2, ke2, "tserver5");
     
     // look up something that comes after the last entry in mte1
-    locateTabletTest(tab0TabletCache, "0bbff", ke2, "tserver5", credential);
+    locateTabletTest(tab0TabletCache, "0bbff", ke2, "tserver5", credentials);
   }
   
   public void testBug2() throws Exception {
@@ -1216,7 +1216,7 @@ public class TabletLocatorImplTest extends TestCase {
     ts3.put(mte2, new TreeMap<Key,Value>());
     tservers.tservers.put("tserver3", ts3);
     
-    assertNull(tab0TabletCache.locateTablet(new Text("row_0000000000"), false, false, credential));
+    assertNull(tab0TabletCache.locateTablet(credentials, new Text("row_0000000000"), false, false));
     
   }
   
@@ -1251,7 +1251,7 @@ public class TabletLocatorImplTest extends TestCase {
     createEmptyTablet(tservers, "tserver5", mte4);
     setLocation(tservers, "tserver6", mte5, ke1, "tserver7");
     
-    locateTabletTest(tab0TabletCache, "a", ke1, "tserver7", credential);
+    locateTabletTest(tab0TabletCache, "a", ke1, "tserver7", credentials);
     
   }
   
@@ -1267,7 +1267,7 @@ public class TabletLocatorImplTest extends TestCase {
     setLocation(tservers, "tserver2", MTE, ke1, "L2", "I2");
     
     try {
-      metaCache.locateTablet(new Text("a"), false, false, credential);
+      metaCache.locateTablet(credentials, new Text("a"), false, false);
       assertTrue(false);
     } catch (Exception e) {
       
