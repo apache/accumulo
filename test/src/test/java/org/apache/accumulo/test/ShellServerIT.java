@@ -862,13 +862,13 @@ public class ShellServerIT extends SimpleMacIT {
     exec("online -tn thing2", true);
     exec("flush -tn thing2", true);
     exec("compact -tn thing2", true);
-    exec("createnamespace testers", true);
-    exec("createtable testers.1", true);
-    exec("createtable testers.2", true);
-    exec("deletetable -tn testers -f", true);
-    exec("tables", true, "testers.1", false);
-    exec("namespaces", true, "testers", true);
-    exec("deletenamespace testers -f", true);
+    exec("createnamespace testers3", true);
+    exec("createtable testers3.1", true);
+    exec("createtable testers3.2", true);
+    exec("deletetable -tn testers3 -f", true);
+    exec("tables", true, "testers3.1", false);
+    exec("namespaces", true, "testers3", true);
+    exec("deletenamespace testers3 -f", true);
     
     // properties override and such
     exec("config -tn thing2 -s table.file.max=44444", true);

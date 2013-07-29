@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -348,11 +349,13 @@ public class TableNamespacesIT {
     
     Map<String,String> propsToSet = new HashMap<String,String>();
     propsToSet.put(propKey1, propVal1);
-    c.tableNamespaceOperations().clone(n1, n3, true, propsToSet, null, true);
+    Set<String> propsToExclude = new HashSet<String>();
+    propsToExclude.add(propKey2);
+    c.tableNamespaceOperations().clone(n1, n3, true, propsToSet, propsToExclude, true);
     
     assertTrue(checkTableNamespaceHasProp(c, n3, propKey1, propVal1));
     assertTrue(checkTableHasProp(c, n3 + t, propKey1, propVal2));
-    assertTrue(checkTableNamespaceHasProp(c, n3, propKey2, propVal3));
+    assertTrue(!checkTableNamespaceHasProp(c, n3, propKey2, propVal3));
     assertTrue(!checkTableHasProp(c, n3 + t, propKey2, propVal3));
   }
   
