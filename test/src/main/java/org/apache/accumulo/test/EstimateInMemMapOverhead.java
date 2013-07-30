@@ -22,7 +22,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.server.tabletserver.InMemoryMap;
+import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.hadoop.io.Text;
 
 abstract class MemoryUsageTest {

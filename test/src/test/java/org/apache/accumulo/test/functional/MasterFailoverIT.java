@@ -20,10 +20,10 @@ import java.util.Collections;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.master.Master;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.ProcessReference;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;

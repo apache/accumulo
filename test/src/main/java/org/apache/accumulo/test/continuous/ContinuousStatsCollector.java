@@ -44,8 +44,8 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
@@ -146,8 +146,8 @@ public class ContinuousStatsCollector {
               tableSummary = new TableInfo();
               tableSummaries.put(info.getKey(), tableSummary);
             }
-            Monitor.add(tableSummary, info.getValue());
-            Monitor.add(all, info.getValue());
+            TableInfoUtil.add(tableSummary, info.getValue());
+            TableInfoUtil.add(all, info.getValue());
           }
         }
         

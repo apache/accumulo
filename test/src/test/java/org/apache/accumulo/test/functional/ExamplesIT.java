@@ -69,27 +69,27 @@ import org.apache.accumulo.examples.simple.shard.ContinuousQuery;
 import org.apache.accumulo.examples.simple.shard.Index;
 import org.apache.accumulo.examples.simple.shard.Query;
 import org.apache.accumulo.examples.simple.shard.Reverse;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
 import org.apache.accumulo.minicluster.MemoryUnit;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.apache.accumulo.server.trace.TraceServer;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class ExamplesIT extends ConfigurableMacIT {
-  
+
   BatchWriterOpts bwOpts = new BatchWriterOpts();
-  
+
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     cfg.setDefaultMemory(cfg.getDefaultMemory() * 2, MemoryUnit.BYTE);
   }
-  
+
   @Test(timeout = 10 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
@@ -104,15 +104,15 @@ public class ExamplesIT extends ConfigurableMacIT {
     IteratorSetting is;
     String dir = cluster.getConfig().getDir().getAbsolutePath();
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    
+
     Process trace = cluster.exec(TraceServer.class);
     while (!c.tableOperations().exists("trace"))
       UtilWaitThread.sleep(500);
-    
+
     log.info("trace example");
     Process p = cluster.exec(TracingExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-C", "-D", "-c");
     assertEquals(0, p.waitFor());
-    for(LogWriter writer : cluster.getLogWriters()) {
+    for (LogWriter writer : cluster.getLogWriters()) {
       writer.flush();
     }
     String result = FunctionalTestUtils.readAll(cluster, TracingExample.class, p);
@@ -128,24 +128,23 @@ public class ExamplesIT extends ConfigurableMacIT {
     result = FunctionalTestUtils.readAll(cluster, TraceDumpExample.class, p);
     assertTrue(result.contains("myHost@myApp"));
     trace.destroy();
-    
-    
+
     log.info("testing dirlist example (a little)");
     c.securityOperations().changeUserAuthorizations(user, new Authorizations(auths.split(",")));
-    assertEquals(0, cluster.exec(Ingest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, 
-        "--dirTable", "dirTable", "--indexTable", "indexTable", "--dataTable", "dataTable",
-        "--vis", visibility, "--chunkSize", 10000 + "", cluster.getConfig().getDir().getAbsolutePath()).waitFor());
-    p = cluster.exec(QueryUtil.class, "-i", instance, "-z", keepers, "-p", passwd, "-u", user,
-        "-t", "indexTable", "--auths", auths, "--search", "--path", "accumulo-site.xml");
+    assertEquals(
+        0,
+        cluster.exec(Ingest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable", "dirTable", "--indexTable", "indexTable",
+            "--dataTable", "dataTable", "--vis", visibility, "--chunkSize", 10000 + "", cluster.getConfig().getDir().getAbsolutePath()).waitFor());
+    p = cluster.exec(QueryUtil.class, "-i", instance, "-z", keepers, "-p", passwd, "-u", user, "-t", "indexTable", "--auths", auths, "--search", "--path",
+        "accumulo-site.xml");
     assertEquals(0, p.waitFor());
-    for(LogWriter writer : cluster.getLogWriters()) {
+    for (LogWriter writer : cluster.getLogWriters()) {
       writer.flush();
     }
     result = FunctionalTestUtils.readAll(cluster, QueryUtil.class, p);
     System.out.println("result " + result);
     assertTrue(result.contains("accumulo-site.xml"));
 
-  
     log.info("Testing ageoff filtering");
     c.tableOperations().create("filtertest");
     is = new IteratorSetting(10, AgeOffFilter.class);
@@ -157,17 +156,18 @@ public class ExamplesIT extends ConfigurableMacIT {
     bw.addMutation(m);
     UtilWaitThread.sleep(1000);
     count = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> line : c.createScanner("filtertest", Authorizations.EMPTY))
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> line : c.createScanner("filtertest", Authorizations.EMPTY))
       count++;
     assertEquals(0, count);
-    
-    
+
     log.info("Testing bloom filters are fast for missing data");
     c.tableOperations().create("bloom_test");
     c.tableOperations().setProperty("bloom_test", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-    assertEquals(0, cluster.exec(RandomBatchWriter.class, "--seed", "7", "-i", instance, "-z",
-        keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "100000", "--min", "0", "--max", "1000000000", "--size", "50",
-        "--batchMemmory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", "bloom_test").waitFor());
+    assertEquals(
+        0,
+        cluster.exec(RandomBatchWriter.class, "--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "100000", "--min", "0",
+            "--max", "1000000000", "--size", "50", "--batchMemmory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", "bloom_test").waitFor());
     c.tableOperations().flush("bloom_test", null, null, true);
     long diff = 0, diff2 = 0;
     // try the speed test a couple times in case the system is loaded with other tests
@@ -186,7 +186,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         break;
     }
     assertTrue(diff2 < diff);
-    
+
     log.info("Creating a sharded index of the accumulo java files");
     c.tableOperations().create("shard");
     c.tableOperations().create("doc2term");
@@ -204,12 +204,13 @@ public class ExamplesIT extends ConfigurableMacIT {
     }
     assertTrue(thisFile);
     // create a reverse index
-    assertEquals(0, cluster.exec(Reverse.class, "-i", instance, "-z", keepers, "-t", "shard", "--doc2Term",
-        "-u", "root", "-p", passwd).waitFor());
+    assertEquals(0, cluster.exec(Reverse.class, "-i", instance, "-z", keepers, "-t", "shard", "--doc2Term", "-u", "root", "-p", passwd).waitFor());
     // run some queries
-    assertEquals(0, cluster.exec(ContinuousQuery.class, "-i", instance, "-z", keepers, "-t", "shard", "--doc2Term",
-        "-u", "root", "-p", passwd, "--term", "5", "--count", "1000").waitFor());
-    
+    assertEquals(
+        0,
+        cluster.exec(ContinuousQuery.class, "-i", instance, "-z", keepers, "-t", "shard", "--doc2Term", "-u", "root", "-p", passwd, "--term", "5", "--count",
+            "1000").waitFor());
+
     log.info("Testing MaxMutation constraint");
     c.tableOperations().create("test_ingest");
     c.tableOperations().addConstraint("test_ingest", MaxMutationSize.class.getName());
@@ -225,10 +226,9 @@ public class ExamplesIT extends ConfigurableMacIT {
     log.info("Starting build ingest example");
     assertEquals(0, cluster.exec(GenerateTestData.class, "0", "10000", dir + "/tmp/input/data").waitFor());
     assertEquals(0, cluster.exec(SetupTable.class, instance, keepers, user, passwd, "bulkTable").waitFor());
-    assertEquals(0, cluster.exec(BulkIngestExample.class, instance, keepers, user, passwd, "bulkTable",
-        dir + "/tmp/input", dir + "/tmp").waitFor());
+    assertEquals(0, cluster.exec(BulkIngestExample.class, instance, keepers, user, passwd, "bulkTable", dir + "/tmp/input", dir + "/tmp").waitFor());
     assertEquals(0, cluster.exec(VerifyIngest.class, instance, keepers, user, passwd, "bulkTable", "0", "1000000").waitFor());
-    
+
     log.info("Starting bulk ingest example");
     assertEquals(0, cluster.exec(GenerateTestData.class, "0", "1000000", dir + "/tmp/input/data").waitFor());
     assertEquals(0, cluster.exec(SetupTable.class, instance, keepers, user, passwd, "bulkTable").waitFor());
@@ -236,44 +236,15 @@ public class ExamplesIT extends ConfigurableMacIT {
     assertEquals(0, cluster.exec(VerifyIngest.class, instance, keepers, user, passwd, "bulkTable", "0", "1000000").waitFor());
 
     log.info("Running TeraSortIngest example");
-    exec(TeraSortIngest.class, new String[]{
-        "--count", (1000*1000) + "",
-        "-nk", "10", "-xk", "10",
-        "-nv", "10", "-xv", "10",
-        "-t", "sorted",
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "--splits", "4"});
+    exec(TeraSortIngest.class, new String[] {"--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", "sorted", "-i", instance,
+        "-z", keepers, "-u", user, "-p", passwd, "--splits", "4"});
     log.info("Running Regex example");
-    exec(RegexExample.class, new String[] {
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "-t", "sorted",
-        "--rowRegex", ".*999.*",
-        "--output", dir + "/tmp/nines"
-    });
+    exec(RegexExample.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "sorted", "--rowRegex", ".*999.*", "--output",
+        dir + "/tmp/nines"});
     log.info("Running RowHash example");
-    exec(RowHash.class, new String[]{
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "-t", "sorted",
-        "--column", "c:"
-    });
+    exec(RowHash.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "sorted", "--column", "c:"});
     log.info("Running TableToFile example");
-    exec(TableToFile.class, new String[]{
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "-t", "sorted",
-        "--output", dir + "/tmp/tableFile"
-    });
+    exec(TableToFile.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "sorted", "--output", dir + "/tmp/tableFile"});
 
     log.info("Running word count example");
     c.tableOperations().create("wordCount");
@@ -282,132 +253,37 @@ public class ExamplesIT extends ConfigurableMacIT {
     SummingCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     c.tableOperations().attachIterator("wordCount", is);
     fs.copyFromLocalFile(new Path(new Path(System.getProperty("user.dir")).getParent(), "README"), new Path(dir + "/tmp/wc/README"));
-    exec(WordCount.class, new String[] {
-       "-i", instance,
-       "-u", user,
-       "-p", passwd,
-       "-z", keepers,
-       "--input", dir + "/tmp/wc",
-       "-t", "wordCount"
-    });
+    exec(WordCount.class, new String[] {"-i", instance, "-u", user, "-p", passwd, "-z", keepers, "--input", dir + "/tmp/wc", "-t", "wordCount"});
 
     log.info("Inserting data with a batch writer");
-    exec(InsertWithBatchWriter.class, new String[]{
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "-t", "helloBatch"
-    });
+    exec(InsertWithBatchWriter.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "helloBatch"});
     log.info("Reading data");
-    exec(ReadData.class, new String[]{
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "-t", "helloBatch"
-    });
+    exec(ReadData.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "helloBatch"});
     log.info("Running isolated scans");
-    exec(InterferenceTest.class, new String[]{
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "-t", "itest1",
-        "--iterations", "100000",
-        "--isolated"
-    });
+    exec(InterferenceTest.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "itest1", "--iterations", "100000", "--isolated"});
     log.info("Running scans without isolation");
-    exec(InterferenceTest.class, new String[]{
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "-t", "itest2",
-        "--iterations", "100000",
-    });
+    exec(InterferenceTest.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "itest2", "--iterations", "100000",});
     log.info("Performing some row operations");
-    exec(RowOperations.class, new String[]{
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-    });
+    exec(RowOperations.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd,});
     log.info("Using the batch writer");
     c.tableOperations().create("test");
-    exec(SequentialBatchWriter.class, new String[] {
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "-t", "test",
-        "--start", "0",
-        "--num", "100000",
-        "--size", "50",
-        "--batchMemory", "10000000",
-        "--batchLatency", "1000",
-        "--batchThreads", "4",
-        "--vis", visibility
-    });
+    exec(SequentialBatchWriter.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "test", "--start", "0", "--num", "100000",
+        "--size", "50", "--batchMemory", "10000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility});
 
     log.info("Reading and writing some data");
-    exec(ReadWriteExample.class, new String[] {
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "--auths", auths,
-        "--table", "test2",
-        "--createtable",
-        "-c",
-        "--debug"});
+    exec(ReadWriteExample.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", "test2", "--createtable",
+        "-c", "--debug"});
     log.info("Deleting some data");
-    exec(ReadWriteExample.class, new String[] {
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "--auths", auths,
-        "--table", "test2",
-        "-d",
-        "--debug"});
+    exec(ReadWriteExample.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", "test2", "-d", "--debug"});
     log.info("Writing some data with the batch writer");
     c.tableOperations().create("test3");
-    exec(RandomBatchWriter.class, new String[] {
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "--table", "test3",
-        "--num", "100000",
-        "--min", "0",
-        "--max", "99999",
-        "--size", "100",
-        "--batchMemory", "1000000",
-        "--batchLatency", "1000",
-        "--batchThreads", "4",
-        "--vis", visibility});
+    exec(RandomBatchWriter.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", "test3", "--num", "100000", "--min", "0",
+        "--max", "99999", "--size", "100", "--batchMemory", "1000000", "--batchLatency", "1000", "--batchThreads", "4", "--vis", visibility});
     log.info("Reading some data with the batch scanner");
-    exec(RandomBatchScanner.class, new String[] {
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "--table", "test3",
-        "--num", "10000",
-        "--min", "0",
-        "--max", "99999",
-        "--size", "100",
-        "--scanThreads", "4",
-        "--auths", auths});
+    exec(RandomBatchScanner.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", "test3", "--num", "10000", "--min", "0",
+        "--max", "99999", "--size", "100", "--scanThreads", "4", "--auths", auths});
     log.info("Running an example table operation (Flush)");
-    exec(Flush.class, new String[]{
-        "-i", instance,
-        "-z", keepers,
-        "-u", user,
-        "-p", passwd,
-        "--table", "test3",
-    });
+    exec(Flush.class, new String[] {"-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", "test3",});
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
 
   }

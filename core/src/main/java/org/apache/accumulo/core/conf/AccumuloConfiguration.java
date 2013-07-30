@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
 public abstract class AccumuloConfiguration implements Iterable<Entry<String,String>> {
@@ -183,4 +184,24 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   
   // overridden in ZooConfiguration
   public void invalidateCache() {}
+  
+  public <T> T instantiateClassProperty(Property property, Class<T> base, T defaultInstance) {
+    String clazzName = get(property);
+    T instance = null;
+    
+    try {
+      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
+      instance = clazz.newInstance();
+      log.info("Loaded class : " + clazzName);
+    } catch (Exception e) {
+      log.warn("Failed to load class ", e);
+    }
+    
+    if (instance == null) {
+      log.info("Using " + defaultInstance.getClass().getName());
+      instance = defaultInstance;
+    }
+    return instance;
+  }
+  
 }

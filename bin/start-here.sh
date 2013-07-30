@@ -50,7 +50,7 @@ done
 
 for host in $HOSTS; do
    if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/masters; then
-      ${bin}/accumulo org.apache.accumulo.server.master.state.SetGoalState NORMAL
+      ${bin}/accumulo org.apache.accumulo.master.state.SetGoalState NORMAL
       ${bin}/start-server.sh $host master
       break
    fi

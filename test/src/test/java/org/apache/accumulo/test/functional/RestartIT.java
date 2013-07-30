@@ -31,10 +31,10 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.ProcessReference;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.server.gc.SimpleGarbageCollector;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -43,7 +43,7 @@ import org.junit.Test;
 public class RestartIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String, String> props = new HashMap<String, String>();
+    Map<String,String> props = new HashMap<String,String>();
     props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
     props.put(Property.GC_CYCLE_DELAY.getKey(), "1s");
     props.put(Property.GC_CYCLE_START.getKey(), "1s");
@@ -93,7 +93,7 @@ public class RestartIT extends ConfigurableMacIT {
     cluster.start();
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void restartMasterSplit() throws Exception {
     Connector c = getConnector();
@@ -149,7 +149,7 @@ public class RestartIT extends ConfigurableMacIT {
     cluster.killProcess(ServerType.TABLET_SERVER, procs.get(0));
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void shutdownDuringCompactingSplitting() throws Exception {
     Connector c = getConnector();

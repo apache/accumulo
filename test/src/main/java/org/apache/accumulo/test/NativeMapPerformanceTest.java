@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.tabletserver.NativeMap;
+import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
 
 public class NativeMapPerformanceTest {

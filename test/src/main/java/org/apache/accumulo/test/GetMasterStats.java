@@ -26,8 +26,8 @@ import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
 
 public class GetMasterStats {
@@ -75,7 +75,7 @@ public class GetMasterStats {
       out(0, "Tablet Servers");
       long now = System.currentTimeMillis();
       for (TabletServerStatus server : stats.tServerInfo) {
-        TableInfo summary = Monitor.summarizeTableStats(server);
+        TableInfo summary = TableInfoUtil.summarizeTableStats(server);
         out(1, "Name: %s", server.name);
         out(2, "Ingest: %.2f", summary.ingestRate);
         out(2, "Last Contact: %s", server.lastContact);

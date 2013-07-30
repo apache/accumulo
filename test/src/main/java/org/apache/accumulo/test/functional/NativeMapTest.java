@@ -31,7 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.tabletserver.NativeMap;
+import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
 
 public class NativeMapTest {

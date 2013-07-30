@@ -64,11 +64,12 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-proxy</artifactId>
+      <artifactId>accumulo-native</artifactId>
+      <type>tar.gz</type>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-server</artifactId>
+      <artifactId>accumulo-proxy</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -368,7 +369,7 @@
                   <classifier>native</classifier>
                   <needarch>x86_64</needarch>
                   <provides>
-                    <provide>accumulo-native</provide>
+                    <provide>libaccumulo</provide>
                   </provides>
                   <requires>
                     <require>accumulo</require>
@@ -604,19 +605,11 @@
                       <excludes>**/.svn/**</excludes>
                     </data>
                     <data>
-                      <src>${accumulo-top}/server/src/main/java/org/apache/accumulo/server/tabletserver/MLock.java</src>
+                      <src>${accumulo-top}/server/src/main/java/org/apache/accumulo/tserver/NativeMap.java</src>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
-                        <prefix>/usr/lib/accumulo/server/src/main/java/org/apache/accumulo/server/tabletserver/MLock.java</prefix>
-                      </mapper>
-                    </data>
-                    <data>
-                      <src>${accumulo-top}/server/src/main/java/org/apache/accumulo/server/tabletserver/NativeMap.java</src>
-                      <type>file</type>
-                      <mapper>
-                        <type>perm</type>
-                        <prefix>/usr/lib/accumulo/server/src/main/java/org/apache/accumulo/server/tabletserver/NativeMap.java</prefix>
+                        <prefix>/usr/lib/accumulo/server/src/main/java/org/apache/accumulo/tserver/NativeMap.java</prefix>
                       </mapper>
                     </data>
                   </dataSet>

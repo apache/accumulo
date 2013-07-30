@@ -53,7 +53,7 @@ if [ "$1" != "--notSlaves" ]; then
    ${bin}/tup.sh
 fi
 
-${bin}/accumulo org.apache.accumulo.server.master.state.SetGoalState NORMAL
+${bin}/accumulo org.apache.accumulo.master.state.SetGoalState NORMAL
 for master in `egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters"`; do
    ${bin}/start-server.sh $master master
 done

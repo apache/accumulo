@@ -28,7 +28,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.server.tabletserver.NativeMap;
+import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;

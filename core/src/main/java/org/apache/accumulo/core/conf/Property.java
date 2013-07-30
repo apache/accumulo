@@ -69,14 +69,14 @@ public enum Property {
       "The path relative to the top level instance directory (instance.dfs.dir) where to store the key encryption key within HDFS."),
   @Experimental
   CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE("crypto.default.key.strategy.cipher.suite", "NullCipher", PropertyType.STRING,
-      "The cipher suite to use when encrypting session keys with a key encryption key.  This should be set to match the overall encryption algorithm  " +
-      "but with ECB mode and no padding unless you really know what you're doing and are sure you won't break internal file formats"),
+      "The cipher suite to use when encrypting session keys with a key encryption key.  This should be set to match the overall encryption algorithm  "
+          + "but with ECB mode and no padding unless you really know what you're doing and are sure you won't break internal file formats"),
   @Experimental
   CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY("crypto.override.key.strategy.with.configured.strategy", "false", PropertyType.BOOLEAN,
-          "The default behavior is to record the key encryption strategy with the encrypted file, and continue to use that strategy for the life " +
-          "of that file.  Sometimes, you change your strategy and want to use the new strategy, not the old one.  (Most commonly, this will be " +
-          "because you have moved key material from one spot to another.)  If you want to override the recorded key strategy with the one in " +
-          "the configuration file, set this property to true."),
+      "The default behavior is to record the key encryption strategy with the encrypted file, and continue to use that strategy for the life "
+          + "of that file.  Sometimes, you change your strategy and want to use the new strategy, not the old one.  (Most commonly, this will be "
+          + "because you have moved key material from one spot to another.)  If you want to override the recorded key strategy with the one in "
+          + "the configuration file, set this property to true."),
   // instance properties (must be the same for every node in an instance)
   INSTANCE_PREFIX("instance.", null, PropertyType.PREFIX,
       "Properties in this category must be consistent throughout a cloud. This is enforced and servers won't be able to communicate if these differ."),
@@ -121,7 +121,8 @@ public enum Property {
   GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING, "Name of the kerberos principal to use. _HOST will automatically be "
       + "replaced by the machines hostname in the hostname portion of the principal. Leave blank if not using kerberoized hdfs"),
   GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.MEMORY, "The maximum size of a message that can be sent to a server."),
-  GENERAL_VOLUME_CHOOSER("general.volume.chooser", "org.apache.accumulo.server.fs.RandomVolumeChooser", PropertyType.CLASSNAME, "The class that will be used to select which volume will be used to create new files."),
+  GENERAL_VOLUME_CHOOSER("general.volume.chooser", "org.apache.accumulo.server.fs.RandomVolumeChooser", PropertyType.CLASSNAME,
+      "The class that will be used to select which volume will be used to create new files."),
 
   // properties that are specific to master server behavior
   MASTER_PREFIX("master.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the master server"),
@@ -139,7 +140,7 @@ public enum Property {
       "When a tablet server's lock is deleted, it takes time for it to completely quit. This delay gives it time before log recoveries begin."),
   MASTER_LEASE_RECOVERY_WAITING_PERIOD("master.lease.recovery.interval", "5s", PropertyType.TIMEDURATION,
       "The amount of time to wait after requesting a WAL file to be recovered"),
-  MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation", "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
+  MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation", "org.apache.accumulo.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechansim to steal write access to a file"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run FAult-Tolerant Executions.  These are primarily table operations like merge."),
@@ -264,7 +265,7 @@ public enum Property {
   @Experimental
   @Sensitive
   MONITOR_SSL_TRUSTSTOREPASS("monitor.ssl.trustStorePassword", "", PropertyType.STRING, "The truststore password for enabling monitor SSL."),
-  
+
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of distributed tracing."),
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT, "The listening port for the trace server"),
   TRACE_TABLE("trace.table", "trace", PropertyType.STRING, "The name of the table to store distributed traces"),
@@ -370,7 +371,8 @@ public enum Property {
   TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(), PropertyType.STRING,
       "The ScanInterpreter class to apply on scan arguments in the shell"),
   TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING, "Per table classpath context"),
-  TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy", "org.apache.accumulo.server.tabletserver.compaction.DefaultCompactionStrategy", PropertyType.CLASSNAME, "A customizable major compaction strategy."),
+  TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy", "org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy", PropertyType.CLASSNAME,
+      "A customizable major compaction strategy."),
   TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null, PropertyType.PREFIX,
       "Properties in this category are used to configure the compaction strategy."),
 
@@ -388,19 +390,18 @@ public enum Property {
   VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR, "${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}",
       PropertyType.ABSOLUTEPATH, "Directory to use for the vfs cache. The cache will keep a soft reference to all of the classes loaded in the VM."
           + " This should be on local disk on each node with sufficient space. It defaults to ${java.io.tmpdir}/accumulo-vfs-cache-${user.name}"),
-  
+
   @Interpolated
   @Experimental
   GENERAL_MAVEN_PROJECT_BASEDIR(AccumuloClassLoader.MAVEN_PROJECT_BASEDIR_PROPERTY_NAME, AccumuloClassLoader.DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE,
       PropertyType.ABSOLUTEPATH, "Set this to automatically add maven target/classes directories to your dynamic classpath"),
-  
+
   ;
-  
 
   private String key, defaultValue, description;
   private PropertyType type;
   static Logger log = Logger.getLogger(Property.class);
-  
+
   private Property(String name, String defaultValue, PropertyType type, String description) {
     this.key = name;
     this.defaultValue = defaultValue;
@@ -451,19 +452,19 @@ public enum Property {
   public boolean isExperimental() {
     return hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
   }
-  
+
   public boolean isDeprecated() {
     return hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
   }
-  
+
   public boolean isSensitive() {
     return hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
   }
-  
+
   public static boolean isSensitive(String key) {
     return hasPrefixWithAnnotation(key, Sensitive.class);
   }
-  
+
   private <T extends Annotation> boolean hasAnnotation(Class<T> annotationType) {
     Logger log = Logger.getLogger(getClass());
     try {
@@ -477,7 +478,7 @@ public enum Property {
     }
     return false;
   }
-  
+
   private static <T extends Annotation> boolean hasPrefixWithAnnotation(String key, Class<T> annotationType) {
     // relies on side-effects of isValidPropertyKey to populate validPrefixes
     if (isValidPropertyKey(key)) {
@@ -599,7 +600,7 @@ public enum Property {
 
   public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
     Map<String,String> longNames = tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
-    Map<String,String> result = new HashMap<String, String>();
+    Map<String,String> result = new HashMap<String,String>();
     for (Entry<String,String> entry : longNames.entrySet()) {
       result.put(entry.getKey().substring(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey().length()), entry.getValue());
     }

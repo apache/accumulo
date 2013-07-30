@@ -37,45 +37,45 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.apache.accumulo.server.tabletserver.compaction.CompactionPlan;
-import org.apache.accumulo.server.tabletserver.compaction.CompactionStrategy;
-import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionRequest;
+import org.apache.accumulo.tserver.compaction.CompactionPlan;
+import org.apache.accumulo.tserver.compaction.CompactionStrategy;
+import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class ConfigurableCompactionIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
   }
-  
+
   public static class SimpleCompactionStrategy extends CompactionStrategy {
-    
+
     @Override
     public void init(Map<String,String> options) {
       String countString = options.get("count");
       if (countString != null)
         count = Integer.parseInt(countString);
     }
-    
+
     int count = 3;
-    
+
     @Override
     public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
       return request.getFiles().size() == count;
-      
+
     }
-    
+
     @Override
     public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
       CompactionPlan result = new CompactionPlan();
       result.inputFiles.addAll(request.getFiles().keySet());
       return result;
     }
-    
+
   }
-  
+
   @Test
   public void test() throws Exception {
     final Connector c = getConnector();
@@ -86,13 +86,13 @@ public class ConfigurableCompactionIT extends ConfigurableMacIT {
     c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey() + "count", "" + 5);
     runTest(c, tableName, 5);
   }
-  
+
   final static Random r = new Random();
-  
+
   private void makeFile(Connector conn, String tablename) throws Exception {
     BatchWriter bw = conn.createBatchWriter(tablename, new BatchWriterConfig());
     byte[] empty = {};
-    byte[] row = new byte[10]; 
+    byte[] row = new byte[10];
     r.nextBytes(row);
     Mutation m = new Mutation(row, 0, 10);
     m.put(empty, empty, empty);
@@ -101,7 +101,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacIT {
     bw.close();
     conn.tableOperations().flush(tablename, null, null, true);
   }
-  
+
   private void runTest(final Connector c, final String tableName, final int n) throws Exception {
     for (int i = countFiles(c, tableName); i < n - 1; i++)
       makeFile(c, tableName);
@@ -115,15 +115,16 @@ public class ConfigurableCompactionIT extends ConfigurableMacIT {
       UtilWaitThread.sleep(1000);
     }
   }
-  
+
   private int countFiles(Connector c, String tableName) throws Exception {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     int count = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : s) {
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : s) {
       count++;
     }
     return count;
   }
-  
+
 }

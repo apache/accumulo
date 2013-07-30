@@ -46,9 +46,9 @@ public class Main {
       Thread.currentThread().setContextClassLoader(cl);
 
       if (args[0].equals("master")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.master.Master");
+        runTMP = cl.loadClass("org.apache.accumulo.master.Master");
       } else if (args[0].equals("tserver")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.tabletserver.TabletServer");
+        runTMP = cl.loadClass("org.apache.accumulo.tserver.TabletServer");
       } else if (args[0].equals("shell")) {
         runTMP = cl.loadClass("org.apache.accumulo.core.util.shell.Shell");
       } else if (args[0].equals("init")) {
@@ -56,11 +56,11 @@ public class Main {
       } else if (args[0].equals("admin")) {
         runTMP = cl.loadClass("org.apache.accumulo.server.util.Admin");
       } else if (args[0].equals("gc")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.gc.SimpleGarbageCollector");
+        runTMP = cl.loadClass("org.apache.accumulo.gc.SimpleGarbageCollector");
       } else if (args[0].equals("monitor")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.monitor.Monitor");
+        runTMP = cl.loadClass("org.apache.accumulo.monitor.Monitor");
       } else if (args[0].equals("tracer")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.trace.TraceServer");
+        runTMP = cl.loadClass("org.apache.accumulo.tracer.TraceServer");
       } else if (args[0].equals("proxy")) {
         runTMP = cl.loadClass("org.apache.accumulo.proxy.Proxy");
       } else if (args[0].equals("minicluster")) {

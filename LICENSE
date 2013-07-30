@@ -216,7 +216,7 @@ a "3-clause BSD" license. For details, see
 
 This product bundles JQuery and Flot, which are each available under
 The MIT License (MIT). For details, see
-  server/src/main/resources/web/flot/
+  server/monitor/src/main/resources/web/flot/
 
 The binary distribution of this product bundles jline, which is available
 under the following "3-clause BSD" license:

@@ -35,10 +35,10 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.server.tabletserver.TabletServer;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.tserver.TabletServer;
 import org.junit.Test;
 
 public class HalfDeadTServerIT extends ConfigurableMacIT {
@@ -134,8 +134,8 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
       c.tableOperations().create("test_ingest");
       assertEquals(1, c.instanceOperations().getTabletServers().size());
       int rows = 100 * 1000;
-      ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", ROOT_PASSWORD,
-          "--rows", rows + "");
+      ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows
+          + "");
       UtilWaitThread.sleep(500);
       
       // block I/O with some side-channel trickiness

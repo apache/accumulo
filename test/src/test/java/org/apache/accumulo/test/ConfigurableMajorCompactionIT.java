@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package org.apache.accumulo.test;
+package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -37,28 +37,29 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.apache.accumulo.server.tabletserver.compaction.CompactionPlan;
-import org.apache.accumulo.server.tabletserver.compaction.CompactionStrategy;
-import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionRequest;
-import org.apache.accumulo.server.tabletserver.compaction.WriteParameters;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.tserver.compaction.CompactionPlan;
+import org.apache.accumulo.tserver.compaction.CompactionStrategy;
+import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
+import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.junit.Test;
 
 public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String,String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1s");
     cfg.setSiteConfig(siteConfig);
   }
 
   public static class TestCompactionStrategy extends CompactionStrategy {
-   
+
+    @Override
     public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
       return request.getFiles().size() == 5;
     }
-    
+
     @Override
     public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
       CompactionPlan plan = new CompactionPlan();
@@ -72,7 +73,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
       return plan;
     }
   }
-  
+
   @Test(timeout = 20 * 1000)
   public void test() throws Exception {
     Connector conn = getConnector();
@@ -83,7 +84,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
     writeFile(conn, tableName);
     writeFile(conn, tableName);
     writeFile(conn, tableName);
-    UtilWaitThread.sleep(2*1000);
+    UtilWaitThread.sleep(2 * 1000);
     assertEquals(4, countFiles(conn));
     writeFile(conn, tableName);
     int count = countFiles(conn);
@@ -99,12 +100,11 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
     s.setRange(MetadataSchema.TabletsSection.getRange());
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     int count = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : s)
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : s)
       count++;
     return count;
   }
-
-
 
   private void writeFile(Connector conn, String tableName) throws Exception {
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
@@ -114,5 +114,5 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
     bw.close();
     conn.tableOperations().flush(tableName, null, null, true);
   }
-  
+
 }

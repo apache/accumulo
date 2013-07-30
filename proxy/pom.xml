@@ -42,10 +42,6 @@
       <artifactId>accumulo-minicluster</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-server</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.thrift</groupId>
       <artifactId>libthrift</artifactId>
     </dependency>

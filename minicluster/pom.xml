@@ -35,15 +35,15 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-core</artifactId>
+      <artifactId>accumulo-gc</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-server</artifactId>
+      <artifactId>accumulo-master</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-start</artifactId>
+      <artifactId>accumulo-tserver</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>

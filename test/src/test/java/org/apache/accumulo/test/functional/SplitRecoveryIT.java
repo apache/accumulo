@@ -54,13 +54,14 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SystemCredentials;
-import org.apache.accumulo.server.tabletserver.TabletServer;
-import org.apache.accumulo.server.tabletserver.TabletTime;
+import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.FileUtil;
+import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -167,7 +168,7 @@ public class SplitRecoveryIT extends ConfigurableMacIT {
     
     if (steps >= 1) {
       Map<FileRef,Long> bulkFiles = MetadataTableUtil.getBulkFilesLoaded(SystemCredentials.get(), extent);
-      MetadataTableUtil.addNewTablet(low, "/lowDir", instance, lowDatafileSizes, bulkFiles, SystemCredentials.get(), TabletTime.LOGICAL_TIME_ID + "0", -1l,
+      MasterMetadataUtil.addNewTablet(low, "/lowDir", instance, lowDatafileSizes, bulkFiles, SystemCredentials.get(), TabletTime.LOGICAL_TIME_ID + "0", -1l,
           -1l, zl);
     }
     if (steps >= 2)

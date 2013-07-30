@@ -69,7 +69,7 @@ do_start()
 	
 	if [ "`jps -m | grep $ACCUMULO_PROC`" ] ; then return 1; fi
 	
-	su -s /bin/sh $TARGET_USER -c "/usr/lib/accumulo/bin/accumulo org.apache.accumulo.server.master.state.SetGoalState NORMAL"
+	su -s /bin/sh $TARGET_USER -c "/usr/lib/accumulo/bin/accumulo org.apache.accumulo.master.state.SetGoalState NORMAL"
 	su -s /bin/sh $TARGET_USER -c "$DAEMON $DAEMON_ARGS > /dev/null || return 1"
 
 	if [ "`jps -m | grep $ACCUMULO_PROC`" ] ; then return 0; fi

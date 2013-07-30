@@ -75,7 +75,6 @@
     <module>trace</module>
     <module>core</module>
     <module>fate</module>
-    <module>server</module>
     <module>start</module>
     <module>examples/simple</module>
     <module>assemble</module>
@@ -84,6 +83,14 @@
     <module>minicluster</module>
     <module>docs</module>
     <module>maven-plugin</module>
+    <module>server/base</module>
+    <module>server/gc</module>
+    <module>server/master</module>
+    <module>server/monitor</module>
+    <module>server/native</module>
+    <module>server/tracer</module>
+    <module>server/tserver</module>
+    <module>server/utils</module>
   </modules>
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
@@ -225,6 +232,16 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-gc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-master</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-maven-plugin</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -235,12 +252,23 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-monitor</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-native</artifactId>
+        <version>${project.version}</version>
+        <type>tar.gz</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-proxy</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-server</artifactId>
+        <artifactId>accumulo-server-base</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -256,6 +284,16 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-trace</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-tracer</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-tserver</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -393,6 +431,11 @@
           </configuration>
         </plugin>
         <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>native-maven-plugin</artifactId>
+          <version>1.0-alpha-7</version>
+        </plugin>
+        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-assembly-plugin</artifactId>
           <configuration>
@@ -434,7 +477,7 @@
             <source>1.6</source>
             <target>1.6</target>
             <optimize>true</optimize>
-            <encoding>UTF-8</encoding>
+            <encoding>${project.build.sourceEncoding}</encoding>
           </configuration>
         </plugin>
         <plugin>
@@ -458,7 +501,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
-            <encoding>UTF-8</encoding>
+            <encoding>${project.reporting.outputEncoding}</encoding>
             <quiet>true</quiet>
             <reportOutputDirectory>docs</reportOutputDirectory>
             <javadocVersion>1.6</javadocVersion>
@@ -469,7 +512,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
-            <arguments>-P apache-release,thrift,native,assemble,docs,rpm,deb</arguments>
+            <arguments>-P apache-release,thrift,assemble,docs,rpm,deb</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean compile javadoc:aggregate deploy</goals>
             <preparationGoals>clean compile javadoc:aggregate verify</preparationGoals>
@@ -560,6 +603,23 @@
                     <versionRange>[1.0,)</versionRange>
                     <goals>
                       <goal>process</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>native-maven-plugin</artifactId>
+                    <versionRange>[1.0-alpha-7,)</versionRange>
+                    <goals>
+                      <goal>compile</goal>
+                      <goal>initialize</goal>
+                      <goal>javah</goal>
+                      <goal>link</goal>
+                      <goal>unzipinc</goal>
                     </goals>
                   </pluginExecutionFilter>
                   <action>

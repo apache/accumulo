@@ -23,7 +23,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.server.tabletserver.NativeMap;
+import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.JCommander;

@@ -45,7 +45,7 @@ import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.monitor.Monitor;
+import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestMultiTableIngest;
