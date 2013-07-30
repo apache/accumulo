@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.TableNamespaceOperationsHelper;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.commons.lang.NotImplementedException;
 
 public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper {
