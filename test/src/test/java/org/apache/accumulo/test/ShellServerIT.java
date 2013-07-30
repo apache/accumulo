@@ -832,7 +832,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
   }
   
-  @Test(timeout = 30000)
+  @Test(timeout = 30 * 1000)
   public void tablenamespaces() throws Exception {
     exec("namespaces", true, Constants.DEFAULT_TABLE_NAMESPACE, true);
     exec("createnamespace thing1", true);

@@ -34,10 +34,10 @@ public class Setup extends Test {
     int numTables = Integer.parseInt(props.getProperty("numTables", "5"));
     log.debug("numTables = " + numTables);
     List<String> tables = new ArrayList<String>();
-    for (int i = 0; i < numTables - 1; i++) {
+    for (int i = 0; i < numTables; i++) {
       tables.add(String.format("ctt_%03d", i, i));
     }
-    tables.add(String.format("nspace.ctt_%03d", numTables - 1));
+    //tables.add(String.format("nspace.ctt_%03d", numTables - 1));
 
     state.set("tables", tables);
     
