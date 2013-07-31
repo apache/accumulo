@@ -691,6 +691,7 @@ public class Mutation implements Writable {
   
   public boolean equals(Mutation m) {
     serialize();
+    m.serialize();
     if (Arrays.equals(row, m.row) && entries == m.entries && Arrays.equals(data, m.data)) {
       if (values == null && m.values == null)
         return true;
