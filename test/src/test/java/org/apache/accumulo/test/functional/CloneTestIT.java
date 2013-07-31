@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -38,7 +38,7 @@ import org.junit.Test;
  * 
  */
 public class CloneTestIT extends SimpleMacIT {
-
+  
   @Test(timeout = 120 * 1000)
   public void run() throws Exception {
     String table1 = makeTableName();
@@ -80,8 +80,8 @@ public class CloneTestIT extends SimpleMacIT {
     m3.put("data", "y", "2");
     bw.addMutation(m3);
     bw.close();
-
-    Scanner scanner = c.createScanner(table2, Constants.NO_AUTHS);
+    
+    Scanner scanner = c.createScanner(table2, Authorizations.EMPTY);
     
     HashMap<String,String> expected = new HashMap<String,String>();
     expected.put("001:x", "9");
@@ -100,13 +100,13 @@ public class CloneTestIT extends SimpleMacIT {
     for (Entry<String,String> prop : c.tableOperations().getProperties(table2)) {
       tableProps.put(prop.getKey(), prop.getValue());
     }
-
+    
     Assert.assertEquals("500K", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey()));
     Assert.assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(), tableProps.get(Property.TABLE_FILE_MAX.getKey()));
     Assert.assertEquals("2M", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()));
     
     c.tableOperations().delete(table1);
     c.tableOperations().delete(table2);
-
+    
   }
 }
