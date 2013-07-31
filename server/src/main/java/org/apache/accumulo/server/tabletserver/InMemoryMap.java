@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -52,13 +53,18 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
+import org.apache.accumulo.core.iterators.system.LocalityGroupIterator;
+import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroup;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.trace.TraceFileSystem;
+import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -167,6 +173,7 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
 
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     super.seek(range, columnFamilies, inclusive);
+    
     if (hasTop())
       getTopKeyVal();
 
@@ -193,24 +200,37 @@ public class InMemoryMap {
   
   private volatile String memDumpFile = null;
   private final String memDumpDir;
+
+  private Map<String,Set<ByteSequence>> lggroups;
   
   public InMemoryMap(boolean useNativeMap, String memDumpDir) {
+    this(new HashMap<String,Set<ByteSequence>>(), useNativeMap, memDumpDir);
+  }
+
+  public InMemoryMap(Map<String,Set<ByteSequence>> lggroups, boolean useNativeMap, String memDumpDir) {
     this.memDumpDir = memDumpDir;
+    this.lggroups = lggroups;
+    
+    if (lggroups.size() == 0)
+      map = newMap(useNativeMap);
+    else
+      map = new LocalityGroupMap(lggroups, useNativeMap);
+  }
+  
+  public InMemoryMap(AccumuloConfiguration config) throws LocalityGroupConfigurationError {
+    this(LocalityGroupUtil.getLocalityGroups(config), config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED), config.get(Property.TSERV_MEMDUMP_DIR));
+  }
+  
+  private static SimpleMap newMap(boolean useNativeMap) {
     if (useNativeMap && NativeMap.loadedNativeLibraries()) {
       try {
-        map = new NativeMapWrapper();
+        return new NativeMapWrapper();
       } catch (Throwable t) {
         log.error("Failed to create native map", t);
       }
     }
     
-    if (map == null) {
-      map = new DefaultMap();
-    }
-  }
-  
-  public InMemoryMap(AccumuloConfiguration config) {
-    this(config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED), config.get(Property.TSERV_MEMDUMP_DIR));
+    return new DefaultMap();
   }
   
   private interface SimpleMap {
@@ -229,6 +249,115 @@ public class InMemoryMap {
     public void mutate(List<Mutation> mutations, int kvCount);
   }
   
+  private static class LocalityGroupMap implements SimpleMap {
+    
+    private Map<ByteSequence,MutableLong> groupFams[];
+    
+    // the last map in the array is the default locality group
+    private SimpleMap maps[];
+    private Partitioner partitioner;
+    private List<Mutation>[] partitioned;
+    private Set<ByteSequence> nonDefaultColumnFamilies;
+    
+    @SuppressWarnings("unchecked")
+    LocalityGroupMap(Map<String,Set<ByteSequence>> groups, boolean useNativeMap) {
+      this.groupFams = new Map[groups.size()];
+      this.maps = new SimpleMap[groups.size() + 1];
+      this.partitioned = new List[groups.size() + 1];
+      this.nonDefaultColumnFamilies = new HashSet<ByteSequence>();
+      
+      for (int i = 0; i < maps.length; i++) {
+        maps[i] = newMap(useNativeMap);
+      }
+
+      int count = 0;
+      for (Set<ByteSequence> cfset : groups.values()) {
+        HashMap<ByteSequence,MutableLong> map = new HashMap<ByteSequence,MutableLong>();
+        for (ByteSequence bs : cfset)
+          map.put(bs, new MutableLong(1));
+        this.groupFams[count++] = map;
+        nonDefaultColumnFamilies.addAll(cfset);
+      }
+      
+      partitioner = new LocalityGroupUtil.Partitioner(this.groupFams);
+      
+      for (int i = 0; i < partitioned.length; i++) {
+        partitioned[i] = new ArrayList<Mutation>();
+      }
+    }
+
+    @Override
+    public Value get(Key key) {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public Iterator<Entry<Key,Value>> iterator(Key startKey) {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public int size() {
+      int sum = 0;
+      for (SimpleMap map : maps)
+        sum += map.size();
+      return sum;
+    }
+    
+    @Override
+    public InterruptibleIterator skvIterator() {
+      LocalityGroup groups[] = new LocalityGroup[maps.length];
+      for (int i = 0; i < groups.length; i++) {
+        if (i < groupFams.length)
+          groups[i] = new LocalityGroup(maps[i].skvIterator(), groupFams[i], false);
+        else
+          groups[i] = new LocalityGroup(maps[i].skvIterator(), null, true);
+      }
+
+
+      return new LocalityGroupIterator(groups, nonDefaultColumnFamilies);
+    }
+    
+    @Override
+    public void delete() {
+      for (SimpleMap map : maps)
+        map.delete();
+    }
+    
+    @Override
+    public long getMemoryUsed() {
+      long sum = 0;
+      for (SimpleMap map : maps)
+        sum += map.getMemoryUsed();
+      return sum;
+    }
+    
+    @Override
+    public synchronized void mutate(List<Mutation> mutations, int kvCount) {
+      // this method is synchronized because it reuses objects to avoid allocation,
+      // currently, the method that calls this is synchronized so there is no
+      // loss in parallelism.... synchronization was added here for future proofing
+      
+      try{
+        partitioner.partition(mutations, partitioned);
+        
+        for (int i = 0; i < partitioned.length; i++) {
+          if (partitioned[i].size() > 0) {
+            maps[i].mutate(partitioned[i], kvCount);
+            for (Mutation m : partitioned[i])
+              kvCount += m.getUpdates().size();
+          }
+        }
+      } finally {
+        // clear immediately so mutations can be garbage collected
+        for (List<Mutation> list : partitioned) {
+          list.clear();
+        }
+      }
+    }
+    
+  }
+
   private static class DefaultMap implements SimpleMap {
     private ConcurrentSkipListMap<Key,Value> map = new ConcurrentSkipListMap<Key,Value>(new MemKeyComparator());
     private AtomicLong bytesInMemory = new AtomicLong();
@@ -568,17 +697,22 @@ public class InMemoryMap {
         newConf.setInt("io.seqfile.compress.blocksize", 100000);
         
         FileSKVWriter out = new RFileOperations().openWriter(tmpFile, fs, newConf, ServerConfiguration.getSiteConfiguration());
-        out.startDefaultLocalityGroup();
-        InterruptibleIterator iter = map.skvIterator();
-        iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
         
-        while (iter.hasTop() && activeIters.size() > 0) {
-          // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
-          // There is no need to change the MemKey to a normal key because the kvCount info gets lost when it is written
-          Value newValue = new MemValue(iter.getTopValue(), ((MemKey) iter.getTopKey()).kvCount);
-          out.append(iter.getTopKey(), newValue);
-          iter.next();
+        InterruptibleIterator iter = map.skvIterator();
+       
+        HashSet<ByteSequence> allfams= new HashSet<ByteSequence>();
+        
+        for(Entry<String, Set<ByteSequence>> entry : lggroups.entrySet()){
+          allfams.addAll(entry.getValue());
+          out.startNewLocalityGroup(entry.getKey(), entry.getValue());
+          iter.seek(new Range(), entry.getValue(), true);
+          dumpLocalityGroup(out, iter);
         }
+        
+        out.startDefaultLocalityGroup();
+        iter.seek(new Range(), allfams, false);
+       
+        dumpLocalityGroup(out, iter);
         
         out.close();
         
@@ -613,5 +747,16 @@ public class InMemoryMap {
     }
     
     tmpMap.delete();
+  }
+
+  private void dumpLocalityGroup(FileSKVWriter out, InterruptibleIterator iter) throws IOException {
+    while (iter.hasTop() && activeIters.size() > 0) {
+      // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
+      // There is no need to change the MemKey to a normal key because the kvCount info gets lost when it is written
+      Value newValue = new MemValue(iter.getTopValue(), ((MemKey) iter.getTopKey()).kvCount);
+      out.append(iter.getTopKey(), newValue);
+      iter.next();
+
+    }
   }
 }

@@ -90,6 +90,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -259,7 +260,11 @@ public class Tablet {
     private CommitSession commitSession;
     
     TabletMemory() {
-      memTable = new InMemoryMap(tabletServer.getSystemConfiguration());
+      try {
+        memTable = new InMemoryMap(acuTableConf);
+      } catch (LocalityGroupConfigurationError e) {
+        throw new RuntimeException(e);
+      }
       commitSession = new CommitSession(nextSeq, memTable);
       nextSeq += 2;
     }
@@ -282,7 +287,11 @@ public class Tablet {
       }
       
       otherMemTable = memTable;
-      memTable = new InMemoryMap(tabletServer.getSystemConfiguration());
+      try {
+        memTable = new InMemoryMap(acuTableConf);
+      } catch (LocalityGroupConfigurationError e) {
+        throw new RuntimeException(e);
+      }
       
       CommitSession oldCommitSession = commitSession;
       commitSession = new CommitSession(nextSeq, memTable);

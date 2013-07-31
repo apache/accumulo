@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.rfile.RelativeKey.MByteSequence;
+import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -176,7 +176,7 @@ public class RelativeKeyTest {
     Key seekKey = new Key();
     Key prevKey = new Key();
     Key currKey = null;
-    MByteSequence value = new MByteSequence(new byte[64], 0, 0);
+    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
     
     RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey);
     assertEquals(1, skippr.skipped);
@@ -207,7 +207,7 @@ public class RelativeKeyTest {
     Key seekKey = new Key("s", "t", "u", "v", 1);
     Key prevKey = new Key();
     Key currKey = null;
-    MByteSequence value = new MByteSequence(new byte[64], 0, 0);
+    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
     
     RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey);
   }
@@ -218,7 +218,7 @@ public class RelativeKeyTest {
     Key seekKey = expectedKeys.get(seekIndex);
     Key prevKey = new Key();
     Key currKey = null;
-    MByteSequence value = new MByteSequence(new byte[64], 0, 0);
+    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
     
     RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey);
     

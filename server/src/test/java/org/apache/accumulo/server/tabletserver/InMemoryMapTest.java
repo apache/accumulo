@@ -18,8 +18,13 @@ package org.apache.accumulo.server.tabletserver;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -82,6 +87,14 @@ public class InMemoryMapTest extends TestCase {
     
   }
   
+  static Set<ByteSequence> newCFSet(String... cfs) {
+    HashSet<ByteSequence> cfSet = new HashSet<ByteSequence>();
+    for (String cf : cfs) {
+      cfSet.add(new ArrayByteSequence(cf));
+    }
+    return cfSet;
+  }
+
   public void test2() throws Exception {
     InMemoryMap imm = new InMemoryMap(false, "/tmp");
     
@@ -345,4 +358,135 @@ public class InMemoryMapTest extends TestCase {
     }
   }
   
+  public void testLocalityGroups() throws Exception {
+    
+    Map<String,Set<ByteSequence>> lggroups1 = new HashMap<String,Set<ByteSequence>>();
+    lggroups1.put("lg1", newCFSet("cf1", "cf2"));
+    lggroups1.put("lg2", newCFSet("cf3", "cf4"));
+    
+    InMemoryMap imm = new InMemoryMap(lggroups1, false, "/tmp");
+    
+    Mutation m1 = new Mutation("r1");
+    m1.put("cf1", "x", 2, "1");
+    m1.put("cf1", "y", 2, "2");
+    m1.put("cf3", "z", 2, "3");
+    m1.put("foo", "b", 2, "9");
+    
+    Mutation m2 = new Mutation("r2");
+    m2.put("cf2", "x", 3, "5");
+    
+    Mutation m3 = new Mutation("r3");
+    m3.put("foo", "b", 4, "6");
+    
+    Mutation m4 = new Mutation("r4");
+    m4.put("foo", "b", 5, "7");
+    m4.put("cf4", "z", 5, "8");
+    
+    Mutation m5 = new Mutation("r5");
+    m5.put("cf3", "z", 6, "A");
+    m5.put("cf4", "z", 6, "B");
+    
+    imm.mutate(Arrays.asList(m1, m2, m3, m4, m5));
+    
+    MemoryIterator iter1 = imm.skvIterator();
+    
+    seekLocalityGroups(iter1);
+    SortedKeyValueIterator<Key,Value> dc1 = iter1.deepCopy(null);
+    seekLocalityGroups(dc1);
+    
+    assertTrue(imm.getNumEntries() == 10);
+    assertTrue(imm.estimatedSizeInBytes() > 0);
+
+    imm.delete(0);
+
+    seekLocalityGroups(iter1);
+    seekLocalityGroups(dc1);
+    // TODO uncomment following when ACCUMULO-1628 is fixed
+    // seekLocalityGroups(iter1.deepCopy(null));
+  }
+
+  private void seekLocalityGroups(SortedKeyValueIterator<Key,Value> iter1) throws IOException {
+    iter1.seek(new Range(), newCFSet("cf1"), true);
+    ae(iter1, "r1", "cf1:x", 2, "1");
+    ae(iter1, "r1", "cf1:y", 2, "2");
+    ae(iter1, "r2", "cf2:x", 3, "5");
+    assertFalse(iter1.hasTop());
+    
+    iter1.seek(new Range("r2", "r4"), newCFSet("cf1"), true);
+    ae(iter1, "r2", "cf2:x", 3, "5");
+    assertFalse(iter1.hasTop());
+
+    iter1.seek(new Range(), newCFSet("cf3"), true);
+    ae(iter1, "r1", "cf3:z", 2, "3");
+    ae(iter1, "r4", "cf4:z", 5, "8");
+    ae(iter1, "r5", "cf3:z", 6, "A");
+    ae(iter1, "r5", "cf4:z", 6, "B");
+    assertFalse(iter1.hasTop());
+    
+    iter1.seek(new Range(), newCFSet("foo"), true);
+    ae(iter1, "r1", "foo:b", 2, "9");
+    ae(iter1, "r3", "foo:b", 4, "6");
+    ae(iter1, "r4", "foo:b", 5, "7");
+    assertFalse(iter1.hasTop());
+    
+    iter1.seek(new Range(), newCFSet("cf1", "cf3"), true);
+    ae(iter1, "r1", "cf1:x", 2, "1");
+    ae(iter1, "r1", "cf1:y", 2, "2");
+    ae(iter1, "r1", "cf3:z", 2, "3");
+    ae(iter1, "r2", "cf2:x", 3, "5");
+    ae(iter1, "r4", "cf4:z", 5, "8");
+    ae(iter1, "r5", "cf3:z", 6, "A");
+    ae(iter1, "r5", "cf4:z", 6, "B");
+    assertFalse(iter1.hasTop());
+    
+    iter1.seek(new Range("r2", "r4"), newCFSet("cf1", "cf3"), true);
+    ae(iter1, "r2", "cf2:x", 3, "5");
+    ae(iter1, "r4", "cf4:z", 5, "8");
+    assertFalse(iter1.hasTop());
+
+    iter1.seek(new Range(), newCFSet("cf1", "cf3", "foo"), true);
+    assertAll(iter1);
+    
+    iter1.seek(new Range("r1", "r2"), newCFSet("cf1", "cf3", "foo"), true);
+    ae(iter1, "r1", "cf1:x", 2, "1");
+    ae(iter1, "r1", "cf1:y", 2, "2");
+    ae(iter1, "r1", "cf3:z", 2, "3");
+    ae(iter1, "r1", "foo:b", 2, "9");
+    ae(iter1, "r2", "cf2:x", 3, "5");
+    assertFalse(iter1.hasTop());
+
+    iter1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    assertAll(iter1);
+    
+    iter1.seek(new Range(), newCFSet("cf1"), false);
+    assertAll(iter1);
+    
+    iter1.seek(new Range(), newCFSet("cf1", "cf2"), false);
+    ae(iter1, "r1", "cf3:z", 2, "3");
+    ae(iter1, "r1", "foo:b", 2, "9");
+    ae(iter1, "r3", "foo:b", 4, "6");
+    ae(iter1, "r4", "cf4:z", 5, "8");
+    ae(iter1, "r4", "foo:b", 5, "7");
+    ae(iter1, "r5", "cf3:z", 6, "A");
+    ae(iter1, "r5", "cf4:z", 6, "B");
+    assertFalse(iter1.hasTop());
+
+    iter1.seek(new Range("r2"), newCFSet("cf1", "cf3", "foo"), true);
+    ae(iter1, "r2", "cf2:x", 3, "5");
+    assertFalse(iter1.hasTop());
+  }
+
+  private void assertAll(SortedKeyValueIterator<Key,Value> iter1) throws IOException {
+    ae(iter1, "r1", "cf1:x", 2, "1");
+    ae(iter1, "r1", "cf1:y", 2, "2");
+    ae(iter1, "r1", "cf3:z", 2, "3");
+    ae(iter1, "r1", "foo:b", 2, "9");
+    ae(iter1, "r2", "cf2:x", 3, "5");
+    ae(iter1, "r3", "foo:b", 4, "6");
+    ae(iter1, "r4", "cf4:z", 5, "8");
+    ae(iter1, "r4", "foo:b", 5, "7");
+    ae(iter1, "r5", "cf3:z", 6, "A");
+    ae(iter1, "r5", "cf4:z", 6, "B");
+    assertFalse(iter1.hasTop());
+  }
 }
