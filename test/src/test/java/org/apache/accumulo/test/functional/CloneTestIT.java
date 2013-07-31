@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.functional;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,48 +27,24 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 /**
  * 
  */
-public class CloneTest {
-  
-  public static TemporaryFolder folder = new TemporaryFolder();
-  private MiniAccumuloCluster accumulo;
-  private String secret = "secret";
-  
-  @Before
-  public void setUp() throws Exception {
-    folder.create();
-    accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
-    accumulo.start();
-  }
-  
-  @After
-  public void tearDown() throws Exception {
-    accumulo.stop();
-    folder.delete();
-  }
-  
+public class CloneTestIT extends SimpleMacIT {
+
   @Test(timeout = 120 * 1000)
   public void run() throws Exception {
-    String table1 = "clone1";
-    String table2 = "clone2";
+    String table1 = makeTableName();
+    String table2 = makeTableName();
     
-    ZooKeeperInstance zki = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
-    Connector c = zki.getConnector("root", new PasswordToken(secret));
+    Connector c = getConnector();
     
     c.tableOperations().create(table1);
     
@@ -129,5 +105,8 @@ public class CloneTest {
     Assert.assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(), tableProps.get(Property.TABLE_FILE_MAX.getKey()));
     Assert.assertEquals("2M", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()));
     
+    c.tableOperations().delete(table1);
+    c.tableOperations().delete(table2);
+
   }
 }
