@@ -18,7 +18,6 @@ package org.apache.accumulo.server.tabletserver;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -382,14 +381,18 @@ public class InMemoryMap {
     
     boolean switched = false;
     private InterruptibleIterator iter;
-    private List<FileSKVIterator> readers;
+    private FileSKVIterator reader;
+    private MemoryDataSource parent;
+    private IteratorEnvironment env;
     
     MemoryDataSource() {
-      this(new ArrayList<FileSKVIterator>());
+      this(null, false, null);
     }
     
-    public MemoryDataSource(List<FileSKVIterator> readers) {
-      this.readers = readers;
+    public MemoryDataSource(MemoryDataSource parent, boolean switched, IteratorEnvironment env) {
+      this.parent = parent;
+      this.switched = switched;
+      this.env = env;
     }
     
     @Override
@@ -408,26 +411,42 @@ public class InMemoryMap {
       if (!isCurrent()) {
         switched = true;
         iter = null;
+        try {
+          // ensure files are referenced even if iterator was never seeked before
+          iterator();
+        } catch (IOException e) {
+          throw new RuntimeException();
+        }
       }
       
       return this;
     }
     
+    private synchronized FileSKVIterator getReader() throws IOException {
+      if (reader == null) {
+        Configuration conf = CachedConfiguration.getInstance();
+        FileSystem fs = TraceFileSystem.wrap(FileSystem.getLocal(conf));
+        
+        reader = new RFileOperations().openReader(memDumpFile, true, fs, conf, ServerConfiguration.getSiteConfiguration());
+      }
+
+      return reader;
+    }
+
     @Override
     public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
       if (iter == null)
         if (!switched)
           iter = map.skvIterator();
         else {
-          
-          Configuration conf = CachedConfiguration.getInstance();
-          FileSystem fs = TraceFileSystem.wrap(FileSystem.getLocal(conf));
-          
-          FileSKVIterator reader = new RFileOperations().openReader(memDumpFile, true, fs, conf, ServerConfiguration.getSiteConfiguration());
-
-          readers.add(reader);
-          
-          iter = new MemKeyConversionIterator(reader);
+          if (parent == null)
+            iter = new MemKeyConversionIterator(getReader());
+          else
+            synchronized (parent) {
+              // synchronize deep copy operation on parent, this prevents multiple threads from deep copying the rfile shared from parent its possible that the
+              // thread deleting an InMemoryMap and scan thread could be switching different deep copies
+              iter = new MemKeyConversionIterator(parent.getReader().deepCopy(env));
+            }
         }
       
       return iter;
@@ -435,7 +454,7 @@ public class InMemoryMap {
     
     @Override
     public DataSource getDeepCopyDataSource(IteratorEnvironment env) {
-      return new MemoryDataSource(readers);
+      return new MemoryDataSource(parent == null ? this : parent, switched, env);
     }
     
   }
@@ -469,13 +488,12 @@ public class InMemoryMap {
       
       synchronized (this) {
         if (closed.compareAndSet(false, true)) {
-          
-          for (FileSKVIterator reader : mds.readers)
-            try {
-              reader.close();
-            } catch (IOException e) {
-              log.warn(e, e);
-            }
+          try {
+            if (mds.reader != null)
+              mds.reader.close();
+          } catch (IOException e) {
+            log.warn(e, e);
+          }
         }
       }
       

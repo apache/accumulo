@@ -83,7 +83,7 @@ public class InMemoryMapTest extends TestCase {
   }
   
   public void test2() throws Exception {
-    InMemoryMap imm = new InMemoryMap(false, "/tmp");
+    InMemoryMap imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
     
     MemoryIterator ski1 = imm.skvIterator();
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
@@ -100,7 +100,7 @@ public class InMemoryMapTest extends TestCase {
   }
   
   public void test3() throws Exception {
-    InMemoryMap imm = new InMemoryMap(false, "/tmp");
+    InMemoryMap imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
     
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq1", 3, "bar2");
@@ -125,7 +125,7 @@ public class InMemoryMapTest extends TestCase {
   }
   
   public void test4() throws Exception {
-    InMemoryMap imm = new InMemoryMap(false, "/tmp");
+    InMemoryMap imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
     
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq1", 3, "bar2");
@@ -156,7 +156,7 @@ public class InMemoryMapTest extends TestCase {
   }
   
   public void test5() throws Exception {
-    InMemoryMap imm = new InMemoryMap(false, "/tmp");
+    InMemoryMap imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
     
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq1", 3, "bar2");
@@ -174,7 +174,7 @@ public class InMemoryMapTest extends TestCase {
     
     ski1.close();
     
-    imm = new InMemoryMap(false, "/tmp");
+    imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
     
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq2", 3, "bar2");
@@ -194,7 +194,7 @@ public class InMemoryMapTest extends TestCase {
   }
   
   public void test6() throws Exception {
-    InMemoryMap imm = new InMemoryMap(false, "/tmp");
+    InMemoryMap imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
     
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq2", 3, "bar2");
@@ -237,8 +237,51 @@ public class InMemoryMapTest extends TestCase {
     ski1.close();
   }
   
+  private void deepCopyAndDelete(int interleaving) throws Exception {
+    // interleaving == 0 intentionally omitted, this runs the test w/o deleting in mem map
+
+    InMemoryMap imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
+    
+    mutate(imm, "r1", "foo:cq1", 3, "bar1");
+    mutate(imm, "r1", "foo:cq2", 3, "bar2");
+    
+    MemoryIterator ski1 = imm.skvIterator();
+    
+    if (interleaving == 1)
+      imm.delete(0);
+    
+    SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(null);
+
+    if (interleaving == 2)
+      imm.delete(0);
+
+    dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+
+    if (interleaving == 3)
+      imm.delete(0);
+
+    ae(dc, "r1", "foo:cq1", 3, "bar1");
+    ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+
+    if (interleaving == 4)
+      imm.delete(0);
+
+    ae(ski1, "r1", "foo:cq2", 3, "bar2");
+    ae(dc, "r1", "foo:cq1", 3, "bar1");
+    ae(dc, "r1", "foo:cq2", 3, "bar2");
+    assertFalse(dc.hasTop());
+    assertFalse(ski1.hasTop());
+  }
+
+  public void testDeepCopyAndDelete() throws Exception {
+    for (int i = 0; i <= 4; i++)
+      deepCopyAndDelete(i);
+  }
+
   public void testBug1() throws Exception {
-    InMemoryMap imm = new InMemoryMap(false, "/tmp");
+    InMemoryMap imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
     
     for (int i = 0; i < 20; i++) {
       mutate(imm, "r1", "foo:cq" + i, 3, "bar" + i);
@@ -265,7 +308,7 @@ public class InMemoryMapTest extends TestCase {
   }
   
   public void testSeekBackWards() throws Exception {
-    InMemoryMap imm = new InMemoryMap(false, "/tmp");
+    InMemoryMap imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
     
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     mutate(imm, "r1", "foo:cq2", 3, "bar2");
@@ -283,7 +326,7 @@ public class InMemoryMapTest extends TestCase {
   }
   
   public void testDuplicateKey() throws Exception {
-    InMemoryMap imm = new InMemoryMap(false, "/tmp");
+    InMemoryMap imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
     
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("foo"), new Text("cq"), 3, new Value("v1".getBytes()));
@@ -311,7 +354,7 @@ public class InMemoryMapTest extends TestCase {
     for (int threads : new int[] {1, 2, 16, /* 64, 256 */}) {
       final long now = System.currentTimeMillis();
       final long counts[] = new long[threads];
-      final InMemoryMap imm = new InMemoryMap(false, "/tmp");
+      final InMemoryMap imm = new InMemoryMap(false, System.getProperty("user.dir") + "/target");
       ExecutorService e = Executors.newFixedThreadPool(threads);
       for (int j = 0; j < threads; j++) {
         final int threadId = j;
