@@ -17,8 +17,11 @@
 package org.apache.accumulo.server.tabletserver;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -138,6 +141,7 @@ public class Compactor implements Callable<CompactionStats> {
   
   private AtomicLong entriesRead = new AtomicLong(0);
   private AtomicLong entriesWritten = new AtomicLong(0);
+  private DateFormat dateFormatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
   
   private synchronized void setLocalityGroup(String name) {
     this.currentLocalityGroup = name;
@@ -280,6 +284,9 @@ public class Compactor implements Callable<CompactionStats> {
     
     clearStats();
 
+    String oldThreadName = Thread.currentThread().getName();
+    String newThreadName = "MajC compacting " + extent.toString() + " started " + dateFormatter.format(new Date()) + " file: " + outputFile;
+    Thread.currentThread().setName(newThreadName);
     try {
       FileOperations fileFactory = FileOperations.getInstance();
       mfw = fileFactory.openWriter(outputFile, fs, conf, acuTableConf);
@@ -333,7 +340,7 @@ public class Compactor implements Callable<CompactionStats> {
       log.error(e, e);
       throw e;
     } finally {
-      
+      Thread.currentThread().setName(oldThreadName);
       if (remove)
         runningCompactions.remove(this);
 

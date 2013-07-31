@@ -113,6 +113,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
   private TCredentials credentials;
   
+  public static final String CLONE_EXCLUDE_PREFIX = "!";
+
   private static final Logger log = Logger.getLogger(TableOperations.class);
   
   /**
@@ -673,9 +675,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.getBytes()), ByteBuffer.wrap(newTableName.getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
-    opts.putAll(propertiesToSet);
-    for (String prop : propertiesToExclude)
-      opts.put(prop, null);
+    for (Entry<String,String> entry : propertiesToSet.entrySet()) {
+      if (entry.getKey().startsWith(CLONE_EXCLUDE_PREFIX))
+        throw new IllegalArgumentException("Property can not start with " + CLONE_EXCLUDE_PREFIX);
+      opts.put(entry.getKey(), entry.getValue());
+    }
+    
+    for (String prop : propertiesToExclude) {
+      opts.put(CLONE_EXCLUDE_PREFIX + prop, "");
+    }
     
     doTableOperation(TableOperation.CLONE, args, opts);
   }
