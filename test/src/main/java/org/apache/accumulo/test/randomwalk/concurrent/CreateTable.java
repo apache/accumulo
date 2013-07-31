@@ -22,7 +22,6 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -40,14 +39,12 @@ public class CreateTable extends Test {
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
     try {
-      String n = Tables.extractNamespace(tableName);
-      if (!conn.tableNamespaceOperations().exists(n)) {
-        conn.tableNamespaceOperations().create(n);
-      }
       conn.tableOperations().create(tableName);
       log.debug("Created table " + tableName);
     } catch (TableExistsException e) {
-      log.debug("Create " + tableName + " failed, it exist");
+      log.debug("Create " + tableName + " failed, it exists");
+    } catch (IllegalArgumentException e) {
+      log.debug("Create: " + e.toString());
     }
   }
 }

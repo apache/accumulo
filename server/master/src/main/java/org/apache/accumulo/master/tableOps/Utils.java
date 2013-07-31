@@ -88,6 +88,11 @@ public class Utils {
       return 100;
   }
   
+  public static void unreserveTable(String tableId, long tid, boolean writeLock) throws Exception {
+    getLock(tableId, tid, writeLock).unlock();
+    log.info("table " + tableId + " (" + Long.toHexString(tid) + ") unlocked for " + (writeLock ? "write" : "read"));
+  }
+  
   public static void unreserveTableNamespace(String namespaceId, long id, boolean writeLock) throws Exception {
     getLock(namespaceId, id, writeLock).unlock();
     log.info("table namespace " + namespaceId + " (" + Long.toHexString(id) + ") unlocked for " + (writeLock ? "write" : "read"));
@@ -98,18 +103,13 @@ public class Utils {
       if (mustExist) {
         Instance instance = HdfsZooInstance.getInstance();
         IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
-        if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES+ "/" + namespaceId))
+        if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId))
           throw new ThriftTableOperationException(namespaceId, "", op, TableOperationExceptionType.NOTFOUND, "Table namespace does not exist");
       }
       log.info("table namespace " + namespaceId + " (" + Long.toHexString(id) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
       return 0;
     } else
       return 100;
-  }
-  
-  public static void unreserveTable(String tableId, long tid, boolean writeLock) throws Exception {
-    getLock(tableId, tid, writeLock).unlock();
-    log.info("table " + tableId + " (" + Long.toHexString(tid) + ") unlocked for " + (writeLock ? "write" : "read"));
   }
   
   public static long reserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
@@ -149,8 +149,8 @@ public class Utils {
     return Utils.getLock(tableId, tid, false);
   }
   
-  
-  static void checkTableNamespaceDoesNotExist(Instance instance, String namespace, String namespaceId, TableOperation operation) throws ThriftTableOperationException {
+  static void checkTableNamespaceDoesNotExist(Instance instance, String namespace, String namespaceId, TableOperation operation)
+      throws ThriftTableOperationException {
     
     String n = TableNamespaces.getNameToIdMap(instance).get(namespace);
     

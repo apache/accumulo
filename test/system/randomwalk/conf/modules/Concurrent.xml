@@ -49,12 +49,17 @@
   <edge id="ct.StartAll" weight="1000"/>
   <edge id="ct.Shutdown" weight="10"/>
   <edge id="ct.Config" weight="1000"/>
+  <edge id="ct.CreateTableNamespace" weight="1000"/>
+  <edge id="ct.DeleteTableNamespace" weight="100"/>
+  <edge id="ct.RenameTableNamespace" weight="100"/>
+  <edge id="ct.CloneTableNamespace" weight="100"/>
   <edge id="ct.Apocalypse" weight="10"/>
   <edge id="END" weight="1"/>
 </node>
 
 <node id="ct.Setup">
-  <property key="numTables" value="5"/>
+  <property key="numTables" value="15"/>
+  <property key="numNamespaces" value="2"/>
   <edge id="ct.CreateTable" weight="1"/>
 </node>
 
@@ -159,6 +164,22 @@
 </node>
 
 <node id="ct.Apocalypse">
+  <edge id="ct.StartAll" weight="1"/>
+</node>
+
+<node id="ct.CreateTableNamespace">
+  <edge id="ct.StartAll" weight="1"/>
+</node>
+
+<node id="ct.DeleteTableNamespace">
+  <edge id="ct.StartAll" weight="1"/>
+</node>
+
+<node id="ct.RenameTableNamespace">
+  <edge id="ct.StartAll" weight="1"/>
+</node>
+
+<node id="ct.CloneTableNamespace">
   <edge id="ct.StartAll" weight="1"/>
 </node>
 

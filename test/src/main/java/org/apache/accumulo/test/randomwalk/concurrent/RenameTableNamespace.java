@@ -21,12 +21,12 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableNamespaceExistsException;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
-public class RenameTable extends Test {
+public class RenameTableNamespace extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
@@ -35,20 +35,18 @@ public class RenameTable extends Test {
     Random rand = (Random) state.get("rand");
     
     @SuppressWarnings("unchecked")
-    List<String> tableNames = (List<String>) state.get("tables");
+    List<String> namespaces = (List<String>) state.get("tables");
     
-    String srcTableName = tableNames.get(rand.nextInt(tableNames.size()));
-    String newTableName = tableNames.get(rand.nextInt(tableNames.size()));
+    String srcName = namespaces.get(rand.nextInt(namespaces.size()));
+    String newName = namespaces.get(rand.nextInt(namespaces.size()));
     
     try {
-      conn.tableOperations().rename(srcTableName, newTableName);
-      log.debug("Renamed table " + srcTableName + " " + newTableName);
-    } catch (TableExistsException e) {
-      log.debug("Rename " + srcTableName + " failed, " + newTableName + " exists");
-    } catch (TableNotFoundException e) {
-      log.debug("Rename " + srcTableName + " failed, doesnt exist");
-    } catch (IllegalArgumentException e) {
-      log.debug("Rename: " + e.toString());
+      conn.tableNamespaceOperations().rename(srcName, newName);
+      log.debug("Renamed table namespace " + srcName + " " + newName);
+    } catch (TableNamespaceExistsException e) {
+      log.debug("Rename namespace " + srcName + " failed, " + newName + " exists");
+    } catch (TableNamespaceNotFoundException e) {
+      log.debug("Rename namespace " + srcName + " failed, doesnt exist");
     }
   }
 }
