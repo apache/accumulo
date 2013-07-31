@@ -53,6 +53,7 @@
   <edge id="ct.DeleteTableNamespace" weight="100"/>
   <edge id="ct.RenameTableNamespace" weight="100"/>
   <edge id="ct.CloneTableNamespace" weight="100"/>
+  <edge id="ct.OfflineTableNamespace" weight="100"/>
   <edge id="ct.Apocalypse" weight="10"/>
   <edge id="END" weight="1"/>
 </node>
@@ -180,6 +181,10 @@
 </node>
 
 <node id="ct.CloneTableNamespace">
+  <edge id="ct.StartAll" weight="1"/>
+</node>
+
+<node id="ct.OfflineTableNamespace">
   <edge id="ct.StartAll" weight="1"/>
 </node>
 

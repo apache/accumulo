@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.server.conf;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -25,6 +28,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -33,7 +37,7 @@ import org.apache.log4j.Logger;
 
 public class TableNamespaceConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(TableNamespaceConfiguration.class);
-  
+
   private final AccumuloConfiguration parent;
   private static ZooCache propCache = null;
   private String namespaceId = null;
@@ -46,12 +50,12 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     this.namespaceId = namespaceId;
     this.observers = Collections.synchronizedSet(new HashSet<ConfigurationObserver>());
   }
-  
+
   @Override
   public String get(Property property) {
     String key = property.getKey();
     String value = get(key);
-    
+
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
@@ -59,17 +63,16 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     }
     return value;
   }
-  
+
   private String get(String key) {
-    String zPath = ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF + "/"
-        + key;
+    String zPath = ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF + "/" + key;
     byte[] v = getPropCache().get(zPath);
     String value = null;
     if (v != null)
       value = new String(v, Constants.UTF8);
     return value;
   }
-  
+
   private static ZooCache getPropCache() {
     Instance inst = HdfsZooInstance.getInstance();
     if (propCache == null)
@@ -79,14 +82,14 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
       }
     return propCache;
   }
-  
+
   @Override
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
-    
+
     for (Entry<String,String> parentEntry : parent)
       entries.put(parentEntry.getKey(), parentEntry.getValue());
-    
+
     List<String> children = getPropCache().getChildren(
         ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF);
     if (children != null) {
@@ -96,14 +99,14 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
           entries.put(child, value);
       }
     }
-    
+
     return entries.entrySet().iterator();
   }
-  
+
   private String getNamespaceId() {
     return namespaceId;
   }
-  
+
   public void addObserver(ConfigurationObserver co) {
     if (namespaceId == null) {
       String err = "Attempt to add observer for non-table-namespace configuration";
@@ -113,7 +116,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     iterator();
     observers.add(co);
   }
-  
+
   public void removeObserver(ConfigurationObserver configObserver) {
     if (namespaceId == null) {
       String err = "Attempt to remove observer for non-table-namespace configuration";
@@ -122,19 +125,19 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     }
     observers.remove(configObserver);
   }
-  
+
   public void expireAllObservers() {
     Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
     for (ConfigurationObserver co : copy)
       co.sessionExpired();
   }
-  
+
   public void propertyChanged(String key) {
     Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
     for (ConfigurationObserver co : copy)
       co.propertyChanged(key);
   }
-  
+
   public void propertiesChanged(String key) {
     Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
     for (ConfigurationObserver co : copy)
