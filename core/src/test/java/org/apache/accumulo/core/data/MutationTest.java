@@ -508,4 +508,72 @@ public class MutationTest extends TestCase {
     assertEquals(m2.getUpdates().get(3), "cf2", "big", "", 0l, false, false, bigVal.toString());
   }
 
+  public void testEquals() {
+    Mutation m1 = new Mutation("r1");
+    
+    m1.put("cf1", "cq1", "v1");
+    m1.put("cf1", "cq1", new ColumnVisibility("A&B"), "v2");
+    m1.put("cf1", "cq1", 3, "v3");
+    m1.put("cf1", "cq1", new ColumnVisibility("A&B&C"), 4, "v4");
+    m1.putDelete("cf2", "cf3");
+    m1.putDelete("cf2", "cf4", 3);
+    m1.putDelete("cf2", "cf4", new ColumnVisibility("A&B&C"), 3);
+    
+    // m2 has same data as m1
+    Mutation m2 = new Mutation("r1");
+    
+    m2.put("cf1", "cq1", "v1");
+    m2.put("cf1", "cq1", new ColumnVisibility("A&B"), "v2");
+    m2.put("cf1", "cq1", 3, "v3");
+    m2.put("cf1", "cq1", new ColumnVisibility("A&B&C"), 4, "v4");
+    m2.putDelete("cf2", "cf3");
+    m2.putDelete("cf2", "cf4", 3);
+    m2.putDelete("cf2", "cf4", new ColumnVisibility("A&B&C"), 3);
+    
+    // m3 has differnt row than m1
+    Mutation m3 = new Mutation("r2");
+    
+    m3.put("cf1", "cq1", "v1");
+    m3.put("cf1", "cq1", new ColumnVisibility("A&B"), "v2");
+    m3.put("cf1", "cq1", 3, "v3");
+    m3.put("cf1", "cq1", new ColumnVisibility("A&B&C"), 4, "v4");
+    m3.putDelete("cf2", "cf3");
+    m3.putDelete("cf2", "cf4", 3);
+    m3.putDelete("cf2", "cf4", new ColumnVisibility("A&B&C"), 3);
+
+    // m4 has a different column than m1
+    Mutation m4 = new Mutation("r1");
+    
+    m4.put("cf2", "cq1", "v1");
+    m4.put("cf1", "cq1", new ColumnVisibility("A&B"), "v2");
+    m4.put("cf1", "cq1", 3, "v3");
+    m4.put("cf1", "cq1", new ColumnVisibility("A&B&C"), 4, "v4");
+    m4.putDelete("cf2", "cf3");
+    m4.putDelete("cf2", "cf4", 3);
+    m4.putDelete("cf2", "cf4", new ColumnVisibility("A&B&C"), 3);
+    
+    // m5 has a different value than m1
+    Mutation m5 = new Mutation("r1");
+    
+    m5.put("cf1", "cq1", "v1");
+    m5.put("cf1", "cq1", new ColumnVisibility("A&B"), "v2");
+    m5.put("cf1", "cq1", 3, "v4");
+    m5.put("cf1", "cq1", new ColumnVisibility("A&B&C"), 4, "v4");
+    m5.putDelete("cf2", "cf3");
+    m5.putDelete("cf2", "cf4", 3);
+    m5.putDelete("cf2", "cf4", new ColumnVisibility("A&B&C"), 3);
+
+    assertEquals(m1, m1);
+    assertEquals(m1, m2);
+    assertEquals(m2, m1);
+    assertFalse(m1.equals(m3));
+    assertFalse(m3.equals(m1));
+    assertFalse(m1.equals(m4));
+    assertFalse(m4.equals(m1));
+    assertFalse(m3.equals(m4));
+    assertFalse(m1.equals(m5));
+    assertFalse(m5.equals(m1));
+    assertFalse(m3.equals(m5));
+    assertFalse(m4.equals(m5));
+  }
 }
