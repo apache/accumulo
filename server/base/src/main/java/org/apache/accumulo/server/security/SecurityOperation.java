@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.SecurityOperationsImpl;
+import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -338,7 +339,12 @@ public class SecurityOperation {
   protected boolean hasTableNamespacePermissionForTableName(TCredentials credentials, String tableName, TableNamespacePermission permission, boolean useCached)
       throws ThriftSecurityException {
     String tableNamespace = Tables.extractNamespace(tableName);
-    return hasTableNamespacePermission(credentials, tableNamespace, permission, useCached);
+    try {
+      String namespace = TableNamespaces.getNamespaceId(HdfsZooInstance.getInstance(), tableNamespace);
+      return hasTableNamespacePermission(credentials, namespace, permission, useCached);
+    } catch (TableNamespaceNotFoundException e) {
+      return false;
+    }
   }
   
   /**
@@ -792,8 +798,7 @@ public class SecurityOperation {
   
   public boolean canImport(TCredentials credentials, String tableName, String importDir) throws ThriftSecurityException {
     authenticate(credentials);
-    String tableId = Tables.getNamespace(HdfsZooInstance.getInstance(), tableName);
     return hasSystemPermission(credentials, SystemPermission.CREATE_TABLE, false)
-        || hasTableNamespacePermissionForTableId(credentials, tableId, TableNamespacePermission.CREATE_TABLE, false);
+        || hasTableNamespacePermissionForTableName(credentials, tableName, TableNamespacePermission.CREATE_TABLE, false);
   }
 }
