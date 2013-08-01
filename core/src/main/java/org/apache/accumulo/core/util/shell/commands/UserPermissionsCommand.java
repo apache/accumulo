@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -62,12 +63,29 @@ public class UserPermissionsCommand extends Command {
       runOnce = 0;
     }
     shellState.getReader().println();
+    
+    for (String n : shellState.getConnector().tableNamespaceOperations().list()) {
+      delim = "";
+      for (TableNamespacePermission p : TableNamespacePermission.values()) {
+        if (p != null && shellState.getConnector().securityOperations().hasTableNamespacePermission(user, n, p)) {
+          if (runOnce == 0) {
+            shellState.getReader().print("\nTable Namespace permissions (" + n + "): ");
+            runOnce++;
+          }
+          shellState.getReader().print(delim + "Namespace." + p.name());
+          delim = ", ";
+        }
+      }
+      runOnce = 0;
+    }
+    shellState.getReader().println();
+    
     return 0;
   }
   
   @Override
   public String description() {
-    return "displays a user's system and table permissions";
+    return "displays a user's system, table, and table namespace permissions";
   }
   
   @Override

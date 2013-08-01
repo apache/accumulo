@@ -17,9 +17,11 @@
 package org.apache.accumulo.server.security.handler;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 
@@ -66,6 +68,16 @@ public interface PermissionHandler {
   public boolean hasCachedTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException;
   
   /**
+   * Used to get the table namespace permission of a user for a table namespace
+   */
+  public boolean hasTableNamespacePermission(String user, String namespace, TableNamespacePermission permission) throws AccumuloSecurityException, TableNamespaceNotFoundException;
+  
+  /**
+   * Used to get the table namespace permission of a user for a table namespace, with caching. This method is for high frequency operations
+   */
+  public boolean hasCachedTableNamespacePermission(String user, String namespace, TableNamespacePermission permission) throws AccumuloSecurityException, TableNamespaceNotFoundException;
+  
+  /**
    * Gives the user the given system permission
    */
   public void grantSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException;
@@ -86,9 +98,25 @@ public interface PermissionHandler {
   public void revokeTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException;
   
   /**
+   * Gives the user the given table namespace permission
+   */
+  public void grantTableNamespacePermission(String user, String tableNamespace, TableNamespacePermission permission) throws AccumuloSecurityException, TableNamespaceNotFoundException;
+  
+  /**
+   * Denies the user the given table namespace permission.
+   */
+  public void revokeTableNamespacePermission(String user, String tableNamespace, TableNamespacePermission permission) throws AccumuloSecurityException, TableNamespaceNotFoundException;
+  
+  
+  /**
    * Cleans up the permissions for a table. Used when a table gets deleted.
    */
   public void cleanTablePermissions(String table) throws AccumuloSecurityException, TableNotFoundException;
+  
+  /**
+   * Cleans up the permissions for a table namespace. Used when a table namespace gets deleted.
+   */
+  public void cleanTableNamespacePermissions(String tableNamespace) throws AccumuloSecurityException, TableNamespaceNotFoundException;
   
   /**
    * Initializes a new user

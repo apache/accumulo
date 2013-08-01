@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -49,6 +51,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -404,12 +407,12 @@ public class TableNamespacesIT {
     } catch (MutationsRejectedException e) {
       // supposed to be thrown
     }
-    
     int num = c.tableNamespaceOperations().listConstraints(namespace).get(NumericValueConstraint.class.getName());
     c.tableNamespaceOperations().removeConstraint(namespace, num);
   }
   
   /**
+<<<<<<< HEAD
    * Tests that when a table moves to a new namespace that it's properties inherit from the new namespace and not the old one
    */
   @Test
@@ -446,6 +449,38 @@ public class TableNamespacesIT {
       }
     }
     assertTrue(!hasProp);
+  }
+  /**
+   *  Tests new Namespace permissions as well as modifications to Table permissions because of namespaces 
+   */
+  @Test
+  public void testPermissions() throws Exception {
+    Connector c = accumulo.getConnector("root", secret);
+    
+    PasswordToken pass = new PasswordToken(secret);
+    
+    String n1 = "namespace1";
+
+    String user1 = "dude";
+
+    c.tableNamespaceOperations().create(n1);
+    c.tableOperations().create(n1 + ".table1");
+    
+    c.securityOperations().createLocalUser(user1, pass);
+    
+    Connector user1Con = accumulo.getConnector(user1, secret);
+    
+    try {
+      user1Con.tableOperations().create(n1 + ".table2");
+      fail();
+    } catch (AccumuloSecurityException e) {
+      // supposed to happen
+    }
+    
+    c.securityOperations().grantTableNamespacePermission(user1, n1, TableNamespacePermission.CREATE_TABLE);
+    
+    user1Con.tableOperations().create(n1 + ".table2");
+    assertTrue(c.tableOperations().list().contains(n1 + ".table2"));
   }
   
   private boolean checkTableHasProp(Connector c, String t, String propKey, String propVal) throws AccumuloException, TableNotFoundException {

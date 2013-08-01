@@ -17,33 +17,28 @@
 package org.apache.accumulo.core.security;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
-public enum SystemPermission {
+public enum TableNamespacePermission {
   // One can add new permissions, with new numbers, but please don't change or use numbers previously assigned
-  GRANT((byte) 0),
-  CREATE_TABLE((byte) 1),
-  DROP_TABLE((byte) 2),
-  ALTER_TABLE((byte) 3),
-  CREATE_USER((byte) 4),
-  DROP_USER((byte) 5),
-  ALTER_USER((byte) 6),
-  SYSTEM((byte) 7),
-  CREATE_NAMESPACE((byte) 8),
-  DROP_NAMESPACE((byte) 9),
-  ALTER_NAMESPACE((byte) 10);
+  READ((byte) 0),
+  WRITE((byte) 1),
+  ALTER_TABLE_NAMESPACE((byte) 2),
+  GRANT((byte) 3),
+  ALTER_TABLE((byte) 4),
+  CREATE_TABLE((byte) 5),
+  DROP_TABLE((byte) 6),
+  BULK_IMPORT((byte) 7);
   
-  private byte permID;
+  final private byte permID;
   
-  private static HashMap<Byte,SystemPermission> mapping;
+  final private static TableNamespacePermission mapping[] = new TableNamespacePermission[8];
   static {
-    mapping = new HashMap<Byte,SystemPermission>(SystemPermission.values().length);
-    for (SystemPermission perm : SystemPermission.values())
-      mapping.put(perm.permID, perm);
+    for (TableNamespacePermission perm : TableNamespacePermission.values())
+      mapping[perm.permID] = perm;
   }
   
-  private SystemPermission(byte id) {
+  private TableNamespacePermission(byte id) {
     this.permID = id;
   }
   
@@ -52,19 +47,21 @@ public enum SystemPermission {
   }
   
   public static List<String> printableValues() {
-    SystemPermission[] a = SystemPermission.values();
+    TableNamespacePermission[] a = TableNamespacePermission.values();
     
     List<String> list = new ArrayList<String>(a.length);
     
-    for (SystemPermission p : a)
-      list.add("System." + p);
+    for (TableNamespacePermission p : a)
+      list.add("Namespace." + p);
     
     return list;
   }
   
-  public static SystemPermission getPermissionById(byte id) {
-    if (mapping.containsKey(id))
-      return mapping.get(id);
+  public static TableNamespacePermission getPermissionById(byte id) {
+    TableNamespacePermission result = mapping[id];
+    if (result != null)
+      return result;
     throw new IndexOutOfBoundsException("No such permission");
   }
+  
 }

@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 
 public class MockSecurityOperations implements SecurityOperations {
@@ -128,6 +129,17 @@ public class MockSecurityOperations implements SecurityOperations {
   }
   
   @Override
+  public boolean hasTableNamespacePermission(String principal, String tableNamespace, TableNamespacePermission perm) throws AccumuloException, AccumuloSecurityException {
+    MockTableNamespace namespace = acu.namespaces.get(tableNamespace);
+    if (namespace == null)
+      throw new AccumuloSecurityException(tableNamespace, SecurityErrorCode.TABLE_DOESNT_EXIST);
+    EnumSet<TableNamespacePermission> perms = namespace.userPermissions.get(principal);
+    if (perms == null)
+      return false;
+    return perms.contains(perm);
+  }
+  
+  @Override
   public void grantSystemPermission(String principal, SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(principal);
     if (user != null)
@@ -151,6 +163,20 @@ public class MockSecurityOperations implements SecurityOperations {
   }
   
   @Override
+  public void grantTableNamespacePermission(String principal, String tableNamespace, TableNamespacePermission permission) throws AccumuloException, AccumuloSecurityException {
+    if (acu.users.get(principal) == null)
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
+    MockTableNamespace namespace = acu.namespaces.get(tableNamespace);
+    if (namespace == null)
+      throw new AccumuloSecurityException(tableNamespace, SecurityErrorCode.TABLE_DOESNT_EXIST);
+    EnumSet<TableNamespacePermission> perms = namespace.userPermissions.get(principal);
+    if (perms == null)
+      namespace.userPermissions.put(principal, EnumSet.of(permission));
+    else
+      perms.add(permission);
+  }
+  
+  @Override
   public void revokeSystemPermission(String principal, SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(principal);
     if (user != null)
@@ -167,6 +193,19 @@ public class MockSecurityOperations implements SecurityOperations {
     if (table == null)
       throw new AccumuloSecurityException(tableName, SecurityErrorCode.TABLE_DOESNT_EXIST);
     EnumSet<TablePermission> perms = table.userPermissions.get(principal);
+    if (perms != null)
+      perms.remove(permission);
+    
+  }
+  
+  @Override
+  public void revokeTableNamespacePermission(String principal, String tableNamespace, TableNamespacePermission permission) throws AccumuloException, AccumuloSecurityException {
+    if (acu.users.get(principal) == null)
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
+    MockTableNamespace namespace = acu.namespaces.get(tableNamespace);
+    if (namespace == null)
+      throw new AccumuloSecurityException(tableNamespace, SecurityErrorCode.TABLE_DOESNT_EXIST);
+    EnumSet<TableNamespacePermission> perms = namespace.userPermissions.get(principal);
     if (perms != null)
       perms.remove(permission);
     

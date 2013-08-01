@@ -32,6 +32,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -100,7 +101,7 @@ public class MockAccumulo {
   public void createNamespace(String username, String namespace) {
     if (!namespaceExists(namespace)) {
       MockTableNamespace n = new MockTableNamespace();
-      n.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
+      n.userPermissions.put(username, EnumSet.allOf(TableNamespacePermission.class));
       namespaces.put(namespace, n);
     }
   }

@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -53,6 +54,17 @@ public class GrantCommand extends TableOperation {
       }
     } else if (permission[0].equalsIgnoreCase("Table")) {
       super.execute(fullCommand, cl, shellState);
+    } else if (permission[0].equalsIgnoreCase("Namespace")) {
+      if (cl.hasOption(optTableNamespace.getOpt())) {
+        try {
+          shellState.getConnector().securityOperations()
+              .grantTableNamespacePermission(user, cl.getOptionValue(optTableNamespace.getOpt()), TableNamespacePermission.valueOf(permission[1]));
+        } catch (IllegalArgumentException e) {
+          throw new BadArgumentException("No such table namespace permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+        }
+      } else {
+        throw new BadArgumentException("No Table Namespace specified to apply permission to", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+      }
     } else {
       throw new BadArgumentException("Unrecognized permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
     }
@@ -71,7 +83,7 @@ public class GrantCommand extends TableOperation {
   
   @Override
   public String description() {
-    return "grants system or table permissions for a user";
+    return "grants system, table, or table namespace permissions for a user";
   }
   
   @Override
@@ -84,6 +96,7 @@ public class GrantCommand extends TableOperation {
     final Token cmd = new Token(getName());
     cmd.addSubcommand(new Token(TablePermission.printableValues()));
     cmd.addSubcommand(new Token(SystemPermission.printableValues()));
+    cmd.addSubcommand(new Token(TableNamespacePermission.printableValues()));
     root.addSubcommand(cmd);
   }
   
@@ -96,9 +109,13 @@ public class GrantCommand extends TableOperation {
     
     systemOpt = new Option("s", "system", false, "grant a system permission");
     
+    optTableNamespace = new Option(Shell.tableNamespaceOption, "table-namespace", true, "name of a table namespace to operate on");
+    optTableNamespace.setArgName("tableNamespace");
+    
     group.addOption(systemOpt);
     group.addOption(optTableName);
     group.addOption(optTablePattern);
+    group.addOption(optTableNamespace);
     
     o.addOptionGroup(group);
     userOpt = new Option(Shell.userOption, "user", true, "user to operate on");

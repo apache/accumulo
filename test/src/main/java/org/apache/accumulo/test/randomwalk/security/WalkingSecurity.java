@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -59,6 +61,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   private static final String userPass = "UserPass";
   private static final String userExists = "UserExists";
   private static final String tableExists = "TableExists";
+  private static final String tableNamespaceExists = "TableNamespaceExists";
   
   private static final String connector = "UserConnection";
   
@@ -205,6 +208,16 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   @Override
+  public boolean hasTableNamespacePermission(String user, String tableNamespace, TableNamespacePermission permission) throws AccumuloSecurityException, TableNamespaceNotFoundException {
+    return Boolean.parseBoolean(state.getString("Nsp-" + user + '-' + permission.name()));
+  }
+  
+  @Override
+  public boolean hasCachedTableNamespacePermission(String user, String tableNamespace, TableNamespacePermission permission) throws AccumuloSecurityException, TableNamespaceNotFoundException {
+    return hasTableNamespacePermission(user, tableNamespace, permission);
+  }
+  
+  @Override
   public void grantSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     setSysPerm(state, user, permission, true);
   }
@@ -239,6 +252,25 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   @Override
+  public void grantTableNamespacePermission(String user, String tableNamespace, TableNamespacePermission permission) throws AccumuloSecurityException, TableNamespaceNotFoundException {
+    setNspPerm(state, user, permission, tableNamespace, true);
+  }
+  
+  private void setNspPerm(State state, String userName, TableNamespacePermission tnp, String tableNamespace, boolean value) {
+    if (tableNamespace.equals(userName))
+      throw new RuntimeException("I don't even know");
+    log.debug((value ? "Gave" : "Took") + " the table permission " + tnp.name() + (value ? " to" : " from") + " user " + userName);
+    state.set("Nsp-" + userName + '-' + tnp.name(), Boolean.toString(value));
+    if (tnp.equals(TableNamespacePermission.READ) || tnp.equals(TableNamespacePermission.WRITE))
+      state.set("Nsp-" + userName + '-' + tnp.name() + '-' + "time", System.currentTimeMillis());
+  }
+  
+  @Override
+  public void revokeTableNamespacePermission(String user, String tableNamespace, TableNamespacePermission permission) throws AccumuloSecurityException, TableNamespaceNotFoundException {
+    setNspPerm(state, user, permission, tableNamespace, false);
+  }
+  
+  @Override
   public void cleanTablePermissions(String table) throws AccumuloSecurityException, TableNotFoundException {
     for (String user : new String[] {getSysUserName(), getTabUserName()}) {
       for (TablePermission tp : TablePermission.values()) {
@@ -246,6 +278,16 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
       }
     }
     state.set(tableExists, Boolean.toString(false));
+  }
+  
+  @Override
+  public void cleanTableNamespacePermissions(String tableNamespace) throws AccumuloSecurityException, TableNamespaceNotFoundException {
+    for (String user : new String[] {getSysUserName(), getNspUserName()}) {
+      for (TableNamespacePermission tnp : TableNamespacePermission.values()) {
+        revokeTableNamespacePermission(user, tableNamespace, tnp);
+      }
+    }
+    state.set(tableNamespaceExists, Boolean.toString(false));
   }
   
   @Override
@@ -267,8 +309,17 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     return state.getString("system" + userName);
   }
   
+  public String getNspUserName() {
+    return state.getString("namespace" + userName);
+  }
+  
   public void setTabUserName(String name) {
     state.set("table" + userName, name);
+    state.set(name + userExists, Boolean.toString(false));
+  }
+  
+  public void setNspUserName(String name) {
+    state.set("namespace" + userName, name);
     state.set(name + userExists, Boolean.toString(false));
   }
   

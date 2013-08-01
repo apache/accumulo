@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 
 /**
@@ -216,6 +217,23 @@ public interface SecurityOperations {
   public boolean hasTablePermission(String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException;
   
   /**
+   * Verify the user has a particular table namespace permission
+   * 
+   * @param principal
+   *          the name of the user to query
+   * @param tableNamespace
+   *          the name of the table namespace to query about
+   * @param perm
+   *          the table namespace permission to check for
+   * @return true if user has that permission; false otherwise
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission to query a user
+   */
+  public boolean hasTableNamespacePermission(String principal, String tableNamespace, TableNamespacePermission perm) throws AccumuloException, AccumuloSecurityException;
+  
+  /**
    * Grant a user a system permission
    * 
    * @param principal
@@ -246,6 +264,22 @@ public interface SecurityOperations {
   public void grantTablePermission(String principal, String table, TablePermission permission) throws AccumuloException, AccumuloSecurityException;
   
   /**
+   * Grant a user a specific permission for a specific table namespace
+   * 
+   * @param principal
+   *          the name of the user to modify
+   * @param tableNamespace
+   *          the name of the table namespace to modify for the user
+   * @param permission
+   *          the table namespace permission to grant to the user
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission to grant a user permissions
+   */
+  public void grantTableNamespacePermission(String principal, String tableNamespace, TableNamespacePermission permission) throws AccumuloException, AccumuloSecurityException;
+  
+  /**
    * Revoke a system permission from a user
    * 
    * @param principal
@@ -274,6 +308,22 @@ public interface SecurityOperations {
    *           if the user does not have permission to revoke a user's permissions
    */
   public void revokeTablePermission(String principal, String table, TablePermission permission) throws AccumuloException, AccumuloSecurityException;
+  
+  /**
+   * Revoke a table namespace permission for a specific user on a specific table namespace
+   * 
+   * @param principal
+   *          the name of the user to modify
+   * @param tableNamespace
+   *          the name of the table namespace to modify for the user
+   * @param permission
+   *          the table namespace permission to revoke for the user
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission to revoke a user's permissions
+   */
+  public void revokeTableNamespacePermission(String principal, String tableNamespace, TableNamespacePermission permission) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Return a list of users in accumulo

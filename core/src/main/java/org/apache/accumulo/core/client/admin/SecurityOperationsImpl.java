@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -207,6 +208,17 @@ public class SecurityOperationsImpl implements SecurityOperations {
   }
   
   @Override
+  public boolean hasTableNamespacePermission(final String principal, final String tableNamespace, final TableNamespacePermission perm) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, tableNamespace, perm);
+    return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
+      @Override
+      public Boolean execute(ClientService.Client client) throws Exception {
+        return client.hasTableNamespacePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, tableNamespace, perm.getId());
+      }
+    });
+  }
+  
+  @Override
   public void grantSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, permission);
     execute(new ClientExec<ClientService.Client>() {
@@ -230,6 +242,18 @@ public class SecurityOperationsImpl implements SecurityOperations {
   }
   
   @Override
+  public void grantTableNamespacePermission(final String principal, final String tableNamespace, final TableNamespacePermission permission) throws AccumuloException,
+      AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, tableNamespace, permission);
+    execute(new ClientExec<ClientService.Client>() {
+      @Override
+      public void execute(ClientService.Client client) throws Exception {
+        client.grantTableNamespacePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, tableNamespace, permission.getId());
+      }
+    });
+  }
+  
+  @Override
   public void revokeSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, permission);
     execute(new ClientExec<ClientService.Client>() {
@@ -248,6 +272,18 @@ public class SecurityOperationsImpl implements SecurityOperations {
       @Override
       public void execute(ClientService.Client client) throws Exception {
         client.revokeTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
+      }
+    });
+  }
+  
+  @Override
+  public void revokeTableNamespacePermission(final String principal, final String tableNamespace, final TableNamespacePermission permission) throws AccumuloException,
+      AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, tableNamespace, permission);
+    execute(new ClientExec<ClientService.Client>() {
+      @Override
+      public void execute(ClientService.Client client) throws Exception {
+        client.revokeTableNamespacePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, tableNamespace, permission.getId());
       }
     });
   }

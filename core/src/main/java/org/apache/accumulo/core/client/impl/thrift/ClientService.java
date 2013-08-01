@@ -84,6 +84,8 @@ import org.slf4j.LoggerFactory;
 
     public boolean hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte tblPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
+    public boolean hasTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+
     public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws ThriftSecurityException, org.apache.thrift.TException;
 
     public void revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws ThriftSecurityException, org.apache.thrift.TException;
@@ -91,6 +93,10 @@ import org.slf4j.LoggerFactory;
     public void grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+
+    public void grantTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+
+    public void revokeTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public Map<String,String> getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, ConfigurationType type) throws org.apache.thrift.TException;
 
@@ -142,6 +148,8 @@ import org.slf4j.LoggerFactory;
 
     public void hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
+    public void hasTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException;
+
     public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
     public void revokeSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
@@ -149,6 +157,10 @@ import org.slf4j.LoggerFactory;
     public void grantTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
     public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void grantTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void revokeTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException;
 
     public void getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, ConfigurationType type, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getConfiguration_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -637,6 +649,39 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasTablePermission failed: unknown result");
     }
 
+    public boolean hasTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    {
+      send_hasTableNamespacePermission(tinfo, credentials, principal, tableNamespace, tblNspcPerm);
+      return recv_hasTableNamespacePermission();
+    }
+
+    public void send_hasTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm) throws org.apache.thrift.TException
+    {
+      hasTableNamespacePermission_args args = new hasTableNamespacePermission_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setPrincipal(principal);
+      args.setTableNamespace(tableNamespace);
+      args.setTblNspcPerm(tblNspcPerm);
+      sendBase("hasTableNamespacePermission", args);
+    }
+
+    public boolean recv_hasTableNamespacePermission() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    {
+      hasTableNamespacePermission_result result = new hasTableNamespacePermission_result();
+      receiveBase(result, "hasTableNamespacePermission");
+      if (result.isSetSuccess()) {
+        return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      if (result.tope != null) {
+        throw result.tope;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasTableNamespacePermission failed: unknown result");
+    }
+
     public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws ThriftSecurityException, org.apache.thrift.TException
     {
       send_grantSystemPermission(tinfo, credentials, principal, permission);
@@ -740,6 +785,66 @@ import org.slf4j.LoggerFactory;
     {
       revokeTablePermission_result result = new revokeTablePermission_result();
       receiveBase(result, "revokeTablePermission");
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      if (result.tope != null) {
+        throw result.tope;
+      }
+      return;
+    }
+
+    public void grantTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    {
+      send_grantTableNamespacePermission(tinfo, credentials, principal, tableNamespace, permission);
+      recv_grantTableNamespacePermission();
+    }
+
+    public void send_grantTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws org.apache.thrift.TException
+    {
+      grantTableNamespacePermission_args args = new grantTableNamespacePermission_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setPrincipal(principal);
+      args.setTableNamespace(tableNamespace);
+      args.setPermission(permission);
+      sendBase("grantTableNamespacePermission", args);
+    }
+
+    public void recv_grantTableNamespacePermission() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    {
+      grantTableNamespacePermission_result result = new grantTableNamespacePermission_result();
+      receiveBase(result, "grantTableNamespacePermission");
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      if (result.tope != null) {
+        throw result.tope;
+      }
+      return;
+    }
+
+    public void revokeTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    {
+      send_revokeTableNamespacePermission(tinfo, credentials, principal, tableNamespace, permission);
+      recv_revokeTableNamespacePermission();
+    }
+
+    public void send_revokeTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws org.apache.thrift.TException
+    {
+      revokeTableNamespacePermission_args args = new revokeTableNamespacePermission_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setPrincipal(principal);
+      args.setTableNamespace(tableNamespace);
+      args.setPermission(permission);
+      sendBase("revokeTableNamespacePermission", args);
+    }
+
+    public void recv_revokeTableNamespacePermission() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    {
+      revokeTableNamespacePermission_result result = new revokeTableNamespacePermission_result();
+      receiveBase(result, "revokeTableNamespacePermission");
       if (result.sec != null) {
         throw result.sec;
       }
@@ -1571,6 +1676,50 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    public void hasTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<hasTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      hasTableNamespacePermission_call method_call = new hasTableNamespacePermission_call(tinfo, credentials, principal, tableNamespace, tblNspcPerm, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class hasTableNamespacePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private org.apache.accumulo.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      private String principal;
+      private String tableNamespace;
+      private byte tblNspcPerm;
+      public hasTableNamespacePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<hasTableNamespacePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.principal = principal;
+        this.tableNamespace = tableNamespace;
+        this.tblNspcPerm = tblNspcPerm;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("hasTableNamespacePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        hasTableNamespacePermission_args args = new hasTableNamespacePermission_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setPrincipal(principal);
+        args.setTableNamespace(tableNamespace);
+        args.setTblNspcPerm(tblNspcPerm);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public boolean getResult() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_hasTableNamespacePermission();
+      }
+    }
+
     public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       grantSystemPermission_call method_call = new grantSystemPermission_call(tinfo, credentials, principal, permission, resultHandler, this, ___protocolFactory, ___transport);
@@ -1738,6 +1887,94 @@ import org.slf4j.LoggerFactory;
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
         (new Client(prot)).recv_revokeTablePermission();
+      }
+    }
+
+    public void grantTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      grantTableNamespacePermission_call method_call = new grantTableNamespacePermission_call(tinfo, credentials, principal, tableNamespace, permission, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class grantTableNamespacePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private org.apache.accumulo.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      private String principal;
+      private String tableNamespace;
+      private byte permission;
+      public grantTableNamespacePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTableNamespacePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.principal = principal;
+        this.tableNamespace = tableNamespace;
+        this.permission = permission;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("grantTableNamespacePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        grantTableNamespacePermission_args args = new grantTableNamespacePermission_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setPrincipal(principal);
+        args.setTableNamespace(tableNamespace);
+        args.setPermission(permission);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_grantTableNamespacePermission();
+      }
+    }
+
+    public void revokeTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      revokeTableNamespacePermission_call method_call = new revokeTableNamespacePermission_call(tinfo, credentials, principal, tableNamespace, permission, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class revokeTableNamespacePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private org.apache.accumulo.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      private String principal;
+      private String tableNamespace;
+      private byte permission;
+      public revokeTableNamespacePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTableNamespacePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.principal = principal;
+        this.tableNamespace = tableNamespace;
+        this.permission = permission;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("revokeTableNamespacePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        revokeTableNamespacePermission_args args = new revokeTableNamespacePermission_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setPrincipal(principal);
+        args.setTableNamespace(tableNamespace);
+        args.setPermission(permission);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_revokeTableNamespacePermission();
       }
     }
 
@@ -2014,10 +2251,13 @@ import org.slf4j.LoggerFactory;
       processMap.put("getUserAuthorizations", new getUserAuthorizations());
       processMap.put("hasSystemPermission", new hasSystemPermission());
       processMap.put("hasTablePermission", new hasTablePermission());
+      processMap.put("hasTableNamespacePermission", new hasTableNamespacePermission());
       processMap.put("grantSystemPermission", new grantSystemPermission());
       processMap.put("revokeSystemPermission", new revokeSystemPermission());
       processMap.put("grantTablePermission", new grantTablePermission());
       processMap.put("revokeTablePermission", new revokeTablePermission());
+      processMap.put("grantTableNamespacePermission", new grantTableNamespacePermission());
+      processMap.put("revokeTableNamespacePermission", new revokeTableNamespacePermission());
       processMap.put("getConfiguration", new getConfiguration());
       processMap.put("getTableConfiguration", new getTableConfiguration());
       processMap.put("getTableNamespaceConfiguration", new getTableNamespaceConfiguration());
@@ -2430,6 +2670,33 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    public static class hasTableNamespacePermission<I extends Iface> extends org.apache.thrift.ProcessFunction<I, hasTableNamespacePermission_args> {
+      public hasTableNamespacePermission() {
+        super("hasTableNamespacePermission");
+      }
+
+      public hasTableNamespacePermission_args getEmptyArgsInstance() {
+        return new hasTableNamespacePermission_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public hasTableNamespacePermission_result getResult(I iface, hasTableNamespacePermission_args args) throws org.apache.thrift.TException {
+        hasTableNamespacePermission_result result = new hasTableNamespacePermission_result();
+        try {
+          result.success = iface.hasTableNamespacePermission(args.tinfo, args.credentials, args.principal, args.tableNamespace, args.tblNspcPerm);
+          result.setSuccessIsSet(true);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
+        } catch (ThriftTableOperationException tope) {
+          result.tope = tope;
+        }
+        return result;
+      }
+    }
+
     public static class grantSystemPermission<I extends Iface> extends org.apache.thrift.ProcessFunction<I, grantSystemPermission_args> {
       public grantSystemPermission() {
         super("grantSystemPermission");
@@ -2521,6 +2788,58 @@ import org.slf4j.LoggerFactory;
         revokeTablePermission_result result = new revokeTablePermission_result();
         try {
           iface.revokeTablePermission(args.tinfo, args.credentials, args.principal, args.tableName, args.permission);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
+        } catch (ThriftTableOperationException tope) {
+          result.tope = tope;
+        }
+        return result;
+      }
+    }
+
+    public static class grantTableNamespacePermission<I extends Iface> extends org.apache.thrift.ProcessFunction<I, grantTableNamespacePermission_args> {
+      public grantTableNamespacePermission() {
+        super("grantTableNamespacePermission");
+      }
+
+      public grantTableNamespacePermission_args getEmptyArgsInstance() {
+        return new grantTableNamespacePermission_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public grantTableNamespacePermission_result getResult(I iface, grantTableNamespacePermission_args args) throws org.apache.thrift.TException {
+        grantTableNamespacePermission_result result = new grantTableNamespacePermission_result();
+        try {
+          iface.grantTableNamespacePermission(args.tinfo, args.credentials, args.principal, args.tableNamespace, args.permission);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
+        } catch (ThriftTableOperationException tope) {
+          result.tope = tope;
+        }
+        return result;
+      }
+    }
+
+    public static class revokeTableNamespacePermission<I extends Iface> extends org.apache.thrift.ProcessFunction<I, revokeTableNamespacePermission_args> {
+      public revokeTableNamespacePermission() {
+        super("revokeTableNamespacePermission");
+      }
+
+      public revokeTableNamespacePermission_args getEmptyArgsInstance() {
+        return new revokeTableNamespacePermission_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public revokeTableNamespacePermission_result getResult(I iface, revokeTableNamespacePermission_args args) throws org.apache.thrift.TException {
+        revokeTableNamespacePermission_result result = new revokeTableNamespacePermission_result();
+        try {
+          iface.revokeTableNamespacePermission(args.tinfo, args.credentials, args.principal, args.tableNamespace, args.permission);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
         } catch (ThriftTableOperationException tope) {
@@ -19227,6 +19546,1326 @@ import org.slf4j.LoggerFactory;
 
   }
 
+  public static class hasTableNamespacePermission_args implements org.apache.thrift.TBase<hasTableNamespacePermission_args, hasTableNamespacePermission_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("hasTableNamespacePermission_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField TABLE_NAMESPACE_FIELD_DESC = new org.apache.thrift.protocol.TField("tableNamespace", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField TBL_NSPC_PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("tblNspcPerm", org.apache.thrift.protocol.TType.BYTE, (short)5);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new hasTableNamespacePermission_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new hasTableNamespacePermission_argsTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public String principal; // required
+    public String tableNamespace; // required
+    public byte tblNspcPerm; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      PRINCIPAL((short)3, "principal"),
+      TABLE_NAMESPACE((short)4, "tableNamespace"),
+      TBL_NSPC_PERM((short)5, "tblNspcPerm");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          case 3: // PRINCIPAL
+            return PRINCIPAL;
+          case 4: // TABLE_NAMESPACE
+            return TABLE_NAMESPACE;
+          case 5: // TBL_NSPC_PERM
+            return TBL_NSPC_PERM;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    private static final int __TBLNSPCPERM_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.TABLE_NAMESPACE, new org.apache.thrift.meta_data.FieldMetaData("tableNamespace", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.TBL_NSPC_PERM, new org.apache.thrift.meta_data.FieldMetaData("tblNspcPerm", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(hasTableNamespacePermission_args.class, metaDataMap);
+    }
+
+    public hasTableNamespacePermission_args() {
+    }
+
+    public hasTableNamespacePermission_args(
+      org.apache.accumulo.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
+      String principal,
+      String tableNamespace,
+      byte tblNspcPerm)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.principal = principal;
+      this.tableNamespace = tableNamespace;
+      this.tblNspcPerm = tblNspcPerm;
+      setTblNspcPermIsSet(true);
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public hasTableNamespacePermission_args(hasTableNamespacePermission_args other) {
+      __isset_bitfield = other.__isset_bitfield;
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetPrincipal()) {
+        this.principal = other.principal;
+      }
+      if (other.isSetTableNamespace()) {
+        this.tableNamespace = other.tableNamespace;
+      }
+      this.tblNspcPerm = other.tblNspcPerm;
+    }
+
+    public hasTableNamespacePermission_args deepCopy() {
+      return new hasTableNamespacePermission_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.principal = null;
+      this.tableNamespace = null;
+      setTblNspcPermIsSet(false);
+      this.tblNspcPerm = 0;
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public hasTableNamespacePermission_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public hasTableNamespacePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public String getPrincipal() {
+      return this.principal;
+    }
+
+    public hasTableNamespacePermission_args setPrincipal(String principal) {
+      this.principal = principal;
+      return this;
+    }
+
+    public void unsetPrincipal() {
+      this.principal = null;
+    }
+
+    /** Returns true if field principal is set (has been assigned a value) and false otherwise */
+    public boolean isSetPrincipal() {
+      return this.principal != null;
+    }
+
+    public void setPrincipalIsSet(boolean value) {
+      if (!value) {
+        this.principal = null;
+      }
+    }
+
+    public String getTableNamespace() {
+      return this.tableNamespace;
+    }
+
+    public hasTableNamespacePermission_args setTableNamespace(String tableNamespace) {
+      this.tableNamespace = tableNamespace;
+      return this;
+    }
+
+    public void unsetTableNamespace() {
+      this.tableNamespace = null;
+    }
+
+    /** Returns true if field tableNamespace is set (has been assigned a value) and false otherwise */
+    public boolean isSetTableNamespace() {
+      return this.tableNamespace != null;
+    }
+
+    public void setTableNamespaceIsSet(boolean value) {
+      if (!value) {
+        this.tableNamespace = null;
+      }
+    }
+
+    public byte getTblNspcPerm() {
+      return this.tblNspcPerm;
+    }
+
+    public hasTableNamespacePermission_args setTblNspcPerm(byte tblNspcPerm) {
+      this.tblNspcPerm = tblNspcPerm;
+      setTblNspcPermIsSet(true);
+      return this;
+    }
+
+    public void unsetTblNspcPerm() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __TBLNSPCPERM_ISSET_ID);
+    }
+
+    /** Returns true if field tblNspcPerm is set (has been assigned a value) and false otherwise */
+    public boolean isSetTblNspcPerm() {
+      return EncodingUtils.testBit(__isset_bitfield, __TBLNSPCPERM_ISSET_ID);
+    }
+
+    public void setTblNspcPermIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __TBLNSPCPERM_ISSET_ID, value);
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
+      case PRINCIPAL:
+        if (value == null) {
+          unsetPrincipal();
+        } else {
+          setPrincipal((String)value);
+        }
+        break;
+
+      case TABLE_NAMESPACE:
+        if (value == null) {
+          unsetTableNamespace();
+        } else {
+          setTableNamespace((String)value);
+        }
+        break;
+
+      case TBL_NSPC_PERM:
+        if (value == null) {
+          unsetTblNspcPerm();
+        } else {
+          setTblNspcPerm((Byte)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case PRINCIPAL:
+        return getPrincipal();
+
+      case TABLE_NAMESPACE:
+        return getTableNamespace();
+
+      case TBL_NSPC_PERM:
+        return Byte.valueOf(getTblNspcPerm());
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case PRINCIPAL:
+        return isSetPrincipal();
+      case TABLE_NAMESPACE:
+        return isSetTableNamespace();
+      case TBL_NSPC_PERM:
+        return isSetTblNspcPerm();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof hasTableNamespacePermission_args)
+        return this.equals((hasTableNamespacePermission_args)that);
+      return false;
+    }
+
+    public boolean equals(hasTableNamespacePermission_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_principal = true && this.isSetPrincipal();
+      boolean that_present_principal = true && that.isSetPrincipal();
+      if (this_present_principal || that_present_principal) {
+        if (!(this_present_principal && that_present_principal))
+          return false;
+        if (!this.principal.equals(that.principal))
+          return false;
+      }
+
+      boolean this_present_tableNamespace = true && this.isSetTableNamespace();
+      boolean that_present_tableNamespace = true && that.isSetTableNamespace();
+      if (this_present_tableNamespace || that_present_tableNamespace) {
+        if (!(this_present_tableNamespace && that_present_tableNamespace))
+          return false;
+        if (!this.tableNamespace.equals(that.tableNamespace))
+          return false;
+      }
+
+      boolean this_present_tblNspcPerm = true;
+      boolean that_present_tblNspcPerm = true;
+      if (this_present_tblNspcPerm || that_present_tblNspcPerm) {
+        if (!(this_present_tblNspcPerm && that_present_tblNspcPerm))
+          return false;
+        if (this.tblNspcPerm != that.tblNspcPerm)
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(hasTableNamespacePermission_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      hasTableNamespacePermission_args typedOther = (hasTableNamespacePermission_args)other;
+
+      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetPrincipal()).compareTo(typedOther.isSetPrincipal());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetPrincipal()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principal, typedOther.principal);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTableNamespace()).compareTo(typedOther.isSetTableNamespace());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTableNamespace()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableNamespace, typedOther.tableNamespace);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTblNspcPerm()).compareTo(typedOther.isSetTblNspcPerm());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTblNspcPerm()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tblNspcPerm, typedOther.tblNspcPerm);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("hasTableNamespacePermission_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("principal:");
+      if (this.principal == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.principal);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tableNamespace:");
+      if (this.tableNamespace == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tableNamespace);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tblNspcPerm:");
+      sb.append(this.tblNspcPerm);
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class hasTableNamespacePermission_argsStandardSchemeFactory implements SchemeFactory {
+      public hasTableNamespacePermission_argsStandardScheme getScheme() {
+        return new hasTableNamespacePermission_argsStandardScheme();
+      }
+    }
+
+    private static class hasTableNamespacePermission_argsStandardScheme extends StandardScheme<hasTableNamespacePermission_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, hasTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // PRINCIPAL
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.principal = iprot.readString();
+                struct.setPrincipalIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 4: // TABLE_NAMESPACE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.tableNamespace = iprot.readString();
+                struct.setTableNamespaceIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 5: // TBL_NSPC_PERM
+              if (schemeField.type == org.apache.thrift.protocol.TType.BYTE) {
+                struct.tblNspcPerm = iprot.readByte();
+                struct.setTblNspcPermIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, hasTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.principal != null) {
+          oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
+          oprot.writeString(struct.principal);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tableNamespace != null) {
+          oprot.writeFieldBegin(TABLE_NAMESPACE_FIELD_DESC);
+          oprot.writeString(struct.tableNamespace);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldBegin(TBL_NSPC_PERM_FIELD_DESC);
+        oprot.writeByte(struct.tblNspcPerm);
+        oprot.writeFieldEnd();
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class hasTableNamespacePermission_argsTupleSchemeFactory implements SchemeFactory {
+      public hasTableNamespacePermission_argsTupleScheme getScheme() {
+        return new hasTableNamespacePermission_argsTupleScheme();
+      }
+    }
+
+    private static class hasTableNamespacePermission_argsTupleScheme extends TupleScheme<hasTableNamespacePermission_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, hasTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetPrincipal()) {
+          optionals.set(2);
+        }
+        if (struct.isSetTableNamespace()) {
+          optionals.set(3);
+        }
+        if (struct.isSetTblNspcPerm()) {
+          optionals.set(4);
+        }
+        oprot.writeBitSet(optionals, 5);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetPrincipal()) {
+          oprot.writeString(struct.principal);
+        }
+        if (struct.isSetTableNamespace()) {
+          oprot.writeString(struct.tableNamespace);
+        }
+        if (struct.isSetTblNspcPerm()) {
+          oprot.writeByte(struct.tblNspcPerm);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, hasTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(5);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.principal = iprot.readString();
+          struct.setPrincipalIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.tableNamespace = iprot.readString();
+          struct.setTableNamespaceIsSet(true);
+        }
+        if (incoming.get(4)) {
+          struct.tblNspcPerm = iprot.readByte();
+          struct.setTblNspcPermIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class hasTableNamespacePermission_result implements org.apache.thrift.TBase<hasTableNamespacePermission_result, hasTableNamespacePermission_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("hasTableNamespacePermission_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.BOOL, (short)0);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new hasTableNamespacePermission_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new hasTableNamespacePermission_resultTupleSchemeFactory());
+    }
+
+    public boolean success; // required
+    public ThriftSecurityException sec; // required
+    public ThriftTableOperationException tope; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      SEC((short)1, "sec"),
+      TOPE((short)2, "tope");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // SEC
+            return SEC;
+          case 2: // TOPE
+            return TOPE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    private static final int __SUCCESS_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(hasTableNamespacePermission_result.class, metaDataMap);
+    }
+
+    public hasTableNamespacePermission_result() {
+    }
+
+    public hasTableNamespacePermission_result(
+      boolean success,
+      ThriftSecurityException sec,
+      ThriftTableOperationException tope)
+    {
+      this();
+      this.success = success;
+      setSuccessIsSet(true);
+      this.sec = sec;
+      this.tope = tope;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public hasTableNamespacePermission_result(hasTableNamespacePermission_result other) {
+      __isset_bitfield = other.__isset_bitfield;
+      this.success = other.success;
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
+      }
+      if (other.isSetTope()) {
+        this.tope = new ThriftTableOperationException(other.tope);
+      }
+    }
+
+    public hasTableNamespacePermission_result deepCopy() {
+      return new hasTableNamespacePermission_result(this);
+    }
+
+    @Override
+    public void clear() {
+      setSuccessIsSet(false);
+      this.success = false;
+      this.sec = null;
+      this.tope = null;
+    }
+
+    public boolean isSuccess() {
+      return this.success;
+    }
+
+    public hasTableNamespacePermission_result setSuccess(boolean success) {
+      this.success = success;
+      setSuccessIsSet(true);
+      return this;
+    }
+
+    public void unsetSuccess() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __SUCCESS_ISSET_ID);
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return EncodingUtils.testBit(__isset_bitfield, __SUCCESS_ISSET_ID);
+    }
+
+    public void setSuccessIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SUCCESS_ISSET_ID, value);
+    }
+
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public hasTableNamespacePermission_result setSec(ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    public ThriftTableOperationException getTope() {
+      return this.tope;
+    }
+
+    public hasTableNamespacePermission_result setTope(ThriftTableOperationException tope) {
+      this.tope = tope;
+      return this;
+    }
+
+    public void unsetTope() {
+      this.tope = null;
+    }
+
+    /** Returns true if field tope is set (has been assigned a value) and false otherwise */
+    public boolean isSetTope() {
+      return this.tope != null;
+    }
+
+    public void setTopeIsSet(boolean value) {
+      if (!value) {
+        this.tope = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unsetSuccess();
+        } else {
+          setSuccess((Boolean)value);
+        }
+        break;
+
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
+        }
+        break;
+
+      case TOPE:
+        if (value == null) {
+          unsetTope();
+        } else {
+          setTope((ThriftTableOperationException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return Boolean.valueOf(isSuccess());
+
+      case SEC:
+        return getSec();
+
+      case TOPE:
+        return getTope();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return isSetSuccess();
+      case SEC:
+        return isSetSec();
+      case TOPE:
+        return isSetTope();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof hasTableNamespacePermission_result)
+        return this.equals((hasTableNamespacePermission_result)that);
+      return false;
+    }
+
+    public boolean equals(hasTableNamespacePermission_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true;
+      boolean that_present_success = true;
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (this.success != that.success)
+          return false;
+      }
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      boolean this_present_tope = true && this.isSetTope();
+      boolean that_present_tope = true && that.isSetTope();
+      if (this_present_tope || that_present_tope) {
+        if (!(this_present_tope && that_present_tope))
+          return false;
+        if (!this.tope.equals(that.tope))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(hasTableNamespacePermission_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      hasTableNamespacePermission_result typedOther = (hasTableNamespacePermission_result)other;
+
+      lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTope()).compareTo(typedOther.isSetTope());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTope()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tope, typedOther.tope);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("hasTableNamespacePermission_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      sb.append(this.success);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tope:");
+      if (this.tope == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tope);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class hasTableNamespacePermission_resultStandardSchemeFactory implements SchemeFactory {
+      public hasTableNamespacePermission_resultStandardScheme getScheme() {
+        return new hasTableNamespacePermission_resultStandardScheme();
+      }
+    }
+
+    private static class hasTableNamespacePermission_resultStandardScheme extends StandardScheme<hasTableNamespacePermission_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, hasTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                struct.success = iprot.readBool();
+                struct.setSuccessIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // TOPE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tope = new ThriftTableOperationException();
+                struct.tope.read(iprot);
+                struct.setTopeIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, hasTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.isSetSuccess()) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          oprot.writeBool(struct.success);
+          oprot.writeFieldEnd();
+        }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tope != null) {
+          oprot.writeFieldBegin(TOPE_FIELD_DESC);
+          struct.tope.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class hasTableNamespacePermission_resultTupleSchemeFactory implements SchemeFactory {
+      public hasTableNamespacePermission_resultTupleScheme getScheme() {
+        return new hasTableNamespacePermission_resultTupleScheme();
+      }
+    }
+
+    private static class hasTableNamespacePermission_resultTupleScheme extends TupleScheme<hasTableNamespacePermission_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, hasTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetSuccess()) {
+          optionals.set(0);
+        }
+        if (struct.isSetSec()) {
+          optionals.set(1);
+        }
+        if (struct.isSetTope()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetSuccess()) {
+          oprot.writeBool(struct.success);
+        }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+        if (struct.isSetTope()) {
+          struct.tope.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, hasTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(3);
+        if (incoming.get(0)) {
+          struct.success = iprot.readBool();
+          struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.tope = new ThriftTableOperationException();
+          struct.tope.read(iprot);
+          struct.setTopeIsSet(true);
+        }
+      }
+    }
+
+  }
+
   public static class grantSystemPermission_args implements org.apache.thrift.TBase<grantSystemPermission_args, grantSystemPermission_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantSystemPermission_args");
 
@@ -23703,6 +25342,2446 @@ import org.slf4j.LoggerFactory;
 
   }
 
+  public static class grantTableNamespacePermission_args implements org.apache.thrift.TBase<grantTableNamespacePermission_args, grantTableNamespacePermission_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantTableNamespacePermission_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField TABLE_NAMESPACE_FIELD_DESC = new org.apache.thrift.protocol.TField("tableNamespace", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField PERMISSION_FIELD_DESC = new org.apache.thrift.protocol.TField("permission", org.apache.thrift.protocol.TType.BYTE, (short)5);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new grantTableNamespacePermission_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new grantTableNamespacePermission_argsTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public String principal; // required
+    public String tableNamespace; // required
+    public byte permission; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      PRINCIPAL((short)3, "principal"),
+      TABLE_NAMESPACE((short)4, "tableNamespace"),
+      PERMISSION((short)5, "permission");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          case 3: // PRINCIPAL
+            return PRINCIPAL;
+          case 4: // TABLE_NAMESPACE
+            return TABLE_NAMESPACE;
+          case 5: // PERMISSION
+            return PERMISSION;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    private static final int __PERMISSION_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.TABLE_NAMESPACE, new org.apache.thrift.meta_data.FieldMetaData("tableNamespace", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.PERMISSION, new org.apache.thrift.meta_data.FieldMetaData("permission", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(grantTableNamespacePermission_args.class, metaDataMap);
+    }
+
+    public grantTableNamespacePermission_args() {
+    }
+
+    public grantTableNamespacePermission_args(
+      org.apache.accumulo.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
+      String principal,
+      String tableNamespace,
+      byte permission)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.principal = principal;
+      this.tableNamespace = tableNamespace;
+      this.permission = permission;
+      setPermissionIsSet(true);
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public grantTableNamespacePermission_args(grantTableNamespacePermission_args other) {
+      __isset_bitfield = other.__isset_bitfield;
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetPrincipal()) {
+        this.principal = other.principal;
+      }
+      if (other.isSetTableNamespace()) {
+        this.tableNamespace = other.tableNamespace;
+      }
+      this.permission = other.permission;
+    }
+
+    public grantTableNamespacePermission_args deepCopy() {
+      return new grantTableNamespacePermission_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.principal = null;
+      this.tableNamespace = null;
+      setPermissionIsSet(false);
+      this.permission = 0;
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public grantTableNamespacePermission_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public grantTableNamespacePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public String getPrincipal() {
+      return this.principal;
+    }
+
+    public grantTableNamespacePermission_args setPrincipal(String principal) {
+      this.principal = principal;
+      return this;
+    }
+
+    public void unsetPrincipal() {
+      this.principal = null;
+    }
+
+    /** Returns true if field principal is set (has been assigned a value) and false otherwise */
+    public boolean isSetPrincipal() {
+      return this.principal != null;
+    }
+
+    public void setPrincipalIsSet(boolean value) {
+      if (!value) {
+        this.principal = null;
+      }
+    }
+
+    public String getTableNamespace() {
+      return this.tableNamespace;
+    }
+
+    public grantTableNamespacePermission_args setTableNamespace(String tableNamespace) {
+      this.tableNamespace = tableNamespace;
+      return this;
+    }
+
+    public void unsetTableNamespace() {
+      this.tableNamespace = null;
+    }
+
+    /** Returns true if field tableNamespace is set (has been assigned a value) and false otherwise */
+    public boolean isSetTableNamespace() {
+      return this.tableNamespace != null;
+    }
+
+    public void setTableNamespaceIsSet(boolean value) {
+      if (!value) {
+        this.tableNamespace = null;
+      }
+    }
+
+    public byte getPermission() {
+      return this.permission;
+    }
+
+    public grantTableNamespacePermission_args setPermission(byte permission) {
+      this.permission = permission;
+      setPermissionIsSet(true);
+      return this;
+    }
+
+    public void unsetPermission() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __PERMISSION_ISSET_ID);
+    }
+
+    /** Returns true if field permission is set (has been assigned a value) and false otherwise */
+    public boolean isSetPermission() {
+      return EncodingUtils.testBit(__isset_bitfield, __PERMISSION_ISSET_ID);
+    }
+
+    public void setPermissionIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __PERMISSION_ISSET_ID, value);
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
+      case PRINCIPAL:
+        if (value == null) {
+          unsetPrincipal();
+        } else {
+          setPrincipal((String)value);
+        }
+        break;
+
+      case TABLE_NAMESPACE:
+        if (value == null) {
+          unsetTableNamespace();
+        } else {
+          setTableNamespace((String)value);
+        }
+        break;
+
+      case PERMISSION:
+        if (value == null) {
+          unsetPermission();
+        } else {
+          setPermission((Byte)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case PRINCIPAL:
+        return getPrincipal();
+
+      case TABLE_NAMESPACE:
+        return getTableNamespace();
+
+      case PERMISSION:
+        return Byte.valueOf(getPermission());
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case PRINCIPAL:
+        return isSetPrincipal();
+      case TABLE_NAMESPACE:
+        return isSetTableNamespace();
+      case PERMISSION:
+        return isSetPermission();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof grantTableNamespacePermission_args)
+        return this.equals((grantTableNamespacePermission_args)that);
+      return false;
+    }
+
+    public boolean equals(grantTableNamespacePermission_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_principal = true && this.isSetPrincipal();
+      boolean that_present_principal = true && that.isSetPrincipal();
+      if (this_present_principal || that_present_principal) {
+        if (!(this_present_principal && that_present_principal))
+          return false;
+        if (!this.principal.equals(that.principal))
+          return false;
+      }
+
+      boolean this_present_tableNamespace = true && this.isSetTableNamespace();
+      boolean that_present_tableNamespace = true && that.isSetTableNamespace();
+      if (this_present_tableNamespace || that_present_tableNamespace) {
+        if (!(this_present_tableNamespace && that_present_tableNamespace))
+          return false;
+        if (!this.tableNamespace.equals(that.tableNamespace))
+          return false;
+      }
+
+      boolean this_present_permission = true;
+      boolean that_present_permission = true;
+      if (this_present_permission || that_present_permission) {
+        if (!(this_present_permission && that_present_permission))
+          return false;
+        if (this.permission != that.permission)
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(grantTableNamespacePermission_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      grantTableNamespacePermission_args typedOther = (grantTableNamespacePermission_args)other;
+
+      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetPrincipal()).compareTo(typedOther.isSetPrincipal());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetPrincipal()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principal, typedOther.principal);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTableNamespace()).compareTo(typedOther.isSetTableNamespace());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTableNamespace()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableNamespace, typedOther.tableNamespace);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetPermission()).compareTo(typedOther.isSetPermission());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetPermission()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.permission, typedOther.permission);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("grantTableNamespacePermission_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("principal:");
+      if (this.principal == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.principal);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tableNamespace:");
+      if (this.tableNamespace == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tableNamespace);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("permission:");
+      sb.append(this.permission);
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class grantTableNamespacePermission_argsStandardSchemeFactory implements SchemeFactory {
+      public grantTableNamespacePermission_argsStandardScheme getScheme() {
+        return new grantTableNamespacePermission_argsStandardScheme();
+      }
+    }
+
+    private static class grantTableNamespacePermission_argsStandardScheme extends StandardScheme<grantTableNamespacePermission_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, grantTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // PRINCIPAL
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.principal = iprot.readString();
+                struct.setPrincipalIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 4: // TABLE_NAMESPACE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.tableNamespace = iprot.readString();
+                struct.setTableNamespaceIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 5: // PERMISSION
+              if (schemeField.type == org.apache.thrift.protocol.TType.BYTE) {
+                struct.permission = iprot.readByte();
+                struct.setPermissionIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, grantTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.principal != null) {
+          oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
+          oprot.writeString(struct.principal);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tableNamespace != null) {
+          oprot.writeFieldBegin(TABLE_NAMESPACE_FIELD_DESC);
+          oprot.writeString(struct.tableNamespace);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldBegin(PERMISSION_FIELD_DESC);
+        oprot.writeByte(struct.permission);
+        oprot.writeFieldEnd();
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class grantTableNamespacePermission_argsTupleSchemeFactory implements SchemeFactory {
+      public grantTableNamespacePermission_argsTupleScheme getScheme() {
+        return new grantTableNamespacePermission_argsTupleScheme();
+      }
+    }
+
+    private static class grantTableNamespacePermission_argsTupleScheme extends TupleScheme<grantTableNamespacePermission_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, grantTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetPrincipal()) {
+          optionals.set(2);
+        }
+        if (struct.isSetTableNamespace()) {
+          optionals.set(3);
+        }
+        if (struct.isSetPermission()) {
+          optionals.set(4);
+        }
+        oprot.writeBitSet(optionals, 5);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetPrincipal()) {
+          oprot.writeString(struct.principal);
+        }
+        if (struct.isSetTableNamespace()) {
+          oprot.writeString(struct.tableNamespace);
+        }
+        if (struct.isSetPermission()) {
+          oprot.writeByte(struct.permission);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, grantTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(5);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.principal = iprot.readString();
+          struct.setPrincipalIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.tableNamespace = iprot.readString();
+          struct.setTableNamespaceIsSet(true);
+        }
+        if (incoming.get(4)) {
+          struct.permission = iprot.readByte();
+          struct.setPermissionIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class grantTableNamespacePermission_result implements org.apache.thrift.TBase<grantTableNamespacePermission_result, grantTableNamespacePermission_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantTableNamespacePermission_result");
+
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new grantTableNamespacePermission_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new grantTableNamespacePermission_resultTupleSchemeFactory());
+    }
+
+    public ThriftSecurityException sec; // required
+    public ThriftTableOperationException tope; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SEC((short)1, "sec"),
+      TOPE((short)2, "tope");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SEC
+            return SEC;
+          case 2: // TOPE
+            return TOPE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(grantTableNamespacePermission_result.class, metaDataMap);
+    }
+
+    public grantTableNamespacePermission_result() {
+    }
+
+    public grantTableNamespacePermission_result(
+      ThriftSecurityException sec,
+      ThriftTableOperationException tope)
+    {
+      this();
+      this.sec = sec;
+      this.tope = tope;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public grantTableNamespacePermission_result(grantTableNamespacePermission_result other) {
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
+      }
+      if (other.isSetTope()) {
+        this.tope = new ThriftTableOperationException(other.tope);
+      }
+    }
+
+    public grantTableNamespacePermission_result deepCopy() {
+      return new grantTableNamespacePermission_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.sec = null;
+      this.tope = null;
+    }
+
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public grantTableNamespacePermission_result setSec(ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    public ThriftTableOperationException getTope() {
+      return this.tope;
+    }
+
+    public grantTableNamespacePermission_result setTope(ThriftTableOperationException tope) {
+      this.tope = tope;
+      return this;
+    }
+
+    public void unsetTope() {
+      this.tope = null;
+    }
+
+    /** Returns true if field tope is set (has been assigned a value) and false otherwise */
+    public boolean isSetTope() {
+      return this.tope != null;
+    }
+
+    public void setTopeIsSet(boolean value) {
+      if (!value) {
+        this.tope = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
+        }
+        break;
+
+      case TOPE:
+        if (value == null) {
+          unsetTope();
+        } else {
+          setTope((ThriftTableOperationException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SEC:
+        return getSec();
+
+      case TOPE:
+        return getTope();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SEC:
+        return isSetSec();
+      case TOPE:
+        return isSetTope();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof grantTableNamespacePermission_result)
+        return this.equals((grantTableNamespacePermission_result)that);
+      return false;
+    }
+
+    public boolean equals(grantTableNamespacePermission_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      boolean this_present_tope = true && this.isSetTope();
+      boolean that_present_tope = true && that.isSetTope();
+      if (this_present_tope || that_present_tope) {
+        if (!(this_present_tope && that_present_tope))
+          return false;
+        if (!this.tope.equals(that.tope))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(grantTableNamespacePermission_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      grantTableNamespacePermission_result typedOther = (grantTableNamespacePermission_result)other;
+
+      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTope()).compareTo(typedOther.isSetTope());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTope()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tope, typedOther.tope);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("grantTableNamespacePermission_result(");
+      boolean first = true;
+
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tope:");
+      if (this.tope == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tope);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class grantTableNamespacePermission_resultStandardSchemeFactory implements SchemeFactory {
+      public grantTableNamespacePermission_resultStandardScheme getScheme() {
+        return new grantTableNamespacePermission_resultStandardScheme();
+      }
+    }
+
+    private static class grantTableNamespacePermission_resultStandardScheme extends StandardScheme<grantTableNamespacePermission_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, grantTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // TOPE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tope = new ThriftTableOperationException();
+                struct.tope.read(iprot);
+                struct.setTopeIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, grantTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tope != null) {
+          oprot.writeFieldBegin(TOPE_FIELD_DESC);
+          struct.tope.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class grantTableNamespacePermission_resultTupleSchemeFactory implements SchemeFactory {
+      public grantTableNamespacePermission_resultTupleScheme getScheme() {
+        return new grantTableNamespacePermission_resultTupleScheme();
+      }
+    }
+
+    private static class grantTableNamespacePermission_resultTupleScheme extends TupleScheme<grantTableNamespacePermission_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, grantTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetSec()) {
+          optionals.set(0);
+        }
+        if (struct.isSetTope()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+        if (struct.isSetTope()) {
+          struct.tope.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, grantTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.tope = new ThriftTableOperationException();
+          struct.tope.read(iprot);
+          struct.setTopeIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class revokeTableNamespacePermission_args implements org.apache.thrift.TBase<revokeTableNamespacePermission_args, revokeTableNamespacePermission_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("revokeTableNamespacePermission_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField TABLE_NAMESPACE_FIELD_DESC = new org.apache.thrift.protocol.TField("tableNamespace", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField PERMISSION_FIELD_DESC = new org.apache.thrift.protocol.TField("permission", org.apache.thrift.protocol.TType.BYTE, (short)5);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new revokeTableNamespacePermission_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new revokeTableNamespacePermission_argsTupleSchemeFactory());
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public String principal; // required
+    public String tableNamespace; // required
+    public byte permission; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      PRINCIPAL((short)3, "principal"),
+      TABLE_NAMESPACE((short)4, "tableNamespace"),
+      PERMISSION((short)5, "permission");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          case 3: // PRINCIPAL
+            return PRINCIPAL;
+          case 4: // TABLE_NAMESPACE
+            return TABLE_NAMESPACE;
+          case 5: // PERMISSION
+            return PERMISSION;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    private static final int __PERMISSION_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.TABLE_NAMESPACE, new org.apache.thrift.meta_data.FieldMetaData("tableNamespace", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.PERMISSION, new org.apache.thrift.meta_data.FieldMetaData("permission", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(revokeTableNamespacePermission_args.class, metaDataMap);
+    }
+
+    public revokeTableNamespacePermission_args() {
+    }
+
+    public revokeTableNamespacePermission_args(
+      org.apache.accumulo.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
+      String principal,
+      String tableNamespace,
+      byte permission)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.principal = principal;
+      this.tableNamespace = tableNamespace;
+      this.permission = permission;
+      setPermissionIsSet(true);
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public revokeTableNamespacePermission_args(revokeTableNamespacePermission_args other) {
+      __isset_bitfield = other.__isset_bitfield;
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetPrincipal()) {
+        this.principal = other.principal;
+      }
+      if (other.isSetTableNamespace()) {
+        this.tableNamespace = other.tableNamespace;
+      }
+      this.permission = other.permission;
+    }
+
+    public revokeTableNamespacePermission_args deepCopy() {
+      return new revokeTableNamespacePermission_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.principal = null;
+      this.tableNamespace = null;
+      setPermissionIsSet(false);
+      this.permission = 0;
+    }
+
+    public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public revokeTableNamespacePermission_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public revokeTableNamespacePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public String getPrincipal() {
+      return this.principal;
+    }
+
+    public revokeTableNamespacePermission_args setPrincipal(String principal) {
+      this.principal = principal;
+      return this;
+    }
+
+    public void unsetPrincipal() {
+      this.principal = null;
+    }
+
+    /** Returns true if field principal is set (has been assigned a value) and false otherwise */
+    public boolean isSetPrincipal() {
+      return this.principal != null;
+    }
+
+    public void setPrincipalIsSet(boolean value) {
+      if (!value) {
+        this.principal = null;
+      }
+    }
+
+    public String getTableNamespace() {
+      return this.tableNamespace;
+    }
+
+    public revokeTableNamespacePermission_args setTableNamespace(String tableNamespace) {
+      this.tableNamespace = tableNamespace;
+      return this;
+    }
+
+    public void unsetTableNamespace() {
+      this.tableNamespace = null;
+    }
+
+    /** Returns true if field tableNamespace is set (has been assigned a value) and false otherwise */
+    public boolean isSetTableNamespace() {
+      return this.tableNamespace != null;
+    }
+
+    public void setTableNamespaceIsSet(boolean value) {
+      if (!value) {
+        this.tableNamespace = null;
+      }
+    }
+
+    public byte getPermission() {
+      return this.permission;
+    }
+
+    public revokeTableNamespacePermission_args setPermission(byte permission) {
+      this.permission = permission;
+      setPermissionIsSet(true);
+      return this;
+    }
+
+    public void unsetPermission() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __PERMISSION_ISSET_ID);
+    }
+
+    /** Returns true if field permission is set (has been assigned a value) and false otherwise */
+    public boolean isSetPermission() {
+      return EncodingUtils.testBit(__isset_bitfield, __PERMISSION_ISSET_ID);
+    }
+
+    public void setPermissionIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __PERMISSION_ISSET_ID, value);
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
+      case PRINCIPAL:
+        if (value == null) {
+          unsetPrincipal();
+        } else {
+          setPrincipal((String)value);
+        }
+        break;
+
+      case TABLE_NAMESPACE:
+        if (value == null) {
+          unsetTableNamespace();
+        } else {
+          setTableNamespace((String)value);
+        }
+        break;
+
+      case PERMISSION:
+        if (value == null) {
+          unsetPermission();
+        } else {
+          setPermission((Byte)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case PRINCIPAL:
+        return getPrincipal();
+
+      case TABLE_NAMESPACE:
+        return getTableNamespace();
+
+      case PERMISSION:
+        return Byte.valueOf(getPermission());
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case PRINCIPAL:
+        return isSetPrincipal();
+      case TABLE_NAMESPACE:
+        return isSetTableNamespace();
+      case PERMISSION:
+        return isSetPermission();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof revokeTableNamespacePermission_args)
+        return this.equals((revokeTableNamespacePermission_args)that);
+      return false;
+    }
+
+    public boolean equals(revokeTableNamespacePermission_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_principal = true && this.isSetPrincipal();
+      boolean that_present_principal = true && that.isSetPrincipal();
+      if (this_present_principal || that_present_principal) {
+        if (!(this_present_principal && that_present_principal))
+          return false;
+        if (!this.principal.equals(that.principal))
+          return false;
+      }
+
+      boolean this_present_tableNamespace = true && this.isSetTableNamespace();
+      boolean that_present_tableNamespace = true && that.isSetTableNamespace();
+      if (this_present_tableNamespace || that_present_tableNamespace) {
+        if (!(this_present_tableNamespace && that_present_tableNamespace))
+          return false;
+        if (!this.tableNamespace.equals(that.tableNamespace))
+          return false;
+      }
+
+      boolean this_present_permission = true;
+      boolean that_present_permission = true;
+      if (this_present_permission || that_present_permission) {
+        if (!(this_present_permission && that_present_permission))
+          return false;
+        if (this.permission != that.permission)
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(revokeTableNamespacePermission_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      revokeTableNamespacePermission_args typedOther = (revokeTableNamespacePermission_args)other;
+
+      lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetPrincipal()).compareTo(typedOther.isSetPrincipal());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetPrincipal()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.principal, typedOther.principal);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTableNamespace()).compareTo(typedOther.isSetTableNamespace());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTableNamespace()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableNamespace, typedOther.tableNamespace);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetPermission()).compareTo(typedOther.isSetPermission());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetPermission()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.permission, typedOther.permission);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("revokeTableNamespacePermission_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("principal:");
+      if (this.principal == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.principal);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tableNamespace:");
+      if (this.tableNamespace == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tableNamespace);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("permission:");
+      sb.append(this.permission);
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class revokeTableNamespacePermission_argsStandardSchemeFactory implements SchemeFactory {
+      public revokeTableNamespacePermission_argsStandardScheme getScheme() {
+        return new revokeTableNamespacePermission_argsStandardScheme();
+      }
+    }
+
+    private static class revokeTableNamespacePermission_argsStandardScheme extends StandardScheme<revokeTableNamespacePermission_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, revokeTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // PRINCIPAL
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.principal = iprot.readString();
+                struct.setPrincipalIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 4: // TABLE_NAMESPACE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.tableNamespace = iprot.readString();
+                struct.setTableNamespaceIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 5: // PERMISSION
+              if (schemeField.type == org.apache.thrift.protocol.TType.BYTE) {
+                struct.permission = iprot.readByte();
+                struct.setPermissionIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, revokeTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.principal != null) {
+          oprot.writeFieldBegin(PRINCIPAL_FIELD_DESC);
+          oprot.writeString(struct.principal);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tableNamespace != null) {
+          oprot.writeFieldBegin(TABLE_NAMESPACE_FIELD_DESC);
+          oprot.writeString(struct.tableNamespace);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldBegin(PERMISSION_FIELD_DESC);
+        oprot.writeByte(struct.permission);
+        oprot.writeFieldEnd();
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class revokeTableNamespacePermission_argsTupleSchemeFactory implements SchemeFactory {
+      public revokeTableNamespacePermission_argsTupleScheme getScheme() {
+        return new revokeTableNamespacePermission_argsTupleScheme();
+      }
+    }
+
+    private static class revokeTableNamespacePermission_argsTupleScheme extends TupleScheme<revokeTableNamespacePermission_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, revokeTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetPrincipal()) {
+          optionals.set(2);
+        }
+        if (struct.isSetTableNamespace()) {
+          optionals.set(3);
+        }
+        if (struct.isSetPermission()) {
+          optionals.set(4);
+        }
+        oprot.writeBitSet(optionals, 5);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetPrincipal()) {
+          oprot.writeString(struct.principal);
+        }
+        if (struct.isSetTableNamespace()) {
+          oprot.writeString(struct.tableNamespace);
+        }
+        if (struct.isSetPermission()) {
+          oprot.writeByte(struct.permission);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, revokeTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(5);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.principal = iprot.readString();
+          struct.setPrincipalIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.tableNamespace = iprot.readString();
+          struct.setTableNamespaceIsSet(true);
+        }
+        if (incoming.get(4)) {
+          struct.permission = iprot.readByte();
+          struct.setPermissionIsSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class revokeTableNamespacePermission_result implements org.apache.thrift.TBase<revokeTableNamespacePermission_result, revokeTableNamespacePermission_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("revokeTableNamespacePermission_result");
+
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new revokeTableNamespacePermission_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new revokeTableNamespacePermission_resultTupleSchemeFactory());
+    }
+
+    public ThriftSecurityException sec; // required
+    public ThriftTableOperationException tope; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SEC((short)1, "sec"),
+      TOPE((short)2, "tope");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SEC
+            return SEC;
+          case 2: // TOPE
+            return TOPE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(revokeTableNamespacePermission_result.class, metaDataMap);
+    }
+
+    public revokeTableNamespacePermission_result() {
+    }
+
+    public revokeTableNamespacePermission_result(
+      ThriftSecurityException sec,
+      ThriftTableOperationException tope)
+    {
+      this();
+      this.sec = sec;
+      this.tope = tope;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public revokeTableNamespacePermission_result(revokeTableNamespacePermission_result other) {
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
+      }
+      if (other.isSetTope()) {
+        this.tope = new ThriftTableOperationException(other.tope);
+      }
+    }
+
+    public revokeTableNamespacePermission_result deepCopy() {
+      return new revokeTableNamespacePermission_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.sec = null;
+      this.tope = null;
+    }
+
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public revokeTableNamespacePermission_result setSec(ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    public ThriftTableOperationException getTope() {
+      return this.tope;
+    }
+
+    public revokeTableNamespacePermission_result setTope(ThriftTableOperationException tope) {
+      this.tope = tope;
+      return this;
+    }
+
+    public void unsetTope() {
+      this.tope = null;
+    }
+
+    /** Returns true if field tope is set (has been assigned a value) and false otherwise */
+    public boolean isSetTope() {
+      return this.tope != null;
+    }
+
+    public void setTopeIsSet(boolean value) {
+      if (!value) {
+        this.tope = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
+        }
+        break;
+
+      case TOPE:
+        if (value == null) {
+          unsetTope();
+        } else {
+          setTope((ThriftTableOperationException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SEC:
+        return getSec();
+
+      case TOPE:
+        return getTope();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SEC:
+        return isSetSec();
+      case TOPE:
+        return isSetTope();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof revokeTableNamespacePermission_result)
+        return this.equals((revokeTableNamespacePermission_result)that);
+      return false;
+    }
+
+    public boolean equals(revokeTableNamespacePermission_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      boolean this_present_tope = true && this.isSetTope();
+      boolean that_present_tope = true && that.isSetTope();
+      if (this_present_tope || that_present_tope) {
+        if (!(this_present_tope && that_present_tope))
+          return false;
+        if (!this.tope.equals(that.tope))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    public int compareTo(revokeTableNamespacePermission_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      revokeTableNamespacePermission_result typedOther = (revokeTableNamespacePermission_result)other;
+
+      lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, typedOther.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTope()).compareTo(typedOther.isSetTope());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTope()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tope, typedOther.tope);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("revokeTableNamespacePermission_result(");
+      boolean first = true;
+
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tope:");
+      if (this.tope == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tope);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class revokeTableNamespacePermission_resultStandardSchemeFactory implements SchemeFactory {
+      public revokeTableNamespacePermission_resultStandardScheme getScheme() {
+        return new revokeTableNamespacePermission_resultStandardScheme();
+      }
+    }
+
+    private static class revokeTableNamespacePermission_resultStandardScheme extends StandardScheme<revokeTableNamespacePermission_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, revokeTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // TOPE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tope = new ThriftTableOperationException();
+                struct.tope.read(iprot);
+                struct.setTopeIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, revokeTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tope != null) {
+          oprot.writeFieldBegin(TOPE_FIELD_DESC);
+          struct.tope.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class revokeTableNamespacePermission_resultTupleSchemeFactory implements SchemeFactory {
+      public revokeTableNamespacePermission_resultTupleScheme getScheme() {
+        return new revokeTableNamespacePermission_resultTupleScheme();
+      }
+    }
+
+    private static class revokeTableNamespacePermission_resultTupleScheme extends TupleScheme<revokeTableNamespacePermission_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, revokeTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.isSetSec()) {
+          optionals.set(0);
+        }
+        if (struct.isSetTope()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+        if (struct.isSetTope()) {
+          struct.tope.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, revokeTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.sec = new ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.tope = new ThriftTableOperationException();
+          struct.tope.read(iprot);
+          struct.setTopeIsSet(true);
+        }
+      }
+    }
+
+  }
+
   public static class getConfiguration_args implements org.apache.thrift.TBase<getConfiguration_args, getConfiguration_args._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getConfiguration_args");
 
@@ -25787,8 +29866,8 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTableNamespaceConfiguration_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -25803,8 +29882,8 @@ import org.slf4j.LoggerFactory;
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
-      CREDENTIALS((short)3, "credentials"),
-      NS((short)2, "ns");
+      CREDENTIALS((short)2, "credentials"),
+      NS((short)3, "ns");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -25821,9 +29900,9 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 1: // TINFO
             return TINFO;
-          case 3: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // NS
+          case 3: // NS
             return NS;
           default:
             return null;
@@ -26238,7 +30317,7 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -26247,7 +30326,7 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // NS
+            case 3: // NS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.ns = iprot.readString();
                 struct.setNsIsSet(true);
@@ -26275,14 +30354,14 @@ import org.slf4j.LoggerFactory;
           struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.ns != null) {
-          oprot.writeFieldBegin(NS_FIELD_DESC);
-          oprot.writeString(struct.ns);
-          oprot.writeFieldEnd();
-        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.ns != null) {
+          oprot.writeFieldBegin(NS_FIELD_DESC);
+          oprot.writeString(struct.ns);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
