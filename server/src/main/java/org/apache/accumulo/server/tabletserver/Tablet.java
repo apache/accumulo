@@ -621,36 +621,39 @@ public class Tablet {
       TreeSet<FileRef> inUse = new TreeSet<FileRef>();
       
       Span waitForScans = Trace.start("waitForScans");
-      synchronized (Tablet.this) {
-        if (blockNewScans) {
-          if (reservationsBlocked)
-            throw new IllegalStateException();
+      try {
+        synchronized (Tablet.this) {
+          if (blockNewScans) {
+            if (reservationsBlocked)
+              throw new IllegalStateException();
+            
+            reservationsBlocked = true;
+          }
           
-          reservationsBlocked = true;
-        }
-        
-        for (FileRef path : pathsToWaitFor) {
-          while (fileScanReferenceCounts.get(path) > 0 && System.currentTimeMillis() - startTime < maxWaitTime) {
-            try {
-              Tablet.this.wait(100);
-            } catch (InterruptedException e) {
-              log.warn(e, e);
+          for (FileRef path : pathsToWaitFor) {
+            while (fileScanReferenceCounts.get(path) > 0 && System.currentTimeMillis() - startTime < maxWaitTime) {
+              try {
+                Tablet.this.wait(100);
+              } catch (InterruptedException e) {
+                log.warn(e, e);
+              }
             }
           }
+          
+          for (FileRef path : pathsToWaitFor) {
+            if (fileScanReferenceCounts.get(path) > 0)
+              inUse.add(path);
+          }
+          
+          if (blockNewScans) {
+            reservationsBlocked = false;
+            Tablet.this.notifyAll();
+          }
+          
         }
-        
-        for (FileRef path : pathsToWaitFor) {
-          if (fileScanReferenceCounts.get(path) > 0)
-            inUse.add(path);
-        }
-        
-        if (blockNewScans) {
-          reservationsBlocked = false;
-          Tablet.this.notifyAll();
-        }
-        
+      } finally {
+        waitForScans.stop();
       }
-      waitForScans.stop();
       return inUse;
     }
     
@@ -2070,20 +2073,26 @@ public class Tablet {
     
     try {
       Span span = Trace.start("write");
-      count = memTable.getNumEntries();
-      
-      DataFileValue dfv = null;
-      if (mergeFile != null)
-        dfv = datafileManager.getDatafileSizes().get(mergeFile);
-      
-      MinorCompactor compactor = new MinorCompactor(conf, fs, memTable, mergeFile, dfv, tmpDatafile, acuTableConf, extent, mincReason);
-      CompactionStats stats = compactor.call();
-      
-      span.stop();
+      CompactionStats stats;
+      try {
+        count = memTable.getNumEntries();
+        
+        DataFileValue dfv = null;
+        if (mergeFile != null)
+          dfv = datafileManager.getDatafileSizes().get(mergeFile);
+        
+        MinorCompactor compactor = new MinorCompactor(conf, fs, memTable, mergeFile, dfv, tmpDatafile, acuTableConf, extent, mincReason);
+        stats = compactor.call();
+      } finally {
+        span.stop();
+      }
       span = Trace.start("bringOnline");
-      datafileManager.bringMinorCompactionOnline(tmpDatafile, newDatafile, mergeFile, new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()),
-          commitSession, flushId);
-      span.stop();
+      try {
+        datafileManager.bringMinorCompactionOnline(tmpDatafile, newDatafile, mergeFile, new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()),
+            commitSession, flushId);
+      } finally {
+        span.stop();
+      }
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
     } catch (Exception E) {
       failed = true;
@@ -3317,18 +3326,18 @@ public class Tablet {
     // Always trace majC
     Span span = Trace.on("majorCompaction");
     
-    synchronized (this) {
-      // check that compaction is still needed - defer to splitting
-      majorCompactionQueued.remove(reason);
-      
-      if (closing || closed || !needsMajorCompaction(reason) || majorCompactionInProgress || needsSplit()) {
-        return null;
-      }
-      
-      majorCompactionInProgress = true;
-    }
-    
     try {
+      synchronized (this) {
+        // check that compaction is still needed - defer to splitting
+        majorCompactionQueued.remove(reason);
+        
+        if (closing || closed || !needsMajorCompaction(reason) || majorCompactionInProgress || needsSplit()) {
+          return null;
+        }
+        
+        majorCompactionInProgress = true;
+      }
+    
       majCStats = _majorCompact(reason);
       if (reason == MajorCompactionReason.CHOP) {
         MetadataTableUtil.chopped(getExtent(), this.tabletServer.getLock());

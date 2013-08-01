@@ -1528,56 +1528,58 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
       
       Span prep = Trace.start("prep");
-      for (Entry<Tablet,? extends List<Mutation>> entry : us.queuedMutations.entrySet()) {
-        
-        Tablet tablet = entry.getKey();
-        List<Mutation> mutations = entry.getValue();
-        if (mutations.size() > 0) {
-          try {
-            if (updateMetrics.isEnabled())
-              updateMetrics.add(TabletServerUpdateMetrics.mutationArraySize, mutations.size());
-            
-            CommitSession commitSession = tablet.prepareMutationsForCommit(us.cenv, mutations);
-            if (commitSession == null) {
-              if (us.currentTablet == tablet) {
-                us.currentTablet = null;
+      try {
+        for (Entry<Tablet,? extends List<Mutation>> entry : us.queuedMutations.entrySet()) {
+          
+          Tablet tablet = entry.getKey();
+          List<Mutation> mutations = entry.getValue();
+          if (mutations.size() > 0) {
+            try {
+              if (updateMetrics.isEnabled())
+                updateMetrics.add(TabletServerUpdateMetrics.mutationArraySize, mutations.size());
+              
+              CommitSession commitSession = tablet.prepareMutationsForCommit(us.cenv, mutations);
+              if (commitSession == null) {
+                if (us.currentTablet == tablet) {
+                  us.currentTablet = null;
+                }
+                us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
+              } else {
+                sendables.put(commitSession, mutations);
+                mutationCount += mutations.size();
               }
-              us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
-            } else {
-              sendables.put(commitSession, mutations);
+              
+            } catch (TConstraintViolationException e) {
+              us.violations.add(e.getViolations());
+              if (updateMetrics.isEnabled())
+                updateMetrics.add(TabletServerUpdateMetrics.constraintViolations, 0);
+              
+              if (e.getNonViolators().size() > 0) {
+                // only log and commit mutations if there were some
+                // that did not
+                // violate constraints... this is what
+                // prepareMutationsForCommit()
+                // expects
+                sendables.put(e.getCommitSession(), e.getNonViolators());
+              }
+              
               mutationCount += mutations.size();
+              
+            } catch (HoldTimeoutException t) {
+              error = t;
+              log.debug("Giving up on mutations due to a long memory hold time");
+              break;
+            } catch (Throwable t) {
+              error = t;
+              log.error("Unexpected error preparing for commit", error);
+              break;
             }
-            
-          } catch (TConstraintViolationException e) {
-            us.violations.add(e.getViolations());
-            if (updateMetrics.isEnabled())
-              updateMetrics.add(TabletServerUpdateMetrics.constraintViolations, 0);
-            
-            if (e.getNonViolators().size() > 0) {
-              // only log and commit mutations if there were some
-              // that did not
-              // violate constraints... this is what
-              // prepareMutationsForCommit()
-              // expects
-              sendables.put(e.getCommitSession(), e.getNonViolators());
-            }
-            
-            mutationCount += mutations.size();
-            
-          } catch (HoldTimeoutException t) {
-            error = t;
-            log.debug("Giving up on mutations due to a long memory hold time");
-            break;
-          } catch (Throwable t) {
-            error = t;
-            log.error("Unexpected error preparing for commit", error);
-            break;
           }
         }
+      } finally {
+        prep.stop();
       }
-      prep.stop();
       
-      Span wal = Trace.start("wal");
       long pt2 = System.currentTimeMillis();
       long avgPrepareTime = (long) ((pt2 - pt1) / (double) us.queuedMutations.size());
       us.prepareTimes.addStat(pt2 - pt1);
@@ -1591,60 +1593,66 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throw new RuntimeException(error);
       }
       try {
-        while (true) {
-          try {
-            long t1 = System.currentTimeMillis();
-            
-            logger.logManyTablets(sendables);
-            
-            long t2 = System.currentTimeMillis();
-            us.walogTimes.addStat(t2 - t1);
-            if (updateMetrics.isEnabled())
-              updateMetrics.add(TabletServerUpdateMetrics.waLogWriteTime, (t2 - t1));
-            
-            break;
-          } catch (IOException ex) {
-            log.warn("logging mutations failed, retrying");
-          } catch (FSError ex) { // happens when DFS is localFS
-            log.warn("logging mutations failed, retrying");
-          } catch (Throwable t) {
-            log.error("Unknown exception logging mutations, counts for mutations in flight not decremented!", t);
-            throw new RuntimeException(t);
+        Span wal = Trace.start("wal");
+        try {
+          while (true) {
+            try {
+              long t1 = System.currentTimeMillis();
+              
+              logger.logManyTablets(sendables);
+              
+              long t2 = System.currentTimeMillis();
+              us.walogTimes.addStat(t2 - t1);
+              if (updateMetrics.isEnabled())
+                updateMetrics.add(TabletServerUpdateMetrics.waLogWriteTime, (t2 - t1));
+              
+              break;
+            } catch (IOException ex) {
+              log.warn("logging mutations failed, retrying");
+            } catch (FSError ex) { // happens when DFS is localFS
+              log.warn("logging mutations failed, retrying");
+            } catch (Throwable t) {
+              log.error("Unknown exception logging mutations, counts for mutations in flight not decremented!", t);
+              throw new RuntimeException(t);
+            }
           }
+        } finally {
+          wal.stop();
         }
-        
-        wal.stop();
         
         Span commit = Trace.start("commit");
-        long t1 = System.currentTimeMillis();
-        for (Entry<CommitSession,? extends List<Mutation>> entry : sendables.entrySet()) {
-          CommitSession commitSession = entry.getKey();
-          List<Mutation> mutations = entry.getValue();
-          
-          commitSession.commit(mutations);
-          
-          Tablet tablet = commitSession.getTablet();
-          
-          if (tablet == us.currentTablet) {
-            // because constraint violations may filter out some
-            // mutations, for proper
-            // accounting with the client code, need to increment
-            // the count based
-            // on the original number of mutations from the client
-            // NOT the filtered number
-            us.successfulCommits.increment(tablet, us.queuedMutations.get(tablet).size());
+        try {
+          long t1 = System.currentTimeMillis();
+          for (Entry<CommitSession,? extends List<Mutation>> entry : sendables.entrySet()) {
+            CommitSession commitSession = entry.getKey();
+            List<Mutation> mutations = entry.getValue();
+            
+            commitSession.commit(mutations);
+            
+            Tablet tablet = commitSession.getTablet();
+            
+            if (tablet == us.currentTablet) {
+              // because constraint violations may filter out some
+              // mutations, for proper
+              // accounting with the client code, need to increment
+              // the count based
+              // on the original number of mutations from the client
+              // NOT the filtered number
+              us.successfulCommits.increment(tablet, us.queuedMutations.get(tablet).size());
+            }
           }
+          long t2 = System.currentTimeMillis();
+          
+          long avgCommitTime = (long) ((t2 - t1) / (double) sendables.size());
+          
+          us.flushTime += (t2 - pt1);
+          us.commitTimes.addStat(t2 - t1);
+          
+          if (updateMetrics.isEnabled())
+            updateMetrics.add(TabletServerUpdateMetrics.commitTime, avgCommitTime);
+        } finally {
+          commit.stop();
         }
-        long t2 = System.currentTimeMillis();
-        
-        long avgCommitTime = (long) ((t2 - t1) / (double) sendables.size());
-        
-        us.flushTime += (t2 - pt1);
-        us.commitTimes.addStat(t2 - t1);
-        
-        if (updateMetrics.isEnabled())
-          updateMetrics.add(TabletServerUpdateMetrics.commitTime, avgCommitTime);
-        commit.stop();
       } finally {
         us.queuedMutations.clear();
         if (us.currentTablet != null) {
@@ -1716,8 +1724,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         List<Mutation> mutations = Collections.singletonList(mutation);
         
         Span prep = Trace.start("prep");
-        CommitSession cs = tablet.prepareMutationsForCommit(new TservConstraintEnv(security, credentials), mutations);
-        prep.stop();
+        CommitSession cs;
+        try {
+          cs = tablet.prepareMutationsForCommit(new TservConstraintEnv(security, credentials), mutations);
+        } finally {
+          prep.stop();
+        }
         if (cs == null) {
           throw new NotServingTabletException(tkeyExtent);
         }
@@ -1725,8 +1737,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         while (true) {
           try {
             Span wal = Trace.start("wal");
-            logger.log(cs, cs.getWALogSeq(), mutation);
-            wal.stop();
+            try {
+              logger.log(cs, cs.getWALogSeq(), mutation);
+            } finally {
+              wal.stop();
+            }
             break;
           } catch (IOException ex) {
             log.warn(ex, ex);
@@ -1734,8 +1749,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
         
         Span commit = Trace.start("commit");
-        cs.commit(mutations);
-        commit.stop();
+        try {
+          cs.commit(mutations);
+        } finally {
+          commit.stop();
+        }
       } catch (TConstraintViolationException e) {
         throw new ConstraintViolationException(Translator.translate(e.getViolations().asList(), Translator.CVST));
       } finally {
@@ -2913,11 +2931,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     MetadataTableUtil.addLogEntry(SystemCredentials.get(), entry, getLock());
   }
   
-  private int startServer(AccumuloConfiguration conf, String address, Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
+  private InetSocketAddress startServer(AccumuloConfiguration conf, String address, Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
     ServerAddress sp = TServerUtils.startServer(conf, address, portHint, processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
         Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     this.server = sp.server;
-    return sp.address.getPort();
+    return sp.address;
   }
   
   private String getMasterAddress() {
@@ -2953,13 +2971,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     ThriftUtil.returnClient(client);
   }
   
-  private int startTabletClientService() throws UnknownHostException {
+  private InetSocketAddress startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
     Iface tch = TraceWrap.service(new ThriftClientHandler());
     Processor<Iface> processor = new Processor<Iface>(tch);
-    int port = startServer(getSystemConfiguration(), clientAddress.getHostName(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
-    log.info("port = " + port);
-    return port;
+    InetSocketAddress address = startServer(getSystemConfiguration(), clientAddress.getHostName(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
+    log.info("address = " + address);
+    return address;
   }
   
   ZooLock getLock() {
@@ -3026,17 +3044,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   public void run() {
     SecurityUtil.serverLogin();
     
-    int clientPort = 0;
     try {
-      clientPort = startTabletClientService();
+      clientAddress = startTabletClientService();
     } catch (UnknownHostException e1) {
-      log.error("Unable to start tablet client service", e1);
-      UtilWaitThread.sleep(1000);
+      throw new RuntimeException("Failed to start the tablet client service", e1);
     }
-    if (clientPort == 0) {
-      throw new RuntimeException("Failed to start the tablet client service");
-    }
-    clientAddress = new InetSocketAddress(clientAddress.getHostName(), clientPort);
     announceExistence();
     
     ThreadPoolExecutor distWorkQThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
