@@ -18,6 +18,7 @@ package org.apache.accumulo.server.util;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -216,6 +217,15 @@ public class TServerUtils {
   public static ServerAddress startHsHaServer(InetSocketAddress address, TProcessor processor, final String serverName, String threadName, final int numThreads,
       long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(address);
+    // check for the special "bind to everything address"
+    if (address.getAddress().getHostAddress().equals("0.0.0.0")) {
+      // can't get the address from the bind, so we'll do our best to invent our hostname
+      try {
+        address = new InetSocketAddress(InetAddress.getLocalHost().getHostName(), address.getPort());
+      } catch (UnknownHostException e) {
+        throw new TTransportException(e);
+      }
+    }
     THsHaServer.Args options = new THsHaServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
