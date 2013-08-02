@@ -22,7 +22,7 @@ import org.junit.Test;
 
 public class NativeMapIT extends SimpleMacIT {
   
-  @Test(timeout=15*1000)
+  @Test(timeout = 15 * 1000)
   public void test() throws Exception {
     assertEquals(0, exec(NativeMapTest.class).waitFor());
   }

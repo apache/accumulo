@@ -41,7 +41,7 @@ import org.junit.Test;
 
 public class ConstraintIT extends SimpleMacIT {
   
-  @Test(timeout=30*1000)
+  @Test(timeout = 30 * 1000)
   public void run() throws Exception {
     String[] tableNames = { makeTableName(), makeTableName(), makeTableName() }; 
     Connector c = getConnector();

@@ -48,7 +48,7 @@ public class CombinerIT extends SimpleMacIT {
     assertFalse(i.hasNext());
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 60 * 1000)
   public void aggregationTest() throws Exception {
     Connector c = getConnector();
     String tableName = makeTableName();

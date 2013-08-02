@@ -53,7 +53,7 @@ public class RestartStressIT extends ConfigurableMacIT {
   private static final ScannerOpts SOPTS = new ScannerOpts();
   
   
-  @Test(timeout=600*1000)
+  @Test(timeout = 10 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

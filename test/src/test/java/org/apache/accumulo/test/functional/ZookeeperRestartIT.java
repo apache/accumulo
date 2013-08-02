@@ -48,7 +48,7 @@ public class ZookeeperRestartIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig);
   }
 
-  @Test(timeout = 20 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

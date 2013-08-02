@@ -40,7 +40,7 @@ public class BinaryStressIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig );
   }
 
-  @Test(timeout=60*1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void binaryStressTest() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bt");

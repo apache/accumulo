@@ -806,7 +806,7 @@ public class ShellServerIT {
     assertTrue(trace.contains("DeleteTable"));
   }
   
-  @Test(timeout=30 * 1000)
+  @Test(timeout = 30 * 1000)
   public void badLogin() throws Exception {
     input.set(secret + "\n");
     String err = exec("user NoSuchUser", false);

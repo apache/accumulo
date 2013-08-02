@@ -85,7 +85,7 @@ public class ExamplesIT extends ConfigurableMacIT {
     cfg.setDefaultMemory(cfg.getDefaultMemory() * 2, MemoryUnit.BYTE);
   }
   
-  @Test(timeout=5*60*1000)
+  @Test(timeout = 10 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     String instance = c.getInstance().getInstanceName();

@@ -38,7 +38,7 @@ import org.junit.Test;
 
 public class ServerSideErrorIT extends SimpleMacIT {
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
     String tableName = makeTableName();

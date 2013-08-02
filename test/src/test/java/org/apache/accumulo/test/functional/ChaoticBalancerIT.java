@@ -30,7 +30,7 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ChaoticBlancerIT extends ConfigurableMacIT {
+public class ChaoticBalancerIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
@@ -41,20 +41,20 @@ public class ChaoticBlancerIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig );
   }
 
-  @Test(timeout=120*1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     SortedSet<Text> splits = new TreeSet<Text>();
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 100; i++) {
       splits.add(new Text(String.format("%03d", i)));
     }
     c.tableOperations().create("unused");
     c.tableOperations().addSplits("unused", splits);
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.rows = opts.rows = 200000;
+    vopts.rows = opts.rows = 20000;
     TestIngest.ingest(c, opts, BWOPTS);
     c.tableOperations().flush("test_ingest", null, null, true);
     VerifyIngest.verifyIngest(c, vopts, SOPTS);

@@ -31,7 +31,7 @@ import org.junit.Test;
 
 public class LogicalTimeIT extends ConfigurableMacIT {
 
-  @Test(timeout=120*1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void run() throws Exception {
     int tc = 0;
     String tableName = "foo";

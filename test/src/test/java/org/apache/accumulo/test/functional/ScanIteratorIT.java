@@ -38,7 +38,7 @@ import org.junit.Test;
 
 public class ScanIteratorIT extends SimpleMacIT {
   
-  @Test(timeout=30*1000)
+  @Test(timeout = 30 * 1000)
   public void run() throws Exception {
     String tableName = makeTableName();
     Connector c = getConnector();

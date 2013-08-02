@@ -16,9 +16,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.log4j.Logger;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.rules.TemporaryFolder;
@@ -48,6 +52,16 @@ public class SimpleMacIT extends AbstractMacIT {
   @Override
   public MiniAccumuloCluster getCluster() {
     return cluster;
+  }
+  
+  @After
+  public void cleanUp() throws Exception {
+    Connector c = getConnector();
+    for (String table : c.tableOperations().list()) {
+      if (table.equals(MetadataTable.NAME) || table.equals(RootTable.NAME))
+        continue;
+      c.tableOperations().delete(table);
+    }
   }
   
   @AfterClass

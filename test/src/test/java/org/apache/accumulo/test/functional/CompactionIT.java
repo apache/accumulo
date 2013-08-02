@@ -54,7 +54,7 @@ public class CompactionIT extends ConfigurableMacIT {
     cfg.setSiteConfig(map);
   }
   
-  @Test(timeout = 120 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     final Connector c = getConnector();
     c.tableOperations().create("test_ingest");

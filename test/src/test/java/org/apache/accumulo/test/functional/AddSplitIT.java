@@ -38,7 +38,7 @@ import org.junit.Test;
 
 public class AddSplitIT extends SimpleMacIT {
   
-  @Test(timeout=30*1000)
+  @Test(timeout = 60 * 1000)
   public void addSplitTest() throws Exception {
 
     String tableName = makeTableName();

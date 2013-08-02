@@ -56,7 +56,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     cfg.setSiteConfig(settings);
   }
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void gcTest() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -76,21 +76,21 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
       before = more;
     }
     Process gc = cluster.exec(SimpleGarbageCollector.class);
-    UtilWaitThread.sleep(5 * 1000);
+    UtilWaitThread.sleep(10 * 1000);
     int after = countFiles();
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     assertTrue(after < before);
     gc.destroy();
   }
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void gcLotsOfCandidatesIT() throws Exception {
     log.info("Filling !METADATA table with bogus delete flags");
     Connector c = getConnector();
     addEntries(c, new BatchWriterOpts());
     cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
     Process gc = cluster.exec(SimpleGarbageCollector.class);
-    UtilWaitThread.sleep(10 * 1000);
+    UtilWaitThread.sleep(20 * 1000);
     String output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
     gc.destroy();
     assertTrue(output.contains("delete candidates has exceeded"));

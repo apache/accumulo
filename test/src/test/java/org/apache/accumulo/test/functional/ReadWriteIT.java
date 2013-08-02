@@ -174,7 +174,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     return m;
   }
   
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void localityGroupPerf() throws Exception {
     // verify that locality groups can make look-ups faster
     final Connector connector = getConnector();
@@ -232,7 +232,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     assertTrue(foundFile);
   }
   
-  @Test(timeout = 2* 60 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void localityGroupChange() throws Exception {
     // Make changes to locality groups and ensure nothing is lostssh
     final Connector connector = getConnector();

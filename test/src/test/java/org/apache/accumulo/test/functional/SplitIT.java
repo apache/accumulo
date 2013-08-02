@@ -52,7 +52,7 @@ public class SplitIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig);
   }
   
-  @Test(timeout = 120 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void tabletShouldSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -85,7 +85,7 @@ public class SplitIT extends ConfigurableMacIT {
             .waitFor());
   }
   
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void interleaveSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -96,7 +96,7 @@ public class SplitIT extends ConfigurableMacIT {
     assertTrue(c.tableOperations().listSplits("test_ingest").size() > 20);
   }
   
-  @Test(timeout = 120 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void deleteSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

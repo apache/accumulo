@@ -41,7 +41,7 @@ public class DeleteEverythingIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
   }
   
-  @Test(timeout=20*1000)
+  @Test(timeout = 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("de");

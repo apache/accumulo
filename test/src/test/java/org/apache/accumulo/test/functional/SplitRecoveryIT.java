@@ -22,7 +22,7 @@ import org.junit.Test;
 
 public class SplitRecoveryIT extends SimpleMacIT {
   
-  @Test(timeout=10*1000)
+  @Test(timeout = 10 * 1000)
   public void test() throws Exception {
     assertEquals(0, exec(SplitRecoveryTest.class).waitFor());
   }

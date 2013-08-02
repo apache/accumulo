@@ -45,14 +45,15 @@ public class BatchScanSplitIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "0"));
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("bss");
+    String tableName = makeTableName();
+    c.tableOperations().create(tableName);
     
     int numRows = 1 << 18;
     
-    BatchWriter bw = getConnector().createBatchWriter("bss", new BatchWriterConfig());
+    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     
     for (int i = 0; i < numRows; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i)));
@@ -62,14 +63,14 @@ public class BatchScanSplitIT extends ConfigurableMacIT {
     
     bw.close();
     
-    getConnector().tableOperations().flush("bss", null, null, true);
+    getConnector().tableOperations().flush(tableName, null, null, true);
     
-    getConnector().tableOperations().setProperty("bss", Property.TABLE_SPLIT_THRESHOLD.getKey(), "4K");
+    getConnector().tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "4K");
     
-    Collection<Text> splits = getConnector().tableOperations().listSplits("bss");
+    Collection<Text> splits = getConnector().tableOperations().listSplits(tableName);
     while (splits.size() < 2) {
       UtilWaitThread.sleep(1);
-      splits = getConnector().tableOperations().listSplits("bss");
+      splits = getConnector().tableOperations().listSplits(tableName);
     }
     
     System.out.println("splits : " + splits);
@@ -89,7 +90,7 @@ public class BatchScanSplitIT extends ConfigurableMacIT {
     HashMap<Text,Value> found = new HashMap<Text,Value>();
     
     for (int i = 0; i < 20; i++) {
-      BatchScanner bs = getConnector().createBatchScanner("bss", Authorizations.EMPTY, 4);
+      BatchScanner bs = getConnector().createBatchScanner(tableName, Authorizations.EMPTY, 4);
       
       found.clear();
       
@@ -110,7 +111,7 @@ public class BatchScanSplitIT extends ConfigurableMacIT {
         throw new Exception("Found and expected differ " + found + " " + expected);
     }
     
-    splits = getConnector().tableOperations().listSplits("bss");
+    splits = getConnector().tableOperations().listSplits(tableName);
     log.info("splits : " + splits);
   }
   

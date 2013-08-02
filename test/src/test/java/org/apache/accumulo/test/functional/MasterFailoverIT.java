@@ -35,7 +35,7 @@ public class MasterFailoverIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s"));
   }
 
-  @Test(timeout=30*1000)
+  @Test(timeout = 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

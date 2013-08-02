@@ -85,12 +85,12 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     }
   }
   
-  @Test(timeout = 100 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void testRecover() throws Exception {
     test(10);
   }
   
-  @Test(timeout = 120 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void testTimeout() throws Exception {
     String results = test(40);
     if (results != null)
@@ -122,44 +122,53 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     env.put("LD_PRELOAD", libPath);
     env.put("DYLD_INSERT_LIBRARIES", libPath);
     env.put("DYLD_FORCE_FLAT_NAMESPACE", "true");
+    Process ingest = null;
     Process tserver = builder.start();
     DumpOutput t = new DumpOutput(tserver.getInputStream());
-    t.start();
-    UtilWaitThread.sleep(1000);
-    // don't need the regular tablet server
-    cluster.killProcess(ServerType.TABLET_SERVER, cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
-    UtilWaitThread.sleep(1000);
-    c.tableOperations().create("test_ingest");
-    assertEquals(1, c.instanceOperations().getTabletServers().size());
-    int rows = 100 * 1000;
-    Process ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", ROOT_PASSWORD,
-        "--rows", rows + "");
-    UtilWaitThread.sleep(500);
-    
-    // block I/O with some side-channel trickiness
-    File trickFile = new File(trickFilename);
-    trickFile.createNewFile();
-    UtilWaitThread.sleep(seconds * 1000);
-    trickFile.delete();
-    
-    if (seconds <= 10) {
-      assertEquals(0, ingest.waitFor());
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      vopts.rows = rows;
-      VerifyIngest.verifyIngest(c, vopts, SOPTS);
-    } else {
-      UtilWaitThread.sleep(5 * 1000);
+    try {
+      t.start();
+      UtilWaitThread.sleep(1000);
+      // don't need the regular tablet server
+      cluster.killProcess(ServerType.TABLET_SERVER, cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
+      UtilWaitThread.sleep(1000);
+      c.tableOperations().create("test_ingest");
+      assertEquals(1, c.instanceOperations().getTabletServers().size());
+      int rows = 100 * 1000;
+      ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", ROOT_PASSWORD,
+          "--rows", rows + "");
+      UtilWaitThread.sleep(500);
+      
+      // block I/O with some side-channel trickiness
+      File trickFile = new File(trickFilename);
+      try {
+        trickFile.createNewFile();
+        UtilWaitThread.sleep(seconds * 1000);
+      } finally {
+        trickFile.delete();
+      }
+      
+      if (seconds <= 10) {
+        assertEquals(0, ingest.waitFor());
+        VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+        vopts.rows = rows;
+        VerifyIngest.verifyIngest(c, vopts, SOPTS);
+      } else {
+        UtilWaitThread.sleep(5 * 1000);
+      }
+      // verify the process was blocked
+      String results = t.toString();
+      assertTrue(results.contains("sleeping\nsleeping\nsleeping\n"));
+      assertTrue(results.contains("Zookeeper error, will retry"));
+      return results;
+    } finally {
+      if (ingest != null) {
+        ingest.destroy();
+        ingest.waitFor();
+      }
+      tserver.destroy();
+      tserver.waitFor();
+      t.join();
     }
-    // verify the process was blocked
-    String results = t.toString();
-    assertTrue(results.contains("sleeping\nsleeping\nsleeping\n"));
-    assertTrue(results.contains("Zookeeper error, will retry"));
-    ingest.destroy();
-    ingest.waitFor();
-    tserver.destroy();
-    tserver.waitFor();
-    t.join();
-    return results;
   }
   
   private boolean makeDiskFailureLibrary() throws Exception {

@@ -292,7 +292,7 @@ public class PermissionsIT extends SimpleMacIT {
   }
   
   
-  @Test(timeout=30*1000)
+  @Test(timeout = 30 * 1000)
   public void tablePermissionTest() throws Exception {
     // create the test user
     String testUser = makeUserName();

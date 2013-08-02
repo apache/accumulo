@@ -52,14 +52,14 @@ public class DeleteRowsSplitIT extends SimpleMacIT {
     }
   }
   
-  @Test(timeout=200*1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void run() throws Exception {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
     final String tableName = makeTableName();
     
     // Eliminate whole tablets
-    for (int test = 0; test < 50; test++) {
+    for (int test = 0; test < 10; test++) {
       // create a table
       log.info("Test " + test);
       getConnector().tableOperations().create(tableName);

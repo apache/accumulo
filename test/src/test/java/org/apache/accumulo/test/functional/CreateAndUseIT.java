@@ -35,7 +35,7 @@ import org.junit.Test;
 
 public class CreateAndUseIT extends SimpleMacIT {
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     SortedSet<Text> splits = new TreeSet<Text>();
     

@@ -26,7 +26,7 @@ import org.junit.Test;
 
 public class ZooCacheIT extends SimpleMacIT {
   
-  @Test(timeout=200*1000)
+  @Test(timeout = 2 * 60 *1000)
   public void test() throws Exception {
     assertEquals(0, exec(CacheTestClean.class, "/zcTest-42", "/tmp/zcTest-42").waitFor());
     final AtomicReference<Exception> ref = new AtomicReference<Exception>();

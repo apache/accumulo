@@ -49,7 +49,7 @@ public class RestartIT extends ConfigurableMacIT {
   private static final VerifyIngest.Opts VOPTS = new VerifyIngest.Opts();
   private static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void restartMaster() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -65,7 +65,7 @@ public class RestartIT extends ConfigurableMacIT {
     ingest.destroy();
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void restartMasterRecovery() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -85,7 +85,7 @@ public class RestartIT extends ConfigurableMacIT {
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
   
-  @Test(timeout=30*1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void restartMasterSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -102,7 +102,7 @@ public class RestartIT extends ConfigurableMacIT {
     ingest.destroy();
   }
   
-  @Test(timeout= 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void killedTabletServer() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -117,7 +117,7 @@ public class RestartIT extends ConfigurableMacIT {
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
 
-  @Test(timeout=2 * 60 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void killedTabletServerDuringShutdown() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -128,7 +128,7 @@ public class RestartIT extends ConfigurableMacIT {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
   
-  @Test(timeout= 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void shutdownDuringCompactingSplitting() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

@@ -47,7 +47,7 @@ public class BulkSplitOptimizationIT extends ConfigurableMacIT {
   static final int ROWS = 100000;
   static final int SPLITS = 99;
 
-  @Test(timeout=30*1000)
+  @Test(timeout = 60 * 1000)
   public void testBulkSplitOptimization() throws Exception {
     final Connector c = getConnector();
     c.tableOperations().create(TABLE_NAME);

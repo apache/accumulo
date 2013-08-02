@@ -57,7 +57,7 @@ public class DeleteRowsIT extends SimpleMacIT {
     ROWS.add("{");
   }
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 10 * 60 * 1000)
   public void test() throws Exception {
     // Delete ranges of rows, and verify the tablets are removed.
     int i = 0;

@@ -31,7 +31,7 @@ import org.junit.Test;
  */
 public class FateStarvationIT extends SimpleMacIT {
   
-  @Test(timeout=2 * 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     String tableName = makeTableName();
     Connector c = getConnector();

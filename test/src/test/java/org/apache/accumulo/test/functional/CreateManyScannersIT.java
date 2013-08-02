@@ -22,7 +22,7 @@ import org.junit.Test;
 
 public class CreateManyScannersIT extends SimpleMacIT {
   
-  @Test(timeout=20*1000)
+  @Test(timeout = 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
     String tableName = makeTableName();

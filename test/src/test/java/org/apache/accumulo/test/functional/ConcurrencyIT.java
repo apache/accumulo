@@ -72,7 +72,7 @@ public class ConcurrencyIT extends ConfigurableMacIT {
    * Scan 0 |------------------------------| Scan 1 |----------| Minc 1 |-----| Scan 2 |----------| Scan 3 |---------------| Minc 2 |-----| Majc 1 |-----|
    */
   
-  @Test(timeout=30*1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("cct");

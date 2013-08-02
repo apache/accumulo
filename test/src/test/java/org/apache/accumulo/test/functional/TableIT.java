@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.FileNotFoundException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
@@ -31,6 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.test.TestIngest;
@@ -58,6 +60,7 @@ public class TableIT extends SimpleMacIT {
     String id = to.tableIdMap().get(tableName);
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(new KeyExtent(new Text(id), null, null).toMetadataRange());
+    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     int count = 0;
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : s) {
@@ -73,7 +76,11 @@ public class TableIT extends SimpleMacIT {
       count++;
     }
     assertEquals(0, count);
-    assertEquals(0, fs.listStatus(new Path(rootPath() + "/accumulo/tables/" + id)).length);
+    try {
+      assertEquals(0, fs.listStatus(new Path(rootPath() + "/accumulo/tables/" + id)).length);
+    } catch (FileNotFoundException ex) {
+      // that's fine, too
+    }
     assertNull(to.tableIdMap().get(tableName));
     to.create(tableName);
     TestIngest.ingest(c, opts, new BatchWriterOpts());

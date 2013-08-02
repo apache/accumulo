@@ -54,6 +54,7 @@ import org.apache.accumulo.server.util.Initialize;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.Main;
+import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -129,10 +130,13 @@ public class MiniAccumuloCluster {
   private List<LogWriter> logWriters = new ArrayList<MiniAccumuloCluster.LogWriter>();
   
   private MiniAccumuloConfig config;
-  private MiniDFSCluster miniDFS;
+  private MiniDFSCluster miniDFS = null;
+  private List<Process> cleanup = new ArrayList<Process>();
   
   public Process exec(Class<? extends Object> clazz, String... args) throws IOException {
-    return exec(clazz, Collections.singletonList("-Xmx" + config.getDefaultMemory()), args);
+    Process proc = exec(clazz, Collections.singletonList("-Xmx" + config.getDefaultMemory()), args);
+    cleanup.add(proc);
+    return proc;
   }
   
   private Process exec(Class<? extends Object> clazz, List<String> extraJvmOpts, String... args) throws IOException {
@@ -222,20 +226,28 @@ public class MiniAccumuloCluster {
       nn.mkdirs();
       File dn = new File(config.getAccumuloDir(), "dn");
       dn.mkdirs();
+      File dfs = new File(config.getAccumuloDir(), "dfs");
+      dfs.mkdirs();
       Configuration conf = new Configuration();
       conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, nn.getAbsolutePath());
       conf.set(DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY, dn.getAbsolutePath());
       conf.set(DFSConfigKeys.DFS_REPLICATION_KEY, "1");
       conf.set(DFSConfigKeys.DFS_SUPPORT_APPEND_KEY, "true");
-      conf.set("dfs.datanode.data.dir.perm", "775");
+      conf.set("dfs.datanode.synconclose", "true");
+      conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
+      String oldTestBuildData = System.setProperty("test.build.data", dfs.getAbsolutePath());
       miniDFS = new MiniDFSCluster(conf, 1, true, null);
+      if (oldTestBuildData == null)
+        System.clearProperty("test.build.data");
+      else
+        System.setProperty("test.build.data", oldTestBuildData);
       miniDFS.waitClusterUp();
       InetSocketAddress dfsAddress = miniDFS.getNameNode().getNameNodeAddress();
       String uri = "hdfs://" + dfsAddress.getHostName() + ":" + dfsAddress.getPort();
       File coreFile = new File(config.getConfDir(), "core-site.xml");
-      writeConfig(coreFile, Collections.singletonMap("fs.default.name", uri));
+      writeConfig(coreFile, Collections.singletonMap("fs.default.name", uri).entrySet());
       File hdfsFile = new File(config.getConfDir(), "hdfs-site.xml");
-      writeConfig(hdfsFile, Collections.singletonMap("dfs.support.append", "true"));
+      writeConfig(hdfsFile, conf);
       
       Map<String,String> siteConfig = config.getSiteConfig();
       siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), uri);
@@ -244,7 +256,7 @@ public class MiniAccumuloCluster {
     }
     
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
-    writeConfig(siteFile, config.getSiteConfig());
+    writeConfig(siteFile, config.getSiteConfig().entrySet());
     
     FileWriter fileWriter = new FileWriter(siteFile);
     fileWriter.append("<configuration>\n");
@@ -282,12 +294,14 @@ public class MiniAccumuloCluster {
     }
   }
   
-  private void writeConfig(File file, Map<String,String> settings) throws IOException {
+  private void writeConfig(File file, Iterable<Map.Entry<String, String>> settings) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
     fileWriter.append("<configuration>\n");
     
-    for (Entry<String,String> entry : settings.entrySet())
-      fileWriter.append("<property><name>" + entry.getKey() + "</name><value>" + entry.getValue() + "</value></property>\n");
+    for (Entry<String,String> entry : settings) {
+      String value = entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+      fileWriter.append("<property><name>" + entry.getKey() + "</name><value>" + value + "</value></property>\n");
+    }
     fileWriter.append("</configuration>\n");
     fileWriter.close();
   }
@@ -318,11 +332,11 @@ public class MiniAccumuloCluster {
     
     if (zooKeeperProcess == null) {
       zooKeeperProcess = exec(Main.class, ServerType.ZOOKEEPER, ZooKeeperServerMain.class.getName(), zooCfgFile.getAbsolutePath());
-      // sleep a little bit to let zookeeper come up before calling init, seems to work better
-      UtilWaitThread.sleep(250);
     }
     
     if (!initialized) {
+      // sleep a little bit to let zookeeper come up before calling init, seems to work better
+      UtilWaitThread.sleep(250);
       Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword(), "--username", "root");
       int ret = initProcess.waitFor();
       if (ret != 0) {
@@ -334,8 +348,13 @@ public class MiniAccumuloCluster {
     for (int i = tabletServerProcesses.size(); i < config.getNumTservers(); i++) {
       tabletServerProcesses.add(exec(TabletServer.class, ServerType.TABLET_SERVER));
     }
-    Process goal = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString());
-    int ret = goal.waitFor();
+    int ret = 0;
+    for (int i = 0; i < 5; i++) {
+      ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString()).waitFor();
+      if (ret == 0)
+        break;
+      UtilWaitThread.sleep(1000);
+    }
     if (ret != 0) {
       throw new RuntimeException("Could not set master goal state, process returned " + ret);
     }
@@ -444,7 +463,10 @@ public class MiniAccumuloCluster {
     tabletServerProcesses.clear();
     if (config.useMiniDFS() && miniDFS != null)
       miniDFS.shutdown();
+    for (Process p : cleanup)
+      p.destroy();
     miniDFS = null;
+    Runtime.getRuntime().exec("pkill -f " + config.getDir().getAbsolutePath());
   }
   
   /**

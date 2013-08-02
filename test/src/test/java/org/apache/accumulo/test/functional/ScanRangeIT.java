@@ -38,7 +38,7 @@ public class ScanRangeIT extends SimpleMacIT {
   private static final int CF_LIMIT = 5;
   private static final int ROW_LIMIT = 100;
   
-  @Test(timeout=60*1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
     String table1 = makeTableName();

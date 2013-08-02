@@ -38,7 +38,7 @@ public class TabletIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig);
   }
 
-  @Test(timeout=30*1000)
+  @Test(timeout = 30 * 1000)
   public void test() throws Exception {
     assertEquals(0, cluster.exec(CreateTestTable.class, "" + N).waitFor());
     assertEquals(0, cluster.exec(CreateTestTable.class, "-readonly", "" + N).waitFor());

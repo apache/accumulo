@@ -47,7 +47,7 @@ public class MergeIT extends SimpleMacIT {
     return result;
   }
   
-  @Test(timeout=30*1000)
+  @Test(timeout = 60 * 1000)
   public void merge() throws Exception {
     Connector c = getConnector();
     String tableName = makeTableName();
@@ -65,7 +65,7 @@ public class MergeIT extends SimpleMacIT {
     assertEquals(8, c.tableOperations().listSplits(tableName).size());
   }
   
-  @Test(timeout=30*1000)
+  @Test(timeout = 60 * 1000)
   public void mergeSize() throws Exception {
     Connector c = getConnector();
     String tableName = makeTableName();
@@ -99,7 +99,7 @@ public class MergeIT extends SimpleMacIT {
     return strings;
   }
   
-  @Test(timeout=120*1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void mergeTest() throws Exception {
     int tc = 0;
     Connector c = getConnector();

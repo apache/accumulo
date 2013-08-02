@@ -30,7 +30,7 @@ public class BulkIT extends SimpleMacIT {
   static final int N = 100000;
   static final int COUNT = 5;
   
-  @Test(timeout=120*1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     String tableName = makeTableName();
