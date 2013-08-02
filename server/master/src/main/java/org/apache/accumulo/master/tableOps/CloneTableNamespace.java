@@ -23,10 +23,14 @@ import java.util.Set;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.log4j.Logger;
 
@@ -134,15 +138,18 @@ class CloneNamespacePermissions extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    // TODO add table namespace permissions (ACCUMULO-1479)
-    // give all table permissions to the creator
-    /*
-     * for (TablePermission permission : TablePermission.values()) { try {
-     * AuditedSecurityOperation.getInstance().grantTablePermission(SecurityConstants.getSystemCredentials(), cloneInfo.user, cloneInfo.newId, permission); }
-     * catch (ThriftSecurityException e) { Logger.getLogger(FinishCloneTableNamespace.class).error(e.getMessage(), e); throw e; } }
-     */
+    // give all table namespace permissions to the creator
+    for (TableNamespacePermission permission : TableNamespacePermission.values()) {
+      try {
+        AuditedSecurityOperation.getInstance().grantTableNamespacePermission(SystemCredentials.get().toThrift(environment.getInstance()), cloneInfo.user,
+            cloneInfo.newId, permission);
+      } catch (ThriftSecurityException e) {
+        Logger.getLogger(FinishCloneTableNamespace.class).error(e.getMessage(), e);
+        throw e;
+      }
+    }
 
-    // setup permissions in zookeeper before table info in zookeeper
+    // setup permissions in zookeeper before table namespace info in zookeeper
     // this way concurrent users will not get a spurious pemission denied
     // error
     return new CloneNamespaceZookeeper(cloneInfo);

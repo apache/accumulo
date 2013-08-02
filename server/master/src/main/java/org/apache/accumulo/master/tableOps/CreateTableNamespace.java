@@ -23,9 +23,14 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.NamespacePropUtil;
 import org.apache.log4j.Logger;
@@ -135,14 +140,17 @@ class SetupNamespacePermissions extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
-    // TODO implement once namespace permissions exist (ACCUMULO-1479)
-
-    // give all table permissions to the creator
-    /*
-     * SecurityOperation security = AuditedSecurityOperation.getInstance(); for (TableNamespacePermission permission : TableNamespacePermission.values()) { try
-     * { security.grantTableNamespacePermission(SecurityConstants.getSystemCredentials(), tableNamespaceInfo.user, tableNamespaceInfo.tableId, permission); }
-     * catch (ThriftSecurityException e) { Logger.getLogger(FinishCreateTableNamespace.class).error(e.getMessage(), e); throw e; } }
-     */
+    // give all table namespace permissions to the creator
+    SecurityOperation security = AuditedSecurityOperation.getInstance();
+    for (TableNamespacePermission permission : TableNamespacePermission.values()) {
+      try {
+        security.grantTableNamespacePermission(SystemCredentials.get().toThrift(env.getInstance()), tableNamespaceInfo.user, tableNamespaceInfo.namespaceId,
+            permission);
+      } catch (ThriftSecurityException e) {
+        Logger.getLogger(FinishCreateTableNamespace.class).error(e.getMessage(), e);
+        throw e;
+      }
+    }
 
     // setup permissions in zookeeper before table info in zookeeper
     // this way concurrent users will not get a spurious permission denied

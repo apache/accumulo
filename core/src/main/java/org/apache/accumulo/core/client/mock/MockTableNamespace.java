@@ -43,10 +43,6 @@ public class MockTableNamespace {
     }
   }
   
-  public Map<String,String> getSettings() {
-    return settings;
-  }
-  
   public List<String> getTables(MockAccumulo acu) {
     List<String> l = new LinkedList<String>();
     for (String t : acu.tables.keySet()) {

@@ -23,12 +23,11 @@ public enum TableNamespacePermission {
   // One can add new permissions, with new numbers, but please don't change or use numbers previously assigned
   READ((byte) 0),
   WRITE((byte) 1),
-  ALTER_TABLE_NAMESPACE((byte) 2),
+  ALTER_NAMESPACE((byte) 2),
   GRANT((byte) 3),
   ALTER_TABLE((byte) 4),
   CREATE_TABLE((byte) 5),
-  DROP_TABLE((byte) 6),
-  BULK_IMPORT((byte) 7);
+  DROP_TABLE((byte) 6);
   
   final private byte permID;
   

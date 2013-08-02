@@ -47,6 +47,22 @@ public class UserPermissionsCommand extends Command {
     }
     shellState.getReader().println();
     
+    for (String n : shellState.getConnector().tableNamespaceOperations().list()) {
+      delim = "";
+      for (TableNamespacePermission p : TableNamespacePermission.values()) {
+        if (p != null && shellState.getConnector().securityOperations().hasTableNamespacePermission(user, n, p)) {
+          if (runOnce == 0) {
+            shellState.getReader().print("\nTable Namespace permissions (" + n + "): ");
+            runOnce++;
+          }
+          shellState.getReader().print(delim + "Namespace." + p.name());
+          delim = ", ";
+        }
+      }
+      runOnce = 0;
+    }
+    shellState.getReader().println();
+    
     for (String t : shellState.getConnector().tableOperations().list()) {
       delim = "";
       for (TablePermission p : TablePermission.values()) {
@@ -59,22 +75,6 @@ public class UserPermissionsCommand extends Command {
           delim = ", ";
         }
         
-      }
-      runOnce = 0;
-    }
-    shellState.getReader().println();
-    
-    for (String n : shellState.getConnector().tableNamespaceOperations().list()) {
-      delim = "";
-      for (TableNamespacePermission p : TableNamespacePermission.values()) {
-        if (p != null && shellState.getConnector().securityOperations().hasTableNamespacePermission(user, n, p)) {
-          if (runOnce == 0) {
-            shellState.getReader().print("\nTable Namespace permissions (" + n + "): ");
-            runOnce++;
-          }
-          shellState.getReader().print(delim + "Namespace." + p.name());
-          delim = ", ";
-        }
       }
       runOnce = 0;
     }

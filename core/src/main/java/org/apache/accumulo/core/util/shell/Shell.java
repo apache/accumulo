@@ -122,6 +122,7 @@ import org.apache.accumulo.core.util.shell.commands.ListScansCommand;
 import org.apache.accumulo.core.util.shell.commands.ListShellIterCommand;
 import org.apache.accumulo.core.util.shell.commands.MaxRowCommand;
 import org.apache.accumulo.core.util.shell.commands.MergeCommand;
+import org.apache.accumulo.core.util.shell.commands.NamespacePermissionsCommand;
 import org.apache.accumulo.core.util.shell.commands.NamespacesCommand;
 import org.apache.accumulo.core.util.shell.commands.NoTableCommand;
 import org.apache.accumulo.core.util.shell.commands.OfflineCommand;
@@ -354,7 +355,7 @@ public class Shell extends ShellOptions {
         new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
     Command[] otherCommands = {new HiddenCommand()};
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(), new SystemPermissionsCommand(), new TablePermissionsCommand(),
-        new UserPermissionsCommand()};
+        new UserPermissionsCommand(), new NamespacePermissionsCommand()};
     Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new FateCommand(), new NoTableCommand(), new SleepCommand(),
         new TableCommand(), new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(), new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(),

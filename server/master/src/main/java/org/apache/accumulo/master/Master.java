@@ -43,9 +43,9 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.TableNamespaces;
-import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -743,14 +743,22 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         throws ThriftSecurityException, ThriftTableOperationException {
 
       String namespaceId = null;
+      namespaceId = checkNamespaceId(namespace, op);
+
+      if (!security.canAlterNamespace(c, namespaceId))
+        throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
       try {
-        namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
-        // TODO insert a permission check here once namespace-level permissions exist. (ACCUMULO-1479)
         if (value == null) {
           NamespacePropUtil.removeNamespaceProperty(namespaceId, property);
         } else {
           NamespacePropUtil.setNamespaceProperty(namespaceId, property, value);
         }
+      } catch (KeeperException.NoNodeException e) {
+        // race condition... table namespace no longer exists? This call will throw an exception if the table namespace was deleted:
+        checkNamespaceId(namespaceId, op);
+        log.info("Error altering table namespace property", e);
+        throw new ThriftTableOperationException(namespaceId, namespace, op, TableOperationExceptionType.OTHER, "Problem altering table namespaceproperty");
       } catch (Exception e) {
         log.error("Problem altering table namespace property", e);
         throw new ThriftTableOperationException(namespaceId, namespace, op, TableOperationExceptionType.OTHER, "Problem altering table namespace property");
@@ -1125,7 +1133,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       switch (op) {
         case CREATE: {
           String namespace = ByteBufferUtil.toString(arguments.get(0));
-          // TODO security check once namespace permissions exist (ACCUMULO-1479)
+          if (!security.canCreateNamespace(c, namespace))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
           checkNotSystemNamespace(namespace, TableOperation.CREATE);
           checkTableNamespaceName(namespace, TableOperation.CREATE);
           fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTableNamespace(c.getPrincipal(), namespace, options)), autoCleanup);
@@ -1135,11 +1145,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
           String oldName = ByteBufferUtil.toString(arguments.get(0));
           String newName = ByteBufferUtil.toString(arguments.get(1));
-          // TODO security check (ACCUMULO-1479)
           String namespaceId = checkNamespaceId(oldName, TableOperation.RENAME);
+
           checkNotSystemNamespace(oldName, TableOperation.RENAME);
           checkNotSystemNamespace(newName, TableOperation.RENAME);
           checkTableNamespaceName(newName, TableOperation.RENAME);
+          if (!security.canRenameNamespace(c, namespaceId, oldName, newName))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
           fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTableNamespace(namespaceId, oldName, newName)), autoCleanup);
           break;
         }
@@ -1147,7 +1160,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           String namespace = ByteBufferUtil.toString(arguments.get(0));
           checkNotSystemNamespace(namespace, TableOperation.DELETE);
           String namespaceId = checkNamespaceId(namespace, TableOperation.DELETE);
-          // TODO security check (ACCUMULO-1479)
+          if (!security.canDeleteNamespace(c, namespaceId))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
           fate.seedTransaction(opid, new TraceRepo<Master>(new DeleteTableNamespace(namespaceId)), autoCleanup);
           break;
         }
@@ -1156,7 +1171,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           String namespace = ByteBufferUtil.toString(arguments.get(1));
           checkNotSystemNamespace(namespace, TableOperation.CLONE);
           checkTableNamespaceName(namespace, TableOperation.CLONE);
-          // TODO security check (ACCUMULO-1479)
+          if (!security.canCloneNamespace(c, namespaceId, namespace))
+            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
           Map<String,String> propertiesToSet = new HashMap<String,String>();
           Set<String> propertiesToExclude = new HashSet<String>();

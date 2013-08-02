@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -51,6 +52,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
@@ -82,8 +84,6 @@ public class TableNamespacesIT {
   
   /**
    * This test creates a table without specifying a namespace. In this case, it puts the table into the default namespace.
-   * 
-   * @throws Exception
    */
   @Test
   public void testDefaultNamespace() throws Exception {
@@ -99,8 +99,6 @@ public class TableNamespacesIT {
    * This test creates a new namespace "testing" and a table "testing.table1" which puts "table1" into the "testing" namespace. Then we create "testing.table2"
    * which creates "table2" and puts it into "testing" as well. Then we make sure that you can't delete a namespace with tables in it, and then we delete the
    * tables and delete the namespace.
-   * 
-   * @throws Exception
    */
   @Test
   public void testCreateAndDeleteNamespace() throws Exception {
@@ -148,8 +146,6 @@ public class TableNamespacesIT {
    * Checks to make sure namespace-level properties are overridden by table-level properties.
    * 
    * Checks to see if the default namespace's properties work as well.
-   * 
-   * @throws Exception
    */
   
   @Test
@@ -216,21 +212,8 @@ public class TableNamespacesIT {
   }
   
   /**
-   * This test creates a new user and a namespace. It checks to make sure the user can't modify anything in the namespace at first, then it grants the user
-   * permissions and makes sure that they can modify the namespace. Then it also checks if the user has the correct permissions on tables both already existing
-   * in the namespace and ones they create.
-   * 
-   * @throws Exception
-   */
-  @Test
-  public void testNamespacePermissions() throws Exception {
-    // TODO make the test once namespace-level permissions are implemented. (ACCUMULO-1479)
-  }
-  
-  /**
    * This test renames and clones two separate table into different namespaces. different namespace.
    * 
-   * @throws Exception
    */
   @Test
   public void testRenameAndCloneTableToNewNamespace() throws Exception {
@@ -413,6 +396,7 @@ public class TableNamespacesIT {
   
   /**
 <<<<<<< HEAD
+<<<<<<< HEAD
    * Tests that when a table moves to a new namespace that it's properties inherit from the new namespace and not the old one
    */
   @Test
@@ -452,6 +436,10 @@ public class TableNamespacesIT {
   }
   /**
    *  Tests new Namespace permissions as well as modifications to Table permissions because of namespaces 
+=======
+   * Tests new Namespace permissions as well as modifications to Table permissions because of namespaces. Checks each permission to first make sure the user
+   * doesn't have permission to perform the action, then root grants them the permission and we check to make sure they could perform the action.
+>>>>>>> ACCUMULO-1479 finished initial implementation of table namespace permissions, including tests
    */
   @Test
   public void testPermissions() throws Exception {
@@ -460,9 +448,9 @@ public class TableNamespacesIT {
     PasswordToken pass = new PasswordToken(secret);
     
     String n1 = "namespace1";
-
+    
     String user1 = "dude";
-
+    
     c.tableNamespaceOperations().create(n1);
     c.tableOperations().create(n1 + ".table1");
     
@@ -478,9 +466,121 @@ public class TableNamespacesIT {
     }
     
     c.securityOperations().grantTableNamespacePermission(user1, n1, TableNamespacePermission.CREATE_TABLE);
-    
     user1Con.tableOperations().create(n1 + ".table2");
     assertTrue(c.tableOperations().list().contains(n1 + ".table2"));
+    c.securityOperations().revokeTableNamespacePermission(user1, n1, TableNamespacePermission.CREATE_TABLE);
+    
+    try {
+      user1Con.tableOperations().delete(n1 + ".table1");
+      fail();
+    } catch (AccumuloSecurityException e) {
+      // should happen
+    }
+    
+    c.securityOperations().grantTableNamespacePermission(user1, n1, TableNamespacePermission.DROP_TABLE);
+    user1Con.tableOperations().delete(n1 + ".table1");
+    assertTrue(!c.tableOperations().list().contains(n1 + ".table1"));
+    c.securityOperations().revokeTableNamespacePermission(user1, n1, TableNamespacePermission.DROP_TABLE);
+    
+    c.tableOperations().create(n1 + ".t");
+    BatchWriter bw = c.createBatchWriter(n1 + ".t", null);
+    Mutation m = new Mutation("row");
+    m.put("cf", "cq", "value");
+    bw.addMutation(m);
+    bw.close();
+    
+    Iterator<Entry<Key,Value>> i = user1Con.createScanner(n1 + ".t", new Authorizations()).iterator();
+    try {
+      i.next();
+      fail();
+    } catch (RuntimeException e) {
+      // yup
+    }
+    
+    m = new Mutation("user1");
+    m.put("cf", "cq", "turtles");
+    bw = user1Con.createBatchWriter(n1 + ".t", null);
+    try {
+      bw.addMutation(m);
+      bw.close();
+      fail();
+    } catch (MutationsRejectedException e) {
+      // good
+    }
+    
+    c.securityOperations().grantTableNamespacePermission(user1, n1, TableNamespacePermission.READ);
+    i = user1Con.createScanner(n1 + ".t", new Authorizations()).iterator();
+    assertTrue(i.hasNext());
+    c.securityOperations().revokeTableNamespacePermission(user1, n1, TableNamespacePermission.READ);
+    
+    c.securityOperations().grantTableNamespacePermission(user1, n1, TableNamespacePermission.WRITE);
+    m = new Mutation("user1");
+    m.put("cf", "cq", "turtles");
+    bw = user1Con.createBatchWriter(n1 + ".t", null);
+    bw.addMutation(m);
+    bw.close();
+    c.securityOperations().revokeTableNamespacePermission(user1, n1, TableNamespacePermission.WRITE);
+    
+    try {
+      user1Con.tableOperations().setProperty(n1 + ".t", Property.TABLE_FILE_MAX.getKey(), "42");
+      fail();
+    } catch (AccumuloSecurityException e) {}
+    
+    c.securityOperations().grantTableNamespacePermission(user1, n1, TableNamespacePermission.ALTER_TABLE);
+    user1Con.tableOperations().setProperty(n1 + ".t", Property.TABLE_FILE_MAX.getKey(), "42");
+    user1Con.tableOperations().removeProperty(n1 + ".t", Property.TABLE_FILE_MAX.getKey());
+    c.securityOperations().revokeTableNamespacePermission(user1, n1, TableNamespacePermission.ALTER_TABLE);
+    
+    try {
+      user1Con.tableNamespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "55");
+      fail();
+    } catch (AccumuloSecurityException e) {}
+    
+    c.securityOperations().grantTableNamespacePermission(user1, n1, TableNamespacePermission.ALTER_NAMESPACE);
+    user1Con.tableNamespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
+    user1Con.tableNamespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
+    c.securityOperations().revokeTableNamespacePermission(user1, n1, TableNamespacePermission.ALTER_NAMESPACE);
+    
+    String user2 = "guy";
+    c.securityOperations().createLocalUser(user2, pass);
+    try {
+      user1Con.securityOperations().grantTableNamespacePermission(user2, n1, TableNamespacePermission.ALTER_NAMESPACE);
+      fail();
+    } catch (AccumuloSecurityException e) {}
+    
+    c.securityOperations().grantTableNamespacePermission(user1, n1, TableNamespacePermission.GRANT);
+    user1Con.securityOperations().grantTableNamespacePermission(user2, n1, TableNamespacePermission.ALTER_NAMESPACE);
+    user1Con.securityOperations().revokeTableNamespacePermission(user2, n1, TableNamespacePermission.ALTER_NAMESPACE);
+    c.securityOperations().revokeTableNamespacePermission(user1, n1, TableNamespacePermission.GRANT);
+    
+    String n2 = "namespace2";
+    try {
+      user1Con.tableNamespaceOperations().create(n2);
+      fail();
+    } catch (AccumuloSecurityException e) {}
+    
+    c.securityOperations().grantSystemPermission(user1, SystemPermission.CREATE_NAMESPACE);
+    user1Con.tableNamespaceOperations().create(n2);
+    c.securityOperations().revokeSystemPermission(user1, SystemPermission.CREATE_NAMESPACE);
+    
+    try {
+      user1Con.tableNamespaceOperations().delete(n2);
+      fail();
+    } catch (AccumuloSecurityException e) {}
+    
+    c.securityOperations().grantSystemPermission(user1, SystemPermission.DROP_NAMESPACE);
+    user1Con.tableNamespaceOperations().delete(n2);
+    c.securityOperations().revokeSystemPermission(user1, SystemPermission.DROP_NAMESPACE);
+    
+    try {
+      user1Con.tableNamespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
+      fail();
+    } catch (AccumuloSecurityException e) {}
+    
+    c.securityOperations().grantSystemPermission(user1, SystemPermission.ALTER_NAMESPACE);
+    user1Con.tableNamespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
+    user1Con.tableNamespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
+    c.securityOperations().revokeSystemPermission(user1, SystemPermission.ALTER_NAMESPACE);
   }
   
   private boolean checkTableHasProp(Connector c, String t, String propKey, String propVal) throws AccumuloException, TableNotFoundException {

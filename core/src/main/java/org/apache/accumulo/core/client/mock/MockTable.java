@@ -105,7 +105,7 @@ public class MockTable {
   
   MockTable(MockTableNamespace namespace, boolean limitVersion, TimeType timeType) {
     this(limitVersion, timeType);
-    Set<Entry<String,String>> set = namespace.getSettings().entrySet();
+    Set<Entry<String,String>> set = namespace.settings.entrySet();
     Iterator<Entry<String,String>> entries = set.iterator();
     while (entries.hasNext()) {
       Entry<String,String> entry = entries.next();
