@@ -17,8 +17,12 @@
 package org.apache.accumulo.server.security;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -120,13 +124,27 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
   
   public static final String CAN_SCAN_AUDIT_TEMPLATE = "action: scan; targetTable: %s; authorizations: %s; range: %s; columns: %s; iterators: %s; iteratorOptions: %s;";
+  private static final int MAX_ELEMENTS_TO_LOG = 10;
+  
+  private static List<String> truncate(Collection<? extends Object> list) {
+    List<String> result = new ArrayList<String>();
+    int i = 0;
+    for (Object obj : list) {
+      if (i > MAX_ELEMENTS_TO_LOG) {
+        result.add(" and " + (list.size() - MAX_ELEMENTS_TO_LOG) + " more ");
+        break;
+      }
+      result.add(obj.toString());
+    }
+    return result;
+  }
   
   @Override
   public boolean canScan(TCredentials credentials, String tableId, TRange range, List<TColumn> columns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations) throws ThriftSecurityException {
     if (shouldAudit(credentials, tableId)) {
       Range convertedRange = new Range(range);
-      List<Column> convertedColumns = Translator.translate(columns, new Translator.TColumnTranslator());
+      List<String> convertedColumns = truncate(Translator.translate(columns, new Translator.TColumnTranslator()));
       String tableName = getTableName(tableId);
       
       try {
@@ -152,6 +170,10 @@ public class AuditedSecurityOperation extends SecurityOperation {
       @SuppressWarnings({"unchecked", "rawtypes"})
       Map<KeyExtent,List<Range>> convertedBatch = Translator.translate(tbatch, new Translator.TKeyExtentTranslator(), new Translator.ListTranslator(
           new Translator.TRangeTranslator()));
+      Map<KeyExtent, List<String>> truncated = new HashMap<KeyExtent, List<String>>();
+      for (Entry<KeyExtent,List<Range>> entry : convertedBatch.entrySet()) {
+          truncated.put(entry.getKey(), truncate(entry.getValue()));
+      }
       List<Column> convertedColumns = Translator.translate(tcolumns, new Translator.TColumnTranslator());
       String tableName = getTableName(tableId);
       
