@@ -25,7 +25,9 @@ import java.util.Set;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -40,7 +42,7 @@ import org.junit.Test;
 public class CloneTestIT extends SimpleMacIT {
   
   @Test(timeout = 120 * 1000)
-  public void run() throws Exception {
+  public void testProps() throws Exception {
     String table1 = makeTableName();
     String table2 = makeTableName();
     
@@ -52,20 +54,7 @@ public class CloneTestIT extends SimpleMacIT {
     c.tableOperations().setProperty(table1, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), "2M");
     c.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "23");
     
-    BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-    
-    Mutation m1 = new Mutation("001");
-    m1.put("data", "x", "9");
-    m1.put("data", "y", "7");
-    
-    Mutation m2 = new Mutation("008");
-    m2.put("data", "x", "3");
-    m2.put("data", "y", "4");
-    
-    bw.addMutation(m1);
-    bw.addMutation(m2);
-    
-    bw.flush();
+    BatchWriter bw = writeData(table1, c);
     
     Map<String,String> props = new HashMap<String,String>();
     props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
@@ -81,20 +70,7 @@ public class CloneTestIT extends SimpleMacIT {
     bw.addMutation(m3);
     bw.close();
     
-    Scanner scanner = c.createScanner(table2, Authorizations.EMPTY);
-    
-    HashMap<String,String> expected = new HashMap<String,String>();
-    expected.put("001:x", "9");
-    expected.put("001:y", "7");
-    expected.put("008:x", "3");
-    expected.put("008:y", "4");
-    
-    HashMap<String,String> actual = new HashMap<String,String>();
-    
-    for (Entry<Key,Value> entry : scanner)
-      actual.put(entry.getKey().getRowData().toString() + ":" + entry.getKey().getColumnQualifierData().toString(), entry.getValue().toString());
-    
-    Assert.assertEquals(expected, actual);
+    checkData(table2, c);
     
     HashMap<String,String> tableProps = new HashMap<String,String>();
     for (Entry<String,String> prop : c.tableOperations().getProperties(table2)) {
@@ -109,4 +85,78 @@ public class CloneTestIT extends SimpleMacIT {
     c.tableOperations().delete(table2);
     
   }
+  
+  private void checkData(String table2, Connector c) throws TableNotFoundException {
+    Scanner scanner = c.createScanner(table2, Authorizations.EMPTY);
+    
+    HashMap<String,String> expected = new HashMap<String,String>();
+    expected.put("001:x", "9");
+    expected.put("001:y", "7");
+    expected.put("008:x", "3");
+    expected.put("008:y", "4");
+    
+    HashMap<String,String> actual = new HashMap<String,String>();
+    
+    for (Entry<Key,Value> entry : scanner)
+      actual.put(entry.getKey().getRowData().toString() + ":" + entry.getKey().getColumnQualifierData().toString(), entry.getValue().toString());
+    
+    Assert.assertEquals(expected, actual);
+  }
+  
+  private BatchWriter writeData(String table1, Connector c) throws TableNotFoundException, MutationsRejectedException {
+    BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
+    
+    Mutation m1 = new Mutation("001");
+    m1.put("data", "x", "9");
+    m1.put("data", "y", "7");
+    
+    Mutation m2 = new Mutation("008");
+    m2.put("data", "x", "3");
+    m2.put("data", "y", "4");
+    
+    bw.addMutation(m1);
+    bw.addMutation(m2);
+    
+    bw.flush();
+    return bw;
+  }
+  
+  @Test(timeout = 120 * 1000)
+  public void testDeleteClone() throws Exception {
+    String table1 = makeTableName();
+    String table2 = makeTableName();
+    
+    Connector c = getConnector();
+    
+    c.tableOperations().create(table1);
+    
+    BatchWriter bw = writeData(table1, c);
+
+    Map<String,String> props = new HashMap<String,String>();
+    props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
+    
+    Set<String> exclude = new HashSet<String>();
+    exclude.add(Property.TABLE_FILE_MAX.getKey());
+    
+    c.tableOperations().clone(table1, table2, true, props, exclude);
+    
+    Mutation m3 = new Mutation("009");
+    m3.put("data", "x", "1");
+    m3.put("data", "y", "2");
+    bw.addMutation(m3);
+    bw.close();
+    
+    // delete source table, should not affect clone
+    c.tableOperations().delete(table1);
+    
+    checkData(table2, c);
+    
+    c.tableOperations().compact(table2, null, null, true, true);
+    
+    checkData(table2, c);
+    
+    c.tableOperations().delete(table2);
+    
+  }
+
 }
