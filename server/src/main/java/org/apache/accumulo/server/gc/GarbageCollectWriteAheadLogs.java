@@ -111,6 +111,7 @@ public class GarbageCollectWriteAheadLogs {
       
     } catch (Exception e) {
       log.error("exception occured while garbage collecting write ahead logs", e);
+    } finally {
       span.stop();
     }
   }

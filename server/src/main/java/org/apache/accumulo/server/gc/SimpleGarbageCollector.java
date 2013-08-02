@@ -213,17 +213,24 @@ public class SimpleGarbageCollector implements Iface {
         
         Span candidatesSpan = Trace.start("getCandidates");
         status.current.started = System.currentTimeMillis();
-        SortedSet<String> candidates = getCandidates();
-        status.current.candidates = candidates.size();
-        candidatesSpan.stop();
+        SortedSet<String> candidates;
+        try {
+          candidates = getCandidates();
+          status.current.candidates = candidates.size();
+        } finally {
+          candidatesSpan.stop();
+        }
         
         // STEP 2: confirm deletes
         // WARNING: This line is EXTREMELY IMPORTANT.
         // You MUST confirm candidates are okay to delete
         Span confirmDeletesSpan = Trace.start("confirmDeletes");
-        confirmDeletes(candidates);
+        try {
+          confirmDeletes(candidates);
         status.current.inUse = status.current.candidates - candidates.size();
-        confirmDeletesSpan.stop();
+        } finally {
+          confirmDeletesSpan.stop();
+        }
         
         // STEP 3: delete files
         if (opts.safeMode) {
@@ -239,12 +246,15 @@ public class SimpleGarbageCollector implements Iface {
           log.info("SAFEMODE: End candidates for deletion");
         } else {
           Span deleteSpan = Trace.start("deleteFiles");
-          deleteFiles(candidates);
-          log.info("Number of data file candidates for deletion: " + status.current.candidates);
-          log.info("Number of data file candidates still in use: " + status.current.inUse);
-          log.info("Number of successfully deleted data files: " + status.current.deleted);
-          log.info("Number of data files delete failures: " + status.current.errors);
-          deleteSpan.stop();
+          try {
+            deleteFiles(candidates);
+            log.info("Number of data file candidates for deletion: " + status.current.candidates);
+            log.info("Number of data file candidates still in use: " + status.current.inUse);
+            log.info("Number of successfully deleted data files: " + status.current.deleted);
+            log.info("Number of data files delete failures: " + status.current.errors);
+          } finally {
+            deleteSpan.stop();
+          }
           
           // delete empty dirs of deleted tables
           // this can occur as a result of cloning
@@ -277,8 +287,9 @@ public class SimpleGarbageCollector implements Iface {
         walogCollector.collect(status);
       } catch (Exception e) {
         log.error(e, e);
+      } finally {
+        waLogs.stop();
       }
-      waLogs.stop();
       gcSpan.stop();
       
       // we just made a lot of changes to the !METADATA table: flush them out
