@@ -126,18 +126,18 @@ class CleanUp extends MasterRepo {
     int refCount = 0;
     
     try {
-      // look for other tables that references this tables files
+      // look for other tables that references this table's files
       Connector conn = master.getConnector();
       BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8);
       try {
         bs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange()));
         bs.fetchColumnFamily(DataFileColumnFamily.NAME);
         IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
-        GrepIterator.setTerm(cfg, "../" + tableId + "/");
+        GrepIterator.setTerm(cfg, "/" + tableId + "/");
         bs.addScanIterator(cfg);
         
         for (Entry<Key,Value> entry : bs) {
-          if (entry.getKey().getColumnQualifier().toString().startsWith("../" + tableId + "/")) {
+          if (entry.getKey().getColumnQualifier().toString().contains("/" + tableId + "/")) {
             refCount++;
           }
         }
