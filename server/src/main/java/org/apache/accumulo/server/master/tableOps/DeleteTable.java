@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.master.tableOps;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map.Entry;
 
@@ -130,7 +131,11 @@ class CleanUp extends MasterRepo {
       Connector conn = master.getConnector();
       BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8);
       try {
-        bs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange()));
+        Range allTables = MetadataSchema.TabletsSection.getRange();
+        Range tableRange = MetadataSchema.TabletsSection.getRange(tableId);
+        Range beforeTable = new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
+        Range afterTable = new Range(tableRange.getEndKey(), false, allTables.getEndKey(), true);
+        bs.setRanges(Arrays.asList(beforeTable, afterTable));
         bs.fetchColumnFamily(DataFileColumnFamily.NAME);
         IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
         GrepIterator.setTerm(cfg, "/" + tableId + "/");

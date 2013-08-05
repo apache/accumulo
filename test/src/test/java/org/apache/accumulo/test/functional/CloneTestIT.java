@@ -16,8 +16,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.*;
+
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -28,11 +33,17 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.math.stat.clustering.Cluster;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -125,9 +136,29 @@ public class CloneTestIT extends SimpleMacIT {
   public void testDeleteClone() throws Exception {
     String table1 = makeTableName();
     String table2 = makeTableName();
+    String table3 = makeTableName();
     
     Connector c = getConnector();
-    
+
+    // verify that deleting a new table removes the files
+    c.tableOperations().create(table3);
+    writeData(table3, c).close();
+    c.tableOperations().flush(table3, null, null, true);
+    //    check for files
+    FileSystem fs = FileSystem.get(new Configuration());
+    String id = c.tableOperations().tableIdMap().get(table3);
+    FileStatus[] status = fs.listStatus(new Path(rootPath() + "/accumulo/tables/" + id));
+    assertTrue(status.length > 0);
+    //     verify disk usage
+    List<DiskUsage> diskUsage = c.tableOperations().getDiskUsage(Collections.singleton(table3));
+    assertEquals(1, diskUsage.size());
+    assertTrue(diskUsage.get(0).getUsage() > 100);
+    //     delete the table
+    c.tableOperations().delete(table3);
+    //     verify its gone from the file system
+    status = fs.listStatus(new Path(rootPath() + "/accumulo/tables/" + id));
+    assertTrue(status == null || status.length == 0);
+
     c.tableOperations().create(table1);
     
     BatchWriter bw = writeData(table1, c);
