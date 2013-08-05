@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,13 +25,12 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.junit.rules.TemporaryFolder;
 
 public abstract class AbstractMacIT {
   public static final Logger log = Logger.getLogger(AbstractMacIT.class);
-      
+  
   public static final String ROOT_PASSWORD = "secret";
   public static final ScannerOpts SOPTS = new ScannerOpts();
   public static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
@@ -48,6 +46,7 @@ public abstract class AbstractMacIT {
   }
   
   static AtomicInteger tableCount = new AtomicInteger();
+  
   static public String makeTableName() {
     return "table" + tableCount.getAndIncrement();
   }

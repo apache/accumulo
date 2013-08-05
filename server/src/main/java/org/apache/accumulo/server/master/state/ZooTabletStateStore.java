@@ -126,7 +126,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     Iterator<TabletLocationState> currentIter = iterator();
     TabletLocationState current = currentIter.next();
     if (current.current != null) {
-      throw new IllegalDSException("Trying to set the root tablet location: it is already set to " + current.current);
+      throw new DistributedStoreException("Trying to set the root tablet location: it is already set to " + current.current);
     }
     store.put(RootTable.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes());
   }
@@ -142,14 +142,14 @@ public class ZooTabletStateStore extends TabletStateStore {
     Iterator<TabletLocationState> currentIter = iterator();
     TabletLocationState current = currentIter.next();
     if (current.current != null) {
-      throw new IllegalDSException("Trying to set the root tablet location: it is already set to " + current.current);
+      throw new DistributedStoreException("Trying to set the root tablet location: it is already set to " + current.current);
     }
     if (!current.future.equals(assignment.server)) {
-      throw new IllegalDSException("Root tablet is already assigned to " + current.future);
+      throw new DistributedStoreException("Root tablet is already assigned to " + current.future);
     }
     store.put(RootTable.ZROOT_TABLET_LOCATION, value.getBytes());
     store.put(RootTable.ZROOT_TABLET_LAST_LOCATION, value.getBytes());
-    // Make the following unnecessary by making the entire update atomic 
+    // Make the following unnecessary by making the entire update atomic
     store.remove(RootTable.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("Put down root tablet location");
   }
