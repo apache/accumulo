@@ -121,8 +121,8 @@ public class ReadWriteIT extends ConfigurableMacIT {
     // Write to multiple tables
     String instance = cluster.getInstanceName();
     String keepers = cluster.getZooKeepers();
-    TestMultiTableIngest.main(args("--count", "" + ROWS, "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
-    TestMultiTableIngest.main(args("--count", "" + ROWS, "--readonly", "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
+    exec(TestMultiTableIngest.class, args("--count", "" + ROWS, "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
+    exec(TestMultiTableIngest.class, args("--count", "" + ROWS, "--readonly", "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
   }
   
   @Test(timeout = 60 * 1000)

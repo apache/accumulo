@@ -201,7 +201,7 @@ public class ExamplesIT extends ConfigurableMacIT {
     assertEquals(0, cluster.exec(VerifyIngest.class, instance, keepers, user, passwd, "bulkTable", "0", "1000000").waitFor());
 
     log.info("Running TeraSortIngest example");
-    TeraSortIngest.main(new String[]{
+    exec(TeraSortIngest.class, new String[]{
         "--count", (1000*1000) + "",
         "-nk", "10", "-xk", "10",
         "-nv", "10", "-xv", "10",
@@ -212,7 +212,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "-p", passwd,
         "--splits", "4"});
     log.info("Running Regex example");
-    RegexExample.main(new String[] {
+    exec(RegexExample.class, new String[] {
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -222,7 +222,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "--output", dir + "/tmp/nines"
     });
     log.info("Running RowHash example");
-    RowHash.main(new String[]{
+    exec(RowHash.class, new String[]{
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -231,7 +231,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "--column", "c:"
     });
     log.info("Running TableToFile example");
-    TableToFile.main(new String[]{
+    exec(TableToFile.class, new String[]{
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -247,7 +247,7 @@ public class ExamplesIT extends ConfigurableMacIT {
     SummingCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     c.tableOperations().attachIterator("wordCount", is);
     fs.copyFromLocalFile(new Path(new Path(System.getProperty("user.dir")).getParent(), "README"), new Path(dir + "/tmp/wc/README"));
-    WordCount.main(new String[] {
+    exec(WordCount.class, new String[] {
        "-i", instance,
        "-u", user,
        "-p", passwd,
@@ -257,7 +257,7 @@ public class ExamplesIT extends ConfigurableMacIT {
     });
 
     log.info("Inserting data with a batch writer");
-    InsertWithBatchWriter.main(new String[]{
+    exec(InsertWithBatchWriter.class, new String[]{
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -265,7 +265,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "-t", "helloBatch"
     });
     log.info("Reading data");
-    ReadData.main(new String[]{
+    exec(ReadData.class, new String[]{
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -273,7 +273,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "-t", "helloBatch"
     });
     log.info("Running isolated scans");
-    InterferenceTest.main(new String[]{
+    exec(InterferenceTest.class, new String[]{
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -283,7 +283,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "--isolated"
     });
     log.info("Running scans without isolation");
-    InterferenceTest.main(new String[]{
+    exec(InterferenceTest.class, new String[]{
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -292,7 +292,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "--iterations", "100000",
     });
     log.info("Performing some row operations");
-    RowOperations.main(new String[]{
+    exec(RowOperations.class, new String[]{
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -300,7 +300,7 @@ public class ExamplesIT extends ConfigurableMacIT {
     });
     log.info("Using the batch writer");
     c.tableOperations().create("test");
-    SequentialBatchWriter.main(new String[] {
+    exec(SequentialBatchWriter.class, new String[] {
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -316,7 +316,7 @@ public class ExamplesIT extends ConfigurableMacIT {
     });
 
     log.info("Reading and writing some data");
-    ReadWriteExample.main(new String[] {
+    exec(ReadWriteExample.class, new String[] {
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -327,7 +327,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "-c",
         "--debug"});
     log.info("Deleting some data");
-    ReadWriteExample.main(new String[] {
+    exec(ReadWriteExample.class, new String[] {
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -338,7 +338,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "--debug"});
     log.info("Writing some data with the batch writer");
     c.tableOperations().create("test3");
-    RandomBatchWriter.main(new String[] {
+    exec(RandomBatchWriter.class, new String[] {
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -353,7 +353,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "--batchThreads", "4",
         "--vis", visibility});
     log.info("Reading some data with the batch scanner");
-    RandomBatchScanner.main(new String[] {
+    exec(RandomBatchScanner.class, new String[] {
         "-i", instance,
         "-z", keepers,
         "-u", user,
@@ -366,7 +366,7 @@ public class ExamplesIT extends ConfigurableMacIT {
         "--scanThreads", "4",
         "--auths", auths});
     log.info("Running an example table operation (Flush)");
-    Flush.main(new String[]{
+    exec(Flush.class, new String[]{
         "-i", instance,
         "-z", keepers,
         "-u", user,
