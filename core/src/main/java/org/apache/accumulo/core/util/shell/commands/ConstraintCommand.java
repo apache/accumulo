@@ -19,7 +19,6 @@ package org.apache.accumulo.core.util.shell.commands;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.constraints.Constraint;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.ShellCommandException;
@@ -48,20 +47,23 @@ public class ConstraintCommand extends Command {
     } else {
       tableName = null;
     }
-    
+      
     int i;
-    
     switch (OptUtil.getAldOpt(cl)) {
       case ADD:
         for (String constraint : cl.getArgs()) {
-          if (!shellState.getConnector().tableOperations().testClassLoad(MetadataTable.NAME, constraint, Constraint.class.getName())) {
-            throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + constraint + " as type "
-                + Constraint.class.getName());
-          }
           if (namespace != null) {
+            if (!shellState.getConnector().tableNamespaceOperations().testClassLoad(namespace, constraint, Constraint.class.getName())) {
+              throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + constraint + " as type "
+                  + Constraint.class.getName());
+            }
             i = shellState.getConnector().tableNamespaceOperations().addConstraint(namespace, constraint);
             shellState.getReader().println("Added constraint " + constraint + " to table namespace " + namespace + " with number " + i);
-          } else if (tableName != null){
+          } else if (tableName != null && !tableName.isEmpty()){
+            if (!shellState.getConnector().tableOperations().testClassLoad(tableName, constraint, Constraint.class.getName())) {
+              throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + constraint + " as type "
+                  + Constraint.class.getName());
+            }
             i = shellState.getConnector().tableOperations().addConstraint(tableName, constraint);
             shellState.getReader().println("Added constraint " + constraint + " to table " + tableName + " with number " + i);
           } else {

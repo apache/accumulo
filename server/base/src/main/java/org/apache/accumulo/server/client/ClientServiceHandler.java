@@ -90,6 +90,18 @@ public class ClientServiceHandler implements ClientService.Iface {
     return tableId;
   }
 
+  protected String checkTableNamespaceId(String tableNamespace, TableOperation operation) throws ThriftTableOperationException {
+    String namespaceId = TableNamespaces.getNameToIdMap(instance).get(tableNamespace);
+    if (namespaceId == null) {
+      // maybe the table namespace exists, but the cache was not updated yet... so try to clear the cache and check again
+      Tables.clearCache(instance);
+      namespaceId = TableNamespaces.getNameToIdMap(instance).get(tableNamespace);
+      if (namespaceId == null)
+        throw new ThriftTableOperationException(null, tableNamespace, operation, TableOperationExceptionType.NOTFOUND, null);
+    }
+    return namespaceId;
+  }
+
   @Override
   public String getInstanceId() {
     return instance.getInstanceID();
@@ -302,6 +314,40 @@ public class ClientServiceHandler implements ClientService.Iface {
       new ServerConfiguration(instance).getTableConfiguration(tableId);
 
       String context = new ServerConfiguration(instance).getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
+
+      ClassLoader currentLoader;
+
+      if (context != null && !context.equals("")) {
+        currentLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
+      } else {
+        currentLoader = AccumuloVFSClassLoader.getClassLoader();
+      }
+
+      Class<?> test = currentLoader.loadClass(className).asSubclass(shouldMatch);
+      test.newInstance();
+      return true;
+    } catch (Exception e) {
+      log.warn("Error checking object types", e);
+      return false;
+    }
+  }
+
+  @Override
+  public boolean checkTableNamespaceClass(TInfo tinfo, TCredentials credentials, String tableNamespace, String className, String interfaceMatch)
+      throws TException, ThriftTableOperationException, ThriftSecurityException {
+
+    security.authenticateUser(credentials, credentials);
+
+    String tableNamespaceId = checkTableNamespaceId(tableNamespace, null);
+
+    ClassLoader loader = getClass().getClassLoader();
+    Class<?> shouldMatch;
+    try {
+      shouldMatch = loader.loadClass(interfaceMatch);
+
+      new ServerConfiguration(instance).getTableNamespaceConfiguration(tableNamespaceId);
+
+      String context = new ServerConfiguration(instance).getTableNamespaceConfiguration(tableNamespaceId).get(Property.TABLE_CLASSPATH);
 
       ClassLoader currentLoader;
 

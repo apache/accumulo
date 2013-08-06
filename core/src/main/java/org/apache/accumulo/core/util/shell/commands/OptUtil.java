@@ -18,6 +18,7 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.UnsupportedEncodingException;
 
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -45,6 +46,19 @@ public abstract class OptUtil {
     return tableName;
   }
   
+  public static String getTableNamespaceOpt(final CommandLine cl, final Shell shellState) throws TableNamespaceNotFoundException {
+    String namespace = null;
+    if (cl.hasOption(Shell.tableNamespaceOption)) {
+      namespace = cl.getOptionValue(Shell.tableNamespaceOption);
+      if (!shellState.getConnector().tableNamespaceOperations().exists(namespace)) {
+        throw new TableNamespaceNotFoundException(namespace, namespace, "specified table namespace that doesn't exist");
+      }
+    } else {
+      throw new TableNamespaceNotFoundException(null, null, "no table namespace specified");
+    }
+    return namespace;
+  }
+  
   public static Option tableOpt() {
     return tableOpt("tableName");
   }
@@ -54,6 +68,17 @@ public abstract class OptUtil {
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     return tableOpt;
+  }
+  
+  public static Option tableNamespaceOpt() {
+    return tableNamespaceOpt("tableNamespace");
+  }
+  
+  public static Option tableNamespaceOpt(final String description) {
+    final Option tableNamespaceOpt = new Option(Shell.tableNamespaceOption, "tableNamespace", true, description);
+    tableNamespaceOpt.setArgName("tableNamespace");
+    tableNamespaceOpt.setRequired(false);
+    return tableNamespaceOpt;
   }
   
   public static enum AdlOpt {

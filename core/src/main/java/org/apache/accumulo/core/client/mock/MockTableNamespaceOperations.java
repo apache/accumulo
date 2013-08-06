@@ -36,8 +36,10 @@ import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.TableNamespaceOperationsHelper;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.lang.NotImplementedException;
+
+
 
 public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper {
 
@@ -183,5 +185,18 @@ public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper
       throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException, TableNamespaceExistsException {
     // TODO Implement clone in Mock
     throw new NotImplementedException();
+  }
+  
+  @Override
+  public boolean testClassLoad(String namespace, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException,
+      TableNamespaceNotFoundException {
+    
+    try {
+      AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
+    } catch (ClassNotFoundException e) {
+      e.printStackTrace();
+      return false;
+    }
+    return true;
   }
 }

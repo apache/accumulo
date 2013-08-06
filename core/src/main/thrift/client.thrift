@@ -138,6 +138,7 @@ service ClientService {
     map<string, string> getTableNamespaceConfiguration(1:trace.TInfo tinfo, 3:security.TCredentials credentials, 2:string ns) throws (1:ThriftTableOperationException tope);
     bool checkClass(1:trace.TInfo tinfo, 4:security.TCredentials credentials, 2:string className, 3:string interfaceMatch);
     bool checkTableClass(1:trace.TInfo tinfo, 5:security.TCredentials credentials, 2:string tableId, 3:string className, 4:string interfaceMatch) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope);
+    bool checkTableNamespaceClass(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string namespaceId, 4:string className, 5:string interfaceMatch) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope);
 }
 
 // Only used for a unit test

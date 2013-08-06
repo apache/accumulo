@@ -869,6 +869,10 @@ public class ShellServerIT extends SimpleMacIT {
     exec("tables", true, "testers3.1", false);
     exec("namespaces", true, "testers3", true);
     exec("deletenamespace testers3 -f", true);
+    input.set("true\n\n\nSTRING\n");
+    exec("setiter -tn thing2 -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
+    exec("listiter -tn thing2 -scan", true, "Summing", true);
+    exec("deleteiter -tn thing2 -n name -scan", true);
     
     // properties override and such
     exec("config -tn thing2 -s table.file.max=44444", true);

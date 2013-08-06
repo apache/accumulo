@@ -414,4 +414,13 @@ public interface TableNamespaceOperations {
    *           thrown if the table namespace no longer exists
    */
   public Map<String,Integer> listConstraints(String tableNamespace) throws AccumuloException, TableNamespaceNotFoundException;
+
+  
+  /**
+   * Test to see if the instance can load the given class as the given type. This check uses the table classpath property if it is set.
+   * 
+   * @return true if the instance can load the given class as the given type, false otherwise
+   */
+  boolean testClassLoad(String namespace, String className, String asTypeName) throws TableNamespaceNotFoundException, AccumuloException,
+      AccumuloSecurityException;
 }

@@ -23,18 +23,31 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class DeleteIterCommand extends Command {
   private Option allScopeOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt;
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    final String tableName = OptUtil.getTableOpt(cl, shellState);
+    
+    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
+    boolean namespaces = cl.hasOption(OptUtil.tableNamespaceOpt().getOpt());
     
     final String name = cl.getOptionValue(nameOpt.getOpt());
-    if (!shellState.getConnector().tableOperations().listIterators(tableName).containsKey(name)) {
-      Shell.log.warn("no iterators found that match your criteria");
-      return 0;
+    
+    if (namespaces) {
+      if (!shellState.getConnector().tableNamespaceOperations().listIterators(OptUtil.getTableNamespaceOpt(cl, shellState)).containsKey(name)) {
+        Shell.log.warn("no iterators found that match your criteria");
+        return 0;
+      }
+    } else if (tables) {
+      if (!shellState.getConnector().tableOperations().listIterators(OptUtil.getTableOpt(cl, shellState)).containsKey(name)) {
+        Shell.log.warn("no iterators found that match your criteria");
+        return 0;
+      }
+    } else {
+      throw new IllegalArgumentException("No table or table namespace specified");
     }
     
     final EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
@@ -50,13 +63,20 @@ public class DeleteIterCommand extends Command {
     if (scopes.isEmpty()) {
       throw new IllegalArgumentException("You must select at least one scope to configure");
     }
-    shellState.getConnector().tableOperations().removeIterator(tableName, name, scopes);
+    
+    if (namespaces) {
+      shellState.getConnector().tableNamespaceOperations().removeIterator(OptUtil.getTableNamespaceOpt(cl, shellState), name, scopes);
+    } else if (tables) {
+      shellState.getConnector().tableOperations().removeIterator(OptUtil.getTableOpt(cl, shellState), name, scopes);
+    } else {
+      throw new IllegalArgumentException("No table or table namespace specified");
+    }
     return 0;
   }
   
   @Override
   public String description() {
-    return "deletes a table-specific iterator";
+    return "deletes a table-specific or table-namespace-specific iterator";
   }
   
   public Options getOptions() {
@@ -71,7 +91,10 @@ public class DeleteIterCommand extends Command {
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false, "remove from major compaction scope");
     scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "remove from scan scope");
     
-    o.addOption(OptUtil.tableOpt("table to delete the iterator from"));
+    OptionGroup grp = new OptionGroup();
+    grp.addOption(OptUtil.tableOpt("table to delete the iterator from"));
+    grp.addOption(OptUtil.tableNamespaceOpt("table namespace to delete the iterator from"));
+    o.addOptionGroup(grp);
     o.addOption(nameOpt);
     
     o.addOption(allScopeOpt);
