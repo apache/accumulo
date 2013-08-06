@@ -409,6 +409,45 @@ public class TableNamespacesIT {
     c.tableNamespaceOperations().removeConstraint(namespace, num);
   }
   
+  /**
+   * Tests that when a table moves to a new namespace that it's properties inherit from the new namespace and not the old one
+   */
+  @Test
+  public void testRenameToNewNamespaceProperties() throws Exception {
+    Connector c = accumulo.getConnector("root", secret);
+    
+    String namespace1 = "moveToNewNamespace1";
+    String namespace2 = "moveToNewNamespace2";
+    String tableName1 = namespace1 + ".table";
+    String tableName2 = namespace2 + ".table";
+    
+    String propKey = Property.TABLE_FILE_MAX.getKey();
+    String propVal = "42";
+    
+    c.tableNamespaceOperations().create(namespace1);
+    c.tableNamespaceOperations().create(namespace2);
+    c.tableOperations().create(tableName1);
+    
+    c.tableNamespaceOperations().setProperty(namespace1, propKey, propVal);
+    boolean hasProp = false;
+    for (Entry<String,String> p : c.tableOperations().getProperties(tableName1)) {
+      if (p.getKey().equals(propKey) && p.getValue().equals(propVal)) {
+        hasProp = true;
+      }
+    }
+    assertTrue(hasProp);
+    
+    c.tableOperations().rename(tableName1, tableName2);
+    
+    hasProp = false;
+    for (Entry<String,String> p : c.tableOperations().getProperties(tableName2)) {
+      if (p.getKey().equals(propKey) && p.getValue().equals(propVal)) {
+        hasProp = true;
+      }
+    }
+    assertTrue(!hasProp);
+  }
+  
   private boolean checkTableHasProp(Connector c, String t, String propKey, String propVal) throws AccumuloException, TableNotFoundException {
     for (Entry<String,String> e : c.tableOperations().getProperties(t)) {
       if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
