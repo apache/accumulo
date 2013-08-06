@@ -52,6 +52,7 @@ class TableInfo implements Serializable {
   
   String tableName;
   String tableId;
+  String namespaceId;
   char timeType;
   String user;
   
@@ -80,6 +81,7 @@ class FinishCreateTable extends MasterRepo {
     TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
     
     Utils.unreserveTable(tableInfo.tableId, tid, true);
+    Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
     
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
     
@@ -213,10 +215,7 @@ class PopulateZookeeper extends MasterRepo {
       
       TableManager.getInstance().addTable(tableInfo.tableId, tableInfo.tableName, NodeExistsPolicy.OVERWRITE);
       
-      String namespace = Tables.extractNamespace(tableInfo.tableName);
-      String namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
-      
-      TableManager.getInstance().addNamespaceToTable(tableInfo.tableId, namespaceId);
+      TableManager.getInstance().addNamespaceToTable(tableInfo.tableId, tableInfo.namespaceId);
       
       for (Entry<String,String> entry : tableInfo.props.entrySet())
         TablePropUtil.setTableProperty(tableInfo.tableId, entry.getKey(), entry.getValue());
@@ -290,7 +289,9 @@ public class CreateTable extends MasterRepo {
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return 0;
+    // reserve the table's namespace to make sure it doesn't change while the table is created
+    tableInfo.namespaceId = TableNamespaces.getNamespaceId(environment.getInstance(), Tables.extractNamespace(tableInfo.tableName));
+    return Utils.reserveTableNamespace(tableInfo.namespaceId, tid, false, false, TableOperation.CREATE);
   }
   
   @Override
@@ -313,7 +314,7 @@ public class CreateTable extends MasterRepo {
   
   @Override
   public void undo(long tid, Master env) throws Exception {
-    // nothing to do, the table id was allocated!
+    Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
   }
   
 }

@@ -44,6 +44,8 @@ class CloneInfo implements Serializable {
   String srcTableId;
   String tableName;
   String tableId;
+  String namespaceId;
+  String srcNamespaceId;
   Map<String,String> propertiesToSet;
   Set<String> propertiesToExclude;
   
@@ -75,6 +77,9 @@ class FinishCloneTable extends MasterRepo {
     
     Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
+    Utils.unreserveTableNamespace(cloneInfo.srcNamespaceId, tid, false);
+    if (!cloneInfo.namespaceId.equals(cloneInfo.srcNamespaceId))
+      Utils.unreserveTableNamespace(cloneInfo.namespaceId, tid, false);
     
     environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName, cloneInfo.srcTableId);
     
@@ -133,7 +138,11 @@ class CloneZookeeper extends MasterRepo {
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTable(cloneInfo.tableId, tid, true, false, TableOperation.CLONE);
+    cloneInfo.namespaceId = TableNamespaces.getNamespaceId(environment.getInstance(), Tables.extractNamespace(cloneInfo.tableName));
+    long val = Utils.reserveTable(cloneInfo.tableId, tid, true, false, TableOperation.CLONE);
+    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) 
+      val += Utils.reserveTableNamespace(cloneInfo.namespaceId, tid, false, true, TableOperation.CLONE);
+    return val;
   }
   
   @Override
@@ -148,10 +157,8 @@ class CloneZookeeper extends MasterRepo {
       TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId, cloneInfo.tableName, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
       Tables.clearCache(instance);
-      
-      String namespace = Tables.extractNamespace(cloneInfo.tableName);
-      String namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
-      TableManager.getInstance().addNamespaceToTable(cloneInfo.tableId, namespaceId);
+
+      TableManager.getInstance().addNamespaceToTable(cloneInfo.tableId, cloneInfo.namespaceId);
       
       return new CloneMetadata(cloneInfo);
     } finally {
@@ -164,6 +171,8 @@ class CloneZookeeper extends MasterRepo {
     Instance instance = HdfsZooInstance.getInstance();
     TableManager.getInstance().removeTable(cloneInfo.tableId);
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
+    if (!cloneInfo.namespaceId.equals(cloneInfo.srcNamespaceId)) 
+      Utils.unreserveTableNamespace(cloneInfo.namespaceId, tid, false);
     Tables.clearCache(instance);
   }
   
@@ -225,7 +234,10 @@ public class CloneTable extends MasterRepo {
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTable(cloneInfo.srcTableId, tid, false, true, TableOperation.CLONE);
+    cloneInfo.srcNamespaceId = Tables.getNamespace(environment.getInstance(), cloneInfo.srcTableId);
+    long val = Utils.reserveTable(cloneInfo.srcTableId, tid, false, true, TableOperation.CLONE);
+    val += Utils.reserveTableNamespace(cloneInfo.srcNamespaceId, tid, false, true, TableOperation.CLONE);
+    return val;
   }
   
   @Override
@@ -244,6 +256,7 @@ public class CloneTable extends MasterRepo {
   @Override
   public void undo(long tid, Master environment) throws Exception {
     Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
+    Utils.unreserveTableNamespace(cloneInfo.srcNamespaceId, tid, false);
   }
   
 }

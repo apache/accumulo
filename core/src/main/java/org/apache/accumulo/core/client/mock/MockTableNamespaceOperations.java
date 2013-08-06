@@ -88,13 +88,13 @@ public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper
   }
 
   @Override
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException {
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException, TableNotFoundException {
     delete(namespace, false);
   }
 
   @Override
   public void delete(String namespace, boolean deleteTables) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException,
-      TableNamespaceNotEmptyException {
+      TableNamespaceNotEmptyException, TableNotFoundException {
     if (!exists(namespace))
       throw new TableNamespaceNotFoundException(namespace, namespace, "");
 
@@ -105,11 +105,7 @@ public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper
       }
     } else {
       for (String t : n.getTables(acu)) {
-        try {
-          new MockTableOperations(acu, username).delete(t);
-        } catch (TableNotFoundException e) {
-          System.err.println("Table (" + e.getTableName() + ") not found while deleting namespace (" + namespace + ")");
-        }
+        new MockTableOperations(acu, username).delete(t);
       }
     }
     acu.namespaces.remove(namespace);

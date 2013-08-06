@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNamespaceExistsException;
 import org.apache.accumulo.core.client.TableNamespaceNotEmptyException;
 import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 
 /**
@@ -112,8 +113,10 @@ public interface TableNamespaceOperations {
    *           if the table namespace does not exist
    * @throws TableNamespaceNotEmptyException
    *           if the table namespaces still contains tables
+   * @throws TableNotFoundException 
+   *           if table not found while deleting
    */
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException;
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException, TableNotFoundException;
   
   /**
    * Delete a table namespace
@@ -130,9 +133,11 @@ public interface TableNamespaceOperations {
    *           if the table namespace does not exist
    * @throws TableNamespaceNotEmptyException
    *           if the table namespaces still contains tables
+   * @throws TableNotFoundException 
+   *           if table not found while deleting
    */
   public void delete(String namespace, boolean deleteTables) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException,
-      TableNamespaceNotEmptyException;
+      TableNamespaceNotEmptyException, TableNotFoundException;
   
   /**
    * Rename a table namespace

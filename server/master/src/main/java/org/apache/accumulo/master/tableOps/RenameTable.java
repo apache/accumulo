@@ -38,10 +38,13 @@ public class RenameTable extends MasterRepo {
   private String tableId;
   private String oldTableName;
   private String newTableName;
+  private String namespaceId;
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
+    this.namespaceId = Tables.getNamespace(environment.getInstance(), tableId);
+    return Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME)
+        + Utils.reserveTableNamespace(namespaceId, tid, false, true, TableOperation.RENAME);
   }
 
   public RenameTable(String tableId, String oldTableName, String newTableName) {
@@ -63,11 +66,13 @@ public class RenameTable extends MasterRepo {
     if (!namespaceId.equals(oldNamespaceId)) {
       TableManager tm = TableManager.getInstance();
       tm.addNamespaceToTable(tableId, namespaceId);
-      // TODO change parent of table's configuration to new namespace...somehow...
     }
 
     newTableName = Tables.extractTableName(newTableName);
     oldTableName = Tables.extractTableName(oldTableName);
+
+    // TODO ACCUMULO-802 renaming a table to a new namespace does not change it's parent configuration to be the new namespace
+    // ...it should...somehow...
 
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
 
@@ -94,6 +99,7 @@ public class RenameTable extends MasterRepo {
     } finally {
       Utils.tableNameLock.unlock();
       Utils.unreserveTable(tableId, tid, true);
+      Utils.unreserveTableNamespace(namespaceId, tid, false);
     }
 
     Logger.getLogger(RenameTable.class).debug("Renamed table " + tableId + " " + oldTableName + " " + newTableName);
@@ -104,6 +110,7 @@ public class RenameTable extends MasterRepo {
   @Override
   public void undo(long tid, Master env) throws Exception {
     Utils.unreserveTable(tableId, tid, true);
+    Utils.unreserveTableNamespace(namespaceId, tid, false);
   }
 
 }

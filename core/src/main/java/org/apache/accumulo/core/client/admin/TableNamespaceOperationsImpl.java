@@ -297,9 +297,11 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
    *           if the table namespace does not exist
    * @throws TableNamespaceNotEmptyException
    *           if the table namespaces still contains tables
+   * @throws TableNotFoundException 
+   *           if table not found while deleting
    */
   @Override
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException {
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException, TableNotFoundException {
     delete(namespace, false);
   }
 
@@ -317,10 +319,13 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
    * @throws TableNamespaceNotFoundException
    *           if the table namespace does not exist
    * @throws TableNamespaceNotEmptyException
+   *           if the table namespaces still contains tables
+   * @throws TableNotFoundException 
+   *           if table not found while deleting
    */
   @Override
   public void delete(String namespace, boolean deleteTables) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException,
-      TableNamespaceNotEmptyException {
+      TableNamespaceNotEmptyException, TableNotFoundException {
     ArgumentChecker.notNull(namespace);
     String namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
 
@@ -334,11 +339,7 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
         throw new TableNamespaceNotEmptyException(namespaceId, namespace, null);
       }
       for (String table : TableNamespaces.getTableNames(instance, namespaceId)) {
-        try {
-          getTableOperations().delete(table);
-        } catch (TableNotFoundException e) {
-          throw new RuntimeException("Table (" + table + ") was found in ZooKeeper, but now doesn't exist. (while deleting namespace)");
-        }
+        getTableOperations().delete(table);
       }
     }
 
