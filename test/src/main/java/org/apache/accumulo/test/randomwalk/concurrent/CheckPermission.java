@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -43,13 +44,21 @@ public class CheckPermission extends Test {
     List<String> tableNames = (List<String>) state.get("tables");
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
+    @SuppressWarnings("unchecked")
+    List<String> tableNamespaces = (List<String>) state.get("namespaces");
+    String tableNamespace = tableNamespaces.get(rand.nextInt(tableNamespaces.size()));
+    
     try {
-      if (rand.nextBoolean()) {
+      int dice = rand.nextInt(2);
+      if (dice == 0) {
         log.debug("Checking systerm permission " + userName);
         conn.securityOperations().hasSystemPermission(userName, SystemPermission.values()[rand.nextInt(SystemPermission.values().length)]);
-      } else {
+      } else if (dice == 1) {
         log.debug("Checking table permission " + userName + " " + tableName);
         conn.securityOperations().hasTablePermission(userName, tableName, TablePermission.values()[rand.nextInt(TablePermission.values().length)]);
+      } else if (dice == 2) {
+        log.debug("Checking table namespace permission " + userName + " " + tableNamespace);
+        conn.securityOperations().hasTableNamespacePermission(userName, tableNamespace, TableNamespacePermission.values()[rand.nextInt(TableNamespacePermission.values().length)]);
       }
       
     } catch (AccumuloSecurityException ex) {
