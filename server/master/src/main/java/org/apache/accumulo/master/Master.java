@@ -78,6 +78,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SecurityUtil;
+import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Daemon;
@@ -139,6 +140,7 @@ import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.security.handler.ZKPermHandler;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tables.TableObserver;
 import org.apache.accumulo.server.util.DefaultMap;
@@ -363,6 +365,17 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
                 NodeExistsPolicy.SKIP);
           }
         }
+
+        // add namespace permissions to existing users
+        ZKPermHandler perm = new ZKPermHandler();
+        perm.initialize(instance.getInstanceID(), true);
+        String users = ZooUtil.getRoot(instance) + "/users";
+        for (String user : zoo.getChildren(users)) {
+          zoo.putPersistentData(users + "/" + user + "/Namespaces", new byte[0], NodeExistsPolicy.SKIP);
+          perm.grantTableNamespacePermission(user, Constants.SYSTEM_TABLE_NAMESPACE_ID, TableNamespacePermission.READ);
+        }
+        perm.grantTableNamespacePermission("root", Constants.SYSTEM_TABLE_NAMESPACE_ID, TableNamespacePermission.ALTER_TABLE);
+
       } catch (Exception ex) {
         log.fatal("Error performing upgrade", ex);
         System.exit(1);
