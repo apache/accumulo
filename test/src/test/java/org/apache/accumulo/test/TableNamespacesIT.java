@@ -363,7 +363,7 @@ public class TableNamespacesIT {
    * This tests adding iterators to a namespace, listing them, and removing them as well as adding and removing constraints
    */
   @Test
-  public void testNamespaceIterators() throws Exception {
+  public void testNamespaceIteratorsAndConstraints() throws Exception {
     Connector c = accumulo.getConnector("root", secret);
     
     String namespace = "iterator";
@@ -399,11 +399,11 @@ public class TableNamespacesIT {
     try {
       bw.addMutation(m);
       bw.flush();
+      bw.close();
       fail();
     } catch (MutationsRejectedException e) {
       // supposed to be thrown
     }
-    bw.close();
     
     int num = c.tableNamespaceOperations().listConstraints(namespace).get(NumericValueConstraint.class.getName());
     c.tableNamespaceOperations().removeConstraint(namespace, num);

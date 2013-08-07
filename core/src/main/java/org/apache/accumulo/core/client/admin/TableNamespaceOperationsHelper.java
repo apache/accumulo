@@ -175,7 +175,7 @@ public abstract class TableNamespaceOperationsHelper implements TableNamespaceOp
     while (constraintNumbers.contains(i))
       i++;
     if (constraintClasses.containsKey(constraintClassName))
-      throw new AccumuloException("Constraint " + constraintClassName + " already exists for table " + tableNamespace + " with number "
+      throw new AccumuloException("Constraint " + constraintClassName + " already exists for table namespace " + tableNamespace + " with number "
           + constraintClasses.get(constraintClassName));
     this.setProperty(tableNamespace, Property.TABLE_CONSTRAINT_PREFIX.toString() + i, constraintClassName);
     return i;

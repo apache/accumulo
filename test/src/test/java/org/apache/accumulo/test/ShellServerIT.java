@@ -850,10 +850,10 @@ public class ShellServerIT extends SimpleMacIT {
     exec("y");
     exec("namespaces", true, "thing2", true);
     
-    /*
-     * doesn't work yet, waiting on ACCUMULO-1565 exec("clonenamespace thing2 testers -e table.file.max", true); exec("namespaces", true, "testers", true);
-     * exec("tables", true, "testers.thingy", true); exec("clonenamespace thing2 testers2 -s table.file.max=42", true);
-     */
+    exec("clonenamespace thing2 testers -e table.file.max", true);
+    exec("namespaces", true, "testers", true);
+    exec("tables", true, "testers.thingy", true);
+    exec("clonenamespace thing2 testers2 -s table.file.max=42", true);
     
     exec("du -tn thing2", true, "thing2.thingy", true);
     

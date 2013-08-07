@@ -401,7 +401,7 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
     Map<String,String> opts = new HashMap<String,String>();
     opts.putAll(propertiesToSet);
     for (String prop : propertiesToExclude)
-      opts.put(prop, null);
+      opts.put(prop, "");
     doTableNamespaceOperation(TableOperation.CLONE, args, opts);
 
     for (String tableId : TableNamespaces.getTableIds(instance, namespaceId)) {
