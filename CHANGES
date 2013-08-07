@@ -1,3 +1,63 @@
+Release Notes - Accumulo - Version 1.4.4
+
+** Sub-task
+    * [ACCUMULO-895] - MiniAccumuloCluster does not work on Windows
+    * [ACCUMULO-1305] - Shorten prefix in proxy properties file
+    * [ACCUMULO-1338] - closeScanner in Accumulo proxy does not work
+    * [ACCUMULO-1340] - calling update() on proxy with unknown scanner derails thrift session
+    * [ACCUMULO-1341] - mini accumulo cluster 1.4 does not pick random port for logger
+    * [ACCUMULO-1352] - filter on !METADATA can prematurely delete loaded flags
+    * [ACCUMULO-1380] - Add MiniAccumuloCluster to the Accumulo documentation
+    * [ACCUMULO-1467] - Port proxy tframedtransport setting to 1.4
+
+** Bug
+    * [ACCUMULO-1059] - monitor displays GC status using 12-hour time, not 24
+    * [ACCUMULO-1227] - simple.largeRow.LargeRowTest FAILED due to out of range exception
+    * [ACCUMULO-1235] - tablet fails to load after split fix
+    * [ACCUMULO-1267] - InputFormatBase always sets a regex filter at level 50 during initialize()
+    * [ACCUMULO-1277] - Race condition between master and tserver when acquiring tserver lock
+    * [ACCUMULO-1365] - proxy SimpleTest fails trying to get a port
+    * [ACCUMULO-1418] - RestoreZookeeper does not work
+    * [ACCUMULO-1424] - proxy TFramedTransport max size too small (should be configurable)
+    * [ACCUMULO-1429] - setscaniter doesn't work from different table context
+    * [ACCUMULO-1432] - FindOfflineTablets requires 4 arguments but only uses 2
+    * [ACCUMULO-1433] - Upgrading from 1.3 to 1.4 leaves deprecated properties
+    * [ACCUMULO-1473] - FindOfflineTablets is broken
+    * [ACCUMULO-1477] - Make master use new connections for tserver info
+    * [ACCUMULO-1505] - MockTable's addMutation does not check for empty mutation
+    * [ACCUMULO-1518] - FileOperations expects RFile filenames to contain only 1 dot.
+    * [ACCUMULO-1519] - CloudStone tests broken for < 1.5
+    * [ACCUMULO-1552] - minor typo in continuous-env.sh.example and run-verify.sh
+    * [ACCUMULO-1560] - Generated RPMs are not compatible with yum on 64-bit architectures
+    * [ACCUMULO-1572] - single node zookeeper failure kills connected accumulo servers
+    * [ACCUMULO-1605] - stack overflow MilliSpan.java:113
+    * [ACCUMULO-1626] - Mutation equals() method does not always work
+    * [ACCUMULO-1628] - NPE on deep copied dumped memoy iterator
+    * [ACCUMULO-1646] - pom.xml scm section should point at git
+
+** Improvement
+    * [ACCUMULO-14] - Transition from full Accumulo mocking
+    * [ACCUMULO-1237] - Back port the MiniAccumuloCluster from 1.5 to 1.4.*
+    * [ACCUMULO-1289] - Re-establish SimpleTest for Proxy against MiniAccumuloCluster
+    * [ACCUMULO-1324] - MiniAccumuloCluster should be supported as a configuration property in the ProxyServer 1.4 backport
+    * [ACCUMULO-1375] - Update README files in proxy module.
+    * [ACCUMULO-1381] - Allow PrintInfo to fall back to the local filesystem
+    * [ACCUMULO-1394] - Allow RegExFilter subclass to call setNegate.
+    * [ACCUMULO-1414] - Add proxy to user manual documentation
+    * [ACCUMULO-1438] - Move MiniAccumuloCluster & Runner packaging to it's own module.
+    * [ACCUMULO-1504] - IteratorSetting missing equals and hashCode methods
+    * [ACCUMULO-1526] - add option for xml report format so that functional tests runs can be used by jenkins ci
+    * [ACCUMULO-1550] - Create ACCUMULO_CONF_DIR environment variable
+    * [ACCUMULO-1557] - [system/auto] if zooCacheTest.py fails, subsequent runs will fail due to /tmp/zkTest-42 dir existing with data
+    * [ACCUMULO-1561] - Update maven-rpm-plugin version
+    * [ACCUMULO-1603] - Lack of permission to start Tracer doesn't log actual reason
+    * [ACCUMULO-1633] - BatchWriter and variants don't assert maxMemory as a positive, non-zero value
+    * [ACCUMULO-1645] - Provide better information on unassigned tablets on the monitor
+
+** New Feature
+    * [ACCUMULO-1200] - Back port the ProxySever from 1.5 to support 1.4.* as well.
+
+
 Release Notes - Apache Accumulo - Version 1.4.3
 
 **Bug
