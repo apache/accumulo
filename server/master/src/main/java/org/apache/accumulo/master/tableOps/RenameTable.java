@@ -71,9 +71,6 @@ public class RenameTable extends MasterRepo {
     newTableName = Tables.extractTableName(newTableName);
     oldTableName = Tables.extractTableName(oldTableName);
 
-    // TODO ACCUMULO-802 renaming a table to a new namespace does not change it's parent configuration to be the new namespace
-    // ...it should...somehow...
-
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
 
     Utils.tableNameLock.lock();

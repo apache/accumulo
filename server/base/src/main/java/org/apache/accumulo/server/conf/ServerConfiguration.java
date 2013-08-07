@@ -33,6 +33,7 @@ public class ServerConfiguration {
 
   private static final Map<String,TableConfiguration> tableInstances = new HashMap<String,TableConfiguration>(1);
   private static final Map<String,TableNamespaceConfiguration> tableNamespaceInstances = new HashMap<String,TableNamespaceConfiguration>(1);
+  private static final Map<String,TableNamespaceConfiguration> tableParentInstances = new HashMap<String,TableNamespaceConfiguration>(1);
   private static SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
 
   public static synchronized SiteConfiguration getSiteConfiguration() {
@@ -63,13 +64,12 @@ public class ServerConfiguration {
 
   public static TableNamespaceConfiguration getTableNamespaceConfigurationForTable(Instance instance, String tableId) {
     checkPermissions();
-    String namespaceId = Tables.getNamespace(instance, tableId);
-    synchronized (tableNamespaceInstances) {
-      TableNamespaceConfiguration conf = tableNamespaceInstances.get(namespaceId);
+    synchronized (tableParentInstances) {
+      TableNamespaceConfiguration conf = tableParentInstances.get(tableId);
       if (conf == null) {
-        conf = new TableNamespaceConfiguration(namespaceId, getSystemConfiguration(instance));
+        conf = new TableParentConfiguration(tableId, getSystemConfiguration(instance));
         ConfigSanityCheck.validate(conf);
-        tableNamespaceInstances.put(namespaceId, conf);
+        tableParentInstances.put(tableId, conf);
       }
       return conf;
     }

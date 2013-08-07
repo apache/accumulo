@@ -40,8 +40,8 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
 
   private final AccumuloConfiguration parent;
   private static ZooCache propCache = null;
-  private String namespaceId = null;
-  private Instance inst = null;
+  protected String namespaceId = null;
+  protected Instance inst = null;
   private Set<ConfigurationObserver> observers;
 
   public TableNamespaceConfiguration(String namespaceId, AccumuloConfiguration parent) {
@@ -103,7 +103,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     return entries.entrySet().iterator();
   }
 
-  private String getNamespaceId() {
+  protected String getNamespaceId() {
     return namespaceId;
   }
 

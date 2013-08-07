@@ -142,7 +142,17 @@ public class TableConfiguration extends AccumuloConfiguration {
     return table;
   }
   
+  /** 
+   * returns the actual TableNamespaceConfiguration that corresponds to the current parent namespace.
+   */
   public TableNamespaceConfiguration getNamespaceConfiguration() {
+    return ServerConfiguration.getTableNamespaceConfiguration(parent.inst, parent.namespaceId);
+  }
+  
+  /**
+   * returns the parent, which is actually a TableParentConfiguration that can change which namespace it references
+   */
+  public TableNamespaceConfiguration getParentConfiguration() {
     return parent;
   }
 }
