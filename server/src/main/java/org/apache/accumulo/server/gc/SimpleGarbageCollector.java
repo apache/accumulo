@@ -157,7 +157,7 @@ public class SimpleGarbageCollector implements Iface {
     if (opts.verbose)
       gc.setVerbose();
     if (opts.address != null)
-      gc.useAddress(address);
+      gc.useAddress(opts.address);
     
     gc.init(fs, instance, SecurityConstants.getSystemCredentials(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
     Accumulo.enableTracing(address, "gc");
