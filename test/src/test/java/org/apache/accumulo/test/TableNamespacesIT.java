@@ -395,8 +395,6 @@ public class TableNamespacesIT {
   }
   
   /**
-<<<<<<< HEAD
-<<<<<<< HEAD
    * Tests that when a table moves to a new namespace that it's properties inherit from the new namespace and not the old one
    */
   @Test
@@ -435,11 +433,8 @@ public class TableNamespacesIT {
     assertTrue(!hasProp);
   }
   /**
-   *  Tests new Namespace permissions as well as modifications to Table permissions because of namespaces 
-=======
    * Tests new Namespace permissions as well as modifications to Table permissions because of namespaces. Checks each permission to first make sure the user
    * doesn't have permission to perform the action, then root grants them the permission and we check to make sure they could perform the action.
->>>>>>> ACCUMULO-1479 finished initial implementation of table namespace permissions, including tests
    */
   @Test
   public void testPermissions() throws Exception {
@@ -447,7 +442,7 @@ public class TableNamespacesIT {
     
     PasswordToken pass = new PasswordToken(secret);
     
-    String n1 = "namespace1";
+    String n1 = "spaceOfTheName";
     
     String user1 = "dude";
     
