@@ -703,7 +703,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (propertiesToSet == null)
       propertiesToSet = Collections.emptyMap();
 
-    HashSet<String> excludeProps = getUniqueNamespaceProperties(namespace, srcTableName);
+    HashSet<String> excludeProps = getUniqueNamespaceProperties(namespace, srcTableName, propertiesToSet);
     for (String p : propertiesToExclude) {
       excludeProps.add(p);
     }
@@ -726,8 +726,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     doTableOperation(TableOperation.CLONE, args, opts);
   }
 
-  // get the properties that are only in the table namespace so that we can exclude them when copying table properties
-  private HashSet<String> getUniqueNamespaceProperties(String namespace, String table) throws TableNotFoundException, AccumuloException {
+  // get the properties that are only in the table namespace so that we can exclude them when copying table properties.
+  // also, don't exclude properties that are going to be explicitly set.
+  private HashSet<String> getUniqueNamespaceProperties(String namespace, String table, Map<String,String> propsToSet) throws TableNotFoundException, AccumuloException {
     HashSet<String> props = new HashSet<String>();
     try {
       Iterable<Entry<String,String>> n = new TableNamespaceOperationsImpl(instance, credentials).getProperties(namespace);
@@ -744,6 +745,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     } catch (TableNamespaceNotFoundException e) {
       throw new IllegalStateException(new TableNamespaceNotFoundException(null, namespace, null));
+    }
+
+    for (Entry<String,String> e : propsToSet.entrySet()) {
+      props.remove(e.getKey());
     }
     return props;
   }

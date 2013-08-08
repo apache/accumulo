@@ -291,7 +291,7 @@ public class CreateTable extends MasterRepo {
   public long isReady(long tid, Master environment) throws Exception {
     // reserve the table's namespace to make sure it doesn't change while the table is created
     tableInfo.namespaceId = TableNamespaces.getNamespaceId(environment.getInstance(), Tables.extractNamespace(tableInfo.tableName));
-    return Utils.reserveTableNamespace(tableInfo.namespaceId, tid, false, false, TableOperation.CREATE);
+    return Utils.reserveTableNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.CREATE);
   }
   
   @Override
