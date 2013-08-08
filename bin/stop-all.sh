@@ -33,13 +33,14 @@ ${bin}/accumulo admin "$@" stopAll
 
 if [ $? -ne 0 ]; then
    echo "Invalid password or unable to connect to the master"
-   echo "Press Ctrl-C to cancel now, or force shutdown in 15 seconds"
+   echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
    sleep 10
+   echo "Initiating forced shutdown in  5 seconds (Ctrl-C to abort)"
 else
    echo "Accumulo shut down cleanly"
+   echo "Utilities and unresponsive servers will shut down in 5 seconds (Ctrl-C to abort)"
 fi
 
-echo "Utilities and unresponsive servers will be shut down in 5 seconds"
 sleep 5
 
 #look for master and gc processes not killed by 'admin stopAll'
