@@ -30,6 +30,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -46,7 +48,7 @@ import org.apache.commons.cli.Options;
 public class ConfigCommand extends Command {
   private Option tableOpt, deleteOpt, setOpt, filterOpt, disablePaginationOpt, outputFileOpt, tableNamespaceOpt;
   
-  private int COL1 = 8, COL2 = 7;
+  private int COL1 = 10, COL2 = 7;
   private ConsoleReader reader;
   
   @Override
@@ -72,7 +74,7 @@ public class ConfigCommand extends Command {
     }
     final String tableNamespace = cl.getOptionValue(tableNamespaceOpt.getOpt());
     if (tableNamespace != null && !shellState.getConnector().tableNamespaceOperations().exists(tableNamespace)) {
-      throw new TableNotFoundException(null, tableName, null);
+      throw new TableNamespaceNotFoundException(null, tableNamespace, null);
     }
     if (cl.hasOption(deleteOpt.getOpt())) {
       // delete property from table
@@ -149,6 +151,16 @@ public class ConfigCommand extends Command {
       for (Entry<String,String> defaultEntry : AccumuloConfiguration.getDefaultConfiguration()) {
         defaults.put(defaultEntry.getKey(), defaultEntry.getValue());
       }
+      
+      final TreeMap<String,String> namespaceConfig = new TreeMap<String,String>();
+      if (tableName != null) {
+        String n = TableNamespaces.getNamespaceName(shellState.getInstance(),
+            Tables.getNamespace(shellState.getInstance(), Tables.getTableId(shellState.getInstance(), tableName)));
+        for (Entry<String,String> e : shellState.getConnector().tableNamespaceOperations().getProperties(n)) {
+          namespaceConfig.put(e.getKey(), e.getValue());
+        }
+      }
+      
       Iterable<Entry<String,String>> acuconf = shellState.getConnector().instanceOperations().getSystemConfiguration().entrySet();
       if (tableName != null) {
         acuconf = shellState.getConnector().tableOperations().getProperties(tableName);
@@ -191,6 +203,7 @@ public class ConfigCommand extends Command {
         String sysVal = systemConfig.get(key);
         String curVal = propEntry.getValue();
         String dfault = defaults.get(key);
+        String nspVal = namespaceConfig.get(key);
         boolean printed = false;
         
         if (dfault != null && key.toLowerCase().contains("password")) {
@@ -209,11 +222,20 @@ public class ConfigCommand extends Command {
             printConfLine(output, "system", printed ? "   @override" : key, sysVal == null ? "" : sysVal);
             printed = true;
           }
+          
+        }
+        if (nspVal != null) {
+          if (!systemConfig.containsKey(key) || !sysVal.equals(nspVal)) {
+            printConfLine(output, "namespace", printed ? "   @override" : key, nspVal == null ? "" : nspVal);
+            printed = true;
+          }
         }
         
         // show per-table value only if it is different (overridden)
-        if ((tableName != null || tableNamespace != null) && !curVal.equals(sysVal)) {
+        if (tableName != null && !curVal.equals(nspVal)) {
           printConfLine(output, "table", printed ? "   @override" : key, curVal);
+        } else if (tableNamespace != null && !curVal.equals(sysVal)) {
+          printConfLine(output, "namespace", printed ? "   @override" : key, curVal);
         }
       }
       printConfFooter(output);
@@ -262,7 +284,7 @@ public class ConfigCommand extends Command {
     disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     tableNamespaceOpt = new Option(Shell.tableNamespaceOption, "table-namespace", true, "table namespace to display/set/delete properties for");
-
+    
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
