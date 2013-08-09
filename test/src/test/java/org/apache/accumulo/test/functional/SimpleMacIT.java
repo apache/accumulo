@@ -56,12 +56,6 @@ public class SimpleMacIT extends AbstractMacIT {
   
   @After
   public void cleanUp() throws Exception {
-    Connector c = getConnector();
-    for (String table : c.tableOperations().list()) {
-      if (table.equals(MetadataTable.NAME) || table.equals(RootTable.NAME))
-        continue;
-      c.tableOperations().delete(table);
-    }
   }
   
   @AfterClass

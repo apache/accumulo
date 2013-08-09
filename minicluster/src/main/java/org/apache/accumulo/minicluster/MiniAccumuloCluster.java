@@ -271,11 +271,11 @@ public class MiniAccumuloCluster {
     
     // zookeeper uses Properties to read its config, so use that to write in order to properly escape things like Windows paths
     Properties zooCfg = new Properties();
-    zooCfg.setProperty("tickTime", "1000");
+    zooCfg.setProperty("tickTime", "2000");
     zooCfg.setProperty("initLimit", "10");
     zooCfg.setProperty("syncLimit", "5");
     zooCfg.setProperty("clientPort", config.getZooKeeperPort() + "");
-    zooCfg.setProperty("maxClientCnxns", "100");
+    zooCfg.setProperty("maxClientCnxns", "1000");
     zooCfg.setProperty("dataDir", config.getZooKeeperDir().getAbsolutePath());
     zooCfg.store(fileWriter, null);
     
@@ -466,7 +466,6 @@ public class MiniAccumuloCluster {
     for (Process p : cleanup)
       p.destroy();
     miniDFS = null;
-    Runtime.getRuntime().exec("pkill -f " + config.getDir().getAbsolutePath());
   }
   
   /**

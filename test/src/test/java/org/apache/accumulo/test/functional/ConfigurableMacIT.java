@@ -22,11 +22,12 @@ import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.rules.TemporaryFolder;
+import java.io.File;
 
 public class ConfigurableMacIT extends AbstractMacIT {
   public static final Logger log = Logger.getLogger(ConfigurableMacIT.class);
   
-  public TemporaryFolder folder = new TemporaryFolder();
+  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   public MiniAccumuloCluster cluster;
   
   @Before

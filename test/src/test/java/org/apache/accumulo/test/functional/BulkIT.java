@@ -37,7 +37,8 @@ public class BulkIT extends SimpleMacIT {
     c.tableOperations().create(tableName);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     String base = "target/accumulo-maven-plugin";
-    fs.mkdirs(new Path("target/accumulo-maven-plugin/testBulkFail"));
+    fs.delete(new Path(base + "/testrf"));
+    fs.mkdirs(new Path(base + "/testBulkFail"));
     
     Opts opts = new Opts();
     opts.timestamp = 1;

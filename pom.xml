@@ -675,6 +675,9 @@
             </goals>
             <configuration>
               <!--parallel>classes</parallel-->
+              <reuseForks>false</reuseForks>
+              <forkMode>always</forkMode>
+              <forkCount>8</forkCount>
               <perCoreThreadCount>false</perCoreThreadCount>
               <threadCount>${accumulo.it.threads}</threadCount>
               <redirectTestOutputToFile>true</redirectTestOutputToFile>

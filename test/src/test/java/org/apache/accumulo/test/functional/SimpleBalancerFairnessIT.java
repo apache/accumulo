@@ -49,7 +49,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig);
   }
   
-  @Test(timeout = 4 * 60 * 1000)
+  @Test(timeout = 6 * 60 * 1000)
   public void simpleBalancerFairness() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
