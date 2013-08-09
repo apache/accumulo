@@ -913,11 +913,13 @@ public class MetadataTableUtil {
   
   static class LogEntryIterator implements Iterator<LogEntry> {
     
-    Iterator<LogEntry> rootTabletEntries = null;
+    Iterator<LogEntry> zookeeperEntries = null;
+    Iterator<LogEntry> rootTableEntries = null;
     Iterator<Entry<Key,Value>> metadataEntries = null;
     
     LogEntryIterator(Credentials creds) throws IOException, KeeperException, InterruptedException {
-      rootTabletEntries = getLogEntries(creds, RootTable.EXTENT).iterator();
+      zookeeperEntries = getLogEntries(creds, RootTable.EXTENT).iterator();
+      rootTableEntries = getLogEntries(creds, new KeyExtent(new Text(MetadataTable.ID), null, null)).iterator();
       try {
         Scanner scanner = HdfsZooInstance.getInstance().getConnector(creds.getPrincipal(), creds.getToken())
             .createScanner(MetadataTable.NAME, Authorizations.EMPTY);
@@ -932,13 +934,16 @@ public class MetadataTableUtil {
     
     @Override
     public boolean hasNext() {
-      return rootTabletEntries.hasNext() || metadataEntries.hasNext();
+      return zookeeperEntries.hasNext() || rootTableEntries.hasNext() || metadataEntries.hasNext();
     }
     
     @Override
     public LogEntry next() {
-      if (rootTabletEntries.hasNext()) {
-        return rootTabletEntries.next();
+      if (zookeeperEntries.hasNext()) {
+        return zookeeperEntries.next();
+      }
+      if (rootTableEntries.hasNext()) {
+        return rootTableEntries.next();
       }
       Entry<Key,Value> entry = metadataEntries.next();
       return entryFromKeyValue(entry.getKey(), entry.getValue());

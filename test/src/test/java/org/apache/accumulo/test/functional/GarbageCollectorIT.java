@@ -20,21 +20,27 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.ProcessReference;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.gc.SimpleGarbageCollector;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -94,6 +100,29 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     String output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
     gc.destroy();
     assertTrue(output.contains("delete candidates has exceeded"));
+  }
+  
+  @Test(timeout = 2 * 60 * 1000)
+  public void dontGCRootLog() throws Exception {
+    // dirty !METADATA
+    Connector c = getConnector();
+    String table = makeTableName();
+    c.tableOperations().create(table);
+    // let gc run for a bit
+    Process gc = cluster.exec(SimpleGarbageCollector.class);
+    UtilWaitThread.sleep(20 * 1000);
+    gc.destroy();
+    // kill tservers
+    for (ProcessReference ref : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+      cluster.killProcess(ServerType.TABLET_SERVER, ref);
+    }
+    // run recovery
+    cluster.start();
+    // did it recover?
+    Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    for (@SuppressWarnings("unused") Entry<Key,Value> unused : scanner) {
+      
+    }
   }
   
   private int countFiles() throws Exception {
