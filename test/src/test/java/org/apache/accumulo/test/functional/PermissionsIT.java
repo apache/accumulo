@@ -34,6 +34,9 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNamespaceExistsException;
+import org.apache.accumulo.core.client.TableNamespaceNotEmptyException;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -105,8 +108,9 @@ public class PermissionsIT extends SimpleMacIT {
   }
 
   private static void testMissingSystemPermission(String tableNamePrefix, Connector root_conn, Connector test_user_conn, SystemPermission perm)
-      throws AccumuloException, TableExistsException, AccumuloSecurityException, TableNotFoundException {
-    String tableName, user, password = "password";
+      throws AccumuloException, TableExistsException, AccumuloSecurityException, TableNotFoundException, TableNamespaceExistsException,
+      TableNamespaceNotFoundException, TableNamespaceNotEmptyException {
+    String tableName, user, password = "password", tableNamespace;
     log.debug("Confirming that the lack of the " + perm + " permission properly restricts the user");
 
     // test permission prior to granting it
@@ -199,14 +203,66 @@ public class PermissionsIT extends SimpleMacIT {
       case SYSTEM:
         // test for system permission would go here
         break;
+      case CREATE_NAMESPACE:
+        tableNamespace = "__CREATE_TABLE_NAMESPACE WITHOUT_PERM_TEST__";
+        try {
+          test_user_conn.tableNamespaceOperations().create(tableNamespace);
+          throw new IllegalStateException("Should NOT be able to create a table namespace");
+        } catch (AccumuloSecurityException e) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.tableNamespaceOperations().list().contains(tableNamespace))
+            throw e;
+        }
+        break;
+      case DROP_NAMESPACE:
+        tableNamespace = "__DROP_TABLE_NAMESPACE_WITHOUT_PERM_TEST__";
+        root_conn.tableNamespaceOperations().create(tableNamespace);
+        try {
+          test_user_conn.tableNamespaceOperations().delete(tableNamespace);
+          throw new IllegalStateException("Should NOT be able to delete a table namespace");
+        } catch (AccumuloSecurityException e) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableNamespaceOperations().list().contains(tableNamespace))
+            throw e;
+        }
+        break;
+      case ALTER_NAMESPACE:
+        tableNamespace = "__ALTER_TABLE_NAMESPACE_WITHOUT_PERM_TEST__";
+        root_conn.tableNamespaceOperations().create(tableNamespace);
+        try {
+          test_user_conn.tableNamespaceOperations().setProperty(tableNamespace, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+          throw new IllegalStateException("Should NOT be able to set a table namespace property");
+        } catch (AccumuloSecurityException e) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || map(root_conn.tableNamespaceOperations().getProperties(tableNamespace)).get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+            throw e;
+        }
+        root_conn.tableNamespaceOperations().setProperty(tableNamespace, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+        try {
+          test_user_conn.tableNamespaceOperations().removeProperty(tableNamespace, Property.TABLE_BLOOM_ERRORRATE.getKey());
+          throw new IllegalStateException("Should NOT be able to remove a table namespace property");
+        } catch (AccumuloSecurityException e) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
+              || !map(root_conn.tableNamespaceOperations().getProperties(tableNamespace)).get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+            throw e;
+        }
+        String tableNamespace2 = tableNamespace + "2";
+        try {
+          test_user_conn.tableNamespaceOperations().rename(tableNamespace, tableNamespace2);
+          throw new IllegalStateException("Should NOT be able to rename a table namespace");
+        } catch (AccumuloSecurityException e) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableNamespaceOperations().list().contains(tableNamespace)
+              || root_conn.tableNamespaceOperations().list().contains(tableNamespace2))
+            throw e;
+        }
+        break;
       default:
         throw new IllegalArgumentException("Unrecognized System Permission: " + perm);
     }
   }
 
   private static void testGrantedSystemPermission(String tableNamePrefix, Connector root_conn, Connector test_user_conn, SystemPermission perm)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException {
-    String tableName, user, password = "password";
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException, TableNamespaceExistsException,
+      TableNamespaceNotFoundException, TableNamespaceNotEmptyException {
+    String tableName, user, password = "password", tableNamespace;
     log.debug("Confirming that the presence of the " + perm + " permission properly permits the user");
 
     // test permission after granting it
@@ -262,6 +318,35 @@ public class PermissionsIT extends SimpleMacIT {
         break;
       case SYSTEM:
         // test for system permission would go here
+        break;
+      case CREATE_NAMESPACE:
+        tableNamespace = "__CREATE_TABLE_NAMESPACE_WITH_PERM_TEST__";
+        test_user_conn.tableNamespaceOperations().create(tableNamespace);
+        if (!root_conn.tableNamespaceOperations().list().contains(tableNamespace))
+          throw new IllegalStateException("Should be able to create a table namespace");
+        break;
+      case DROP_NAMESPACE:
+        tableNamespace = "__DROP_TABLE_NAMESPACE_WITH_PERM_TEST__";
+        root_conn.tableNamespaceOperations().create(tableNamespace);
+        test_user_conn.tableNamespaceOperations().delete(tableNamespace);
+        if (root_conn.tableNamespaceOperations().list().contains(tableNamespace))
+          throw new IllegalStateException("Should be able to delete a table namespace");
+        break;
+      case ALTER_NAMESPACE:
+        tableNamespace = "__ALTER_TABLE_NAMESPACE_WITH_PERM_TEST__";
+        String tableNamespace2 = tableNamespace + "2";
+        root_conn.tableNamespaceOperations().create(tableNamespace);
+        test_user_conn.tableNamespaceOperations().setProperty(tableNamespace, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
+        Map<String,String> propies = map(root_conn.tableNamespaceOperations().getProperties(tableNamespace));
+        if (!propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+          throw new IllegalStateException("Should be able to set a table property");
+        test_user_conn.tableNamespaceOperations().removeProperty(tableNamespace, Property.TABLE_BLOOM_ERRORRATE.getKey());
+        propies = map(root_conn.tableNamespaceOperations().getProperties(tableNamespace));
+        if (propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+          throw new IllegalStateException("Should be able to remove a table property");
+        test_user_conn.tableNamespaceOperations().rename(tableNamespace, tableNamespace2);
+        if (root_conn.tableNamespaceOperations().list().contains(tableNamespace) || !root_conn.tableNamespaceOperations().list().contains(tableNamespace2))
+          throw new IllegalStateException("Should be able to rename a table");
         break;
       default:
         throw new IllegalArgumentException("Unrecognized System Permission: " + perm);
