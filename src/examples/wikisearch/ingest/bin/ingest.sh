@@ -38,7 +38,7 @@ LIBJARS=`echo $CLASSPATH | sed 's/^://' | sed 's/:/,/g'`
 #
 # Map/Reduce job
 #
-JAR=$SCRIPT_DIR/../lib/wikisearch-ingest-1.4.4-SNAPSHOT.jar
+JAR=$SCRIPT_DIR/../lib/wikisearch-ingest-1.4.4.jar
 CONF=$SCRIPT_DIR/../conf/wikipedia.xml
 HDFS_DATA_DIR=$1
 export HADOOP_CLASSPATH=$CLASSPATH

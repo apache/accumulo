@@ -69,7 +69,7 @@ mkdir -p $ACCUMULO_LOG_DIR 2>/dev/null
 export ACCUMULO_LOG_DIR
 
 if [ -z ${ACCUMULO_VERSION} ]; then
-        ACCUMULO_VERSION=1.4.4-SNAPSHOT
+        ACCUMULO_VERSION=1.4.4
 fi
 
 if [ -z "$HADOOP_HOME" ]

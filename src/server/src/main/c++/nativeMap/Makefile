@@ -36,7 +36,7 @@ clean:
 	rm -f $(INSTALLED_LIBS) $(LIBS)
 
 org_apache_accumulo_server_tabletserver_NativeMap.h : ../../java/org/apache/accumulo/server/tabletserver/NativeMap.java
-	javah -classpath ../../../../../../lib/accumulo-server-1.4.4-SNAPSHOT.jar org.apache.accumulo.server.tabletserver.NativeMap
+	javah -classpath ../../../../../../lib/accumulo-server-1.4.4.jar org.apache.accumulo.server.tabletserver.NativeMap
 
 $(INSTALLED_LIBS) : $(INSTALL_DIR) $(LIBS)
 	cp $(LIBS) $(INSTALL_DIR)

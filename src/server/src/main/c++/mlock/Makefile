@@ -37,7 +37,7 @@ clean:
 	rm -f $(INSTALLED_LIBS) $(LIBS)
 
 org_apache_accumulo_server_tabletserver_$(LIB).h : ../../java/org/apache/accumulo/server/tabletserver/$(LIB).java
-	javah -classpath ../../../../../../lib/accumulo-server-1.4.4-SNAPSHOT.jar org.apache.accumulo.server.tabletserver.$(LIB)
+	javah -classpath ../../../../../../lib/accumulo-server-1.4.4.jar org.apache.accumulo.server.tabletserver.$(LIB)
 
 $(INSTALLED_LIBS) : $(INSTALL_DIR) $(LIBS)
 	cp $(LIBS) $(INSTALL_DIR)

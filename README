@@ -37,7 +37,7 @@ easier to install.
 
 Copy the accumulo tar file produced by "mvn package && mvn assembly:single -N" 
 from the target/ directory to the desired destination, then untar it (e.g. 
-tar xvzf accumulo-1.4.4-SNAPSHOT-dist.tar.gz).
+tar xvzf accumulo-1.4.4-dist.tar.gz).
 
 If you are using the RPM/deb, install the RPM/deb on every machine that will run
 accumulo.
@@ -64,7 +64,7 @@ found in the same location on every machine in the cluster.  You will need to
 have password-less ssh set up as described in the hadoop documentation. 
 
 You will need to have hadoop installed and configured on your system.
-Accumulo 1.4.4-SNAPSHOT has been tested with hadoop version 0.20.2.
+Accumulo 1.4.4 has been tested with hadoop version 0.20.2.
 
 The example accumulo configuration files are placed in directories based on the 
 memory footprint for the accumulo processes.  If you are using native libraries
@@ -159,7 +159,7 @@ scanned.
 
     Shell - Apache Accumulo Interactive Shell
     - 
-    - version: 1.4.4-SNAPSHOT
+    - version: 1.4.4
     - instance name: accumulo
     - instance id: f5947fe6-081e-41a8-9877-43730c4dfc6f
     - 
@@ -180,7 +180,7 @@ certain column.
 
     Shell - Apache Accumulo Interactive Shell
     - 
-    - version: 1.4.4-SNAPSHOT
+    - version: 1.4.4
     - instance name: accumulo
     - instance id: f5947fe6-081e-41a8-9877-43730c4dfc6f
     - 
