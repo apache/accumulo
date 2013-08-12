@@ -113,10 +113,11 @@ public interface TableNamespaceOperations {
    *           if the table namespace does not exist
    * @throws TableNamespaceNotEmptyException
    *           if the table namespaces still contains tables
-   * @throws TableNotFoundException 
+   * @throws TableNotFoundException
    *           if table not found while deleting
    */
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException, TableNotFoundException;
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException,
+      TableNotFoundException;
   
   /**
    * Delete a table namespace
@@ -133,7 +134,7 @@ public interface TableNamespaceOperations {
    *           if the table namespace does not exist
    * @throws TableNamespaceNotEmptyException
    *           if the table namespaces still contains tables
-   * @throws TableNotFoundException 
+   * @throws TableNotFoundException
    *           if table not found while deleting
    */
   public void delete(String namespace, boolean deleteTables) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException,
@@ -159,7 +160,8 @@ public interface TableNamespaceOperations {
       TableNamespaceExistsException;
   
   /**
-   * Sets a property on a table namespace. Note that it may take a short period of time (a second) to propagate the change everywhere.
+   * Sets a property on a table namespace which applies to all tables in the namespace. Note that it may take a short period of time (a second) to propagate the
+   * change everywhere.
    * 
    * @param namespace
    *          the name of the table namespace
@@ -195,7 +197,7 @@ public interface TableNamespaceOperations {
    *          the name of the table namespace
    * @return all properties visible by this table (system and per-table properties). Note that recently changed properties may not be visible immediately.
    * @throws TableNamespaceNotFoundException
-   *           if the table does not exist
+   *           if the table namespace does not exist
    */
   public Iterable<Entry<String,String>> getProperties(String namespace) throws AccumuloException, TableNamespaceNotFoundException;
   
@@ -208,6 +210,7 @@ public interface TableNamespaceOperations {
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
    * @throws TableNamespaceNotFoundException
+   *           if the table namespace does not exist
    */
   public void offline(String namespace) throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException;
   
@@ -220,6 +223,7 @@ public interface TableNamespaceOperations {
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
    * @throws TableNamespaceNotFoundException
+   *           if the table namespace does not exist
    */
   public void online(String namespace) throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException;
   
@@ -279,7 +283,7 @@ public interface TableNamespaceOperations {
    * @param setting
    *          object specifying the properties of the iterator
    * @throws AccumuloSecurityException
-   *           thrown if the user does not have the ability to set properties on the table
+   *           thrown if the user does not have the ability to set properties on the table namespace
    * @throws AccumuloException
    * @throws TableNamespaceNotFoundException
    *           throw if the table namespace no longer exists
@@ -419,7 +423,6 @@ public interface TableNamespaceOperations {
    *           thrown if the table namespace no longer exists
    */
   public Map<String,Integer> listConstraints(String tableNamespace) throws AccumuloException, TableNamespaceNotFoundException;
-
   
   /**
    * Test to see if the instance can load the given class as the given type. This check uses the table classpath property if it is set.

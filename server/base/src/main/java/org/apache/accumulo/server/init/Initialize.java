@@ -416,8 +416,8 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0], NodeExistsPolicy.FAIL);
     
-    createInitialTableNamespace(zoo, zkInstanceRoot, Constants.DEFAULT_TABLE_NAMESPACE_ID, Constants.DEFAULT_TABLE_NAMESPACE);
-    createInitialTableNamespace(zoo, zkInstanceRoot, Constants.SYSTEM_TABLE_NAMESPACE_ID, Constants.SYSTEM_TABLE_NAMESPACE);
+    createInitialTableNamespace(zoo, zkInstanceRoot, Constants.DEFAULT_TABLE_NAMESPACE_ID, Constants.DEFAULT_TABLE_NAMESPACE, true);
+    createInitialTableNamespace(zoo, zkInstanceRoot, Constants.SYSTEM_TABLE_NAMESPACE_ID, Constants.SYSTEM_TABLE_NAMESPACE, false);
     
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES + "/" + MetadataTable.ID + Constants.ZTABLE_NAMESPACE,
         Constants.SYSTEM_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
@@ -425,16 +425,18 @@ public class Initialize {
         Constants.SYSTEM_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
   }
   
-  private static void createInitialTableNamespace(IZooReaderWriter zoo, String root, String id, String namespace) throws KeeperException, InterruptedException {
+  private static void createInitialTableNamespace(IZooReaderWriter zoo, String root, String id, String namespace, boolean defaultOpts) throws KeeperException,
+      InterruptedException {
     String zPath = root + Constants.ZNAMESPACES + "/" + id;
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], NodeExistsPolicy.FAIL);
     
-    Map<String,String> opts = IteratorUtil.generateInitialTableProperties(true);
-    for (Entry<String,String> e : opts.entrySet()) {
-      zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF + "/" + e.getKey(), e.getValue().getBytes(Constants.UTF8),
-          NodeExistsPolicy.SKIP);
+    if (defaultOpts) {
+      Map<String,String> opts = IteratorUtil.generateInitialTableProperties(true);
+      for (Entry<String,String> e : opts.entrySet()) {
+        zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF + "/" + e.getKey(), e.getValue().getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
+      }
     }
   }
 

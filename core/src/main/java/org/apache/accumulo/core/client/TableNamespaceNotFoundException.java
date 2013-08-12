@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
  */
 public class TableNamespaceNotFoundException extends Exception {
   /**
-   * Exception to throw if an operation is attempted on a table that doesn't exist.
+   * Exception to throw if an operation is attempted on a table namespace that doesn't exist.
    * 
    */
   private static final long serialVersionUID = 1L;

@@ -297,11 +297,12 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
    *           if the table namespace does not exist
    * @throws TableNamespaceNotEmptyException
    *           if the table namespaces still contains tables
-   * @throws TableNotFoundException 
+   * @throws TableNotFoundException
    *           if table not found while deleting
    */
   @Override
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException, TableNotFoundException {
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException,
+      TableNotFoundException {
     delete(namespace, false);
   }
 
@@ -320,7 +321,7 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
    *           if the table namespace does not exist
    * @throws TableNamespaceNotEmptyException
    *           if the table namespaces still contains tables
-   * @throws TableNotFoundException 
+   * @throws TableNotFoundException
    *           if table not found while deleting
    */
   @Override
@@ -446,7 +447,7 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
   }
 
   /**
-   * Sets a property on a table namespace
+   * Sets a property on a table namespace which will apply to all tables in the namespace
    * 
    * @param namespace
    *          the name of the table namespace
@@ -539,6 +540,7 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
    * @throws TableNamespaceNotFoundException
+   *           if the table namespace does not exist
    */
   @Override
   public void offline(String namespace) throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException {
@@ -563,6 +565,7 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
    * @throws TableNamespaceNotFoundException
+   *           if the table namespace does not exist
    */
   @Override
   public void online(String namespace) throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException {

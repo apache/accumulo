@@ -22,19 +22,16 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
  * Thrown when the table namespace specified contains tables
  */
 public class TableNamespaceNotEmptyException extends Exception {
-  /**
-   * Exception to throw if an operation is attempted on a table that doesn't exist.
-   * 
-   */
+
   private static final long serialVersionUID = 1L;
   
   private String namespace;
   
   /**
    * @param namespaceId
-   *          the internal id of the table namespace that was sought
+   *          the internal id of the table namespace
    * @param namespaceName
-   *          the visible name of the table namespace that was sought
+   *          the visible name of the table namespace
    * @param description
    *          the specific reason why it failed
    */
@@ -46,9 +43,9 @@ public class TableNamespaceNotEmptyException extends Exception {
   
   /**
    * @param namespaceId
-   *          the internal id of the table namespace that was sought
+   *          the internal id of the table namespace
    * @param namespaceName
-   *          the visible name of the table namespace that was sought
+   *          the visible name of the table namespace
    * @param description
    *          the specific reason why it failed
    * @param cause
@@ -68,7 +65,7 @@ public class TableNamespaceNotEmptyException extends Exception {
   }
   
   /**
-   * @return the name of the table namespace sought
+   * @return the name of the table namespace
    */
   public String getNamespaceName() {
     return namespace;
