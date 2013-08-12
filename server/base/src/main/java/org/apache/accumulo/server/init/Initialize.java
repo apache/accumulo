@@ -420,9 +420,9 @@ public class Initialize {
     createInitialTableNamespace(zoo, zkInstanceRoot, Constants.SYSTEM_TABLE_NAMESPACE_ID, Constants.SYSTEM_TABLE_NAMESPACE, false);
     
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES + "/" + MetadataTable.ID + Constants.ZTABLE_NAMESPACE,
-        Constants.SYSTEM_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+        Constants.SYSTEM_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES + "/" + RootTable.ID + Constants.ZTABLE_NAMESPACE,
-        Constants.SYSTEM_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+        Constants.SYSTEM_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
   }
   
   private static void createInitialTableNamespace(IZooReaderWriter zoo, String root, String id, String namespace, boolean defaultOpts) throws KeeperException,

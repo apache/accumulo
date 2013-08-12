@@ -68,14 +68,14 @@ public class RenameTable extends MasterRepo {
       tm.addNamespaceToTable(tableId, namespaceId);
     }
 
-    newTableName = Tables.extractTableName(newTableName);
-    oldTableName = Tables.extractTableName(oldTableName);
-
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
 
     Utils.tableNameLock.lock();
     try {
       Utils.checkTableDoesNotExist(instance, newTableName, tableId, TableOperation.RENAME);
+
+      final String newName = Tables.extractTableName(newTableName);
+      final String oldName = Tables.extractTableName(oldTableName);
 
       final String tap = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
 
@@ -83,13 +83,13 @@ public class RenameTable extends MasterRepo {
         @Override
         public byte[] mutate(byte[] current) throws Exception {
           final String currentName = new String(current);
-          if (currentName.equals(newTableName))
+          if (currentName.equals(newName))
             return null; // assume in this case the operation is running again, so we are done
-          if (!currentName.equals(oldTableName)) {
+          if (!currentName.equals(oldName)) {
             throw new ThriftTableOperationException(null, oldTableName, TableOperation.RENAME, TableOperationExceptionType.NOTFOUND,
                 "Name changed while processing");
           }
-          return newTableName.getBytes();
+          return newName.getBytes();
         }
       });
       Tables.clearCache(instance);
