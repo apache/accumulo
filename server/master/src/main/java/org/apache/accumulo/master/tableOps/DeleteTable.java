@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -220,15 +221,16 @@ public class DeleteTable extends MasterRepo {
   
   private String tableId, namespaceId;
   
-  public DeleteTable(String tableId) {
+  public DeleteTable(String tableId, Instance inst) {
     this.tableId = tableId;
+    this.namespaceId = Tables.getNamespace(inst, tableId);
   }
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    this.namespaceId = Tables.getNamespace(environment.getInstance(), tableId);
-    return Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE)
-        + Utils.reserveTableNamespace(namespaceId, tid, false, false, TableOperation.CREATE);
+    
+    return Utils.reserveTableNamespace(namespaceId, tid, false, false, TableOperation.DELETE)
+        + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
   }
   
   @Override

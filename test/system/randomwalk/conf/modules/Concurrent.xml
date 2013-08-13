@@ -59,7 +59,7 @@
 </node>
 
 <node id="ct.Setup">
-  <property key="numTables" value="15"/>
+  <property key="numTables" value="9"/>
   <property key="numNamespaces" value="2"/>
   <edge id="ct.CreateTable" weight="1"/>
 </node>

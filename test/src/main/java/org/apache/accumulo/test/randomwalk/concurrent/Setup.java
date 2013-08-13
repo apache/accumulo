@@ -31,7 +31,7 @@ public class Setup extends Test {
     Random rand = new Random();
     state.set("rand", rand);
     
-    int numTables = Integer.parseInt(props.getProperty("numTables", "15"));
+    int numTables = Integer.parseInt(props.getProperty("numTables", "9"));
     int numNamespaces = Integer.parseInt(props.getProperty("numNamespaces", "2"));
     log.debug("numTables = " + numTables);
     log.debug("numNamespaces = " + numNamespaces);

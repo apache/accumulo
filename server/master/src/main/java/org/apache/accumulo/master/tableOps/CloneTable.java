@@ -139,9 +139,10 @@ class CloneZookeeper extends MasterRepo {
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     cloneInfo.namespaceId = TableNamespaces.getNamespaceId(environment.getInstance(), Tables.extractNamespace(cloneInfo.tableName));
-    long val = Utils.reserveTable(cloneInfo.tableId, tid, true, false, TableOperation.CLONE);
-    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) 
+    long val = 0;
+    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       val += Utils.reserveTableNamespace(cloneInfo.namespaceId, tid, false, true, TableOperation.CLONE);
+    val += Utils.reserveTable(cloneInfo.tableId, tid, true, false, TableOperation.CLONE);
     return val;
   }
   
@@ -157,7 +158,7 @@ class CloneZookeeper extends MasterRepo {
       TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId, cloneInfo.tableName, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
       Tables.clearCache(instance);
-
+      
       TableManager.getInstance().addNamespaceToTable(cloneInfo.tableId, cloneInfo.namespaceId);
       
       return new CloneMetadata(cloneInfo);
@@ -171,7 +172,7 @@ class CloneZookeeper extends MasterRepo {
     Instance instance = HdfsZooInstance.getInstance();
     TableManager.getInstance().removeTable(cloneInfo.tableId);
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
-    if (!cloneInfo.namespaceId.equals(cloneInfo.srcNamespaceId)) 
+    if (!cloneInfo.namespaceId.equals(cloneInfo.srcNamespaceId))
       Utils.unreserveTableNamespace(cloneInfo.namespaceId, tid, false);
     Tables.clearCache(instance);
   }
@@ -223,20 +224,21 @@ public class CloneTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
   
-  public CloneTable(String user, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {
+  public CloneTable(String user, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, Instance inst) {
     cloneInfo = new CloneInfo();
     cloneInfo.user = user;
     cloneInfo.srcTableId = srcTableId;
     cloneInfo.tableName = tableName;
     cloneInfo.propertiesToExclude = propertiesToExclude;
     cloneInfo.propertiesToSet = propertiesToSet;
+    cloneInfo.srcNamespaceId = Tables.getNamespace(inst, cloneInfo.srcTableId);
   }
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    cloneInfo.srcNamespaceId = Tables.getNamespace(environment.getInstance(), cloneInfo.srcTableId);
-    long val = Utils.reserveTable(cloneInfo.srcTableId, tid, false, true, TableOperation.CLONE);
-    val += Utils.reserveTableNamespace(cloneInfo.srcNamespaceId, tid, false, true, TableOperation.CLONE);
+    
+    long val = Utils.reserveTableNamespace(cloneInfo.srcNamespaceId, tid, false, true, TableOperation.CLONE);
+    val += Utils.reserveTable(cloneInfo.srcTableId, tid, false, true, TableOperation.CLONE);
     return val;
   }
   
