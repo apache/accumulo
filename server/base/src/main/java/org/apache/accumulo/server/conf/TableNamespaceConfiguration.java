@@ -43,7 +43,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
   protected String namespaceId = null;
   protected Instance inst = null;
   private Set<ConfigurationObserver> observers;
-
+  
   public TableNamespaceConfiguration(String namespaceId, AccumuloConfiguration parent) {
     inst = HdfsZooInstance.getInstance();
     this.parent = parent;
@@ -87,8 +87,17 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
 
-    for (Entry<String,String> parentEntry : parent)
-      entries.put(parentEntry.getKey(), parentEntry.getValue());
+    for (Entry<String,String> parentEntry : parent) {
+      if (this.namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID)) {
+        // exclude system iterators/constraints from the system namespace
+        // so they don't affect the metadata or root tables.
+        if (!isIterConst(parentEntry)) {
+          entries.put(parentEntry.getKey(), parentEntry.getValue());
+        }
+      } else {
+        entries.put(parentEntry.getKey(), parentEntry.getValue());
+      }
+    }
 
     List<String> children = getPropCache().getChildren(
         ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF);
@@ -142,5 +151,12 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
     for (ConfigurationObserver co : copy)
       co.propertiesChanged();
+  }
+  
+  protected boolean isIterConst(Entry<String,String> e) {
+    if (e.getKey().startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || e.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
+      return true;
+    }
+    return false;
   }
 }

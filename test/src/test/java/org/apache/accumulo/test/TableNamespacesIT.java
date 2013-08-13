@@ -432,6 +432,7 @@ public class TableNamespacesIT {
     }
     assertTrue(!hasProp);
   }
+  
   /**
    * Tests new Namespace permissions as well as modifications to Table permissions because of namespaces. Checks each permission to first make sure the user
    * doesn't have permission to perform the action, then root grants them the permission and we check to make sure they could perform the action.
@@ -576,6 +577,28 @@ public class TableNamespacesIT {
     user1Con.tableNamespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
     user1Con.tableNamespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
     c.securityOperations().revokeSystemPermission(user1, SystemPermission.ALTER_NAMESPACE);
+  }
+  
+  /**
+   * This test makes sure that system-level iterators and constraints are ignored by the system namespace so that the metadata and root tables aren't affected
+   */
+  @Test
+  public void excludeSystemIterConst() throws Exception {
+    Connector c = accumulo.getConnector("root", secret);
+    
+    c.instanceOperations().setProperty("table.iterator.scan.sum", "20," + SimpleFilter.class.getName());
+    assertTrue(c.instanceOperations().getSystemConfiguration().containsValue("20," + SimpleFilter.class.getName()));
+    
+    assertTrue(checkTableNamespaceHasProp(c, Constants.DEFAULT_TABLE_NAMESPACE, "table.iterator.scan.sum", "20," + SimpleFilter.class.getName()));
+    assertTrue(!checkTableNamespaceHasProp(c, Constants.SYSTEM_TABLE_NAMESPACE, "table.iterator.scan.sum", "20," + SimpleFilter.class.getName()));
+    c.instanceOperations().removeProperty("table.iterator.scan.sum");
+    
+    c.instanceOperations().setProperty("table.constraint.42", NumericValueConstraint.class.getName());
+    assertTrue(c.instanceOperations().getSystemConfiguration().containsValue(NumericValueConstraint.class.getName()));
+    
+    assertTrue(checkTableNamespaceHasProp(c, Constants.DEFAULT_TABLE_NAMESPACE, "table.constraint.42", NumericValueConstraint.class.getName()));
+    assertTrue(!checkTableNamespaceHasProp(c, Constants.SYSTEM_TABLE_NAMESPACE, "table.constraint.42", NumericValueConstraint.class.getName()));
+    c.instanceOperations().removeProperty("table.constraint.42");
   }
   
   private boolean checkTableHasProp(Connector c, String t, String propKey, String propVal) throws AccumuloException, TableNotFoundException {
