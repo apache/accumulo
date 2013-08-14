@@ -75,11 +75,11 @@ class FinishCloneTable extends MasterRepo {
     
     TableManager.getInstance().transitionTableState(cloneInfo.tableId, TableState.ONLINE);
     
-    Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
-    Utils.unreserveTable(cloneInfo.tableId, tid, true);
     Utils.unreserveTableNamespace(cloneInfo.srcNamespaceId, tid, false);
     if (!cloneInfo.namespaceId.equals(cloneInfo.srcNamespaceId))
       Utils.unreserveTableNamespace(cloneInfo.namespaceId, tid, false);
+    Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
+    Utils.unreserveTable(cloneInfo.tableId, tid, true);
     
     environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.tableName, cloneInfo.srcTableId);
     
@@ -171,9 +171,9 @@ class CloneZookeeper extends MasterRepo {
   public void undo(long tid, Master environment) throws Exception {
     Instance instance = HdfsZooInstance.getInstance();
     TableManager.getInstance().removeTable(cloneInfo.tableId);
-    Utils.unreserveTable(cloneInfo.tableId, tid, true);
     if (!cloneInfo.namespaceId.equals(cloneInfo.srcNamespaceId))
       Utils.unreserveTableNamespace(cloneInfo.namespaceId, tid, false);
+    Utils.unreserveTable(cloneInfo.tableId, tid, true);
     Tables.clearCache(instance);
   }
   
@@ -224,13 +224,14 @@ public class CloneTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
   
-  public CloneTable(String user, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, Instance inst) {
+  public CloneTable(String user, String srcTableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {
     cloneInfo = new CloneInfo();
     cloneInfo.user = user;
     cloneInfo.srcTableId = srcTableId;
     cloneInfo.tableName = tableName;
     cloneInfo.propertiesToExclude = propertiesToExclude;
     cloneInfo.propertiesToSet = propertiesToSet;
+    Instance inst = HdfsZooInstance.getInstance();
     cloneInfo.srcNamespaceId = Tables.getNamespace(inst, cloneInfo.srcTableId);
   }
   
@@ -257,8 +258,8 @@ public class CloneTable extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
     Utils.unreserveTableNamespace(cloneInfo.srcNamespaceId, tid, false);
+    Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
   }
   
 }

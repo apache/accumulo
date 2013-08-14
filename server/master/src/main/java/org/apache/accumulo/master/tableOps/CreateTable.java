@@ -35,6 +35,7 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
@@ -81,8 +82,8 @@ class FinishCreateTable extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
     TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
     
-    Utils.unreserveTable(tableInfo.tableId, tid, true);
     Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
+    Utils.unreserveTable(tableInfo.tableId, tid, true);
     
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
     
@@ -280,12 +281,13 @@ public class CreateTable extends MasterRepo {
   
   private TableInfo tableInfo;
   
-  public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props, Instance inst) throws TableNamespaceNotFoundException {
+  public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props) throws TableNamespaceNotFoundException {
     tableInfo = new TableInfo();
     tableInfo.tableName = tableName;
     tableInfo.timeType = TabletTime.getTimeID(timeType);
     tableInfo.user = user;
     tableInfo.props = props;
+    Instance inst = HdfsZooInstance.getInstance();
     tableInfo.namespaceId = TableNamespaces.getNamespaceId(inst, Tables.extractNamespace(tableInfo.tableName));
   }
   
@@ -296,7 +298,7 @@ public class CreateTable extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {   
+  public Repo<Master> call(long tid, Master master) throws Exception {
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped

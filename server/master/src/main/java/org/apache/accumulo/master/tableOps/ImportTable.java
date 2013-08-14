@@ -83,6 +83,7 @@ class ImportedTableInfo implements Serializable {
   public String tableName;
   public String tableId;
   public String importDir;
+  public String namespaceId;
 }
 
 class FinishImportTable extends MasterRepo {
@@ -107,6 +108,7 @@ class FinishImportTable extends MasterRepo {
     
     TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
     
+    Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
     
     Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
@@ -417,7 +419,7 @@ class ImportPopulateZookeeper extends MasterRepo {
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTable(tableInfo.tableId, tid, true, false, TableOperation.IMPORT);
+    return Utils.reserveTableNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.IMPORT) + Utils.reserveTable(tableInfo.tableId, tid, true, false, TableOperation.IMPORT);
   }
   
   private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {
@@ -468,6 +470,7 @@ class ImportPopulateZookeeper extends MasterRepo {
   public void undo(long tid, Master env) throws Exception {
     Instance instance = HdfsZooInstance.getInstance();
     TableManager.getInstance().removeTable(tableInfo.tableId);
+    Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
     Tables.clearCache(instance);
   }

@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -49,10 +53,10 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.tableOps.CompactionIterators;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -66,6 +70,7 @@ class CompactionDriver extends MasterRepo {
   private String tableId;
   private byte[] startRow;
   private byte[] endRow;
+  private String namespaceId;
 
   public CompactionDriver(long compactId, String tableId, byte[] startRow, byte[] endRow) {
 
@@ -73,6 +78,8 @@ class CompactionDriver extends MasterRepo {
     this.tableId = tableId;
     this.startRow = startRow;
     this.endRow = endRow;
+    Instance inst = HdfsZooInstance.getInstance();
+    this.namespaceId = Tables.getNamespace(inst, tableId);
   }
 
   @Override
@@ -179,6 +186,7 @@ class CompactionDriver extends MasterRepo {
   public Repo<Master> call(long tid, Master environment) throws Exception {
     CompactRange.removeIterators(tid, tableId);
     Utils.getReadLock(tableId, tid).unlock();
+    Utils.getReadLock(namespaceId, tid).unlock();
     return null;
   }
 
@@ -196,11 +204,92 @@ public class CompactRange extends MasterRepo {
   private byte[] startRow;
   private byte[] endRow;
   private byte[] iterators;
+  private String namespaceId;
+
+  public static class CompactionIterators implements Writable {
+    byte[] startRow;
+    byte[] endRow;
+    List<IteratorSetting> iterators;
+
+    public CompactionIterators(byte[] startRow, byte[] endRow, List<IteratorSetting> iterators) {
+      this.startRow = startRow;
+      this.endRow = endRow;
+      this.iterators = iterators;
+    }
+
+    public CompactionIterators() {
+      startRow = null;
+      endRow = null;
+      iterators = Collections.emptyList();
+    }
+
+    @Override
+    public void write(DataOutput out) throws IOException {
+      out.writeBoolean(startRow != null);
+      if (startRow != null) {
+        out.writeInt(startRow.length);
+        out.write(startRow);
+      }
+
+      out.writeBoolean(endRow != null);
+      if (endRow != null) {
+        out.writeInt(endRow.length);
+        out.write(endRow);
+      }
+
+      out.writeInt(iterators.size());
+      for (IteratorSetting is : iterators) {
+        is.write(out);
+      }
+    }
+
+    @Override
+    public void readFields(DataInput in) throws IOException {
+      if (in.readBoolean()) {
+        startRow = new byte[in.readInt()];
+        in.readFully(startRow);
+      } else {
+        startRow = null;
+      }
+
+      if (in.readBoolean()) {
+        endRow = new byte[in.readInt()];
+        in.readFully(endRow);
+      } else {
+        endRow = null;
+      }
+
+      int num = in.readInt();
+      iterators = new ArrayList<IteratorSetting>(num);
+
+      for (int i = 0; i < num; i++) {
+        iterators.add(new IteratorSetting(in));
+      }
+    }
+
+    public Text getEndRow() {
+      if (endRow == null)
+        return null;
+      return new Text(endRow);
+    }
+
+    public Text getStartRow() {
+      if (startRow == null)
+        return null;
+      return new Text(startRow);
+    }
+
+    public List<IteratorSetting> getIterators() {
+      return iterators;
+    }
+  }
 
   public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators) throws ThriftTableOperationException {
     this.tableId = tableId;
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
+    Instance inst = HdfsZooInstance.getInstance();
+    this.namespaceId = Tables.getNamespace(inst, tableId);
 
     if (iterators.size() > 0) {
       this.iterators = WritableUtils.toByteArray(new CompactionIterators(this.startRow, this.endRow, iterators));
@@ -215,7 +304,8 @@ public class CompactRange extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT);
+    return Utils.reserveTableNamespace(namespaceId, tid, false, true, TableOperation.COMPACT)
+        + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT);
   }
 
   @Override
@@ -297,6 +387,7 @@ public class CompactRange extends MasterRepo {
     try {
       removeIterators(tid, tableId);
     } finally {
+      Utils.unreserveTableNamespace(namespaceId, tid, false);
       Utils.unreserveTable(tableId, tid, false);
     }
   }

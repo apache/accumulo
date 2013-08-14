@@ -17,6 +17,8 @@
 package org.apache.accumulo.master.tableOps;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -32,7 +34,7 @@ class FinishCancelCompaction extends MasterRepo {
   public FinishCancelCompaction(String tableId) {
     this.tableId = tableId;
   }
-
+  
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     Utils.getReadLock(tableId, tid).unlock();
@@ -52,14 +54,18 @@ public class CancelCompactions extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
   private String tableId;
+  private String namespaceId;
   
   public CancelCompactions(String tableId) {
     this.tableId = tableId;
+    Instance inst = HdfsZooInstance.getInstance();
+    this.namespaceId = Tables.getNamespace(inst, tableId);
   }
-
+  
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
+    return Utils.reserveTableNamespace(namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
+        + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
   }
   
   @Override
@@ -85,15 +91,16 @@ public class CancelCompactions extends MasterRepo {
           return (flushID + "").getBytes();
         else
           return (cid + "").getBytes();
-
+        
       }
     });
-
+    
     return new FinishCancelCompaction(tableId);
   }
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
+    Utils.unreserveTableNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, false);
   }
 }

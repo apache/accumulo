@@ -75,7 +75,7 @@ public class RenameTableNamespace extends MasterRepo {
       Tables.clearCache(instance);
     } finally {
       Utils.tableNameLock.unlock();
-      Utils.unreserveTable(namespaceId, id, true);
+      Utils.unreserveTableNamespace(namespaceId, id, true);
     }
 
     Logger.getLogger(RenameTableNamespace.class).debug("Renamed table namespace " + namespaceId + " " + oldName + " " + newName);

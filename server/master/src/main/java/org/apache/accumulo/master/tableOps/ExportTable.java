@@ -32,6 +32,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -53,6 +54,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -67,6 +69,7 @@ class ExportInfo implements Serializable {
   public String tableName;
   public String tableID;
   public String exportDir;
+  public String namespaceID;
 }
 
 class WriteExportFiles extends MasterRepo {
@@ -91,7 +94,8 @@ class WriteExportFiles extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
     
-    long reserved = Utils.reserveTable(tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
+    long reserved = Utils.reserveTableNamespace(tableInfo.namespaceID, tid, false, true, TableOperation.EXPORT)
+        + Utils.reserveTable(tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
     if (reserved > 0)
       return reserved;
     
@@ -133,6 +137,7 @@ class WriteExportFiles extends MasterRepo {
       throw new ThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
+    Utils.unreserveTableNamespace(tableInfo.namespaceID, tid, false);
     Utils.unreserveTable(tableInfo.tableID, tid, false);
     Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
     return null;
@@ -140,6 +145,7 @@ class WriteExportFiles extends MasterRepo {
   
   @Override
   public void undo(long tid, Master env) throws Exception {
+    Utils.unreserveTableNamespace(tableInfo.namespaceID, tid, false);
     Utils.unreserveTable(tableInfo.tableID, tid, false);
   }
   
@@ -283,6 +289,8 @@ public class ExportTable extends MasterRepo {
     tableInfo.tableName = tableName;
     tableInfo.exportDir = exportDir;
     tableInfo.tableID = tableId;
+    Instance inst = HdfsZooInstance.getInstance();
+    tableInfo.namespaceID = Tables.getNamespace(inst, tableId);
   }
   
   @Override

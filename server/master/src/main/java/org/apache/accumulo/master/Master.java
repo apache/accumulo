@@ -929,7 +929,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
 
           try {
-            fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTable(c.getPrincipal(), tableName, timeType, options, getInstance())), autoCleanup);
+            fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTable(c.getPrincipal(), tableName, timeType, options)), autoCleanup);
           } catch (TableNamespaceNotFoundException e) {
             throw new ThriftTableOperationException(null, tableName, TableOperation.CREATE, TableOperationExceptionType.NOTFOUND, e.getMessage());
           }
@@ -946,7 +946,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           if (!security.canRenameTable(c, tableId, oldTableName, newTableName))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-          fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTable(tableId, oldTableName, newTableName, getInstance())), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTable(tableId, oldTableName, newTableName)), autoCleanup);
           
           break;
         }
@@ -975,7 +975,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             propertiesToSet.put(entry.getKey(), entry.getValue());
           }
 
-          fate.seedTransaction(opid, new TraceRepo<Master>(new CloneTable(c.getPrincipal(), srcTableId, tableName, propertiesToSet, propertiesToExclude, getInstance())),
+          fate.seedTransaction(opid, new TraceRepo<Master>(new CloneTable(c.getPrincipal(), srcTableId, tableName, propertiesToSet, propertiesToExclude)),
               autoCleanup);
 
           break;
@@ -986,7 +986,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           checkNotMetadataTable(tableName, TableOperation.DELETE);
           if (!security.canDeleteTable(c, tableId))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-          fate.seedTransaction(opid, new TraceRepo<Master>(new DeleteTable(tableId, getInstance())), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new DeleteTable(tableId)), autoCleanup);
           break;
         }
         case ONLINE: {

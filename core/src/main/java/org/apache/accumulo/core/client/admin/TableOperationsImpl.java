@@ -129,7 +129,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private Credentials credentials;
 
   public static final String CLONE_EXCLUDE_PREFIX = "!";
-
+  
   private static final Logger log = Logger.getLogger(TableOperations.class);
 
   /**
@@ -727,7 +727,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   // get the properties that are only in the table namespace so that we can exclude them when copying table properties.
   // also, don't exclude properties that are going to be explicitly set.
-  private HashSet<String> getUniqueNamespaceProperties(String namespace, String table, Map<String,String> propsToSet) throws TableNotFoundException, AccumuloException {
+  private HashSet<String> getUniqueNamespaceProperties(String namespace, String table, Map<String,String> propsToSet) throws TableNotFoundException,
+      AccumuloException {
     HashSet<String> props = new HashSet<String>();
     try {
       Iterable<Entry<String,String>> n = new TableNamespaceOperationsImpl(instance, credentials).getProperties(namespace);

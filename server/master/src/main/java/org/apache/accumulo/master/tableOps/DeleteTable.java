@@ -41,6 +41,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
@@ -221,8 +222,9 @@ public class DeleteTable extends MasterRepo {
   
   private String tableId, namespaceId;
   
-  public DeleteTable(String tableId, Instance inst) {
+  public DeleteTable(String tableId) {
     this.tableId = tableId;
+    Instance inst = HdfsZooInstance.getInstance();
     this.namespaceId = Tables.getNamespace(inst, tableId);
   }
   
@@ -242,8 +244,8 @@ public class DeleteTable extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    Utils.unreserveTable(tableId, tid, true);
     Utils.unreserveTableNamespace(namespaceId, tid, false);
+    Utils.unreserveTable(tableId, tid, true);
   }
   
 }
