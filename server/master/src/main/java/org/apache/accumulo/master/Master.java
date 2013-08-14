@@ -931,7 +931,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           try {
             fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTable(c.getPrincipal(), tableName, timeType, options)), autoCleanup);
           } catch (TableNamespaceNotFoundException e) {
-            throw new ThriftTableOperationException(null, tableName, TableOperation.CREATE, TableOperationExceptionType.NOTFOUND, e.getMessage());
+            throw new TException(e.getMessage(), e);
           }
           break;
         }
