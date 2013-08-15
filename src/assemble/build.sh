@@ -39,7 +39,7 @@ runAt() {
 }
 
 run mvn -U -P distclean clean 
-mvn rat:check 
+mvn org.apache.rat:apache-rat-plugin:0.9:check
 COUNT=`grep '!????' target/rat.txt | wc -l`
 EXPECTED=53
 if [ "$COUNT" -ne $EXPECTED ]
