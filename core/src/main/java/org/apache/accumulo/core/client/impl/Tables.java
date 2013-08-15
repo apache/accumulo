@@ -63,7 +63,7 @@ public class Tables {
         String namespaceId = new String(nId, Constants.UTF8);
         if (!namespaceId.equals(Constants.DEFAULT_TABLE_NAMESPACE_ID) && !namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID)) {
           try {
-            name += TableNamespaces.getNamespaceName(instance, new String(namespaceId)) + ".";
+            name += TableNamespaces.getNamespaceName(instance, namespaceId) + ".";
           } catch (TableNamespaceNotFoundException e) {
             Log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist");
             continue;

@@ -35,7 +35,6 @@ public class TableParentConfiguration extends TableNamespaceConfiguration {
   
   @Override
   protected String getNamespaceId() {
-    this.namespaceId = Tables.getNamespace(inst, tableId); 
-    return this.namespaceId;
+    return Tables.getNamespace(inst, tableId); 
   }
 }

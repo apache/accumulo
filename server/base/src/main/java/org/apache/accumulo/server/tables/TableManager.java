@@ -317,7 +317,7 @@ public class TableManager {
   public void removeNamespaceFromTable(String tableId, String namespaceId) throws KeeperException, InterruptedException {
     // actually, revert it to the default namespace.
     String zPath = Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE;
-    ZooReaderWriter.getRetryingInstance().putPersistentData(zPath, Constants.DEFAULT_TABLE_NAMESPACE.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
+    ZooReaderWriter.getRetryingInstance().putPersistentData(zPath, Constants.DEFAULT_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
   }
   
   public void cloneNamespace(String srcId, String newId, String namespaceName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude,

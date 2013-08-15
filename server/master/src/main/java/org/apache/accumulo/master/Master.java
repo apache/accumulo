@@ -946,7 +946,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           if (!security.canRenameTable(c, tableId, oldTableName, newTableName))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-          fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTable(tableId, oldTableName, newTableName)), autoCleanup);
+          try {
+            fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTable(tableId, oldTableName, newTableName)), autoCleanup);
+          } catch (TableNamespaceNotFoundException e) {
+            throw new TException(e.getMessage(), e);
+          }
           
           break;
         }
@@ -1082,7 +1086,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           checkNotMetadataTable(tableName, TableOperation.CREATE);
           checkTableName(tableName, TableOperation.CREATE);
 
-          fate.seedTransaction(opid, new TraceRepo<Master>(new ImportTable(c.getPrincipal(), tableName, exportDir)), autoCleanup);
+          try {
+            fate.seedTransaction(opid, new TraceRepo<Master>(new ImportTable(c.getPrincipal(), tableName, exportDir)), autoCleanup);
+          } catch (TableNamespaceNotFoundException e) {
+            throw new TException(e.getMessage(), e);
+          }
           break;
         }
         case EXPORT: {

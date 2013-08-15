@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
@@ -76,7 +77,7 @@ class FinishCloneTable extends MasterRepo {
     TableManager.getInstance().transitionTableState(cloneInfo.tableId, TableState.ONLINE);
     
     Utils.unreserveTableNamespace(cloneInfo.srcNamespaceId, tid, false);
-    if (!cloneInfo.namespaceId.equals(cloneInfo.srcNamespaceId))
+    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       Utils.unreserveTableNamespace(cloneInfo.namespaceId, tid, false);
     Utils.unreserveTable(cloneInfo.srcTableId, tid, false);
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
@@ -132,13 +133,14 @@ class CloneZookeeper extends MasterRepo {
   
   private CloneInfo cloneInfo;
   
-  public CloneZookeeper(CloneInfo cloneInfo) {
+  public CloneZookeeper(CloneInfo cloneInfo) throws TableNamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
+    Instance inst = HdfsZooInstance.getInstance();
+    this.cloneInfo.namespaceId = TableNamespaces.getNamespaceId(inst, Tables.extractNamespace(this.cloneInfo.tableName));
   }
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    cloneInfo.namespaceId = TableNamespaces.getNamespaceId(environment.getInstance(), Tables.extractNamespace(cloneInfo.tableName));
     long val = 0;
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       val += Utils.reserveTableNamespace(cloneInfo.namespaceId, tid, false, true, TableOperation.CLONE);
@@ -171,7 +173,7 @@ class CloneZookeeper extends MasterRepo {
   public void undo(long tid, Master environment) throws Exception {
     Instance instance = HdfsZooInstance.getInstance();
     TableManager.getInstance().removeTable(cloneInfo.tableId);
-    if (!cloneInfo.namespaceId.equals(cloneInfo.srcNamespaceId))
+    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       Utils.unreserveTableNamespace(cloneInfo.namespaceId, tid, false);
     Utils.unreserveTable(cloneInfo.tableId, tid, true);
     Tables.clearCache(instance);

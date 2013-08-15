@@ -34,6 +34,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -419,7 +420,7 @@ class ImportPopulateZookeeper extends MasterRepo {
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTableNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.IMPORT) + Utils.reserveTable(tableInfo.tableId, tid, true, false, TableOperation.IMPORT);
+    return Utils.reserveTable(tableInfo.tableId, tid, true, false, TableOperation.IMPORT);
   }
   
   private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {
@@ -470,7 +471,6 @@ class ImportPopulateZookeeper extends MasterRepo {
   public void undo(long tid, Master env) throws Exception {
     Instance instance = HdfsZooInstance.getInstance();
     TableManager.getInstance().removeTable(tableInfo.tableId);
-    Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
     Tables.clearCache(instance);
   }
@@ -521,16 +521,18 @@ public class ImportTable extends MasterRepo {
   
   private ImportedTableInfo tableInfo;
   
-  public ImportTable(String user, String tableName, String exportDir) {
+  public ImportTable(String user, String tableName, String exportDir) throws TableNamespaceNotFoundException {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
     tableInfo.exportDir = exportDir;
+    Instance inst = HdfsZooInstance.getInstance();
+    tableInfo.namespaceId = TableNamespaces.getNamespaceId(inst, Tables.extractNamespace(tableName));
   }
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
+    return Utils.reserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid) + Utils.reserveTableNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.IMPORT);
   }
   
   @Override
@@ -610,5 +612,6 @@ public class ImportTable extends MasterRepo {
   @Override
   public void undo(long tid, Master env) throws Exception {
     Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
   }
 }

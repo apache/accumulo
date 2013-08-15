@@ -340,7 +340,11 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
         throw new TableNamespaceNotEmptyException(namespaceId, namespace, null);
       }
       for (String table : TableNamespaces.getTableNames(instance, namespaceId)) {
-        getTableOperations().delete(table);
+        try {
+          getTableOperations().delete(table);
+        } catch (TableNotFoundException e) {
+          log.debug("Table (" + table + ") not found while deleting namespace, probably deleted while we were deleting the rest of the tables");
+        }
       }
     }
 

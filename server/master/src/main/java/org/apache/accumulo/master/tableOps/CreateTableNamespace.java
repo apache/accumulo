@@ -124,6 +124,7 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
   public void undo(long tid, Master master) throws Exception {
     TableManager.getInstance().removeNamespace(tableNamespaceInfo.namespaceId);
     Tables.clearCache(master.getInstance());
+    Utils.unreserveTableNamespace(tableNamespaceInfo.namespaceId, tid, true);
   }
 
 }

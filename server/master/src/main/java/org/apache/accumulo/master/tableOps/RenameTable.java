@@ -18,6 +18,7 @@ package org.apache.accumulo.master.tableOps;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
@@ -39,20 +40,23 @@ public class RenameTable extends MasterRepo {
   private String tableId;
   private String oldTableName;
   private String newTableName;
-  private String namespaceId;
+  private String oldNamespaceId;
+  private String newNamespaceId;
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTableNamespace(namespaceId, tid, false, true, TableOperation.RENAME)
+    return Utils.reserveTableNamespace(oldNamespaceId, tid, false, true, TableOperation.RENAME)
+        + Utils.reserveTableNamespace(newNamespaceId, tid, false, true, TableOperation.RENAME)
         + Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
   }
 
-  public RenameTable(String tableId, String oldTableName, String newTableName) {
+  public RenameTable(String tableId, String oldTableName, String newTableName) throws TableNamespaceNotFoundException {
     this.tableId = tableId;
     this.oldTableName = oldTableName;
     this.newTableName = newTableName;
     Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespace(inst, tableId);
+    this.oldNamespaceId = Tables.getNamespace(inst, tableId);
+    this.newNamespaceId = TableNamespaces.getNamespaceId(inst, Tables.extractNamespace(newTableName));
   }
 
   @Override
@@ -60,14 +64,9 @@ public class RenameTable extends MasterRepo {
 
     Instance instance = master.getInstance();
 
-    final String namespace = Tables.extractNamespace(newTableName);
-    String namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
-    final String oldNamespace = Tables.extractNamespace(oldTableName);
-    String oldNamespaceId = TableNamespaces.getNamespaceId(instance, oldNamespace);
-
-    if (!namespaceId.equals(oldNamespaceId)) {
+    if (!newNamespaceId.equals(oldNamespaceId)) {
       TableManager tm = TableManager.getInstance();
-      tm.addNamespaceToTable(tableId, namespaceId);
+      tm.addNamespaceToTable(tableId, newNamespaceId);
     }
 
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
@@ -98,7 +97,8 @@ public class RenameTable extends MasterRepo {
     } finally {
       Utils.tableNameLock.unlock();
       Utils.unreserveTable(tableId, tid, true);
-      Utils.unreserveTableNamespace(this.namespaceId, tid, false);
+      Utils.unreserveTableNamespace(this.oldNamespaceId, tid, false);
+      Utils.unreserveTableNamespace(this.newNamespaceId, tid, false);
     }
 
     Logger.getLogger(RenameTable.class).debug("Renamed table " + tableId + " " + oldTableName + " " + newTableName);
@@ -108,8 +108,9 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
+    Utils.unreserveTableNamespace(newNamespaceId, tid, false);
+    Utils.unreserveTableNamespace(oldNamespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
-    Utils.unreserveTableNamespace(namespaceId, tid, false);
   }
 
 }
