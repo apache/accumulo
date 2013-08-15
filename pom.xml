@@ -27,7 +27,7 @@
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
-  <version>1.4.4-SNAPSHOT</version>
+  <version>1.4.4</version>
   <name>accumulo</name>
 
   <modules>
@@ -280,7 +280,7 @@
             </mapping>
             <mapping>
               <directory>/opt/accumulo/accumulo-${project.version}/lib</directory>
-              <dependency/>
+              <dependency />
               <sources>
                 <source>
                   <location>lib</location>
@@ -506,7 +506,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore/>
+                    <ignore />
                   </action>
                 </pluginExecution>
                 <pluginExecution>
@@ -519,7 +519,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore/>
+                    <ignore />
                   </action>
                 </pluginExecution>
               </pluginExecutions>
@@ -682,27 +682,27 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>cloudtrace</artifactId>
-        <version>1.4.4-SNAPSHOT</version>
+        <version>1.4.4</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-start</artifactId>
-        <version>1.4.4-SNAPSHOT</version>
+        <version>1.4.4</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-core</artifactId>
-        <version>1.4.4-SNAPSHOT</version>
+        <version>1.4.4</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-server</artifactId>
-        <version>1.4.4-SNAPSHOT</version>
+        <version>1.4.4</version>
       </dependency>
     <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-minicluster</artifactId>
-        <version>1.4.4-SNAPSHOT</version>
+        <version>1.4.4</version>
     </dependency>
 
       <!-- additional dependencies we need to provide -->
