@@ -613,7 +613,7 @@ public final class BCFile {
           
           int ivLength = tempDataInputStream.readInt();
           byte[] initVector = new byte[ivLength];
-          tempDataInputStream.read(initVector);
+          tempDataInputStream.readFully(initVector);
           
           cryptoParams.setInitializationVector(initVector);
           cryptoParams.setEncryptedInputStream(boundedRangeFileInputStream);

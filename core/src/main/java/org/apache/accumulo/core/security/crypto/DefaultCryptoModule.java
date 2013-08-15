@@ -320,7 +320,7 @@ public class DefaultCryptoModule implements CryptoModule {
         // Read the secret key and initialization vector from the file
         int initVectorLength = dataIn.readInt();
         byte[] initVector = new byte[initVectorLength];
-        dataIn.read(initVector, 0, initVectorLength);
+        dataIn.readFully(initVector);
         
         params.setInitializationVector(initVector);
         
@@ -330,7 +330,7 @@ public class DefaultCryptoModule implements CryptoModule {
         
         int encryptedSecretKeyLength = dataIn.readInt();
         byte[] encryptedSecretKey = new byte[encryptedSecretKeyLength]; 
-        dataIn.read(encryptedSecretKey);
+        dataIn.readFully(encryptedSecretKey);
         params.setEncryptedKey(encryptedSecretKey);
         
         
