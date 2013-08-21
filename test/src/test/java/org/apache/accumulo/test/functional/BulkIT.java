@@ -37,7 +37,7 @@ public class BulkIT extends SimpleMacIT {
     c.tableOperations().create(tableName);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     String base = "target/accumulo-maven-plugin";
-    fs.delete(new Path(base + "/testrf"));
+    fs.delete(new Path(base + "/testrf"), true);
     fs.mkdirs(new Path(base + "/testBulkFail"));
     
     Opts opts = new Opts();
@@ -50,13 +50,13 @@ public class BulkIT extends SimpleMacIT {
     for (int i = 0; i < COUNT; i++) {
       opts.outputFile = base + String.format("/testrf/rf%02d", i);
       opts.startRow = N * i;
-      TestIngest.ingest(c, opts , BWOPTS);
+      TestIngest.ingest(c, opts, BWOPTS);
     }
     opts.outputFile = base + String.format("/testrf/rf%02d", N);
     opts.startRow = N;
     opts.rows = 1;
     // create an rfile with one entry, there was a bug with this:
-    TestIngest.ingest(c, opts , BWOPTS);
+    TestIngest.ingest(c, opts, BWOPTS);
     c.tableOperations().importDirectory(tableName, base + "/testrf", base + "/testBulkFail", false);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.tableName = tableName;
@@ -70,6 +70,5 @@ public class BulkIT extends SimpleMacIT {
     vopts.rows = 1;
     VerifyIngest.verifyIngest(c, vopts, SOPTS);
   }
-  
   
 }

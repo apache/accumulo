@@ -48,7 +48,6 @@ public class CryptoModuleFactory {
     return getCryptoModule(cryptoModuleClassname);
   }
   
-  @SuppressWarnings({"rawtypes"})
   public static CryptoModule getCryptoModule(String cryptoModuleClassname) {
     
     if (cryptoModuleClassname != null) {
@@ -57,7 +56,7 @@ public class CryptoModuleFactory {
     
     if (cryptoModuleClassname == null || cryptoModuleClassname.equals("NullCryptoModule")) {
       return new NullCryptoModule();
-    }   
+    }
     
     CryptoModule cryptoModule = null;
     synchronized (cryptoModulesCache) {
@@ -71,11 +70,11 @@ public class CryptoModuleFactory {
     
     return cryptoModule;
   }
-
+  
   @SuppressWarnings({"rawtypes"})
   private static CryptoModule instantiateCryptoModule(String cryptoModuleClassname) {
     log.debug(String.format("About to instantiate crypto module %s", cryptoModuleClassname));
-
+    
     CryptoModule cryptoModule = null;
     Class cryptoModuleClazz = null;
     try {
@@ -97,13 +96,13 @@ public class CryptoModuleFactory {
     }
     
     if (!implementsCryptoModule) {
-      log.warn("Configured Accumulo crypto module \""+cryptoModuleClassname+"\" does not implement the CryptoModule interface. No encryption will be used.");
+      log.warn("Configured Accumulo crypto module \"" + cryptoModuleClassname + "\" does not implement the CryptoModule interface. No encryption will be used.");
       return new NullCryptoModule();
     } else {
       try {
         cryptoModule = (CryptoModule) cryptoModuleClazz.newInstance();
         
-        log.debug("Successfully instantiated crypto module "+cryptoModuleClassname);
+        log.debug("Successfully instantiated crypto module " + cryptoModuleClassname);
         
       } catch (InstantiationException e) {
         log.warn(String.format("Got instantiation exception %s when instantiating crypto module \"%s\".  No encryption will be used.", e.getCause().getClass()
@@ -140,18 +139,18 @@ public class CryptoModuleFactory {
       if (secretKeyEncryptionStrategyCache.containsKey(className)) {
         strategy = secretKeyEncryptionStrategyCache.get(className);
       } else {
-        strategy = instantiateSecreteKeyEncryptionStrategy(className); 
+        strategy = instantiateSecreteKeyEncryptionStrategy(className);
         secretKeyEncryptionStrategyCache.put(className, strategy);
       }
     }
     
     return strategy;
   }
-
+  
   @SuppressWarnings("rawtypes")
   private static SecretKeyEncryptionStrategy instantiateSecreteKeyEncryptionStrategy(String className) {
     
-    log.debug("About to instantiate secret key encryption strategy "+className);
+    log.debug("About to instantiate secret key encryption strategy " + className);
     
     SecretKeyEncryptionStrategy strategy = null;
     Class keyEncryptionStrategyClazz = null;
@@ -180,7 +179,7 @@ public class CryptoModuleFactory {
       try {
         strategy = (SecretKeyEncryptionStrategy) keyEncryptionStrategyClazz.newInstance();
         
-        log.debug("Successfully instantiated secret key encryption strategy "+className);
+        log.debug("Successfully instantiated secret key encryption strategy " + className);
         
       } catch (InstantiationException e) {
         log.warn(String.format("Got instantiation exception %s when instantiating secret key encryption strategy \"%s\".  No encryption will be used.", e

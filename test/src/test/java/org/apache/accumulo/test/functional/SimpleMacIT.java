@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.log4j.Logger;
@@ -29,7 +26,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class SimpleMacIT extends AbstractMacIT {
   public static final Logger log = Logger.getLogger(SimpleMacIT.class);
-      
+  
   static private TemporaryFolder folder = new TemporaryFolder();
   static private MiniAccumuloCluster cluster;
   
@@ -55,10 +52,8 @@ public class SimpleMacIT extends AbstractMacIT {
   }
   
   @After
-  public void cleanUp() throws Exception {
-  }
+  public void cleanUp() throws Exception {}
   
   @AfterClass
-  public static void tearDown() throws Exception {
-  }
+  public static void tearDown() throws Exception {}
 }
