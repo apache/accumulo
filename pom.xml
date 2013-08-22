@@ -107,6 +107,7 @@
     </site>
   </distributionManagement>
   <properties>
+    <accumulo.it.forkCount>1</accumulo.it.forkCount>
     <accumulo.it.threads>1</accumulo.it.threads>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
@@ -677,7 +678,7 @@
               <!--parallel>classes</parallel-->
               <reuseForks>false</reuseForks>
               <forkMode>always</forkMode>
-              <forkCount>8</forkCount>
+              <forkCount>${accumulo.it.forkCount}</forkCount>
               <perCoreThreadCount>false</perCoreThreadCount>
               <threadCount>${accumulo.it.threads}</threadCount>
               <redirectTestOutputToFile>true</redirectTestOutputToFile>
