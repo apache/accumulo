@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
@@ -37,7 +38,7 @@ public class ShellOptionsJC {
   @Parameter(names = {"-p", "--password"}, description = "password (prompt for password if this option is missing)")
   private String password;
   
-  private static class TokenConverter implements IStringConverter<AuthenticationToken> {
+  public static class TokenConverter implements IStringConverter<AuthenticationToken> {
     @Override
     public AuthenticationToken convert(String value) {
       try {
@@ -53,7 +54,7 @@ public class ShellOptionsJC {
   private AuthenticationToken authenticationToken;
   
   @DynamicParameter(names = {"-l", "--tokenProperty"}, description = "login properties in the format key=value. Reuse -l for each property")
-  private Map<String,String> tokenProperties;
+  private Map<String,String> tokenProperties = new TreeMap<String,String>();
   
   @Parameter(names = "--disable-tab-completion", description = "disables tab completion (for less overhead when scripting)")
   private boolean tabCompletionDisabled;

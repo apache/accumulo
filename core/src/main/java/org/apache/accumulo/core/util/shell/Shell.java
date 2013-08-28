@@ -265,30 +265,10 @@ public class Shell extends ShellOptions {
     // process default parameters if unspecified
     try {
       boolean hasToken = (token != null);
-      boolean hasTokenOptions = loginOptions != null && !loginOptions.isEmpty();
-      
-      // Need either both a token and options, or neither, but not just one.
-      if (hasToken != hasTokenOptions) {
-        throw new ParameterException("Must supply either both or neither of '--tokenClass' and '--tokenProperty'");
-      }
+      boolean hasTokenOptions = !loginOptions.isEmpty();
       
       if (hasToken && password != null) {
         throw new ParameterException("Can not supply '--pass' option with '--tokenClass' option");
-      }
-      
-      if (hasToken && hasTokenOptions) {
-        // Fully qualified name so we don't shadow java.util.Properties
-        org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties props;
-        // and line wrap it because the package name is so long
-        props = new org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties();
-        
-        props.putAllStrings(loginOptions);
-        token.init(props);
-      }
-      
-      if (!options.isFake()) {
-        ZooReader zr = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-        DistributedTrace.enable(instance, zr, "shell", InetAddress.getLocalHost().getHostName());
       }
       
       Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -297,8 +277,19 @@ public class Shell extends ShellOptions {
           reader.getTerminal().setEchoEnabled(true);
         }
       });
-      
-      if (!hasToken) {
+
+      // Need either both a token and options, or neither, but not just one.
+      if (hasToken != hasTokenOptions) {
+        throw new ParameterException("Must supply either both or neither of '--tokenClass' and '--tokenProperty'");
+      } else if (hasToken) { // implied hasTokenOptions
+        // Fully qualified name so we don't shadow java.util.Properties
+        org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties props;
+        // and line wrap it because the package name is so long
+        props = new org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties();
+        
+        props.putAllStrings(loginOptions);
+        token.init(props);
+      } else {
         if (password == null) {
           password = reader.readLine("Password: ", '*');
         }
@@ -309,6 +300,11 @@ public class Shell extends ShellOptions {
         } else {
           this.token = new PasswordToken(password);
         }
+      }
+      
+      if (!options.isFake()) {
+        ZooReader zr = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+        DistributedTrace.enable(instance, zr, "shell", InetAddress.getLocalHost().getHostName());
       }
       
       this.setTableName("");
