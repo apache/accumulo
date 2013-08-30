@@ -344,6 +344,9 @@ public class ZooLock implements Watcher {
       try { // set the watch on the parent node again
         zooKeeper.getStatus(path, this);
         watchingParent = true;
+      } catch (KeeperException.ConnectionLossException ex) {
+        // we can't look at the lock because we aren't connected, but our session is still good
+        log.warn("lost connection to zookeeper");
       } catch (Exception ex) {
         if (lock != null || asyncLock != null) {
           lockWatcher.unableToMonitorLockNode(ex);

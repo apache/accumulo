@@ -373,6 +373,8 @@ public class LogService implements MutationLogger.Iface, Watcher {
   @Override
   public void process(WatchedEvent event) {
     LOG.debug("event " + event.getPath() + " " + event.getType() + " " + event.getState());
+    if (event.getState() == KeeperState.Disconnected)
+      return;
     
     if (event.getState() == KeeperState.Expired) {
       LOG.warn("Logger lost zookeeper registration at " + event.getPath());
@@ -391,6 +393,8 @@ public class LogService implements MutationLogger.Iface, Watcher {
         LOG.fatal("Stopping server, zookeeper entry lost " + event.getPath());
         service.stop();
       }
+    } catch (KeeperException.ConnectionLossException ex) {
+      LOG.info("Disconnected from zookeeper");
     } catch (Exception ex) {
       LOG.fatal("Stopping server, cannot reset watch" + ex);
       service.stop();
