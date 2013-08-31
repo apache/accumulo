@@ -290,7 +290,8 @@ public class Shell extends ShellOptions {
         props.putAllStrings(loginOptions);
         token.init(props);
       } else {
-        if (password == null) {
+        // Read password if the user explicitly asked for it, or didn't specify anything at all
+        if ("stdin".equals(password) || password == null) {
           password = reader.readLine("Password: ", '*');
         }
         

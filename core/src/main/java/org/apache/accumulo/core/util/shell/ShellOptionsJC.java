@@ -17,12 +17,15 @@
 package org.apache.accumulo.core.util.shell;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.log4j.Logger;
 
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.IStringConverter;
@@ -31,11 +34,85 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.FileConverter;
 
 public class ShellOptionsJC {
+  // Use the Shell logger because this is really just an extension.
+  public static final Logger log = Logger.getLogger(Shell.class);
+  
   @Parameter(names = {"-u", "--user"}, description = "username (defaults to your OS user)")
   private String username = System.getProperty("user.name", "root");
   
+  public static class PasswordConverter implements IStringConverter<String> {
+    public static final String STDIN = "stdin";
+    private enum KeyType {
+      PASS("pass:"), ENV("env:") {
+        @Override
+        String process(String value) {
+          return System.getenv(value);
+        }
+      },
+      FILE("file:") {
+        @Override
+        String process(String value) {
+          Scanner scanner = null;
+          try {
+            scanner = new Scanner(new File(value));
+            return scanner.nextLine();
+          } catch (FileNotFoundException e) {
+            throw new ParameterException("Password file does not exist", e);
+          } finally {
+            if (scanner != null) {
+              scanner.close();
+            }
+          }
+        }
+      },
+      STDIN(PasswordConverter.STDIN) {
+        @Override
+        public boolean matches(String value) {
+          return prefix.equals(value);
+        }
+        
+        @Override
+        public String convert(String value) {
+          // Will check for this later
+          return prefix;
+        }
+      };
+      
+      String prefix;
+      
+      private KeyType(String prefix) {
+        this.prefix = prefix;
+      }
+      
+      public boolean matches(String value) {
+        return value.startsWith(prefix);
+      }
+      
+      public String convert(String value) {
+        return process(value.substring(prefix.length()));
+      }
+      
+      String process(String value) {
+        return value;
+      }
+    };
+    
+    public String convert(String value) {
+      for (KeyType keyType : KeyType.values()) {
+        if (keyType.matches(value)) {
+          return keyType.convert(value);
+        }
+      }
+      
+      // No match found, assume it is the password for compatibility
+      log.warn("Specifying a raw password is deprecated.");
+      return value;
+    }
+  }
+  
   // Note: Don't use "password = true" because then it will prompt even if we have a token
-  @Parameter(names = {"-p", "--password"}, description = "password (prompt for password if this option is missing)")
+  @Parameter(names = {"-p", "--password"}, description = "password (can be specified as 'pass:<password>', 'file:<local file containing the password>', "
+      + "'env:<variable containing the pass>', or stdin)", converter = PasswordConverter.class)
   private String password;
   
   public static class TokenConverter implements IStringConverter<AuthenticationToken> {
