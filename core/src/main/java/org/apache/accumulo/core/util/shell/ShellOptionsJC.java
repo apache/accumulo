@@ -57,7 +57,7 @@ public class ShellOptionsJC {
             scanner = new Scanner(new File(value));
             return scanner.nextLine();
           } catch (FileNotFoundException e) {
-            throw new ParameterException("Password file does not exist", e);
+            throw new ParameterException(e);
           } finally {
             if (scanner != null) {
               scanner.close();
