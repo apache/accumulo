@@ -195,7 +195,7 @@ public class TabletServerBatchWriter {
     
     checkForFailures();
     
-    while ((totalMemUsed >= maxMem || flushing) && !somethingFailed) {
+    while ((totalMemUsed > maxMem || flushing) && !somethingFailed) {
       waitRTE();
     }
     
