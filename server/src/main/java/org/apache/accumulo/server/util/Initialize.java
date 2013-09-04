@@ -468,8 +468,6 @@ public class Initialize {
     String cliInstanceName;
     @Parameter(names = "--password", description = "set the password on the command line")
     String cliPassword;
-    @Parameter(names = "--username", description = "set the root username on the command line")
-    String cliUser;
     
     byte[] rootpass = null;
   }
