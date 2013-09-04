@@ -53,7 +53,7 @@ import org.apache.log4j.Logger;
 
 public class VolumeManagerImpl implements VolumeManager {
   
-  private static final Logger log = Logger.getLogger(FileSystem.class);
+  private static final Logger log = Logger.getLogger(VolumeManagerImpl.class);
   
   Map<String, ? extends FileSystem> volumes;
   String defaultVolume;

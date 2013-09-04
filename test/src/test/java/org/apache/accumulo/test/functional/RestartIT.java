@@ -117,6 +117,18 @@ public class RestartIT extends ConfigurableMacIT {
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
 
+  @Test(timeout = 2 * 60 * 1000)
+  public void killedTabletServer2() throws Exception {
+    Connector c = getConnector();
+    c.tableOperations().create("t");
+    List<ProcessReference> procs = new ArrayList<ProcessReference>(cluster.getProcesses().get(ServerType.TABLET_SERVER));
+    for (ProcessReference tserver : procs) {
+      cluster.killProcess(ServerType.TABLET_SERVER, tserver);
+    }
+    cluster.start();
+    c.tableOperations().create("tt");
+  }
+
   @Test(timeout = 4 * 60 * 1000)
   public void killedTabletServerDuringShutdown() throws Exception {
     Connector c = getConnector();
