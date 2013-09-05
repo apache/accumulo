@@ -51,7 +51,6 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
 
@@ -60,13 +59,12 @@ import com.beust.jcommander.Parameter;
  * 
  */
 public class RemoveEntriesForMissingFiles {
-  private static Logger log = Logger.getLogger(RemoveEntriesForMissingFiles.class);
-  
+
   static class Opts extends ClientOpts {
     @Parameter(names = "--fix")
     boolean fix = false;
   }
-  
+
   private static class CheckFileTask implements Runnable {
     @SuppressWarnings("rawtypes")
     private Map cache;
@@ -84,13 +82,14 @@ public class RemoveEntriesForMissingFiles {
       this.cache = cache;
       this.fs = fs;
       this.missing = missing;
-      this.writer=writer;
+      this.writer = writer;
       this.key = key;
       this.path = map;
       this.processing = processing;
       this.exceptionRef = exceptionRef;
     }
-    
+
+    @Override
     @SuppressWarnings("unchecked")
     public void run() {
       try {
@@ -120,15 +119,14 @@ public class RemoveEntriesForMissingFiles {
       }
     }
   }
-  
-  
+
   private static int checkTable(Instance instance, String principal, AuthenticationToken token, String table, Range range, boolean fix) throws Exception {
-    
+
     @SuppressWarnings({"rawtypes"})
     Map cache = new LRUMap(100000);
     Set<Path> processing = new HashSet<Path>();
     ExecutorService threadPool = Executors.newFixedThreadPool(16);
-    
+
     System.out.printf("Scanning : %s %s\n", table, range);
 
     VolumeManager fs = VolumeManagerImpl.get();
@@ -144,7 +142,6 @@ public class RemoveEntriesForMissingFiles {
     if (fix)
       writer = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
-
     for (Entry<Key,Value> entry : metadata) {
       if (exceptionRef.get() != null)
         break;
@@ -152,7 +149,7 @@ public class RemoveEntriesForMissingFiles {
       count++;
       Key key = entry.getKey();
       Path map = fs.getFullPath(key);
-      
+
       synchronized (processing) {
         while (processing.size() >= 64 || processing.contains(map))
           processing.wait();
@@ -163,17 +160,17 @@ public class RemoveEntriesForMissingFiles {
 
         processing.add(map);
       }
-      
+
       threadPool.submit(new CheckFileTask(cache, fs, missing, writer, key, map, processing, exceptionRef));
     }
-    
+
     threadPool.shutdown();
 
     synchronized (processing) {
       while (processing.size() > 0)
         processing.wait();
     }
-    
+
     if (exceptionRef.get() != null)
       throw new AccumuloException(exceptionRef.get());
 
@@ -181,21 +178,19 @@ public class RemoveEntriesForMissingFiles {
       writer.close();
 
     System.out.printf("Scan finished, %d files of %d missing\n\n", missing.get(), count);
-    
+
     return missing.get();
   }
 
-  
-
   static int checkAllTables(Instance instance, String principal, AuthenticationToken token, boolean fix) throws Exception {
     int missing = checkTable(instance, principal, token, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
-    
+
     if (missing == 0)
       return checkTable(instance, principal, token, MetadataTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
     else
       return missing;
   }
-  
+
   static int checkTable(Instance instance, String principal, AuthenticationToken token, String tableName, boolean fix) throws Exception {
     if (tableName.equals(RootTable.NAME)) {
       throw new IllegalArgumentException("Can not check root table");
@@ -213,7 +208,7 @@ public class RemoveEntriesForMissingFiles {
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts);
-    
+
     checkAllTables(opts.getInstance(), opts.principal, opts.getToken(), opts.fix);
   }
 }
