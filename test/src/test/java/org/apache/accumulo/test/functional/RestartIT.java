@@ -20,8 +20,9 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.ProcessReference;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.server.gc.SimpleGarbageCollector;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -41,7 +43,11 @@ import org.junit.Test;
 public class RestartIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s"));
+    Map<String, String> props = new HashMap<String, String>();
+    props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
+    props.put(Property.GC_CYCLE_DELAY.getKey(), "1s");
+    props.put(Property.GC_CYCLE_START.getKey(), "1s");
+    cfg.setSiteConfig(props);
     cfg.useMiniDFS(true);
   }
 
@@ -121,6 +127,9 @@ public class RestartIT extends ConfigurableMacIT {
   public void killedTabletServer2() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("t");
+    Process gc = cluster.exec(SimpleGarbageCollector.class);
+    UtilWaitThread.sleep(5 * 1000);
+    gc.destroy();
     List<ProcessReference> procs = new ArrayList<ProcessReference>(cluster.getProcesses().get(ServerType.TABLET_SERVER));
     for (ProcessReference tserver : procs) {
       cluster.killProcess(ServerType.TABLET_SERVER, tserver);
