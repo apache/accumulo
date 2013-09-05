@@ -226,7 +226,9 @@ public class GarbageCollectWriteAheadLogs {
     int count = 0;
     Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
     while (iterator.hasNext()) {
-      for (String filename : iterator.next().logSet) {
+      for (String entry : iterator.next().logSet) {
+        String parts[] = entry.split("/", 2);
+        String filename = parts[1];
         Path path;
         if (filename.contains(":"))
           path = new Path(filename);
