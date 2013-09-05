@@ -63,25 +63,36 @@ public class ListInstances {
       opts.keepers = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST);
     }
     
-    System.out.println("INFO : Using ZooKeepers " + opts.keepers);
-    ZooReader rdr = new ZooReader(opts.keepers, ZOOKEEPER_TIMER_MILLIS); 
-    ZooCache cache = new ZooCache(opts.keepers, ZOOKEEPER_TIMER_MILLIS);
+    String keepers = opts.keepers;
+    boolean printAll = opts.printAll;
+    boolean printErrors = opts.printErrors;
+    
+    listInstances(keepers, printAll, printErrors);
+    
+  }
 
-    TreeMap<String,UUID> instanceNames = getInstanceNames(rdr);
+  static synchronized void listInstances(String keepers, boolean printAll, boolean printErrors) {
+    errors = 0;
+
+    System.out.println("INFO : Using ZooKeepers " + keepers);
+    ZooReader rdr = new ZooReader(keepers, ZOOKEEPER_TIMER_MILLIS);
+    ZooCache cache = new ZooCache(keepers, ZOOKEEPER_TIMER_MILLIS);
+
+    TreeMap<String,UUID> instanceNames = getInstanceNames(rdr, printErrors);
     
     System.out.println();
     printHeader();
     
     for (Entry<String,UUID> entry : instanceNames.entrySet()) {
-      printInstanceInfo(cache, entry.getKey(), entry.getValue());
+      printInstanceInfo(cache, entry.getKey(), entry.getValue(), printErrors);
     }
     
-    TreeSet<UUID> instancedIds = getInstanceIDs(rdr);
+    TreeSet<UUID> instancedIds = getInstanceIDs(rdr, printErrors);
     instancedIds.removeAll(instanceNames.values());
     
-    if (opts.printAll) {
+    if (printAll) {
       for (UUID uuid : instancedIds) {
-        printInstanceInfo(cache, null, uuid);
+        printInstanceInfo(cache, null, uuid, printErrors);
       }
     } else if (instancedIds.size() > 0) {
       System.out.println();
@@ -90,10 +101,9 @@ public class ListInstances {
       System.out.println();
     }
     
-    if (!opts.printErrors && errors > 0) {
+    if (!printErrors && errors > 0) {
       System.err.println("WARN : There were " + errors + " errors, run with --print-errors to see more info");
     }
-    
   }
   
   private static class CharFiller implements Formattable {
@@ -122,8 +132,8 @@ public class ListInstances {
     
   }
   
-  private static void printInstanceInfo(ZooCache cache, String instanceName, UUID iid) {
-    String master = getMaster(cache, iid);
+  private static void printInstanceInfo(ZooCache cache, String instanceName, UUID iid, boolean printErrors) {
+    String master = getMaster(cache, iid, printErrors);
     if (instanceName == null) {
       instanceName = "";
     }
@@ -134,7 +144,8 @@ public class ListInstances {
     
     System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MASTER_WIDTH + "s%n", "\"" + instanceName + "\"", iid, master);
   }
-  private static String getMaster(ZooCache cache, UUID iid) {
+  
+  private static String getMaster(ZooCache cache, UUID iid, boolean printErrors) {
     
     if (iid == null) {
       return null;
@@ -148,12 +159,12 @@ public class ListInstances {
       }
       return new String(master);
     } catch (Exception e) {
-      handleException(e);
+      handleException(e, printErrors);
       return null;
     }
   }
   
-  private static TreeMap<String,UUID> getInstanceNames(ZooReader zk) {
+  private static TreeMap<String,UUID> getInstanceNames(ZooReader zk, boolean printErrors) {
     
     String instancesPath = Constants.ZROOT + Constants.ZINSTANCES;
     
@@ -164,7 +175,7 @@ public class ListInstances {
     try {
       names = zk.getChildren(instancesPath);
     } catch (Exception e) {
-      handleException(e);
+      handleException(e, printErrors);
       return tm;
     }
     
@@ -174,7 +185,7 @@ public class ListInstances {
         UUID iid = UUID.fromString(new String(zk.getData(instanceNamePath, null)));
         tm.put(name, iid);
       } catch (Exception e) {
-        handleException(e);
+        handleException(e, printErrors);
         tm.put(name, null);
       }
     }
@@ -182,7 +193,7 @@ public class ListInstances {
     return tm;
   }
   
-  private static TreeSet<UUID> getInstanceIDs(ZooReader zk) {
+  private static TreeSet<UUID> getInstanceIDs(ZooReader zk, boolean printErrors) {
     TreeSet<UUID> ts = new TreeSet<UUID>();
     
     try {
@@ -198,14 +209,14 @@ public class ListInstances {
         }
       }
     } catch (Exception e) {
-      handleException(e);
+      handleException(e, printErrors);
     }
     
     return ts;
   }
   
-  private static void handleException(Exception e) {
-    if (opts.printErrors) {
+  private static void handleException(Exception e, boolean printErrors) {
+    if (printErrors) {
       e.printStackTrace();
     }
     

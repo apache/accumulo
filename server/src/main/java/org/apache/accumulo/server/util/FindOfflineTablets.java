@@ -20,21 +20,30 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
+import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
+import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SystemCredentials;
-import org.apache.commons.collections.iterators.IteratorChain;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class FindOfflineTablets {
@@ -46,12 +55,16 @@ public class FindOfflineTablets {
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
-    final AtomicBoolean scanning = new AtomicBoolean(false);
     Instance instance = opts.getInstance();
-    MetaDataTableScanner rootScanner = new MetaDataTableScanner(instance, SystemCredentials.get(), MetadataSchema.TabletsSection.getRange());
-    MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, SystemCredentials.get(), MetadataSchema.TabletsSection.getRange());
-    @SuppressWarnings("unchecked")
-    Iterator<TabletLocationState> scanner = new IteratorChain(rootScanner, metaScanner);
+    SystemCredentials creds = SystemCredentials.get();
+
+    findOffline(instance, creds, null);
+  }
+  
+  static int findOffline(Instance instance, Credentials creds, String tableName) throws AccumuloException, TableNotFoundException {
+
+    final AtomicBoolean scanning = new AtomicBoolean(false);
+
     LiveTServerSet tservers = new LiveTServerSet(instance, DefaultConfiguration.getDefaultConfiguration(), new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
@@ -63,14 +76,57 @@ public class FindOfflineTablets {
     });
     tservers.startListeningForTabletServerChanges();
     scanning.set(true);
+    
+    Iterator<TabletLocationState> zooScanner;
+    try {
+      zooScanner = new ZooTabletStateStore().iterator();
+    } catch (DistributedStoreException e) {
+      throw new AccumuloException(e);
+    }
+    
+    int offline = 0;
+    
+    System.out.println("Scanning zookeeper");
+    if ((offline = checkTablets(zooScanner, tservers)) > 0)
+      return offline;
+
+    if (RootTable.NAME.equals(tableName))
+      return 0;
+
+    System.out.println("Scanning " + RootTable.NAME);
+    Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(instance, creds, MetadataSchema.TabletsSection.getRange(), RootTable.NAME);
+    if ((offline = checkTablets(rootScanner, tservers)) > 0)
+      return offline;
+    
+    if (MetadataTable.NAME.equals(tableName))
+      return 0;
+
+    System.out.println("Scanning " + MetadataTable.NAME);
+    
+    Range range = MetadataSchema.TabletsSection.getRange();
+    if (tableName != null) {
+      String tableId = Tables.getTableId(instance, tableName);
+      range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+    }
+    
+    Iterator<TabletLocationState> metaScanner = new MetaDataTableScanner(instance, creds, range, MetadataTable.NAME);
+    return checkTablets(metaScanner, tservers);
+  }
+  
+  private static int checkTablets(Iterator<TabletLocationState> scanner, LiveTServerSet tservers) {
+    int offline = 0;
+
     while (scanner.hasNext()) {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
       if (state != null && state != TabletState.HOSTED
-          && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
-        if (!locationState.extent.equals(RootTable.EXTENT))
-          System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
+          && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE) {
+        System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
+        offline++;
+      }
     }
+    
+    return offline;
   }
   
 }

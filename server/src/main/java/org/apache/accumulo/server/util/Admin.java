@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -57,24 +58,57 @@ public class Admin {
     List<String> args = new ArrayList<String>();
   }
   
+  @Parameters(commandDescription = "Ping tablet servers.  If no arguments, pings all.")
+  static class PingCommand {
+    @Parameter(description = "{<host> ... }")
+    List<String> args = new ArrayList<String>();
+  }
+  
+  @Parameters(commandDescription = "print tablets that are offline in online tables")
+  static class CheckTabletsCommand {
+    @Parameter(names = "--fixFiles", description = "Remove dangling file pointers")
+    boolean fixFiles = false;
+    
+    @Parameter(names = {"-t", "--table"}, description = "Table to check, if not set checks all tables")
+    String table = null;
+  }
+
   @Parameters(commandDescription = "stop the master")
   static class StopMasterCommand {}
   
   @Parameters(commandDescription = "stop all the servers")
   static class StopAllCommand {}
   
+  @Parameters(commandDescription = "list Accumulo instances in zookeeper")
+  static class ListInstancesCommand {
+    @Parameter(names = "--print-errors", description = "display errors while listing instances")
+    boolean printErrors = false;
+    @Parameter(names = "--print-all", description = "print information for all instances, not just those with names")
+    boolean printAll = false;
+  }
+
   public static void main(String[] args) {
     boolean everything;
     
     AdminOpts opts = new AdminOpts();
     JCommander cl = new JCommander(opts);
     cl.setProgramName(Admin.class.getName());
+
+    CheckTabletsCommand checkTabletsCommand = new CheckTabletsCommand();
+    cl.addCommand("checkTablets", checkTabletsCommand);
+
+    ListInstancesCommand listIntancesOpts = new ListInstancesCommand();
+    cl.addCommand("listInstances", listIntancesOpts);
+    
+    PingCommand pingCommand = new PingCommand();
+    cl.addCommand("ping", pingCommand);
+
     StopCommand stopOpts = new StopCommand();
     cl.addCommand("stop", stopOpts);
-    StopMasterCommand stopMasterOpts = new StopMasterCommand();
-    cl.addCommand("stopMaster", stopMasterOpts);
     StopAllCommand stopAllOpts = new StopAllCommand();
     cl.addCommand("stopAll", stopAllOpts);
+    StopMasterCommand stopMasterOpts = new StopMasterCommand();
+    cl.addCommand("stopMaster", stopMasterOpts);
     cl.parse(args);
     
     if (opts.help || cl.getParsedCommand() == null) {
@@ -94,7 +128,27 @@ public class Admin {
         token = opts.getToken();
       }
       
-      if (cl.getParsedCommand().equals("stop")) {
+      int rc = 0;
+
+      if (cl.getParsedCommand().equals("listInstances")) {
+        ListInstances.listInstances(instance.getZooKeepers(), listIntancesOpts.printAll, listIntancesOpts.printErrors);
+      } else if (cl.getParsedCommand().equals("ping")) {
+        if (ping(instance, principal, token, pingCommand.args) != 0)
+          rc = 4;
+      } else if (cl.getParsedCommand().equals("checkTablets")) {
+        System.out.println("\n*** Looking for offline tablets ***\n");
+        if (FindOfflineTablets.findOffline(instance, new Credentials(principal, token), checkTabletsCommand.table) != 0)
+          rc = 5;
+        System.out.println("\n*** Looking for missing files ***\n");
+        if (checkTabletsCommand.table == null) {
+          if (RemoveEntriesForMissingFiles.checkAllTables(instance, principal, token, checkTabletsCommand.fixFiles) != 0)
+            rc = 6;
+        } else {
+          if (RemoveEntriesForMissingFiles.checkTable(instance, principal, token, checkTabletsCommand.table, checkTabletsCommand.fixFiles) != 0)
+            rc = 6;
+        }
+
+      }else if (cl.getParsedCommand().equals("stop")) {
         stopTabletServer(instance, new Credentials(principal, token), stopOpts.args, opts.force);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
@@ -104,15 +158,46 @@ public class Admin {
         
         stopServer(instance, new Credentials(principal, token), everything);
       }
+      
+      if (rc != 0)
+        System.exit(rc);
     } catch (AccumuloException e) {
       log.error(e, e);
       System.exit(1);
     } catch (AccumuloSecurityException e) {
       log.error(e, e);
       System.exit(2);
+    } catch (Exception e) {
+      log.error(e, e);
+      System.exit(3);
     }
   }
   
+  private static int ping(Instance instance, String principal, AuthenticationToken token, List<String> args) throws AccumuloException,
+      AccumuloSecurityException {
+    
+    InstanceOperations io = instance.getConnector(principal, token).instanceOperations();
+    
+    if (args.size() == 0) {
+      args = io.getTabletServers();
+    }
+    
+    int unreachable = 0;
+
+    for (String tserver : args) {
+      try {
+        io.ping(tserver);
+        System.out.println(tserver + " OK");
+      } catch (AccumuloException ae) {
+        System.out.println(tserver + " FAILED (" + ae.getMessage() + ")");
+        unreachable++;
+      }
+    }
+    
+    System.out.printf("\n%d of %d tablet servers unreachable\n\n", unreachable, args.size());
+    return unreachable;
+  }
+
   /**
    * flushing during shutdown is a performance optimization, its not required. The method will make an attempt to initiate flushes of all tables and give up if
    * it takes too long.
