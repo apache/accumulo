@@ -77,7 +77,7 @@
     <module>fate</module>
     <module>server</module>
     <module>start</module>
-    <module>examples</module>
+    <module>examples/simple</module>
     <module>assemble</module>
     <module>proxy</module>
     <module>test</module>
