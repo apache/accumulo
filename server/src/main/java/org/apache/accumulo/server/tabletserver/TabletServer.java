@@ -2475,6 +2475,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   private class MajorCompactor implements Runnable {
     
+    public MajorCompactor(AccumuloConfiguration config) {
+      CompactionWatcher.startWatching(config);
+    }
+
     @Override
     public void run() {
       while (!majorCompactorDisabled) {
@@ -3433,7 +3437,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     statsKeeper = new TabletStatsKeeper();
     
     // start major compactor
-    majorCompactorThread = new Daemon(new LoggingRunnable(log, new MajorCompactor()));
+    majorCompactorThread = new Daemon(new LoggingRunnable(log, new MajorCompactor(getSystemConfiguration())));
     majorCompactorThread.setName("Split/MajC initiator");
     majorCompactorThread.start();
   }

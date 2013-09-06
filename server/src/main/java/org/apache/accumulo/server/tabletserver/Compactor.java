@@ -144,6 +144,13 @@ public class Compactor implements Callable<CompactionStats> {
   private AtomicLong entriesWritten = new AtomicLong(0);
   private DateFormat dateFormatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
   
+  private static AtomicLong nextCompactorID = new AtomicLong(0);
+  
+  // a unique id to identify a compactor
+  private long compactorID = nextCompactorID.getAndIncrement();
+
+  protected volatile Thread thread;
+
   private synchronized void setLocalityGroup(String name) {
     this.currentLocalityGroup = name;
   }
@@ -167,6 +174,26 @@ public class Compactor implements Callable<CompactionStats> {
       this.entriesRead = compactor.entriesRead.get();
       this.entriesWritten = compactor.entriesWritten.get();
       this.compactor = compactor;
+    }
+
+    public long getID() {
+      return compactor.compactorID;
+    }
+    
+    public KeyExtent getExtent() {
+      return compactor.getExtent();
+    }
+    
+    public long getEntriesRead() {
+      return entriesRead;
+    }
+    
+    public long getEntriesWritten() {
+      return entriesWritten;
+    }
+
+    public Thread getThread() {
+      return compactor.thread;
     }
 
     public ActiveCompaction toThrift() {
@@ -289,6 +316,7 @@ public class Compactor implements Callable<CompactionStats> {
     String oldThreadName = Thread.currentThread().getName();
     String newThreadName = "MajC compacting " + extent.toString() + " started " + dateFormatter.format(new Date()) + " file: " + outputFile;
     Thread.currentThread().setName(newThreadName);
+    thread = Thread.currentThread();
     try {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.path());
@@ -344,8 +372,10 @@ public class Compactor implements Callable<CompactionStats> {
       throw e;
     } finally {
       Thread.currentThread().setName(oldThreadName);
-      if (remove)
+      if (remove) {
+        thread = null;
         runningCompactions.remove(this);
+      }
 
       try {
         if (mfw != null) {
