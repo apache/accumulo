@@ -119,7 +119,9 @@ To use a regular expression to match row IDs:
 
 \small
 \begin{verbatim}
-AccumuloInputFormat.setRegex(job, RegexType.ROW, "^.*");
+IteratorSetting is = new IteratorSetting(30, RexExFilter.class);
+RegExFilter.setRegexs(is, ".*suffix", null, null, null, true);
+AccumuloInputFormat.addIterator(job, is);
 \end{verbatim}
 \normalsize
 

@@ -164,8 +164,12 @@ in cases where the Iterator does not implement the OptionDescriber interface.
 
 \small
 \begin{verbatim}
-config -t mytable -s table.iterator.{scan|minc|majc}.myiter=15,com.company.MyIterator
-config -t mytable -s table.iteartor.{scan|minc|majc}.myiter.opt.myoptionname=myoptionvalue
+config -t mytable -s table.iterator.scan.myiter=15,com.company.MyIterator
+config -t mytable -s table.iterator.minc.myiter=15,com.company.MyIterator
+config -t mytable -s table.iterator.majc.myiter=15,com.company.MyIterator
+config -t mytable -s table.iterator.scan.myiter.opt.myoptionname=myoptionvalue
+config -t mytable -s table.iterator.minc.myiter.opt.myoptionname=myoptionvalue
+config -t mytable -s table.iterator.majc.myiter.opt.myoptionname=myoptionvalue
 \end{verbatim}
 \normalsize
 
