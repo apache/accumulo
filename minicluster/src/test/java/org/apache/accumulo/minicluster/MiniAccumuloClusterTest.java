@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.minicluster;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.util.Collections;
 import java.util.Map.Entry;
@@ -40,6 +42,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
@@ -64,10 +67,19 @@ public class MiniAccumuloClusterTest {
     accumulo.start();
   }
 
+  @Test
+  public void checkDFSConstants() {
+    // check for unexpected changes in static constants because these will be inlined
+    // and we won't otherwise know that they won't work on a particular version
+    assertEquals("dfs.namenode.name.dir", DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY);
+    assertEquals("dfs.datanode.data.dir", DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY);
+    assertEquals("dfs.replication", DFSConfigKeys.DFS_REPLICATION_KEY);
+  }
+
   @Test(timeout = 30000)
   public void test() throws Exception {
     Connector conn = new ZooKeeperInstance(accumulo.getConfig().getInstanceName(), accumulo.getConfig().getZooKeepers()).getConnector("root",
-            new PasswordToken("superSecret"));
+        new PasswordToken("superSecret"));
 
     conn.tableOperations().create("table1");
 
@@ -83,7 +95,7 @@ public class MiniAccumuloClusterTest {
     conn.tableOperations().attachIterator("table1", is);
 
     Connector uconn = new ZooKeeperInstance(accumulo.getConfig().getInstanceName(), accumulo.getConfig().getZooKeepers()).getConnector("user1",
-            new PasswordToken("pass1"));
+        new PasswordToken("pass1"));
 
     BatchWriter bw = uconn.createBatchWriter("table1", new BatchWriterConfig());
 
@@ -140,7 +152,7 @@ public class MiniAccumuloClusterTest {
   public void testPerTableClasspath() throws Exception {
 
     Connector conn = new ZooKeeperInstance(accumulo.getConfig().getInstanceName(), accumulo.getConfig().getZooKeepers()).getConnector("root",
-            new PasswordToken("superSecret"));
+        new PasswordToken("superSecret"));
 
     conn.tableOperations().create("table2");
 

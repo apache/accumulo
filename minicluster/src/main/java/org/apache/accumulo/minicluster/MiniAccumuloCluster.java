@@ -68,15 +68,15 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
  * @since 1.5.0
  */
 public class MiniAccumuloCluster {
-  
+
   public static class LogWriter extends Daemon {
     private BufferedReader in;
     private BufferedWriter out;
-    
+
     public LogWriter(InputStream stream, File logFile) throws IOException {
       this.in = new BufferedReader(new InputStreamReader(stream));
       out = new BufferedWriter(new FileWriter(logFile));
-      
+
       SimpleTimer.getInstance().schedule(new Runnable() {
         @Override
         public void run() {
@@ -88,78 +88,78 @@ public class MiniAccumuloCluster {
         }
       }, 1000, 1000);
     }
-    
+
     public synchronized void flush() throws IOException {
       if (out != null)
         out.flush();
     }
-    
+
     @Override
     public void run() {
       String line;
-      
+
       try {
         while ((line = in.readLine()) != null) {
           out.append(line);
           out.append("\n");
         }
-        
+
         synchronized (this) {
           out.close();
           out = null;
           in.close();
         }
-        
+
       } catch (IOException e) {}
     }
   }
-  
+
   private boolean initialized = false;
   private Process zooKeeperProcess = null;
   private Process masterProcess = null;
   private List<Process> tabletServerProcesses = new ArrayList<Process>();
-  
+
   private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<Pair<ServerType,Integer>>();
-  
+
   private File zooCfgFile;
-  
+
   public List<LogWriter> getLogWriters() {
     return logWriters;
   }
-  
+
   private List<LogWriter> logWriters = new ArrayList<MiniAccumuloCluster.LogWriter>();
-  
+
   private MiniAccumuloConfig config;
   private MiniDFSCluster miniDFS = null;
   private List<Process> cleanup = new ArrayList<Process>();
-  
+
   public Process exec(Class<? extends Object> clazz, String... args) throws IOException {
     Process proc = exec(clazz, Collections.singletonList("-Xmx" + config.getDefaultMemory()), args);
     cleanup.add(proc);
     return proc;
   }
-  
+
   private Process exec(Class<? extends Object> clazz, List<String> extraJvmOpts, String... args) throws IOException {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
     String classpath = System.getProperty("java.class.path");
-    
+
     classpath = config.getConfDir().getAbsolutePath() + File.pathSeparator + classpath;
-    
+
     String className = clazz.getName();
-    
+
     ArrayList<String> argList = new ArrayList<String>();
     argList.addAll(Arrays.asList(javaBin, "-Dproc=" + clazz.getSimpleName(), "-cp", classpath));
     argList.add("-Djava.library.path=" + config.getLibDir());
     argList.addAll(extraJvmOpts);
     argList.addAll(Arrays.asList("-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", Main.class.getName(), className));
     argList.addAll(Arrays.asList(args));
-    
+
     ProcessBuilder builder = new ProcessBuilder(argList);
-    
+
     builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", config.getLogDir().getAbsolutePath());
-    
+
     // if we're running under accumulo.start, we forward these env vars
     String env = System.getenv("HADOOP_PREFIX");
     if (env != null)
@@ -167,9 +167,9 @@ public class MiniAccumuloCluster {
     env = System.getenv("ZOOKEEPER_HOME");
     if (env != null)
       builder.environment().put("ZOOKEEPER_HOME", env);
-    
+
     Process process = builder.start();
-    
+
     LogWriter lw;
     lw = new LogWriter(process.getErrorStream(), new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".err"));
     logWriters.add(lw);
@@ -177,15 +177,15 @@ public class MiniAccumuloCluster {
     lw = new LogWriter(process.getInputStream(), new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
     logWriters.add(lw);
     lw.start();
-    
+
     return process;
   }
-  
+
   private Process exec(Class<? extends Object> clazz, ServerType serverType, String... args) throws IOException {
-    
+
     List<String> jvmOpts = new ArrayList<String>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
-    
+
     if (config.isJDWPEnabled()) {
       Integer port = PortUtils.getRandomFreePort();
       jvmOpts.addAll(buildRemoteDebugParams(port));
@@ -193,7 +193,7 @@ public class MiniAccumuloCluster {
     }
     return exec(clazz, jvmOpts, args);
   }
-  
+
   /**
    * 
    * @param dir
@@ -205,22 +205,22 @@ public class MiniAccumuloCluster {
   public MiniAccumuloCluster(File dir, String rootPassword) throws IOException {
     this(new MiniAccumuloConfig(dir, rootPassword));
   }
-  
+
   /**
    * @param config
    *          initial configuration
    */
   public MiniAccumuloCluster(MiniAccumuloConfig config) throws IOException {
-    
+
     this.config = config.initialize();
-    
+
     config.getConfDir().mkdirs();
     config.getAccumuloDir().mkdirs();
     config.getZooKeeperDir().mkdirs();
     config.getLogDir().mkdirs();
     config.getWalogDir().mkdirs();
     config.getLibDir().mkdirs();
-    
+
     if (config.useMiniDFS()) {
       File nn = new File(config.getAccumuloDir(), "nn");
       nn.mkdirs();
@@ -232,7 +232,7 @@ public class MiniAccumuloCluster {
       conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, nn.getAbsolutePath());
       conf.set(DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY, dn.getAbsolutePath());
       conf.set(DFSConfigKeys.DFS_REPLICATION_KEY, "1");
-      conf.set(DFSConfigKeys.DFS_SUPPORT_APPEND_KEY, "true");
+      conf.set("dfs.support.append", "true");
       conf.set("dfs.datanode.synconclose", "true");
       conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
       String oldTestBuildData = System.setProperty("test.build.data", dfs.getAbsolutePath());
@@ -248,27 +248,27 @@ public class MiniAccumuloCluster {
       writeConfig(coreFile, Collections.singletonMap("fs.default.name", uri).entrySet());
       File hdfsFile = new File(config.getConfDir(), "hdfs-site.xml");
       writeConfig(hdfsFile, conf);
-      
+
       Map<String,String> siteConfig = config.getSiteConfig();
       siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), uri);
       siteConfig.put(Property.INSTANCE_DFS_DIR.getKey(), "/accumulo");
       config.setSiteConfig(siteConfig);
     }
-    
+
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());
-    
+
     FileWriter fileWriter = new FileWriter(siteFile);
     fileWriter.append("<configuration>\n");
-    
+
     for (Entry<String,String> entry : config.getSiteConfig().entrySet())
       fileWriter.append("<property><name>" + entry.getKey() + "</name><value>" + entry.getValue() + "</value></property>\n");
     fileWriter.append("</configuration>\n");
     fileWriter.close();
-    
+
     zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
     fileWriter = new FileWriter(zooCfgFile);
-    
+
     // zookeeper uses Properties to read its config, so use that to write in order to properly escape things like Windows paths
     Properties zooCfg = new Properties();
     zooCfg.setProperty("tickTime", "2000");
@@ -278,13 +278,13 @@ public class MiniAccumuloCluster {
     zooCfg.setProperty("maxClientCnxns", "1000");
     zooCfg.setProperty("dataDir", config.getZooKeeperDir().getAbsolutePath());
     zooCfg.store(fileWriter, null);
-    
+
     fileWriter.close();
-    
+
     File nativeMap = new File(config.getLibDir().getAbsolutePath() + "/native/map");
     nativeMap.mkdirs();
     File testRoot = new File(new File(new File(System.getProperty("user.dir")).getParent() + "/server/src/main/c++/nativeMap").getAbsolutePath());
-    
+
     if (testRoot.exists()) {
       for (String file : testRoot.list()) {
         File src = new File(testRoot, file);
@@ -293,11 +293,11 @@ public class MiniAccumuloCluster {
       }
     }
   }
-  
-  private void writeConfig(File file, Iterable<Map.Entry<String, String>> settings) throws IOException {
+
+  private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
     fileWriter.append("<configuration>\n");
-    
+
     for (Entry<String,String> entry : settings) {
       String value = entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
       fileWriter.append("<property><name>" + entry.getKey() + "</name><value>" + value + "</value></property>\n");
@@ -305,7 +305,7 @@ public class MiniAccumuloCluster {
     fileWriter.append("</configuration>\n");
     fileWriter.close();
   }
-  
+
   /**
    * Starts Accumulo and Zookeeper processes. Can only be called once.
    * 
@@ -313,9 +313,9 @@ public class MiniAccumuloCluster {
    *           if already started
    */
   public void start() throws IOException, InterruptedException {
-    
+
     if (!initialized) {
-      
+
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
@@ -329,11 +329,11 @@ public class MiniAccumuloCluster {
         }
       });
     }
-    
+
     if (zooKeeperProcess == null) {
       zooKeeperProcess = exec(Main.class, ServerType.ZOOKEEPER, ZooKeeperServerMain.class.getName(), zooCfgFile.getAbsolutePath());
     }
-    
+
     if (!initialized) {
       // sleep a little bit to let zookeeper come up before calling init, seems to work better
       UtilWaitThread.sleep(250);
@@ -344,7 +344,7 @@ public class MiniAccumuloCluster {
       }
       initialized = true;
     }
-    
+
     for (int i = tabletServerProcesses.size(); i < config.getNumTservers(); i++) {
       tabletServerProcesses.add(exec(TabletServer.class, ServerType.TABLET_SERVER));
     }
@@ -362,11 +362,11 @@ public class MiniAccumuloCluster {
       masterProcess = exec(Master.class, ServerType.MASTER);
     }
   }
-  
+
   private List<String> buildRemoteDebugParams(int port) {
     return Arrays.asList(new String[] {"-Xdebug", String.format("-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=%d", port)});
   }
-  
+
   /**
    * @return generated remote debug ports if in debug mode.
    * @since 1.6.0
@@ -374,7 +374,7 @@ public class MiniAccumuloCluster {
   public Set<Pair<ServerType,Integer>> getDebugPorts() {
     return debugPorts;
   }
-  
+
   List<ProcessReference> references(Process... procs) {
     List<ProcessReference> result = new ArrayList<ProcessReference>();
     for (Process proc : procs) {
@@ -382,7 +382,7 @@ public class MiniAccumuloCluster {
     }
     return result;
   }
-  
+
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<ServerType,Collection<ProcessReference>>();
     result.put(ServerType.MASTER, references(masterProcess));
@@ -390,7 +390,7 @@ public class MiniAccumuloCluster {
     result.put(ServerType.ZOOKEEPER, references(zooKeeperProcess));
     return result;
   }
-  
+
   public void killProcess(ServerType type, ProcessReference proc) throws ProcessNotFoundException, InterruptedException {
     boolean found = false;
     switch (type) {
@@ -422,21 +422,21 @@ public class MiniAccumuloCluster {
     if (!found)
       throw new ProcessNotFoundException();
   }
-  
+
   /**
    * @return Accumulo instance name
    */
   public String getInstanceName() {
     return config.getInstanceName();
   }
-  
+
   /**
    * @return zookeeper connection string
    */
   public String getZooKeepers() {
     return config.getZooKeepers();
   }
-  
+
   /**
    * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. However its probably best to
    * call stop in a finally block as soon as possible.
@@ -445,7 +445,7 @@ public class MiniAccumuloCluster {
     for (LogWriter lw : logWriters) {
       lw.flush();
     }
-    
+
     if (zooKeeperProcess != null) {
       zooKeeperProcess.destroy();
     }
@@ -457,7 +457,7 @@ public class MiniAccumuloCluster {
         tserver.destroy();
       }
     }
-    
+
     zooKeeperProcess = null;
     masterProcess = null;
     tabletServerProcesses.clear();
@@ -467,14 +467,14 @@ public class MiniAccumuloCluster {
       p.destroy();
     miniDFS = null;
   }
-  
+
   /**
    * @since 1.6.0
    */
   public MiniAccumuloConfig getConfig() {
     return config;
   }
-  
+
   /**
    * Utility method to get a connector to the MAC.
    * 
