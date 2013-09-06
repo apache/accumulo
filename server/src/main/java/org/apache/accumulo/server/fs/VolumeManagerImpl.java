@@ -52,28 +52,29 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
 public class VolumeManagerImpl implements VolumeManager {
-  
+
   private static final Logger log = Logger.getLogger(VolumeManagerImpl.class);
-  
-  Map<String, ? extends FileSystem> volumes;
+
+  Map<String,? extends FileSystem> volumes;
   String defaultVolume;
   AccumuloConfiguration conf;
   VolumeChooser chooser;
-  
-  protected VolumeManagerImpl(Map<String, ? extends FileSystem> volumes, String defaultVolume, AccumuloConfiguration conf) {
+
+  protected VolumeManagerImpl(Map<String,? extends FileSystem> volumes, String defaultVolume, AccumuloConfiguration conf) {
     this.volumes = volumes;
     this.defaultVolume = defaultVolume;
     this.conf = conf;
     ensureSyncIsEnabled();
     try {
-      chooser = (VolumeChooser)this.getClass().getClassLoader().loadClass(conf.get(Property.GENERAL_VOLUME_CHOOSER)).newInstance();
+      chooser = (VolumeChooser) this.getClass().getClassLoader().loadClass(conf.get(Property.GENERAL_VOLUME_CHOOSER)).newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
-  
+
   public static org.apache.accumulo.server.fs.VolumeManager getLocal() throws IOException {
-    return new VolumeManagerImpl(Collections.singletonMap("", FileSystem.getLocal(CachedConfiguration.getInstance())), "", DefaultConfiguration.getDefaultConfiguration());
+    return new VolumeManagerImpl(Collections.singletonMap("", FileSystem.getLocal(CachedConfiguration.getInstance())), "",
+        DefaultConfiguration.getDefaultConfiguration());
   }
 
   @Override
@@ -90,7 +91,7 @@ public class VolumeManagerImpl implements VolumeManager {
       throw ex;
     }
   }
-  
+
   @Override
   public boolean closePossiblyOpenFile(Path path) throws IOException {
     FileSystem fs = getFileSystemByPath(path);
@@ -100,7 +101,7 @@ public class VolumeManagerImpl implements VolumeManager {
         return dfs.recoverLease(path);
       } catch (FileNotFoundException ex) {
         throw ex;
-      } 
+      }
     } else if (fs instanceof LocalFileSystem) {
       // ignore
     } else {
@@ -110,23 +111,23 @@ public class VolumeManagerImpl implements VolumeManager {
     log.info("Recovered lease on " + path.toString() + " using append");
     return true;
   }
-  
+
   @Override
   public FSDataOutputStream create(Path path) throws IOException {
     FileSystem fs = getFileSystemByPath(path);
     return fs.create(path);
   }
-  
+
   @Override
   public FSDataOutputStream create(Path path, boolean overwrite) throws IOException {
     FileSystem fs = getFileSystemByPath(path);
     return fs.create(path, overwrite);
   }
-  
+
   private static long correctBlockSize(Configuration conf, long blockSize) {
     if (blockSize <= 0)
       blockSize = conf.getLong("dfs.block.size", 67108864);
-    
+
     int checkSum = conf.getInt("io.bytes.per.checksum", 512);
     blockSize -= blockSize % checkSum;
     blockSize = Math.max(blockSize, checkSum);
@@ -138,7 +139,6 @@ public class VolumeManagerImpl implements VolumeManager {
       bufferSize = conf.getInt("io.file.buffer.size", 4096);
     return bufferSize;
   }
-  
 
   @Override
   public FSDataOutputStream create(Path path, boolean overwrite, int bufferSize, short replication, long blockSize) throws IOException {
@@ -154,26 +154,27 @@ public class VolumeManagerImpl implements VolumeManager {
     FileSystem fs = getFileSystemByPath(path);
     return fs.createNewFile(path);
   }
+
   @Override
   public FSDataOutputStream createSyncable(Path logPath, int bufferSize, short replication, long blockSize) throws IOException {
     FileSystem fs = getFileSystemByPath(logPath);
     blockSize = correctBlockSize(fs.getConf(), blockSize);
     bufferSize = correctBufferSize(fs.getConf(), bufferSize);
     try {
-      // This... 
-      //    EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
-      //    return fs.create(logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
+      // This...
+      // EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
+      // return fs.create(logPath, FsPermission.getDefault(), set, buffersize, replication, blockSize, null);
       // Becomes this:
       Class<?> createFlags = Class.forName("org.apache.hadoop.fs.CreateFlag");
       List<Enum<?>> flags = new ArrayList<Enum<?>>();
       if (createFlags.isEnum()) {
         for (Object constant : createFlags.getEnumConstants()) {
           if (constant.toString().equals("SYNC_BLOCK")) {
-            flags.add((Enum<?>)constant);
+            flags.add((Enum<?>) constant);
             log.debug("Found synch enum " + constant);
           }
           if (constant.toString().equals("CREATE")) {
-            flags.add((Enum<?>)constant);
+            flags.add((Enum<?>) constant);
             log.debug("Found CREATE enum " + constant);
           }
         }
@@ -182,7 +183,7 @@ public class VolumeManagerImpl implements VolumeManager {
       log.debug("CreateFlag set: " + set);
       Method create = fs.getClass().getMethod("create", Path.class, FsPermission.class, EnumSet.class, Integer.TYPE, Short.TYPE, Long.TYPE, Progressable.class);
       log.debug("creating " + logPath + " with SYNCH_BLOCK flag");
-      return (FSDataOutputStream)create.invoke(fs, logPath, FsPermission.getDefault(), set, bufferSize, replication, blockSize, null);
+      return (FSDataOutputStream) create.invoke(fs, logPath, FsPermission.getDefault(), set, bufferSize, replication, blockSize, null);
     } catch (ClassNotFoundException ex) {
       // Expected in hadoop 1.0
       return fs.create(logPath, true, bufferSize, replication, blockSize);
@@ -193,7 +194,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public boolean delete(Path path)  throws IOException{
+  public boolean delete(Path path) throws IOException {
     return getFileSystemByPath(path).delete(path, false);
   }
 
@@ -232,7 +233,7 @@ public class VolumeManagerImpl implements VolumeManager {
         }
       }
     }
-    
+
   }
 
   @Override
@@ -247,26 +248,25 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public FileSystem getFileSystemByPath(Path path) {
-    if (path.toString().contains(":"))
-    {
+    if (path.toString().contains(":")) {
       try {
         return path.getFileSystem(CachedConfiguration.getInstance());
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
     }
-      
+
     return volumes.get(defaultVolume);
   }
 
   @Override
-  public Map<String, ? extends FileSystem>  getFileSystems() {
+  public Map<String,? extends FileSystem> getFileSystems() {
     return volumes;
   }
 
   @Override
   public FileStatus[] listStatus(Path path) throws IOException {
-    return getFileSystemByPath(path).listStatus(path); 
+    return getFileSystemByPath(path).listStatus(path);
   }
 
   @Override
@@ -280,7 +280,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public boolean rename(Path path, Path newPath)throws IOException {
+  public boolean rename(Path path, Path newPath) throws IOException {
     FileSystem source = getFileSystemByPath(path);
     FileSystem dest = getFileSystemByPath(newPath);
     if (source != dest) {
@@ -290,7 +290,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public boolean moveToTrash(Path path) throws IOException{
+  public boolean moveToTrash(Path path) throws IOException {
     FileSystem fs = getFileSystemByPath(path);
     Trash trash = new Trash(fs, fs.getConf());
     return trash.moveToTrash(path);
@@ -298,7 +298,9 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public short getDefaultReplication(Path path) {
-    return getFileSystemByPath(path).getDefaultReplication();
+    @SuppressWarnings("deprecation")
+    short rep = getFileSystemByPath(path).getDefaultReplication();
+    return rep;
   }
 
   @Override
@@ -310,11 +312,11 @@ public class VolumeManagerImpl implements VolumeManager {
     AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
     return get(conf);
   }
-  
+
   static private final String DEFAULT = "";
 
   public static VolumeManager get(AccumuloConfiguration conf) throws IOException {
-    Map<String, FileSystem> fileSystems = new HashMap<String, FileSystem>();
+    Map<String,FileSystem> fileSystems = new HashMap<String,FileSystem>();
     Configuration hadoopConf = CachedConfiguration.getInstance();
     fileSystems.put(DEFAULT, FileSystem.get(hadoopConf));
     String ns = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_VOLUMES);
@@ -335,7 +337,7 @@ public class VolumeManagerImpl implements VolumeManager {
     for (FileSystem fs : getFileSystems().values()) {
       if (!(fs instanceof DistributedFileSystem))
         continue;
-      DistributedFileSystem dfs = (DistributedFileSystem)fs;
+      DistributedFileSystem dfs = (DistributedFileSystem) fs;
       // So this: if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
       // Becomes this:
       Class<?> safeModeAction;
@@ -380,16 +382,16 @@ public class VolumeManagerImpl implements VolumeManager {
   public FileStatus[] globStatus(Path pathPattern) throws IOException {
     return getFileSystemByPath(pathPattern).globStatus(pathPattern);
   }
-  
+
   @Override
   public Path getFullPath(Key key) {
-    
+
     String relPath = key.getColumnQualifierData().toString();
     if (relPath.contains(":"))
       return new Path(relPath);
-   
-    byte [] tableId = KeyExtent.tableOfMetadataRow(key.getRow());
-    
+
+    byte[] tableId = KeyExtent.tableOfMetadataRow(key.getRow());
+
     if (relPath.startsWith("../"))
       relPath = relPath.substring(2);
     else
@@ -413,9 +415,9 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public String newPathOnSameVolume(String sourceDir, String suffix) {
     for (String fs : getFileSystems().keySet()) {
-        if (sourceDir.startsWith(fs)) {
-          return fs + "/" + suffix;
-        }
+      if (sourceDir.startsWith(fs)) {
+        return fs + "/" + suffix;
+      }
     }
     return null;
   }
@@ -425,7 +427,7 @@ public class VolumeManagerImpl implements VolumeManager {
     if (fileName.contains(":"))
       return new Path(fileName);
     // TODO: ACCUMULO-118
-    // How do we want it to work?  Find it somewhere? or find it in the default file system?
+    // How do we want it to work? Find it somewhere? or find it in the default file system?
     // old-style name, on one of many possible "root" paths:
     if (fileName.startsWith("../"))
       fileName = fileName.substring(2);

@@ -19,13 +19,16 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -35,8 +38,8 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MergeMetaIT extends SimpleMacIT {
-  
+public class MetadataIT extends SimpleMacIT {
+
   @Test(timeout = 60 * 1000)
   public void mergeMeta() throws Exception {
     Connector c = getConnector();
@@ -60,5 +63,32 @@ public class MergeMetaIT extends SimpleMacIT {
     assertTrue(count > 0);
     assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());
   }
-  
+
+  @Test(timeout = 2 * 60 * 1000)
+  public void batchScanTest() throws Exception {
+    Connector c = getConnector();
+    String tableName = makeTableName();
+    c.tableOperations().create(tableName);
+
+    // batch scan regular metadata table
+    BatchScanner s = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
+    s.setRanges(Collections.singleton(new Range()));
+    int count = 0;
+    for (Entry<Key,Value> e : s) {
+      if (e != null)
+        count++;
+    }
+    assertTrue(count > 0);
+
+    // batch scan root metadata table
+    s = c.createBatchScanner(RootTable.NAME, Authorizations.EMPTY, 1);
+    s.setRanges(Collections.singleton(new Range()));
+    count = 0;
+    for (Entry<Key,Value> e : s) {
+      if (e != null)
+        count++;
+    }
+    assertTrue(count > 0);
+  }
+
 }

@@ -38,7 +38,7 @@ import org.apache.hadoop.util.Progressable;
 // If FileSystem was an interface, we could use a Proxy, but it's not, so we have to override everything manually
 
 public class TraceFileSystem extends FileSystem {
-  
+
   @Override
   public void setConf(Configuration conf) {
     Span span = Trace.start("setConf");
@@ -51,7 +51,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public Configuration getConf() {
     Span span = Trace.start("getConf");
@@ -61,7 +61,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public BlockLocation[] getFileBlockLocations(FileStatus file, long start, long len) throws IOException {
     Span span = Trace.start("getFileBlockLocations");
@@ -71,7 +71,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataInputStream open(Path f) throws IOException {
     Span span = Trace.start("open");
@@ -83,7 +83,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream create(Path f) throws IOException {
     Span span = Trace.start("create");
@@ -95,7 +95,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream create(Path f, boolean overwrite) throws IOException {
     Span span = Trace.start("create");
@@ -107,20 +107,20 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream create(Path f, Progressable progress) throws IOException {
     Span span = Trace.start("create");
     if (Trace.isTracing())
       span.data("path", f.toString());
     try {
-      
+
       return impl.create(f, progress);
     } finally {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream create(Path f, short replication) throws IOException {
     Span span = Trace.start("create");
@@ -132,7 +132,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream create(Path f, short replication, Progressable progress) throws IOException {
     Span span = Trace.start("create");
@@ -144,7 +144,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream create(Path f, boolean overwrite, int bufferSize) throws IOException {
     Span span = Trace.start("create");
@@ -156,7 +156,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream create(Path f, boolean overwrite, int bufferSize, Progressable progress) throws IOException {
     Span span = Trace.start("create");
@@ -168,7 +168,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream create(Path f, boolean overwrite, int bufferSize, short replication, long blockSize) throws IOException {
     Span span = Trace.start("create");
@@ -180,7 +180,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream create(Path f, boolean overwrite, int bufferSize, short replication, long blockSize, Progressable progress) throws IOException {
     Span span = Trace.start("create");
@@ -192,7 +192,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public boolean createNewFile(Path f) throws IOException {
     Span span = Trace.start("createNewFile");
@@ -204,7 +204,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream append(Path f) throws IOException {
     Span span = Trace.start("append");
@@ -216,7 +216,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream append(Path f, int bufferSize) throws IOException {
     Span span = Trace.start("append");
@@ -228,7 +228,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Deprecated
   @Override
   public short getReplication(Path src) throws IOException {
@@ -241,7 +241,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public boolean setReplication(Path src, short replication) throws IOException {
     Span span = Trace.start("setReplication");
@@ -253,7 +253,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public boolean exists(Path f) throws IOException {
     Span span = Trace.start("exists");
@@ -265,7 +265,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Deprecated
   @Override
   public boolean isDirectory(Path f) throws IOException {
@@ -278,7 +278,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public boolean isFile(Path f) throws IOException {
     Span span = Trace.start("isFile");
@@ -290,7 +290,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @SuppressWarnings("deprecation")
   @Override
   public long getLength(Path f) throws IOException {
@@ -303,7 +303,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public ContentSummary getContentSummary(Path f) throws IOException {
     Span span = Trace.start("getContentSummary");
@@ -315,7 +315,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FileStatus[] listStatus(Path f, PathFilter filter) throws IOException {
     Span span = Trace.start("listStatus");
@@ -327,7 +327,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FileStatus[] listStatus(Path[] files) throws IOException {
     Span span = Trace.start("listStatus");
@@ -337,7 +337,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FileStatus[] listStatus(Path[] files, PathFilter filter) throws IOException {
     Span span = Trace.start("listStatus");
@@ -347,7 +347,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FileStatus[] globStatus(Path pathPattern) throws IOException {
     Span span = Trace.start("globStatus");
@@ -359,7 +359,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FileStatus[] globStatus(Path pathPattern, PathFilter filter) throws IOException {
     Span span = Trace.start("globStatus");
@@ -371,7 +371,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public Path getHomeDirectory() {
     Span span = Trace.start("getHomeDirectory");
@@ -381,7 +381,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public boolean mkdirs(Path f) throws IOException {
     Span span = Trace.start("mkdirs");
@@ -393,7 +393,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void copyFromLocalFile(Path src, Path dst) throws IOException {
     Span span = Trace.start("copyFromLocalFile");
@@ -407,7 +407,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void moveFromLocalFile(Path[] srcs, Path dst) throws IOException {
     Span span = Trace.start("moveFromLocalFile");
@@ -420,7 +420,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void moveFromLocalFile(Path src, Path dst) throws IOException {
     Span span = Trace.start("moveFromLocalFile");
@@ -434,7 +434,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void copyFromLocalFile(boolean delSrc, Path src, Path dst) throws IOException {
     Span span = Trace.start("copyFromLocalFile");
@@ -448,7 +448,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void copyFromLocalFile(boolean delSrc, boolean overwrite, Path[] srcs, Path dst) throws IOException {
     Span span = Trace.start("copyFromLocalFile");
@@ -461,7 +461,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void copyFromLocalFile(boolean delSrc, boolean overwrite, Path src, Path dst) throws IOException {
     Span span = Trace.start("copyFromLocalFile");
@@ -475,7 +475,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void copyToLocalFile(Path src, Path dst) throws IOException {
     Span span = Trace.start("copyFromLocalFile");
@@ -489,7 +489,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void moveToLocalFile(Path src, Path dst) throws IOException {
     Span span = Trace.start("moveToLocalFile");
@@ -503,7 +503,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void copyToLocalFile(boolean delSrc, Path src, Path dst) throws IOException {
     Span span = Trace.start("copyToLocalFile");
@@ -517,7 +517,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public Path startLocalOutput(Path fsOutputFile, Path tmpLocalFile) throws IOException {
     Span span = Trace.start("startLocalOutput");
@@ -531,7 +531,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void completeLocalOutput(Path fsOutputFile, Path tmpLocalFile) throws IOException {
     Span span = Trace.start("completeLocalOutput");
@@ -545,7 +545,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void close() throws IOException {
     Span span = Trace.start("close");
@@ -555,7 +555,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public long getUsed() throws IOException {
     Span span = Trace.start("getUsed");
@@ -565,7 +565,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @SuppressWarnings("deprecation")
   @Override
   public long getBlockSize(Path f) throws IOException {
@@ -579,7 +579,8 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
+  @Deprecated
   @Override
   public long getDefaultBlockSize() {
     Span span = Trace.start("getDefaultBlockSize");
@@ -589,7 +590,8 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
+  @Deprecated
   @Override
   public short getDefaultReplication() {
     Span span = Trace.start("getDefaultReplication");
@@ -599,7 +601,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FileChecksum getFileChecksum(Path f) throws IOException {
     Span span = Trace.start("getFileChecksum");
@@ -612,7 +614,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void setVerifyChecksum(boolean verifyChecksum) {
     Span span = Trace.start("setVerifyChecksum");
@@ -622,7 +624,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void setPermission(Path p, FsPermission permission) throws IOException {
     Span span = Trace.start("setPermission");
@@ -635,7 +637,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void setOwner(Path p, String username, String groupname) throws IOException {
     Span span = Trace.start("setOwner");
@@ -644,14 +646,14 @@ public class TraceFileSystem extends FileSystem {
       span.data("user", username);
       span.data("group", groupname);
     }
-    
+
     try {
       impl.setOwner(p, username, groupname);
     } finally {
       span.stop();
     }
   }
-  
+
   @Override
   public void setTimes(Path p, long mtime, long atime) throws IOException {
     Span span = Trace.start("setTimes");
@@ -661,18 +663,18 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   final FileSystem impl;
-  
+
   TraceFileSystem(FileSystem impl) {
     ArgumentChecker.notNull(impl);
     this.impl = impl;
   }
-  
+
   public FileSystem getImplementation() {
     return impl;
   }
-  
+
   @Override
   public URI getUri() {
     Span span = Trace.start("getUri");
@@ -682,7 +684,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataInputStream open(Path f, int bufferSize) throws IOException {
     Span span = Trace.start("open");
@@ -692,7 +694,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream create(Path f, FsPermission permission, boolean overwrite, int bufferSize, short replication, long blockSize, Progressable progress)
       throws IOException {
@@ -703,7 +705,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void initialize(URI name, Configuration conf) throws IOException {
     Span span = Trace.start("initialize");
@@ -713,7 +715,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FSDataOutputStream append(Path f, int bufferSize, Progressable progress) throws IOException {
     Span span = Trace.start("append");
@@ -723,7 +725,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public boolean rename(Path src, Path dst) throws IOException {
     Span span = Trace.start("rename");
@@ -733,7 +735,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @SuppressWarnings("deprecation")
   @Override
   public boolean delete(Path f) throws IOException {
@@ -744,7 +746,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public boolean delete(Path f, boolean recursive) throws IOException {
     Span span = Trace.start("delete");
@@ -754,7 +756,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FileStatus[] listStatus(Path f) throws IOException {
     Span span = Trace.start("listStatus");
@@ -764,7 +766,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public void setWorkingDirectory(Path new_dir) {
     Span span = Trace.start("setWorkingDirectory");
@@ -774,7 +776,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public Path getWorkingDirectory() {
     Span span = Trace.start("getWorkingDirectory");
@@ -784,7 +786,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public boolean mkdirs(Path f, FsPermission permission) throws IOException {
     Span span = Trace.start("mkdirs");
@@ -794,7 +796,7 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   @Override
   public FileStatus getFileStatus(Path f) throws IOException {
     Span span = Trace.start("getFileStatus");
@@ -804,13 +806,13 @@ public class TraceFileSystem extends FileSystem {
       span.stop();
     }
   }
-  
+
   public static FileSystem wrap(FileSystem fileSystem) {
     return new TraceFileSystem(fileSystem);
   }
-  
+
   public static FileSystem getAndWrap(Configuration conf) throws IOException {
     return wrap(FileSystem.get(conf));
   }
-  
+
 }

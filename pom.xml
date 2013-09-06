@@ -914,7 +914,7 @@
         </property>
       </activation>
       <properties>
-        <hadoop.version>1.0.4</hadoop.version>
+        <hadoop.version>1.2.1</hadoop.version>
         <httpclient.version>3.0.1</httpclient.version>
         <slf4j.version>1.4.3</slf4j.version>
       </properties>
