@@ -73,9 +73,11 @@ import org.apache.log4j.Logger;
 
 public class Compactor implements Callable<CompactionStats> {
   
-  public class CountingIterator extends WrappingIterator {
+  public static class CountingIterator extends WrappingIterator {
     
     private long count;
+    private ArrayList<CountingIterator> deepCopies;
+    private AtomicLong entriesRead;
     
     public CountingIterator deepCopy(IteratorEnvironment env) {
       return new CountingIterator(this, env);
@@ -84,11 +86,16 @@ public class Compactor implements Callable<CompactionStats> {
     private CountingIterator(CountingIterator other, IteratorEnvironment env) {
       setSource(other.getSource().deepCopy(env));
       count = 0;
+      this.deepCopies = other.deepCopies;
+      this.entriesRead = other.entriesRead;
+      deepCopies.add(this);
     }
     
-    public CountingIterator(SortedKeyValueIterator<Key,Value> source) {
+    public CountingIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong entriesRead) {
+      deepCopies = new ArrayList<Compactor.CountingIterator>();
       this.setSource(source);
       count = 0;
+      this.entriesRead = entriesRead;
     }
     
     @Override
@@ -106,7 +113,12 @@ public class Compactor implements Callable<CompactionStats> {
     }
     
     public long getCount() {
-      return count;
+      long sum = 0;
+      for (CountingIterator dc : deepCopies) {
+        sum += dc.count;
+      }
+      
+      return count + sum;
     }
   }
 
@@ -454,7 +466,7 @@ public class Compactor implements Callable<CompactionStats> {
         iters.add(imm.compactionIterator());
       }
       
-      CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()));
+      CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()), entriesRead);
       DeletingIterator delIter = new DeletingIterator(citr, propogateDeletes);
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
       
