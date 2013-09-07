@@ -34,6 +34,7 @@ import java.util.TimerTask;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.gc.SimpleGarbageCollector;
 import org.apache.accumulo.server.logger.LogService;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.tabletserver.TabletServer;
@@ -115,6 +116,7 @@ public class MiniAccumuloCluster {
   private Process zooKeeperProcess;
   private Process masterProcess;
   private Process loggerProcess;
+  private Process gcProcess;
   
   private int zooKeeperPort;
   
@@ -242,6 +244,7 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TRACE_PORT, "" + PortUtils.getRandomFreePort(), siteConfig);
     appendProp(fileWriter, Property.LOGGER_SORT_BUFFER_SIZE, "50M", siteConfig);
     appendProp(fileWriter, Property.LOGGER_PORTSEARCH, "true", siteConfig);
+    appendProp(fileWriter, Property.GC_CYCLE_DELAY, "30s", siteConfig);
     
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);
@@ -320,6 +323,10 @@ public class MiniAccumuloCluster {
     
     loggerProcess = exec(LogService.class);
     masterProcess = exec(Master.class);
+    
+    if (config.shouldRunGC()) {
+      gcProcess = exec(SimpleGarbageCollector.class);
+    }
   }
   
   /**
@@ -361,5 +368,8 @@ public class MiniAccumuloCluster {
     
     for (LogWriter lw : logWriters)
       lw.flush();
+
+    if (gcProcess != null)
+      gcProcess.destroy();
   }
 }
