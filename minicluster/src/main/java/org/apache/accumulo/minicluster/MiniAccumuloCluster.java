@@ -33,6 +33,7 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.gc.SimpleGarbageCollector;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.tabletserver.TabletServer;
 import org.apache.accumulo.server.util.Initialize;
@@ -111,6 +112,7 @@ public class MiniAccumuloCluster {
   
   private Process zooKeeperProcess;
   private Process masterProcess;
+  private Process gcProcess;
   
   private int zooKeeperPort;
   
@@ -237,6 +239,8 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TSERV_NATIVEMAP_ENABLED, "false", siteConfig);
     appendProp(fileWriter, Property.TRACE_TOKEN_PROPERTY_PREFIX + ".password", config.getRootPassword(), siteConfig);
     appendProp(fileWriter, Property.TRACE_PORT, "" + PortUtils.getRandomFreePort(), siteConfig);
+    appendProp(fileWriter, Property.GC_CYCLE_DELAY, "30s", siteConfig);
+    
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);
     String cp = System.getenv("ACCUMULO_HOME") + "/lib/.*.jar," + "$ZOOKEEPER_HOME/zookeeper[^.].*.jar," + "$HADOOP_HOME/[^.].*.jar,"
@@ -310,6 +314,10 @@ public class MiniAccumuloCluster {
     }
     
     masterProcess = exec(Master.class);
+    
+    if (config.shouldRunGC()) {
+      gcProcess = exec(SimpleGarbageCollector.class);
+    }
   }
   
   /**
@@ -349,5 +357,8 @@ public class MiniAccumuloCluster {
     
     for (LogWriter lw : logWriters)
       lw.flush();
+
+    if (gcProcess != null)
+      gcProcess.destroy();
   }
 }

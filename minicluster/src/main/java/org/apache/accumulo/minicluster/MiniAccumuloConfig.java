@@ -32,6 +32,7 @@ public class MiniAccumuloConfig {
   private String rootPassword = null;
   private Map<String,String> siteConfig = Collections.emptyMap();
   private int numTservers = 2;
+  private boolean runGC = false;
   
   /**
    * @param dir
@@ -86,5 +87,21 @@ public class MiniAccumuloConfig {
   public MiniAccumuloConfig setSiteConfig(Map<String,String> siteConfig) {
     this.siteConfig = siteConfig;
     return this;
+  }
+  
+  /**
+   * Whether or not the Accumulo garbage collector proces will run
+   * @return
+   */
+  public boolean shouldRunGC() {
+    return runGC;
+  }
+  
+  /**
+   * Sets if the Accumulo garbage collector process should run
+   * @param shouldRunGC
+   */
+  public void runGC(boolean shouldRunGC) {
+    runGC = shouldRunGC;
   }
 }
