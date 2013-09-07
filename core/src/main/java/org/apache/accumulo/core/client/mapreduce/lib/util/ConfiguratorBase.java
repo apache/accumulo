@@ -43,16 +43,30 @@ import org.apache.log4j.Logger;
  * @since 1.5.0
  */
 public class ConfiguratorBase {
-  
+
   /**
    * Configuration keys for {@link Instance#getConnector(String, AuthenticationToken)}.
    * 
    * @since 1.5.0
    */
   public static enum ConnectorInfo {
-    IS_CONFIGURED, PRINCIPAL, TOKEN, TOKEN_CLASS, TOKEN_FILE
+    IS_CONFIGURED, PRINCIPAL, TOKEN,
   }
-  
+
+  private static enum TokenSource {
+    FILE, INLINE;
+
+    private String prefix;
+
+    private TokenSource() {
+      prefix = name().toLowerCase() + ":";
+    }
+
+    public String prefix() {
+      return prefix;
+    }
+  }
+
   /**
    * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and {@link MockInstance}.
    * 
@@ -61,7 +75,7 @@ public class ConfiguratorBase {
   protected static enum InstanceOpts {
     TYPE, NAME, ZOO_KEEPERS;
   }
-  
+
   /**
    * Configuration keys for general configuration options.
    * 
@@ -70,7 +84,7 @@ public class ConfiguratorBase {
   protected static enum GeneralOpts {
     LOG_LEVEL
   }
-  
+
   /**
    * Provides a configuration key for a given feature enum, prefixed by the implementingClass
    * 
@@ -84,7 +98,7 @@ public class ConfiguratorBase {
   protected static String enumToConfKey(Class<?> implementingClass, Enum<?> e) {
     return implementingClass.getSimpleName() + "." + e.getDeclaringClass().getSimpleName() + "." + StringUtils.camelize(e.name().toLowerCase());
   }
-  
+
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    * 
@@ -107,14 +121,14 @@ public class ConfiguratorBase {
       throws AccumuloSecurityException {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
-    
+
     ArgumentChecker.notNull(principal, token);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS), token.getClass().getName());
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
+        TokenSource.INLINE.prefix() + token.getClass().getName() + ":" + Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
   }
-  
+
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    * 
@@ -129,27 +143,27 @@ public class ConfiguratorBase {
    * @param principal
    *          a valid Accumulo user name
    * @param tokenFile
-   *          the path to the token file
+   *          the path to the token file in DFS
    * @throws AccumuloSecurityException
    * @since 1.6.0
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, String tokenFile) throws AccumuloSecurityException {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
-    
+
     ArgumentChecker.notNull(principal, tokenFile);
-    
+
     try {
       DistributedCache.addCacheFile(new URI(tokenFile), conf);
     } catch (URISyntaxException e) {
       throw new IllegalStateException("Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
     }
-    
+
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_FILE), tokenFile);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), TokenSource.FILE.prefix() + tokenFile);
   }
-  
+
   /**
    * Determines if the connector info has already been set for this instance.
    * 
@@ -164,7 +178,7 @@ public class ConfiguratorBase {
   public static Boolean isConnectorInfoSet(Class<?> implementingClass, Configuration conf) {
     return conf.getBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), false);
   }
-  
+
   /**
    * Gets the user name from the configuration.
    * 
@@ -179,63 +193,35 @@ public class ConfiguratorBase {
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
     return conf.get(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL));
   }
-  
+
   /**
-   * Gets the serialized token class from either the configuration or the token file.
+   * Gets the authenticated token from either the specified token file or directly from the configuration, whichever was used when the job was configured.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @return the principal
-   * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
-   */
-  public static String getTokenClass(Class<?> implementingClass, Configuration conf) {
-    String tokenFile = getTokenFile(implementingClass, conf);
-    if (tokenFile.isEmpty()) {
-      return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_CLASS));
-    } else {
-      return readTokenFile(implementingClass, conf).getToken().getClass().getName();
-    }
-  }
-  
-  /**
-   * Gets the password from either the configuration or the token file. WARNING: If no token file is specified, the password is stored in the Configuration and
-   * shared with all MapReduce tasks; It is BASE64 encoded to provide a charset safe conversion to a string, and is not intended to be secure.
-   * 
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @return the decoded principal's authentication token
-   * @since 1.5.0
-   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
-   */
-  public static byte[] getToken(Class<?> implementingClass, Configuration conf) {
-    String tokenFile = getTokenFile(implementingClass, conf);
-    String token = null;
-    if (tokenFile.isEmpty()) {
-      token = conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN));
-      return Base64.decodeBase64(token.getBytes(Constants.UTF8));
-    }
-    
-    return AuthenticationTokenSerializer.serialize(readTokenFile(implementingClass, conf).getToken());
-  }
-  
-  /**
-   * Grabs the token file's path out of the Configuration.
-   * 
-   * @param conf
-   *          the Hadoop context for the configured job
-   * @return path to the token file as a String
+   * @return the principal's authentication token
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
+   * @see #setConnectorInfo(Class, Configuration, String, String)
    */
-  public static String getTokenFile(Class<?> implementingClass, Configuration conf) {
-    return conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN_FILE), "");
+  public static AuthenticationToken getAuthenticationToken(Class<?> implementingClass, Configuration conf) {
+    String token = conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN));
+    if (token == null || token.isEmpty())
+      return null;
+    if (token.startsWith(TokenSource.INLINE.prefix())) {
+      String[] args = token.substring(TokenSource.INLINE.prefix().length()).split(":", 2);
+      if (args.length == 2)
+        return AuthenticationTokenSerializer.deserialize(args[0], Base64.decodeBase64(args[1].getBytes(Constants.UTF8)));
+    } else if (token.startsWith(TokenSource.FILE.prefix())) {
+      String tokenFileName = token.substring(TokenSource.FILE.prefix().length());
+      return getTokenFromFile(conf, getPrincipal(implementingClass, conf), tokenFileName);
+    }
+
+    throw new IllegalStateException("Token was not properly serialized into the configuration");
   }
-  
+
   /**
    * Reads from the token file in distributed cache. Currently, the token file stores data separated by colons e.g. principal:token_class:token
    * 
@@ -245,8 +231,7 @@ public class ConfiguratorBase {
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
-  private static Credentials readTokenFile(Class<?> implementingClass, Configuration conf) {
-    String tokenFile = getTokenFile(implementingClass, conf);
+  private static AuthenticationToken getTokenFromFile(Configuration conf, String principal, String tokenFile) {
     FSDataInputStream in = null;
     try {
       URI[] uris = DistributedCache.getCacheFiles(conf);
@@ -266,11 +251,10 @@ public class ConfiguratorBase {
     }
     java.util.Scanner fileScanner = new java.util.Scanner(in);
     try {
-      String principal = getPrincipal(implementingClass, conf);
       while (fileScanner.hasNextLine()) {
         Credentials creds = Credentials.deserialize(fileScanner.nextLine());
         if (principal.equals(creds.getPrincipal())) {
-          return creds;
+          return creds.getToken();
         }
       }
       throw new IllegalArgumentException("Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
@@ -281,7 +265,7 @@ public class ConfiguratorBase {
         throw new RuntimeException(fileScanner.ioException());
     }
   }
-  
+
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
    * 
@@ -300,12 +284,12 @@ public class ConfiguratorBase {
     if (!conf.get(key, "").isEmpty())
       throw new IllegalStateException("Instance info can only be set once per job; it has already been configured with " + conf.get(key));
     conf.set(key, "ZooKeeperInstance");
-    
+
     ArgumentChecker.notNull(instanceName, zooKeepers);
     conf.set(enumToConfKey(implementingClass, InstanceOpts.NAME), instanceName);
     conf.set(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS), zooKeepers);
   }
-  
+
   /**
    * Configures a {@link MockInstance} for this job.
    * 
@@ -322,11 +306,11 @@ public class ConfiguratorBase {
     if (!conf.get(key, "").isEmpty())
       throw new IllegalStateException("Instance info can only be set once per job; it has already been configured with " + conf.get(key));
     conf.set(key, "MockInstance");
-    
+
     ArgumentChecker.notNull(instanceName);
     conf.set(enumToConfKey(implementingClass, InstanceOpts.NAME), instanceName);
   }
-  
+
   /**
    * Initializes an Accumulo {@link Instance} based on the configuration.
    * 
@@ -351,7 +335,7 @@ public class ConfiguratorBase {
     else
       throw new IllegalStateException("Unrecognized instance type " + instanceType);
   }
-  
+
   /**
    * Sets the log level for this job.
    * 
@@ -368,7 +352,7 @@ public class ConfiguratorBase {
     Logger.getLogger(implementingClass).setLevel(level);
     conf.setInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), level.toInt());
   }
-  
+
   /**
    * Gets the log level from this configuration.
    * 
@@ -383,5 +367,5 @@ public class ConfiguratorBase {
   public static Level getLogLevel(Class<?> implementingClass, Configuration conf) {
     return Level.toLevel(conf.getInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), Level.INFO.toInt()));
   }
-  
+
 }

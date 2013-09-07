@@ -87,10 +87,10 @@ import org.apache.log4j.Logger;
  * See {@link AccumuloInputFormat} for an example implementation.
  */
 public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
-  
+
   private static final Class<?> CLASS = AccumuloInputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
-  
+
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    * 
@@ -110,7 +110,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setConnectorInfo(Job job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
     InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
   }
-  
+
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    * 
@@ -129,7 +129,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setConnectorInfo(Job job, String principal, String tokenFile) throws AccumuloSecurityException {
     InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, tokenFile);
   }
-  
+
   /**
    * Determines if the connector has been configured.
    * 
@@ -142,7 +142,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static Boolean isConnectorInfoSet(JobContext context) {
     return InputConfigurator.isConnectorInfoSet(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Gets the user name from the configuration.
    * 
@@ -155,47 +155,43 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static String getPrincipal(JobContext context) {
     return InputConfigurator.getPrincipal(CLASS, getConfiguration(context));
   }
-  
+
   /**
-   * Gets the serialized token class from the configuration.
+   * Gets the serialized token class from either the configuration or the token file.
    * 
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, AuthenticationToken)
+   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
    */
+  @Deprecated
   protected static String getTokenClass(JobContext context) {
-    return InputConfigurator.getTokenClass(CLASS, getConfiguration(context));
+    return getAuthenticationToken(context).getClass().getName();
   }
-  
+
   /**
-   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
-   * provide a charset safe conversion to a string, and is not intended to be secure.
+   * Gets the serialized token from either the configuration or the token file.
    * 
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return the decoded user password
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, AuthenticationToken)
+   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
    */
+  @Deprecated
   protected static byte[] getToken(JobContext context) {
-    return InputConfigurator.getToken(CLASS, getConfiguration(context));
+    return AuthenticationTokenSerializer.serialize(getAuthenticationToken(context));
   }
-  
+
   /**
-   * Gets the password file from the configuration.
+   * Gets the authenticated token from either the specified token file or directly from the configuration, whichever was used when the job was configured.
    * 
    * @param context
    *          the Hadoop context for the configured job
-   * @return path to the password file as a String
+   * @return the principal's authentication token
    * @since 1.6.0
    * @see #setConnectorInfo(Job, String, AuthenticationToken)
+   * @see #setConnectorInfo(Job, String, String)
    */
-  protected static String getTokenFile(JobContext context) {
-    return InputConfigurator.getTokenFile(CLASS, getConfiguration(context));
+  protected static AuthenticationToken getAuthenticationToken(JobContext context) {
+    return InputConfigurator.getAuthenticationToken(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
    * 
@@ -210,7 +206,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
     InputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), instanceName, zooKeepers);
   }
-  
+
   /**
    * Configures a {@link MockInstance} for this job.
    * 
@@ -223,7 +219,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setMockInstance(Job job, String instanceName) {
     InputConfigurator.setMockInstance(CLASS, job.getConfiguration(), instanceName);
   }
-  
+
   /**
    * Initializes an Accumulo {@link Instance} based on the configuration.
    * 
@@ -237,7 +233,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static Instance getInstance(JobContext context) {
     return InputConfigurator.getInstance(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Sets the log level for this job.
    * 
@@ -250,7 +246,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setLogLevel(Job job, Level level) {
     InputConfigurator.setLogLevel(CLASS, job.getConfiguration(), level);
   }
-  
+
   /**
    * Gets the log level from this configuration.
    * 
@@ -263,7 +259,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static Level getLogLevel(JobContext context) {
     return InputConfigurator.getLogLevel(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Sets the name of the input table, over which this job will scan.
    * 
@@ -276,7 +272,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setInputTableName(Job job, String tableName) {
     InputConfigurator.setInputTableName(CLASS, job.getConfiguration(), tableName);
   }
-  
+
   /**
    * Gets the table name from the configuration.
    * 
@@ -289,7 +285,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static String getInputTableName(JobContext context) {
     return InputConfigurator.getInputTableName(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorization. Defaults to the empty set.
    * 
@@ -302,7 +298,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setScanAuthorizations(Job job, Authorizations auths) {
     InputConfigurator.setScanAuthorizations(CLASS, job.getConfiguration(), auths);
   }
-  
+
   /**
    * Gets the authorizations to set for the scans from the configuration.
    * 
@@ -315,7 +311,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static Authorizations getScanAuthorizations(JobContext context) {
     return InputConfigurator.getScanAuthorizations(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Sets the input ranges to scan for this job. If not set, the entire table will be scanned.
    * 
@@ -328,7 +324,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setRanges(Job job, Collection<Range> ranges) {
     InputConfigurator.setRanges(CLASS, job.getConfiguration(), ranges);
   }
-  
+
   /**
    * Gets the ranges to scan over from a job.
    * 
@@ -343,7 +339,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static List<Range> getRanges(JobContext context) throws IOException {
     return InputConfigurator.getRanges(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Restricts the columns that will be mapped over for this job.
    * 
@@ -357,7 +353,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void fetchColumns(Job job, Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     InputConfigurator.fetchColumns(CLASS, job.getConfiguration(), columnFamilyColumnQualifierPairs);
   }
-  
+
   /**
    * Gets the columns to be mapped over from this job.
    * 
@@ -370,7 +366,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static Set<Pair<Text,Text>> getFetchedColumns(JobContext context) {
     return InputConfigurator.getFetchedColumns(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Encode an iterator on the input for this job.
    * 
@@ -383,7 +379,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void addIterator(Job job, IteratorSetting cfg) {
     InputConfigurator.addIterator(CLASS, job.getConfiguration(), cfg);
   }
-  
+
   /**
    * Gets a list of the iterator settings (for iterators to apply to a scanner) from this configuration.
    * 
@@ -396,7 +392,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static List<IteratorSetting> getIterators(JobContext context) {
     return InputConfigurator.getIterators(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Controls the automatic adjustment of ranges for this job. This feature merges overlapping ranges, then splits them to align with tablet boundaries.
    * Disabling this feature will cause exactly one Map task to be created for each specified range. The default setting is enabled. *
@@ -414,7 +410,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setAutoAdjustRanges(Job job, boolean enableFeature) {
     InputConfigurator.setAutoAdjustRanges(CLASS, job.getConfiguration(), enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration has auto-adjust ranges enabled.
    * 
@@ -427,7 +423,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static boolean getAutoAdjustRanges(JobContext context) {
     return InputConfigurator.getAutoAdjustRanges(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Controls the use of the {@link IsolatedScanner} in this job.
    * 
@@ -443,7 +439,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setScanIsolation(Job job, boolean enableFeature) {
     InputConfigurator.setScanIsolation(CLASS, job.getConfiguration(), enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration has isolation enabled.
    * 
@@ -456,7 +452,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static boolean isIsolated(JobContext context) {
     return InputConfigurator.isIsolated(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature will cause the iterator stack to be constructed within the Map
    * task, rather than within the Accumulo TServer. To use this feature, all classes needed for those iterators must be available on the classpath for the task.
@@ -473,7 +469,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setLocalIterators(Job job, boolean enableFeature) {
     InputConfigurator.setLocalIterators(CLASS, job.getConfiguration(), enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration uses local iterators.
    * 
@@ -486,7 +482,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static boolean usesLocalIterators(JobContext context) {
     return InputConfigurator.usesLocalIterators(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * <p>
    * Enable reading offline tables. By default, this feature is disabled and only online tables are scanned. This will make the map reduce job directly read the
@@ -521,7 +517,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setOfflineTableScan(Job job, boolean enableFeature) {
     InputConfigurator.setOfflineTableScan(CLASS, job.getConfiguration(), enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration has the offline table scan feature enabled.
    * 
@@ -534,7 +530,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static boolean isOfflineScan(JobContext context) {
     return InputConfigurator.isOfflineScan(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * Initializes an Accumulo {@link TabletLocator} based on the configuration.
    * 
@@ -548,7 +544,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static TabletLocator getTabletLocator(JobContext context) throws TableNotFoundException {
     return InputConfigurator.getTabletLocator(CLASS, getConfiguration(context));
   }
-  
+
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
   /**
    * Check whether a configuration is fully configured to be used with an Accumulo {@link org.apache.hadoop.mapreduce.InputFormat}.
@@ -562,7 +558,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static void validateOptions(JobContext context) throws IOException {
     InputConfigurator.validateOptions(CLASS, getConfiguration(context));
   }
-  
+
   /**
    * An abstract base class to be used to create {@link RecordReader} instances that convert from Accumulo {@link Key}/{@link Value} pairs to the user's K/V
    * types.
@@ -579,7 +575,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     protected long numKeysRead;
     protected Iterator<Entry<Key,Value>> scannerIterator;
     protected RangeInputSplit split;
-    
+
     /**
      * Apply the configured iterators from the configuration to the scanner.
      * 
@@ -594,7 +590,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         scanner.addScanIterator(iterator);
       }
     }
-    
+
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
      */
@@ -605,18 +601,16 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       log.debug("Initializing input split: " + split.range);
       Instance instance = getInstance(attempt);
       String principal = getPrincipal(attempt);
-      String tokenClass = getTokenClass(attempt);
-      byte[] token = getToken(attempt);
+      AuthenticationToken token = getAuthenticationToken(attempt);
       Authorizations authorizations = getScanAuthorizations(attempt);
-      
+
       try {
         log.debug("Creating connector with user: " + principal);
-        Connector conn = instance.getConnector(principal, AuthenticationTokenSerializer.deserialize(tokenClass, token));
+        Connector conn = instance.getConnector(principal, token);
         log.debug("Creating scanner for table: " + getInputTableName(attempt));
         log.debug("Authorizations are: " + authorizations);
         if (isOfflineScan(attempt)) {
-          scanner = new OfflineScanner(instance, new Credentials(principal, AuthenticationTokenSerializer.deserialize(tokenClass, token)), Tables.getTableId(
-              instance, getInputTableName(attempt)), authorizations);
+          scanner = new OfflineScanner(instance, new Credentials(principal, token), Tables.getTableId(instance, getInputTableName(attempt)), authorizations);
         } else {
           scanner = conn.createScanner(getInputTableName(attempt), authorizations);
         }
@@ -632,7 +626,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       } catch (Exception e) {
         throw new IOException(e);
       }
-      
+
       // setup a scanner within the bounds of this split
       for (Pair<Text,Text> c : getFetchedColumns(attempt)) {
         if (c.getSecond() != null) {
@@ -643,65 +637,65 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
           scanner.fetchColumnFamily(c.getFirst());
         }
       }
-      
+
       scanner.setRange(split.range);
-      
+
       numKeysRead = 0;
-      
+
       // do this last after setting all scanner options
       scannerIterator = scanner.iterator();
     }
-    
+
     @Override
     public void close() {}
-    
+
     @Override
     public float getProgress() throws IOException {
       if (numKeysRead > 0 && currentKey == null)
         return 1.0f;
       return split.getProgress(currentKey);
     }
-    
+
     protected K currentK = null;
     protected V currentV = null;
     protected Key currentKey = null;
     protected Value currentValue = null;
-    
+
     @Override
     public K getCurrentKey() throws IOException, InterruptedException {
       return currentK;
     }
-    
+
     @Override
     public V getCurrentValue() throws IOException, InterruptedException {
       return currentV;
     }
   }
-  
+
   Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context, String tableName, List<Range> ranges) throws TableNotFoundException,
       AccumuloException, AccumuloSecurityException {
-    
+
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
-    
+
     Instance instance = getInstance(context);
-    Connector conn = instance.getConnector(getPrincipal(context), AuthenticationTokenSerializer.deserialize(getTokenClass(context), getToken(context)));
+    Connector conn = instance.getConnector(getPrincipal(context), getAuthenticationToken(context));
     String tableId = Tables.getTableId(instance, tableName);
-    
+
     if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
       Tables.clearCache(instance);
       if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
         throw new AccumuloException("Table is online " + tableName + "(" + tableId + ") cannot scan table in offline mode ");
       }
     }
-    
+
     for (Range range : ranges) {
       Text startRow;
-      
+
       if (range.getStartKey() != null)
         startRow = range.getStartKey().getRow();
       else
         startRow = new Text();
-      
+
       Range metadataRange = new Range(new KeyExtent(new Text(tableId), startRow, null).getMetadataEntry(), true, null, false);
       Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
@@ -709,73 +703,73 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
       scanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);
       scanner.setRange(metadataRange);
-      
+
       RowIterator rowIter = new RowIterator(scanner);
-      
+
       KeyExtent lastExtent = null;
-      
+
       while (rowIter.hasNext()) {
         Iterator<Entry<Key,Value>> row = rowIter.next();
         String last = "";
         KeyExtent extent = null;
         String location = null;
-        
+
         while (row.hasNext()) {
           Entry<Key,Value> entry = row.next();
           Key key = entry.getKey();
-          
+
           if (key.getColumnFamily().equals(TabletsSection.LastLocationColumnFamily.NAME)) {
             last = entry.getValue().toString();
           }
-          
+
           if (key.getColumnFamily().equals(TabletsSection.CurrentLocationColumnFamily.NAME)
               || key.getColumnFamily().equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
             location = entry.getValue().toString();
           }
-          
+
           if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
             extent = new KeyExtent(key.getRow(), entry.getValue());
           }
-          
+
         }
-        
+
         if (location != null)
           return null;
-        
+
         if (!extent.getTableId().toString().equals(tableId)) {
           throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
         }
-        
+
         if (lastExtent != null && !extent.isPreviousExtent(lastExtent)) {
           throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
         }
-        
+
         Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
         if (tabletRanges == null) {
           tabletRanges = new HashMap<KeyExtent,List<Range>>();
           binnedRanges.put(last, tabletRanges);
         }
-        
+
         List<Range> rangeList = tabletRanges.get(extent);
         if (rangeList == null) {
           rangeList = new ArrayList<Range>();
           tabletRanges.put(extent, rangeList);
         }
-        
+
         rangeList.add(range);
-        
+
         if (extent.getEndRow() == null || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {
           break;
         }
-        
+
         lastExtent = extent;
       }
-      
+
     }
-    
+
     return binnedRanges;
   }
-  
+
   /**
    * Read the metadata table to get tablets and match up ranges to them.
    */
@@ -783,16 +777,16 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public List<InputSplit> getSplits(JobContext context) throws IOException {
     log.setLevel(getLogLevel(context));
     validateOptions(context);
-    
+
     String tableName = getInputTableName(context);
     boolean autoAdjust = getAutoAdjustRanges(context);
     List<Range> ranges = autoAdjust ? Range.mergeOverlapping(getRanges(context)) : getRanges(context);
-    
+
     if (ranges.isEmpty()) {
       ranges = new ArrayList<Range>(1);
       ranges.add(new Range());
     }
-    
+
     // get the metadata information for these ranges
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     TabletLocator tl;
@@ -810,8 +804,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         tl = getTabletLocator(context);
         // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
         tl.invalidateCache();
-        while (!tl.binRanges(new Credentials(getPrincipal(context), AuthenticationTokenSerializer.deserialize(getTokenClass(context), getToken(context))),
-            ranges, binnedRanges).isEmpty()) {
+        while (!tl.binRanges(new Credentials(getPrincipal(context), getAuthenticationToken(context)), ranges, binnedRanges).isEmpty()) {
           if (!(instance instanceof MockInstance)) {
             if (tableId == null)
               tableId = Tables.getTableId(instance, tableName);
@@ -829,15 +822,15 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     } catch (Exception e) {
       throw new IOException(e);
     }
-    
+
     ArrayList<InputSplit> splits = new ArrayList<InputSplit>(ranges.size());
     HashMap<Range,ArrayList<String>> splitsToAdd = null;
-    
+
     if (!autoAdjust)
       splitsToAdd = new HashMap<Range,ArrayList<String>>();
-    
+
     HashMap<String,String> hostNameCache = new HashMap<String,String>();
-    
+
     for (Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
       String ip = tserverBin.getKey().split(":", 2)[0];
       String location = hostNameCache.get(ip);
@@ -846,7 +839,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         location = inetAddress.getHostName();
         hostNameCache.put(ip, location);
       }
-      
+
       for (Entry<KeyExtent,List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
         Range ke = extentRanges.getKey().toDataRange();
         for (Range r : extentRanges.getValue()) {
@@ -864,43 +857,43 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         }
       }
     }
-    
+
     if (!autoAdjust)
       for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
         splits.add(new RangeInputSplit(tableName, entry.getKey(), entry.getValue().toArray(new String[0])));
     return splits;
   }
-  
+
   /**
    * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
    */
   public static class RangeInputSplit extends InputSplit implements Writable {
     private Range range;
     private String[] locations;
-    
+
     public RangeInputSplit() {
       range = new Range();
       locations = new String[0];
     }
-    
+
     public RangeInputSplit(RangeInputSplit split) throws IOException {
       this.setRange(split.getRange());
       this.setLocations(split.getLocations());
     }
-    
+
     protected RangeInputSplit(String table, Range range, String[] locations) {
       this.range = range;
       this.locations = locations;
     }
-    
+
     public Range getRange() {
       return range;
     }
-    
+
     public void setRange(Range range) {
       this.range = range;
     }
-    
+
     private static byte[] extractBytes(ByteSequence seq, int numBytes) {
       byte[] bytes = new byte[numBytes + 1];
       bytes[0] = 0;
@@ -912,7 +905,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       }
       return bytes;
     }
-    
+
     public static float getProgress(ByteSequence start, ByteSequence end, ByteSequence position) {
       int maxDepth = Math.min(Math.max(end.length(), start.length()), position.length());
       BigInteger startBI = new BigInteger(extractBytes(start, maxDepth));
@@ -920,7 +913,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       BigInteger positionBI = new BigInteger(extractBytes(position, maxDepth));
       return (float) (positionBI.subtract(startBI).doubleValue() / endBI.subtract(startBI).doubleValue());
     }
-    
+
     public float getProgress(Key currentKey) {
       if (currentKey == null)
         return 0f;
@@ -939,7 +932,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       // if we can't figure it out, then claim no progress
       return 0f;
     }
-    
+
     /**
      * This implementation of length is only an estimate, it does not provide exact values. Do not have your code rely on this return value.
      */
@@ -949,29 +942,29 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       Text stopRow = range.isInfiniteStopKey() ? new Text(new byte[] {Byte.MAX_VALUE}) : range.getEndKey().getRow();
       int maxCommon = Math.min(7, Math.min(startRow.getLength(), stopRow.getLength()));
       long diff = 0;
-      
+
       byte[] start = startRow.getBytes();
       byte[] stop = stopRow.getBytes();
       for (int i = 0; i < maxCommon; ++i) {
         diff |= 0xff & (start[i] ^ stop[i]);
         diff <<= Byte.SIZE;
       }
-      
+
       if (startRow.getLength() != stopRow.getLength())
         diff |= 0xff;
-      
+
       return diff + 1;
     }
-    
+
     @Override
     public String[] getLocations() throws IOException {
       return locations;
     }
-    
+
     public void setLocations(String[] locations) {
       this.locations = locations;
     }
-    
+
     @Override
     public void readFields(DataInput in) throws IOException {
       range.readFields(in);
@@ -980,7 +973,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       for (int i = 0; i < numLocs; ++i)
         locations[i] = in.readUTF();
     }
-    
+
     @Override
     public void write(DataOutput out) throws IOException {
       range.write(out);
@@ -989,7 +982,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         out.writeUTF(locations[i]);
     }
   }
-  
+
   // use reflection to pull the Configuration out of the JobContext for Hadoop 1 and Hadoop 2 compatibility
   static Configuration getConfiguration(JobContext context) {
     try {
@@ -1001,5 +994,5 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       throw new RuntimeException(e);
     }
   }
-  
+
 }

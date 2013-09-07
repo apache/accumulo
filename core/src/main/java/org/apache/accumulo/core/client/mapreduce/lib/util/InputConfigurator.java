@@ -41,7 +41,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mock.MockTabletLocator;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -58,7 +58,7 @@ import org.apache.hadoop.util.StringUtils;
  * @since 1.5.0
  */
 public class InputConfigurator extends ConfiguratorBase {
-  
+
   /**
    * Configuration keys for {@link Scanner}.
    * 
@@ -67,7 +67,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static enum ScanOpts {
     TABLE_NAME, AUTHORIZATIONS, RANGES, COLUMNS, ITERATORS
   }
-  
+
   /**
    * Configuration keys for various features.
    * 
@@ -76,7 +76,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static enum Features {
     AUTO_ADJUST_RANGES, SCAN_ISOLATION, USE_LOCAL_ITERATORS, SCAN_OFFLINE
   }
-  
+
   /**
    * Sets the name of the input table, over which this job will scan.
    * 
@@ -92,7 +92,7 @@ public class InputConfigurator extends ConfiguratorBase {
     ArgumentChecker.notNull(tableName);
     conf.set(enumToConfKey(implementingClass, ScanOpts.TABLE_NAME), tableName);
   }
-  
+
   /**
    * Gets the table name from the configuration.
    * 
@@ -107,7 +107,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static String getInputTableName(Class<?> implementingClass, Configuration conf) {
     return conf.get(enumToConfKey(implementingClass, ScanOpts.TABLE_NAME));
   }
-  
+
   /**
    * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorization. Defaults to the empty set.
    * 
@@ -123,7 +123,7 @@ public class InputConfigurator extends ConfiguratorBase {
     if (auths != null && !auths.isEmpty())
       conf.set(enumToConfKey(implementingClass, ScanOpts.AUTHORIZATIONS), auths.serialize());
   }
-  
+
   /**
    * Gets the authorizations to set for the scans from the configuration.
    * 
@@ -139,7 +139,7 @@ public class InputConfigurator extends ConfiguratorBase {
     String authString = conf.get(enumToConfKey(implementingClass, ScanOpts.AUTHORIZATIONS));
     return authString == null ? Authorizations.EMPTY : new Authorizations(authString.getBytes());
   }
-  
+
   /**
    * Sets the input ranges to scan for this job. If not set, the entire table will be scanned.
    * 
@@ -165,7 +165,7 @@ public class InputConfigurator extends ConfiguratorBase {
     }
     conf.setStrings(enumToConfKey(implementingClass, ScanOpts.RANGES), rangeStrings.toArray(new String[0]));
   }
-  
+
   /**
    * Gets the ranges to scan over from a job.
    * 
@@ -189,7 +189,7 @@ public class InputConfigurator extends ConfiguratorBase {
     }
     return ranges;
   }
-  
+
   /**
    * Restricts the columns that will be mapped over for this job.
    * 
@@ -208,7 +208,7 @@ public class InputConfigurator extends ConfiguratorBase {
     for (Pair<Text,Text> column : columnFamilyColumnQualifierPairs) {
       if (column.getFirst() == null)
         throw new IllegalArgumentException("Column family can not be null");
-      
+
       String col = new String(Base64.encodeBase64(TextUtil.getBytes(column.getFirst())), Constants.UTF8);
       if (column.getSecond() != null)
         col += ":" + new String(Base64.encodeBase64(TextUtil.getBytes(column.getSecond())), Constants.UTF8);
@@ -216,7 +216,7 @@ public class InputConfigurator extends ConfiguratorBase {
     }
     conf.setStrings(enumToConfKey(implementingClass, ScanOpts.COLUMNS), columnStrings.toArray(new String[0]));
   }
-  
+
   /**
    * Gets the columns to be mapped over from this job.
    * 
@@ -238,7 +238,7 @@ public class InputConfigurator extends ConfiguratorBase {
     }
     return columns;
   }
-  
+
   /**
    * Encode an iterator on the input for this job.
    * 
@@ -260,7 +260,7 @@ public class InputConfigurator extends ConfiguratorBase {
     } catch (IOException e) {
       throw new IllegalArgumentException("unable to serialize IteratorSetting");
     }
-    
+
     String iterators = conf.get(enumToConfKey(implementingClass, ScanOpts.ITERATORS));
     // No iterators specified yet, create a new string
     if (iterators == null || iterators.isEmpty()) {
@@ -272,7 +272,7 @@ public class InputConfigurator extends ConfiguratorBase {
     // Store the iterators w/ the job
     conf.set(enumToConfKey(implementingClass, ScanOpts.ITERATORS), iterators);
   }
-  
+
   /**
    * Gets a list of the iterator settings (for iterators to apply to a scanner) from this configuration.
    * 
@@ -286,11 +286,11 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static List<IteratorSetting> getIterators(Class<?> implementingClass, Configuration conf) {
     String iterators = conf.get(enumToConfKey(implementingClass, ScanOpts.ITERATORS));
-    
+
     // If no iterators are present, return an empty list
     if (iterators == null || iterators.isEmpty())
       return new ArrayList<IteratorSetting>();
-    
+
     // Compose the set of iterators encoded in the job configuration
     StringTokenizer tokens = new StringTokenizer(iterators, StringUtils.COMMA_STR);
     List<IteratorSetting> list = new ArrayList<IteratorSetting>();
@@ -306,7 +306,7 @@ public class InputConfigurator extends ConfiguratorBase {
     }
     return list;
   }
-  
+
   /**
    * Controls the automatic adjustment of ranges for this job. This feature merges overlapping ranges, then splits them to align with tablet boundaries.
    * Disabling this feature will cause exactly one Map task to be created for each specified range. The default setting is enabled. *
@@ -326,7 +326,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static void setAutoAdjustRanges(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.AUTO_ADJUST_RANGES), enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration has auto-adjust ranges enabled.
    * 
@@ -341,7 +341,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static Boolean getAutoAdjustRanges(Class<?> implementingClass, Configuration conf) {
     return conf.getBoolean(enumToConfKey(implementingClass, Features.AUTO_ADJUST_RANGES), true);
   }
-  
+
   /**
    * Controls the use of the {@link IsolatedScanner} in this job.
    * 
@@ -359,7 +359,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static void setScanIsolation(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.SCAN_ISOLATION), enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration has isolation enabled.
    * 
@@ -374,7 +374,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static Boolean isIsolated(Class<?> implementingClass, Configuration conf) {
     return conf.getBoolean(enumToConfKey(implementingClass, Features.SCAN_ISOLATION), false);
   }
-  
+
   /**
    * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature will cause the iterator stack to be constructed within the Map
    * task, rather than within the Accumulo TServer. To use this feature, all classes needed for those iterators must be available on the classpath for the task.
@@ -393,7 +393,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static void setLocalIterators(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.USE_LOCAL_ITERATORS), enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration uses local iterators.
    * 
@@ -408,7 +408,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static Boolean usesLocalIterators(Class<?> implementingClass, Configuration conf) {
     return conf.getBoolean(enumToConfKey(implementingClass, Features.USE_LOCAL_ITERATORS), false);
   }
-  
+
   /**
    * <p>
    * Enable reading offline tables. By default, this feature is disabled and only online tables are scanned. This will make the map reduce job directly read the
@@ -445,7 +445,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static void setOfflineTableScan(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.SCAN_OFFLINE), enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration has the offline table scan feature enabled.
    * 
@@ -460,7 +460,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static Boolean isOfflineScan(Class<?> implementingClass, Configuration conf) {
     return conf.getBoolean(enumToConfKey(implementingClass, Features.SCAN_OFFLINE), false);
   }
-  
+
   /**
    * Initializes an Accumulo {@link TabletLocator} based on the configuration.
    * 
@@ -481,7 +481,7 @@ public class InputConfigurator extends ConfiguratorBase {
     String tableName = getInputTableName(implementingClass, conf);
     return TabletLocator.getLocator(instance, new Text(Tables.getTableId(instance, tableName)));
   }
-  
+
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
   /**
    * Check whether a configuration is fully configured to be used with an Accumulo {@link org.apache.hadoop.mapreduce.InputFormat}.
@@ -502,14 +502,14 @@ public class InputConfigurator extends ConfiguratorBase {
       throw new IOException("Instance info has not been set.");
     // validate that we can connect as configured
     try {
-      Connector c = getInstance(implementingClass, conf).getConnector(getPrincipal(implementingClass, conf),
-          AuthenticationTokenSerializer.deserialize(getTokenClass(implementingClass, conf), getToken(implementingClass, conf)));
-      if (!c.securityOperations().authenticateUser(getPrincipal(implementingClass, conf),
-          AuthenticationTokenSerializer.deserialize(getTokenClass(implementingClass, conf), getToken(implementingClass, conf))))
+      String principal = getPrincipal(implementingClass, conf);
+      AuthenticationToken token = getAuthenticationToken(implementingClass, conf);
+      Connector c = getInstance(implementingClass, conf).getConnector(principal, token);
+      if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
-      if (!c.securityOperations().hasTablePermission(getPrincipal(implementingClass, conf), getInputTableName(implementingClass, conf), TablePermission.READ))
+      if (!c.securityOperations().hasTablePermission(principal, getInputTableName(implementingClass, conf), TablePermission.READ))
         throw new IOException("Unable to access table");
-      
+
       if (!conf.getBoolean(enumToConfKey(implementingClass, Features.USE_LOCAL_ITERATORS), false)) {
         // validate that any scan-time iterators can be loaded by the the tablet servers
         for (IteratorSetting iter : getIterators(implementingClass, conf)) {
@@ -517,7 +517,7 @@ public class InputConfigurator extends ConfiguratorBase {
             throw new AccumuloException("Servers are unable to load " + iter.getIteratorClass() + " as a " + SortedKeyValueIterator.class.getName());
         }
       }
-      
+
     } catch (AccumuloException e) {
       throw new IOException(e);
     } catch (AccumuloSecurityException e) {
@@ -526,5 +526,5 @@ public class InputConfigurator extends ConfiguratorBase {
       throw new IOException(e);
     }
   }
-  
+
 }
