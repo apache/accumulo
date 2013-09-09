@@ -21,7 +21,7 @@ package org.apache.accumulo.minicluster;
  */
 
 public enum ServerType {
-  MASTER("Master"), ZOOKEEPER("ZooKeeper"), TABLET_SERVER("TServer");
+  MASTER("Master"), ZOOKEEPER("ZooKeeper"), TABLET_SERVER("TServer"), GARBAGE_COLLECTOR("GC");
 
   private final String prettyPrint;
 

@@ -47,6 +47,7 @@ import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.gc.SimpleGarbageCollector;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.SetGoalState;
 import org.apache.accumulo.server.tabletserver.TabletServer;
@@ -117,6 +118,7 @@ public class MiniAccumuloCluster {
   private boolean initialized = false;
   private Process zooKeeperProcess = null;
   private Process masterProcess = null;
+  private Process gcProcess = null;
   private List<Process> tabletServerProcesses = new ArrayList<Process>();
 
   private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<Pair<ServerType,Integer>>();
@@ -361,6 +363,9 @@ public class MiniAccumuloCluster {
     if (masterProcess == null) {
       masterProcess = exec(Master.class, ServerType.MASTER);
     }
+    if (config.shouldRunGC()) {
+      gcProcess = exec(SimpleGarbageCollector.class, ServerType.GARBAGE_COLLECTOR);
+    }
   }
 
   private List<String> buildRemoteDebugParams(int port) {
@@ -388,6 +393,7 @@ public class MiniAccumuloCluster {
     result.put(ServerType.MASTER, references(masterProcess));
     result.put(ServerType.TABLET_SERVER, references(tabletServerProcesses.toArray(new Process[0])));
     result.put(ServerType.ZOOKEEPER, references(zooKeeperProcess));
+    result.put(ServerType.GARBAGE_COLLECTOR, references(gcProcess));
     return result;
   }
 
@@ -416,6 +422,13 @@ public class MiniAccumuloCluster {
           zooKeeperProcess.destroy();
           zooKeeperProcess = null;
           found = true;
+        }
+        break;
+      case GARBAGE_COLLECTOR:
+        if (proc.equals(gcProcess)) {
+          gcProcess.destroy();
+          gcProcess = null;
+          found= true;
         }
         break;
     }
@@ -457,9 +470,13 @@ public class MiniAccumuloCluster {
         tserver.destroy();
       }
     }
+    if (gcProcess != null) {
+      gcProcess.destroy();
+    }
 
     zooKeeperProcess = null;
     masterProcess = null;
+    gcProcess = null;
     tabletServerProcesses.clear();
     if (config.useMiniDFS() && miniDFS != null)
       miniDFS.shutdown();

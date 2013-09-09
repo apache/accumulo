@@ -57,6 +57,7 @@ public class MiniAccumuloConfig {
   private boolean initialized = false;
   
   private boolean useMiniDFS = false;
+  private boolean runGC = false;
   
   /**
    * @param dir
@@ -111,6 +112,7 @@ public class MiniAccumuloConfig {
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
       mergeProp(Property.GENERAL_CLASSPATHS.getKey(), classpath);
       mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(), libDir.getAbsolutePath());
+      mergeProp(Property.GC_CYCLE_DELAY.getKey(), "30s");
       mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.TRACE_PORT.getKey());
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
@@ -353,5 +355,21 @@ public class MiniAccumuloConfig {
   
   public void useMiniDFS(boolean useMiniDFS) {
     this.useMiniDFS = useMiniDFS;
+  }
+
+  /**
+   * Whether or not the Accumulo garbage collector proces will run
+   * @return
+   */
+  public boolean shouldRunGC() {
+    return runGC;
+  }
+  
+  /**
+   * Sets if the Accumulo garbage collector process should run
+   * @param shouldRunGC
+   */
+  public void runGC(boolean shouldRunGC) {
+    runGC = shouldRunGC;
   }
 }
