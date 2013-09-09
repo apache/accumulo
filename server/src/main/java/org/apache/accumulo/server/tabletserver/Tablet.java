@@ -1042,7 +1042,7 @@ public class Tablet {
           Trash trash = new Trash(fs, fs.getConf());
           for (Path path : oldDatafiles) {
             Path deleteFile = new Path(location + "/delete+" + compactName + "+" + path.getName());
-            if (!trash.moveToTrash(deleteFile))
+            if (acuTableConf.getBoolean(Property.GC_TRASH_IGNORE) || !trash.moveToTrash(deleteFile))
               fs.delete(deleteFile, true);
           }
         }
