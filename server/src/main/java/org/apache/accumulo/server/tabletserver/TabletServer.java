@@ -2408,7 +2408,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           } else {
             log.info("Deleting walog " + filename);
             Path sourcePath = new Path(filename);
-            if (!fs.moveToTrash(sourcePath) && !fs.deleteRecursively(sourcePath))
+            if (!(!acuConf.getBoolean(Property.GC_TRASH_IGNORE) && fs.moveToTrash(sourcePath)) && !fs.deleteRecursively(sourcePath))
               log.warn("Failed to delete walog " + source);
             for (String recovery : ServerConstants.getRecoveryDirs()) {
               Path recoveryPath = new Path(recovery, source.getName());

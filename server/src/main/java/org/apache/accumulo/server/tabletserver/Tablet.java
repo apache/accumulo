@@ -1007,7 +1007,7 @@ public class Tablet {
           for (FileRef ref : oldDatafiles) {
             Path path = ref.path();
             Path deleteFile = new Path(location + "/delete+" + compactName + "+" + path.getName());
-            if (!fs.moveToTrash(deleteFile))
+            if (acuTableConf.getBoolean(Property.GC_TRASH_IGNORE) || !fs.moveToTrash(deleteFile))
               fs.deleteRecursively(deleteFile);
           }
         }
