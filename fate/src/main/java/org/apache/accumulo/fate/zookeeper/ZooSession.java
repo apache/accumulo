@@ -72,18 +72,18 @@ class ZooSession {
   
   public static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
-    final int TOTAL_CONNECT_TIME_WAIT_MS = 10 * 1000;
+    int connectTimeWait = Math.min(10 * 1000, timeout);
     boolean tryAgain = true;
     int sleepTime = 100;
     ZooKeeper zooKeeper = null;
     
     long startTime = System.currentTimeMillis();
-
+    
     while (tryAgain) {
       try {
         zooKeeper = new ZooKeeper(host, timeout, watcher);
         // it may take some time to get connected to zookeeper if some of the servers are down
-        for (int i = 0; i < TOTAL_CONNECT_TIME_WAIT_MS / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
+        for (int i = 0; i < connectTimeWait / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
           if (zooKeeper.getState().equals(States.CONNECTED)) {
             if (auth != null)
               zooKeeper.addAuthInfo(scheme, auth);
@@ -94,7 +94,7 @@ class ZooSession {
         
         if (System.currentTimeMillis() - startTime > 2 * timeout)
           throw new RuntimeException("Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period " + timeout);
-
+        
       } catch (UnknownHostException uhe) {
         // do not expect to recover from this
         log.warn(uhe.getClass().getName() + " : " + uhe.getMessage());
@@ -112,6 +112,13 @@ class ZooSession {
       }
       
       if (tryAgain) {
+        if (startTime + 2 * timeout < System.currentTimeMillis() + sleepTime + connectTimeWait)
+          sleepTime = (int) (startTime + 2 * timeout - System.currentTimeMillis() - connectTimeWait);
+        if (sleepTime < 0)
+        {
+          connectTimeWait -= sleepTime; 
+          sleepTime = 0;
+        }
         UtilWaitThread.sleep(sleepTime);
         if (sleepTime < 10000)
           sleepTime = (int) (sleepTime + sleepTime * Math.random());
