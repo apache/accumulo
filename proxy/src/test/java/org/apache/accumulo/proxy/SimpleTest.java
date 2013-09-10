@@ -938,6 +938,7 @@ public class SimpleTest {
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     // constraints
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
+    assertEquals(2, client.listConstraints(creds, TABLE_TEST).size());
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));
     
     try {
@@ -946,6 +947,7 @@ public class SimpleTest {
     } catch (MutationsRejectedException ex) {}
     
     client.removeConstraint(creds, TABLE_TEST, 2);
+    assertEquals(1, client.listConstraints(creds, TABLE_TEST).size());
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
     String scanner = client.createScanner(creds, TABLE_TEST, null);
     ScanResult more = client.nextK(scanner, 2);
