@@ -115,7 +115,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     }
   }
   
-  TermSource[] sources;
+  protected TermSource[] sources;
   int sourcesCount = 0;
   
   Range overallRange;

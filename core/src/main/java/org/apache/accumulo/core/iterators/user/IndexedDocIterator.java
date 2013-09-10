@@ -59,10 +59,10 @@ public class IndexedDocIterator extends IntersectingIterator {
   private static final String indexFamilyOptionName = "indexFamily";
   private static final String docFamilyOptionName = "docFamily";
   
-  private static Text indexColf = DEFAULT_INDEX_COLF;
-  private static Text docColf = DEFAULT_DOC_COLF;
-  private static Set<ByteSequence> indexColfSet;
-  private static Set<ByteSequence> docColfSet;
+  private Text indexColf = DEFAULT_INDEX_COLF;
+  private Text docColf = DEFAULT_DOC_COLF;
+  private Set<ByteSequence> indexColfSet;
+  private Set<ByteSequence> docColfSet;
   
   private static final byte[] nullByte = {0};
   
