@@ -36,7 +36,7 @@ ACCUMULO="$ACCUMULO_HOME/lib/accumulo-start.jar"
 if egrep -q localhost\|127.0.0.1 $ACCUMULO_CONF_DIR/slaves; then
    $bin/accumulo admin stop localhost
 else
-   for host in `hostname -a`; do
+   for host in "`hostname -a` `hostname`"; do
       if grep -q ${host} $ACCUMULO_CONF_DIR/slaves; then
          ${bin}/accumulo admin stop $host
       fi
