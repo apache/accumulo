@@ -2240,6 +2240,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       master.run();
     } catch (Exception ex) {
       log.error("Unexpected exception, exiting", ex);
+      System.exit(1);
     }
   }
   

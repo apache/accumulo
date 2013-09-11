@@ -3236,6 +3236,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       server.run();
     } catch (Exception ex) {
       log.error("Uncaught exception in TabletServer.main, exiting", ex);
+      System.exit(1);
     }
   }
   
