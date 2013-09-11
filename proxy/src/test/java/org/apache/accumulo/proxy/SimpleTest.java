@@ -54,6 +54,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
 import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
 import org.apache.accumulo.proxy.thrift.ActiveCompaction;
@@ -138,7 +139,9 @@ public class SimpleTest {
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
     folder.create();
-    accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
+    MiniAccumuloConfig config = new MiniAccumuloConfig (folder.getRoot(), secret)
+            .setNumTservers (1);
+    accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
     
     Properties props = new Properties();
@@ -938,7 +941,7 @@ public class SimpleTest {
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     // constraints
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
-    assertEquals(2, client.listConstraints(creds, TABLE_TEST).size());
+    assertEquals (2, client.listConstraints (creds, TABLE_TEST).size ());
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));
     
     try {
