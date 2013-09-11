@@ -146,8 +146,7 @@ class WriteExportFiles extends MasterRepo {
   public static void exportTable(VolumeManager fs, Connector conn, String tableName, String tableID, String exportDir) throws Exception {
     
     fs.mkdirs(new Path(exportDir));
-    
-    Path exportMetaFilePath = new Path(exportDir, Constants.EXPORT_FILE);
+    Path exportMetaFilePath = fs.getFileSystemByPath(new Path(exportDir)).makeQualified(new Path(exportDir, Constants.EXPORT_FILE));
     
     FSDataOutputStream fileOut = fs.create(exportMetaFilePath, false);
     ZipOutputStream zipOut = new ZipOutputStream(fileOut);
