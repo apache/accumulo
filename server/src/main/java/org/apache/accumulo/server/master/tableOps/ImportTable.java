@@ -238,6 +238,11 @@ class PopulateMetadataTable extends MasterRepo {
               String oldName = new Path(key.getColumnQualifier().toString()).getName();
               String newName = fileNameMappings.get(oldName);
               
+              if (newName == null) {
+                throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+                    "File " + oldName + " does not exist in import dir");
+              }
+
               cq = new Text("/" + bulkDir + "/" + newName);
             } else {
               cq = key.getColumnQualifier();
