@@ -1073,6 +1073,14 @@ public class SimpleTest {
     client.closeScanner(scanner);
     assertEquals(10, more.results.size());
     
+    try {
+      // ACCUMULO-1558 a second import from the same dir should fail, the first import moved the files
+      client.importTable(creds, "testify2", destDir);
+      fail();
+    } catch (Exception e) {}
+
+    assertFalse(client.listTables(creds).contains("testify2"));
+
     // Locality groups
     client.createTable(creds, "test", true, TimeType.MILLIS);
     Map<String,Set<String>> groups = new HashMap<String,Set<String>>();
