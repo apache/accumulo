@@ -495,7 +495,7 @@ public class MetadataTableUtil {
       if (pathToRemove.startsWith("../"))
         pathToRemove = pathToRemove.substring(2);
       else
-        pathToRemove = "/" + tableId + "/" + pathToRemove;
+        pathToRemove = "/" + tableId + pathToRemove;
     }
     
     Path path = VolumeManagerImpl.get().getFullPath(ServerConstants.getTablesDirs(), pathToRemove);
