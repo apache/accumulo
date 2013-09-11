@@ -56,6 +56,9 @@ public class MasterClient {
     }
     
     String master = locations.get(0);
+    if (master.endsWith(":0"))
+      return null;
+    
     try {
       // Master requests can take a long time: don't ever time out
       MasterClientService.Client client = ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master);

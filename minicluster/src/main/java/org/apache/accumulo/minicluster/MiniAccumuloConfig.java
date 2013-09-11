@@ -142,7 +142,7 @@ public class MiniAccumuloConfig {
    */
   private void mergePropWithRandomPort(String key) {
     if (!siteConfig.containsKey(key)) {
-      siteConfig.put(key, PortUtils.getRandomFreePort() + "");
+      siteConfig.put(key, "0");
     }
   }
 

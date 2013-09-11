@@ -45,7 +45,6 @@ import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
-import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
@@ -114,7 +113,7 @@ public class TServerUtils {
       
       for (int i = 0; i < portsToSearch; i++) {
         int port = portHint + i;
-        if (portHint == 0)
+        if (portHint != 0 && i > 0)
           port = 1024 + random.nextInt(65535 - 1024);
         if (port > 65535)
           port = 1024 + port % (65535 - 1024);
@@ -218,13 +217,18 @@ public class TServerUtils {
       long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(address);
     // check for the special "bind to everything address"
-    if (address.getAddress().getHostAddress().equals("0.0.0.0")) {
+    String hostname = address.getAddress().getHostAddress();
+    if (hostname.equals("0.0.0.0")) {
       // can't get the address from the bind, so we'll do our best to invent our hostname
       try {
-        address = new InetSocketAddress(InetAddress.getLocalHost().getHostName(), address.getPort());
+        hostname = InetAddress.getLocalHost().getHostName();
       } catch (UnknownHostException e) {
         throw new TTransportException(e);
       }
+    }
+    int port = address.getPort();
+    if (port == 0) {
+      port = transport.getPort();
     }
     THsHaServer.Args options = new THsHaServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
@@ -260,7 +264,7 @@ public class TServerUtils {
     }, timeBetweenThreadChecks, timeBetweenThreadChecks);
     options.executorService(pool);
     options.processorFactory(new TProcessorFactory(processor));
-    return new ServerAddress(new THsHaServer(options), address);
+    return new ServerAddress(new THsHaServer(options), new InetSocketAddress(hostname, port));
   }
   
   public static ServerAddress startThreadPoolServer(InetSocketAddress address, TProcessor processor, String serverName, String threadName, int numThreads)

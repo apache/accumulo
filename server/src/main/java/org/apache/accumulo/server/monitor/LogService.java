@@ -24,9 +24,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.net.SocketNode;
@@ -55,6 +59,10 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
       }
     }
     
+    public int getLocalPort() {
+      return server.getLocalPort();
+    }
+    
     public void run() {
       try {
         while (true) {
@@ -70,9 +78,12 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     }
   }
   
-  static void startLogListener(AccumuloConfiguration conf) {
+  static void startLogListener(AccumuloConfiguration conf, String instanceId) {
     try {
-      new Daemon(new SocketServer(conf.getPort(Property.MONITOR_LOG4J_PORT))).start();
+      SocketServer server = new SocketServer(conf.getPort(Property.MONITOR_LOG4J_PORT));
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instanceId) + Constants.ZMONITOR_LOG4J_PORT,
+          Integer.toString(server.getLocalPort()).getBytes(), NodeExistsPolicy.OVERWRITE);
+      new Daemon(server).start();
     } catch (Throwable t) {
       log.info("Unable to listen to cluster-wide ports", t);
     }

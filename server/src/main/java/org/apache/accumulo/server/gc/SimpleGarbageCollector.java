@@ -406,7 +406,7 @@ public class SimpleGarbageCollector implements Iface {
     long maxMessageSize = instance.getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     InetSocketAddress result = new InetSocketAddress(opts.getAddress(), port);
     try {
-      TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize);
+      port = TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize).address.getPort();
     } catch (Exception ex) {
       log.fatal(ex, ex);
       throw new RuntimeException(ex);
