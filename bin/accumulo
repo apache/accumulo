@@ -118,7 +118,11 @@ if [ ! -d "${LIB_PATH}" ]; then
 fi
 #
 # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
-exec $JAVA "-Dapp=$1" $ACCUMULO_OPTS -classpath "${CLASSPATH}" -XX:OnOutOfMemoryError="kill -9 %p" \
+exec $JAVA "-Dapp=$1" \
+   $ACCUMULO_OPTS \
+   -classpath "${CLASSPATH}" \
+   -XX:OnOutOfMemoryError="kill -9 %p" \
+   -XX:-OmitStackTraceInFastThrow \
    -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl \
    -Djava.library.path="${LIB_PATH}" \
    -Dorg.apache.accumulo.core.home.dir="${ACCUMULO_HOME}" \
