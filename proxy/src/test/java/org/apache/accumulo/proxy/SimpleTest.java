@@ -51,6 +51,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -60,13 +61,19 @@ import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
 import org.apache.accumulo.proxy.thrift.ActiveCompaction;
 import org.apache.accumulo.proxy.thrift.ActiveScan;
 import org.apache.accumulo.proxy.thrift.BatchScanOptions;
+import org.apache.accumulo.proxy.thrift.Column;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.CompactionReason;
 import org.apache.accumulo.proxy.thrift.CompactionType;
+import org.apache.accumulo.proxy.thrift.Condition;
+import org.apache.accumulo.proxy.thrift.ConditionalStatus;
+import org.apache.accumulo.proxy.thrift.ConditionalUpdates;
+import org.apache.accumulo.proxy.thrift.ConditionalWriterOptions;
 import org.apache.accumulo.proxy.thrift.DiskUsage;
 import org.apache.accumulo.proxy.thrift.IteratorScope;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
+import org.apache.accumulo.proxy.thrift.KeyValue;
 import org.apache.accumulo.proxy.thrift.MutationsRejectedException;
 import org.apache.accumulo.proxy.thrift.PartialKey;
 import org.apache.accumulo.proxy.thrift.Range;
@@ -434,6 +441,10 @@ public class SimpleTest {
       client.testTableClassLoad(badLogin, table, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName());
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
+    try {
+      client.createConditionalWriter(badLogin, table, new ConditionalWriterOptions());
+      fail("exception not thrown");
+    } catch (AccumuloSecurityException ex) {}
   }
   
   @Test(timeout = 10000)
@@ -588,6 +599,9 @@ public class SimpleTest {
     try {
       client.testTableClassLoad(creds, doesNotExist, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName());
       fail("exception not thrown");
+    } catch (TableNotFoundException ex) {}
+    try {
+      client.createConditionalWriter(creds, doesNotExist, new ConditionalWriterOptions());
     } catch (TableNotFoundException ex) {}
   }
   
@@ -807,6 +821,9 @@ public class SimpleTest {
   
   @Test
   public void testSecurityOperations() throws Exception {
+    if (client.tableExists(creds, TABLE_TEST))
+      client.deleteTable(creds, TABLE_TEST);
+
     // check password
     assertTrue(client.authenticateUser(creds, "root", s2pp(secret)));
     assertFalse(client.authenticateUser(creds, "root", s2pp("")));
@@ -1103,6 +1120,320 @@ public class SimpleTest {
     assertTrue(client.testTableClassLoad(creds, "bar", VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName()));
   }
   
+  private Condition newCondition(String cf, String cq) {
+    return new Condition(new Column(s2bb(cf), s2bb(cq), s2bb("")));
+  }
+  
+  private Condition newCondition(String cf, String cq, String val) {
+    return newCondition(cf, cq).setValue(s2bb(val));
+  }
+  
+  private Condition newCondition(String cf, String cq, long ts, String val) {
+    return newCondition(cf, cq).setValue(s2bb(val)).setTimestamp(ts);
+  }
+
+  private ColumnUpdate newColUpdate(String cf, String cq, String val) {
+    return new ColumnUpdate(s2bb(cf), s2bb(cq)).setValue(s2bb(val));
+  }
+  
+  private ColumnUpdate newColUpdate(String cf, String cq, long ts, String val) {
+    return new ColumnUpdate(s2bb(cf), s2bb(cq)).setTimestamp(ts).setValue(s2bb(val));
+  }
+
+  private void assertScan(String[][] expected, String table) throws Exception {
+    String scid = client.createScanner(creds, TABLE_TEST, new ScanOptions());
+    ScanResult keyValues = client.nextK(scid, expected.length + 1);
+    
+    assertEquals(expected.length, keyValues.results.size());
+    assertFalse(keyValues.more);
+    
+    for (int i = 0; i < keyValues.results.size(); i++) {
+      checkKey(expected[i][0], expected[i][1], expected[i][2], expected[i][3], keyValues.results.get(i));
+    }
+    
+    client.closeScanner(scid);
+  }
+
+  @Test
+  public void testConditionalWriter() throws Exception {
+    if (client.tableExists(creds, TABLE_TEST))
+      client.deleteTable(creds, TABLE_TEST);
+    client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
+    
+    client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
+
+    String cwid = client.createConditionalWriter(creds, TABLE_TEST, new ConditionalWriterOptions());
+    
+    Map<ByteBuffer,ConditionalUpdates> updates = new HashMap<ByteBuffer,ConditionalUpdates>();
+    
+    updates.put(
+        s2bb("00345"),
+        new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq")), Arrays.asList(newColUpdate("meta", "seq", 10, "1"),
+            newColUpdate("data", "img", "73435435"))));
+    
+    Map<ByteBuffer,ConditionalStatus> results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00345")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "73435435"}, {"00345", "meta", "seq", "1"}}, TABLE_TEST);
+    
+    // test not setting values on conditions
+    updates.clear();
+    
+    updates.put(s2bb("00345"), new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq")), Arrays.asList(newColUpdate("meta", "seq", "2"))));
+    updates.put(s2bb("00346"), new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq")), Arrays.asList(newColUpdate("meta", "seq", "1"))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(2, results.size());
+    assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00345")));
+    assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00346")));
+
+    assertScan(new String[][] { {"00345", "data", "img", "73435435"}, {"00345", "meta", "seq", "1"}, {"00346", "meta", "seq", "1"}}, TABLE_TEST);
+    
+    // test setting values on conditions
+    updates.clear();
+
+    updates.put(
+        s2bb("00345"),
+        new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq", "1")), Arrays.asList(newColUpdate("meta", "seq", 20, "2"),
+            newColUpdate("data", "img", "567890"))));
+    
+    updates.put(s2bb("00346"), new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq", "2")), Arrays.asList(newColUpdate("meta", "seq", "3"))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(2, results.size());
+    assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00345")));
+    assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00346")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "567890"}, {"00345", "meta", "seq", "2"},
+        {"00346", "meta", "seq", "1"}}, TABLE_TEST);
+    
+    // test setting timestamp on condition to a non-existant version
+    updates.clear();
+    
+    updates.put(
+        s2bb("00345"),
+        new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq", 10, "2")), Arrays.asList(newColUpdate("meta", "seq", 30, "3"),
+            newColUpdate("data", "img", "1234567890"))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00345")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "567890"}, {"00345", "meta", "seq", "2"}, {"00346", "meta", "seq", "1"}}, TABLE_TEST);
+    
+
+    // test setting timestamp to an existing version
+    
+    updates.clear();
+    
+    updates.put(
+        s2bb("00345"),
+        new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq", 20, "2")), Arrays.asList(newColUpdate("meta", "seq", 30, "3"),
+            newColUpdate("data", "img", "1234567890"))));
+    
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00345")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"}}, TABLE_TEST);
+    
+    // run test w/ condition that has iterators
+    // following should fail w/o iterator
+    client.updateAndFlush(creds, TABLE_TEST, Collections.singletonMap(s2bb("00347"), Arrays.asList(newColUpdate("data", "count", "1"))));
+    client.updateAndFlush(creds, TABLE_TEST, Collections.singletonMap(s2bb("00347"), Arrays.asList(newColUpdate("data", "count", "1"))));
+    client.updateAndFlush(creds, TABLE_TEST, Collections.singletonMap(s2bb("00347"), Arrays.asList(newColUpdate("data", "count", "1"))));
+    
+    updates.clear();
+    updates.put(s2bb("00347"),
+        new ConditionalUpdates(Arrays.asList(newCondition("data", "count", "3")), Arrays.asList(newColUpdate("data", "img", "1234567890"))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00347")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
+        {"00347", "data", "count", "1"}}, TABLE_TEST);
+
+    // following test w/ iterator setup should succeed
+    Condition iterCond = newCondition("data", "count", "3");
+    Map<String,String> props = new HashMap<String,String>();
+    props.put("type", "STRING");
+    props.put("columns", "data:count");
+    IteratorSetting is = new IteratorSetting(1, "sumc", SummingCombiner.class.getName(), props);
+    iterCond.setIterators(Arrays.asList(is));
+    
+    updates.clear();
+    updates.put(s2bb("00347"), new ConditionalUpdates(Arrays.asList(iterCond), Arrays.asList(newColUpdate("data", "img", "1234567890"))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00347")));
+
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
+        {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, TABLE_TEST);
+
+    // test a mutation that violated a constraint
+    updates.clear();
+    updates.put(s2bb("00347"),
+        new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "1234567890")), Arrays.asList(newColUpdate("data", "count", "A"))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.VIOLATED, results.get(s2bb("00347")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
+        {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, TABLE_TEST);
+
+    // run test with two conditions
+    // both conditions should fail
+    updates.clear();
+    updates.put(
+        s2bb("00347"),
+        new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "565"), newCondition("data", "count", "2")), Arrays.asList(
+            newColUpdate("data", "count", "3"), newColUpdate("data", "img", "0987654321"))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00347")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
+        {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, TABLE_TEST);
+    
+    // one condition should fail
+    updates.clear();
+    updates.put(
+        s2bb("00347"),
+        new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "1234567890"), newCondition("data", "count", "2")), Arrays.asList(
+            newColUpdate("data", "count", "3"), newColUpdate("data", "img", "0987654321"))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00347")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
+        {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, TABLE_TEST);
+    
+    // one condition should fail
+    updates.clear();
+    updates.put(
+        s2bb("00347"),
+        new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "565"), newCondition("data", "count", "1")), Arrays.asList(
+            newColUpdate("data", "count", "3"), newColUpdate("data", "img", "0987654321"))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00347")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
+        {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, TABLE_TEST);
+    
+    // both conditions should succeed
+    
+    ConditionalStatus result = client.updateRowConditionally(
+        creds,
+        TABLE_TEST,
+        s2bb("00347"),
+        new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "1234567890"), newCondition("data", "count", "1")), Arrays.asList(
+            newColUpdate("data", "count", "3"), newColUpdate("data", "img", "0987654321"))));
+    
+    assertEquals(ConditionalStatus.ACCEPTED, result);
+    
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
+        {"00347", "data", "count", "3"}, {"00347", "data", "img", "0987654321"}}, TABLE_TEST);
+
+    client.closeConditionalWriter(cwid);
+    try {
+      client.updateRowsConditionally(cwid, updates);
+      fail("conditional writer not closed");
+    } catch (UnknownWriter uk) {}
+
+    // run test with colvis
+    client.createLocalUser(creds, "cwuser", s2bb("bestpasswordever"));
+    client.changeUserAuthorizations(creds, "cwuser", Collections.singleton(s2bb("A")));
+    client.grantTablePermission(creds, "cwuser", TABLE_TEST, TablePermission.WRITE);
+    client.grantTablePermission(creds, "cwuser", TABLE_TEST, TablePermission.READ);
+    
+    ByteBuffer cwuCreds = client.login("cwuser", Collections.singletonMap("password", "bestpasswordever"));
+    
+    cwid = client.createConditionalWriter(cwuCreds, TABLE_TEST, new ConditionalWriterOptions().setAuthorizations(Collections.singleton(s2bb("A"))));
+    
+    updates.clear();
+    updates.put(s2bb("00348"),
+        new ConditionalUpdates(Arrays.asList(new Condition(new Column(s2bb("data"), s2bb("c"), s2bb("A")))), Arrays.asList(newColUpdate("data", "seq", "1"),
+            newColUpdate("data", "c", "1").setColVisibility(s2bb("A")))));
+    updates.put(s2bb("00349"),
+        new ConditionalUpdates(Arrays.asList(new Condition(new Column(s2bb("data"), s2bb("c"), s2bb("B")))), Arrays.asList(newColUpdate("data", "seq", "1"))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(2, results.size());
+    assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00348")));
+    assertEquals(ConditionalStatus.INVISIBLE_VISIBILITY, results.get(s2bb("00349")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
+        {"00347", "data", "count", "3"}, {"00347", "data", "img", "0987654321"}, {"00348", "data", "seq", "1"}}, TABLE_TEST);
+
+    updates.clear();
+    
+    updates.clear();
+    updates.put(
+        s2bb("00348"),
+        new ConditionalUpdates(Arrays.asList(new Condition(new Column(s2bb("data"), s2bb("c"), s2bb("A"))).setValue(s2bb("0"))), Arrays.asList(
+            newColUpdate("data", "seq", "2"), newColUpdate("data", "c", "2").setColVisibility(s2bb("A")))));
+    
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00348")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
+        {"00347", "data", "count", "3"}, {"00347", "data", "img", "0987654321"}, {"00348", "data", "seq", "1"}}, TABLE_TEST);
+    
+    updates.clear();
+    updates.put(
+        s2bb("00348"),
+        new ConditionalUpdates(Arrays.asList(new Condition(new Column(s2bb("data"), s2bb("c"), s2bb("A"))).setValue(s2bb("1"))), Arrays.asList(
+            newColUpdate("data", "seq", "2"), newColUpdate("data", "c", "2").setColVisibility(s2bb("A")))));
+
+    results = client.updateRowsConditionally(cwid, updates);
+    
+    assertEquals(1, results.size());
+    assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00348")));
+    
+    assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
+        {"00347", "data", "count", "3"}, {"00347", "data", "img", "0987654321"}, {"00348", "data", "seq", "2"}}, TABLE_TEST);
+
+    client.closeConditionalWriter(cwid);
+    try {
+      client.updateRowsConditionally(cwid, updates);
+      fail("conditional writer not closed");
+    } catch (UnknownWriter uk) {}
+
+    client.dropLocalUser(creds, "cwuser");
+
+  }
+
+  private void checkKey(String row, String cf, String cq, String val, KeyValue keyValue) {
+    assertEquals(row, ByteBufferUtil.toString(keyValue.key.row));
+    assertEquals(cf, ByteBufferUtil.toString(keyValue.key.colFamily));
+    assertEquals(cq, ByteBufferUtil.toString(keyValue.key.colQualifier));
+    assertEquals("", ByteBufferUtil.toString(keyValue.key.colVisibility));
+    assertEquals(val, ByteBufferUtil.toString(keyValue.value));
+  }
+
   // scan !METADATA table for file entries for the given table
   private int countFiles(String table) throws Exception {
     Map<String,String> tableIdMap = client.tableIdMap(creds);

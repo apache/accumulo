@@ -19,12 +19,14 @@ package org.apache.accumulo.proxy;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
@@ -38,6 +40,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriter.Result;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -57,6 +62,7 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -76,6 +82,10 @@ import org.apache.accumulo.proxy.thrift.BatchScanOptions;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.CompactionReason;
 import org.apache.accumulo.proxy.thrift.CompactionType;
+import org.apache.accumulo.proxy.thrift.Condition;
+import org.apache.accumulo.proxy.thrift.ConditionalStatus;
+import org.apache.accumulo.proxy.thrift.ConditionalUpdates;
+import org.apache.accumulo.proxy.thrift.ConditionalWriterOptions;
 import org.apache.accumulo.proxy.thrift.DiskUsage;
 import org.apache.accumulo.proxy.thrift.KeyValue;
 import org.apache.accumulo.proxy.thrift.KeyValueAndPeek;
@@ -148,8 +158,16 @@ public class ProxyServer implements AccumuloProxy.Iface {
     public CloseScanner() {}
   }
   
+  public static class CloseConditionalWriter implements RemovalListener<UUID,ConditionalWriter> {
+    @Override
+    public void onRemoval(RemovalNotification<UUID,ConditionalWriter> notification) {
+      notification.getValue().close();
+    }
+  }
+
   protected Cache<UUID,ScannerPlusIterator> scannerCache;
   protected Cache<UUID,BatchWriterPlusException> writerCache;
+  protected Cache<UUID,ConditionalWriter> conditionalWriterCache;
   
   public ProxyServer(Properties props) {
     
@@ -169,6 +187,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
     scannerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseScanner()).build();
     
     writerCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseWriter()).build();
+    
+    conditionalWriterCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(1000).removalListener(new CloseConditionalWriter())
+        .build();
   }
   
   protected Connector getConnector(ByteBuffer login) throws Exception {
@@ -1131,39 +1152,48 @@ public class ProxyServer implements AccumuloProxy.Iface {
     
     for (Map.Entry<ByteBuffer,List<ColumnUpdate>> entry : cells.entrySet()) {
       Mutation m = new Mutation(ByteBufferUtil.toBytes(entry.getKey()));
-      
-      for (ColumnUpdate update : entry.getValue()) {
-        ColumnVisibility viz = EMPTY_VIS;
-        if (update.isSetColVisibility()) {
-          Text vizText = new Text(update.getColVisibility());
-          viz = vizMap.get(vizText);
-          if (viz == null) {
-            vizMap.put(vizText, viz = new ColumnVisibility(vizText));
-          }
-        }
-        byte[] value = new byte[0];
-        if (update.isSetValue())
-          value = update.getValue();
-        if (update.isSetTimestamp()) {
-          if (update.isSetDeleteCell()) {
-            m.putDelete(update.getColFamily(), update.getColQualifier(), viz, update.getTimestamp());
-          } else {
-            if (update.isSetDeleteCell()) {
-              m.putDelete(update.getColFamily(), update.getColQualifier(), viz, update.getTimestamp());
-            } else {
-              m.put(update.getColFamily(), update.getColQualifier(), viz, update.getTimestamp(), value);
-            }
-          }
-        } else {
-          m.put(update.getColFamily(), update.getColQualifier(), viz, value);
-        }
-      }
+      addUpdatesToMutation(vizMap, m, entry.getValue());
       try {
         bwpe.writer.addMutation(m);
       } catch (MutationsRejectedException mre) {
         bwpe.exception = mre;
       }
     }
+  }
+  
+  private void addUpdatesToMutation(HashMap<Text,ColumnVisibility> vizMap, Mutation m, List<ColumnUpdate> cu) {
+    for (ColumnUpdate update : cu) {
+      ColumnVisibility viz = EMPTY_VIS;
+      if (update.isSetColVisibility()) {
+        viz = getCahcedCV(vizMap, update.getColVisibility());
+      }
+      byte[] value = new byte[0];
+      if (update.isSetValue())
+        value = update.getValue();
+      if (update.isSetTimestamp()) {
+        if (update.isSetDeleteCell()) {
+          m.putDelete(update.getColFamily(), update.getColQualifier(), viz, update.getTimestamp());
+        } else {
+          if (update.isSetDeleteCell()) {
+            m.putDelete(update.getColFamily(), update.getColQualifier(), viz, update.getTimestamp());
+          } else {
+            m.put(update.getColFamily(), update.getColQualifier(), viz, update.getTimestamp(), value);
+          }
+        }
+      } else {
+        m.put(update.getColFamily(), update.getColQualifier(), viz, value);
+      }
+    }
+  }
+  
+  private static ColumnVisibility getCahcedCV(HashMap<Text,ColumnVisibility> vizMap, byte[] cv) {
+    ColumnVisibility viz;
+    Text vizText = new Text(cv);
+    viz = vizMap.get(vizText);
+    if (viz == null) {
+      vizMap.put(vizText, viz = new ColumnVisibility(vizText));
+    }
+    return viz;
   }
   
   @Override
@@ -1489,6 +1519,121 @@ public class ProxyServer implements AccumuloProxy.Iface {
     } catch (Exception e) {
       handleExceptionTNF(e);
       return false;
+    }
+  }
+  
+  @Override
+  public String createConditionalWriter(ByteBuffer login, String tableName, ConditionalWriterOptions options)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
+      org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
+    try {
+      ConditionalWriterConfig cwc = new ConditionalWriterConfig();
+      if (options.getMaxMemory() != 0) {
+        // TODO
+      }
+      if (options.isSetThreads() && options.getThreads() != 0)
+        cwc.setMaxWriteThreads(options.getThreads());
+      if (options.isSetTimeoutMs() && options.getTimeoutMs() != 0)
+        cwc.setTimeout(options.getTimeoutMs(), TimeUnit.MILLISECONDS);
+      if (options.isSetAuthorizations() && options.getAuthorizations() != null)
+        cwc.setAuthorizations(getAuthorizations(options.getAuthorizations()));
+      
+      ConditionalWriter cw = getConnector(login).createConditionalWriter(tableName, cwc);
+      
+      UUID id = UUID.randomUUID();
+      
+      conditionalWriterCache.put(id, cw);
+      
+      return id.toString();
+    } catch (Exception e) {
+      handleExceptionTNF(e);
+      return null;
+    }
+  }
+  
+  @Override
+  public Map<ByteBuffer,ConditionalStatus> updateRowsConditionally(String conditionalWriter, Map<ByteBuffer,ConditionalUpdates> updates) throws UnknownWriter,
+      org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
+    
+    ConditionalWriter cw = conditionalWriterCache.getIfPresent(UUID.fromString(conditionalWriter));
+    
+    if (cw == null) {
+      throw new UnknownWriter();
+    }
+    
+    try {
+      HashMap<Text,ColumnVisibility> vizMap = new HashMap<Text,ColumnVisibility>();
+      
+      ArrayList<ConditionalMutation> cmuts = new ArrayList<ConditionalMutation>(updates.size());
+      for (Entry<ByteBuffer,ConditionalUpdates> cu : updates.entrySet()) {
+        ConditionalMutation cmut = null;
+        
+        for (Condition tcond : cu.getValue().conditions) {
+          org.apache.accumulo.core.data.Condition cond = new org.apache.accumulo.core.data.Condition(tcond.column.getColFamily(),
+              tcond.column.getColQualifier());
+          
+          if (tcond.getColumn().getColVisibility() != null && tcond.getColumn().getColVisibility().length > 0) {
+            cond.setVisibility(getCahcedCV(vizMap, tcond.getColumn().getColVisibility()));
+          }
+          
+          if (tcond.isSetValue())
+            cond.setValue(tcond.getValue());
+          
+          if (tcond.isSetTimestamp())
+            cond.setTimestamp(tcond.getTimestamp());
+          
+          if (tcond.isSetIterators()) {
+            cond.setIterators(getIteratorSettings(tcond.getIterators()).toArray(new IteratorSetting[tcond.getIterators().size()]));
+          }
+          
+          if (cmut == null)
+            cmut = new ConditionalMutation(ByteBufferUtil.toBytes(cu.getKey()), cond);
+          else
+            cmut.addCondition(cond);
+        }
+        
+        addUpdatesToMutation(vizMap, cmut, cu.getValue().updates);
+        
+        cmuts.add(cmut);
+      }
+      
+      Iterator<Result> results = cw.write(cmuts.iterator());
+      
+      HashMap<ByteBuffer,ConditionalStatus> resultMap = new HashMap<ByteBuffer,ConditionalStatus>();
+      
+      while (results.hasNext()) {
+        Result result = results.next();
+        ByteBuffer row = ByteBuffer.wrap(result.getMutation().getRow());
+        ConditionalStatus status = ConditionalStatus.valueOf(result.getStatus().name());
+        resultMap.put(row, status);
+      }
+      
+      return resultMap;
+    } catch (Exception e) {
+      handleException(e);
+      return null;
+    }
+  }
+  
+  @Override
+  public void closeConditionalWriter(String conditionalWriter) throws TException {
+    ConditionalWriter cw = conditionalWriterCache.getIfPresent(UUID.fromString(conditionalWriter));
+    if (cw != null) {
+      cw.close();
+      conditionalWriterCache.invalidate(UUID.fromString(conditionalWriter));
+    }
+  }
+  
+  @Override
+  public ConditionalStatus updateRowConditionally(ByteBuffer login, String tableName, ByteBuffer row, ConditionalUpdates updates)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
+      org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
+    
+    String cwid = createConditionalWriter(login, tableName, new ConditionalWriterOptions());
+    try {
+      return updateRowsConditionally(cwid, Collections.singletonMap(row, updates)).get(row);
+    } finally {
+      closeConditionalWriter(cwid);
     }
   }
 }

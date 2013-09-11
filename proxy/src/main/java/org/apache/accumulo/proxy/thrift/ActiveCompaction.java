@@ -1112,13 +1112,13 @@ import org.slf4j.LoggerFactory;
           case 3: // INPUT_FILES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list106 = iprot.readListBegin();
-                struct.inputFiles = new ArrayList<String>(_list106.size);
-                for (int _i107 = 0; _i107 < _list106.size; ++_i107)
+                org.apache.thrift.protocol.TList _list138 = iprot.readListBegin();
+                struct.inputFiles = new ArrayList<String>(_list138.size);
+                for (int _i139 = 0; _i139 < _list138.size; ++_i139)
                 {
-                  String _elem108; // optional
-                  _elem108 = iprot.readString();
-                  struct.inputFiles.add(_elem108);
+                  String _elem140; // required
+                  _elem140 = iprot.readString();
+                  struct.inputFiles.add(_elem140);
                 }
                 iprot.readListEnd();
               }
@@ -1178,14 +1178,14 @@ import org.slf4j.LoggerFactory;
           case 10: // ITERATORS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list109 = iprot.readListBegin();
-                struct.iterators = new ArrayList<IteratorSetting>(_list109.size);
-                for (int _i110 = 0; _i110 < _list109.size; ++_i110)
+                org.apache.thrift.protocol.TList _list141 = iprot.readListBegin();
+                struct.iterators = new ArrayList<IteratorSetting>(_list141.size);
+                for (int _i142 = 0; _i142 < _list141.size; ++_i142)
                 {
-                  IteratorSetting _elem111; // optional
-                  _elem111 = new IteratorSetting();
-                  _elem111.read(iprot);
-                  struct.iterators.add(_elem111);
+                  IteratorSetting _elem143; // required
+                  _elem143 = new IteratorSetting();
+                  _elem143.read(iprot);
+                  struct.iterators.add(_elem143);
                 }
                 iprot.readListEnd();
               }
@@ -1221,9 +1221,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(INPUT_FILES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.inputFiles.size()));
-          for (String _iter112 : struct.inputFiles)
+          for (String _iter144 : struct.inputFiles)
           {
-            oprot.writeString(_iter112);
+            oprot.writeString(_iter144);
           }
           oprot.writeListEnd();
         }
@@ -1259,9 +1259,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(ITERATORS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.iterators.size()));
-          for (IteratorSetting _iter113 : struct.iterators)
+          for (IteratorSetting _iter145 : struct.iterators)
           {
-            _iter113.write(oprot);
+            _iter145.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1325,9 +1325,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetInputFiles()) {
         {
           oprot.writeI32(struct.inputFiles.size());
-          for (String _iter114 : struct.inputFiles)
+          for (String _iter146 : struct.inputFiles)
           {
-            oprot.writeString(_iter114);
+            oprot.writeString(_iter146);
           }
         }
       }
@@ -1352,9 +1352,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetIterators()) {
         {
           oprot.writeI32(struct.iterators.size());
-          for (IteratorSetting _iter115 : struct.iterators)
+          for (IteratorSetting _iter147 : struct.iterators)
           {
-            _iter115.write(oprot);
+            _iter147.write(oprot);
           }
         }
       }
@@ -1375,13 +1375,13 @@ import org.slf4j.LoggerFactory;
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TList _list116 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.inputFiles = new ArrayList<String>(_list116.size);
-          for (int _i117 = 0; _i117 < _list116.size; ++_i117)
+          org.apache.thrift.protocol.TList _list148 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.inputFiles = new ArrayList<String>(_list148.size);
+          for (int _i149 = 0; _i149 < _list148.size; ++_i149)
           {
-            String _elem118; // optional
-            _elem118 = iprot.readString();
-            struct.inputFiles.add(_elem118);
+            String _elem150; // required
+            _elem150 = iprot.readString();
+            struct.inputFiles.add(_elem150);
           }
         }
         struct.setInputFilesIsSet(true);
@@ -1412,14 +1412,14 @@ import org.slf4j.LoggerFactory;
       }
       if (incoming.get(9)) {
         {
-          org.apache.thrift.protocol.TList _list119 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.iterators = new ArrayList<IteratorSetting>(_list119.size);
-          for (int _i120 = 0; _i120 < _list119.size; ++_i120)
+          org.apache.thrift.protocol.TList _list151 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.iterators = new ArrayList<IteratorSetting>(_list151.size);
+          for (int _i152 = 0; _i152 < _list151.size; ++_i152)
           {
-            IteratorSetting _elem121; // optional
-            _elem121 = new IteratorSetting();
-            _elem121.read(iprot);
-            struct.iterators.add(_elem121);
+            IteratorSetting _elem153; // required
+            _elem153 = new IteratorSetting();
+            _elem153.read(iprot);
+            struct.iterators.add(_elem153);
           }
         }
         struct.setIteratorsIsSet(true);

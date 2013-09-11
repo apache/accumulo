@@ -141,6 +141,33 @@ struct Column {
   3:binary colVisibility;
 }
 
+struct Condition {
+  1:Column column;
+  2:optional i64 timestamp;
+  3:optional binary value;
+  4:optional list<IteratorSetting> iterators;
+}
+
+struct ConditionalUpdates {
+	2:list<Condition> conditions
+	3:list<ColumnUpdate> updates 
+}
+
+enum ConditionalStatus {
+  ACCEPTED,
+  REJECTED,
+  VIOLATED,
+  UNKNOWN,
+  INVISIBLE_VISIBILITY
+}
+
+struct ConditionalWriterOptions {
+   1:optional i64 maxMemory
+   2:optional i64 timeoutMs
+   3:optional i32 threads
+   4:optional set<binary> authorizations;
+}
+
 struct ActiveScan {
   1:string client
   2:string user
@@ -340,6 +367,17 @@ service AccumuloProxy
   oneway void update(1:string writer, 2:map<binary, list<ColumnUpdate>> cells);
   void flush(1:string writer)                                                                      throws (1:UnknownWriter ouch1, 2:MutationsRejectedException ouch2);
   void closeWriter(1:string writer)                                                                throws (1:UnknownWriter ouch1, 2:MutationsRejectedException ouch2);
+
+  //api for a single conditional update
+  ConditionalStatus updateRowConditionally(1:binary login, 2:string tableName, 3:binary row, 
+                                           4:ConditionalUpdates updates)                           throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  
+  //api for batch conditional updates
+  string createConditionalWriter(1:binary login, 2:string tableName, 
+                                 3:ConditionalWriterOptions options)                               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  map<binary, ConditionalStatus> updateRowsConditionally(1:string conditionalWriter,                   
+                                                     2:map<binary, ConditionalUpdates> updates)    throws (1:UnknownWriter ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
+  void closeConditionalWriter(1:string conditionalWriter);
 
   // utilities
   Range getRowRange(1:binary row);
