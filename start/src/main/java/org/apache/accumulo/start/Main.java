@@ -106,7 +106,7 @@ public class Main {
           try {
             finalMain.invoke(null, thisIsJustOneArgument);
           } catch (Exception e) {
-            System.err.println("Thread \"" + Thread.currentThread().getName() + "\" died " + e.getMessage());
+            System.err.println("Thread \"" + Thread.currentThread().getName() + "\" died " + e);
             e.printStackTrace(System.err);
             System.exit(1);
           }
@@ -117,8 +117,9 @@ public class Main {
       t.setContextClassLoader(cl);
       t.start();
     } catch (Throwable t) {
-      System.err.println("Uncaught exception: " + t.getMessage());
+      System.err.println("Uncaught exception: " + t);
       t.printStackTrace(System.err);
+      System.exit(1);
     }
   }
   
