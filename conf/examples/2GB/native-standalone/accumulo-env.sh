@@ -44,3 +44,5 @@ test -z "$ACCUMULO_LOGGER_OPTS"  && export ACCUMULO_LOGGER_OPTS="-Xmx768m -Xms25
 test -z "$ACCUMULO_GENERAL_OPTS" && export ACCUMULO_GENERAL_OPTS="-XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75"
 test -z "$ACCUMULO_OTHER_OPTS"   && export ACCUMULO_OTHER_OPTS="-Xmx256m -Xms64m"
 export ACCUMULO_LOG_HOST=`(grep -v '^#' $ACCUMULO_CONF_DIR/masters ; echo localhost ) 2>/dev/null | head -1`
+# what do when the JVM runs out of heap memory
+export ACCUMULO_KILL_CMD='kill -9 %p'
