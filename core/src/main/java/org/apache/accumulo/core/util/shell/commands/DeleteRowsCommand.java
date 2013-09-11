@@ -25,7 +25,8 @@ import org.apache.hadoop.io.Text;
 
 public class DeleteRowsCommand extends Command {
   private Option forceOpt;
-  
+  private Option startRowOptExclusive;
+ 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
@@ -53,7 +54,9 @@ public class DeleteRowsCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
     forceOpt = new Option("f", "force", false, "delete data even if start or end are not specified");
-    o.addOption(OptUtil.startRowOpt());
+    startRowOptExclusive = new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (exclusive)");
+    startRowOptExclusive.setArgName("begin-row");
+    o.addOption(startRowOptExclusive);
     o.addOption(OptUtil.endRowOpt());
     o.addOption(OptUtil.tableOpt("table to delete a row range from"));
     o.addOption(forceOpt);
