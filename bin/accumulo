@@ -121,7 +121,7 @@ fi
 exec $JAVA "-Dapp=$1" \
    $ACCUMULO_OPTS \
    -classpath "${CLASSPATH}" \
-   -XX:OnOutOfMemoryError="kill -9 %p" \
+   -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" \
    -XX:-OmitStackTraceInFastThrow \
    -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl \
    -Djava.library.path="${LIB_PATH}" \
