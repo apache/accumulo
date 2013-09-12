@@ -192,6 +192,127 @@ The Accumulo Master provides an interface for monitoring the status and health o
 Accumulo components. This interface can be accessed by pointing a web browser to\\
 \texttt{http://accumulomaster:50095/status}
 
+\section{Tracing}
+It can be difficult to determine why some operations are taking longer
+than expected. For example, you may be looking up items with very low
+latency, but sometimes the lookups take much longer. Determining the
+cause of the delay is difficult because the system is distributed, and
+the typical lookup is fast.
+
+Accumulo has been instrumented to record the time that various
+operations take when tracing is turned on. The fact that tracing is
+enabled follows all the requests made on behalf of the user throughout
+the distributed infrastructure of accumulo, and across all threads of
+execution.
+
+These time spans will be inserted into the \texttt{trace} table in
+Accumulo. You can browse recent traces from the Accumulo monitor
+page. You can also read the \texttt{trace} table directly like any
+other table.
+
+The design of Accumulo's distributed tracing follows that of
+\href{http://research.google.com/pubs/pub36356.html}{Google's Dapper}.
+
+\subsection{Tracers}
+To collect traces, Accumulo needs at least one server listed in
+\\\texttt{\$ACCUMULO\_HOME/conf/tracers}. The server collects traces
+from clients and writes them to the \texttt{trace} table. The Accumulo
+user that the tracer connects to Accumulo with can be configured with
+the following properties
+
+\begin{verbatim}
+trace.user
+trace.token.property.password
+\end{verbatim}
+
+\subsection{Instrumenting a Client}
+Tracing can be used to measure a client operation, such as a scan, as
+the operation traverses the distributed system. To enable tracing for
+your application call
+
+\begin{verbatim}
+DistributedTrace.enable(instance, new ZooReader(instance), hostname, "myApplication");
+\end{verbatim}
+
+Once tracing has been enabled, a client can wrap an operation in a trace.
+
+\begin{verbatim}
+Trace.on("Client Scan");
+BatchScanner scanner = conn.createBatchScanner(...);
+// Configure your scanner
+for (Entry entry : scanner) {
+}
+Trace.off();
+\end{verbatim}
+
+Additionally, the user can create additional Spans within a Trace.
+\begin{verbatim}
+Trace.on("Client Update");
+...
+Span readSpan = Trace.start("Read");
+...
+readSpan.stop();
+...
+Span writeSpan = Trace.start("Write");
+...
+writeSpan.stop();
+Trace.off();
+\end{verbatim}
+
+Like Dapper, Accumulo tracing supports user defined annotations to associate additional data with a Trace.
+\begin{verbatim}
+...
+int numberOfEntriesRead = 0;
+Span readSpan = Trace.start("Read");
+// Do the read, update the counter
+...
+readSpan.data("Number of Entries Read", String.valueOf(numberOfEntriesRead));
+\end{verbatim}
+
+Some client operations may have a high volume within your
+application. As such, you may wish to only sample a percentage of
+operations for tracing. As seen below, the CountSampler can be used to
+help enable tracing for 1-in-1000 operations
+\begin{verbatim}
+Sampler sampler = new CountSampler(1000);
+...
+if (sampler.next()) {
+  Trace.on("Read");
+}
+...
+Trace.offNoFlush();
+\end{verbatim}
+
+It should be noted that it is safe to turn off tracing even if it
+isn't currently active. The Trace.offNoFlush() should be used if the
+user does not wish to have Trace.off() block while flushing trace
+data.
+
+\subsection{Viewing Collected Traces}
+To view collected traces, use the "Recent Traces" link on the Monitor
+UI. You can also programmatically access and print traces using the
+\texttt{TraceDump} class.
+
+\subsection{Tracing from the Shell}
+You can enable tracing for operations run from the shell by using the
+\texttt{trace on} and \texttt{trace off} commands.
+
+\begin{verbatim}
+root@test test> trace on
+root@test test> scan
+a b:c []    d
+root@test test> trace off
+Waiting for trace information
+Waiting for trace information
+Trace started at 2013/08/26 13:24:08.332
+Time  Start  Service@Location       Name
+ 3628+0      shell@localhost shell:root
+    8+1690     shell@localhost scan
+    7+1691       shell@localhost scan:location
+    6+1692         tserver@localhost startScan
+    5+1692           tserver@localhost tablet read ahead 6
+\end{verbatim}
+
 \section{Logging}
 Accumulo processes each write to a set of log files. By default these are found under\\
 \texttt{\$ACCUMULO/logs/}.
