@@ -89,16 +89,16 @@ public class TracingExample {
 	
 	private void createEntries(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 		
-		
+		// Trace the write operation. Note, unless you flush the BatchWriter, you will not capture
+		// the write operation as it is occurs asynchronously. You can optionally create additional Spans
+		// within a given Trace as seen below around the flush
+		Trace.on("Client Write");
+		System.out.println("TraceID: " + Long.toHexString(Trace.currentTrace().traceId()));
 		BatchWriter batchWriter = opts.getConnector().createBatchWriter(opts.getTableName(), new BatchWriterConfig());
 	    
 		Mutation m = new Mutation("row");
 		m.put("cf", "cq", "value");
 		
-		// Trace the write operation. Note, unless you flush the BatchWriter, you will not capture
-		// the write operation as it is occurs asynchronously. You can optionally create additional Spans
-		// within a given Trace as seen below around the flush
-		Trace.on("Client Write");
 		
 	    batchWriter.addMutation(m);
 	    Span flushSpan = Trace.start("Client Flush");
@@ -106,9 +106,8 @@ public class TracingExample {
 	    flushSpan.stop();
 	    
 	    // Use Trace.offNoFlush() if you don't want the operation to block.
-	    Trace.off();
-	    
 	    batchWriter.close();
+	    Trace.off();
 	}
 	
 	private void readEntries(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
@@ -117,7 +116,7 @@ public class TracingExample {
 		
 		// Trace the read operation.  
 		Span readSpan = Trace.on("Client Read");
-		
+		System.out.println("TraceID: " + Long.toHexString(Trace.currentTrace().traceId()));
 		int numberOfEntriesRead = 0;
 		for (Entry<Key,Value> entry : scanner) {
 			System.out.println(entry.getKey().toString() + " -> " + entry.getValue().toString());

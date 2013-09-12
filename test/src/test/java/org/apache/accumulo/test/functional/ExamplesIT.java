@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -47,6 +49,8 @@ import org.apache.accumulo.examples.simple.client.RandomBatchWriter;
 import org.apache.accumulo.examples.simple.client.ReadWriteExample;
 import org.apache.accumulo.examples.simple.client.RowOperations;
 import org.apache.accumulo.examples.simple.client.SequentialBatchWriter;
+import org.apache.accumulo.examples.simple.client.TraceDumpExample;
+import org.apache.accumulo.examples.simple.client.TracingExample;
 import org.apache.accumulo.examples.simple.constraints.MaxMutationSize;
 import org.apache.accumulo.examples.simple.dirlist.Ingest;
 import org.apache.accumulo.examples.simple.dirlist.QueryUtil;
@@ -68,6 +72,7 @@ import org.apache.accumulo.examples.simple.shard.Reverse;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.server.trace.TraceServer;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -100,19 +105,43 @@ public class ExamplesIT extends ConfigurableMacIT {
     String dir = cluster.getConfig().getDir().getAbsolutePath();
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     
+    Process trace = cluster.exec(TraceServer.class);
+    while (!c.tableOperations().exists("trace"))
+      UtilWaitThread.sleep(500);
+    
+    log.info("trace example");
+    Process p = cluster.exec(TracingExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-C", "-D", "-c");
+    assertEquals(0, p.waitFor());
+    for(LogWriter writer : cluster.getLogWriters()) {
+      writer.flush();
+    }
+    String result = FunctionalTestUtils.readAll(cluster, TracingExample.class, p);
+    Pattern pattern = Pattern.compile("TraceID: ([0-9a-f]+)");
+    Matcher matcher = pattern.matcher(result);
+    int count = 0;
+    while (matcher.find()) {
+      p = cluster.exec(TraceDumpExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--traceid", matcher.group(1));
+      assertEquals(0, p.waitFor());
+      count++;
+    }
+    assertTrue(count > 0);
+    result = FunctionalTestUtils.readAll(cluster, TraceDumpExample.class, p);
+    assertTrue(result.contains("myHost@myApp"));
+    trace.destroy();
+    
     
     log.info("testing dirlist example (a little)");
     c.securityOperations().changeUserAuthorizations(user, new Authorizations(auths.split(",")));
     assertEquals(0, cluster.exec(Ingest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, 
         "--dirTable", "dirTable", "--indexTable", "indexTable", "--dataTable", "dataTable",
         "--vis", visibility, "--chunkSize", 10000 + "", cluster.getConfig().getDir().getAbsolutePath()).waitFor());
-    Process p = cluster.exec(QueryUtil.class, "-i", instance, "-z", keepers, "-p", passwd, "-u", user,
+    p = cluster.exec(QueryUtil.class, "-i", instance, "-z", keepers, "-p", passwd, "-u", user,
         "-t", "indexTable", "--auths", auths, "--search", "--path", "accumulo-site.xml");
     assertEquals(0, p.waitFor());
     for(LogWriter writer : cluster.getLogWriters()) {
       writer.flush();
     }
-    String result = FunctionalTestUtils.readAll(cluster, QueryUtil.class, p);
+    result = FunctionalTestUtils.readAll(cluster, QueryUtil.class, p);
     System.out.println("result " + result);
     assertTrue(result.contains("accumulo-site.xml"));
 
@@ -127,7 +156,7 @@ public class ExamplesIT extends ConfigurableMacIT {
     m.put("a", "b", "c");
     bw.addMutation(m);
     UtilWaitThread.sleep(1000);
-    int count = 0;
+    count = 0;
     for (@SuppressWarnings("unused") Entry<Key,Value> line : c.createScanner("filtertest", Authorizations.EMPTY))
       count++;
     assertEquals(0, count);
