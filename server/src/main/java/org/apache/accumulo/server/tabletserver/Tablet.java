@@ -1250,12 +1250,13 @@ public class Tablet {
   private Tablet(final TabletServer tabletServer, final Text location, final KeyExtent extent, final TabletResourceManager trm, final Configuration conf,
       final VolumeManager fs, final List<LogEntry> logEntries, final SortedMap<FileRef,DataFileValue> datafiles, String time,
       final TServerInstance lastLocation, Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
+    Path locationPath;
     if (location.find(":") >= 0) {
-      this.location = new Path(location.toString());
+      locationPath = new Path(location.toString());
     } else {
-      this.location = new Path(ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId().toString() + location.toString());
+      locationPath = new Path(ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId().toString() + location.toString());
     }
-    this.location = this.location.makeQualified(fs.getFileSystemByPath(this.location));
+    this.location = locationPath.makeQualified(fs.getFileSystemByPath(locationPath));
     this.lastLocation = lastLocation;
     this.conf = conf;
     this.acuTableConf = tabletServer.getTableConfiguration(extent);
@@ -1432,7 +1433,7 @@ public class Tablet {
     try {
       for (FileStatus tmp : fs.globStatus(new Path(location, "*_tmp"))){
         try {
-          fs.delete(tmp.getPath(), true);
+          fs.delete(tmp.getPath());
         } catch (IOException ex) {
           log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
         }
