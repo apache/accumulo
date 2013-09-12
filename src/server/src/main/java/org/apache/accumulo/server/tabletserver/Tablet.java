@@ -372,7 +372,7 @@ public class Tablet {
   private long persistedTime;
   private Object timeLock = new Object();
   
-  private Path location; // absolute path of this tablets dir
+  private final Path location; // absolute path of this tablets dir
   private TServerInstance lastLocation;
   
   private Configuration conf;
@@ -405,8 +405,6 @@ public class Tablet {
   private boolean updatingFlushID = false;
   
   private AtomicReference<ConstraintChecker> constraintChecker = new AtomicReference<ConstraintChecker>();
-  
-  private String tabletDirectory;
   
   private int writesInProgress = 0;
   
@@ -1333,7 +1331,6 @@ public class Tablet {
       Set<String> scanFiles, long initFlushID, long initCompactID) throws IOException {
     this.location = new Path(ServerConstants.getTablesDir() + "/" + extent.getTableId().toString() + location.toString());
     this.lastLocation = lastLocation;
-    this.tabletDirectory = location.toString();
     this.conf = conf;
     this.acuTableConf = ServerConfiguration.getTableConfiguration(extent.getTableId().toString());
     
@@ -1484,6 +1481,8 @@ public class Tablet {
           + " entries created)");
     }
     
+    removeOldTemporaryFiles();
+    
     // do this last after tablet is completely setup because it
     // could cause major compaction to start
     datafileManager = new DatafileManager(datafiles);
@@ -1495,6 +1494,21 @@ public class Tablet {
     log.log(TLevel.TABLET_HIST, extent + " opened ");
   }
   
+  private void removeOldTemporaryFiles() {
+    // remove any temporary files created by a previous tablet server
+    try {
+      for (FileStatus tmp : fs.globStatus(new Path(location, "*_tmp"))){
+        try {
+          fs.delete(tmp.getPath(), true);
+        } catch (IOException ex) {
+          log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
+        }
+      }
+    } catch (IOException ex) {
+      log.error("Error scanning for old temp files in " + location);
+    }
+  }
+
   private void setupDefaultSecurityLabels(KeyExtent extent) {
     if (extent.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
       defaultSecurityLabel = new byte[0];
@@ -3520,7 +3534,7 @@ public class Tablet {
       
       log.log(TLevel.TABLET_HIST, extent + " split " + low + " " + high);
       
-      newTablets.put(high, new SplitInfo(tabletDirectory, highDatafileSizes, time, lastFlushID, lastCompactID));
+      newTablets.put(high, new SplitInfo(location.toString(), highDatafileSizes, time, lastFlushID, lastCompactID));
       newTablets.put(low, new SplitInfo(lowDirectory, lowDatafileSizes, time, lastFlushID, lastCompactID));
       
       long t2 = System.currentTimeMillis();
