@@ -93,12 +93,12 @@ public class TracingExample {
 		// the write operation as it is occurs asynchronously. You can optionally create additional Spans
 		// within a given Trace as seen below around the flush
 		Trace.on("Client Write");
+
 		System.out.println("TraceID: " + Long.toHexString(Trace.currentTrace().traceId()));
 		BatchWriter batchWriter = opts.getConnector().createBatchWriter(opts.getTableName(), new BatchWriterConfig());
 	    
 		Mutation m = new Mutation("row");
 		m.put("cf", "cq", "value");
-		
 		
 	    batchWriter.addMutation(m);
 	    Span flushSpan = Trace.start("Client Flush");
@@ -117,6 +117,7 @@ public class TracingExample {
 		// Trace the read operation.  
 		Span readSpan = Trace.on("Client Read");
 		System.out.println("TraceID: " + Long.toHexString(Trace.currentTrace().traceId()));
+
 		int numberOfEntriesRead = 0;
 		for (Entry<Key,Value> entry : scanner) {
 			System.out.println(entry.getKey().toString() + " -> " + entry.getValue().toString());
