@@ -20,8 +20,10 @@ import java.io.File;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.commons.io.FileUtils;
@@ -75,7 +77,7 @@ public class MiniAccumuloClusterGCTest {
   @Test(timeout = 20000)
   public void test() throws Exception {
     ZooKeeperInstance inst = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
-    Connector c = inst.getConnector("root", passwd);
+    Connector c = inst.getConnector("root", new PasswordToken(passwd));
     
     final String table = "foobar";
     c.tableOperations().create(table);
@@ -84,7 +86,7 @@ public class MiniAccumuloClusterGCTest {
     
     // Add some data
     try {
-      bw = c.createBatchWriter(table, 1000l, 100l, 1);
+      bw = c.createBatchWriter(table, new BatchWriterConfig());
       Mutation m = new Mutation("a");
       for (int i = 0; i < 50; i++) {
         m.put("colf", Integer.toString(i), "");
