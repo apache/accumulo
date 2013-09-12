@@ -80,7 +80,7 @@ public class MiniAccumuloClusterGCTest {
   public void test() throws Exception {
     ZooKeeperInstance inst = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
     Connector c = inst.getConnector("root", new PasswordToken(passwd));
-
+    
     final String table = "foobar";
     c.tableOperations().create(table);
 

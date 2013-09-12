@@ -397,7 +397,7 @@ public class Tablet {
   private long persistedTime;
   private final Object timeLock = new Object();
   
-  private Path location; // absolute path of this tablets dir
+  private final Path location; // absolute path of this tablets dir
   private TServerInstance lastLocation;
   
   private Configuration conf;
@@ -430,8 +430,6 @@ public class Tablet {
   private boolean updatingFlushID = false;
   
   private AtomicReference<ConstraintChecker> constraintChecker = new AtomicReference<ConstraintChecker>();
-  
-  private String tabletDirectory;
   
   private int writesInProgress = 0;
   
@@ -1259,7 +1257,6 @@ public class Tablet {
     }
     this.location = this.location.makeQualified(fs.getFileSystemByPath(this.location));
     this.lastLocation = lastLocation;
-    this.tabletDirectory = location.toString();
     this.conf = conf;
     this.acuTableConf = tabletServer.getTableConfiguration(extent);
     
@@ -1416,6 +1413,8 @@ public class Tablet {
       // TODO this could hang, causing other tablets to fail to load - ACCUMULO-1292
       AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
     }
+
+    removeOldTemporaryFiles();
     
     // do this last after tablet is completely setup because it
     // could cause major compaction to start
@@ -1428,6 +1427,21 @@ public class Tablet {
     log.log(TLevel.TABLET_HIST, extent + " opened ");
   }
   
+  private void removeOldTemporaryFiles() {
+    // remove any temporary files created by a previous tablet server
+    try {
+      for (FileStatus tmp : fs.globStatus(new Path(location, "*_tmp"))){
+        try {
+          fs.delete(tmp.getPath(), true);
+        } catch (IOException ex) {
+          log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
+        }
+      }
+    } catch (IOException ex) {
+      log.error("Error scanning for old temp files in " + location);
+    }
+  }
+
   private void setupDefaultSecurityLabels(KeyExtent extent) {
     if (extent.isMeta()) {
       defaultSecurityLabel = new byte[0];
@@ -3541,7 +3555,7 @@ public class Tablet {
       
       log.log(TLevel.TABLET_HIST, extent + " split " + low + " " + high);
       
-      newTablets.put(high, new SplitInfo(tabletDirectory, highDatafileSizes, time, lastFlushID, lastCompactID));
+      newTablets.put(high, new SplitInfo(location.toString(), highDatafileSizes, time, lastFlushID, lastCompactID));
       newTablets.put(low, new SplitInfo(lowDirectory, lowDatafileSizes, time, lastFlushID, lastCompactID));
       
       long t2 = System.currentTimeMillis();
