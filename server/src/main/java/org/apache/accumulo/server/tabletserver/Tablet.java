@@ -1415,12 +1415,6 @@ public class Tablet {
       AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
     }
 
-    // look for hints of a failure on the previous tablet server
-    if (!logEntries.isEmpty() || needsMajorCompaction(MajorCompactionReason.NORMAL)) {
-      // look for any temp files hanging around
-      removeOldTemporaryFiles();
-    }
-    
     // do this last after tablet is completely setup because it
     // could cause major compaction to start
     datafileManager = new DatafileManager(datafiles);
@@ -1428,6 +1422,18 @@ public class Tablet {
     computeNumEntries();
     
     datafileManager.removeFilesAfterScan(scanFiles);
+    
+    // look for hints of a failure on the previous tablet server
+    if (!logEntries.isEmpty() || needsMajorCompaction(MajorCompactionReason.NORMAL)) {
+      // look for any temp files hanging around
+      removeOldTemporaryFiles();
+    }
+
+    // look for hints of a failure on the previous tablet server
+    if (!logEntries.isEmpty() || needsMajorCompaction(MajorCompactionReason.NORMAL)) {
+      // look for any temp files hanging around
+      removeOldTemporaryFiles();
+    }
     
     log.log(TLevel.TABLET_HIST, extent + " opened ");
   }
