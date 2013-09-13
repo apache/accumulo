@@ -17,9 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,7 +31,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.ProcessReference;
 import org.apache.accumulo.minicluster.ServerType;
@@ -42,10 +39,10 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
 public class CleanTmpIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String, String> props = new HashMap<String, String>();
+    Map<String,String> props = new HashMap<String,String>();
     props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "3s");
     cfg.setSiteConfig(props);
     cfg.setNumTservers(1);
@@ -64,19 +61,20 @@ public class CleanTmpIT extends ConfigurableMacIT {
     m.put("cf", "cq", "value");
     bw.addMutation(m);
     bw.close();
-    
+
     // create a fake _tmp file in its directory
     String id = c.tableOperations().tableIdMap().get(tableName);
     FileSystem fs = getCluster().getFileSystem();
     Path tmp = new Path(getCluster().getConfig().getAccumuloDir().getPath() + "/tables/" + id + "/default_tablet/junk.rf_tmp");
     fs.create(tmp).close();
-    for (ProcessReference tserver: getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
+    for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
       getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
     }
     getCluster().start();
-    
+
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : scanner)
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : scanner)
       ;
     assertFalse(!fs.exists(tmp));
   }

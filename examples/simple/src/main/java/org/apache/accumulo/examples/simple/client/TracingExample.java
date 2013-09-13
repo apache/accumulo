@@ -17,7 +17,6 @@
 
 package org.apache.accumulo.examples.simple.client;
 
-import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
@@ -42,113 +41,102 @@ import com.beust.jcommander.Parameter;
 
 /**
  * A simple example showing how to use the distributed tracing API in client code
- *
+ * 
  */
 public class TracingExample {
-	
-	private static final String DEFAULT_TABLE_NAME = "test";
-	
-	static class Opts extends ClientOnDefaultTable {
-	    @Parameter(names = {"-C", "--createtable"}, description = "create table before doing anything")
-	    boolean createtable = false;
-	    @Parameter(names = {"-D", "--deletetable"}, description = "delete table when finished")
-	    boolean deletetable = false;
-	    @Parameter(names = {"-c", "--create"}, description = "create entries before any deletes")
-	    boolean createEntries = false;
-	    @Parameter(names = {"-r", "--read"}, description = "read entries after any creates/deletes")
-	    boolean readEntries = false;
-	    
-	    public Opts() {
-	      super(DEFAULT_TABLE_NAME);
-	      auths = new Authorizations();
-	    }
-	  }
-	
-	public void enableTracing(Opts opts) throws Exception {
-		DistributedTrace.enable(opts.getInstance(), new ZooReader(opts.getInstance().getZooKeepers(), 1000), "myHost", "myApp");
-	}
-	
-	public void execute(Opts opts) throws TableNotFoundException, InterruptedException, AccumuloException, AccumuloSecurityException, TableExistsException {
-		
-	    if (opts.createtable) {
-	    	opts.getConnector().tableOperations().create(opts.getTableName());
-	    }
-	    
-	    if (opts.createEntries) {
-	    	createEntries(opts);
-	    }
-	    
-	    if (opts.readEntries) {
-	    	readEntries(opts);
-	    }
-		
-	    if (opts.deletetable) {
-	    	opts.getConnector().tableOperations().delete(opts.getTableName());
-	    }
-	}
-	
-	private void createEntries(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-		
-		// Trace the write operation. Note, unless you flush the BatchWriter, you will not capture
-		// the write operation as it is occurs asynchronously. You can optionally create additional Spans
-		// within a given Trace as seen below around the flush
-		Trace.on("Client Write");
 
-		System.out.println("TraceID: " + Long.toHexString(Trace.currentTrace().traceId()));
-		BatchWriter batchWriter = opts.getConnector().createBatchWriter(opts.getTableName(), new BatchWriterConfig());
-	    
-		Mutation m = new Mutation("row");
-		m.put("cf", "cq", "value");
-		
-	    batchWriter.addMutation(m);
-	    Span flushSpan = Trace.start("Client Flush");
-	    batchWriter.flush();
-	    flushSpan.stop();
-	    
-	    // Use Trace.offNoFlush() if you don't want the operation to block.
-	    batchWriter.close();
-	    Trace.off();
-	}
-	
-	private void readEntries(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-		
-		Scanner scanner = opts.getConnector().createScanner(opts.getTableName(), opts.auths);
-		
-		// Trace the read operation.  
-		Span readSpan = Trace.on("Client Read");
-		System.out.println("TraceID: " + Long.toHexString(Trace.currentTrace().traceId()));
+  private static final String DEFAULT_TABLE_NAME = "test";
 
-		int numberOfEntriesRead = 0;
-		for (Entry<Key,Value> entry : scanner) {
-			System.out.println(entry.getKey().toString() + " -> " + entry.getValue().toString());
-			++numberOfEntriesRead;
-	    }
-		// You can add additional metadata (key, values) to Spans which will be able to be viewed in the Monitor
-		readSpan.data("Number of Entries Read", String.valueOf(numberOfEntriesRead));
-		
-		Trace.off();
-	}
-	
-	
-	/**
-	 * @param args
-	 * @throws AccumuloSecurityException 
-	 * @throws AccumuloException 
-	 * @throws TableNotFoundException 
-	 * @throws InterruptedException 
-	 * @throws KeeperException 
-	 * @throws IOException 
-	 * @throws TableExistsException 
-	 */
-	public static void main(String[] args) throws Exception {
-	
-		TracingExample tracingExample = new TracingExample();
-		Opts opts = new Opts();
-		ScannerOpts scannerOpts = new ScannerOpts();
-		opts.parseArgs(TracingExample.class.getName(), args, scannerOpts);
-		
-		tracingExample.enableTracing(opts);
-		tracingExample.execute(opts);
-	}
+  static class Opts extends ClientOnDefaultTable {
+    @Parameter(names = {"-C", "--createtable"}, description = "create table before doing anything")
+    boolean createtable = false;
+    @Parameter(names = {"-D", "--deletetable"}, description = "delete table when finished")
+    boolean deletetable = false;
+    @Parameter(names = {"-c", "--create"}, description = "create entries before any deletes")
+    boolean createEntries = false;
+    @Parameter(names = {"-r", "--read"}, description = "read entries after any creates/deletes")
+    boolean readEntries = false;
+
+    public Opts() {
+      super(DEFAULT_TABLE_NAME);
+      auths = new Authorizations();
+    }
+  }
+
+  public void enableTracing(Opts opts) throws Exception {
+    DistributedTrace.enable(opts.getInstance(), new ZooReader(opts.getInstance().getZooKeepers(), 1000), "myHost", "myApp");
+  }
+
+  public void execute(Opts opts) throws TableNotFoundException, InterruptedException, AccumuloException, AccumuloSecurityException, TableExistsException {
+
+    if (opts.createtable) {
+      opts.getConnector().tableOperations().create(opts.getTableName());
+    }
+
+    if (opts.createEntries) {
+      createEntries(opts);
+    }
+
+    if (opts.readEntries) {
+      readEntries(opts);
+    }
+
+    if (opts.deletetable) {
+      opts.getConnector().tableOperations().delete(opts.getTableName());
+    }
+  }
+
+  private void createEntries(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+
+    // Trace the write operation. Note, unless you flush the BatchWriter, you will not capture
+    // the write operation as it is occurs asynchronously. You can optionally create additional Spans
+    // within a given Trace as seen below around the flush
+    Trace.on("Client Write");
+
+    System.out.println("TraceID: " + Long.toHexString(Trace.currentTrace().traceId()));
+    BatchWriter batchWriter = opts.getConnector().createBatchWriter(opts.getTableName(), new BatchWriterConfig());
+
+    Mutation m = new Mutation("row");
+    m.put("cf", "cq", "value");
+
+    batchWriter.addMutation(m);
+    Span flushSpan = Trace.start("Client Flush");
+    batchWriter.flush();
+    flushSpan.stop();
+
+    // Use Trace.offNoFlush() if you don't want the operation to block.
+    batchWriter.close();
+    Trace.off();
+  }
+
+  private void readEntries(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+
+    Scanner scanner = opts.getConnector().createScanner(opts.getTableName(), opts.auths);
+
+    // Trace the read operation.
+    Span readSpan = Trace.on("Client Read");
+    System.out.println("TraceID: " + Long.toHexString(Trace.currentTrace().traceId()));
+
+    int numberOfEntriesRead = 0;
+    for (Entry<Key,Value> entry : scanner) {
+      System.out.println(entry.getKey().toString() + " -> " + entry.getValue().toString());
+      ++numberOfEntriesRead;
+    }
+    // You can add additional metadata (key, values) to Spans which will be able to be viewed in the Monitor
+    readSpan.data("Number of Entries Read", String.valueOf(numberOfEntriesRead));
+
+    Trace.off();
+  }
+
+  public static void main(String[] args) throws Exception {
+
+    TracingExample tracingExample = new TracingExample();
+    Opts opts = new Opts();
+    ScannerOpts scannerOpts = new ScannerOpts();
+    opts.parseArgs(TracingExample.class.getName(), args, scannerOpts);
+
+    tracingExample.enableTracing(opts);
+    tracingExample.execute(opts);
+  }
 
 }
