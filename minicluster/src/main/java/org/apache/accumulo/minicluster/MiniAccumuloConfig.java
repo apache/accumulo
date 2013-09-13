@@ -265,7 +265,7 @@ public class MiniAccumuloConfig {
     return zooKeeperDir;
   }
 
-  File getAccumuloDir() {
+  public File getAccumuloDir() {
     return accumuloDir;
   }
 

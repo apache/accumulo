@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -58,6 +59,7 @@ import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
@@ -124,6 +126,7 @@ public class MiniAccumuloCluster {
   private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<Pair<ServerType,Integer>>();
 
   private File zooCfgFile;
+  private String dfsUri;
 
   public List<LogWriter> getLogWriters() {
     return logWriters;
@@ -245,16 +248,18 @@ public class MiniAccumuloCluster {
         System.setProperty("test.build.data", oldTestBuildData);
       miniDFS.waitClusterUp();
       InetSocketAddress dfsAddress = miniDFS.getNameNode().getNameNodeAddress();
-      String uri = "hdfs://" + dfsAddress.getHostName() + ":" + dfsAddress.getPort();
+      dfsUri = "hdfs://" + dfsAddress.getHostName() + ":" + dfsAddress.getPort();
       File coreFile = new File(config.getConfDir(), "core-site.xml");
-      writeConfig(coreFile, Collections.singletonMap("fs.default.name", uri).entrySet());
+      writeConfig(coreFile, Collections.singletonMap("fs.default.name", dfsUri).entrySet());
       File hdfsFile = new File(config.getConfDir(), "hdfs-site.xml");
       writeConfig(hdfsFile, conf);
 
       Map<String,String> siteConfig = config.getSiteConfig();
-      siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), uri);
+      siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), dfsUri);
       siteConfig.put(Property.INSTANCE_DFS_DIR.getKey(), "/accumulo");
       config.setSiteConfig(siteConfig);
+    } else {
+      dfsUri = "file://";
     }
 
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
@@ -500,5 +505,13 @@ public class MiniAccumuloCluster {
   public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException {
     Instance instance = new ZooKeeperInstance(this.getInstanceName(), this.getZooKeepers());
     return instance.getConnector(user, new PasswordToken(passwd));
+  }
+  
+  public FileSystem getFileSystem() {
+    try {
+      return FileSystem.get(new URI(dfsUri), new Configuration());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 }

@@ -16,20 +16,43 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.ProcessReference;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
-public class CleanTmpIT extends SimpleMacIT {
+public class CleanTmpIT extends ConfigurableMacIT {
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  public void configure(MiniAccumuloConfig cfg) {
+    Map<String, String> props = new HashMap<String, String>();
+    props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "3s");
+    cfg.setSiteConfig(props);
+    cfg.setNumTservers(1);
+    cfg.useMiniDFS(true);
+  }
+
+  @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     // make a table
@@ -41,15 +64,20 @@ public class CleanTmpIT extends SimpleMacIT {
     m.put("cf", "cq", "value");
     bw.addMutation(m);
     bw.close();
-    // take it offline
-    c.tableOperations().offline(tableName);
     
     // create a fake _tmp file in its directory
     String id = c.tableOperations().tableIdMap().get(tableName);
-    File tmp = File.createTempFile("junk", "_tmp", new File(getCluster().getConfig().getDir(), "accumulo/tables/" + id + "/default_tablet"));
-    assertTrue(tmp.exists());
-    c.tableOperations().online(tableName);
-    UtilWaitThread.sleep(1000);
-    assertFalse(tmp.exists());
+    FileSystem fs = getCluster().getFileSystem();
+    Path tmp = new Path(getCluster().getConfig().getAccumuloDir().getPath() + "/tables/" + id + "/default_tablet/junk.rf_tmp");
+    fs.create(tmp).close();
+    for (ProcessReference tserver: getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
+      getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
+    }
+    getCluster().start();
+    
+    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
+    for (@SuppressWarnings("unused") Entry<Key,Value> entry : scanner)
+      ;
+    assertFalse(!fs.exists(tmp));
   }
 }

@@ -1347,7 +1347,6 @@ public class Tablet {
     configObserver.propertiesChanged();
     
     tabletResources.setTablet(this, acuTableConf);
-    
     if (!logEntries.isEmpty()) {
       log.info("Starting Write-Ahead Log recovery for " + this.extent);
       final long[] count = new long[2];
@@ -1428,12 +1427,6 @@ public class Tablet {
       // look for any temp files hanging around
       removeOldTemporaryFiles();
     }
-
-    // look for hints of a failure on the previous tablet server
-    if (!logEntries.isEmpty() || needsMajorCompaction(MajorCompactionReason.NORMAL)) {
-      // look for any temp files hanging around
-      removeOldTemporaryFiles();
-    }
     
     log.log(TLevel.TABLET_HIST, extent + " opened ");
   }
@@ -1443,6 +1436,7 @@ public class Tablet {
     try {
       for (FileStatus tmp : fs.globStatus(new Path(location, "*_tmp"))){
         try {
+          log.debug("Removing old temp file " + tmp.getPath());
           fs.delete(tmp.getPath());
         } catch (IOException ex) {
           log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
