@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.net.InetAddress;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
@@ -38,7 +37,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -70,7 +68,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     Connector connector = getConnector();
     ingest(connector, ROWS, COLS, 50, 0);
     verify(connector, ROWS, COLS, 50, 0);
-    URL url = new URL("http://" + InetAddress.getLocalHost().getHostName() + ":" + cluster.getConfig().getSiteConfig().get(Property.MONITOR_PORT.getKey()));
+    URL url = new URL("http://" + getMonitor());
     log.debug("Fetching web page " + url);
     String result = FunctionalTestUtils.readAll(url.openStream());
     assertTrue(result.length() > 100);
