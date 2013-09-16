@@ -92,7 +92,8 @@ public class CompactionWatcher implements Runnable {
           Exception e = new Exception("Possible stack trace of compaction stuck on " + oci.compactionInfo.getExtent());
           e.setStackTrace(trace);
           Logger.getLogger(CompactionWatcher.class).warn(
-              "Compaction of " + oci.compactionInfo.getExtent() + " has not made progress for at least " + (time - oci.firstSeen) + "ms", e);
+              "Compaction of " + oci.compactionInfo.getExtent() + " to " + oci.compactionInfo.getOutputFile() + " has not made progress for at least "
+                  + (time - oci.firstSeen) + "ms", e);
           oci.loggedWarning = true;
         }
       }
