@@ -398,7 +398,9 @@ public class MiniAccumuloCluster {
     result.put(ServerType.MASTER, references(masterProcess));
     result.put(ServerType.TABLET_SERVER, references(tabletServerProcesses.toArray(new Process[0])));
     result.put(ServerType.ZOOKEEPER, references(zooKeeperProcess));
-    result.put(ServerType.GARBAGE_COLLECTOR, references(gcProcess));
+    if (null != gcProcess) {
+      result.put(ServerType.GARBAGE_COLLECTOR, references(gcProcess));
+    }
     return result;
   }
 

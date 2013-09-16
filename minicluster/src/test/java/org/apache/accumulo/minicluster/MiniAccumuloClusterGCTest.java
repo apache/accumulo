@@ -17,6 +17,7 @@
 package org.apache.accumulo.minicluster;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -77,7 +78,7 @@ public class MiniAccumuloClusterGCTest {
   }
 
   @Test(timeout = 20000)
-  public void test() throws Exception {
+  public void testFilesAreGarbageCollected() throws Exception {
     ZooKeeperInstance inst = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
     Connector c = inst.getConnector("root", new PasswordToken(passwd));
     
@@ -123,6 +124,21 @@ public class MiniAccumuloClusterGCTest {
     }
 
     Assert.fail("Expected to find less files after compaction and pause for GC");
+  }
+
+  @Test(timeout = 10000)
+  public void testAccurateProcessListReturned() throws Exception {
+    Map<ServerType,Collection<ProcessReference>> procs = accumulo.getProcesses();
+    
+    for (ServerType t : new ServerType[] {ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.ZOOKEEPER, ServerType.GARBAGE_COLLECTOR}) {
+      Assert.assertTrue(procs.containsKey(t));
+      Collection<ProcessReference> procRefs = procs.get(t);
+      Assert.assertTrue(1 <= procRefs.size());
+      
+      for (ProcessReference procRef : procRefs) {
+        Assert.assertNotNull(procRef);
+      }
+    }
   }
 
 }
