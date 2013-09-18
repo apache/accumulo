@@ -208,6 +208,10 @@ public class Compactor implements Callable<CompactionStats> {
       return compactor.thread;
     }
 
+    public String getOutputFile() {
+      return compactor.getOutputFile();
+    }
+
     public ActiveCompaction toThrift() {
       
       CompactionType type;
