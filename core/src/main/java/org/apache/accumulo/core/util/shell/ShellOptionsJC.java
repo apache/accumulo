@@ -161,6 +161,12 @@ public class ShellOptionsJC {
   @Parameter(names = {"-z", "--zooKeeperInstance"}, description = "use a zookeeper instance with the given instance name and list of zoo hosts", arity = 2)
   private List<String> zooKeeperInstance = new ArrayList<String>();
   
+  @Parameter(names = {"-zi", "--zooKeeperInstanceName"}, description="use a zookeeper instance with the given instance name")
+  private String zooKeeperInstanceName;
+
+  @Parameter(names = {"-zh", "--zooKeeperHosts"}, description="use a zookeeper instance with the given list of zoo hosts")
+  private String zooKeeperHosts;
+
   @Parameter(names = "--auth-timeout", description = "minutes the shell can be idle without re-entering a password")
   private int authTimeout = 60; // TODO Add validator for positive number
   
@@ -222,6 +228,14 @@ public class ShellOptionsJC {
     return zooKeeperInstance;
   }
   
+  public String getZooKeeperInstanceName() {
+    return zooKeeperInstanceName;
+  }
+
+  public String getZooKeeperHosts() {
+    return zooKeeperHosts;
+  }
+
   public int getAuthTimeout() {
     return authTimeout;
   }
