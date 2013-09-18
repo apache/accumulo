@@ -39,6 +39,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -113,8 +114,6 @@ public class SimpleTest {
   
   public static TemporaryFolder folder = new TemporaryFolder();
   
-  public static final String TABLE_TEST = "test";
-  
   private static MiniAccumuloCluster accumulo;
   private static String secret = "superSecret";
   private static Random random = new Random();
@@ -143,6 +142,11 @@ public class SimpleTest {
     return protocolFactories.get(random.nextInt(protocolFactories.size()));
   }
   
+  private static final AtomicInteger tableCounter = new AtomicInteger(0);
+  private static String makeTableName() {
+    return "test" + tableCounter.getAndIncrement();
+  }
+
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
     folder.create();
@@ -179,7 +183,7 @@ public class SimpleTest {
     client.createLocalUser(creds, "user", s2bb(secret));
     ByteBuffer badLogin = client.login("user", properties);
     client.dropLocalUser(creds, "user");
-    String table = "test1";
+    final String table = makeTableName();
     client.createTable(creds, table, false, TimeType.MILLIS);
     
     final IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
@@ -397,6 +401,7 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
+      final String TABLE_TEST = makeTableName();
       client.cloneTable(badLogin, table, TABLE_TEST, false, null, null);
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
@@ -476,6 +481,7 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
+      final String TABLE_TEST = makeTableName();
       client.cloneTable(creds, doesNotExist, TABLE_TEST, false, null, null);
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
@@ -625,8 +631,7 @@ public class SimpleTest {
   
   @Test(timeout = 10000)
   public void testUnknownScanner() throws Exception {
-    if (client.tableExists(creds, TABLE_TEST))
-      client.deleteTable(creds, TABLE_TEST);
+    final String TABLE_TEST = makeTableName();
     
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     
@@ -664,9 +669,7 @@ public class SimpleTest {
   
   @Test(timeout = 10000)
   public void testUnknownWriter() throws Exception {
-    
-    if (client.tableExists(creds, TABLE_TEST))
-      client.deleteTable(creds, TABLE_TEST);
+    final String TABLE_TEST = makeTableName();
     
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     
@@ -821,9 +824,8 @@ public class SimpleTest {
   
   @Test
   public void testSecurityOperations() throws Exception {
-    if (client.tableExists(creds, TABLE_TEST))
-      client.deleteTable(creds, TABLE_TEST);
-
+    final String TABLE_TEST = makeTableName();
+    
     // check password
     assertTrue(client.authenticateUser(creds, "root", s2pp(secret)));
     assertFalse(client.authenticateUser(creds, "root", s2pp("")));
@@ -905,8 +907,7 @@ public class SimpleTest {
   
   @Test
   public void testBatchWriter() throws Exception {
-    if (client.tableExists(creds, TABLE_TEST))
-      client.deleteTable(creds, TABLE_TEST);
+    final String TABLE_TEST = makeTableName();
     
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
@@ -953,8 +954,8 @@ public class SimpleTest {
   
   @Test
   public void testTableOperations() throws Exception {
-    if (client.tableExists(creds, TABLE_TEST))
-      client.deleteTable(creds, TABLE_TEST);
+    final String TABLE_TEST = makeTableName();
+    
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     // constraints
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
@@ -1016,12 +1017,13 @@ public class SimpleTest {
     client.closeScanner(scanner);
     assertEquals(10, more.getResults().size());
     // clone
-    client.cloneTable(creds, TABLE_TEST, "test2", true, null, null);
-    scanner = client.createScanner(creds, "test2", null);
+    final String TABLE_TEST2 = makeTableName();
+    client.cloneTable(creds, TABLE_TEST, TABLE_TEST2, true, null, null);
+    scanner = client.createScanner(creds, TABLE_TEST2, null);
     more = client.nextK(scanner, 100);
     client.closeScanner(scanner);
     assertEquals(10, more.getResults().size());
-    client.deleteTable(creds, "test2");
+    client.deleteTable(creds, TABLE_TEST2);
     
     // don't know how to test this, call it just for fun
     client.clearLocatorCache(creds, TABLE_TEST);
@@ -1031,24 +1033,24 @@ public class SimpleTest {
     assertEquals(1, countFiles(TABLE_TEST));
     
     // get disk usage
-    client.cloneTable(creds, TABLE_TEST, "test2", true, null, null);
+    client.cloneTable(creds, TABLE_TEST, TABLE_TEST2, true, null, null);
     Set<String> tablesToScan = new HashSet<String>();
     tablesToScan.add(TABLE_TEST);
-    tablesToScan.add("test2");
+    tablesToScan.add(TABLE_TEST2);
     tablesToScan.add("foo");
     client.createTable(creds, "foo", true, TimeType.MILLIS);
     List<DiskUsage> diskUsage = (client.getDiskUsage(creds, tablesToScan));
     assertEquals(2, diskUsage.size());
     assertEquals(1, diskUsage.get(0).getTables().size());
     assertEquals(2, diskUsage.get(1).getTables().size());
-    client.compactTable(creds, "test2", null, null, null, true, true);
+    client.compactTable(creds, TABLE_TEST2, null, null, null, true, true);
     diskUsage = (client.getDiskUsage(creds, tablesToScan));
     assertEquals(3, diskUsage.size());
     assertEquals(1, diskUsage.get(0).getTables().size());
     assertEquals(1, diskUsage.get(1).getTables().size());
     assertEquals(1, diskUsage.get(2).getTables().size());
     client.deleteTable(creds, "foo");
-    client.deleteTable(creds, "test2");
+    client.deleteTable(creds, TABLE_TEST2);
     
     // export/import
     String dir = folder.getRoot() + "/test";
@@ -1149,7 +1151,7 @@ public class SimpleTest {
   }
 
   private void assertScan(String[][] expected, String table) throws Exception {
-    String scid = client.createScanner(creds, TABLE_TEST, new ScanOptions());
+    String scid = client.createScanner(creds, table, new ScanOptions());
     ScanResult keyValues = client.nextK(scid, expected.length + 1);
     
     assertEquals(expected.length, keyValues.results.size());
@@ -1164,8 +1166,8 @@ public class SimpleTest {
 
   @Test
   public void testConditionalWriter() throws Exception {
-    if (client.tableExists(creds, TABLE_TEST))
-      client.deleteTable(creds, TABLE_TEST);
+    final String TABLE_TEST = makeTableName();
+    
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());

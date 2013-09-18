@@ -198,7 +198,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       Credentials creds = Credentials.deserialize(pair[1]);
       return instance.getConnector(creds.getPrincipal(), creds.getToken());
     } else {
-      throw new org.apache.accumulo.core.client.AccumuloSecurityException("", org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.INVALID_INSTANCEID);
+      throw new org.apache.accumulo.core.client.AccumuloSecurityException(pair[0], org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.INVALID_INSTANCEID);
     }
   }
   
