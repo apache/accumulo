@@ -25,54 +25,11 @@
   <artifactId>accumulo-docs</artifactId>
   <packaging>pom</packaging>
   <name>Documentation</name>
-  <dependencies>
-    <dependency>
-      <groupId>commons-configuration</groupId>
-      <artifactId>commons-configuration</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-client</artifactId>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
   <profiles>
     <profile>
       <id>docs</id>
       <build>
         <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>config-webpage</id>
-                <goals>
-                  <goal>java</goal>
-                </goals>
-                <phase>prepare-package</phase>
-                <configuration>
-                  <mainClass>org.apache.accumulo.core.conf.DefaultConfiguration</mainClass>
-                  <classpathScope>test</classpathScope>
-                  <arguments>
-                    <argument>--generate-doc</argument>
-                    <argument>${project.build.directory}/config.html</argument>
-                  </arguments>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>latex-maven-plugin</artifactId>

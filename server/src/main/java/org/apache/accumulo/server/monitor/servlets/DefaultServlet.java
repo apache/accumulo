@@ -16,17 +16,9 @@
  */
 package org.apache.accumulo.server.monitor.servlets;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FilePermission;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.AccessControlContext;
-import java.security.AccessController;
-import java.security.PermissionCollection;
-import java.security.Permissions;
-import java.security.PrivilegedAction;
-import java.security.ProtectionDomain;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -39,6 +31,7 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -58,24 +51,24 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class DefaultServlet extends BasicServlet {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   @Override
   protected String getTitle(HttpServletRequest req) {
     return req.getRequestURI().startsWith("/docs") ? "Documentation" : "Accumulo Overview";
   }
-  
+
   private void getResource(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     try {
       String path = req.getRequestURI();
-      
+
       if (path.endsWith(".jpg"))
         resp.setContentType("image/jpeg");
-      
+
       if (path.endsWith(".html"))
         resp.setContentType("text/html");
-      
+
       path = path.substring(1);
       InputStream data = BasicServlet.class.getClassLoader().getResourceAsStream(path);
       ServletOutputStream out = resp.getOutputStream();
@@ -97,59 +90,23 @@ public class DefaultServlet extends BasicServlet {
       throw new IOException(t);
     }
   }
-  
-  private void getDocResource(HttpServletRequest req, final HttpServletResponse resp) throws IOException {
-    final String path = req.getRequestURI();
-    if (path.endsWith(".html"))
-      resp.setContentType("text/html");
-    
-    // Allow user to only read any file in docs directory
-    final String aHome = System.getenv("ACCUMULO_HOME");
-    PermissionCollection pc = new Permissions();
-    pc.add(new FilePermission(aHome + "/docs/-", "read"));
-    
-    AccessControlContext acc = new AccessControlContext(new ProtectionDomain[] {new ProtectionDomain(null, pc)});
-    
-    IOException e = AccessController.doPrivileged(new PrivilegedAction<IOException>() {
-      
-      @Override
-      public IOException run() {
-        InputStream data = null;
-        try {
-          File file = new File(aHome + path);
-          data = new FileInputStream(file.getAbsolutePath());
-          byte[] buffer = new byte[1024];
-          int n;
-          ServletOutputStream out = resp.getOutputStream();
-          while ((n = data.read(buffer)) > 0)
-            out.write(buffer, 0, n);
-          return null;
-        } catch (IOException e) {
-          return e;
-        } finally {
-          if (data != null) {
-            try {
-              data.close();
-            } catch (IOException ex) {
-              log.error(ex, ex);
-            }
-          }
-        }
-      }
-    }, acc);
-    
-    if (e != null)
-      throw e;
-  }
-  
+
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     if (req.getRequestURI().startsWith("/web"))
       getResource(req, resp);
     else if (req.getRequestURI().equals("/docs") || req.getRequestURI().equals("/docs/apidocs"))
       super.doGet(req, resp);
+    else if (req.getRequestURI().equals("/docs/config.html"))
+      new DefaultConfiguration() {
+
+        public void generate(HttpServletResponse resp) throws IOException {
+          generateDocumentation(new PrintStream(resp.getOutputStream()));
+
+        }
+      }.generate(resp);
     else if (req.getRequestURI().startsWith("/docs"))
-      getDocResource(req, resp);
+      getResource(req, resp);
     else if (req.getRequestURI().startsWith("/monitor"))
       resp.sendRedirect("/master");
     else if (req.getRequestURI().startsWith("/errors"))
@@ -157,14 +114,14 @@ public class DefaultServlet extends BasicServlet {
     else
       super.doGet(req, resp);
   }
-  
+
   public static final int GRAPH_WIDTH = 450;
   public static final int GRAPH_HEIGHT = 150;
-  
+
   private static void plotData(StringBuilder sb, String title, @SuppressWarnings("rawtypes") List data, boolean points) {
     plotData(sb, title, points, new ArrayList<String>(), data);
   }
-  
+
   @SuppressWarnings("rawtypes")
   private static void plotData(StringBuilder sb, String title, boolean points, List<String> labels, List... series) {
     sb.append("<div class=\"plotHeading\">");
@@ -173,43 +130,43 @@ public class DefaultServlet extends BasicServlet {
     sb.append("</br>");
     String id = "c" + title.hashCode();
     sb.append("<div id=\"" + id + "\" style=\"width:" + GRAPH_WIDTH + "px;height:" + GRAPH_HEIGHT + "px;\"></div>\n");
-    
+
     sb.append("<script type=\"text/javascript\">\n");
     sb.append("$(function () {\n");
-    
+
     for (int i = 0; i < series.length; i++) {
-      
+
       @SuppressWarnings("unchecked")
       List<Pair<Long,? extends Number>> data = series[i];
       sb.append("    var d" + i + " = [");
-      
+
       String sep = "";
       for (Pair<Long,? extends Number> point : data) {
         if (point.getSecond() == null)
           continue;
-        
+
         String y;
         if (point.getSecond() instanceof Double)
           y = String.format("%1.2f", point.getSecond());
         else
           y = point.getSecond().toString();
-        
+
         sb.append(sep);
         sep = ",";
         sb.append("[" + utc2local(point.getFirst()) + "," + y + "]");
       }
       sb.append("    ];\n");
     }
-    
+
     String opts = "lines: { show: true }";
     if (points)
       opts = "points: { show: true, radius: 1 }";
-    
+
     sb.append("    $.plot($(\"#" + id + "\"),");
     String sep = "";
-    
+
     String colors[] = new String[] {"red", "blue", "green", "black"};
-    
+
     sb.append("[");
     for (int i = 0; i < series.length; i++) {
       sb.append(sep);
@@ -225,7 +182,7 @@ public class DefaultServlet extends BasicServlet {
     sb.append("   });\n");
     sb.append("</script>\n");
   }
-  
+
   /**
    * Shows the current time zone (based on the current time) short name
    */
@@ -233,7 +190,7 @@ public class DefaultServlet extends BasicServlet {
     TimeZone tz = TimeZone.getDefault();
     return tz.getDisplayName(tz.inDaylightTime(new Date()), TimeZone.SHORT);
   }
-  
+
   /**
    * Converts a unix timestamp in UTC to one that is relative to the local timezone
    */
@@ -242,63 +199,63 @@ public class DefaultServlet extends BasicServlet {
     currentCalendar.setTimeInMillis(utcMillis + currentCalendar.getTimeZone().getOffset(utcMillis));
     return currentCalendar.getTime().getTime();
   }
-  
+
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws IOException {
     if (req.getRequestURI().equals("/docs") || req.getRequestURI().equals("/docs/apidocs")) {
       sb.append("<object data='").append(req.getRequestURI()).append("/index.html' type='text/html' width='100%' height='100%'></object>");
       return;
     }
-    
+
     sb.append("<table class='noborder'>\n");
     sb.append("<tr>\n");
-    
+
     sb.append("<td class='noborder'>\n");
     doAccumuloTable(sb);
     sb.append("</td>\n");
-    
+
     sb.append("<td class='noborder'>\n");
     doZooKeeperTable(sb);
     sb.append("</td>\n");
-    
+
     sb.append("</tr></table>\n");
     sb.append("<br/>\n");
-    
+
     sb.append("<p/><table class=\"noborder\">\n");
-    
+
     sb.append("<tr><td>\n");
     plotData(sb, "Ingest (Entries/s)", Monitor.getIngestRateOverTime(), false);
     sb.append("</td><td>\n");
     plotData(sb, "Scan (Entries/s)", false, Arrays.asList("Read", "Returned"), Monitor.getScanRateOverTime(), Monitor.getQueryRateOverTime());
     sb.append("</td></tr>\n");
-    
+
     sb.append("<tr><td>\n");
     plotData(sb, "Ingest (MB/s)", Monitor.getIngestByteRateOverTime(), false);
     sb.append("</td><td>\n");
     plotData(sb, "Scan (MB/s)", Monitor.getQueryByteRateOverTime(), false);
     sb.append("</td></tr>\n");
-    
+
     sb.append("<tr><td>\n");
     plotData(sb, "Load Average", Monitor.getLoadOverTime(), false);
     sb.append("</td><td>\n");
     plotData(sb, "Seeks", Monitor.getLookupsOverTime(), false);
     sb.append("</td></tr>\n");
-    
+
     sb.append("<tr><td>\n");
     plotData(sb, "Minor Compactions", Monitor.getMinorCompactionsOverTime(), false);
     sb.append("</td><td>\n");
     plotData(sb, "Major Compactions", Monitor.getMajorCompactionsOverTime(), false);
     sb.append("</td></tr>\n");
-    
+
     sb.append("<tr><td>\n");
     plotData(sb, "Index Cache Hit Rate", Monitor.getIndexCacheHitRateOverTime(), true);
     sb.append("</td><td>\n");
     plotData(sb, "Data Cache Hit Rate", Monitor.getDataCacheHitRateOverTime(), true);
     sb.append("</td></tr>\n");
-    
+
     sb.append("</table>\n");
   }
-  
+
   private void doAccumuloTable(StringBuilder sb) throws IOException {
     // Accumulo
     Configuration conf = CachedConfiguration.getInstance();
@@ -322,7 +279,7 @@ public class DefaultServlet extends BasicServlet {
         } catch (Exception ex) {
           log.trace("Unable to get disk usage information from hdfs", ex);
         }
-        
+
         boolean highlight = false;
         tableRow(sb, (highlight = !highlight), "Disk&nbsp;Used", diskUsed);
         if (fs.getUsed() != 0)
@@ -340,13 +297,13 @@ public class DefaultServlet extends BasicServlet {
     }
     sb.append("</table>\n");
   }
-  
+
   private void doZooKeeperTable(StringBuilder sb) throws IOException {
     // Zookeepers
     sb.append("<table>\n");
     sb.append("<tr><th colspan='3'>Zookeeper</th></tr>\n");
     sb.append("<tr><th>Server</th><th>Mode</th><th>Clients</th></tr>\n");
-    
+
     boolean highlight = false;
     for (ZooKeeperState k : ZooKeeperStatus.getZooKeeperStatus()) {
       if (k.clients >= 0) {
@@ -357,11 +314,11 @@ public class DefaultServlet extends BasicServlet {
     }
     sb.append("</table>\n");
   }
-  
+
   private static String bytes(long big) {
     return NumUtil.bigNumberForSize(big);
   }
-  
+
   public static void tableRow(StringBuilder sb, boolean highlight, Object... cells) {
     sb.append(highlight ? "<tr class='highlight'>" : "<tr>");
     for (int i = 0; i < cells.length; ++i) {

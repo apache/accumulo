@@ -30,7 +30,7 @@ import org.apache.log4j.Logger;
 public class DefaultConfiguration extends AccumuloConfiguration {
   private static DefaultConfiguration instance = null;
   private static Logger log = Logger.getLogger(DefaultConfiguration.class);
-  
+
   synchronized public static DefaultConfiguration getInstance() {
     if (instance == null) {
       instance = new DefaultConfiguration();
@@ -38,23 +38,23 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     }
     return instance;
   }
-  
+
   @Override
   public String get(Property property) {
     return property.getDefaultValue();
   }
-  
+
   @Override
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
     for (Property prop : Property.values())
       if (!prop.isExperimental() && !prop.getType().equals(PropertyType.PREFIX))
         entries.put(prop.getKey(), prop.getDefaultValue());
-    
+
     return entries.entrySet().iterator();
   }
-  
-  private static void generateDocumentation(PrintStream doc) {
+
+  protected static void generateDocumentation(PrintStream doc) {
     // read static content from resources and output
     InputStream data = DefaultConfiguration.class.getResourceAsStream("config.html");
     if (data != null) {
@@ -75,39 +75,39 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       }
     }
     doc.println();
-    
+
     ArrayList<Property> prefixes = new ArrayList<Property>();
     TreeMap<String,Property> sortedProps = new TreeMap<String,Property>();
     for (Property prop : Property.values()) {
       if (prop.isExperimental())
         continue;
-      
+
       if (prop.getType().equals(PropertyType.PREFIX))
         prefixes.add(prop);
       else
         sortedProps.put(prop.getKey(), prop);
     }
-    
+
     int indentDepth = 2;
     doc.println(indent(indentDepth++) + "<p>Jump to: ");
     String delimiter = "";
     for (Property prefix : prefixes) {
       if (prefix.isExperimental())
         continue;
-      
+
       doc.print(delimiter + "<a href='#" + prefix.name() + "'>" + prefix.getKey() + "*</a>");
       delimiter = "&nbsp;|&nbsp;";
     }
     doc.println(indent(--indentDepth) + "</p>");
-    
+
     doc.println(indent(indentDepth++) + "<table>");
     for (Property prefix : prefixes) {
-      
+
       if (prefix.isExperimental())
         continue;
-      
+
       boolean isDeprecated = prefix.isDeprecated();
-      
+
       doc.println(indent(indentDepth) + "<tr><td colspan='5'" + (isDeprecated ? " class='deprecated'" : "") + "><a id='" + prefix.name() + "' class='large'>"
           + prefix.getKey() + "*</a></td></tr>");
       doc.println(indent(indentDepth) + "<tr><td colspan='5'" + (isDeprecated ? " class='deprecated'" : "") + "><i>"
@@ -115,14 +115,14 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       if (!prefix.equals(Property.TABLE_CONSTRAINT_PREFIX) && !prefix.equals(Property.TABLE_ITERATOR_PREFIX)
           && !prefix.equals(Property.TABLE_LOCALITY_GROUP_PREFIX))
         doc.println(indent(indentDepth) + "<tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>");
-      
+
       boolean highlight = true;
       for (Property prop : sortedProps.values()) {
         if (prop.isExperimental())
           continue;
-        
+
         isDeprecated = prefix.isDeprecated() || prop.isDeprecated();
-        
+
         if (prop.getKey().startsWith(prefix.getKey())) {
           doc.println(indent(indentDepth++) + "<tr" + (highlight ? " class='highlight'" : "") + ">");
           highlight = !highlight;
@@ -146,7 +146,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       }
     }
     doc.println(indent(--indentDepth) + "</table>");
-    
+
     doc.println(indent(indentDepth) + "<h1>Property Type Descriptions</h1>");
     doc.println(indent(indentDepth++) + "<table>");
     doc.println(indent(indentDepth) + "<tr><th>Property Type</th><th>Description</th></tr>");
@@ -165,14 +165,14 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     doc.println(indent(--indentDepth) + "</html>");
     doc.close();
   }
-  
+
   private static String indent(int depth) {
     StringBuilder sb = new StringBuilder();
     for (int d = 0; d < depth; d++)
       sb.append(" ");
     return sb.toString();
   }
-  
+
   /*
    * Generate documentation for conf/accumulo-site.xml file usage
    */
@@ -183,5 +183,5 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-doc <filename>");
     }
   }
-  
+
 }
