@@ -164,7 +164,7 @@ for(Entry<Key,Value> entry : indexScanner)
 BatchScanner bscan = conn.createBatchScanner("table", auths, 10);
 
 bscan.setRanges(matchingRows);
-bscan.fetchColumnFamily("attributes");
+bscan.fetchColumnFamily(new Text("attributes"));
 
 for(Entry<Key,Value> entry : bscan)
     System.out.println(entry.getValue());
