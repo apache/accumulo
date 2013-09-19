@@ -33,7 +33,7 @@ START_JAR="${ACCUMULO_HOME}/lib/accumulo-start.jar"
 #
 # Resolve a program to its installation directory
 #
-locationByProgram() 
+locationByProgram()
 {
    RESULT=$( which "$1" )
    if [[ "$?" != 0 && -z "${RESULT}" ]]; then
@@ -59,12 +59,33 @@ DEFAULT_GENERAL_JAVA_OPTS=""
 
 #
 # ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
+# It also holds the JAR run with the jar command and, if possible, any items in the JAR manifest's Class-Path.
 #
 if [ "$1" = "-add" ] ; then
     export ACCUMULO_XTRAJARS="$2"
     shift 2
 else
     export ACCUMULO_XTRAJARS=""
+fi
+if [ "$1" = "jar" ] ; then
+    if [[ $2 =~ ^/ ]]; then
+      jardir="$(dirname "$2")"
+      jarfile="$2"
+    else
+      jardir="$(pwd)"
+      jarfile="${jardir}/${2}"
+    fi
+    if jar tf "$jarfile" | grep -q META-INF/MANIFEST.MF ; then
+      cp="$(unzip -p "$jarfile" META-INF/MANIFEST.MF | grep ^Class-Path: | sed 's/^Class-Path: *//')"
+      if [ -n "$cp" ] ; then
+         for j in $cp; do
+            if [ "$j" != "Class-Path:" ]; then
+               ACCUMULO_XTRAJARS="${jardir}/${j},$ACCUMULO_XTRAJARS"
+            fi
+         done
+      fi
+    fi
+    ACCUMULO_XTRAJARS="${jarfile},$ACCUMULO_XTRAJARS"
 fi
 
 #

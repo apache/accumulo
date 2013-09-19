@@ -16,34 +16,36 @@
  */
 package org.apache.accumulo.start;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
 public class Main {
-  
+
   public static void main(String[] args) throws Exception {
     Runnable r = null;
-    
+
     try {
       if (args.length == 0) {
         printUsage();
         System.exit(1);
       }
-      final String argsToPass[] = new String[args.length - 1];
-      System.arraycopy(args, 1, argsToPass, 0, args.length - 1);
-      
+
       Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
-      
+
       Class<?> vfsClassLoader = AccumuloClassLoader.getClassLoader().loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
-      
+
       ClassLoader cl = (ClassLoader) vfsClassLoader.getMethod("getClassLoader", new Class[] {}).invoke(null, new Object[] {});
-      
+
       Class<?> runTMP = null;
-      
+
       Thread.currentThread().setContextClassLoader(cl);
-      
+
       if (args[0].equals("master")) {
         runTMP = cl.loadClass("org.apache.accumulo.server.master.Master");
       } else if (args[0].equals("tserver")) {
@@ -81,6 +83,22 @@ public class Main {
         runTMP = cl.loadClass("org.apache.accumulo.core.util.CreateToken");
       } else if (args[0].equals("info")) {
         runTMP = cl.loadClass("org.apache.accumulo.server.util.Info");
+      } else if (args[0].equals("jar")) {
+        if (args.length < 2) {
+          printUsage();
+          System.exit(1);
+        }
+        try {
+          JarFile f = new JarFile(args[1]);
+          runTMP = loadClassFromJar(args, f, cl);
+        } catch (IOException ioe) {
+          System.out.println("File " + args[1] + " could not be found or read.");
+          System.exit(1);
+        } catch (ClassNotFoundException cnfe) {
+          System.out.println("Classname " + (args.length > 2 ? args[2] : "in JAR manifest") +
+                             " not found.  Please make sure you use the wholly qualified package name.");
+          System.exit(1);
+        }
       } else {
         try {
           runTMP = cl.loadClass(args[0]);
@@ -99,6 +117,18 @@ public class Main {
         System.out.println(args[0] + " must implement a public static void main(String args[]) method");
         System.exit(1);
       }
+      int chopArgsCount;
+      if (args[0].equals("jar")) {
+        if (args.length > 2 && runTMP.getName().equals(args[2])) {
+          chopArgsCount = 3;
+        } else {
+          chopArgsCount = 2;
+        }
+      } else {
+        chopArgsCount = 1;
+      }
+      String argsToPass[] = new String[args.length - chopArgsCount];
+      System.arraycopy(args, chopArgsCount, argsToPass, 0, args.length - chopArgsCount);
       final Object thisIsJustOneArgument = argsToPass;
       final Method finalMain = main;
       r = new Runnable() {
@@ -112,7 +142,7 @@ public class Main {
           }
         }
       };
-      
+
       Thread t = new Thread(r, args[0]);
       t.setContextClassLoader(cl);
       t.start();
@@ -122,8 +152,29 @@ public class Main {
       System.exit(1);
     }
   }
-  
+
   private static void printUsage() {
-    System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | minicluster | proxy | zookeeper | create-token | info | version <accumulo class> args");
+    System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | minicluster | proxy | zookeeper | create-token | info | version | jar <jar> [<main class>] args | <accumulo class> args");
+  }
+
+  // feature: will work even if main class isn't in the JAR
+  static Class<?> loadClassFromJar(String[] args, JarFile f, ClassLoader cl) throws IOException, ClassNotFoundException {
+    ClassNotFoundException explicitNotFound = null;
+    if (args.length >= 3) {
+      try {
+        return cl.loadClass(args[2]);  // jar jar-file main-class
+      } catch (ClassNotFoundException cnfe) {
+        // assume this is the first argument, look for main class in JAR manifest
+        explicitNotFound = cnfe;
+      }
+    }
+    String mainClass = f.getManifest().getMainAttributes().getValue(Attributes.Name.MAIN_CLASS);
+    if (mainClass == null) {
+      if (explicitNotFound != null) {
+        throw explicitNotFound;
+      }
+      throw new ClassNotFoundException("No main class was specified, and the JAR manifest does not specify one");
+    }
+    return cl.loadClass(mainClass);
   }
 }
