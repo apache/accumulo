@@ -18,23 +18,27 @@ package org.apache.accumulo.core.util.shell;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
-import static org.powermock.api.easymock.PowerMock.*;
+import static org.powermock.api.easymock.PowerMock.createMock;
+import static org.powermock.api.easymock.PowerMock.expectLastCall;
+import static org.powermock.api.easymock.PowerMock.expectNew;
+import static org.powermock.api.easymock.PowerMock.mockStatic;
+import static org.powermock.api.easymock.PowerMock.replay;
+import static org.powermock.api.easymock.PowerMock.verify;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
-import java.util.UUID;
 import java.util.List;
+import java.util.UUID;
 
 import jline.console.ConsoleReader;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
@@ -116,6 +120,8 @@ public class ShellSetInstanceTest {
   public void testSetInstance_HdfsZooInstance_Implicit() throws Exception {
     testSetInstance_HdfsZooInstance(false, false, false);
   }
+  
+  @SuppressWarnings("deprecation")
   private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts)
     throws Exception {
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
@@ -130,7 +136,7 @@ public class ShellSetInstanceTest {
         expect(opts.getZooKeeperInstanceName()).andReturn(null);
       }
       if (onlyHosts) {
-        expect(opts.getZooKeeperHosts()).andReturn("host1,host2");
+        expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
       } else {
         expect(opts.getZooKeeperHosts()).andReturn(null);
       }
@@ -159,11 +165,16 @@ public class ShellSetInstanceTest {
     }
 
     ZooKeeperInstance theInstance = createMock(ZooKeeperInstance.class);
+    
+    String expectedHosts = "host1,host2";
+    if (onlyHosts)
+      expectedHosts = "host3,host4";
+
     if (!onlyInstance) {
-      expectNew(ZooKeeperInstance.class, randomUUID, "host1,host2")
+      expectNew(ZooKeeperInstance.class, randomUUID, expectedHosts)
         .andReturn(theInstance);
     } else {
-      expectNew(ZooKeeperInstance.class, "instance", "host1,host2")
+      expectNew(ZooKeeperInstance.class, "instance", expectedHosts)
         .andReturn(theInstance);
     }
     replay(theInstance, ZooKeeperInstance.class);
@@ -185,18 +196,22 @@ public class ShellSetInstanceTest {
     expect(opts.isHdfsZooInstance()).andReturn(false);
     if (dashZ) {
       List<String> zl = new java.util.ArrayList<String>();
-      zl.add("instance"); zl.add("host1,host2");
+      zl.add("foo");
+      zl.add("host1,host2");
       expect(opts.getZooKeeperInstance()).andReturn(zl);
       expectLastCall().anyTimes();
     } else {
       expect(opts.getZooKeeperInstance()).andReturn(Collections.<String>emptyList());
-      expect(opts.getZooKeeperInstanceName()).andReturn("instance");
-      expect(opts.getZooKeeperHosts()).andReturn("host1,host2");
+      expect(opts.getZooKeeperInstanceName()).andReturn("bar");
+      expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
     }
     replay(opts);
 
     ZooKeeperInstance theInstance = createMock(ZooKeeperInstance.class);
-    expectNew(ZooKeeperInstance.class, "instance", "host1,host2")
+    if (dashZ)
+      expectNew(ZooKeeperInstance.class, "foo", "host1,host2").andReturn(theInstance);
+    else
+      expectNew(ZooKeeperInstance.class, "bar", "host3,host4")
       .andReturn(theInstance);
     replay(theInstance, ZooKeeperInstance.class);
 
