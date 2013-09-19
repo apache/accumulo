@@ -389,11 +389,11 @@ public class Shell extends ShellOptions {
       String instanceName, hosts;
       if (options.isHdfsZooInstance()) {
         instanceName = hosts = null;
-    } else if (options.getZooKeeperInstance().size() > 0) {
-      List<String> zkOpts = options.getZooKeeperInstance();
+      } else if (options.getZooKeeperInstance().size() > 0) {
+        List<String> zkOpts = options.getZooKeeperInstance();
         instanceName = zkOpts.get(0);
         hosts = zkOpts.get(1);
-    } else {
+      } else {
         instanceName = options.getZooKeeperInstanceName();
         hosts = options.getZooKeeperHosts();
       }
@@ -407,7 +407,7 @@ public class Shell extends ShellOptions {
       @SuppressWarnings("deprecation")
       AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
       if (instanceName == null) {
-    Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
+        Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
         instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir));
       }
       if (keepers == null) {
