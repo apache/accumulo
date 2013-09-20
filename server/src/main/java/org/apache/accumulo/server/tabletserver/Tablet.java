@@ -431,6 +431,8 @@ public class Tablet {
   
   private AtomicReference<ConstraintChecker> constraintChecker = new AtomicReference<ConstraintChecker>();
   
+  private final String tabletDirectory;
+  
   private int writesInProgress = 0;
   
   private static final Logger log = Logger.getLogger(Tablet.class);
@@ -1258,6 +1260,7 @@ public class Tablet {
     }
     this.location = locationPath.makeQualified(fs.getFileSystemByPath(locationPath));
     this.lastLocation = lastLocation;
+    this.tabletDirectory = location.toString();
     this.conf = conf;
     this.acuTableConf = tabletServer.getTableConfiguration(extent);
     
@@ -3560,7 +3563,7 @@ public class Tablet {
       
       log.log(TLevel.TABLET_HIST, extent + " split " + low + " " + high);
       
-      newTablets.put(high, new SplitInfo(location.toString(), highDatafileSizes, time, lastFlushID, lastCompactID));
+      newTablets.put(high, new SplitInfo(tabletDirectory, highDatafileSizes, time, lastFlushID, lastCompactID));
       newTablets.put(low, new SplitInfo(lowDirectory, lowDatafileSizes, time, lastFlushID, lastCompactID));
       
       long t2 = System.currentTimeMillis();
