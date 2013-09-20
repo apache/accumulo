@@ -375,29 +375,50 @@ public class Shell extends ShellOptions {
     return configError;
   }
   
+  /**
+   * Sets the instance used by the shell based on the given options.
+   *
+   * @param options shell options
+   */
   protected void setInstance(ShellOptionsJC options) {
-    // should only be one instance option set
+    // should only be one set of instance options set
     instance = null;
     if (options.isFake()) {
       instance = new MockInstance("fake");
-    } else if (options.isHdfsZooInstance()) {
-      @SuppressWarnings("deprecation")
-      AccumuloConfiguration deprecatedSiteConfiguration = AccumuloConfiguration.getSiteConfiguration();
-      instance = getDefaultInstance(deprecatedSiteConfiguration);
-    } else if (options.getZooKeeperInstance().size() > 0) {
-      List<String> zkOpts = options.getZooKeeperInstance();
-      instance = new ZooKeeperInstance(zkOpts.get(0), zkOpts.get(1));
     } else {
-      @SuppressWarnings("deprecation")
-      AccumuloConfiguration deprecatedSiteConfiguration = AccumuloConfiguration.getSiteConfiguration();
-      instance = getDefaultInstance(deprecatedSiteConfiguration);
+      String instanceName, hosts;
+      if (options.isHdfsZooInstance()) {
+        instanceName = hosts = null;
+      } else if (options.getZooKeeperInstance().size() > 0) {
+        List<String> zkOpts = options.getZooKeeperInstance();
+        instanceName = zkOpts.get(0);
+        hosts = zkOpts.get(1);
+      } else {
+        instanceName = options.getZooKeeperInstanceName();
+        hosts = options.getZooKeeperHosts();
+      }
+      instance = getZooInstance(instanceName, hosts);
     }
   }
   
-  private static Instance getDefaultInstance(AccumuloConfiguration conf) {
-    String keepers = conf.get(Property.INSTANCE_ZK_HOST);
-    Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
-    return new ZooKeeperInstance(UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir)), keepers);
+  private static Instance getZooInstance(String instanceName, String keepers) {
+    UUID instanceId = null;
+    if (instanceName == null || keepers == null) {
+      @SuppressWarnings("deprecation")
+      AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
+      if (instanceName == null) {
+        Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
+        instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir));
+      }
+      if (keepers == null) {
+        keepers = conf.get(Property.INSTANCE_ZK_HOST);
+      }
+    }
+    if (instanceId != null) {
+      return new ZooKeeperInstance(instanceId, keepers);
+    } else {
+      return new ZooKeeperInstance(instanceName, keepers);
+    }
   }
   
   public Connector getConnector() {
