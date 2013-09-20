@@ -354,14 +354,14 @@ $ ./bin/accumulo org.apache.accumulo.server.util.FindOfflineTablets
 Here's what the output means:
 
 \begin{enumerate}
-\item{\texttt{2\<\<} This is the tablet from (-inf, +inf) for the
+\item{\texttt{2<<} This is the tablet from (-inf, +inf) for the
   table with id 2.  ``tables -l'' in the shell will show table ids for
   tables.}
-\item{\@(null, null, localhost:9997)} Location information.  The
-  format is \textt{@(assigned, hosted, last)}.  In this case, the
+\item{@(null, null, localhost:9997)} Location information.  The
+  format is \texttt{@(assigned, hosted, last)}.  In this case, the
   tablet has not been assigned, is not hosted anywhere, and was once
   hosted on localhost.
-\item{#walogs:2} The number of write-ahead logs that this tablet requires for recovery.
+\item{\#walogs:2} The number of write-ahead logs that this tablet requires for recovery.
 \end{enumerate}
 
 An unassigned tablet with write-ahead logs is probably waiting for
@@ -498,7 +498,7 @@ Let's decode this little session:
 \item{\texttt{srv:flush []    1} Flush id.  This table has successfully completed the flush with the id of ``1''. }
 \item{\texttt{srv:lock []    tservers/127.0.0.1:9997/zlock-0000000001\$13fe86cd27101e5}  This is the lock information for the tablet holding the present lock.  This information is checked against zookeeper whenever this is updated, which prevents a !METADATA table update from a tablet server that no longer holds its lock.}
 \item{\texttt{srv:time []    M1373998392323} }
-\item{\texttt{~tab:~pr []    \x00} The end-row marker for the previous tablet (prev-row).  The first byte indicates the presence of a prev-row.  This tablet has the range (-inf, +inf), so it has no prev-row (or end row). }
+\item{\texttt{~tab:~pr []    \\x00} The end-row marker for the previous tablet (prev-row).  The first byte indicates the presence of a prev-row.  This tablet has the range (-inf, +inf), so it has no prev-row (or end row). }
 \end{enumerate}
 
 Besides these columns, you may see:
