@@ -98,6 +98,30 @@ machines to allow them to use more heap space. If you are running these on the
 same machine on a small cluster, likewise make sure their heap space settings fit
 within the available memory.
 
+\subsection{Native Map}
+
+The tablet server uses a data structure called a MemTable to store sorted key/value
+pairs in memory when they are first received from the client. When a minor compaction
+occurs, this data structure is written to HDFS. The MemTable will default to using
+memory in the JVM but a JNI version, called the native map, can be used to significantly
+speed up performance by utilizing the memory space of the native operating system. The
+native map also avoids the performance implications brought on by garbage collection
+in the JVM by causing it to pause much less frequently.
+
+32-bit and 64-bit Linux versions of the native map ship with the Accumulo dist package.
+For other operating systems, the native map can be built from the codebase in two ways-
+from maven or from the Makefile.
+
+\begin{enumerate}
+\item{Build from maven using the following command: \texttt{mvn clean package -Pnative.}}
+\item{Build from the c++ source by running \texttt{make} in the \texttt{\$ACCUMULO\_HOME/server/src/main/c++} directory.}
+\end{enumerate}
+
+After building the native map from the source, you will find the artifact in
+\texttt{\$ACCUMULO\_HOME/lib/native.} Upon starting up, the tablet server will look
+in this directory for the map library. If the file is renamed or moved from its
+target directory, the tablet server may not be able to find it.
+
 \subsection{Cluster Specification}
 
 On the machine that will serve as the Accumulo master:
