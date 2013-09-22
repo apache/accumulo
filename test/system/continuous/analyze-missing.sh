@@ -16,7 +16,8 @@
 # limitations under the License.
 
 
-. continuous-env.sh
+CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous/}
+. $CONTINUOUS_CONF_DIR/continuous-env.sh
 
 ./analyze-missing.pl $ACCUMULO_HOME $CONTINUOUS_LOG_DIR $USER $PASS
 

@@ -16,7 +16,8 @@
 # limitations under the License.
 
 
-. continuous-env.sh
+CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous/}
+. $CONTINUOUS_CONF_DIR/continuous-env.sh
 
 DEBUG_OPT="";
 AUTH_OPT="";
@@ -30,5 +31,5 @@ if [ -n "$AUTHS" ] ; then
 fi
 
 
-pssh -h batch_walkers.txt "mkdir -p $CONTINUOUS_LOG_DIR; nohup $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.test.continuous.ContinuousBatchWalker $DEBUG_OPT $AUTH_OPT -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --min $MIN --max $MAX --sleep $BATCH_WALKER_SLEEP --numToScan $BATCH_WALKER_BATCH_SIZE --scanThreads $BATCH_WALKER_THREADS >$CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_batch_walk.out 2>$CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_batch_walk.err &" < /dev/null
+pssh -h $CONTINUOUS_CONF_DIR/batch_walkers.txt "mkdir -p $CONTINUOUS_LOG_DIR; nohup $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.test.continuous.ContinuousBatchWalker $DEBUG_OPT $AUTH_OPT -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --min $MIN --max $MAX --sleep $BATCH_WALKER_SLEEP --numToScan $BATCH_WALKER_BATCH_SIZE --scanThreads $BATCH_WALKER_THREADS >$CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_batch_walk.out 2>$CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_batch_walk.err &" < /dev/null
 
