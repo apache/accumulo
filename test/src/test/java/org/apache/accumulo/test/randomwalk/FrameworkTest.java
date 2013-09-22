@@ -19,19 +19,16 @@ package org.apache.accumulo.test.randomwalk;
 import java.io.File;
 import java.util.Properties;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import javax.xml.XMLConstants;
-
-import org.apache.accumulo.test.randomwalk.Framework;
-import org.apache.accumulo.test.randomwalk.Module;
-import org.apache.accumulo.test.randomwalk.State;
-import org.apache.accumulo.test.randomwalk.Test;
-import org.apache.accumulo.test.randomwalk.unit.CreateTable;
 
 import junit.framework.TestCase;
+
+import org.apache.accumulo.test.randomwalk.unit.CreateTable;
+import org.junit.Assert;
 
 public class FrameworkTest extends TestCase {
   
@@ -43,19 +40,19 @@ public class FrameworkTest extends TestCase {
     SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
     Schema moduleSchema = null;
     try {
-      moduleSchema = sf.newSchema(new File(this.getClass().getClassLoader().getResource("randomwalk/module.xsd").toURI()));
+      moduleSchema = sf.newSchema(new File(this.getClass().getResource("/randomwalk/module.xsd").toURI()));
     } catch (Exception e) {
-      e.printStackTrace();
+      Assert.fail("Caught exception: " + e);
     }
     
     dbf.setSchema(moduleSchema);
     
     try {
-      File f = new File(this.getClass().getClassLoader().getResource("randomwalk/Basic.xml").toURI());
+      File f = new File(this.getClass().getResource("/randomwalk/Basic.xml").toURI());
       docbuilder = dbf.newDocumentBuilder();
       docbuilder.parse(f);
     } catch (Exception e) {
-      e.printStackTrace();
+      Assert.fail("Caught exception: " + e);
     }
   }
   
@@ -68,31 +65,4 @@ public class FrameworkTest extends TestCase {
     assertTrue(t1.equals(t2));
   }
   
-  public void testModule() {
-    
-    // don't run test if accumulo home is not set
-    String acuHome = System.getenv("ACCUMULO_HOME");
-    if (acuHome == null)
-      return;
-    
-    String confDir = acuHome + "/test/system/randomwalk/conf/";
-    try {
-      Module module = new Module(new File(confDir + "modules/unit/Basic.xml"));
-      module.visit(new State(new Properties()), new Properties());
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-  
-  public void testFramework() {
-    
-    // don't run test if accumulo home is not set
-    String acuHome = System.getenv("ACCUMULO_HOME");
-    if (acuHome == null)
-      return;
-    
-    Framework framework = Framework.getInstance();
-    String confDir = acuHome + "/test/system/randomwalk/conf/";
-    framework.run("unit/Basic.xml", new State(new Properties()), confDir);
-  }
 }
