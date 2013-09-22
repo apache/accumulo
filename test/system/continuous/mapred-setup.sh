@@ -18,7 +18,8 @@
 # a little helper script that other scripts can source to setup 
 # for running a map reduce job
 
-. continuous-env.sh
+CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous/}
+. $CONTINUOUS_CONF_DIR/continuous-env.sh
 . $ACCUMULO_CONF_DIR/accumulo-env.sh
 
 SERVER_CMD='ls -1 $ACCUMULO_HOME/lib/accumulo-server-*[!javadoc\|sources].jar'

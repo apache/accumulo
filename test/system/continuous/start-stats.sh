@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-. continuous-env.sh
+CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous/}
+. $CONTINUOUS_CONF_DIR/continuous-env.sh
 
 mkdir -p $CONTINUOUS_LOG_DIR
 
@@ -26,12 +26,12 @@ cat $ACCUMULO_CONF_DIR/accumulo-env.sh > $CONFIG_OUT
 echo >> $CONFIG_OUT
 echo -e "config -np\nconfig -t $TABLE -np\nquit" | $ACCUMULO_HOME/bin/accumulo shell -u $USER -p $PASS >> $CONFIG_OUT
 echo >> $CONFIG_OUT
-cat continuous-env.sh >> $CONFIG_OUT
+cat $CONTINUOUS_CONF_DIR/continuous-env.sh >> $CONFIG_OUT
 echo >> $CONFIG_OUT
-echo "`wc -l walkers.txt`" >> $CONFIG_OUT
-echo "`wc -l ingesters.txt`" >> $CONFIG_OUT
-echo "`wc -l scanners.txt`" >> $CONFIG_OUT
-echo "`wc -l batch_walkers.txt`" >> $CONFIG_OUT
+echo "`wc -l $CONTINUOUS_CONF_DIR/walkers.txt`" >> $CONFIG_OUT
+echo "`wc -l $CONTINUOUS_CONF_DIR/ingesters.txt`" >> $CONFIG_OUT
+echo "`wc -l $CONTINUOUS_CONF_DIR/scanners.txt`" >> $CONFIG_OUT
+echo "`wc -l $CONTINUOUS_CONF_DIR/batch_walkers.txt`" >> $CONFIG_OUT
 
 
 nohup $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.test.continuous.ContinuousStatsCollector $TABLE $INSTANCE_NAME $ZOO_KEEPERS $USER $PASS >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_stats.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_stats.err &

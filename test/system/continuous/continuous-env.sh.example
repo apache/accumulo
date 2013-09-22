@@ -13,11 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#set this to an absolute path that exist on every machine
-HADOOP_HOME=/opt/hadoop
-ACCUMULO_HOME=/opt/accumulo
-JAVA_HOME=/opt/java
-ZOOKEEPER_HOME=/opt/zookeeper
+
+# set this to an absolute path that exist on every machine
+# Inherit values from environment if they are already set.
+HADOOP_HOME=${HADOOP_HOME:-/opt/hadoop}
+ACCUMULO_HOME=${ACCUMULO_HOME:-/opt/accumulo}
+JAVA_HOME=${JAVA_HOME:-/opt/java}
+ZOOKEEPER_HOME=${ZOOKEEPER_HOME:-/opt/zookeeper}
 
 CONTINUOUS_LOG_DIR=$ACCUMULO_HOME/test/system/continuous/logs
 INSTANCE_NAME=instance

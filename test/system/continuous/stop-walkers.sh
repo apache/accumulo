@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous/}
+. $CONTINUOUS_CONF_DIR/continuous-env.sh
 
-. continuous-env.sh
-
-pssh -h walkers.txt "pkill -f [o]rg.apache.accumulo.server.test.continuous.ContinuousWalk" < /dev/null
+pssh -h $CONTINUOUS_CONF_DIR/walkers.txt "pkill -f [o]rg.apache.accumulo.server.test.continuous.ContinuousWalk" < /dev/null
 

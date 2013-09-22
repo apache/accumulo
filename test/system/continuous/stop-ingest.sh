@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous/}
+. $CONTINUOUS_CONF_DIR/continuous-env.sh
 
-. continuous-env.sh
-
-pssh -h ingesters.txt "pkill -f [o]rg.apache.accumulo.server.test.continuous.ContinuousIngest" < /dev/null
+pssh -h $CONTINUOUS_CONF_DIR/ingesters.txt "pkill -f [o]rg.apache.accumulo.server.test.continuous.ContinuousIngest" < /dev/null
 
