@@ -18,5 +18,5 @@
 CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous/}
 . $CONTINUOUS_CONF_DIR/continuous-env.sh
 
-pssh -h $CONTINUOUS_CONF_DIR/walkers.txt "pkill -f [o]rg.apache.accumulo.server.test.continuous.ContinuousWalk" < /dev/null
+pssh -h $CONTINUOUS_CONF_DIR/walkers.txt "pkill -f '[o]rg.apache.accumulo.server.test.continuous.ContinuousWalk'" < /dev/null
 
