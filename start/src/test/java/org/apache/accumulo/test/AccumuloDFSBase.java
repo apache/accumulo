@@ -47,11 +47,6 @@ public class AccumuloDFSBase {
   protected static DefaultFileSystemManager vfs = null;
   protected static MiniDFSCluster cluster = null;
   
-  // Choose an IANA unassigned port
-  // http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
-  // TODO Given that the URI for the NameNode is statically declared in config files in src/test/resources, we have to assert the given port. It would be better
-  // to let MiniDFSCluster find a free port to use and then update the URI to be used in the VFS tests - ACCUMULO-1299
-  protected static final Integer HDFS_PORT = 8620;
   protected static final URI HDFS_URI;
   
   static {
@@ -87,7 +82,7 @@ public class AccumuloDFSBase {
     conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 100); // 100K blocksize
     
     try {
-      cluster = new MiniDFSCluster(HDFS_PORT, conf, 1, true, true, true, null, null, null, null);
+      cluster = new MiniDFSCluster(conf, 1, true, null);
       cluster.waitActive();
       // We can't assume that the hostname of "localhost" will still be "localhost" after
       // starting up the NameNode. We may get mapped into a FQDN via settings in /etc/hosts.
