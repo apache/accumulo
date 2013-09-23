@@ -20,7 +20,10 @@ import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
+import org.apache.accumulo.core.security.ColumnVisibility.Node;
+import org.apache.accumulo.core.security.ColumnVisibility.NodeType;
 import org.junit.Test;
 
 public class ColumnVisibilityTest {
@@ -144,5 +147,23 @@ public class ColumnVisibilityTest {
     // multi-byte
     cv = new ColumnVisibility(quote("五"));
     assertEquals("[\"五\"]", cv.toString());
+  }
+
+  public void testParseTree() {
+    String s = "(W)|(U&V)";
+    ColumnVisibility v = new ColumnVisibility(s);
+    Node node = v.getParseTree();
+    assertNode(node, NodeType.OR, 3, 4);
+    assertNode(node.getChildren().get(0), NodeType.TERM, 1, 2);
+    assertNode(node.getChildren().get(1), NodeType.AND, 6, 7);
+    assertNode(node.getChildren().get(1).children.get(0), NodeType.TERM, 5, 6);
+    assertNode(node.getChildren().get(1).children.get(1), NodeType.TERM, 7, 8);
+  }
+
+  private void assertNode(Node node, NodeType nodeType, int start, int end) {
+    assertEquals(node.type, nodeType);
+    assertEquals(start, node.start);
+    assertEquals(end, node.end);
+    
   }
 }
