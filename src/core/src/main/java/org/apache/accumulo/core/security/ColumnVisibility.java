@@ -52,12 +52,14 @@ public class ColumnVisibility {
   public static class Node {
     public final static List<Node> EMPTY = Collections.emptyList();
     NodeType type;
-    int start = 0;
-    int end = 0;
+    final int start;
+    final int end;
     List<Node> children = EMPTY;
     
-    public Node(NodeType type) {
+    public Node(NodeType type, int start) {
       this.type = type;
+      this.start = start;
+      this.end = start + 1;
     }
     
     public Node(int start, int end) {
@@ -189,7 +191,7 @@ public class ColumnVisibility {
               if (!result.type.equals(NodeType.AND))
                 throw new BadArgumentException("cannot mix & and |", new String(expression), index - 1);
             } else {
-              result = new Node(NodeType.AND);
+              result = new Node(NodeType.AND, index - 1);
             }
             result.add(expr);
             expr = null;
@@ -202,7 +204,7 @@ public class ColumnVisibility {
               if (!result.type.equals(NodeType.OR))
                 throw new BadArgumentException("cannot mix | and &", new String(expression), index - 1);
             } else {
-              result = new Node(NodeType.OR);
+              result = new Node(NodeType.OR, index - 1);
             }
             result.add(expr);
             expr = null;
@@ -229,7 +231,6 @@ public class ColumnVisibility {
                 result.add(c);
             else
               result.add(child);
-            result.end = index - 1;
             return result;
           }
           default: {
