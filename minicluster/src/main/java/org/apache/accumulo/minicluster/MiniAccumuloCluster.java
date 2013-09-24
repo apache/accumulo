@@ -347,7 +347,7 @@ public class MiniAccumuloCluster {
       Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword());
       int ret = initProcess.waitFor();
       if (ret != 0) {
-        throw new RuntimeException("Initialize process returned " + ret);
+        throw new RuntimeException("Initialize process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");
       }
       initialized = true;
     }
@@ -363,7 +363,7 @@ public class MiniAccumuloCluster {
       UtilWaitThread.sleep(1000);
     }
     if (ret != 0) {
-      throw new RuntimeException("Could not set master goal state, process returned " + ret);
+      throw new RuntimeException("Could not set master goal state, process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
     if (masterProcess == null) {
       masterProcess = exec(Master.class, ServerType.MASTER);
