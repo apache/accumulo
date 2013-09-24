@@ -67,7 +67,7 @@ if [ "$1" = "-add" ] ; then
 else
     export ACCUMULO_XTRAJARS=""
 fi
-if [ "$1" = "jar" ] ; then
+if [ "$1" = "jar" -a -f "$2" ] ; then
     if [[ $2 =~ ^/ ]]; then
       jardir="$(dirname "$2")"
       jarfile="$2"
