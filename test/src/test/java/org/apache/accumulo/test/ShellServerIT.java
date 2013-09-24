@@ -282,7 +282,8 @@ public class ShellServerIT {
     output.clear();
     shell.execCommand("du -h", false, false);
     String o = output.get();
-    assertTrue(o.matches(".*26[0-9]\\s\\[t\\]\\n")); // for some reason, there's 1-2 bytes of fluctuation
+    System.out.println("o " + o);
+    assertTrue(o.matches(".*[1-9][0-9][0-9]\\s\\[t\\]\\n"));
     exec("deletetable -f t");
   }
   

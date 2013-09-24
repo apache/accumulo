@@ -36,9 +36,11 @@ public class RestartStressIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     Map<String, String> opts = new HashMap<String, String>();
-    opts.put(Property.TSERV_MAXMEM.getKey(), "5K");
+    opts.put(Property.TSERV_MAXMEM.getKey(), "100K");
     opts.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
-    opts.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "50K");
+    opts.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "500K");
+    opts.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
+    opts.put(Property.MASTER_RECOVERY_DELAY.getKey(), "1s");
     cfg.setSiteConfig(opts);
     cfg.useMiniDFS(true);
   }
@@ -57,7 +59,7 @@ public class RestartStressIT extends ConfigurableMacIT {
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
-    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
+    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "500K");
     Process ingest = cluster.exec(TestIngest.class, 
         "-u", "root", "-p", ROOT_PASSWORD, 
         "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), 

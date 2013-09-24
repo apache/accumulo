@@ -32,7 +32,7 @@ import org.junit.Test;
 
 public class ShutdownIT extends ConfigurableMacIT {
   
-  @Test(timeout = 3 * 60 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void shutdownDuringIngest() throws Exception {
     Process ingest = cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable");
     UtilWaitThread.sleep(100);

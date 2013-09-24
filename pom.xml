@@ -677,10 +677,9 @@
             <configuration>
               <!--parallel>classes</parallel-->
               <reuseForks>false</reuseForks>
-              <forkMode>always</forkMode>
-              <forkCount>${accumulo.it.forkCount}</forkCount>
+              <forkMode>perthread</forkMode>
               <perCoreThreadCount>false</perCoreThreadCount>
-              <threadCount>${accumulo.it.threads}</threadCount>
+              <threadCount>${accumulo.it.forkCount}</threadCount>
               <redirectTestOutputToFile>true</redirectTestOutputToFile>
             </configuration>
           </execution>

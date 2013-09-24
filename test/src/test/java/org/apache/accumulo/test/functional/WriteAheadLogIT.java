@@ -42,13 +42,14 @@ public class WriteAheadLogIT extends ConfigurableMacIT {
     siteConfig.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "2M");
     siteConfig.put(Property.GC_CYCLE_DELAY.getKey(), "1");
     siteConfig.put(Property.GC_CYCLE_START.getKey(), "1");
-    siteConfig.put(Property.MASTER_RECOVERY_DELAY.getKey(), "0");
-    siteConfig.put(Property.TSERV_MAXMEM.getKey(), "200K");
+    siteConfig.put(Property.MASTER_RECOVERY_DELAY.getKey(), "1s");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
+    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "1s");
+    cfg.setSiteConfig(siteConfig);
     cfg.useMiniDFS(true);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test(timeout = 10 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

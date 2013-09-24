@@ -102,7 +102,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     assertTrue(output.contains("delete candidates has exceeded"));
   }
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void dontGCRootLog() throws Exception {
     // dirty !METADATA
     Connector c = getConnector();

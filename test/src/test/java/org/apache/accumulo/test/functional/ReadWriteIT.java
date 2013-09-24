@@ -59,7 +59,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
   static final int COLS = 1;
   static final String COLF = "colf";
   
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void sunnyDay() throws Exception {
     // Start accumulo, create a table, insert some data, verify we can read it out.
     // Shutdown cleanly.
