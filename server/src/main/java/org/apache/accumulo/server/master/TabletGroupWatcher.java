@@ -106,6 +106,9 @@ class TabletGroupWatcher extends Daemon {
     EventCoordinator.Listener eventListener = this.master.nextEvent.getListener();
     
     while (this.master.stillMaster()) {
+      // slow things down a little, otherwise we spam the logs when there are many wake-up events
+      UtilWaitThread.sleep(100);
+
       int totalUnloaded = 0;
       int unloaded = 0;
       try {
@@ -646,6 +649,7 @@ class TabletGroupWatcher extends Daemon {
       } else {
         Master.log.warn("Could not connect to server " + a.server);
       }
+      master.assignedTablet(a.tablet);
     }
   }
   

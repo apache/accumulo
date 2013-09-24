@@ -168,7 +168,7 @@ public class ZooTabletStateStore extends TabletStateStore {
   
   @Override
   public String name() {
-    return "Root Tablet";
+    return "Root Table";
   }
   
 }

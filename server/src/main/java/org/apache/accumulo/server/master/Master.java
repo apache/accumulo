@@ -171,6 +171,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   
   final private static int ONE_SECOND = 1000;
   final private static Text METADATA_TABLE_ID = new Text(MetadataTable.ID);
+  final private static Text ROOT_TABLE_ID = new Text(RootTable.ID);
   final static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
   final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   final static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
@@ -223,8 +224,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       /* SAFE_MODE */                 {_,     _,        X,        X,      X,         _,          X},
       /* NORMAL */                    {_,     _,        X,        X,      X,         _,          X},
       /* UNLOAD_METADATA_TABLETS */   {_,     _,        X,        X,      X,         X,          X},
-      /* UNLOAD_ROOT_TABLET */        {_,     _,        _,        X,      _,         X,          X},
-      /* STOP */                      {_,     _,        _,        _,      _,         _,          X}};
+      /* UNLOAD_ROOT_TABLET */        {_,     _,        _,        X,      X,         X,          X},
+      /* STOP */                      {_,     _,        _,        _,      _,         X,          X}};
   //@formatter:on
   synchronized private void setMasterState(MasterState newState) {
     if (state.equals(newState))
@@ -349,7 +350,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   // The number of unassigned tablets that should be assigned: displayed on the monitor page
   private int displayUnassigned() {
     int result = 0;
-    Text meta = new Text(MetadataTable.ID);
     switch (getMasterState()) {
       case NORMAL:
         // Count offline tablets for online tables
@@ -368,13 +368,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       case SAFE_MODE:
         // Count offline tablets for the METADATA table
         for (TabletGroupWatcher watcher : watchers) {
-          result += watcher.getStats(meta).unassigned();
+          result += watcher.getStats(METADATA_TABLE_ID).unassigned();
         }
         break;
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         for (TabletGroupWatcher watcher : watchers) {
-          result += watcher.getStats(meta).unassigned();
+          result += watcher.getStats(METADATA_TABLE_ID).unassigned();
         }
         break;
       default:
@@ -1267,7 +1267,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       setName("Status Thread");
       EventCoordinator.Listener eventListener = nextEvent.getListener();
       while (stillMaster()) {
-        int count = 0;
         long wait = DEFAULT_WAIT_FOR_WATCHER;
         try {
           switch (getMasterGoalState()) {
@@ -1288,27 +1287,32 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
                   setMasterState(MasterState.SAFE_MODE);
                   break;
                 case SAFE_MODE:
-                  count = nonMetaDataTabletsAssignedOrHosted();
+                {
+                  int count = nonMetaDataTabletsAssignedOrHosted();
                   log.debug(String.format("There are %d non-metadata tablets assigned or hosted", count));
                   if (count == 0)
                     setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
-                  break;
+                }
+                break;
                 case UNLOAD_METADATA_TABLETS:
-                  count = assignedOrHosted(METADATA_TABLE_ID);
-                  count += assignedOrHosted(new Text(RootTable.ID));
+                {
+                  int count = assignedOrHosted(METADATA_TABLE_ID);
                   log.debug(String.format("There are %d metadata tablets assigned or hosted", count));
-                  // Assumes last tablet hosted is the root tablet;
-                  // it's possible
-                  // that's not the case (root tablet is offline?)
-                  if (count == 1)
+                  if (count == 0)
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
-                  break;
+                }
+                break;
                 case UNLOAD_ROOT_TABLET:
-                  count = assignedOrHosted(METADATA_TABLE_ID);
-                  count += assignedOrHosted(new Text(RootTable.ID));
-                  if (count > 0)
-                    log.debug(String.format("The root tablet is still assigned or hosted"));
-                  if (count == 0) {
+                {
+                  int count = assignedOrHosted(METADATA_TABLE_ID);
+                  if (count > 0) {
+                    log.debug(String.format("%d metadata tablets online", count));
+                    setMasterState(MasterState.UNLOAD_ROOT_TABLET);
+                  }
+                  int root_count = assignedOrHosted(ROOT_TABLE_ID);
+                  if (root_count > 0)
+                    log.debug("The root tablet is still assigned or hosted");
+                  if (count + root_count == 0) {
                     Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
                     log.debug("stopping " + currentServers.size() + " tablet servers");
                     for (TServerInstance server : currentServers) {
@@ -1324,7 +1328,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
                     if (currentServers.size() == 0)
                       setMasterState(MasterState.STOP);
                   }
-                  break;
+                }
+                break;
                 default:
                   break;
               }
@@ -1794,5 +1799,19 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   
   public void updateRecoveryInProgress(String file) {
     recoveriesInProgress.add(file);
+  }
+
+  public void assignedTablet(KeyExtent extent) {
+    if (extent.isMeta()) {
+      if (getMasterState().equals(MasterState.UNLOAD_ROOT_TABLET)) {
+        setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
+      }
+    }
+    if (extent.isRootTablet()) {
+      // probably too late, but try anyhow
+      if (getMasterState().equals(MasterState.STOP)) {
+        setMasterState(MasterState.UNLOAD_ROOT_TABLET);
+      }
+    }
   }
 }

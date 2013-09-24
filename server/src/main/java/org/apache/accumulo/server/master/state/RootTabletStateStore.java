@@ -40,6 +40,6 @@ public class RootTabletStateStore extends MetaDataStateStore {
   
   @Override
   public String name() {
-    return "Non-Root Metadata Tablets";
+    return "Metadata Tablets";
   }
 }
