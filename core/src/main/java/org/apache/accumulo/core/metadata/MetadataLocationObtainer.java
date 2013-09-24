@@ -54,7 +54,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
@@ -81,8 +80,6 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       throws AccumuloSecurityException, AccumuloException {
     
     try {
-      ArrayList<TabletLocation> list = new ArrayList<TabletLocation>();
-      
       OpTimer opTimer = null;
       if (log.isTraceEnabled())
         opTimer = new OpTimer(log, Level.TRACE).start("Looking up in " + src.tablet_extent.getTableId() + " row=" + TextUtil.truncate(row) + "  extent="
@@ -118,13 +115,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       
       // System.out.println("results "+results.keySet());
       
-      Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> metadata = MetadataLocationObtainer.getMetadataLocationEntries(results);
-      
-      for (Entry<KeyExtent,Text> entry : metadata.getFirst().entrySet()) {
-        list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
-      }
-      
-      return new TabletLocations(list, metadata.getSecond());
+      return MetadataLocationObtainer.getMetadataLocationEntries(results);
       
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled())
@@ -158,9 +149,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       throws AccumuloSecurityException, AccumuloException {
     
     final TreeMap<Key,Value> results = new TreeMap<Key,Value>();
-    
-    ArrayList<TabletLocation> list = new ArrayList<TabletLocation>();
-    
+
     ResultReceiver rr = new ResultReceiver() {
       
       @Override
@@ -204,23 +193,18 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       throw e;
     }
     
-    SortedMap<KeyExtent,Text> metadata = MetadataLocationObtainer.getMetadataLocationEntries(results).getFirst();
-    
-    for (Entry<KeyExtent,Text> entry : metadata.entrySet()) {
-      list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
-    }
-    
-    return list;
+    return MetadataLocationObtainer.getMetadataLocationEntries(results).getLocations();
   }
   
-  public static Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> getMetadataLocationEntries(SortedMap<Key,Value> entries) {
+  public static TabletLocations getMetadataLocationEntries(SortedMap<Key,Value> entries) {
     Key key;
     Value val;
     Text location = null;
+    Text session = null;
     Value prevRow = null;
     KeyExtent ke;
     
-    SortedMap<KeyExtent,Text> results = new TreeMap<KeyExtent,Text>();
+    List<TabletLocation> results = new ArrayList<TabletLocation>();
     ArrayList<KeyExtent> locationless = new ArrayList<KeyExtent>();
     
     Text lastRowFromKey = new Text();
@@ -236,6 +220,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (key.compareRow(lastRowFromKey) != 0) {
         prevRow = null;
         location = null;
+        session = null;
         key.getRow(lastRowFromKey);
       }
       
@@ -248,6 +233,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
           throw new IllegalStateException("Tablet has multiple locations : " + lastRowFromKey);
         }
         location = new Text(val.toString());
+        session = new Text(colq);
       } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         prevRow = new Value(val);
       }
@@ -255,7 +241,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (prevRow != null) {
         ke = new KeyExtent(key.getRow(), prevRow);
         if (location != null)
-          results.put(ke, location);
+          results.add(new TabletLocation(ke, location.toString(), session.toString()));
         else
           locationless.add(ke);
         
@@ -264,6 +250,6 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
     }
     
-    return new Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>>(results, locationless);
+    return new TabletLocations(results, locationless);
   }
 }

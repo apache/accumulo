@@ -658,7 +658,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     
     while (true) {
       if (!ZooLock.isLockHeld(ServerClient.getZooCache(instance), lid)) {
-        // TODO if ACCUMULO-1152 adds a tserver lock check to the tablet location cache, then this invalidation would prevent future attempts to contact the
+        // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this invalidation prevents future attempts to contact the
         // tserver even its gone zombie and is still running w/o a lock
         locator.invalidateCache(location);
         return;

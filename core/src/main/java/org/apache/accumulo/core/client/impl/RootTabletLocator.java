@@ -21,36 +21,45 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 public class RootTabletLocator extends TabletLocator {
   
   private Instance instance;
+  private TabletServerLockChecker lockChecker;
   
-  RootTabletLocator(Instance instance) {
+  RootTabletLocator(Instance instance, TabletServerLockChecker lockChecker) {
     this.instance = instance;
+    this.lockChecker = lockChecker;
   }
   
   @Override
   public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    String rootTabletLocation = instance.getRootTabletLocation();
+    TabletLocation rootTabletLocation = getRootTabletLocation();
     if (rootTabletLocation != null) {
-      TabletServerMutations<T> tsm = new TabletServerMutations<T>();
+      TabletServerMutations<T> tsm = new TabletServerMutations<T>(rootTabletLocation.tablet_session);
       for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }
-      binnedMutations.put(rootTabletLocation, tsm);
+      binnedMutations.put(rootTabletLocation.tablet_location, tsm);
     } else {
       failures.addAll(mutations);
     }
@@ -60,10 +69,10 @@ public class RootTabletLocator extends TabletLocator {
   public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     
-    String rootTabletLocation = instance.getRootTabletLocation();
+    TabletLocation rootTabletLocation = getRootTabletLocation();
     if (rootTabletLocation != null) {
       for (Range range : ranges) {
-        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation, RootTable.EXTENT, range);
+        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation.tablet_location, RootTable.EXTENT, range);
       }
       return Collections.emptyList();
     }
@@ -77,23 +86,46 @@ public class RootTabletLocator extends TabletLocator {
   public void invalidateCache(Collection<KeyExtent> keySet) {}
   
   @Override
-  public void invalidateCache(String server) {}
+  public void invalidateCache(String server) {
+    ZooCache zooCache = ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    String root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
+    zooCache.clear(root + "/" + server);
+  }
   
   @Override
   public void invalidateCache() {}
   
+  protected TabletLocation getRootTabletLocation() {
+    String zRootLocPath = ZooUtil.getRoot(instance) + RootTable.ZROOT_TABLET_LOCATION;
+    ZooCache zooCache = ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    
+    OpTimer opTimer = new OpTimer(Logger.getLogger(this.getClass()), Level.TRACE).start("Looking up root tablet location in zookeeper.");
+    byte[] loc = zooCache.get(zRootLocPath);
+    opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc)) + " in %DURATION%");
+    
+    if (loc == null) {
+      return null;
+    }
+    
+    String[] tokens = new String(loc).split("\\|");
+    
+    if (lockChecker.isLockHeld(tokens[0], tokens[1]))
+      return new TabletLocation(RootTable.EXTENT, tokens[0], tokens[1]);
+    else
+      return null;
+  }
+
   @Override
   public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    String location = instance.getRootTabletLocation();
+    TabletLocation location = getRootTabletLocation();
     // Always retry when finding the root tablet
     while (retry && location == null) {
       UtilWaitThread.sleep(500);
-      location = instance.getRootTabletLocation();
+      location = getRootTabletLocation();
     }
-    if (location != null)
-      return new TabletLocation(RootTable.EXTENT, location);
-    return null;
+    
+    return location;
   }
   
 }

@@ -100,11 +100,11 @@ public abstract class TabletLocator {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer(instance);
       
       if (tableId.toString().equals(RootTable.ID)) {
-        tl = new RootTabletLocator(instance);
+        tl = new RootTabletLocator(instance, new ZookeeperLockChecker(instance));
       } else if (tableId.toString().equals(MetadataTable.ID)) {
-        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), getLocator(instance, new Text(RootTable.ID)), mlo);
+        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), getLocator(instance, new Text(RootTable.ID)), mlo, new ZookeeperLockChecker(instance));
       } else {
-        tl = new TabletLocatorImpl(tableId, getLocator(instance, new Text(MetadataTable.ID)), mlo);
+        tl = new TabletLocatorImpl(tableId, getLocator(instance, new Text(MetadataTable.ID)), mlo, new ZookeeperLockChecker(instance));
       }
       locators.put(key, tl);
     }
@@ -152,18 +152,20 @@ public abstract class TabletLocator {
     
     public final KeyExtent tablet_extent;
     public final String tablet_location;
+    public final String tablet_session;
     
-    public TabletLocation(KeyExtent tablet_extent, String tablet_location) {
-      ArgumentChecker.notNull(tablet_extent, tablet_location);
+    public TabletLocation(KeyExtent tablet_extent, String tablet_location, String session) {
+      ArgumentChecker.notNull(tablet_extent, tablet_location, session);
       this.tablet_extent = tablet_extent;
       this.tablet_location = dedupeLocation(tablet_location);
+      this.tablet_session = dedupeLocation(session);
     }
     
     @Override
     public boolean equals(Object o) {
       if (o instanceof TabletLocation) {
         TabletLocation otl = (TabletLocation) o;
-        return tablet_extent.equals(otl.tablet_extent) && tablet_location.equals(otl.tablet_location);
+        return tablet_extent.equals(otl.tablet_extent) && tablet_location.equals(otl.tablet_location) && tablet_session.equals(otl.tablet_session);
       }
       return false;
     }
@@ -175,25 +177,30 @@ public abstract class TabletLocator {
     
     @Override
     public String toString() {
-      return "(" + tablet_extent + "," + tablet_location + ")";
+      return "(" + tablet_extent + "," + tablet_location + "," + tablet_session + ")";
     }
     
     @Override
     public int compareTo(TabletLocation o) {
       int result = tablet_extent.compareTo(o.tablet_extent);
-      if (result == 0)
+      if (result == 0) {
         result = tablet_location.compareTo(o.tablet_location);
+        if (result == 0)
+          result = tablet_session.compareTo(o.tablet_session);
+      }
       return result;
     }
   }
   
   public static class TabletServerMutations<T extends Mutation> {
     private Map<KeyExtent,List<T>> mutations;
-    
-    public TabletServerMutations() {
-      mutations = new HashMap<KeyExtent,List<T>>();
+    private String tserverSession;
+
+    public TabletServerMutations(String tserverSession) {
+      this.tserverSession = tserverSession;
+      this.mutations = new HashMap<KeyExtent,List<T>>();
     }
-    
+
     public void addMutation(KeyExtent ke, T m) {
       List<T> mutList = mutations.get(ke);
       if (mutList == null) {
@@ -206,6 +213,10 @@ public abstract class TabletLocator {
     
     public Map<KeyExtent,List<T>> getMutations() {
       return mutations;
+    }
+    
+    final String getSession() {
+      return tserverSession;
     }
   }
 }
