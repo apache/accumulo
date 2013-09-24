@@ -305,7 +305,7 @@ public class MiniAccumuloCluster {
     Process initProcess = exec(Initialize.class, "--instance-name", INSTANCE_NAME, "--password", config.getRootPassword());
     int ret = initProcess.waitFor();
     if (ret != 0) {
-      throw new RuntimeException("Initialize process returned " + ret);
+      throw new RuntimeException("Initialize process returned " + ret + ". Check the logs in " + logDir + " for errors.");
     }
     
     tabletServerProcesses = new Process[config.getNumTservers()];
