@@ -21,7 +21,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
-import java.util.jar.Manifest;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
@@ -95,8 +94,8 @@ public class Main {
           System.out.println("File " + args[1] + " could not be found or read.");
           System.exit(1);
         } catch (ClassNotFoundException cnfe) {
-          System.out.println("Classname " + (args.length > 2 ? args[2] : "in JAR manifest") +
-                             " not found.  Please make sure you use the wholly qualified package name.");
+          System.out.println("Classname " + (args.length > 2 ? args[2] : "in JAR manifest")
+              + " not found.  Please make sure you use the wholly qualified package name.");
           System.exit(1);
         }
       } else {
@@ -132,6 +131,7 @@ public class Main {
       final Object thisIsJustOneArgument = argsToPass;
       final Method finalMain = main;
       r = new Runnable() {
+        @Override
         public void run() {
           try {
             finalMain.invoke(null, thisIsJustOneArgument);
@@ -154,7 +154,8 @@ public class Main {
   }
 
   private static void printUsage() {
-    System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | minicluster | proxy | zookeeper | create-token | info | version | jar <jar> [<main class>] args | <accumulo class> args");
+    System.out
+        .println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | minicluster | proxy | zookeeper | create-token | info | version | jar <jar> [<main class>] args | <accumulo class> args");
   }
 
   // feature: will work even if main class isn't in the JAR
@@ -162,7 +163,7 @@ public class Main {
     ClassNotFoundException explicitNotFound = null;
     if (args.length >= 3) {
       try {
-        return cl.loadClass(args[2]);  // jar jar-file main-class
+        return cl.loadClass(args[2]); // jar jar-file main-class
       } catch (ClassNotFoundException cnfe) {
         // assume this is the first argument, look for main class in JAR manifest
         explicitNotFound = cnfe;
