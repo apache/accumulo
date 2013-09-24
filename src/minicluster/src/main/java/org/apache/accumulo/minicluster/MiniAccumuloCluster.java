@@ -313,7 +313,7 @@ public class MiniAccumuloCluster {
     initProcess.getOutputStream().flush();
     int ret = initProcess.waitFor();
     if (ret != 0) {
-      throw new RuntimeException("Initialize process returned " + ret);
+      throw new RuntimeException("Initialize process returned " + ret + ". Check the logs in " + logDir + " for errors.");
     }
     
     tabletServerProcesses = new Process[config.getNumTservers()];
