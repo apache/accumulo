@@ -18,7 +18,6 @@ package org.apache.accumulo.server.gc;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,6 +52,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
+
+import com.google.common.net.HostAndPort;
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
@@ -116,9 +117,9 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
   
-  boolean holdsLock(InetSocketAddress addr) {
+  boolean holdsLock(HostAndPort addr) {
     try {
-      String zpath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + org.apache.accumulo.core.util.AddressUtil.toString(addr);
+      String zpath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + addr.toString();
       List<String> children = ZooReaderWriter.getInstance().getChildren(zpath);
       return !(children == null || children.isEmpty());
     } catch (KeeperException.NoNodeException ex) {
@@ -147,7 +148,7 @@ public class GarbageCollectWriteAheadLogs {
           }
         }
       } else {
-        InetSocketAddress address = AddressUtil.parseAddress(entry.getKey());
+        HostAndPort address = AddressUtil.parseAddress(entry.getKey());
         if (!holdsLock(address)) {
           for (Path path : entry.getValue()) {
             log.debug("Removing WAL for offline server " + path);

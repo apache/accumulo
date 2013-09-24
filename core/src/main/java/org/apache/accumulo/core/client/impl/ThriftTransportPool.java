@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client.impl;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.security.SecurityPermission;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,14 +33,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TTimeoutTransport;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.log4j.Logger;
+import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+
+import com.google.common.net.HostAndPort;
 
 public class ThriftTransportPool {
   private static SecurityPermission TRANSPORT_POOL_PERMISSION = new SecurityPermission("transportPoolPermission");
@@ -358,8 +359,8 @@ public class ThriftTransportPool {
   
   private ThriftTransportPool() {}
   
-  public TTransport getTransportWithDefaultTimeout(InetSocketAddress addr, AccumuloConfiguration conf) throws TTransportException {
-    return getTransport(String.format("%s:%d", addr.getAddress().getHostAddress(), addr.getPort()), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+  public TTransport getTransportWithDefaultTimeout(HostAndPort addr, AccumuloConfiguration conf) throws TTransportException {
+    return getTransport(String.format("%s:%d", addr.getHostText(), addr.getPort()), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
   }
   
   public TTransport getTransport(String location, long milliseconds) throws TTransportException {
@@ -455,10 +456,10 @@ public class ThriftTransportPool {
   private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
     TTransport transport;
     if (cacheKey.getTimeout() == 0) {
-      transport = AddressUtil.createTSocket(cacheKey.getLocation(), cacheKey.getPort());
+      transport = new TSocket(cacheKey.getLocation(), cacheKey.getPort());
     } else {
       try {
-        transport = TTimeoutTransport.create(AddressUtil.parseAddress(cacheKey.getLocation(), cacheKey.getPort()), cacheKey.getTimeout());
+        transport = TTimeoutTransport.create(HostAndPort.fromParts(cacheKey.getLocation(), cacheKey.getPort()), cacheKey.getTimeout());
       } catch (IOException ex) {
         throw new TTransportException(ex);
       }

@@ -77,7 +77,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -1516,7 +1515,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     ServerAddress sa = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master",
         "Master Client Service Handler", null, Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     clientService = sa.server;
-    String address = AddressUtil.toString(sa.address);
+    String address = sa.address.toString();
     log.info("Setting master lock data to " + address);
     masterLock.replaceLockData(address.getBytes());
     

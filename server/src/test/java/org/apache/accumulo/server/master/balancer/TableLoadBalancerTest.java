@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
@@ -42,10 +41,12 @@ import org.apache.thrift.TException;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.net.HostAndPort;
+
 public class TableLoadBalancerTest {
   
   static private TServerInstance mkts(String address, String session) throws Exception {
-    return new TServerInstance(AddressUtil.parseAddress(address, 1234), session);
+    return new TServerInstance(HostAndPort.fromParts(address, 1234), session);
   }
   
   static private TabletServerStatus status(Object... config) {
@@ -132,7 +133,7 @@ public class TableLoadBalancerTest {
     c.tableOperations().create("t2");
     c.tableOperations().create("t3");
     state = new TreeMap<TServerInstance,TabletServerStatus>();
-    TServerInstance svr = mkts("10.0.0.1:1234", "0x01020304");
+    TServerInstance svr = mkts("10.0.0.1", "0x01020304");
     state.put(svr, status("t1", 10, "t2", 10, "t3", 10));
     
     Set<KeyExtent> migrations = Collections.emptySet();
@@ -141,7 +142,7 @@ public class TableLoadBalancerTest {
     tls.balance(state, migrations, migrationsOut);
     Assert.assertEquals(0, migrationsOut.size());
     
-    state.put(mkts("10.0.0.2:1234", "0x02030405"), status());
+    state.put(mkts("10.0.0.2", "0x02030405"), status());
     tls = new TableLoadBalancer();
     tls.balance(state, migrations, migrationsOut);
     int count = 0;

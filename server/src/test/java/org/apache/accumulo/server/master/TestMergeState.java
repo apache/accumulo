@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.master;
 
-import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -52,6 +51,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.net.HostAndPort;
+
 /**
  * 
  */
@@ -59,7 +60,7 @@ public class TestMergeState {
   
   class MockCurrentState implements CurrentState {
     
-    TServerInstance someTServer = new TServerInstance(new InetSocketAddress("127.0.0.1", 1234), 0x123456);
+    TServerInstance someTServer = new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), 0x123456);
     MergeInfo mergeInfo;
     
     MockCurrentState(MergeInfo info) {

@@ -17,7 +17,6 @@
 package org.apache.accumulo.test.performance.thrift;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,6 +73,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.net.HostAndPort;
 
 /**
  * The purpose of this class is to server as fake tserver that is a data sink like /dev/null. NullTserver modifies the !METADATA location entries for a table to
@@ -242,9 +242,9 @@ public class NullTserver {
     TransactionWatcher watcher = new TransactionWatcher();
     ThriftClientHandler tch = new ThriftClientHandler(HdfsZooInstance.getInstance(), watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
-    TServerUtils.startTServer(new InetSocketAddress(opts.port), processor, "NullTServer", "null tserver", 2, 1000, 10 * 1024 * 1024);
+    TServerUtils.startTServer(HostAndPort.fromParts("0.0.0.0", opts.port), processor, "NullTServer", "null tserver", 2, 1000, 10 * 1024 * 1024);
     
-    InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), opts.port);
+    HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
     
     // modify !METADATA
     ZooKeeperInstance zki = new ZooKeeperInstance(opts.iname, opts.keepers);

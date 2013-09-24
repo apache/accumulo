@@ -18,7 +18,6 @@ package org.apache.accumulo.server.master.tserverOps;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -54,10 +53,9 @@ public class ShutdownTServer extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
-      String tserver = AddressUtil.toString(server.getLocation());
-      String path = ZooUtil.getRoot(master.getInstance()) + Constants.ZTSERVERS + "/" + tserver;
+      String path = ZooUtil.getRoot(master.getInstance()) + Constants.ZTSERVERS + "/" + server.getLocation();
       ZooLock.deleteLock(path);
-      path = ZooUtil.getRoot(master.getInstance()) + Constants.ZDEADTSERVERS + "/" + tserver;
+      path = ZooUtil.getRoot(master.getInstance()) + Constants.ZDEADTSERVERS + "/" + server.getLocation();
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       zoo.putPersistentData(path, "forced down".getBytes(), NodeExistsPolicy.OVERWRITE);
       return null;

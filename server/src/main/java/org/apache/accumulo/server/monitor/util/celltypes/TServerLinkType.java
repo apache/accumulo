@@ -16,10 +16,7 @@
  */
 package org.apache.accumulo.server.monitor.util.celltypes;
 
-import java.net.InetSocketAddress;
-
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.util.AddressUtil;
 
 public class TServerLinkType extends CellType<TabletServerStatus> {
   
@@ -38,8 +35,7 @@ public class TServerLinkType extends CellType<TabletServerStatus> {
   public static String displayName(String address) {
     if (address == null)
       return "--Unknown--";
-    InetSocketAddress inetAddress = AddressUtil.parseAddress(address, 0);
-    return inetAddress.getHostName() + ":" + inetAddress.getPort();
+    return address;
   }
   
   @Override

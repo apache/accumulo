@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.net.InetSocketAddress;
 import java.util.EnumMap;
+
+import com.google.common.net.HostAndPort;
 
 public class ServerServices implements Comparable<ServerServices> {
   public static enum Service {
@@ -48,15 +49,8 @@ public class ServerServices implements Comparable<ServerServices> {
     return services.get(service);
   }
   
-  public InetSocketAddress getAddress(Service service) {
-    String address = getAddressString(service);
-    String[] parts = address.split(":", 2);
-    if (parts.length == 2) {
-      if (parts[1].isEmpty())
-        throw new IllegalArgumentException("Address was expected to have port but didn't. address=" + address);
-      return new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
-    }
-    throw new IllegalArgumentException("Address was expected to have port but didn't. address=" + address);
+  public HostAndPort getAddress(Service service) {
+    return AddressUtil.parseAddress(getAddressString(service));
   }
   
   // DON'T CHANGE THIS; WE'RE USING IT FOR SERIALIZATION!!!

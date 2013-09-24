@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -28,7 +27,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -46,6 +44,8 @@ import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * Tablet server that creates a lock in zookeeper, responds to one status request, and then hangs on subsequent requests. Exits with code zero if halted.
@@ -98,9 +98,10 @@ public class ZombieTServer {
     TransactionWatcher watcher = new TransactionWatcher();
     final ThriftClientHandler tch = new ThriftClientHandler(instance, watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
-    ServerAddress serverPort = TServerUtils.startTServer(new InetSocketAddress(port), processor, "ZombieTServer", "walking dead", 2, 1000, 10*1024*1024);
+    ServerAddress serverPort = TServerUtils.startTServer(HostAndPort.fromParts("0.0.0.0", port), processor, "ZombieTServer", "walking dead", 2, 1000,
+        10 * 1024 * 1024);
     
-    String addressString = AddressUtil.toString(serverPort.address);
+    String addressString = serverPort.address.toString();
     String zPath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + addressString;
     ZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);

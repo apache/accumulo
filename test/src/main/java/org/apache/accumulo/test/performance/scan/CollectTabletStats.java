@@ -61,7 +61,6 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -78,6 +77,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.net.HostAndPort;
 
 public class CollectTabletStats {
   private static final Logger log = Logger.getLogger(CollectTabletStats.class);
@@ -356,7 +356,7 @@ public class CollectTabletStats {
     for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
       String loc = entry.getValue();
       if (loc != null) {
-        boolean isLocal = AddressUtil.parseAddress(entry.getValue(), 4).getAddress().equals(localaddress);
+        boolean isLocal = HostAndPort.fromString(entry.getValue()).getHostText().equals(localaddress.getHostName());
         
         if (selectLocalTablets && isLocal) {
           candidates.add(entry.getKey());

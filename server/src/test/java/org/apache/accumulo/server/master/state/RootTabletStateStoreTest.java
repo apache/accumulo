@@ -29,11 +29,12 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class RootTabletStateStoreTest {
   
@@ -148,7 +149,7 @@ public class RootTabletStateStoreTest {
     ZooTabletStateStore tstore = new ZooTabletStateStore(new FakeZooStore());
     KeyExtent root = RootTable.EXTENT;
     String sessionId = "this is my unique session data";
-    TServerInstance server = new TServerInstance(AddressUtil.parseAddress("127.0.0.1", 10000), sessionId);
+    TServerInstance server = new TServerInstance(HostAndPort.fromParts("127.0.0.1", 10000), sessionId);
     List<Assignment> assignments = Collections.singletonList(new Assignment(root, server));
     tstore.setFutureLocations(assignments);
     int count = 0;

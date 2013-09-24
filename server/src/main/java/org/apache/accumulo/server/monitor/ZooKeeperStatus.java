@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.monitor;
 
-import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -28,6 +27,8 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+
+import com.google.common.net.HostAndPort;
 
 public class ZooKeeperStatus implements Runnable {
   
@@ -91,11 +92,11 @@ public class ZooKeeperStatus implements Runnable {
         String[] parts = keeper.split(":");
         TTransport transport = null;
         try {
-          InetSocketAddress addr;
+          HostAndPort addr;
           if (parts.length > 1)
-            addr = new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
+            addr = HostAndPort.fromParts(parts[0], Integer.parseInt(parts[1]));
           else
-            addr = new InetSocketAddress(parts[0], 2181);
+            addr = HostAndPort.fromParts(parts[0], 2181);
           
           transport = TTimeoutTransport.create(addr, 10 * 1000l);
           transport.write("stat\n".getBytes(), 0, 5);

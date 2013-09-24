@@ -18,7 +18,6 @@ package org.apache.accumulo.server.master.balancer;
 
 import static org.junit.Assert.assertEquals;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,12 +33,13 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.junit.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class ChaoticLoadBalancerTest {
   
@@ -82,9 +82,9 @@ public class ChaoticLoadBalancerTest {
   @Test
   public void testAssignMigrations() {
     servers.clear();
-    servers.put(new TServerInstance(AddressUtil.parseAddress("127.0.0.1", 1234), "a"), new FakeTServer());
-    servers.put(new TServerInstance(AddressUtil.parseAddress("127.0.0.1", 1235), "b"), new FakeTServer());
-    servers.put(new TServerInstance(AddressUtil.parseAddress("127.0.0.1", 1236), "c"), new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), "a"), new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1235), "b"), new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1236), "c"), new FakeTServer());
     Map<KeyExtent,TServerInstance> metadataTable = new TreeMap<KeyExtent,TServerInstance>();
     String table = "t1";
     metadataTable.put(makeExtent(table, null, null), null);
@@ -125,7 +125,7 @@ public class ChaoticLoadBalancerTest {
     servers.clear();
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
-      InetSocketAddress fakeAddress = AddressUtil.parseAddress("127.0.0.1", c);
+      HostAndPort fakeAddress = HostAndPort.fromParts("127.0.0.1", c);
       String fakeInstance = cString;
       TServerInstance tsi = new TServerInstance(fakeAddress, fakeInstance);
       FakeTServer fakeTServer = new FakeTServer();

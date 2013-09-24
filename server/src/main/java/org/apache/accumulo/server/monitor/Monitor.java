@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.monitor;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,6 +79,8 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * Serve master statistics with an embedded web server.
@@ -417,7 +418,7 @@ public class Monitor {
   
   private static GCStatus fetchGcStatus() {
     GCStatus result = null;
-    InetSocketAddress address = null;
+    HostAndPort address = null;
     try {
       // Read the gc location from its lock
       Instance instance = HdfsZooInstance.getInstance();
@@ -496,7 +497,7 @@ public class Monitor {
     server.start();
     
     try {
-      String monitorAddress = org.apache.accumulo.core.util.AddressUtil.toString(new InetSocketAddress(hostname, server.getPort()));
+      String monitorAddress = HostAndPort.fromParts(hostname, server.getPort()).toString();
       ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, monitorAddress.getBytes(),
           NodeExistsPolicy.OVERWRITE);
       log.info("Set monitor address in zookeeper to " + monitorAddress);

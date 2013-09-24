@@ -18,7 +18,6 @@ package org.apache.accumulo.server.master;
 
 import static org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy.SKIP;
 
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,6 +56,8 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 
+import com.google.common.net.HostAndPort;
+
 public class LiveTServerSet implements Watcher {
   
   public interface Listener {
@@ -71,9 +72,9 @@ public class LiveTServerSet implements Watcher {
   private ZooCache zooCache;
   
   public class TServerConnection {
-    private final InetSocketAddress address;
+    private final HostAndPort address;
     
-    public TServerConnection(InetSocketAddress addr) throws TException {
+    public TServerConnection(HostAndPort addr) throws TException {
       address = addr;
     }
     
@@ -293,7 +294,7 @@ public class LiveTServerSet implements Watcher {
     } else {
       locklessServers.remove(zPath);
       ServerServices services = new ServerServices(new String(lockData));
-      InetSocketAddress client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
+      HostAndPort client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
       TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
       
       if (info == null) {
@@ -363,7 +364,7 @@ public class LiveTServerSet implements Watcher {
   }
   
   public synchronized TServerInstance find(String tabletServer) {
-    InetSocketAddress addr = AddressUtil.parseAddress(tabletServer);
+    HostAndPort addr = AddressUtil.parseAddress(tabletServer);
     for (Entry<String,TServerInfo> entry : current.entrySet()) {
       if (entry.getValue().instance.getLocation().equals(addr))
         return entry.getValue().instance;

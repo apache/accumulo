@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.util;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,6 +43,8 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
+
+import com.google.common.net.HostAndPort;
 
 public class ThriftUtil {
   private static final Logger log = Logger.getLogger(ThriftUtil.class);
@@ -85,7 +86,7 @@ public class ThriftUtil {
     return factory.getClient(protocolFactory.getProtocol(transport), protocolFactory.getProtocol(transport));
   }
   
-  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, InetSocketAddress address, AccumuloConfiguration conf)
+  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, AccumuloConfiguration conf)
       throws TTransportException {
     return createClient(factory, ThriftTransportPool.getInstance().getTransportWithDefaultTimeout(address, conf));
   }
@@ -164,7 +165,7 @@ public class ThriftUtil {
   /**
    * create a transport that is not pooled
    */
-  public static TTransport createTransport(InetSocketAddress address, AccumuloConfiguration conf) throws TException {
+  public static TTransport createTransport(HostAndPort address, AccumuloConfiguration conf) throws TException {
     TTransport transport = null;
     
     try {

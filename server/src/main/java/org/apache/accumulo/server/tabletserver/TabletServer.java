@@ -22,7 +22,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -222,6 +221,8 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+
+import com.google.common.net.HostAndPort;
 
 enum ScanRunState {
   QUEUED, RUNNING, FINISHED
@@ -2892,7 +2893,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   // used for stopping the server and MasterListener thread
   private volatile boolean serverStopRequested = false;
   
-  private InetSocketAddress clientAddress;
+  private HostAndPort clientAddress;
   
   private TabletServerResourceManager resourceManager;
   private SecurityOperation security;
@@ -2935,7 +2936,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     MetadataTableUtil.addLogEntry(SystemCredentials.get(), entry, getLock());
   }
   
-  private InetSocketAddress startServer(AccumuloConfiguration conf, String address, Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
+  private HostAndPort startServer(AccumuloConfiguration conf, String address, Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(conf, address, portHint, processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
         Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, maxMessageSizeProperty);
@@ -2976,11 +2977,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     ThriftUtil.returnClient(client);
   }
   
-  private InetSocketAddress startTabletClientService() throws UnknownHostException {
+  private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
     Iface tch = TraceWrap.service(new ThriftClientHandler());
     Processor<Iface> processor = new Processor<Iface>(tch);
-    InetSocketAddress address = startServer(getSystemConfiguration(), clientAddress.getHostName(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
+    HostAndPort address = startServer(getSystemConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
     log.info("address = " + address);
     return address;
   }
@@ -3332,7 +3333,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   public String getClientAddressString() {
     if (clientAddress == null)
       return null;
-    return clientAddress.getHostName() + ":" + clientAddress.getPort();
+    return clientAddress.getHostText() + ":" + clientAddress.getPort();
   }
   
   TServerInstance getTabletSession() {
@@ -3351,7 +3352,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   public void config(String hostname) {
     log.info("Tablet server starting on " + hostname);
     security = AuditedSecurityOperation.getInstance();
-    clientAddress = new InetSocketAddress(hostname, 0);
+    clientAddress = HostAndPort.fromParts(hostname, 0);
     logger = new TabletServerLogger(this, getSystemConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE));
     
     try {

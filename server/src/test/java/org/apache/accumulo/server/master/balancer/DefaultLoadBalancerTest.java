@@ -16,31 +16,33 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.junit.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class DefaultLoadBalancerTest {
   
@@ -83,9 +85,9 @@ public class DefaultLoadBalancerTest {
   @Test
   public void testAssignMigrations() {
     servers.clear();
-    servers.put(new TServerInstance(AddressUtil.parseAddress("127.0.0.1", 1234), "a"), new FakeTServer());
-    servers.put(new TServerInstance(AddressUtil.parseAddress("127.0.0.1", 1235), "b"), new FakeTServer());
-    servers.put(new TServerInstance(AddressUtil.parseAddress("127.0.0.1", 1236), "c"), new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), "a"), new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1235), "b"), new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1236), "c"), new FakeTServer());
     List<KeyExtent> metadataTable = new ArrayList<KeyExtent>();
     String table = "t1";
     metadataTable.add(makeExtent(table, null, null));
@@ -160,7 +162,7 @@ public class DefaultLoadBalancerTest {
     servers.clear();
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
-      InetSocketAddress fakeAddress = AddressUtil.parseAddress("127.0.0.1", (int) c);
+      HostAndPort fakeAddress = HostAndPort.fromParts("127.0.0.1", (int) c);
       String fakeInstance = cString;
       TServerInstance tsi = new TServerInstance(fakeAddress, fakeInstance);
       FakeTServer fakeTServer = new FakeTServer();
@@ -202,7 +204,7 @@ public class DefaultLoadBalancerTest {
     // make 26 servers
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
-      InetSocketAddress fakeAddress = AddressUtil.parseAddress("127.0.0.1", (int) c);
+      HostAndPort fakeAddress = HostAndPort.fromParts("127.0.0.1", (int) c);
       String fakeInstance = cString;
       TServerInstance tsi = new TServerInstance(fakeAddress, fakeInstance);
       FakeTServer fakeTServer = new FakeTServer();

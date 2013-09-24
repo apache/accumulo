@@ -50,6 +50,8 @@ import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
+import com.google.common.net.HostAndPort;
+
 public class TServerUtils {
   private static final Logger log = Logger.getLogger(TServerUtils.class);
   
@@ -57,9 +59,9 @@ public class TServerUtils {
   
   public static class ServerAddress {
     public final TServer server;
-    public final InetSocketAddress address;
+    public final HostAndPort address;
     
-    public ServerAddress(TServer server, InetSocketAddress address) {
+    public ServerAddress(TServer server, HostAndPort address) {
       this.server = server;
       this.address = address;
     }
@@ -118,7 +120,7 @@ public class TServerUtils {
         if (port > 65535)
           port = 1024 + port % (65535 - 1024);
         try {
-          InetSocketAddress addr = new InetSocketAddress(address, port);
+          HostAndPort addr = HostAndPort.fromParts(address, port);
           return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads, timeBetweenThreadChecks, maxMessageSize);
         } catch (Exception ex) {
           log.info("Unable to use port " + port + ", retrying. (Thread Name = " + threadName + ")");
@@ -213,11 +215,11 @@ public class TServerUtils {
     }
   }
   
-  public static ServerAddress startHsHaServer(InetSocketAddress address, TProcessor processor, final String serverName, String threadName, final int numThreads,
+  public static ServerAddress startHsHaServer(HostAndPort address, TProcessor processor, final String serverName, String threadName, final int numThreads,
       long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
-    TNonblockingServerSocket transport = new TNonblockingServerSocket(address);
+    TNonblockingServerSocket transport = new TNonblockingServerSocket(new InetSocketAddress(address.getHostText(), address.getPort()));
     // check for the special "bind to everything address"
-    String hostname = address.getAddress().getHostAddress();
+    String hostname = address.getHostText();
     if (hostname.equals("0.0.0.0")) {
       // can't get the address from the bind, so we'll do our best to invent our hostname
       try {
@@ -264,10 +266,10 @@ public class TServerUtils {
     }, timeBetweenThreadChecks, timeBetweenThreadChecks);
     options.executorService(pool);
     options.processorFactory(new TProcessorFactory(processor));
-    return new ServerAddress(new THsHaServer(options), new InetSocketAddress(hostname, port));
+    return new ServerAddress(new THsHaServer(options), HostAndPort.fromParts(hostname, port));
   }
   
-  public static ServerAddress startThreadPoolServer(InetSocketAddress address, TProcessor processor, String serverName, String threadName, int numThreads)
+  public static ServerAddress startThreadPoolServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads)
       throws TTransportException {
     
     // if port is zero, then we must bind to get the port number
@@ -275,8 +277,8 @@ public class TServerUtils {
     try {
       sock = ServerSocketChannel.open().socket();
       sock.setReuseAddress(true);
-      sock.bind(address);
-      address = new InetSocketAddress(address.getHostName(), sock.getLocalPort());
+      sock.bind(new InetSocketAddress(address.getHostText(), address.getPort()));
+      address = HostAndPort.fromParts(address.getHostText(), sock.getLocalPort());
     } catch (IOException ex) {
       throw new TTransportException(ex);
     }
@@ -288,12 +290,12 @@ public class TServerUtils {
     return new ServerAddress(new TThreadPoolServer(options), address);
   }
   
-  public static ServerAddress startTServer(InetSocketAddress address, TProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
+  public static ServerAddress startTServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
       throws TTransportException {
     return startTServer(address, new TimedProcessor(processor, serverName, threadName), serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
   }
   
-  public static ServerAddress startTServer(InetSocketAddress address, TimedProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
+  public static ServerAddress startTServer(HostAndPort address, TimedProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
       throws TTransportException {
     ServerAddress result = startHsHaServer(address, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
     // ServerPort result = startThreadPoolServer(port, processor, serverName, threadName, -1);

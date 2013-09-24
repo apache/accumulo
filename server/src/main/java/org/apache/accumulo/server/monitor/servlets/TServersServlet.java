@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.monitor.servlets;
 
 import java.lang.management.ManagementFactory;
-import java.net.InetSocketAddress;
 import java.security.MessageDigest;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.master.state.TabletServerState;
@@ -54,6 +52,8 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tabletserver.TabletStatsKeeper;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.commons.codec.binary.Base64;
+
+import com.google.common.net.HostAndPort;
 
 public class TServersServlet extends BasicServlet {
   
@@ -119,7 +119,7 @@ public class TServersServlet extends BasicServlet {
     double currentMajorStdDev = 0;
     TabletStats total = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
     
-    InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
+    HostAndPort address = HostAndPort.fromString(tserverAddress);
     TabletStats historical = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<TabletStats>();
     try {
@@ -246,9 +246,9 @@ public class TServersServlet extends BasicServlet {
     opHistoryDetails.generate(req, sb);
   }
   
-  private void doDetailTable(HttpServletRequest req, StringBuilder sb, InetSocketAddress address, int numTablets, TabletStats total, TabletStats historical) {
+  private void doDetailTable(HttpServletRequest req, StringBuilder sb, HostAndPort address, int numTablets, TabletStats total, TabletStats historical) {
     Table detailTable = new Table("tServerDetail", "Details");
-    detailTable.setSubCaption(address.getHostName() + ":" + address.getPort());
+    detailTable.setSubCaption(address.getHostText() + ":" + address.getPort());
     detailTable.addSortableColumn("Hosted&nbsp;Tablets", new NumberType<Integer>(), null);
     detailTable.addSortableColumn("Entries", new NumberType<Long>(), null);
     detailTable.addSortableColumn("Minor&nbsp;Compacting", new NumberType<Integer>(), null);

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,6 +37,8 @@ import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
+import com.google.common.net.HostAndPort;
 
 public class LocalityCheck {
   
@@ -91,8 +92,8 @@ public class LocalityCheck {
       for (BlockLocation blockLocation : fileBlockLocations) {
         allBlocks++;
         for (String location : blockLocation.getHosts()) {
-          InetSocketAddress inetSocketAddress = new InetSocketAddress(location, 0);
-          if (inetSocketAddress.getAddress().getHostAddress().equals(host)) {
+          HostAndPort hap = HostAndPort.fromParts(location, 0);
+          if (hap.getHostText().equals(host)) {
             matchingBlocks++;
             break;
           }

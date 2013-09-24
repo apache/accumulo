@@ -18,7 +18,6 @@ package org.apache.accumulo.server.gc;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -103,6 +102,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.net.HostAndPort;
 
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
@@ -368,8 +368,7 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
   
-  private void getZooLock(InetSocketAddress addr) throws KeeperException, InterruptedException {
-    String address = addr.getHostName() + ":" + addr.getPort();
+  private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
     String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZGC_LOCK;
     
     LockWatcher lockWatcher = new LockWatcher() {
@@ -393,18 +392,18 @@ public class SimpleGarbageCollector implements Iface {
     
     while (true) {
       lock = new ZooLock(path);
-      if (lock.tryLock(lockWatcher, new ServerServices(address, Service.GC_CLIENT).toString().getBytes())) {
+      if (lock.tryLock(lockWatcher, new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         break;
       }
       UtilWaitThread.sleep(1000);
     }
   }
   
-  private InetSocketAddress startStatsService() throws UnknownHostException {
+  private HostAndPort startStatsService() throws UnknownHostException {
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(this));
     int port = instance.getConfiguration().getPort(Property.GC_PORT);
     long maxMessageSize = instance.getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
-    InetSocketAddress result = new InetSocketAddress(opts.getAddress(), port);
+    HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);
     try {
       port = TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize).address.getPort();
     } catch (Exception ex) {

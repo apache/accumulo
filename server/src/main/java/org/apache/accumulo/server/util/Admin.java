@@ -20,10 +20,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.net.InetSocketAddress;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,6 +54,7 @@ import org.apache.log4j.Logger;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.common.net.HostAndPort;
 
 public class Admin {
   private static final Logger log = Logger.getLogger(Admin.class);
@@ -296,8 +293,8 @@ public class Admin {
   private static void stopTabletServer(final Instance instance, final Credentials creds, List<String> servers, final boolean force) throws AccumuloException,
   AccumuloSecurityException {
     for (String server : servers) {
-      InetSocketAddress address = AddressUtil.parseAddress(server);
-      final String finalServer = org.apache.accumulo.core.util.AddressUtil.toString(address);
+      HostAndPort address = AddressUtil.parseAddress(server);
+      final String finalServer = address.toString();
       log.info("Stopping server " + finalServer);
       MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
         @Override

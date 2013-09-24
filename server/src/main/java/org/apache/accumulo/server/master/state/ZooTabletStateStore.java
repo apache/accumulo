@@ -17,17 +17,17 @@
 package org.apache.accumulo.server.master.state;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.log4j.Logger;
+
+import com.google.common.net.HostAndPort;
 
 public class ZooTabletStateStore extends TabletStateStore {
   
@@ -106,7 +106,7 @@ public class ZooTabletStateStore extends TabletStateStore {
   protected TServerInstance parse(byte[] current) {
     String str = new String(current);
     String[] parts = str.split("[|]", 2);
-    InetSocketAddress address = AddressUtil.parseAddress(parts[0], 0);
+    HostAndPort address = HostAndPort.fromString(parts[0]);
     if (parts.length > 1 && parts[1] != null && parts[1].length() > 0) {
       return new TServerInstance(address, parts[1]);
     } else {
@@ -122,7 +122,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     Assignment assignment = assignments.iterator().next();
     if (assignment.tablet.compareTo(RootTable.EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
-    String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
+    String value = assignment.server.getLocation() + "|" + assignment.server.getSession();
     Iterator<TabletLocationState> currentIter = iterator();
     TabletLocationState current = currentIter.next();
     if (current.current != null) {
@@ -138,7 +138,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     Assignment assignment = assignments.iterator().next();
     if (assignment.tablet.compareTo(RootTable.EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
-    String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
+    String value = assignment.server.getLocation() + "|" + assignment.server.getSession();
     Iterator<TabletLocationState> currentIter = iterator();
     TabletLocationState current = currentIter.next();
     if (current.current != null) {

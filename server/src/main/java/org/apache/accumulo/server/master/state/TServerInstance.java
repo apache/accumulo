@@ -17,13 +17,14 @@
 package org.apache.accumulo.server.master.state;
 
 import java.io.Serializable;
-import java.net.InetSocketAddress;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * A tablet is assigned to a tablet server at the given address as long as it is alive and well. When the tablet server is restarted, the instance information
@@ -34,17 +35,17 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   
   private static final long serialVersionUID = 1L;
   
-  private InetSocketAddress location;
+  private HostAndPort location;
   private String session;
   private String cachedStringRepresentation;
   
-  public TServerInstance(InetSocketAddress address, String session) {
+  public TServerInstance(HostAndPort address, String session) {
     this.location = address;
     this.session = session;
     this.cachedStringRepresentation = hostPort() + "[" + session + "]";
   }
   
-  public TServerInstance(InetSocketAddress address, long session) {
+  public TServerInstance(HostAndPort address, long session) {
     this(address, Long.toHexString(session));
   }
   
@@ -102,11 +103,11 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
   
   public String host() {
-    return getLocation().getAddress().getHostAddress();
+    return getLocation().getHostText();
   }
   
   public String hostPort() {
-    return org.apache.accumulo.core.util.AddressUtil.toString(getLocation());
+    return getLocation().toString();
   }
   
   public Text asColumnQualifier() {
@@ -114,10 +115,10 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
   
   public Value asMutationValue() {
-    return new Value(org.apache.accumulo.core.util.AddressUtil.toString(getLocation()).getBytes());
+    return new Value(getLocation().toString().getBytes());
   }
   
-  public InetSocketAddress getLocation() {
+  public HostAndPort getLocation() {
     return location;
   }
   

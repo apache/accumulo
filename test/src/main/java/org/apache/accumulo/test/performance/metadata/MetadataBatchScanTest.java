@@ -39,11 +39,12 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * This little program can be used to write a lot of entries to the !METADATA table and measure the performance of varying numbers of threads doing !METADATA
@@ -87,7 +88,7 @@ public class MetadataBatchScanTest {
       
       for (KeyExtent extent : extents) {
         Mutation mut = extent.getPrevRowUpdateMutation();
-        new TServerInstance(AddressUtil.parseAddress("192.168.1.100", 4567), "DEADBEEF").putLocation(mut);
+        new TServerInstance(HostAndPort.fromParts("192.168.1.100", 4567), "DEADBEEF").putLocation(mut);
         bw.addMutation(mut);
       }
       
