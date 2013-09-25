@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.data;
 
+import java.util.Arrays;
 import java.util.HashSet;
 
 import org.apache.accumulo.core.Constants;
@@ -143,6 +144,48 @@ public class Condition {
 
   public IteratorSetting[] getIterators() {
     return iterators;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (o == null || o.getClass() != Condition.class) {
+      return false;
+    }
+    Condition c = (Condition) o;
+    if (!(c.cf.equals(cf))) {
+      return false;
+    }
+    if (!(c.cq.equals(cq))) {
+      return false;
+    }
+    if (!(c.cv.equals(cv))) {
+      return false;
+    }
+    if (!(c.val == null ? val == null : c.val.equals(val))) {
+      return false;
+    }
+    if (!(c.ts == null ? ts == null : c.ts.equals(ts))) {
+      return false;
+    }
+    if (!(Arrays.equals(c.iterators, iterators))) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = 17;
+    result = 31 * result + cf.hashCode();
+    result = 31 * result + cq.hashCode();
+    result = 31 * result + cv.hashCode();
+    result = 31 * result + (val == null ? 0 : val.hashCode());
+    result = 31 * result + (ts == null ? 0 : ts.hashCode());
+    result = 31 * result + Arrays.hashCode(iterators);
+    return result;
   }
 
 }

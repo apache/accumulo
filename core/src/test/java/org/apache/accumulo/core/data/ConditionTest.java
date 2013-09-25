@@ -1,0 +1,206 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.accumulo.core.data;
+
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
+public class ConditionTest {
+  private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[0]);
+  private static final String FAMILY = "family";
+  private static final String QUALIFIER = "qualifier";
+  private static final String VISIBILITY = "visibility";
+  private static final String VALUE = "value";
+  private static final IteratorSetting[] ITERATORS = {new IteratorSetting(1, "first", "someclass"), new IteratorSetting(2, "second", "someotherclass"),
+      new IteratorSetting(3, "third", "yetanotherclass")};
+
+  private String toString(ByteSequence bs) {
+    if (bs == null) {
+      return null;
+    }
+    return new String(bs.toArray(), Constants.UTF8);
+  }
+
+  private Condition c;
+
+  @Before
+  public void setUp() throws Exception {
+    c = new Condition(FAMILY, QUALIFIER);
+  }
+
+  @Test
+  public void testConstruction_CharSequence() {
+    assertEquals(FAMILY, toString(c.getFamily()));
+    assertEquals(QUALIFIER, toString(c.getQualifier()));
+    assertEquals(EMPTY, c.getVisibility());
+  }
+
+  @Test
+  public void testConstruction_ByteArray() {
+    c = new Condition(FAMILY.getBytes(Constants.UTF8), QUALIFIER.getBytes(Constants.UTF8));
+    assertEquals(FAMILY, toString(c.getFamily()));
+    assertEquals(QUALIFIER, toString(c.getQualifier()));
+    assertEquals(EMPTY, c.getVisibility());
+  }
+
+  @Test
+  public void testConstruction_Text() {
+    c = new Condition(new Text(FAMILY), new Text(QUALIFIER));
+    assertEquals(FAMILY, toString(c.getFamily()));
+    assertEquals(QUALIFIER, toString(c.getQualifier()));
+    assertEquals(EMPTY, c.getVisibility());
+  }
+
+  @Test
+  public void testConstruction_ByteSequence() {
+    c = new Condition(new ArrayByteSequence(FAMILY.getBytes(Constants.UTF8)), new ArrayByteSequence(QUALIFIER.getBytes(Constants.UTF8)));
+    assertEquals(FAMILY, toString(c.getFamily()));
+    assertEquals(QUALIFIER, toString(c.getQualifier()));
+    assertEquals(EMPTY, c.getVisibility());
+  }
+
+  @Test
+  public void testGetSetTimestamp() {
+    c.setTimestamp(1234L);
+    assertEquals(Long.valueOf(1234L), c.getTimestamp());
+  }
+
+  @Test
+  public void testSetValue_CharSequence() {
+    c.setValue(VALUE);
+    assertEquals(VALUE, toString(c.getValue()));
+  }
+
+  @Test
+  public void testSetValue_ByteArray() {
+    c.setValue(VALUE.getBytes(Constants.UTF8));
+    assertEquals(VALUE, toString(c.getValue()));
+  }
+
+  @Test
+  public void testSetValue_Text() {
+    c.setValue(new Text(VALUE));
+    assertEquals(VALUE, toString(c.getValue()));
+  }
+
+  @Test
+  public void testSetValue_ByteSequence() {
+    c.setValue(new ArrayByteSequence(VALUE.getBytes(Constants.UTF8)));
+    assertEquals(VALUE, toString(c.getValue()));
+  }
+
+  @Test
+  public void testGetSetVisibility() {
+    ColumnVisibility vis = new ColumnVisibility(VISIBILITY);
+    c.setVisibility(vis);
+    assertEquals(VISIBILITY, toString(c.getVisibility()));
+  }
+
+  @Test
+  public void testGetSetIterators() {
+    c.setIterators(ITERATORS);
+    assertArrayEquals(ITERATORS, c.getIterators());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSetIterators_DuplicateName() {
+    IteratorSetting[] iterators = {new IteratorSetting(1, "first", "someclass"), new IteratorSetting(2, "second", "someotherclass"),
+        new IteratorSetting(3, "first", "yetanotherclass")};
+    c.setIterators(iterators);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSetIterators_DuplicatePriority() {
+    IteratorSetting[] iterators = {new IteratorSetting(1, "first", "someclass"), new IteratorSetting(2, "second", "someotherclass"),
+        new IteratorSetting(1, "third", "yetanotherclass")};
+    c.setIterators(iterators);
+  }
+
+  @Test
+  public void testEquals() {
+    ColumnVisibility cvis = new ColumnVisibility(VISIBILITY);
+    c.setVisibility(cvis);
+    c.setValue(VALUE);
+    c.setTimestamp(1234L);
+    c.setIterators(ITERATORS);
+
+    // reflexivity
+    assertTrue(c.equals(c));
+
+    // non-nullity
+    assertFalse(c.equals(null));
+
+    // symmetry
+    Condition c2 = new Condition(FAMILY, QUALIFIER);
+    c2.setVisibility(cvis);
+    c2.setValue(VALUE);
+    c2.setTimestamp(1234L);
+    c2.setIterators(ITERATORS);
+    assertTrue(c.equals(c2));
+    assertTrue(c2.equals(c));
+
+    Condition c3 = new Condition("nope", QUALIFIER);
+    c3.setVisibility(cvis);
+    c3.setValue(VALUE);
+    c3.setTimestamp(1234L);
+    c3.setIterators(ITERATORS);
+    assertFalse(c.equals(c3));
+    c3 = new Condition(FAMILY, "nope");
+    c3.setVisibility(cvis);
+    c3.setValue(VALUE);
+    c3.setTimestamp(1234L);
+    c3.setIterators(ITERATORS);
+    assertFalse(c.equals(c3));
+
+    c2.setVisibility(new ColumnVisibility("sekrit"));
+    assertFalse(c.equals(c2));
+    c2.setVisibility(cvis);
+    c2.setValue(EMPTY);
+    assertFalse(c.equals(c2));
+    c2.setValue(VALUE);
+    c2.setTimestamp(2345L);
+    assertFalse(c.equals(c2));
+    c2.setTimestamp(1234L);
+    c2.setIterators(new IteratorSetting[0]);
+    assertFalse(c.equals(c2));
+    c2.setIterators(ITERATORS);
+    assertTrue(c.equals(c2));
+  }
+
+  @Test
+  public void testHashCode() {
+    ColumnVisibility cvis = new ColumnVisibility(VISIBILITY);
+    c.setVisibility(cvis);
+    c.setValue(VALUE);
+    c.setTimestamp(1234L);
+    c.setIterators(ITERATORS);
+    int hc1 = c.hashCode();
+
+    Condition c2 = new Condition(FAMILY, QUALIFIER);
+    c2.setVisibility(cvis);
+    c2.setValue(VALUE);
+    c2.setTimestamp(1234L);
+    c2.setIterators(ITERATORS);
+    assertTrue(c.equals(c2));
+    assertEquals(hc1, c2.hashCode());
+  }
+}

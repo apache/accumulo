@@ -78,4 +78,26 @@ public class ServerMutation extends Mutation {
   public long estimatedMemoryUsed() {
     return super.estimatedMemoryUsed() + 8;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (o == null || o.getClass() != ServerMutation.class) {
+      return false;
+    }
+    ServerMutation sm = (ServerMutation) o;
+    if (sm.systemTime != systemTime) {
+      return false;
+    }
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + (int) (systemTime & 0xffffffff);
+    return result;
+  }
 }

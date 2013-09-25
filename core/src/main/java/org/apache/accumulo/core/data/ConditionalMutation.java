@@ -80,4 +80,25 @@ public class ConditionalMutation extends Mutation {
     return Collections.unmodifiableList(conditions);
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (o == null || o.getClass() != ConditionalMutation.class) {
+      return false;
+    }
+    ConditionalMutation cm = (ConditionalMutation) o;
+    if (!conditions.equals(cm.conditions)) {
+      return false;
+    }
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 37 * result + conditions.hashCode();
+    return result;
+  }
 }

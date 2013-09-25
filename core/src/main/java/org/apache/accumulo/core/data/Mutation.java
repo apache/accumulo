@@ -567,8 +567,12 @@ public class Mutation implements Writable {
   
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Mutation)
-      return equals((Mutation) o);
+    if (o == this) {
+      return true;
+    }
+    if (o != null && o.getClass().equals(this.getClass())) {
+      return equalMutation((Mutation) o);
+    }
     return false;
   }
   
@@ -576,8 +580,19 @@ public class Mutation implements Writable {
   public int hashCode() {
     return toThrift().hashCode();
   }
-  
+
+  /**
+   * Checks if this mutation equals another. This method may be removed in a
+   * future API revision in favor of {@link #equals(Object)}. See ACCUMULO-1627
+   * for more information.
+   *
+   * @param m mutation
+   * @return true if the given mutation equals this one, false otehrwise
+   */
   public boolean equals(Mutation m) {
+    return this.equals((Object) m);
+  }
+  private boolean equalMutation(Mutation m) {
     serialize();
     m.serialize();
     if (Arrays.equals(row, m.row) && entries == m.entries && Arrays.equals(data, m.data)) {
