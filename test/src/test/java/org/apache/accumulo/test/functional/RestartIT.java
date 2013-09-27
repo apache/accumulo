@@ -71,7 +71,7 @@ public class RestartIT extends ConfigurableMacIT {
     ingest.destroy();
   }
   
-  @Test(timeout = 4 * 60 * 1000)
+  @Test(timeout = 8 * 60 * 1000)
   public void restartMasterRecovery() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -108,7 +108,7 @@ public class RestartIT extends ConfigurableMacIT {
     ingest.destroy();
   }
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Test(timeout = 100 * 60 * 1000)
   public void killedTabletServer() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

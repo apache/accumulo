@@ -36,7 +36,7 @@ import org.junit.Test;
  */
 public class SparseColumnFamilyIT extends SimpleMacIT {
   
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 60 * 1000)
   public void sparceColumnFamily() throws Exception {
     String scftt = makeTableName();
     Connector c = getConnector();

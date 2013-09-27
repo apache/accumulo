@@ -59,7 +59,7 @@ public class ShutdownIT extends ConfigurableMacIT {
   }
 
   
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void shutdownDuringDeleteTable() throws Exception {
     final Connector c = getConnector();
     for (int i = 0; i < 10 ; i++) {

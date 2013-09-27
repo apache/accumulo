@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -264,7 +265,7 @@ public class MiniAccumuloCluster {
 
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());
-
+    
     FileWriter fileWriter = new FileWriter(siteFile);
     fileWriter.append("<configuration>\n");
 
@@ -343,7 +344,19 @@ public class MiniAccumuloCluster {
 
     if (!initialized) {
       // sleep a little bit to let zookeeper come up before calling init, seems to work better
-      UtilWaitThread.sleep(250);
+      while (true) {
+        try {
+          Socket s = new Socket("localhost", config.getZooKeeperPort());
+          s.getOutputStream().write("ruok\n".getBytes());
+          s.getOutputStream().flush();
+          byte buffer[] = new byte[100];
+          int n = s.getInputStream().read(buffer);
+          if (n == 4 && new String(buffer, 0, n).equals("imok"))
+            break;
+        } catch (Exception e) {
+          UtilWaitThread.sleep(250);
+        }
+      }
       Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword());
       int ret = initProcess.waitFor();
       if (ret != 0) {

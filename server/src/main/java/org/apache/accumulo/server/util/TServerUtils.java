@@ -298,7 +298,7 @@ public class TServerUtils {
   public static ServerAddress startTServer(HostAndPort address, TimedProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
       throws TTransportException {
     ServerAddress result = startHsHaServer(address, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
-    // ServerPort result = startThreadPoolServer(port, processor, serverName, threadName, -1);
+    //ServerAddress result = startThreadPoolServer(address, processor, serverName, threadName, -1);
     final TServer finalServer = result.server;
     Runnable serveTask = new Runnable() {
       public void run() {

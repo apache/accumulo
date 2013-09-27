@@ -44,7 +44,7 @@ public class ZooCacheIT extends SimpleMacIT {
       reader.start();
       threads.add(reader);
     }
-    assertEquals(0, exec(CacheTestWriter.class, "/zcTest-42", "/tmp/zcTest-42", "3","500").waitFor());
+    assertEquals(0, exec(CacheTestWriter.class, "/zcTest-42", "/tmp/zcTest-42", "3","50").waitFor());
     for (Thread t: threads) {
       t.join();
       if (ref.get() != null)
