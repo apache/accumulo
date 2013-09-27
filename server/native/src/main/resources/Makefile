@@ -15,27 +15,37 @@
 
 SRCS=$(wildcard nativeMap/*.cc)
 HDRS=$(wildcard nativeMap/*.h) $(wildcard javah/*.h)
+TESTSRCS=$(wildcard testNativeMap/*.cc)
 CXX=g++
 
 ifeq ($(shell uname),Linux)
 	JAVA_HOME=$(shell dirname $$(dirname $$(readlink -ef $$(which javah))))
 	NATIVE_LIB := libaccumulo.so
-	CXXFLAGS=-g -fPIC -shared -O2 -fno-omit-frame-pointer -fno-strict-aliasing -Wall -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -Ijavah
+	CXXFLAGS=-m64 -g -fPIC -shared -O2 -fno-omit-frame-pointer -fno-strict-aliasing -Wall -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -Ijavah
 endif
 
 ifeq ($(shell uname),Darwin)
 	JAVA_HOME=$(shell /usr/libexec/java_home)
 	NATIVE_LIB:= libaccumulo.jnilib
-	CXXFLAGS=-m64 -dynamiclib -O3 -I$(JAVA_HOME)/include -Ijavah
+	# Update flags for OSX-10.9 and Xcode 5.0.1
+	# I think that we should be able to remove the `-undefined dynamic_lookup` option,
+	# but I don't know exactly how to go about this.
+	CXXFLAGS=-m64 -dynamiclib -undefined dynamic_lookup -O3 -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -I/usr/include/c++/4.2.1 -Ijavah 
 endif
 
 all : $(NATIVE_LIB)
 
 $(NATIVE_LIB) : $(SRCS) $(HDRS)
-	$(CXX) $(CXXFLAGS) -m64 -o $@ $(SRCS) 
+	$(CXX) $(CXXFLAGS) -o $@ $(SRCS) 
 
-test : testJavaHome
+test : $(NATIVE_LIB) testJavaHome runTests
 
 testJavaHome :
 	@echo JAVA_HOME is $(JAVA_HOME)
 
+runTests : clean $(TESTSRCS) $(NATIVE_LIB)
+	$(CXX) -g -Wall -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -InativeMap -o $@ $(TESTSRCS) $(NATIVE_LIB)
+	LD_LIBRARY_PATH=./ ./$@ 20 20 20 20 20 20 20 20 true
+
+clean :
+	rm -f $(NATIVE_LIB) runTests

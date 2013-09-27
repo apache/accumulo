@@ -23,13 +23,17 @@
     <version>1.6.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
-  <artifactId>accumulo-tserver</artifactId>
-  <name>Tablet Server</name>
-  <description>The tablet server for Apache Accumulo to host tablets of data tables.</description>
+  <artifactId>accumulo-server-extras</artifactId>
+  <name>Extra Server Utilities</name>
+  <description>A library of additional tools to work with Apache Accumulo.</description>
   <dependencies>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-server-base</artifactId>
+      <artifactId>accumulo-master</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-tserver</artifactId>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -65,28 +69,12 @@
                 <configuration>
                   <requires>
                     <require>jre &gt;= 1.6.0</require>
-                    <require>accumulo-server-base = %{version}-%{release}</require>
+                    <require>accumulo-tserver = %{version}-%{release}</require>
                   </requires>
-                  <postinstallScriptlet>
-                    <script>/sbin/chkconfig --add ${project.artifactId}</script>
-                  </postinstallScriptlet>
-                  <preremoveScriptlet>
-                    <script>if [ $$1 -eq 0 ]; then /sbin/service ${project.artifactId} stop &amp;&gt;/dev/null || : ; /sbin/chkconfig --del ${project.artifactId}; fi</script>
-                  </preremoveScriptlet>
                   <mappings>
                     <mapping>
                       <directory>%{_javadir}/accumulo</directory>
                       <artifact />
-                    </mapping>
-                    <mapping>
-                      <directory>%{_initddir}</directory>
-                      <directoryIncluded>false</directoryIncluded>
-                      <filemode>755</filemode>
-                      <sources>
-                        <source>
-                          <location>src/main/packaging/etc/init.d/${project.artifactId}</location>
-                        </source>
-                      </sources>
                     </mapping>
                   </mappings>
                 </configuration>

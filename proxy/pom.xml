@@ -24,6 +24,7 @@
   </parent>
   <artifactId>accumulo-proxy</artifactId>
   <name>Proxy</name>
+  <description>A server for Apache Accumulo that proxies connections from any language supported by Apache Thrift.</description>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>
@@ -108,6 +109,72 @@
                 <phase>generate-sources</phase>
                 <configuration>
                   <executable>${basedir}/src/main/scripts/generate-thrift.sh</executable>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>rpm</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>rpm-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>build-rpm</id>
+                <goals>
+                  <goal>attached-rpm</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <requires>
+                    <require>jre &gt;= 1.6.0</require>
+                    <require>accumulo-core = %{version}-%{release}</require>
+                  </requires>
+                  <mappings>
+                    <mapping>
+                      <directory>%{_javadir}/accumulo</directory>
+                      <artifact />
+                    </mapping>
+                    <mapping>
+                      <directory>%{_datadir}/accumulo/proxy</directory>
+                      <recurseDirectories>true</recurseDirectories>
+                      <sources>
+                        <source>
+                          <location>README</location>
+                        </source>
+                        <source>
+                          <location>proxy.properties</location>
+                        </source>
+                        <source>
+                          <location>examples</location>
+                        </source>
+                      </sources>
+                    </mapping>
+                    <mapping>
+                      <directory>%{_datadir}/accumulo/proxy/thrift</directory>
+                      <sources>
+                        <source>
+                          <location>src/main/thrift</location>
+                          <includes>
+                            <include>*.thrift</include>
+                          </includes>
+                        </source>
+                        <source>
+                          <location>target</location>
+                          <includes>
+                            <include>gen-cpp/**</include>
+                            <include>gen-py/**</include>
+                            <include>gen-rb/**</include>
+                          </includes>
+                        </source>
+                      </sources>
+                    </mapping>
+                  </mappings>
                 </configuration>
               </execution>
             </executions>

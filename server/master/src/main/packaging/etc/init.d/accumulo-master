@@ -1,13 +1,13 @@
 #! /bin/sh
-# chkconfig: 2345 21 20
+# chkconfig: 2345 21 19
 ### BEGIN INIT INFO
-# Provides:         accumulo-tracer
-# Required-Start:   $network $local_fs zookeeper-server
-# Required-Stop:    $network $local_fs
+# Provides:         accumulo-master
+# Required-Start:   $network $local_fs hadoop-namenode zookeeper-server
+# Required-Stop:    $network $local_fs accumulo-slave
 # Default-Start:    2 3 4 5
 # Default-Stop:     0 1 6
-# Short-Description: accumulo tracer 
-# Description:      The accumulo tracer provides a mechanism for tracing accumulo calls
+# Short-Description: accumulo master process
+# Description:      The accumulo master manages tablet assignment and balance to accumulo
 ### END INIT INFO
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
@@ -29,13 +29,13 @@
 install -d -m 0775 -o root -g accumulo /var/run/accumulo
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
-PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/lib/accumulo/bin
-DESC="Accumulo Tracer"
-NAME=accumulo-tracer
-ACCUMULO_PROC=tracer
-DAEMON=/usr/lib/accumulo/bin/start-server.sh
+PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/share/accumulo/bin
+DESC="Accumulo Master"
+NAME=accumulo-master
+ACCUMULO_PROC=master
+DAEMON=/usr/share/accumulo/bin/start-server.sh
 IP=`ifconfig | grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1`
-DAEMON_ARGS="$IP tracer"
+DAEMON_ARGS="$IP master"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
@@ -60,7 +60,7 @@ fi
 #
 do_start()
 {
-    TARGET_USER_NAME="ACCUMULO_TRACER_USER"
+    TARGET_USER_NAME="ACCUMULO_USER"
     TARGET_USER=$(eval "echo \$$TARGET_USER_NAME")
 	# Return
 	#  0 if daemon has been started
@@ -69,6 +69,7 @@ do_start()
 	
 	if [ "`jps -m | grep $ACCUMULO_PROC`" ] ; then return 1; fi
 	
+	su -s /bin/sh $TARGET_USER -c "/usr/share/accumulo/bin/accumulo org.apache.accumulo.master.state.SetGoalState NORMAL"
 	su -s /bin/sh $TARGET_USER -c "$DAEMON $DAEMON_ARGS > /dev/null || return 1"
 
 	if [ "`jps -m | grep $ACCUMULO_PROC`" ] ; then return 0; fi

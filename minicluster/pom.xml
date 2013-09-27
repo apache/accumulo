@@ -24,6 +24,7 @@
   </parent>
   <artifactId>accumulo-minicluster</artifactId>
   <name>MiniCluster</name>
+  <description>A library for launching and running a standalone instance of Apache Accumulo for testing.</description>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

@@ -24,6 +24,7 @@
   </parent>
   <artifactId>accumulo-test</artifactId>
   <name>Testing</name>
+  <description>Tests for Apache Accumulo.</description>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

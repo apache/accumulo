@@ -25,6 +25,7 @@
   <artifactId>accumulo-maven-plugin</artifactId>
   <packaging>maven-plugin</packaging>
   <name>Accumulo Maven Plugin</name>
+  <description>An Apache Maven plugin for testing software against a test Apache Accumulo instance.</description>
   <dependencies>
     <dependency>
       <groupId>commons-cli</groupId>
