@@ -75,6 +75,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.commons.collections.map.LRUMap;
@@ -306,7 +307,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       serverQueue.queue.add(mutations);
       // never execute more than one task per server
       if (!serverQueue.taskQueued) {
-        threadPool.execute(new LoggingRunnable(log, new SendTask(location)));
+        threadPool.execute(new LoggingRunnable(log, Trace.wrap(new SendTask(location))));
         serverQueue.taskQueued = true;
       }
     }
@@ -323,7 +324,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     
     synchronized (serverQueue) {
       if (serverQueue.queue.size() > 0)
-        threadPool.execute(new LoggingRunnable(log, task));
+        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
       else
         serverQueue.taskQueued = false;
     }

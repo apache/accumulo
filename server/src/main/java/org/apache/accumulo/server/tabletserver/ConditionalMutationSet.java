@@ -78,8 +78,6 @@ public class ConditionalMutationSet {
 
   static void sortConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates) {
     for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : updates.entrySet()) {
-      // TODO check if its already in sorted order?
-      // TODO maybe the potential benefit of sorting is not worth the cost
       Collections.sort(entry.getValue(), new Comparator<ServerConditionalMutation>() {
         @Override
         public int compare(ServerConditionalMutation o1, ServerConditionalMutation o2) {
