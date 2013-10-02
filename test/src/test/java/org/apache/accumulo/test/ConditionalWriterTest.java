@@ -176,6 +176,7 @@ public class ConditionalWriterTest {
     Assert.assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
     
     Assert.assertEquals("doe", scanner.iterator().next().getValue().toString());
+    zki.close();
   }
   
   @Test
@@ -260,7 +261,8 @@ public class ConditionalWriterTest {
     Assert.assertEquals("2", entry.getValue().toString());
     
     // TODO test each field w/ absence
-    
+    zki.close();
+   
   }
   
   @Test
@@ -359,6 +361,8 @@ public class ConditionalWriterTest {
     } catch (AccumuloSecurityException ase) {}
     
     cw2.close();
+    
+    zki.close();
   }
   
   @Test
@@ -390,7 +394,8 @@ public class ConditionalWriterTest {
     Assert.assertTrue(scanner.iterator().hasNext());
     
     cw.close();
-    
+    zki.close();
+   
   }
   
   @Test
@@ -488,6 +493,7 @@ public class ConditionalWriterTest {
     // TODO test w/ table that has iterators configured
     
     cw.close();
+    zki.close();
   }
   
   @Test
@@ -594,6 +600,7 @@ public class ConditionalWriterTest {
     Assert.assertEquals("Doe", scanner.iterator().next().getValue().toString());
     
     cw.close();
+    zki.close();
   }
   
   @Test
@@ -669,6 +676,7 @@ public class ConditionalWriterTest {
     Assert.assertEquals(num, count);
     
     cw.close();
+    zki.close();
   }
   
   @Test
@@ -751,6 +759,7 @@ public class ConditionalWriterTest {
     Assert.assertFalse(iter.hasNext());
     
     cw.close();
+    zki.close();
   }
   
   @Test
@@ -804,6 +813,7 @@ public class ConditionalWriterTest {
     Assert.assertEquals(3, total);
     
     cw.close();
+    zki.close();
   }
   
   private static class Stats {
@@ -1011,6 +1021,7 @@ public class ConditionalWriterTest {
       Iterator<Entry<Key,Value>> row = rowIter.next();
       new Stats(row);
     }
+    zki.close();
   }
   
   private SortedSet<Text> nss(String... splits) {
@@ -1064,7 +1075,8 @@ public class ConditionalWriterTest {
     } catch (AccumuloSecurityException ase) {
       
     }
-    
+    zki.close();
+   
   }
   
   @Test
@@ -1115,7 +1127,8 @@ public class ConditionalWriterTest {
     Assert.assertEquals(cw.write(cm3).getStatus(), Status.ACCEPTED);
     
     cw.close();
-    
+    zki.close();
+
   }
   
   @Test
@@ -1148,7 +1161,8 @@ public class ConditionalWriterTest {
     } catch (AccumuloException ae) {
       Assert.assertEquals(TableDeletedException.class, ae.getCause().getClass());
     }
-    
+    zki.close();
+
   }
   
   @Test
@@ -1185,6 +1199,7 @@ public class ConditionalWriterTest {
       conn.createConditionalWriter(table, new ConditionalWriterConfig());
       Assert.assertFalse(true);
     } catch (TableOfflineException e) {}
+    zki.close();
   }
   
   void waitForSingleTabletTableToGoOffline(String table, ZooKeeperInstance zki) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -1222,7 +1237,8 @@ public class ConditionalWriterTest {
     }
     
     cw.close();
-    
+    zki.close();
+
   }
   
   @AfterClass

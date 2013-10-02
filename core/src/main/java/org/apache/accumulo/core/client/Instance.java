@@ -148,4 +148,10 @@ public interface Instance {
    */
   public abstract Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
   
+  /**
+   * Closes up the instance to free up all associated resources. You should try to reuse an Instance as much as you can because there is some location caching
+   * stored which will enhance performance.
+   * @throws AccumuloException 
+   */
+  public abstract void close() throws AccumuloException;
 }
