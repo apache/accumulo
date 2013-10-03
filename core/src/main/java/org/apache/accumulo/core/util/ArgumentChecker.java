@@ -60,4 +60,9 @@ public class ArgumentChecker {
     if (i <= 0)
       throw new IllegalArgumentException("integer should be > 0, was " + i);
   }
+  
+  public static final void notEmpty(Iterable arg) {
+    if (!arg.iterator().hasNext())
+      throw new IllegalArgumentException("Argument should not be empty");
+  }
 }
