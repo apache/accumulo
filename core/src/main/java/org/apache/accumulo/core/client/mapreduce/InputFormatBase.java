@@ -321,7 +321,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
 
   /**
-   * Sets the input ranges to scan for all tables associated with this job.
+   * Sets the input ranges to scan for the single input table associated with this job.
    * 
    * @param job
    *          the Hadoop job instance to be configured
@@ -383,7 +383,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
 
   /**
-   * Encode an iterator on the default all tables for this job.
+   * Encode an iterator on the single input table for this job.
    * 
    * @param job
    *          the Hadoop job instance to be configured

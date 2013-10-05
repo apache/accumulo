@@ -242,7 +242,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
   
   /**
-   * Restricts the columns that will be mapped over for this job. This applies the columns to all tables that have been set on the job.
+   * Restricts the columns that will be mapped over for the single input table on this job.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -298,7 +298,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
   
   /**
-   * Encode an iterator on the input for all tables associated with this job.
+   * Encode an iterator on the input for the single input table associated with this job.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
