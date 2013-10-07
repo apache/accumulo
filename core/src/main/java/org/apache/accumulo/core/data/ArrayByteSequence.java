@@ -19,6 +19,9 @@ package org.apache.accumulo.core.data;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
+/**
+ * An implementation of {@link ByteSequence} that uses a backing byte array.
+ */
 public class ArrayByteSequence extends ByteSequence implements Serializable {
   
   private static final long serialVersionUID = 1L;
@@ -27,12 +30,30 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   protected int offset;
   protected int length;
   
+  /**
+   * Creates a new sequence. The given byte array is used directly as the
+   * backing array, so later changes made to the array reflect into the new
+   * sequence.
+   *
+   * @param data byte data
+   */
   public ArrayByteSequence(byte data[]) {
     this.data = data;
     this.offset = 0;
     this.length = data.length;
   }
   
+  /**
+   * Creates a new sequence from a subsequence of the given byte array. The
+   * given byte array is used directly as the backing array, so later changes
+   * made to the (relevant portion of the) array reflect into the new sequence.
+   *
+   * @param data byte data
+   * @param offset starting offset in byte array (inclusive)
+   * @param length number of bytes to include in sequence
+   * @throws IllegalArgumentException if the offset or length are out of bounds
+   * for the given byte array
+   */
   public ArrayByteSequence(byte data[], int offset, int length) {
     
     if (offset < 0 || offset > data.length || length < 0 || (offset + length) > data.length) {
@@ -45,10 +66,25 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
     
   }
   
+  /**
+   * Creates a new sequence from the given string. The bytes are determined from
+   * the string using the default platform encoding.
+   *
+   * @param s string to represent as bytes
+   */
   public ArrayByteSequence(String s) {
     this(s.getBytes());
   }
   
+  /**
+   * Creates a new sequence based on a byte buffer. If the byte buffer has an
+   * array, that array (and the buffer's offset and limit) are used; otherwise,
+   * a new backing array is created and a relative bulk get is performed to
+   * transfer the buffer's contents (starting at its current position and
+   * not beyond its limit).
+   *
+   * @param buffer byte buffer
+   */
   public ArrayByteSequence(ByteBuffer buffer) {
     if (buffer.hasArray()) {
       this.data = buffer.array();

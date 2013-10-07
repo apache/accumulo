@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.data;
 
+/**
+ * Specifications for part of a {@link Key}.
+ */
 public enum PartialKey {
   ROW(1), ROW_COLFAM(2), ROW_COLFAM_COLQUAL(3), ROW_COLFAM_COLQUAL_COLVIS(4), ROW_COLFAM_COLQUAL_COLVIS_TIME(5),
   //everything with delete flag
@@ -28,6 +31,13 @@ public enum PartialKey {
     this.depth = depth;
   }
   
+  /**
+   * Get a partial key specification by depth of the specification.
+   *
+   * @param depth depth of scope (i.e., number of fields included)
+   * @return partial key
+   * @throws IllegalArgumentException if no partial key has the given depth
+   */
   public static PartialKey getByDepth(int depth) {
     for (PartialKey d : PartialKey.values())
       if (depth == d.depth)
@@ -35,6 +45,11 @@ public enum PartialKey {
     throw new IllegalArgumentException("Invalid legacy depth " + depth);
   }
   
+  /**
+   * Gets the depth of this partial key.
+   *
+   * @return depth
+   */
   public int getDepth() {
     return depth;
   }

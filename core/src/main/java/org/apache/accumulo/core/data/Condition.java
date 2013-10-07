@@ -41,6 +41,15 @@ public class Condition {
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[0]);
   
 
+  /**
+   * Creates a new condition. The initial column value and timestamp are null,
+   * and the initial column visibility is empty. Characters in the column family
+   * and column qualifier are encoded as bytes in the condition using UTF-8.
+   *
+   * @param cf column family
+   * @param cq column qualifier
+   * @throws IllegalArgumentException if any argument is null
+   */
   public Condition(CharSequence cf, CharSequence cq) {
     ArgumentChecker.notNull(cf, cq);
     this.cf = new ArrayByteSequence(cf.toString().getBytes(Constants.UTF8));
@@ -48,6 +57,14 @@ public class Condition {
     this.cv = EMPTY;
   }
   
+  /**
+   * Creates a new condition. The initial column value and timestamp are null,
+   * and the initial column visibility is empty.
+   *
+   * @param cf column family
+   * @param cq column qualifier
+   * @throws IllegalArgumentException if any argument is null
+   */
   public Condition(byte[] cf, byte[] cq) {
     ArgumentChecker.notNull(cf, cq);
     this.cf = new ArrayByteSequence(cf);
@@ -55,6 +72,14 @@ public class Condition {
     this.cv = EMPTY;
   }
 
+  /**
+   * Creates a new condition. The initial column value and timestamp are null,
+   * and the initial column visibility is empty.
+   *
+   * @param cf column family
+   * @param cq column qualifier
+   * @throws IllegalArgumentException if any argument is null
+   */
   public Condition(Text cf, Text cq) {
     ArgumentChecker.notNull(cf, cq);
     this.cf = new ArrayByteSequence(cf.getBytes(), 0, cf.getLength());
@@ -62,6 +87,14 @@ public class Condition {
     this.cv = EMPTY;
   }
 
+  /**
+   * Creates a new condition. The initial column value and timestamp are null,
+   * and the initial column visibility is empty.
+   *
+   * @param cf column family
+   * @param cq column qualifier
+   * @throws IllegalArgumentException if any argument is null
+   */
   public Condition(ByteSequence cf, ByteSequence cq) {
     ArgumentChecker.notNull(cf, cq);
     this.cf = cf;
@@ -69,37 +102,53 @@ public class Condition {
     this.cv = EMPTY;
   }
 
+  /**
+   * Gets the column family of this condition.
+   *
+   * @return column family
+   */
   public ByteSequence getFamily() {
     return cf;
   }
   
+  /**
+   * Gets the column qualifier of this condition.
+   *
+   * @return column qualifier
+   */
   public ByteSequence getQualifier() {
     return cq;
   }
 
   /**
    * Sets the version for the column to check. If this is not set then the latest column will be checked, unless iterators do something different.
-   * 
-   * @param ts
-   * @return returns this
+   *
+   * @param ts timestamp
+   * @return this condition
    */
-
   public Condition setTimestamp(long ts) {
     this.ts = ts;
     return this;
   }
   
+  /**
+   * Gets the timestamp of this condition.
+   *
+   * @return timestamp
+   */
   public Long getTimestamp() {
     return ts;
   }
 
   /**
-   * see {@link #setValue(byte[])}
+   * This method sets the expected value of a column. In order for the condition to pass the column must exist and have this value. If a value is not set, then
+   * the column must be absent for the condition to pass. The passed-in character sequence is encoded as UTF-8.
+   * See {@link #setValue(byte[])}.
    * 
-   * @param value
-   * @return returns this
+   * @param value value
+   * @return this condition
+   * @throws IllegalArgumentException if value is null
    */
-
   public Condition setValue(CharSequence value) {
     ArgumentChecker.notNull(value);
     this.val = new ArrayByteSequence(value.toString().getBytes(Constants.UTF8));
@@ -107,13 +156,13 @@ public class Condition {
   }
 
   /**
-   * This method sets the expected value of a column. Inorder for the condition to pass the column must exist and have this value. If a value is not set, then
+   * This method sets the expected value of a column. In order for the condition to pass the column must exist and have this value. If a value is not set, then
    * the column must be absent for the condition to pass.
    * 
-   * @param value
-   * @return returns this
+   * @param value value
+   * @return this condition
+   * @throws IllegalArgumentException if value is null
    */
-
   public Condition setValue(byte[] value) {
     ArgumentChecker.notNull(value);
     this.val = new ArrayByteSequence(value);
@@ -121,12 +170,14 @@ public class Condition {
   }
   
   /**
-   * see {@link #setValue(byte[])}
-   * 
-   * @param value
-   * @return returns this
+   * This method sets the expected value of a column. In order for the condition to pass the column must exist and have this value. If a value is not set, then
+   * the column must be absent for the condition to pass.
+   * See {@link #setValue(byte[])}.
+   *
+   * @param value value
+   * @return this condition
+   * @throws IllegalArgumentException if value is null
    */
-
   public Condition setValue(Text value) {
     ArgumentChecker.notNull(value);
     this.val = new ArrayByteSequence(value.getBytes(), 0, value.getLength());
@@ -134,35 +185,46 @@ public class Condition {
   }
   
   /**
-   * see {@link #setValue(byte[])}
-   * 
-   * @param value
-   * @return returns this
+   * This method sets the expected value of a column. In order for the condition to pass the column must exist and have this value. If a value is not set, then
+   * the column must be absent for the condition to pass.
+   * See {@link #setValue(byte[])}.
+   *
+   * @param value value
+   * @return this condition
+   * @throws IllegalArgumentException if value is null
    */
-
   public Condition setValue(ByteSequence value) {
     ArgumentChecker.notNull(value);
     this.val = value;
     return this;
   }
 
+  /**
+   * Gets the value of this condition.
+   *
+   * @return value
+   */
   public ByteSequence getValue() {
     return val;
   }
 
   /**
    * Sets the visibility for the column to check. If not set it defaults to empty visibility.
-   * 
-   * @param cv
-   * @return returns this
+   *
+   * @param cv column visibility
+   * @throws IllegalArgumentException if cv is null
    */
-
   public Condition setVisibility(ColumnVisibility cv) {
     ArgumentChecker.notNull(cv);
     this.cv = new ArrayByteSequence(cv.getExpression());
     return this;
   }
 
+  /**
+   * Gets the column visibility of this condition.
+   *
+   * @return column visibility
+   */
   public ByteSequence getVisibility() {
     return cv;
   }
@@ -172,11 +234,12 @@ public class Condition {
    * its possible to test other conditions, besides equality and absence, like less than. On the server side the iterators will be seeked using a range that
    * covers only the family, qualifier, and visibility (if the timestamp is set then it will be used to narrow the range). Value equality will be tested using
    * the first entry returned by the iterator stack.
-   * 
-   * @param iterators
-   * @return returns this
+   *
+   * @param iterators iterators
+   * @return this condition
+   * @throws IllegalArgumentException if iterators or any of its elements are null,
+   * or if any two iterators share the same name or priority
    */
-
   public Condition setIterators(IteratorSetting... iterators) {
     ArgumentChecker.notNull(iterators);
     
@@ -196,6 +259,11 @@ public class Condition {
     return this;
   }
 
+  /**
+   * Gets the iterators for this condition.
+   *
+   * @return iterators
+   */
   public IteratorSetting[] getIterators() {
     return iterators;
   }

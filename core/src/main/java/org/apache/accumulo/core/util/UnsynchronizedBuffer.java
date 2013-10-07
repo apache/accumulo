@@ -21,20 +21,32 @@ import java.nio.ByteBuffer;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
- * 
+ * A utility class for reading and writing bytes to byte buffers without
+ * synchronization.
  */
 public class UnsynchronizedBuffer {
   // created this little class instead of using ByteArrayOutput stream and DataOutputStream
   // because both are synchronized... lots of small syncs slow things down
+  /**
+   * A byte buffer writer.
+   */
   public static class Writer {
     
     int offset = 0;
     byte data[];
     
+    /**
+     * Creates a new writer.
+     */
     public Writer() {
       data = new byte[64];
     }
     
+    /**
+     * Creates a new writer.
+     *
+     * @param initialCapacity initial byte capacity
+     */
     public Writer(int initialCapacity) {
       data = new byte[initialCapacity];
     }
@@ -50,12 +62,25 @@ public class UnsynchronizedBuffer {
       
     }
     
+    /**
+     * Adds bytes to this writer's buffer.
+     *
+     * @param bytes byte array
+     * @param off offset into array to start copying bytes
+     * @param length number of bytes to add
+     * @throws IndexOutOfBoundsException if off or length are invalid
+     */
     public void add(byte[] bytes, int off, int length) {
       reserve(length);
       System.arraycopy(bytes, off, data, offset, length);
       offset += length;
     }
     
+    /**
+     * Adds a Boolean value to this writer's buffer.
+     *
+     * @param b Boolean value
+     */
     public void add(boolean b) {
       reserve(1);
       if (b)
@@ -64,20 +89,46 @@ public class UnsynchronizedBuffer {
         data[offset++] = 0;
     }
     
+    /**
+     * Gets (a copy of) the contents of this writer's buffer.
+     *
+     * @return byte buffer contents
+     */
     public byte[] toArray() {
       byte ret[] = new byte[offset];
       System.arraycopy(data, 0, ret, 0, offset);
       return ret;
     }
     
+    /**
+     * Gets a <code>ByteBuffer</code> wrapped around this writer's buffer.
+     *
+     * @return byte buffer
+     */
     public ByteBuffer toByteBuffer() {
       return ByteBuffer.wrap(data, 0, offset);
     }
 
+    /**
+     * Adds an integer value to this writer's buffer. The integer is encoded as
+     * a variable-length list of bytes. See {@link #writeVLong(long)} for a
+     * description of the encoding.
+     *
+     * @param i integer value
+     */
     public void writeVInt(int i) {
       writeVLong(i);
     }
 
+    /**
+     * Adds a long value to this writer's buffer. The long is encoded as
+     * a variable-length list of bytes. For a description of the encoding
+     * scheme, see <code>WritableUtils.writeVLong()</code> in the Hadoop
+     * API.
+     * [<a href="http://hadoop.apache.org/docs/stable/api/org/apache/hadoop/io/WritableUtils.html#writeVLong%28java.io.DataOutput,%20long%29">link</a>]
+     *
+     * @param i long value
+     */
     public void writeVLong(long i) {
       reserve(9);
       if (i >= -112 && i <= 127) {
@@ -109,14 +160,27 @@ public class UnsynchronizedBuffer {
     }
   }
   
+  /**
+   * A byte buffer reader.
+   */
   public static class Reader {
     int offset;
     byte data[];
     
+    /**
+     * Creates a new reader.
+     *
+     * @param b bytes to read
+     */
     public Reader(byte b[]) {
       this.data = b;
     }
     
+    /**
+     * Creates a new reader.
+     *
+     * @param buffer byte buffer containing bytes to read
+     */
     public Reader(ByteBuffer buffer) {
       if (buffer.hasArray()) {
         offset = buffer.arrayOffset();
@@ -127,28 +191,60 @@ public class UnsynchronizedBuffer {
       }
     }
 
+    /**
+     * Reads an integer value from this reader's buffer.
+     *
+     * @return integer value
+     */
     public int readInt() {
       return (data[offset++] << 24) + ((data[offset++] & 255) << 16) + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0);
     }
     
+    /**
+     * Reads a long value from this reader's buffer.
+     *
+     * @return long value
+     */
     public long readLong() {
       return (((long) data[offset++] << 56) + ((long) (data[offset++] & 255) << 48) + ((long) (data[offset++] & 255) << 40)
           + ((long) (data[offset++] & 255) << 32) + ((long) (data[offset++] & 255) << 24) + ((data[offset++] & 255) << 16) + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0));
     }
     
+    /**
+     * Reads bytes from this reader's buffer, filling the given byte array.
+     *
+     * @param b byte array to fill
+     */
     public void readBytes(byte b[]) {
       System.arraycopy(data, offset, b, 0, b.length);
       offset += b.length;
     }
     
+    /**
+     * Reads a Boolean value from this reader's buffer.
+     *
+     * @return Boolean value
+     */
     public boolean readBoolean() {
       return (data[offset++] == 1);
     }
     
+    /**
+     * Reads an integer value from this reader's buffer, assuming the integer
+     * was encoded as a variable-length list of bytes.
+     *
+     * @return integer value
+     */
     public int readVInt() {
       return (int) readVLong();
     }
 
+    /**
+     * Reads a long value from this reader's buffer, assuming the long
+     * was encoded as a variable-length list of bytes.
+     *
+     * @return long value
+     */
     public long readVLong() {
       byte firstByte = data[offset++];
       int len = WritableUtils.decodeVIntSize(firstByte);
@@ -167,7 +263,10 @@ public class UnsynchronizedBuffer {
 
   /**
    * Determines what next array size should be by rounding up to next power of two.
-   * 
+   *
+   * @param i current array size
+   * @return next array size
+   * @throws IllegalArgumentException if i is negative
    */
   public static int nextArraySize(int i) {
     if (i < 0)

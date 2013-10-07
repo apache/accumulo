@@ -32,42 +32,59 @@ import org.apache.hadoop.io.WritableComparator;
 
 /**
  * A byte sequence that is usable as a key or value. Based on {@link org.apache.hadoop.io.BytesWritable} only this class is NOT resizable and DOES NOT
- * distinguish between the size of the sequence and the current capacity as {@link org.apache.hadoop.io.BytesWritable} does. Hence its comparatively
+ * distinguish between the size of the sequence and the current capacity as {@link org.apache.hadoop.io.BytesWritable} does. Hence it is comparatively
  * 'immutable'.
  */
 public class Value implements WritableComparable<Object> {
   protected byte[] value;
   
   /**
-   * Create a zero-size sequence.
+   * Creates a zero-size sequence.
    */
   public Value() {
     super();
   }
   
   /**
-   * Create a Value using the byte array as the initial value.
+   * Creates a Value using a byte array as the initial value. The given byte
+   * array is used directly as the backing array, so later changes made to the
+   * array reflect into the new Value.
    * 
-   * @param bytes
-   *          This array becomes the backing storage for the object.
+   * @param bytes bytes of value
    */
-  
   public Value(byte[] bytes) {
     this(bytes, false);
   }
   
+  /**
+   * Creates a Value using the bytes in a buffer as the initial value. Makes
+   * a defensive copy.
+   * 
+   * @param bytes bytes of value
+   */
   public Value(ByteBuffer bytes) {
     this(toBytes(bytes), false);
   }
   
   /**
    * @deprecated A copy of the bytes in the buffer is always made. Use {@link #Value(ByteBuffer)} instead.
+   * 
+   * @param bytes bytes of value
+   * @param copy false to use the backing array of the buffer directly as the
+   * backing array, true to force a copy
    */
   @Deprecated
   public Value(ByteBuffer bytes, boolean copy) {
     this(toBytes(bytes), false);
   }
   
+  /**
+   * Creates a Value using a byte array as the initial value.
+   * 
+   * @param bytes bytes of value
+   * @param copy false to use the given byte array directly as the backing
+   * array, true to force a copy
+   */
   public Value(byte[] bytes, boolean copy) {
     if (!copy) {
       this.value = bytes;
@@ -79,24 +96,22 @@ public class Value implements WritableComparable<Object> {
   }
   
   /**
-   * Set the new Value to a copy of the contents of the passed <code>ibw</code>.
+   * Creates a new Value based on another.
    * 
-   * @param ibw
-   *          the value to set this Value to.
+   * @param ibw original Value
    */
   public Value(final Value ibw) {
     this(ibw.get(), 0, ibw.getSize());
   }
   
   /**
-   * Set the value to a copy of the given byte range
+   * Creates a Value based on a range in a byte array. A copy of the bytes is
+   * always made.
    * 
-   * @param newData
-   *          the new values to copy in
-   * @param offset
-   *          the offset in newData to start at
-   * @param length
-   *          the number of bytes to copy
+   * @param newData byte array containing value bytes
+   * @param offset the offset in newData to start with for valye bytes
+   * @param length the number of bytes in the value
+   * @throws IndexOutOfBoundsException if offset or length are invalid
    */
   public Value(final byte[] newData, final int offset, final int length) {
     this.value = new byte[length];
@@ -104,9 +119,11 @@ public class Value implements WritableComparable<Object> {
   }
   
   /**
-   * Get the data from the BytesWritable.
+   * Gets the byte data of this value.
    * 
-   * @return The data is only valid between 0 and getSize() - 1.
+   * @return value bytes
+   * @throws IllegalStateException if this object is uninitialized because it
+   * was not read correctly from a data stream
    */
   public byte[] get() {
     if (this.value == null) {
@@ -116,17 +133,20 @@ public class Value implements WritableComparable<Object> {
   }
   
   /**
-   * @param b
-   *          Use passed bytes as backing array for this instance.
+   * Sets the byte data of this value. The given byte array is used directly as
+   * the backing array, so later changes made to the array reflect into this
+   * Value.
+   *
+   * @param b bytes of value
    */
   public void set(final byte[] b) {
     this.value = b;
   }
   
   /**
-   * 
-   * @param b
-   *          copy bytes
+   * Sets the byte data of this value. The given byte array is copied.
+   *
+   * @param b bytes of value
    */
   public void copy(byte[] b) {
     this.value = new byte[b.length];
@@ -134,7 +154,11 @@ public class Value implements WritableComparable<Object> {
   }
   
   /**
-   * @return the current size of the buffer.
+   * Gets the size of this value.
+   *
+   * @return size in bytes
+   * @throws IllegalStateException if this object is uninitialized because it
+   * was not read correctly from a data stream
    */
   public int getSize() {
     if (this.value == null) {
@@ -222,6 +246,10 @@ public class Value implements WritableComparable<Object> {
   }
   
   /**
+   * Converts a list of byte arrays to a two-dimensional array.
+   *
+   * @param array list of byte arrays
+   * @return two-dimensional byte array containing one given byte array per row
 	 */
   public static byte[][] toArray(final List<byte[]> array) {
     // List#toArray doesn't work on lists of byte [].

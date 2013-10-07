@@ -27,6 +27,9 @@ import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 
+/**
+ * A column, specified by family, qualifier, and visibility.
+ */
 public class Column implements WritableComparable<Column> {
   
   static private int compareBytes(byte[] a, byte[] b) {
@@ -39,6 +42,13 @@ public class Column implements WritableComparable<Column> {
     return WritableComparator.compareBytes(a, 0, a.length, b, 0, b.length);
   }
   
+  /**
+   * Compares this column to another. Column families are compared first, then
+   * qualifiers, then visibilities.
+   *
+   * @param that column to compare
+   * @return comparison result
+   */
   public int compareTo(Column that) {
     int result;
     result = compareBytes(this.columnFamily, that.columnFamily);
@@ -107,8 +117,18 @@ public class Column implements WritableComparable<Column> {
   public byte[] columnQualifier;
   public byte[] columnVisibility;
   
+  /**
+   * Creates a new blank column.
+   */
   public Column() {}
   
+  /**
+  * Creates a new column.
+  *
+  * @param columnFamily family
+  * @param columnQualifier qualifier
+  * @param columnVisibility visibility
+  */
   public Column(byte[] columnFamily, byte[] columnQualifier, byte[] columnVisibility) {
     this();
     this.columnFamily = columnFamily;
@@ -116,6 +136,11 @@ public class Column implements WritableComparable<Column> {
     this.columnVisibility = columnVisibility;
   }
   
+  /**
+   * Creates a new column.
+   *
+   * @param tcol Thrift column
+   */
   public Column(TColumn tcol) {
     this(toBytes(tcol.columnFamily), toBytes(tcol.columnQualifier), toBytes(tcol.columnVisibility));
   }
@@ -129,6 +154,12 @@ public class Column implements WritableComparable<Column> {
     return false;
   }
   
+  /**
+   * Checks if this column equals another.
+   *
+   * @param that column to compare
+   * @return true if this column equals that, false otherwise
+   */
   public boolean equals(Column that) {
     return this.compareTo(that) == 0;
   }
@@ -145,23 +176,50 @@ public class Column implements WritableComparable<Column> {
     return hash(columnFamily) + hash(columnQualifier) + hash(columnVisibility);
   }
   
+  /**
+   * Gets the column family. Not a defensive copy.
+   *
+   * @return family
+   */
   public byte[] getColumnFamily() {
     return columnFamily;
   }
   
+  /**
+   * Gets the column qualifier. Not a defensive copy.
+   *
+   * @return qualifier
+   */
   public byte[] getColumnQualifier() {
     return columnQualifier;
   }
   
+  /**
+   * Gets the column visibility. Not a defensive copy.
+   *
+   * @return visibility
+   */
   public byte[] getColumnVisibility() {
     return columnVisibility;
   }
   
+  /**
+   * Gets a string representation of this column. The family, qualifier, and
+   * visibility are interpreted as strings using the platform default encoding;
+   * nulls are interpreted as empty strings.
+   *
+   * @return string form of column
+   */
   public String toString() {
     return new String(columnFamily == null ? new byte[0] : columnFamily) + ":" + new String(columnQualifier == null ? new byte[0] : columnQualifier) + ":"
         + new String(columnVisibility == null ? new byte[0] : columnVisibility);
   }
   
+  /**
+   * Converts this column to Thrift.
+   *
+   * @return Thrift column
+   */
   public TColumn toThrift() {
     return new TColumn(columnFamily == null ? null : ByteBuffer.wrap(columnFamily), columnQualifier == null ? null : ByteBuffer.wrap(columnQualifier),
         columnVisibility == null ? null : ByteBuffer.wrap(columnVisibility));

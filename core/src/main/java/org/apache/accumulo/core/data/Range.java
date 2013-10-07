@@ -30,10 +30,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
 /**
- * This class is used to specify a range of Accumulo Keys.
+ * This class is used to specify a range of Accumulo keys.
  * 
+ * @see Key
  */
-
 public class Range implements WritableComparable<Range> {
   
   private Key start;
@@ -46,113 +46,96 @@ public class Range implements WritableComparable<Range> {
   /**
    * Creates a range that goes from negative to positive infinity
    */
-  
   public Range() {
     this((Key) null, true, (Key) null, true);
   }
   
   /**
-   * Creates a range from startKey inclusive to endKey inclusive
+   * Creates a range from startKey inclusive to endKey inclusive.
    * 
-   * @param startKey
-   *          set this to null when negative infinity is needed
-   * @param endKey
-   *          set this to null when positive infinity is needed
+   * @param startKey starting key; set to null for negative infinity
+   * @param endKey ending key; set to null for positive infinity
+   * @throws IllegalArgumentException if end key is before start key
    */
   public Range(Key startKey, Key endKey) {
     this(startKey, true, endKey, true);
   }
   
   /**
-   * Creates a range that covers an entire row
+   * Creates a range that covers an entire row.
    * 
-   * @param row
-   *          set this to null to cover all rows
+   * @param row row to cover; set to null to cover all rows
    */
   public Range(CharSequence row) {
     this(row, true, row, true);
   }
   
   /**
-   * Creates a range that covers an entire row
+   * Creates a range that covers an entire row.
    * 
-   * @param row
-   *          set this to null to cover all rows
+   * @param row row to cover; set to null to cover all rows
    */
   public Range(Text row) {
     this(row, true, row, true);
   }
   
   /**
-   * Creates a range from startRow inclusive to endRow inclusive
+   * Creates a range from startRow inclusive to endRow inclusive.
    * 
-   * @param startRow
-   *          set this to null when negative infinity is needed
-   * @param endRow
-   *          set this to null when positive infinity is needed
+   * @param startRow starting row; set to null for negative infinity
+   * @param endRow ending row; set to null for positive infinity
+   * @throws IllegalArgumentException if end row is before start row
    */
   public Range(Text startRow, Text endRow) {
     this(startRow, true, endRow, true);
   }
   
   /**
-   * Creates a range from startRow inclusive to endRow inclusive
+   * Creates a range from startRow inclusive to endRow inclusive.
    * 
-   * @param startRow
-   *          set this to null when negative infinity is needed
-   * @param endRow
-   *          set this to null when positive infinity is needed
+   * @param startRow starting row; set to null for negative infinity
+   * @param endRow ending row; set to null for positive infinity
+   * @throws IllegalArgumentException if end row is before start row
    */
   public Range(CharSequence startRow, CharSequence endRow) {
     this(startRow, true, endRow, true);
   }
   
   /**
-   * Creates a range from startRow to endRow
+   * Creates a range from startRow to endRow.
    * 
-   * @param startRow
-   *          set this to null when negative infinity is needed
-   * @param startRowInclusive
-   *          determines if the start row is skipped
-   * @param endRow
-   *          set this to null when positive infinity is needed
-   * @param endRowInclusive
-   *          determines if the endRow is included
+   * @param startRow starting row; set to null for negative infinity
+   * @param startRowInclusive true to include start row, false to skip
+   * @param endRow ending row; set to null for positive infinity
+   * @param endRowInclusive true to include start row, false to skip
+   * @throws IllegalArgumentException if end row is before start row
    */
-  
   public Range(Text startRow, boolean startRowInclusive, Text endRow, boolean endRowInclusive) {
     this((startRow == null ? null : (startRowInclusive ? new Key(startRow) : new Key(startRow).followingKey(PartialKey.ROW))), true, (endRow == null ? null
         : (endRowInclusive ? new Key(endRow).followingKey(PartialKey.ROW) : new Key(endRow))), false);
   }
   
   /**
-   * Creates a range from startRow to endRow
+   * Creates a range from startRow to endRow.
    * 
-   * @param startRow
-   *          set this to null when negative infinity is needed
-   * @param startRowInclusive
-   *          determines if the start row is skipped
-   * @param endRow
-   *          set this to null when positive infinity is needed
-   * @param endRowInclusive
-   *          determines if the endRow is included
+   * @param startRow starting row; set to null for negative infinity
+   * @param startRowInclusive true to include start row, false to skip
+   * @param endRow ending row; set to null for positive infinity
+   * @param endRowInclusive true to include start row, false to skip
+   * @throws IllegalArgumentException if end row is before start row
    */
-  
   public Range(CharSequence startRow, boolean startRowInclusive, CharSequence endRow, boolean endRowInclusive) {
     this(startRow == null ? null : new Text(startRow.toString()), startRowInclusive, endRow == null ? null : new Text(endRow.toString()), endRowInclusive);
   }
   
   /**
-   * Creates a range from startKey to endKey
+   * Creates a range from startKey to endKey.
    * 
-   * @param startKey
-   *          set this to null when negative infinity is needed
-   * @param startKeyInclusive
-   *          determines if the ranges includes the start key
-   * @param endKey
-   *          set this to null when infinity is needed
-   * @param endKeyInclusive
-   *          determines if the range includes the end key
+   * @param startKey starting key; set to null for negative infinity
+   * @param startKeyInclusive true to include start key, false to skip
+   * @param endKey ending key; set to null for positive infinity
+   * @param endKeyInclusive true to include start key, false to skip
+   * @throws IllegalArgumentException if end key is before start key
    */
   public Range(Key startKey, boolean startKeyInclusive, Key endKey, boolean endKeyInclusive) {
     this.start = startKey;
@@ -168,7 +151,9 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Copies a range
+   * Copies a range.
+   *
+   * @param range range to copy
    */
   public Range(Range range) {
     this(range.start, range.startKeyInclusive, range.infiniteStartKey, range.stop, range.stopKeyInclusive, range.infiniteStopKey);
@@ -233,6 +218,11 @@ public class Range implements WritableComparable<Range> {
     this.infiniteStopKey = infiniteStopKey;
   }
   
+  /**
+   * Creates a range from a Thrift range.
+   *
+   * @param trange Thrift range
+   */
   public Range(TRange trange) {
     this(trange.start == null ? null : new Key(trange.start), trange.startKeyInclusive, trange.infiniteStartKey,
         trange.stop == null ? null : new Key(trange.stop), trange.stopKeyInclusive, trange.infiniteStopKey);
@@ -242,7 +232,9 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * @return the first key in the range, null if the key is infinite
+   * Gets the start key, or null if the start is negative infinity.
+   *
+   * @return start key
    */
   public Key getStartKey() {
     if (infiniteStartKey) {
@@ -252,8 +244,9 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * 
-   * @param key
+   * Determines if the given key is before the start key of this range.
+   *
+   * @param key key to check
    * @return true if the given key is before the range, otherwise false
    */
   public boolean beforeStartKey(Key key) {
@@ -267,9 +260,10 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * @return the last key in the range, null if the end key is infinite
+   * Gets the ending key, or null if the end is positive infinity.
+   *
+   * @return ending key
    */
-  
   public Key getEndKey() {
     if (infiniteStopKey) {
       return null;
@@ -278,10 +272,11 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * @param key
+   * Determines if the given key is after the ending key of this range.
+   *
+   * @param key key to check
    * @return true if the given key is after the range, otherwise false
    */
-  
   public boolean afterEndKey(Key key) {
     if (infiniteStopKey)
       return false;
@@ -306,14 +301,24 @@ public class Range implements WritableComparable<Range> {
     return false;
   }
   
+  /**
+   * Determines if this range equals another.
+   *
+   * @param otherRange range to compare
+   * @return true if ranges are equals, false otherwise
+   * @see #compareTo(Range)
+   */
   public boolean equals(Range otherRange) {
     
     return compareTo(otherRange) == 0;
   }
   
   /**
-   * Compares this range to another range. Compares in the order start key, inclusiveness of start key, end key, inclusiveness of end key. Infinite keys sort
+   * Compares this range to another range. Compares in order: start key, inclusiveness of start key, end key, inclusiveness of end key. Infinite keys sort
    * first, and non-infinite keys are compared with {@link Key#compareTo(Key)}. Inclusive sorts before non-inclusive.
+   *
+   * @param o range to compare
+   * @return comparison result
    */
   public int compareTo(Range o) {
     int comp;
@@ -356,31 +361,31 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * 
-   * @param key
-   * @return true if the given key falls within the range
+   * Determines if the given key falls within this range.
+   *
+   * @param key key to consider
+   * @return true if the given key falls within the range, false otherwise
    */
   public boolean contains(Key key) {
     return !beforeStartKey(key) && !afterEndKey(key);
   }
   
   /**
-   * Takes a collection on range and merges overlapping and adjacent ranges. For example given the following input
+   * Merges overlapping and adjacent ranges. For example given the following input:
    * 
    * <pre>
    * [a,c], (c, d], (g,m), (j,t]
    * </pre>
    * 
-   * the following ranges would be returned
+   * the following ranges would be returned:
    * 
    * <pre>
    * [a,d], (g,t]
    * </pre>
    * 
-   * @param ranges
+   * @param ranges to merge
    * @return list of merged ranges
    */
-  
   public static List<Range> mergeOverlapping(Collection<Range> ranges) {
     if (ranges.size() == 0)
       return Collections.emptyList();
@@ -447,24 +452,24 @@ public class Range implements WritableComparable<Range> {
    * System.out.println(range3.equals(new Range(&quot;c&quot;, &quot;f&quot;)));
    * </pre>
    * 
-   * @param range
-   * @return the intersection
-   * @throws IllegalArgumentException
-   *           if ranges does not overlap
+   * @param range range to clip to
+   * @return the intersection of this range and the given range
+   * @throws IllegalArgumentException if ranges does not overlap
    */
-  
   public Range clip(Range range) {
     return clip(range, false);
   }
   
   /**
-   * Same as other clip function except if gives the option to return null of the ranges do not overlap instead of throwing an exception.
+   * Creates a range which represents the intersection of this range and the passed in range. Unlike {@link #clip(Range)},
+   * this method can optionally return null if the ranges do not overlap, instead of throwing an exception. The returnNullIfDisjoint parameter controls this
+   * behavior.
    * 
+   * @param range range to clip to
+   * @param returnNullIfDisjoint true to return null if ranges are disjoint, false to throw an exception
+   * @return the intersection of this range and the given range, or null if ranges do not overlap and returnNullIfDisjoint is true
+   * @throws IllegalArgumentException if ranges does not overlap and returnNullIfDisjoint is false
    * @see Range#clip(Range)
-   * @param range
-   * @param returnNullIfDisjoint
-   *          If the ranges do not overlap and true is passed, then null is returned otherwise an exception is thrown.
-   * @return the intersection
    */
   
   public Range clip(Range range, boolean returnNullIfDisjoint) {
@@ -509,17 +514,14 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Creates a new range that is bounded by the columns passed in. The stary key in the returned range will have a column >= to the minimum column. The end key
+   * Creates a new range that is bounded by the columns passed in. The start key in the returned range will have a column >= to the minimum column. The end key
    * in the returned range will have a column <= the max column.
    * 
-   * 
-   * @param min
-   * @param max
+   * @param min minimum column
+   * @param max maximum column
    * @return a column bounded range
-   * @throws IllegalArgumentException
-   *           if min > max
+   * @throws IllegalArgumentException if the minimum column compares greater than the maximum column
    */
-  
   public Range bound(Column min, Column max) {
     
     if (min.compareTo(max) > 0) {
@@ -631,45 +633,67 @@ public class Range implements WritableComparable<Range> {
     out.writeBoolean(stopKeyInclusive);
   }
   
+  /**
+   * Gets whether the start key of this range is inclusive.
+   *
+   * @return true if start key is inclusive
+   */
   public boolean isStartKeyInclusive() {
     return startKeyInclusive;
   }
   
+  /**
+   * Gets whether the end key of this range is inclusive.
+   *
+   * @return true if end key is inclusive
+   */
   public boolean isEndKeyInclusive() {
     return stopKeyInclusive;
   }
   
+  /**
+   * Converts this range to Thrift.
+   *
+   * @return Thrift range
+   */
   public TRange toThrift() {
     return new TRange(start == null ? null : start.toThrift(), stop == null ? null : stop.toThrift(), startKeyInclusive, stopKeyInclusive, infiniteStartKey,
         infiniteStopKey);
   }
   
+  /**
+   * Gets whether the start key is negative infinity.
+   *
+   * @return true if start key is negative infinity
+   */
   public boolean isInfiniteStartKey() {
     return infiniteStartKey;
   }
   
+  /**
+   * Gets whether the end key is positive infinity.
+   *
+   * @return true if end key is positive infinity
+   */
   public boolean isInfiniteStopKey() {
     return infiniteStopKey;
   }
   
   /**
-   * Creates a range that covers an exact row Returns the same Range as new Range(row)
+   * Creates a range that covers an exact row. Returns the same Range as
+   * {@link #Range(Text)}.
    * 
-   * @param row
-   *          all keys in the range will have this row
+   * @param row row to cover; set to null to cover all rows
    */
   public static Range exact(Text row) {
     return new Range(row);
   }
   
   /**
-   * Creates a range that covers an exact row and column family
+   * Creates a range that covers an exact row and column family.
    * 
-   * @param row
-   *          all keys in the range will have this row
-   * 
-   * @param cf
-   *          all keys in the range will have this column family
+   * @param row row row to cover
+   * @param cf column family to cover
    */
   public static Range exact(Text row, Text cf) {
     Key startKey = new Key(row, cf);
@@ -677,16 +701,11 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Creates a range that covers an exact row, column family, and column qualifier
+   * Creates a range that covers an exact row, column family, and column qualifier.
    * 
-   * @param row
-   *          all keys in the range will have this row
-   * 
-   * @param cf
-   *          all keys in the range will have this column family
-   * 
-   * @param cq
-   *          all keys in the range will have this column qualifier
+   * @param row row row to cover
+   * @param cf column family to cover
+   * @param cq column qualifier to cover
    */
   public static Range exact(Text row, Text cf, Text cq) {
     Key startKey = new Key(row, cf, cq);
@@ -694,19 +713,12 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Creates a range that covers an exact row, column family, column qualifier, and visibility
+   * Creates a range that covers an exact row, column family, column qualifier, and column visibility.
    * 
-   * @param row
-   *          all keys in the range will have this row
-   * 
-   * @param cf
-   *          all keys in the range will have this column family
-   * 
-   * @param cq
-   *          all keys in the range will have this column qualifier
-   * 
-   * @param cv
-   *          all keys in the range will have this column visibility
+   * @param row row row to cover
+   * @param cf column family to cover
+   * @param cq column qualifier to cover
+   * @param cv column visibility to cover
    */
   public static Range exact(Text row, Text cf, Text cq, Text cv) {
     Key startKey = new Key(row, cf, cq, cv);
@@ -714,22 +726,13 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Creates a range that covers an exact row, column family, column qualifier, visibility, and timestamp
+   * Creates a range that covers an exact row, column family, column qualifier, column visibility, and timestamp.
    * 
-   * @param row
-   *          all keys in the range will have this row
-   * 
-   * @param cf
-   *          all keys in the range will have this column family
-   * 
-   * @param cq
-   *          all keys in the range will have this column qualifier
-   * 
-   * @param cv
-   *          all keys in the range will have this column visibility
-   * 
-   * @param ts
-   *          all keys in the range will have this timestamp
+   * @param row row row to cover
+   * @param cf column family to cover
+   * @param cq column qualifier to cover
+   * @param cv column visibility to cover
+   * @param ts timestamp to cover
    */
   public static Range exact(Text row, Text cf, Text cq, Text cv, long ts) {
     Key startKey = new Key(row, cf, cq, cv, ts);
@@ -737,9 +740,11 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Returns a Text that sorts just after all Texts beginning with a prefix
+   * Returns a Text that sorts just after all Texts beginning with a prefix.
    * 
-   * @param prefix
+   * @param prefix to follow
+   * @return prefix that immediately follows the given prefix when sorted, or
+   * null if no prefix can follow (i.e., the string is all 0xff bytes)
    */
   public static Text followingPrefix(Text prefix) {
     byte[] prefixBytes = prefix.getBytes();
@@ -761,10 +766,9 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Returns a Range that covers all rows beginning with a prefix
+   * Returns a Range that covers all rows beginning with a prefix.
    * 
-   * @param rowPrefix
-   *          all keys in the range will have rows that begin with this prefix
+   * @param rowPrefix prefix of rows to cover
    */
   public static Range prefix(Text rowPrefix) {
     Text fp = followingPrefix(rowPrefix);
@@ -772,13 +776,10 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Returns a Range that covers all column families beginning with a prefix within a given row
+   * Returns a Range that covers all column families beginning with a prefix within a given row.
    * 
-   * @param row
-   *          all keys in the range will have this row
-   * 
-   * @param cfPrefix
-   *          all keys in the range will have column families that begin with this prefix
+   * @param row row to cover
+   * @param cfPrefix prefix of column families to cover
    */
   public static Range prefix(Text row, Text cfPrefix) {
     Text fp = followingPrefix(cfPrefix);
@@ -786,16 +787,11 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Returns a Range that covers all column qualifiers beginning with a prefix within a given row and column family
+   * Returns a Range that covers all column qualifiers beginning with a prefix within a given row and column family.
    * 
-   * @param row
-   *          all keys in the range will have this row
-   * 
-   * @param cf
-   *          all keys in the range will have this column family
-   * 
-   * @param cqPrefix
-   *          all keys in the range will have column qualifiers that begin with this prefix
+   * @param row row to cover
+   * @param cf column family to cover
+   * @param cqPrefix prefix of column qualifiers to cover
    */
   public static Range prefix(Text row, Text cf, Text cqPrefix) {
     Text fp = followingPrefix(cqPrefix);
@@ -803,19 +799,12 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Returns a Range that covers all column visibilities beginning with a prefix within a given row, column family, and column qualifier
+   * Returns a Range that covers all column visibilities beginning with a prefix within a given row, column family, and column qualifier.
    * 
-   * @param row
-   *          all keys in the range will have this row
-   * 
-   * @param cf
-   *          all keys in the range will have this column family
-   * 
-   * @param cq
-   *          all keys in the range will have this column qualifier
-   * 
-   * @param cvPrefix
-   *          all keys in the range will have column visibilities that begin with this prefix
+   * @param row row to cover
+   * @param cf column family to cover
+   * @param cq column qualifier to cover
+   * @param cvPrefix prefix of column visibilities to cover
    */
   public static Range prefix(Text row, Text cf, Text cq, Text cvPrefix) {
     Text fp = followingPrefix(cvPrefix);
@@ -824,81 +813,104 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Creates a range that covers an exact row
+   * Creates a range that covers an exact row.
    * 
-   * @see Range#exact(Text)
+   * @param row row to cover; set to null to cover all rows
+   * @see #exact(Text)
    */
   public static Range exact(CharSequence row) {
     return Range.exact(new Text(row.toString()));
   }
   
   /**
-   * Creates a range that covers an exact row and column family
+   * Creates a range that covers an exact row and column family.
    * 
-   * @see Range#exact(Text, Text)
+   * @param row row row to cover
+   * @param cf column family to cover
+   * @see #exact(Text, Text)
    */
   public static Range exact(CharSequence row, CharSequence cf) {
     return Range.exact(new Text(row.toString()), new Text(cf.toString()));
   }
   
   /**
-   * Creates a range that covers an exact row, column family, and column qualifier
+   * Creates a range that covers an exact row, column family, and column qualifier.
    * 
-   * @see Range#exact(Text, Text, Text)
+   * @param row row row to cover
+   * @param cf column family to cover
+   * @param cq column qualifier to cover
+   * @see #exact(Text, Text, Text)
    */
   public static Range exact(CharSequence row, CharSequence cf, CharSequence cq) {
     return Range.exact(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()));
   }
   
   /**
-   * Creates a range that covers an exact row, column family, column qualifier, and visibility
+   * Creates a range that covers an exact row, column family, column qualifier, and column visibility.
    * 
-   * @see Range#exact(Text, Text, Text, Text)
+   * @param row row row to cover
+   * @param cf column family to cover
+   * @param cq column qualifier to cover
+   * @param cv column visibility to cover
+   * @see #exact(Text, Text, Text, Text)
    */
   public static Range exact(CharSequence row, CharSequence cf, CharSequence cq, CharSequence cv) {
     return Range.exact(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()), new Text(cv.toString()));
   }
   
   /**
-   * Creates a range that covers an exact row, column family, column qualifier, visibility, and timestamp
+   * Creates a range that covers an exact row, column family, column qualifier, column visibility, and timestamp.
    * 
-   * @see Range#exact(Text, Text, Text, Text, long)
+   * @param row row row to cover
+   * @param cf column family to cover
+   * @param cq column qualifier to cover
+   * @param cv column visibility to cover
+   * @param ts timestamp to cover
+   * @see #exact(Text, Text, Text, Text, long)
    */
   public static Range exact(CharSequence row, CharSequence cf, CharSequence cq, CharSequence cv, long ts) {
     return Range.exact(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()), new Text(cv.toString()), ts);
   }
-  
   /**
-   * Returns a Range that covers all rows beginning with a prefix
+   * Returns a Range that covers all rows beginning with a prefix.
    * 
-   * @see Range#prefix(Text)
+   * @param rowPrefix prefix of rows to cover
+   * @see #prefix(Text)
    */
   public static Range prefix(CharSequence rowPrefix) {
     return Range.prefix(new Text(rowPrefix.toString()));
   }
   
   /**
-   * Returns a Range that covers all column families beginning with a prefix within a given row
+   * Returns a Range that covers all column families beginning with a prefix within a given row.
    * 
-   * @see Range#prefix(Text, Text)
+   * @param row row to cover
+   * @param cfPrefix prefix of column families to cover
+   * @see #prefix(Text, Text)
    */
   public static Range prefix(CharSequence row, CharSequence cfPrefix) {
     return Range.prefix(new Text(row.toString()), new Text(cfPrefix.toString()));
   }
   
   /**
-   * Returns a Range that covers all column qualifiers beginning with a prefix within a given row and column family
+   * Returns a Range that covers all column qualifiers beginning with a prefix within a given row and column family.
    * 
-   * @see Range#prefix(Text, Text, Text)
+   * @param row row to cover
+   * @param cf column family to cover
+   * @param cqPrefix prefix of column qualifiers to cover
+   * @see #prefix(Text, Text, Text)
    */
   public static Range prefix(CharSequence row, CharSequence cf, CharSequence cqPrefix) {
     return Range.prefix(new Text(row.toString()), new Text(cf.toString()), new Text(cqPrefix.toString()));
   }
-  
   /**
-   * Returns a Range that covers all column visibilities beginning with a prefix within a given row, column family, and column qualifier
+   * Returns a Range that covers all column visibilities beginning with a prefix within a given row, column family, and column qualifier.
    * 
-   * @see Range#prefix(Text, Text, Text, Text)
+   * @param row row to cover
+   * @param cf column family to cover
+   * @param cq column qualifier to cover
+   * @param cvPrefix prefix of column visibilities to cover
+   * @see #prefix(Text, Text, Text, Text)
    */
   public static Range prefix(CharSequence row, CharSequence cf, CharSequence cq, CharSequence cvPrefix) {
     return Range.prefix(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()), new Text(cvPrefix.toString()));

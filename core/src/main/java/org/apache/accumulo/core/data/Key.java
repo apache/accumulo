@@ -98,6 +98,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key with the specified row, empty column family, empty column qualifier, empty column visibility, timestamp {@link Long#MAX_VALUE}, and delete
    * marker false.
+   *
+   * @param row row ID
    */
   public Key(Text row) {
     init(row.getBytes(), 0, row.getLength(), EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
@@ -106,24 +108,74 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key with the specified row, empty column family, empty column qualifier, empty column visibility, the specified timestamp, and delete marker
    * false.
+   *
+   * @param row row ID
+   * @param ts timestamp
    */
   public Key(Text row, long ts) {
     this(row);
     timestamp = ts;
   }
   
+  /**
+   * Creates a key. The delete marker defaults to false.
+   *
+   * @param row bytes containing row ID
+   * @param rOff offset into row where key's row ID begins (inclusive)
+   * @param rLen length of row ID in row
+   * @param cf bytes containing column family
+   * @param cfOff offset into cf where key's column family begins (inclusive)
+   * @param cfLen length of column family in cf
+   * @param cq bytes containing column qualifier
+   * @param cqOff offset into cq where key's column qualifier begins (inclusive)
+   * @param cqLen length of column qualifier in cq
+   * @param cv bytes containing column visibility
+   * @param cvOff offset into cv where key's column visibility begins (inclusive)
+   * @param cvLen length of column visibility in cv
+   * @param ts timestamp
+   */
   public Key(byte row[], int rOff, int rLen, byte cf[], int cfOff, int cfLen, byte cq[], int cqOff, int cqLen, byte cv[], int cvOff, int cvLen, long ts) {
     init(row, rOff, rLen, cf, cfOff, cfLen, cq, cqOff, cqLen, cv, cvOff, cvLen, ts, false, true);
   }
   
+  /**
+   * Creates a key. The delete marker defaults to false.
+   *
+   * @param row row ID
+   * @param colFamily column family
+   * @param colQualifier column qualifier
+   * @param colVisibility column visibility
+   * @param timestamp timestamp
+   */
   public Key(byte[] row, byte[] colFamily, byte[] colQualifier, byte[] colVisibility, long timestamp) {
     this(row, colFamily, colQualifier, colVisibility, timestamp, false, true);
   }
   
+  /**
+   * Creates a key.
+   *
+   * @param row row ID
+   * @param cf column family
+   * @param cq column qualifier
+   * @param cv column visibility
+   * @param ts timestamp
+   * @param deleted delete marker
+   */
   public Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted) {
     this(row, cf, cq, cv, ts, deleted, true);
   }
   
+  /**
+   * Creates a key.
+   *
+   * @param row row ID
+   * @param cf column family
+   * @param cq column qualifier
+   * @param cv column visibility
+   * @param ts timestamp
+   * @param deleted delete marker
+   * @param copy if true, forces copy of byte array values into key
+   */
   public Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy) {
     init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, cv, 0, cv.length, ts, deleted, copy);
   }
@@ -284,6 +336,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
     set(other);
   }
   
+  /**
+   * Creates a key from Thrift.
+   *
+   * @param tkey Thrift key
+   */
   public Key(TKey tkey) {
     this.row = toBytes(tkey.row);
     this.colFamily = toBytes(tkey.colFamily);
@@ -294,88 +351,83 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
-   * This method gives users control over allocation of Text objects by copying into the passed in text.
+   * Writes the row ID into the given <code>Text</code>. This method gives
+   * users control over allocation of Text objects by copying into the passed in
+   * text.
    * 
-   * @param r
-   *          the key's row will be copied into this Text
-   * @return the Text that was passed in
+   * @param r <code>Text</code> object to copy into
+   * @return the <code>Text</code> that was passed in
    */
-  
   public Text getRow(Text r) {
     r.set(row, 0, row.length);
     return r;
   }
   
   /**
-   * This method returns a pointer to the keys internal data and does not copy it.
+   * Returns the row ID as a byte sequence. This method returns a pointer to the
+   * key's internal data and does not copy it.
    * 
-   * @return ByteSequence that points to the internal key row data.
+   * @return ByteSequence that points to the internal key row ID data
    */
-  
   public ByteSequence getRowData() {
     return new ArrayByteSequence(row);
   }
   
   /**
-   * This method allocates a Text object and copies into it.
+   * Gets the row ID as a <code>Text</code> object.
    * 
-   * @return Text containing the row field
+   * @return Text containing the row ID
    */
-  
   public Text getRow() {
     return getRow(new Text());
   }
   
   /**
-   * Efficiently compare the the row of a key w/o allocating a text object and copying the row into it.
+   * Compares this key's row ID with another.
    * 
-   * @param r
-   *          row to compare to keys row
+   * @param r row ID to compare
    * @return same as {@link #getRow()}.compareTo(r)
    */
-  
   public int compareRow(Text r) {
     return WritableComparator.compareBytes(row, 0, row.length, r.getBytes(), 0, r.getLength());
   }
   
   /**
-   * This method returns a pointer to the keys internal data and does not copy it.
+   * Returns the column family as a byte sequence. This method returns a pointer to the
+   * key's internal data and does not copy it.
    * 
-   * @return ByteSequence that points to the internal key column family data.
+   * @return ByteSequence that points to the internal key column family data
    */
-  
   public ByteSequence getColumnFamilyData() {
     return new ArrayByteSequence(colFamily);
   }
   
   /**
-   * This method gives users control over allocation of Text objects by copying into the passed in text.
+   * Writes the column family into the given <code>Text</code>. This method gives
+   * users control over allocation of Text objects by copying into the passed in
+   * text.
    * 
-   * @param cf
-   *          the key's column family will be copied into this Text
-   * @return the Text that was passed in
+   * @param cf <code>Text</code> object to copy into
+   * @return the <code>Text</code> that was passed in
    */
-  
   public Text getColumnFamily(Text cf) {
     cf.set(colFamily, 0, colFamily.length);
     return cf;
   }
   
   /**
-   * This method allocates a Text object and copies into it.
+   * Gets the column family as a <code>Text</code> object.
    * 
-   * @return Text containing the column family field
+   * @return Text containing the column family
    */
-  
   public Text getColumnFamily() {
     return getColumnFamily(new Text());
   }
   
   /**
-   * Efficiently compare the the column family of a key w/o allocating a text object and copying the column qualifier into it.
+   * Compares this key's column family with another.
    * 
-   * @param cf
-   *          column family to compare to keys column family
+   * @param cf column family to compare
    * @return same as {@link #getColumnFamily()}.compareTo(cf)
    */
   
@@ -384,105 +436,120 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
-   * This method returns a pointer to the keys internal data and does not copy it.
+   * Returns the column qualifier as a byte sequence. This method returns a pointer to the
+   * key's internal data and does not copy it.
    * 
-   * @return ByteSequence that points to the internal key column qualifier data.
+   * @return ByteSequence that points to the internal key column qualifier data
    */
-  
   public ByteSequence getColumnQualifierData() {
     return new ArrayByteSequence(colQualifier);
   }
   
   /**
-   * This method gives users control over allocation of Text objects by copying into the passed in text.
+   * Writes the column qualifier into the given <code>Text</code>. This method gives
+   * users control over allocation of Text objects by copying into the passed in
+   * text.
    * 
-   * @param cq
-   *          the key's column qualifier will be copied into this Text
-   * @return the Text that was passed in
+   * @param cq <code>Text</code> object to copy into
+   * @return the <code>Text</code> that was passed in
    */
-  
   public Text getColumnQualifier(Text cq) {
     cq.set(colQualifier, 0, colQualifier.length);
     return cq;
   }
   
   /**
-   * This method allocates a Text object and copies into it.
+   * Gets the column qualifier as a <code>Text</code> object.
    * 
-   * @return Text containing the column qualifier field
+   * @return Text containing the column qualifier
    */
-  
   public Text getColumnQualifier() {
     return getColumnQualifier(new Text());
   }
   
   /**
-   * Efficiently compare the the column qualifier of a key w/o allocating a text object and copying the column qualifier into it.
+   * Compares this key's column qualifier with another.
    * 
-   * @param cq
-   *          column family to compare to keys column qualifier
+   * @param cq column qualifier to compare
    * @return same as {@link #getColumnQualifier()}.compareTo(cq)
    */
-  
   public int compareColumnQualifier(Text cq) {
     return WritableComparator.compareBytes(colQualifier, 0, colQualifier.length, cq.getBytes(), 0, cq.getLength());
   }
   
+  /**
+   * Sets the timestamp.
+   *
+   * @param ts timestamp
+   */
   public void setTimestamp(long ts) {
     this.timestamp = ts;
   }
   
+  /**
+   * Gets the timestamp.
+   *
+   * @return timestamp
+   */
   public long getTimestamp() {
     return timestamp;
   }
   
+  /**
+   * Determines if this key is deleted (i.e., has a delete marker = true).
+   *
+   * @return true if key is deleted, false if not
+   */
   public boolean isDeleted() {
     return deleted;
   }
   
+  /**
+   * Sets the delete marker on this key.
+   *
+   * @param deleted delete marker (true to delete)
+   */
   public void setDeleted(boolean deleted) {
     this.deleted = deleted;
   }
   
   /**
-   * This method returns a pointer to the keys internal data and does not copy it.
+   * Returns the column visibility as a byte sequence. This method returns a pointer to the
+   * key's internal data and does not copy it.
    * 
-   * @return ByteSequence that points to the internal key column visibility data.
+   * @return ByteSequence that points to the internal key column visibility data
    */
-  
   public ByteSequence getColumnVisibilityData() {
     return new ArrayByteSequence(colVisibility);
   }
   
   /**
-   * This method allocates a Text object and copies into it.
+   * Gets the column visibility as a <code>Text</code> object.
    * 
-   * @return Text containing the column visibility field
+   * @return Text containing the column visibility
    */
-  
   public final Text getColumnVisibility() {
     return getColumnVisibility(new Text());
   }
   
   /**
-   * This method gives users control over allocation of Text objects by copying into the passed in text.
+   * Writes the column visibvility into the given <code>Text</code>. This method gives
+   * users control over allocation of Text objects by copying into the passed in
+   * text.
    * 
-   * @param cv
-   *          the key's column visibility will be copied into this Text
-   * @return the Text that was passed in
+   * @param cv <code>Text</code> object to copy into
+   * @return the <code>Text</code> that was passed in
    */
-  
   public final Text getColumnVisibility(Text cv) {
     cv.set(colVisibility, 0, colVisibility.length);
     return cv;
   }
   
   /**
-   * This method creates a new ColumnVisibility representing the column visibility for this key
+   * Gets the column visibility. <b>WARNING:</b> using this method may inhibit
+   * performance since a new ColumnVisibility object is created on every call.
    * 
-   * WARNING: using this method may inhibit performance since a new ColumnVisibility object is created on every call.
-   * 
-   * @return A new object representing the column visibility field
+   * @return ColumnVisibility representing the column visibility
    * @since 1.5.0
    */
   public final ColumnVisibility getColumnVisibilityParsed() {
@@ -491,6 +558,9 @@ public class Key implements WritableComparable<Key>, Cloneable {
   
   /**
    * Sets this key's row, column family, column qualifier, column visibility, timestamp, and delete marker to be the same as another key's.
+   * This method does not copy data from the other key, but only references to it.
+   *
+   * @param k key to set from
    */
   public void set(Key k) {
     row = k.row;
@@ -548,10 +618,12 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
-   * Compare part of a key. For example compare just the row and column family, and if those are equal then return true.
+   * Compares part of a key. For example, compares just the row and column family, and if those are equal then return true.
    * 
+   * @param other key to compare to
+   * @param part part of key to compare
+   * @return true if specified parts of keys match, false otherwise
    */
-  
   public boolean equals(Key other, PartialKey part) {
     switch (part) {
       case ROW:
@@ -575,12 +647,19 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
-   * Compare elements of a key given by a {@link PartialKey}. For example, for {@link PartialKey#ROW_COLFAM}, compare just the row and column family. If the
-   * rows are not equal, return the result of the row comparison; otherwise, return the result of the column family comparison.
+   * Compares elements of a key given by a {@link PartialKey}. The corresponding elements (row, column family, column qualifier, column visibility, timestamp,
+   * and delete marker) are compared in order until unequal elements are found. The row, column family, column qualifier, and column
+   * visibility are compared lexographically and sorted ascending. The timestamps are compared numerically and sorted descending so that the most recent data
+   * comes first. Lastly, a delete marker of true sorts before a delete marker of false. The result of the first unequal comparison is returned.
+   *
+   * For example, for {@link PartialKey#ROW_COLFAM}, this method compares just the row and column family. If the
+   * row IDs are not equal, return the result of the row comparison; otherwise, returns the result of the column family comparison.
    * 
+   * @param other key to compare to
+   * @param part part of key to compare
+   * @return comparison result
    * @see #compareTo(Key)
    */
-  
   public int compareTo(Key other, PartialKey part) {
     // check for matching row
     int result = WritableComparator.compareBytes(row, 0, row.length, other.row, 0, other.row.length);
@@ -623,12 +702,12 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
-   * Compare all elements of a key. The elements (row, column family, column qualifier, column visibility, timestamp, and delete marker) are compared in order
-   * until an unequal element is found. If the row is equal, then compare the column family, etc. The row, column family, column qualifier, and column
-   * visibility are compared lexographically and sorted ascending. The timestamps are compared numerically and sorted descending so that the most recent data
-   * comes first. Lastly, a delete marker of true sorts before a delete marker of false.
+   * Compares this key with another.
+   *
+   * @param other key to compare to
+   * @return comparison result
+   * @see #compareTo(Key, PartialKey)
    */
-  
   public int compareTo(Key other) {
     return compareTo(other, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL);
   }
@@ -640,10 +719,37 @@ public class Key implements WritableComparable<Key>, Cloneable {
         + (int) (timestamp ^ (timestamp >>> 32));
   }
   
+  /**
+   * Returns an ASCII printable string form of the given byte array, treating
+   * the bytes as ASCII characters. See
+   * {@link #appendPrintableString(byte[], int, int, int, StringBuilder)}
+   * for caveats.
+   *
+   * @param ba byte array
+   * @param offset offset to start with in byte array (inclusive)
+   * @param len number of bytes to print
+   * @param maxLen maximum number of bytes to convert to printable form
+   * @return printable string
+   * @see #appendPrintableString(byte[], int, int, int, StringBuilder)
+   */
   public static String toPrintableString(byte ba[], int offset, int len, int maxLen) {
     return appendPrintableString(ba, offset, len, maxLen, new StringBuilder()).toString();
   }
   
+  /**
+   * Appends ASCII printable characters to a string, based on the given byte
+   * array, treating the bytes as ASCII characters. If a byte can be converted
+   * to a ASCII printable character it is appended as is; otherwise, it is
+   * appended as a character code, e.g., %05; for byte value 5. If len > maxlen,
+   * the string includes a "TRUNCATED" note at the end.
+   *
+   * @param ba byte array
+   * @param offset offset to start with in byte array (inclusive)
+   * @param len number of bytes to print
+   * @param maxLen maximum number of bytes to convert to printable form
+   * @param sb <code>StringBuilder</code> to append to
+   * @return given <code>StringBuilder</code>
+   */
   public static StringBuilder appendPrintableString(byte ba[], int offset, int len, int maxLen, StringBuilder sb) {
     int plen = Math.min(len, maxLen);
     
@@ -684,14 +790,19 @@ public class Key implements WritableComparable<Key>, Cloneable {
     return sb.toString();
   }
   
+  /**
+   * Converts this key to a string, not including timestamp or delete marker.
+   *
+   * @return string form of key
+   */
   public String toStringNoTime() {
     return rowColumnStringBuilder().toString();
   }
   
   /**
-   * Returns the sums of the lengths of the row, column family, column qualifier, and visibility.
+   * Returns the sums of the lengths of the row, column family, column qualifier, and column visibility.
    * 
-   * @return row.length + colFamily.length + colQualifier.length + colVisibility.length;
+   * @return sum of key field lengths
    */
   public int getLength() {
     return row.length + colFamily.length + colQualifier.length + colVisibility.length;
@@ -699,6 +810,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
   
   /**
    * Same as {@link #getLength()}.
+   *
+   * @return sum of key field lengths
    */
   public int getSize() {
     return getLength();
@@ -741,10 +854,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
-   * Use this to compress a list of keys before sending them via thrift.
+   * Compresses a list of key/value pairs before sending them via thrift.
    * 
-   * @param param
-   *          a list of key/value pairs
+   * @param param list of key/value pairs
+   * @return list of Thrift key/value pairs
    */
   public static List<TKeyValue> compress(List<? extends KeyValue> param) {
     
@@ -793,11 +906,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
-   * Use this to decompress a list of keys received from thrift.
+   * Decompresses a list of key/value pairs received from thrift. Decompression
+   * occurs in place, in the list.
    * 
-   * @param param
+   * @param param list of Thrift key/value pairs
    */
-  
   public static void decompress(List<TKeyValue> param) {
     for (int i = 1; i < param.size(); i++) {
       TKey prevKey = param.get(i - 1).key;
@@ -818,26 +931,56 @@ public class Key implements WritableComparable<Key>, Cloneable {
     }
   }
   
+  /**
+   * Gets the row ID as a byte array.
+   *
+   * @return row ID
+   */
   byte[] getRowBytes() {
     return row;
   }
   
+  /**
+   * Gets the column family as a byte array.
+   *
+   * @return column family
+   */
   byte[] getColFamily() {
     return colFamily;
   }
   
+  /**
+   * Gets the column qualifier as a byte array.
+   *
+   * @return column qualifier
+   */
   byte[] getColQualifier() {
     return colQualifier;
   }
   
+  /**
+   * Gets the column visibility as a byte array.
+   *
+   * @return column visibility
+   */
   byte[] getColVisibility() {
     return colVisibility;
   }
   
+  /**
+   * Converts this key to Thrift.
+   *
+   * @return Thrift key
+   */
   public TKey toThrift() {
     return new TKey(ByteBuffer.wrap(row), ByteBuffer.wrap(colFamily), ByteBuffer.wrap(colQualifier), ByteBuffer.wrap(colVisibility), timestamp);
   }
   
+  /**
+   * Performs a deep copy of this key.
+   *
+   * @return cloned key
+   */
   @Override
   public Object clone() throws CloneNotSupportedException {
     Key r = (Key) super.clone();

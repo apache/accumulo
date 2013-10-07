@@ -42,20 +42,33 @@ import org.apache.hadoop.io.WritableUtils;
  * constructing a new Text object.
  * 
  * <p>
- * When always passing in the same data as a CharSequence/String, its probably more efficient to call the Text put methods. This way the data is only encoded
+ * When always passing in the same data as a CharSequence/String, it's probably more efficient to call the Text put methods. This way the data is only encoded
  * once and only one Text object is created.
  * 
  * <p>
- * All of the put methods append data to the mutation, they do not overwrite anything that was previously put. The mutation holds a list of all column/values
- * that were put into it. The putDelete() methods do not remove something that was previously added to the mutation, rather they indicate that Accumulo should
- * insert a delete marker for that row column.
- * 
+ * All of the put methods append data to the mutation; they do not overwrite anything that was previously put. The mutation holds a list of all columns/values
+ * that were put into it.
+ * </p>
+ *
+ * <p>
+ * The putDelete() methods do not remove something that was previously added to the mutation; rather, they indicate that Accumulo should insert a delete marker
+ * for that row column. A delete marker effectively hides entries for that row column with a timestamp earlier than the marker's. (The hidden data is eventually
+ * removed during Accumulo garbage collection.)
+ * </p>
  */
-
 public class Mutation implements Writable {
   
+  /**
+   * Internally, this class keeps most mutation data in a byte buffer. If a cell
+   * value put into a mutation exceeds this size, then it is stored in a
+   * separate buffer, and a reference to it is inserted into the main buffer.
+   */
   static final int VALUE_SIZE_COPY_CUTOFF = 1 << 15;
   
+  /**
+   * Formats available for serializing Mutations. The formats are described
+   * in a <a href="doc-files/mutation-serialization.html">separate document</a>.
+   */
   public static enum SERIALIZED_FORMAT {
      VERSION1,
      VERSION2
@@ -81,6 +94,9 @@ public class Mutation implements Writable {
   }
   
   /**
+   * Creates a new mutation. A defensive copy is made.
+   *
+   * @param row row ID
    * @since 1.5.0
    */
   public Mutation(byte[] row) {
@@ -88,6 +104,12 @@ public class Mutation implements Writable {
   }
   
   /**
+   * Creates a new mutation. A defensive copy is made.
+   *
+   * @param row byte array containing row ID
+   * @param start starting index of row ID in byte array
+   * @param length length of row ID in byte array
+   * @throws IndexOutOfBoundsException if start or length is invalid
    * @since 1.5.0
    */
   public Mutation(byte[] row, int start, int length) {
@@ -96,16 +118,34 @@ public class Mutation implements Writable {
     buffer = new UnsynchronizedBuffer.Writer();
   }
   
+  /**
+   * Creates a new mutation. A defensive copy is made.
+   *
+   * @param row row ID
+   */
   public Mutation(Text row) {
     this(row.getBytes(), 0, row.getLength());
   }
   
+  /**
+   * Creates a new mutation.
+   *
+   * @param row row ID
+   */
   public Mutation(CharSequence row) {
     this(new Text(row.toString()));
   }
   
+  /**
+   * Creates a new mutation.
+   */
   public Mutation() {}
   
+  /**
+   * Creates a new mutation from a Thrift mutation.
+   *
+   * @param tmutation Thrift mutation
+   */
   public Mutation(TMutation tmutation) {
     this.row = ByteBufferUtil.toBytes(tmutation.row);
     this.data = ByteBufferUtil.toBytes(tmutation.data);
@@ -113,6 +153,11 @@ public class Mutation implements Writable {
     this.values = ByteBufferUtil.toBytesList(tmutation.values);
   }
   
+  /**
+   * Creates a new mutation by copying another.
+   *
+   * @param m mutation to copy
+   */
   public Mutation(Mutation m) {
     m.serialize();
     this.row = m.row;
@@ -121,6 +166,11 @@ public class Mutation implements Writable {
     this.values = m.values;
   }
   
+  /**
+   * Gets the row ID for this mutation. Not a defensive copy.
+   *
+   * @return row ID
+   */
   public byte[] getRow() {
     return row;
   }
@@ -197,87 +247,264 @@ public class Mutation implements Writable {
     put(new Text(cf.toString()), new Text(cq.toString()), cv, hasts, ts, deleted, new Text(val.toString()));
   }
 
+  /**
+   * Puts a modification in this mutation. Column visibility is empty;
+   * timestamp is not set. All parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param value cell value
+   */
   public void put(Text columnFamily, Text columnQualifier, Value value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
   }
   
+  /**
+   * Puts a modification in this mutation. Timestamp is not set. All parameters
+   * are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param value cell value
+   */
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility, Value value) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value.get());
   }
   
+  /**
+   * Puts a modification in this mutation. Column visibility is empty. All
+   * appropriate parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
+   * @param value cell value
+   */
   public void put(Text columnFamily, Text columnQualifier, long timestamp, Value value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value.get());
   }
   
+  /**
+   * Puts a modification in this mutation. All appropriate parameters are
+   * defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
+   * @param value cell value
+   */
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility, long timestamp, Value value) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value.get());
   }
   
+  /**
+   * Puts a deletion in this mutation. Matches empty column visibility;
+   * timestamp is not set. All parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   */
   public void putDelete(Text columnFamily, Text columnQualifier) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
   }
   
+  /**
+   * Puts a deletion in this mutation. Timestamp is not set. All parameters are
+   * defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   */
   public void putDelete(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true, EMPTY_BYTES);
   }
   
+  /**
+   * Puts a deletion in this mutation. Matches empty column visibility. All
+   * appropriate parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
+   */
   public void putDelete(Text columnFamily, Text columnQualifier, long timestamp) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
   }
   
+  /**
+   * Puts a deletion in this mutation. All appropriate parameters are
+   * defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
+   */
   public void putDelete(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility, long timestamp) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
   }
   
+  /**
+   * Puts a modification in this mutation. Column visibility is empty;
+   * timestamp is not set. All parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, Value value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
   }
   
+  /**
+   * Puts a modification in this mutation. Timestamp is not set. All parameters
+   * are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param value cell value
+   */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, Value value) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value.get());
   }
   
+  /**
+   * Puts a modification in this mutation. Column visibility is empty. All
+   * appropriate parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
+   * @param value cell value
+   */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp, Value value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value.get());
   }
   
+  /**
+   * Puts a modification in this mutation. All appropriate parameters are
+   * defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
+   * @param value cell value
+   */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, long timestamp, Value value) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value.get());
   }
   
+  /**
+   * Puts a deletion in this mutation. Matches empty column visibility;
+   * timestamp is not set. All parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
   }
   
+  /**
+   * Puts a deletion in this mutation. Timestamp is not set. All appropriate
+   * parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true, EMPTY_BYTES);
   }
   
+  /**
+   * Puts a deletion in this mutation. Matches empty column visibility. All
+   * appropriate parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
+   */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, long timestamp) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
   }
   
+  /**
+   * Puts a deletion in this mutation. All appropriate parameters are
+   * defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
+   */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, long timestamp) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
   }
   
+  /**
+   * Puts a modification in this mutation. Column visibility is empty;
+   * timestamp is not set. All parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param value cell value
+   */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, CharSequence value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
   }
   
+  /**
+   * Puts a modification in this mutation. Timestamp is not set. All parameters
+   * are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param value cell value
+   */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, CharSequence value) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
   }
   
+  /**
+   * Puts a modification in this mutation. Column visibility is empty. All
+   * appropriate parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
+   * @param value cell value
+   */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp, CharSequence value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value);
   }
   
+  /**
+   * Puts a modification in this mutation. All appropriate parameters are
+   * defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
+   * @param value cell value
+   */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, long timestamp, CharSequence value) {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value);
   }
   
   /**
+   * Puts a modification in this mutation. Column visibility is empty;
+   * timestamp is not set. All parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param value cell value
    * @since 1.5.0
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, byte[] value) {
@@ -285,6 +512,13 @@ public class Mutation implements Writable {
   }
   
   /**
+   * Puts a modification in this mutation. Timestamp is not set. All parameters
+   * are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param value cell value
    * @since 1.5.0
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, byte[] value) {
@@ -292,6 +526,13 @@ public class Mutation implements Writable {
   }
   
   /**
+   * Puts a modification in this mutation. Column visibility is empty. All
+   * appropriate parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
+   * @param value cell value
    * @since 1.5.0
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, long timestamp, byte[] value) {
@@ -299,6 +540,14 @@ public class Mutation implements Writable {
   }
   
   /**
+   * Puts a modification in this mutation. All appropriate parameters are
+   * defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
+   * @param value cell value
    * @since 1.5.0
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, long timestamp, byte[] value) {
@@ -306,6 +555,11 @@ public class Mutation implements Writable {
   }
   
   /**
+   * Puts a deletion in this mutation. Matches empty column visibility;
+   * timestamp is not set. All parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
    * @since 1.5.0
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier) {
@@ -313,6 +567,12 @@ public class Mutation implements Writable {
   }
   
   /**
+   * Puts a deletion in this mutation. Timestamp is not set. All parameters are
+   * defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
    * @since 1.5.0
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility) {
@@ -320,6 +580,12 @@ public class Mutation implements Writable {
   }
   
   /**
+   * Puts a deletion in this mutation. Matches empty column visibility. All
+   * appropriate parameters are defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
    * @since 1.5.0
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier, long timestamp) {
@@ -327,6 +593,13 @@ public class Mutation implements Writable {
   }
   
   /**
+   * Puts a deletion in this mutation. All appropriate parameters are
+   * defensively copied.
+   *
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
    * @since 1.5.0
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, long timestamp) {
@@ -353,6 +626,13 @@ public class Mutation implements Writable {
     return bytes;
   }
   
+  /**
+   * Gets the modifications and deletions in this mutation. After calling
+   * this method, further modifications to this mutation are ignored. Changes
+   * made to the returned updates do not affect this mutation.
+   *
+   * @return list of modifications and deletions
+   */
   public List<ColumnUpdate> getUpdates() {
     serialize();
     
@@ -405,6 +685,12 @@ public class Mutation implements Writable {
   
   private int cachedValLens = -1;
   
+  /**
+   * Gets the byte length of all large values stored in this mutation.
+   *
+   * @return length of all large values
+   * @see #VALUE_SIZE_COPY_CUTOFF
+   */
   long getValueLengths() {
     if (values == null)
       return 0;
@@ -421,17 +707,30 @@ public class Mutation implements Writable {
     
   }
   
+  /**
+   * Gets the total number of bytes in this mutation.
+   *
+   * @return length of mutation in bytes
+   */
   public long numBytes() {
     serialize();
     return row.length + data.length + getValueLengths();
   }
   
+  /**
+   * Gets an estimate of the amount of memory used by this mutation. The
+   * estimate includes data sizes and object overhead.
+   *
+   * @return memory usage estimate
+   */
   public long estimatedMemoryUsed() {
     return numBytes() + 238;
   }
   
   /**
-   * @return the number of column value pairs added to the mutation
+   * Gets the number of modifications / deletions in this mutation.
+   *
+   * @return the number of modifications / deletions
    */
   public int size() {
     return entries;
@@ -580,14 +879,14 @@ public class Mutation implements Writable {
   public int hashCode() {
     return toThrift().hashCode();
   }
-
   /**
-   * Checks if this mutation equals another. This method may be removed in a
-   * future API revision in favor of {@link #equals(Object)}. See ACCUMULO-1627
-   * for more information.
+   * Checks if this mutation equals another. Two mutations are equal if they
+   * target the same row and have the same modifications and deletions, in order.
+   * This method may be removed in a  future API revision in favor of
+   * {@link #equals(Object)}. See ACCUMULO-1627 for more information.
    *
-   * @param m mutation
-   * @return true if the given mutation equals this one, false otehrwise
+   * @param m mutation to compare
+   * @return true if this mutation equals the other, false otherwise
    */
   public boolean equals(Mutation m) {
     return this.equals((Object) m);
@@ -613,11 +912,21 @@ public class Mutation implements Writable {
     return false;
   }
   
+  /**
+   * Converts this mutation to Thrift.
+   *
+   * @return Thrift mutation
+   */
   public TMutation toThrift() {
     serialize();
     return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
   }
   
+  /**
+   * Gets the serialization format used to (de)serialize this mutation.
+   *
+   * @return serialization format
+   */
   protected SERIALIZED_FORMAT getSerializedFormat() {
     return this.useOldDeserialize ? SERIALIZED_FORMAT.VERSION1 : SERIALIZED_FORMAT.VERSION2;
   }

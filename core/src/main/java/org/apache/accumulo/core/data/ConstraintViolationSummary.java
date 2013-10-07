@@ -18,6 +18,9 @@ package org.apache.accumulo.core.data;
 
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 
+/**
+ * A summary of constraint violations across some number of mutations.
+ */
 public class ConstraintViolationSummary {
   
   public String constrainClass;
@@ -25,6 +28,14 @@ public class ConstraintViolationSummary {
   public String violationDescription;
   public long numberOfViolatingMutations;
   
+  /**
+   * Creates a new summary.
+   *
+   * @param constrainClass
+   * @param violationCode
+   * @param violationDescription
+   * @param numberOfViolatingMutations
+   */
   public ConstraintViolationSummary(String constrainClass, short violationCode, String violationDescription, long numberOfViolatingMutations) {
     this.constrainClass = constrainClass;
     this.violationCode = violationCode;
@@ -32,6 +43,11 @@ public class ConstraintViolationSummary {
     this.numberOfViolatingMutations = numberOfViolatingMutations;
   }
   
+  /**
+   * Creates a new summary from Thrift.
+   *
+   * @param tcvs Thrift summary
+   */
   public ConstraintViolationSummary(TConstraintViolationSummary tcvs) {
     this(tcvs.constrainClass, tcvs.violationCode, tcvs.violationDescription, tcvs.numberOfViolatingMutations);
   }
@@ -87,6 +103,11 @@ public class ConstraintViolationSummary {
     return sb.toString();
   }
   
+  /**
+   * Converts this summary to Thrift.
+   *
+   * @return Thrift summary
+   */
   public TConstraintViolationSummary toThrift() {
     return new TConstraintViolationSummary(this.constrainClass, violationCode, violationDescription, numberOfViolatingMutations);
   }

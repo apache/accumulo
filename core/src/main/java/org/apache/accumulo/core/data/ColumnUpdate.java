@@ -19,10 +19,9 @@ package org.apache.accumulo.core.data;
 import java.util.Arrays;
 
 /**
- * A single column and value pair within a mutation
+ * A single column and value pair within a {@link Mutation}.
  * 
  */
-
 public class ColumnUpdate {
   
   private byte[] columnFamily;
@@ -33,6 +32,17 @@ public class ColumnUpdate {
   private byte[] val;
   private boolean deleted;
   
+  /**
+   * Creates a new column update.
+   *
+   * @param cf column family
+   * @param cq column qualifier
+   * @param cv column visibility
+   * @param hasts true if the update specifies a timestamp
+   * @param ts timestamp
+   * @param deleted delete marker
+   * @param val cell value
+   */
   public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
     this.columnFamily = cf;
     this.columnQualifier = cq;
@@ -43,34 +53,65 @@ public class ColumnUpdate {
     this.val = val;
   }
   
+  /**
+   * Gets whether this update specifies a timestamp.
+   *
+   * @return true if this update specifies a timestamp
+   */
   public boolean hasTimestamp() {
     return hasTimestamp;
   }
   
   /**
-   * Returns the column
-   * 
+   * Gets the column family for this update. Not a defensive copy.
+   *
+   * @return column family
    */
   public byte[] getColumnFamily() {
     return columnFamily;
   }
   
+  /**
+   * Gets the column qualifier for this update. Not a defensive copy.
+   *
+   * @return column qualifier
+   */
   public byte[] getColumnQualifier() {
     return columnQualifier;
   }
   
+  /**
+   * Gets the column visibility for this update.
+   *
+   * @return column visibility
+   */
   public byte[] getColumnVisibility() {
     return columnVisibility;
   }
   
+  /**
+   * Gets the timestamp for this update.
+   *
+   * @return timestamp
+   */
   public long getTimestamp() {
     return this.timestamp;
   }
   
+  /**
+   * Gets the delete marker for this update.
+   *
+   * @return delete marker
+   */
   public boolean isDeleted() {
     return this.deleted;
   }
   
+  /**
+   * Gets the cell value for this update.
+   *
+   * @return cell value
+   */
   public byte[] getValue() {
     return this.val;
   }
