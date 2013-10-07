@@ -18,9 +18,15 @@ package org.apache.accumulo.core.security;
 
 import org.apache.accumulo.core.data.ByteSequence;
 
+/**
+ * An interface for classes that contain a collection of authorizations.
+ */
 public interface AuthorizationContainer {
   /**
-   * Checks for the existence of this UTF-8 encoded authorization.
+   * Checks whether this object contains the given authorization.
+   *
+   * @param auth authorization, as a string encoded in UTF-8
+   * @return true if authorization is in this collection
    */
   public boolean contains(ByteSequence auth);
 }
