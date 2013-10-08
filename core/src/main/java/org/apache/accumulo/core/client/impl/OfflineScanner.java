@@ -413,5 +413,15 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   public Iterator<Entry<Key,Value>> iterator() {
     return new OfflineIterator(this, instance, credentials, authorizations, tableId, range);
   }
+
+  @Override
+  public long getReadaheadThreshold() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void setReadaheadThreshold(long batches) {
+    throw new UnsupportedOperationException();
+  }
   
 }

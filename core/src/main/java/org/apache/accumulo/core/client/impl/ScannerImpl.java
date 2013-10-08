@@ -55,6 +55,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   
   private Range range;
   private boolean isolated = false;
+  private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
   
   public ScannerImpl(Instance instance, Credentials credentials, String table, Authorizations authorizations) {
     ArgumentChecker.notNull(instance, credentials, table, authorizations);
@@ -97,7 +98,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
    */
   @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
-    return new ScannerIterator(instance, credentials, table, authorizations, range, size, getTimeOut(), this, isolated);
+    return new ScannerIterator(instance, credentials, table, authorizations, range, size, getTimeOut(), this, isolated, readaheadThreshold);
   }
   
   @Override
@@ -126,5 +127,19 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     if (timeout >= Integer.MAX_VALUE)
       return Integer.MAX_VALUE;
     return (int) timeout;
+  }
+  
+  @Override
+  public synchronized void setReadaheadThreshold(long batches) {
+    if (0 > batches) {
+      throw new IllegalArgumentException("Number of batches before read-ahead must be non-negative");
+    }
+    
+    readaheadThreshold = batches;
+  }
+  
+  @Override
+  public synchronized long getReadaheadThreshold() {
+    return readaheadThreshold;
   }
 }

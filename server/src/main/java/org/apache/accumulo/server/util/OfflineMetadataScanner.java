@@ -268,5 +268,15 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     for (Entry<Key,Value> entry : scanner)
       System.out.println(entry.getKey() + " " + entry.getValue());
   }
+
+  @Override
+  public long getReadaheadThreshold() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void setReadaheadThreshold(long batches) {
+    throw new UnsupportedOperationException();
+  }
   
 }

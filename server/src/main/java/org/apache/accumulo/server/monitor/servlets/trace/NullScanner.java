@@ -103,4 +103,14 @@ public class NullScanner implements Scanner {
   
   @Override
   public void close() {}
+
+  @Override
+  public long getReadaheadThreshold() {
+    return 0l;
+  }
+
+  @Override
+  public void setReadaheadThreshold(long batches) {
+    
+  }
 }

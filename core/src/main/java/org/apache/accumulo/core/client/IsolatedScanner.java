@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.IsolationException;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -52,6 +53,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     private ScannerOptions opts;
     private Range range;
     private int batchSize;
+    private long readaheadThreshold;
     
     private void readRow() {
       
@@ -123,6 +125,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
         scanner.setBatchSize(batchSize);
         scanner.setTimeout(timeout, TimeUnit.MILLISECONDS);
         scanner.setRange(r);
+        scanner.setReadaheadThreshold(readaheadThreshold);
         setOptions((ScannerOptions) scanner, opts);
         
         return scanner.iterator();
@@ -130,12 +133,13 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       }
     }
     
-    public RowBufferingIterator(Scanner scanner, ScannerOptions opts, Range range, long timeout, int batchSize, RowBufferFactory bufferFactory) {
+    public RowBufferingIterator(Scanner scanner, ScannerOptions opts, Range range, long timeout, int batchSize, long readaheadThreshold, RowBufferFactory bufferFactory) {
       this.scanner = scanner;
       this.opts = new ScannerOptions(opts);
       this.range = range;
       this.timeout = timeout;
       this.batchSize = batchSize;
+      this.readaheadThreshold = readaheadThreshold;
       
       buffer = bufferFactory.newBuffer();
       
@@ -211,6 +215,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   private Scanner scanner;
   private Range range;
   private int batchSize;
+  private long readaheadThreshold;
   private RowBufferFactory bufferFactory;
   
   public IsolatedScanner(Scanner scanner) {
@@ -222,12 +227,13 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     this.range = scanner.getRange();
     this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
     this.batchSize = scanner.getBatchSize();
+    this.readaheadThreshold = scanner.getReadaheadThreshold();
     this.bufferFactory = bufferFactory;
   }
   
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
-    return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, bufferFactory);
+    return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, readaheadThreshold, bufferFactory);
   }
   
   @Deprecated
@@ -277,5 +283,19 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   @Override
   public void disableIsolation() {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public long getReadaheadThreshold() {
+    return readaheadThreshold;
+  }
+
+  @Override
+  public void setReadaheadThreshold(long batches) {
+    if (0 > batches) {
+      throw new IllegalArgumentException("Number of batches before read-ahead must be non-negative");
+    }
+    
+    this.readaheadThreshold = batches;
   }
 }

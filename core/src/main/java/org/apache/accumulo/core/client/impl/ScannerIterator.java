@@ -26,6 +26,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -64,8 +65,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   
   private boolean finished = false;
   
-  private boolean readaheadInProgress;
+  private boolean readaheadInProgress = false;
   private long batchCount = 0;
+  private long readaheadThreshold;
   
   private static final List<KeyValue> EMPTY_LIST = Collections.emptyList();
   
@@ -123,10 +125,16 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   
   ScannerIterator(Instance instance, Credentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
       ScannerOptions options, boolean isolated) {
+    this(instance, credentials, table, authorizations, range, size, timeOut, options, isolated, Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD);
+  }
+  
+  ScannerIterator(Instance instance, Credentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
+      ScannerOptions options, boolean isolated, long readaheadThreshold) {
     this.instance = instance;
     this.tableId = new Text(table);
     this.timeOut = timeOut;
     this.credentials = credentials;
+    this.readaheadThreshold = readaheadThreshold;
     
     this.options = new ScannerOptions(options);
     
@@ -138,7 +146,11 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     
     scanState = new ScanState(instance, credentials, tableId, authorizations, new Range(range), options.fetchedColumns, size, options.serverSideIteratorList,
         options.serverSideIteratorOptions, isolated);
-    readaheadInProgress = false;
+    
+    // If we want to start readahead immediately, don't wait for hasNext to be called
+    if (0l == readaheadThreshold) {
+      initiateReadAhead();
+    }
     iter = null;
   }
   
@@ -185,7 +197,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       iter = currentBatch.iterator();
       batchCount++;
       
-      if (batchCount > 3) {
+      if (batchCount > readaheadThreshold) {
         // start a thread to read the next batch
         initiateReadAhead();
       }

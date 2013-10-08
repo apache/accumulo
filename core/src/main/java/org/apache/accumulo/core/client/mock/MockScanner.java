@@ -109,5 +109,15 @@ public class MockScanner extends MockScannerBase implements Scanner {
     }
     
   }
+
+  @Override
+  public long getReadaheadThreshold() {
+    return 0;
+  }
+
+  @Override
+  public void setReadaheadThreshold(long batches) {
+    
+  }
   
 }

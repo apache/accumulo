@@ -85,4 +85,18 @@ public interface Scanner extends ScannerBase {
    * Disables row isolation. Writes that occur to a row after a scan of that row has begun may be seen if this option is enabled.
    */
   void disableIsolation();
+  
+  /**
+   * The number of batches of Key/Value pairs returned before the {@link Scanner} will begin to prefetch the next batch
+   * @return Number of batches before read-ahead begins
+   * @since 1.6.0
+   */
+  public long getReadaheadThreshold();
+  
+  /**
+   * Sets the number of batches of Key/Value pairs returned before the {@link Scanner} will begin to prefetch the next batch
+   * @param batches Non-negative number of batches
+   * @since 1.6.0
+   */
+  public void setReadaheadThreshold(long batches); 
 }

@@ -81,6 +81,10 @@ public class Constants {
   // this affects the table client caching of metadata
   public static final int SCAN_BATCH_SIZE = 1000;
   
+  // Scanners will default to fetching 3 batches of Key/Value pairs before asynchronously
+  // fetching the next batch.
+  public static final long SCANNER_DEFAULT_READAHEAD_THRESHOLD = 3l;
+  
   // Security configuration
   public static final String PW_HASH_ALGORITHM = "SHA-256";
   
