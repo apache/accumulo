@@ -16,13 +16,17 @@
  */
 package org.apache.accumulo.core.data;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class ConditionalMutationTest {
   private static final byte[] ROW = "row".getBytes(Constants.UTF8);
@@ -138,7 +142,6 @@ public class ConditionalMutationTest {
 
   @Test
   public void testHashcode() {
-    int hc1 = cm.hashCode();
     ConditionalMutation cm2 = new ConditionalMutation(ROW, c1, c2);
     assertTrue(cm.equals(cm2));
     assertEquals(cm2.hashCode(), cm.hashCode());

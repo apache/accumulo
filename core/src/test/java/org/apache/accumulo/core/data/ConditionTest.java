@@ -16,13 +16,17 @@
  */
 package org.apache.accumulo.core.data;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class ConditionTest {
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[0]);
@@ -164,26 +168,67 @@ public class ConditionTest {
     c3.setTimestamp(1234L);
     c3.setIterators(ITERATORS);
     assertFalse(c.equals(c3));
+    assertFalse(c3.equals(c));
     c3 = new Condition(FAMILY, "nope");
     c3.setVisibility(cvis);
     c3.setValue(VALUE);
     c3.setTimestamp(1234L);
     c3.setIterators(ITERATORS);
     assertFalse(c.equals(c3));
+    assertFalse(c3.equals(c));
 
     c2.setVisibility(new ColumnVisibility("sekrit"));
     assertFalse(c.equals(c2));
+    assertFalse(c2.equals(c));
     c2.setVisibility(cvis);
     c2.setValue(EMPTY);
     assertFalse(c.equals(c2));
+    assertFalse(c2.equals(c));
     c2.setValue(VALUE);
     c2.setTimestamp(2345L);
     assertFalse(c.equals(c2));
+    assertFalse(c2.equals(c));
     c2.setTimestamp(1234L);
     c2.setIterators(new IteratorSetting[0]);
     assertFalse(c.equals(c2));
+    assertFalse(c2.equals(c));
     c2.setIterators(ITERATORS);
     assertTrue(c.equals(c2));
+    assertTrue(c2.equals(c));
+    
+    // set everything but vis, so its null
+    Condition c4 = new Condition(FAMILY, QUALIFIER);
+    c4.setValue(VALUE);
+    c4.setTimestamp(1234L);
+    c4.setIterators(ITERATORS);
+    
+    assertFalse(c.equals(c4));
+    assertFalse(c4.equals(c));
+    
+    // set everything but timestamp, so its null
+    Condition c5 = new Condition(FAMILY, QUALIFIER);
+    c5.setVisibility(cvis);
+    c5.setValue(VALUE);
+    c5.setIterators(ITERATORS);
+    
+    assertFalse(c.equals(c5));
+    assertFalse(c5.equals(c));
+    
+    // set everything but value
+    Condition c6 = new Condition(FAMILY, QUALIFIER);
+    c6.setVisibility(cvis);
+    c6.setTimestamp(1234L);
+    c6.setIterators(ITERATORS);
+    
+    assertFalse(c.equals(c6));
+    assertFalse(c6.equals(c));
+    
+    // test w/ no optional fields set
+    Condition c7 = new Condition(FAMILY, QUALIFIER);
+    Condition c8 = new Condition(FAMILY, QUALIFIER);
+    assertTrue(c7.equals(c8));
+    assertTrue(c8.equals(c7));
+
   }
 
   @Test
