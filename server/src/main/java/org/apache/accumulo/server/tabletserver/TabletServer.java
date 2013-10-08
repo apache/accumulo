@@ -2199,23 +2199,27 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             Set<KeyExtent> openingOverlapping = KeyExtent.findOverlapping(extent, openingTablets);
             Set<KeyExtent> onlineOverlapping = KeyExtent.findOverlapping(extent, onlineTablets);
             
-            // ignore any tablets that have recently split
-            Iterator<KeyExtent> each = onlineOverlapping.iterator();
-            while (each.hasNext()) {
-              Tablet tablet = onlineTablets.get(each.next());
-              if (System.currentTimeMillis() - tablet.getSplitCreationTime() < RECENTLY_SPLIT_MILLIES) {
-                each.remove();
-              }
-            }
-            
             Set<KeyExtent> all = new HashSet<KeyExtent>();
             all.addAll(unopenedOverlapping);
             all.addAll(openingOverlapping);
             all.addAll(onlineOverlapping);
             
             if (!all.isEmpty()) {
-              if (all.size() != 1 || !all.contains(extent)) {
-                log.error("Tablet " + extent + " overlaps previously assigned " + unopenedOverlapping + " " + openingOverlapping + " " + onlineOverlapping);
+              
+              // ignore any tablets that have recently split, for error logging
+              for (KeyExtent e2 : onlineOverlapping) {
+                Tablet tablet = onlineTablets.get(e2);
+                if (System.currentTimeMillis() - tablet.getSplitCreationTime() < RECENTLY_SPLIT_MILLIES) {
+                  all.remove(e2);
+                }
+              }
+              
+              // ignore self, for error logging
+              all.remove(extent);
+              
+              if (all.size() > 0) {
+                log.error("Tablet " + extent + " overlaps previously assigned " + unopenedOverlapping + " " + openingOverlapping + " " + onlineOverlapping
+                    + " " + all);
               }
               return;
             }
