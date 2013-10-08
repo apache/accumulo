@@ -795,6 +795,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public volatile ScanTask<ScanBatch> nextBatchTask;
     public AtomicBoolean interruptFlag;
     public Scanner scanner;
+    public long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
     
     @Override
     public void cleanup() {
@@ -1156,9 +1157,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     @Override
     public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent, TRange range, List<TColumn> columns, int batchSize,
-        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated)
-        throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
-      
+        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated,
+        long readaheadThreshold) throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
+
       Authorizations userauths = null;
       if (!security.canScan(credentials, new String(textent.getTable()), range, columns, ssiList, ssio, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -1195,6 +1196,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       scanSession.ssio = ssio;
       scanSession.auths = new Authorizations(authorizations);
       scanSession.interruptFlag = new AtomicBoolean();
+      scanSession.readaheadThreshold = readaheadThreshold;
       
       for (TColumn tcolumn : columns) {
         scanSession.columnSet.add(new Column(tcolumn));
@@ -1277,7 +1279,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       scanSession.batchCount++;
       
-      if (scanResult.more && scanSession.batchCount > 3) {
+      if (scanResult.more && scanSession.batchCount > scanSession.readaheadThreshold) {
         // start reading next batch while current batch is transmitted
         // to client
         scanSession.nextBatchTask = new NextBatchTask(scanID, scanSession.interruptFlag);

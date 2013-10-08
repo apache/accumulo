@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -97,7 +98,7 @@ public class ThriftScanner {
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
         InitialScan isr = client.startScan(tinfo, scanState.credentials.toThrift(instance), extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
-            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated);
+            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(server);
         
@@ -132,6 +133,7 @@ public class ThriftScanner {
     Text tableId;
     Text startRow;
     boolean skipStartRow;
+    long readaheadThreshold;
     
     Range range;
     
@@ -150,9 +152,15 @@ public class ThriftScanner {
     List<IterInfo> serverSideIteratorList;
     
     Map<String,Map<String,String>> serverSideIteratorOptions;
-    
+
     public ScanState(Instance instance, Credentials credentials, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns,
         int size, List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated) {
+      this(instance, credentials, tableId, authorizations, range, fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, isolated,
+          Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD);
+    }
+
+    public ScanState(Instance instance, Credentials credentials, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns,
+        int size, List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated, long readaheadThreshold) {
       this.instance = instance;
       this.credentials = credentials;
       this.authorizations = authorizations;
@@ -179,6 +187,7 @@ public class ThriftScanner {
       this.serverSideIteratorOptions = serverSideIteratorOptions;
       
       this.isolated = isolated;
+      this.readaheadThreshold = readaheadThreshold;
       
     }
   }
@@ -389,7 +398,7 @@ public class ThriftScanner {
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
         InitialScan is = client.startScan(tinfo, scanState.credentials.toThrift(scanState.instance), loc.tablet_extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
-            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated);
+            scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
         

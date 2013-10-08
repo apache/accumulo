@@ -139,7 +139,8 @@ service TabletClientService extends client.ClientService {
                              7:map<string, map<string, string>> ssio,
                              8:list<binary> authorizations
                              9:bool waitForWrites,
-                             10:bool isolated)  throws (1:client.ThriftSecurityException sec, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
+                             10:bool isolated,
+                             12:i64 readaheadThreshold)  throws (1:client.ThriftSecurityException sec, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
                              
   data.ScanResult continueScan(2:trace.TInfo tinfo, 1:data.ScanID scanID)  throws (1:NoSuchScanIDException nssi, 2:NotServingTabletException nste, 3:TooManyFilesException tmfe),
   oneway void closeScan(2:trace.TInfo tinfo, 1:data.ScanID scanID),
