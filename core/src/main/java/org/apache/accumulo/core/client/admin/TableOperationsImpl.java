@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,9 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -72,8 +75,10 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -84,6 +89,7 @@ import org.apache.accumulo.core.master.thrift.TableOperation;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -92,6 +98,7 @@ import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
@@ -1127,6 +1134,123 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // disableGC);
   }
   
+  private void waitForTableStateTransition(String tableId, TableState expectedState) throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException {
+    
+    Text startRow = null;
+    Text lastRow = null;
+
+    while (true) {
+
+      if (Tables.getTableState(instance, tableId) != expectedState) {
+        Tables.clearCache(instance);
+        if (Tables.getTableState(instance, tableId) != expectedState) {
+          if (!Tables.exists(instance, tableId))
+            throw new TableDeletedException(tableId);
+          throw new AccumuloException("Unexpected table state " + tableId + " " + Tables.getTableState(instance, tableId) + " != " + expectedState);
+        }
+      }
+      
+      Range range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+      if (startRow == null || lastRow == null) 
+        range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+      else
+        range = new Range(startRow, lastRow);
+      
+      Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      scanner = new IsolatedScanner(scanner);
+      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      scanner.setRange(range);
+      
+      RowIterator rowIter = new RowIterator(scanner);
+      
+      KeyExtent lastExtent = null;
+      
+      int total = 0;
+      int waitFor = 0;
+      int holes = 0;
+      Text continueRow = null;
+      MapCounter<String> serverCounts = new MapCounter<String>();
+      
+      while (rowIter.hasNext()) {
+        Iterator<Entry<Key,Value>> row = rowIter.next();
+        
+        total++;
+
+        KeyExtent extent = null;
+        String future = null;
+        String current = null;
+        
+        while (row.hasNext()) {
+          Entry<Key,Value> entry = row.next();
+          Key key = entry.getKey();
+          
+          if (key.getColumnFamily().equals(TabletsSection.FutureLocationColumnFamily.NAME))
+            future = entry.getValue().toString();
+          
+          if (key.getColumnFamily().equals(TabletsSection.CurrentLocationColumnFamily.NAME))
+            current = entry.getValue().toString();
+          
+          if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key))
+            extent = new KeyExtent(key.getRow(), entry.getValue());
+        }
+        
+        if ((expectedState == TableState.ONLINE && current == null) || (expectedState == TableState.OFFLINE && (future != null || current != null))) {
+          if (continueRow == null)
+            continueRow = extent.getMetadataEntry();
+          waitFor++;
+          lastRow = extent.getMetadataEntry();
+          
+          if(current != null)
+            serverCounts.increment(current, 1);
+          if(future != null)
+            serverCounts.increment(future, 1);
+        }
+        
+        if (!extent.getTableId().toString().equals(tableId)) {
+          throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
+        }
+        
+        if (lastExtent != null && !extent.isPreviousExtent(lastExtent)) {
+          holes++;
+        }
+        
+        lastExtent = extent;
+      }
+      
+      if (continueRow != null) {
+        startRow = continueRow;
+      }
+      
+      if (holes > 0 || total == 0) {
+        startRow = null;
+        lastRow = null;
+      }
+      
+      if (waitFor > 0 || holes > 0 || total == 0) {
+        long waitTime;
+        long maxPerServer = 0;
+        if(serverCounts.size() > 0){
+          maxPerServer = Collections.max(serverCounts.values());
+          waitTime = maxPerServer * 10;
+        }else
+          waitTime = waitFor * 10;
+        waitTime = Math.max(100, waitTime);
+        waitTime = Math.min(5000, waitTime);
+        log.trace("Waiting for " + waitFor + "("+maxPerServer+") tablets, startRow = " + startRow + " lastRow = "+lastRow+", holes=" + holes+" sleeping:"+waitTime+"ms");
+        UtilWaitThread.sleep(waitTime);
+      } else {
+        break;
+      }
+
+    }
+  }
+  @Override
+  public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    offline(tableName, false);
+  }
+  
   /**
    * 
    * @param tableName
@@ -1138,10 +1262,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableNotFoundException
    */
   @Override
-  public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     
     ArgumentChecker.notNull(tableName);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()));
+    String tableId = Tables.getTableId(instance, tableName);
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
     
     try {
@@ -1150,6 +1275,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // should not happen
       throw new RuntimeException(e);
     }
+    
+    if(wait)
+      waitForTableStateTransition(tableId, TableState.OFFLINE);
+  }
+  
+  @Override
+  public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    online(tableName, false);
   }
   
   /**
@@ -1163,9 +1296,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableNotFoundException
    */
   @Override
-  public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()));
+    String tableId = Tables.getTableId(instance, tableName);
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
     
     try {
@@ -1174,6 +1308,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // should not happen
       throw new RuntimeException(e);
     }
+    
+    if(wait)
+      waitForTableStateTransition(tableId, TableState.ONLINE);
   }
   
   /**

@@ -40,10 +40,10 @@ public class OfflineTable extends Test {
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
     try {
-      conn.tableOperations().offline(tableName);
+      conn.tableOperations().offline(tableName, rand.nextBoolean());
       log.debug("Offlined " + tableName);
       UtilWaitThread.sleep(rand.nextInt(200));
-      conn.tableOperations().online(tableName);
+      conn.tableOperations().online(tableName, rand.nextBoolean());
       log.debug("Onlined " + tableName);
     } catch (TableNotFoundException tne) {
       log.debug("offline or online failed " + tableName + ", doesnt exist");

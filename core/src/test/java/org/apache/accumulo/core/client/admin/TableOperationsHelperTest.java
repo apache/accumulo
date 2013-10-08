@@ -180,6 +180,14 @@ public class TableOperationsHelperTest {
     public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
     
     @Override
+    public void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+      
+    }
+    
+    @Override
+    public void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
+    
+    @Override
     public void clearLocatorCache(String tableName) throws TableNotFoundException {}
     
     @Override

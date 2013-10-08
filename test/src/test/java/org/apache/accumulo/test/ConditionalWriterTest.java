@@ -51,8 +51,6 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -67,7 +65,6 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -1176,9 +1173,7 @@ public class ConditionalWriterTest {
     
     ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig());
     
-    conn.tableOperations().offline(table);
-    
-    waitForSingleTabletTableToGoOffline(table, zki);
+    conn.tableOperations().offline(table, true);
     
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");
@@ -1200,14 +1195,6 @@ public class ConditionalWriterTest {
       Assert.assertFalse(true);
     } catch (TableOfflineException e) {}
     zki.close();
-  }
-  
-  void waitForSingleTabletTableToGoOffline(String table, ZooKeeperInstance zki) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    TabletLocator locator = TabletLocator.getLocator(zki, new Text(Tables.getNameToIdMap(zki).get(table)));
-    while (locator.locateTablet(new Credentials("root", new PasswordToken(secret)), new Text("a"), false, false) != null) {
-      UtilWaitThread.sleep(50);
-      locator.invalidateCache();
-    }
   }
   
   @Test

@@ -38,9 +38,9 @@ public class OfflineTable extends Test {
     Random rand = new Random();
     String tableName = tables.get(rand.nextInt(tables.size()));
     
-    state.getConnector().tableOperations().offline(tableName);
+    state.getConnector().tableOperations().offline(tableName, rand.nextBoolean());
     log.debug("Table " + tableName + " offline ");
-    state.getConnector().tableOperations().online(tableName);
+    state.getConnector().tableOperations().online(tableName, rand.nextBoolean());
     log.debug("Table " + tableName + " online ");
   }
 }

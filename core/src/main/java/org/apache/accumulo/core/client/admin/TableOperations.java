@@ -503,6 +503,7 @@ public interface TableOperations {
       AccumuloSecurityException;
   
   /**
+   * Initiates taking a table offline, but does not wait for action to complete
    * 
    * @param tableName
    *          the table to take offline
@@ -517,6 +518,22 @@ public interface TableOperations {
   /**
    * 
    * @param tableName
+   *          the table to take offline
+   * @param wait
+   *          if true, then will not return until table is offline
+   * @throws AccumuloException
+   *           when there is a general accumulo error
+   * @throws AccumuloSecurityException
+   *           when the user does not have the proper permissions
+   * @throws TableNotFoundException
+   * @since 1.6.0
+   */
+  public void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  
+  /**
+   * Initiates bringing a table online, but does not wait for action to complete
+   * 
+   * @param tableName
    *          the table to take online
    * @throws AccumuloException
    *           when there is a general accumulo error
@@ -525,6 +542,21 @@ public interface TableOperations {
    * @throws TableNotFoundException
    */
   public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+ 
+  /**
+   * 
+   * @param tableName
+   *          the table to take online
+   * @param wait
+   *          if true, then will not return until table is online
+   * @throws AccumuloException
+   *           when there is a general accumulo error
+   * @throws AccumuloSecurityException
+   *           when the user does not have the proper permissions
+   * @throws TableNotFoundException
+   * @since 1.6.0
+   */
+  public void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
   
   /**
    * Clears the tablet locator cache for a specified table

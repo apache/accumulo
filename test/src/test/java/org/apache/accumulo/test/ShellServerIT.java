@@ -779,9 +779,8 @@ public class ShellServerIT {
     
     exec("constraint -a FooConstraint", true);
     
-    exec("offline ptc");
-    UtilWaitThread.sleep(500);
-    exec("online ptc");
+    exec("offline -w ptc");
+    exec("online -w ptc");
     
     exec("table ptc", true);
     exec("insert foo f q v", false);

@@ -383,6 +383,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return result;
   }
   
+  private void checkNotMetadataID(String tableId, TableOperation operation) throws ThriftTableOperationException {
+    if (MetadataTable.ID.equals(tableId) || RootTable.ID.equals(tableId)) {
+      String why = "Table names cannot be == " + RootTable.NAME + " or " + MetadataTable.NAME;
+      log.warn(why);
+      throw new ThriftTableOperationException(tableId, null, operation, TableOperationExceptionType.OTHER, why);
+    }
+  }
+  
   private void checkNotMetadataTable(String tableName, TableOperation operation) throws ThriftTableOperationException {
     if (MetadataTable.NAME.equals(tableName) || RootTable.NAME.equals(tableName)) {
       String why = "Table names cannot be == " + RootTable.NAME + " or " + MetadataTable.NAME;
@@ -876,9 +884,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           break;
         }
         case ONLINE: {
-          String tableName = ByteBufferUtil.toString(arguments.get(0));
-          final String tableId = checkTableId(tableName, TableOperation.ONLINE);
-          checkNotMetadataTable(tableName, TableOperation.ONLINE);
+          final String tableId = ByteBufferUtil.toString(arguments.get(0));
+          checkNotMetadataID(tableId, TableOperation.ONLINE);
           
           if (!security.canOnlineOfflineTable(c, tableId, op))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -887,9 +894,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           break;
         }
         case OFFLINE: {
-          String tableName = ByteBufferUtil.toString(arguments.get(0));
-          final String tableId = checkTableId(tableName, TableOperation.OFFLINE);
-          checkNotMetadataTable(tableName, TableOperation.OFFLINE);
+          final String tableId = ByteBufferUtil.toString(arguments.get(0));
+          checkNotMetadataID(tableId, TableOperation.OFFLINE);
           
           if (!security.canOnlineOfflineTable(c, tableId, op))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
