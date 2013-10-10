@@ -22,7 +22,7 @@ public class AddressUtil {
 
 
   static public HostAndPort parseAddress(String address) throws NumberFormatException {
-    address = address.replace('+', '-');
+    address = address.replace('+', ':');
     HostAndPort hap = HostAndPort.fromString(address);
     if (!hap.hasPort())
       throw new IllegalArgumentException("Address was expected to contain port. address=" + address);
