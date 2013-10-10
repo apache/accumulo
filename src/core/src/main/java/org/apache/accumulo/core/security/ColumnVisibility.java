@@ -52,12 +52,14 @@ public class ColumnVisibility {
   public static class Node {
     public final static List<Node> EMPTY = Collections.emptyList();
     NodeType type;
-    int start = 0;
-    int end = 0;
+    int start;
+    int end;
     List<Node> children = EMPTY;
     
-    public Node(NodeType type) {
+    public Node(NodeType type, int start) {
       this.type = type;
+      this.start = start;
+      this.end = start + 1;
     }
     
     public Node(int start, int end) {
@@ -180,46 +182,47 @@ public class ColumnVisibility {
     Node parse_(byte[] expression) {
       Node result = null;
       Node expr = null;
-      int termStart = index;
+      int wholeTermStart = index;
+      int subtermStart = index;
       while (index < expression.length) {
         switch (expression[index++]) {
           case '&': {
-            expr = processTerm(termStart, index - 1, expr, expression);
+            expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.AND))
                 throw new BadArgumentException("cannot mix & and |", new String(expression), index - 1);
             } else {
-              result = new Node(NodeType.AND);
+              result = new Node(NodeType.AND, wholeTermStart);
             }
             result.add(expr);
             expr = null;
-            termStart = index;
+            subtermStart = index;
             break;
           }
           case '|': {
-            expr = processTerm(termStart, index - 1, expr, expression);
+            expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.OR))
                 throw new BadArgumentException("cannot mix | and &", new String(expression), index - 1);
             } else {
-              result = new Node(NodeType.OR);
+              result = new Node(NodeType.OR, wholeTermStart);
             }
             result.add(expr);
             expr = null;
-            termStart = index;
+            subtermStart = index;
             break;
           }
           case '(': {
             parens++;
-            if (termStart != index - 1 || expr != null)
+            if (subtermStart != index - 1 || expr != null)
               throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
             expr = parse_(expression);
-            termStart = index;
+            subtermStart = index;
             break;
           }
           case ')': {
             parens--;
-            Node child = processTerm(termStart, index - 1, expr, expression);
+            Node child = processTerm(subtermStart, index - 1, expr, expression);
             if (child == null && result == null)
               throw new BadArgumentException("empty expression not allowed", new String(expression), index);
             if (result == null)
@@ -239,10 +242,11 @@ public class ColumnVisibility {
           }
         }
       }
-      Node child = processTerm(termStart, index, expr, expression);
-      if (result != null)
+      Node child = processTerm(subtermStart, index, expr, expression);
+      if (result != null) {
         result.add(child);
-      else
+        result.end = index;
+      } else
         result = child;
       if (result.type != NodeType.TERM)
         if (result.children.size() < 2)

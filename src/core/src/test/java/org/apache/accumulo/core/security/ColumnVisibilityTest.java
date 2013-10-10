@@ -18,7 +18,10 @@ package org.apache.accumulo.core.security;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
+import org.apache.accumulo.core.security.ColumnVisibility.Node;
+import org.apache.accumulo.core.security.ColumnVisibility.NodeType;
 import org.junit.Test;
 
 public class ColumnVisibilityTest {
@@ -107,5 +110,58 @@ public class ColumnVisibilityTest {
   public void testMixedOperators() {
     shouldThrow("(A&B)|(C&D)&(E)");
     shouldThrow("a|b&c", "A&B&C|D", "(A&B)|(C&D)&(E)");
+  }
+
+  @Test
+  public void testParseTreeWithNoChildren() {
+    Node node = parse("ABC");
+    assertNode(node, NodeType.TERM, 0, 3);
+  }
+
+  @Test
+  public void testParseTreeWithTwoChildren() {
+    Node node = parse("ABC|DEF");
+    assertNode(node, NodeType.OR, 0, 7);
+    assertNode(node.getChildren().get(0), NodeType.TERM, 0, 3);
+    assertNode(node.getChildren().get(1), NodeType.TERM, 4, 7);
+  }
+
+  @Test
+  public void testParseTreeWithParenthesesAndTwoChildren() {
+    Node node = parse("(ABC|DEF)");
+    assertNode(node, NodeType.OR, 1, 8);
+    assertNode(node.getChildren().get(0), NodeType.TERM, 1, 4);
+    assertNode(node.getChildren().get(1), NodeType.TERM, 5, 8);
+  }
+
+  @Test
+  public void testParseTreeWithParenthesizedChildren() {
+    Node node = parse("ABC|(DEF&GHI)");
+    assertNode(node, NodeType.OR, 0, 13);
+    assertNode(node.getChildren().get(0), NodeType.TERM, 0, 3);
+    assertNode(node.getChildren().get(1), NodeType.AND, 5, 12);
+    assertNode(node.getChildren().get(1).children.get(0), NodeType.TERM, 5, 8);
+    assertNode(node.getChildren().get(1).children.get(1), NodeType.TERM, 9, 12);
+  }
+
+  @Test
+  public void testParseTreeWithMoreParentheses() {
+    Node node = parse("(W)|(U&V)");
+    assertNode(node, NodeType.OR, 0, 9);
+    assertNode(node.getChildren().get(0), NodeType.TERM, 1, 2);
+    assertNode(node.getChildren().get(1), NodeType.AND, 5, 8);
+    assertNode(node.getChildren().get(1).children.get(0), NodeType.TERM, 5, 6);
+    assertNode(node.getChildren().get(1).children.get(1), NodeType.TERM, 7, 8);
+  }
+
+  private Node parse(String s) {
+    ColumnVisibility v = new ColumnVisibility(s);
+    return v.getParseTree();
+  }
+
+  private void assertNode(Node node, NodeType nodeType, int start, int end) {
+    assertEquals(node.type, nodeType);
+    assertEquals(start, node.start);
+    assertEquals(end, node.end);
   }
 }
