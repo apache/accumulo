@@ -79,8 +79,14 @@ public enum Property {
   INSTANCE_ZK_HOST("instance.zookeeper.host", "localhost:2181", PropertyType.HOSTLIST, "Comma separated list of zookeeper servers"),
   INSTANCE_ZK_TIMEOUT("instance.zookeeper.timeout", "30s", PropertyType.TIMEDURATION,
       "Zookeeper session timeout; max value when represented as milliseconds should be no larger than " + Integer.MAX_VALUE),
-  INSTANCE_DFS_URI("instance.dfs.uri", "", PropertyType.URI,
-      "The url accumulo should use to connect to DFS.  If this is empty, accumulo will obtain this information from the hadoop configuration."),
+  INSTANCE_DFS_URI(
+      "instance.dfs.uri",
+      "",
+      PropertyType.URI,
+      "A url accumulo should use to connect to DFS. If this is empty, accumulo will obtain this information from the hadoop configuration.  This property "
+          + "will only be used when creating new files if instance.volumes is empty.  After an upgrade to 1.6.0 Accumulo will start using absolute paths to "
+          + "reference files.  Files created before a 1.6.0 upgrade are referenced via relative paths.  Relative paths will always be resolved using this config "
+          + "(if empty using the hadoop config)."),
   INSTANCE_DFS_DIR("instance.dfs.dir", "/accumulo", PropertyType.ABSOLUTEPATH,
       "HDFS directory in which accumulo instance will run.  Do not change after accumulo is initialized."),
   @Sensitive
@@ -88,7 +94,8 @@ public enum Property {
       "A secret unique to a given instance that all servers must know in order to communicate with one another."
           + " Change it before initialization. To change it later use ./bin/accumulo accumulo.server.util.ChangeSecret [oldpasswd] [newpasswd], "
           + " and then update conf/accumulo-site.xml everywhere."),
-  INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING, "A list of volumes to use.  By default, this will be the namenode in the hadoop configuration in the accumulo classpath."),
+  INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
+      "A comma seperated list of dfs uris to use.  Files will be stored across these filesystems.  If this is empty, then instance.dfs.uri will be used."),
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator", "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user has privilege to perform an action"),
   INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor", "org.apache.accumulo.server.security.handler.ZKAuthorizor", PropertyType.CLASSNAME,

@@ -32,6 +32,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -318,10 +319,13 @@ public class VolumeManagerImpl implements VolumeManager {
   public static VolumeManager get(AccumuloConfiguration conf) throws IOException {
     Map<String,FileSystem> fileSystems = new HashMap<String,FileSystem>();
     Configuration hadoopConf = CachedConfiguration.getInstance();
-    fileSystems.put(DEFAULT, FileSystem.get(hadoopConf));
-    String ns = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_VOLUMES);
-    if (ns != null) {
+    fileSystems.put(DEFAULT, FileUtil.getFileSystem(hadoopConf, conf));
+    String ns = conf.get(Property.INSTANCE_VOLUMES);
+    if (ns != null && !ns.isEmpty()) {
       for (String space : ns.split(",")) {
+        if (space.equals(DEFAULT))
+          throw new IllegalArgumentException();
+
         if (space.contains(":")) {
           fileSystems.put(space, new Path(space).getFileSystem(hadoopConf));
         } else {
@@ -329,7 +333,7 @@ public class VolumeManagerImpl implements VolumeManager {
         }
       }
     }
-    return new VolumeManagerImpl(fileSystems, "", conf);
+    return new VolumeManagerImpl(fileSystems, DEFAULT, conf);
   }
 
   @Override

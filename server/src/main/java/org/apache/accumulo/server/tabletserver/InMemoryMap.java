@@ -192,8 +192,6 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
 }
 
 public class InMemoryMap {
-  MutationLog mutationLog;
-  
   private SimpleMap map = null;
   
   private static final Logger log = Logger.getLogger(InMemoryMap.class);
