@@ -124,7 +124,7 @@
       <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
-        <version>1.30</version>
+        <version>1.32</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.gson</groupId>
@@ -175,11 +175,6 @@
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
         <version>1.1.1</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-logging</groupId>
-        <artifactId>commons-logging-api</artifactId>
-        <version>1.0.4</version>
       </dependency>
       <dependency>
         <groupId>javax.servlet</groupId>

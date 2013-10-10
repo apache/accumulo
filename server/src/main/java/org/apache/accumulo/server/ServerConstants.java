@@ -39,17 +39,20 @@ public class ServerConstants {
   public static String[] getBaseDirs() {
     String singleNamespace = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_DIR);
     String ns = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_VOLUMES);
+    String dfsUri = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI);
+
     if (ns == null || ns.isEmpty()) {
-      Configuration hadoopConfig = CachedConfiguration.getInstance();
-      String fullPath = hadoopConfig.get("fs.default.name") + singleNamespace;
-      return new String[] {fullPath};
+      if (dfsUri == null || dfsUri.isEmpty()) {
+        Configuration hadoopConfig = CachedConfiguration.getInstance();
+        String fullPath = hadoopConfig.get("fs.default.name") + singleNamespace;
+        return new String[] {fullPath};
+      } else {
+        String fullPath = dfsUri + singleNamespace;
+        return new String[] {fullPath};
+      }
     }
+
     String namespaces[] = ns.split(",");
-    if (namespaces.length < 2) {
-      Configuration hadoopConfig = CachedConfiguration.getInstance();
-      String fullPath = hadoopConfig.get("fs.default.name") + singleNamespace;
-      return new String[] {fullPath};
-    }
     return prefix(namespaces, singleNamespace);
   }
   
