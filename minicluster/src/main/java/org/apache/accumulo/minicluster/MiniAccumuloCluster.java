@@ -19,6 +19,7 @@ package org.apache.accumulo.minicluster;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +27,9 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,6 +63,8 @@ import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -145,12 +151,78 @@ public class MiniAccumuloCluster {
     return proc;
   }
 
+  private boolean containsSiteFile(File f) {
+    return f.isDirectory() && f.listFiles(new FileFilter() {
+      
+      @Override
+      public boolean accept(File pathname) {
+        return pathname.getName().endsWith("site.xml");
+      }
+    }).length > 0;
+  }
+
+  private void append(StringBuilder classpathBuilder, String sep, URL url) throws URISyntaxException {
+    File file = new File(url.toURI());
+    // do not include dirs containing hadoop or accumulo site files
+    if (!containsSiteFile(file)) {
+      classpathBuilder.append(sep);
+      classpathBuilder.append(file.getAbsolutePath());
+    }
+  }
+
+  private String getClasspath() throws IOException {
+    
+    try {
+      ArrayList<ClassLoader> classloaders = new ArrayList<ClassLoader>();
+      
+      ClassLoader cl = this.getClass().getClassLoader();
+      
+      while (cl != null) {
+        classloaders.add(cl);
+        cl = cl.getParent();
+      }
+      
+      Collections.reverse(classloaders);
+      
+      StringBuilder classpathBuilder = new StringBuilder();
+      classpathBuilder.append(config.getConfDir().getAbsolutePath());
+
+      String sep = File.pathSeparator;
+      
+      // assume 0 is the system classloader and skip it
+      for (int i = 1; i < classloaders.size(); i++) {
+        ClassLoader classLoader = classloaders.get(i);
+        
+        if (classLoader instanceof URLClassLoader) {
+          
+          URLClassLoader ucl = (URLClassLoader) classLoader;
+          
+          for (URL u : ucl.getURLs()) {
+            append(classpathBuilder, sep, u);
+          }
+          
+        } else if (classLoader instanceof VFSClassLoader) {
+          
+          VFSClassLoader vcl = (VFSClassLoader) classLoader;
+          for (FileObject f : vcl.getFileObjects()) {
+            append(classpathBuilder, sep, f.getURL());
+          }
+        } else {
+          throw new IllegalArgumentException("Unknown classloader type : " + classLoader.getClass().getName());
+        }
+      }
+      
+      return classpathBuilder.toString();
+      
+    } catch (URISyntaxException e) {
+      throw new IOException(e);
+    }
+  }
+
   private Process exec(Class<? extends Object> clazz, List<String> extraJvmOpts, String... args) throws IOException {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
-    String classpath = System.getProperty("java.class.path");
-
-    classpath = config.getConfDir().getAbsolutePath() + File.pathSeparator + classpath;
+    String classpath = getClasspath();
 
     String className = clazz.getName();
 
@@ -165,14 +237,7 @@ public class MiniAccumuloCluster {
 
     builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", config.getLogDir().getAbsolutePath());
-
-    // if we're running under accumulo.start, we forward these env vars
-    String env = System.getenv("HADOOP_PREFIX");
-    if (env != null)
-      builder.environment().put("HADOOP_PREFIX", env);
-    env = System.getenv("ZOOKEEPER_HOME");
-    if (env != null)
-      builder.environment().put("ZOOKEEPER_HOME", env);
+    builder.environment().put("ACCUMULO_CONF_DIR", config.getDir().getAbsolutePath());
 
     Process process = builder.start();
 
@@ -339,7 +404,7 @@ public class MiniAccumuloCluster {
     }
 
     if (zooKeeperProcess == null) {
-      zooKeeperProcess = exec(Main.class, ServerType.ZOOKEEPER, ZooKeeperServerMain.class.getName(), zooCfgFile.getAbsolutePath());
+      zooKeeperProcess = exec(ZooKeeperServerMain.class, ServerType.ZOOKEEPER, zooCfgFile.getAbsolutePath());
     }
 
     if (!initialized) {
