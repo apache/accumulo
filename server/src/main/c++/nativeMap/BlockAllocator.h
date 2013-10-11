@@ -150,13 +150,13 @@ struct LinkedBlockAllocator {
 		//std::cout << "Deleting " << blocks.size() << " blocks, memused : " << memused << std::endl;
 		std::vector<Block>::iterator iter = blocks.begin();
 		while(iter != blocks.end()){
-			delete(iter->data);
+		  	delete [] (iter->data);
 			iter++;
 		}
 
 		std::vector<BigBlock>::iterator iter2 = bigBlocks.begin();
 		while(iter2 != bigBlocks.end()){
-			delete(iter2->ptr);
+		  	delete [] (iter2->ptr);
 			iter2++;
 		}
 	}

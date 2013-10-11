@@ -31,9 +31,9 @@ void runTest(int numRows, int numCf, int numCq, int rowLen, int cfLen, int cqLen
 
 	NativeMap nm(1<<17, 1<<11);
 
-	cout << " size pair<Key, Field>    : " << sizeof(std::pair<Key, Field>) << endl;
-	cout << " size pair<Field, CMT>    : " << sizeof(std::pair<Field, CMT>) << endl;
-	cout << " size pair<SubKey, Field> : " << sizeof(std::pair<SubKey, Field>) << endl;
+	cout << " size pair<Key, Field>       : " << sizeof(std::pair<Key, Field>) << endl;
+	cout << " size pair<Field, ColumnMap> : " << sizeof(std::pair<Field, ColumnMap>) << endl;
+	cout << " size pair<SubKey, Field>    : " << sizeof(std::pair<SubKey, Field>) << endl;
 
 //	std::less<Key> comp;
 //	map<Key, Field, std::less<Key>, block_allocator<std::pair<Key, Field> > > oldMap(comp, block_allocator<std::pair<Key, Field> >(&lba));
@@ -58,7 +58,7 @@ void runTest(int numRows, int numCf, int numCq, int rowLen, int cfLen, int cqLen
 		char row[rowLen+1];
 		snprintf(row, rowLen+1, rowFmt, r);
 
-		CMT *cmt = NULL;
+		ColumnMap *cmt = NULL;
 		if(!testOld){
 			cmt = nm.startUpdate(row);
 		}
@@ -78,7 +78,7 @@ void runTest(int numRows, int numCf, int numCq, int rowLen, int cfLen, int cqLen
 				snprintf(val, valLen+1, valFmt, entries);
 				
 				if(!testOld){	
-					nm.update(cmt, colf, colq, colv, 5, false, val, valLen);	
+				  nm.update(cmt, colf, colq, colv, 5, false, val, valLen, cf * numCq + numCq);	
 				}else{
 					oldMap.insert(pair<Key, Field>(Key(row, colf, colq, colv, 5, false), Field(val)));
 				}

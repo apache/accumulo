@@ -58,6 +58,9 @@ clean:
 org_apache_accumulo_server_tabletserver_NativeMap.h :
 	javah -classpath ../../../../../lib/accumulo-server.jar org.apache.accumulo.server.tabletserver.NativeMap
 
+test: $(SRCS) $(HDRS)
+	g++ -g -o test -Wall -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/include $(SRCS) test.cc
+
 $(INSTALLED_LIBS) : $(INSTALL_DIR) $(LIBS)
 	cp $(LIBS) $(INSTALL_DIR)
 
