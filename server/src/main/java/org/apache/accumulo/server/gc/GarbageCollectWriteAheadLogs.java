@@ -40,6 +40,7 @@ import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil.LogEntry;
@@ -222,7 +223,7 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
   
-  private static int removeMetadataEntries(Map<Path,String> fileToServerMap, Set<Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
+  private int removeMetadataEntries(Map<Path,String> fileToServerMap, Set<Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
       InterruptedException {
     int count = 0;
     Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
@@ -234,7 +235,7 @@ public class GarbageCollectWriteAheadLogs {
         if (filename.contains(":"))
           path = new Path(filename);
         else
-          path = new Path(ServerConstants.getWalDirs()[0] + filename);
+          path = fs.getFullPath(FileType.WAL, filename);
         
         if (fileToServerMap.remove(path) != null)
           status.currentLog.inUse++;

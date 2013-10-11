@@ -16,12 +16,15 @@
  */
 package org.apache.accumulo.server;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class ServerConstants {
@@ -35,25 +38,48 @@ public class ServerConstants {
   public static final int DATA_VERSION = 6;
   public static final int PREV_DATA_VERSION = 5;
   
-  // these are functions to delay loading the Accumulo configuration unless we must
-  public static String[] getBaseDirs() {
-    String singleNamespace = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_DIR);
-    String ns = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_VOLUMES);
-    String dfsUri = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI);
+  private static String[] baseDirs = null;
+  private static String defaultBaseDir = null;
 
-    if (ns == null || ns.isEmpty()) {
+  public static synchronized String getDefaultBaseDir() {
+    if (defaultBaseDir == null) {
+      String singleNamespace = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_DIR);
+      String dfsUri = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI);
+      String baseDir;
+      
       if (dfsUri == null || dfsUri.isEmpty()) {
         Configuration hadoopConfig = CachedConfiguration.getInstance();
-        String fullPath = hadoopConfig.get("fs.default.name") + singleNamespace;
-        return new String[] {fullPath};
+        try {
+          baseDir = FileSystem.get(hadoopConfig).getUri().toString() + singleNamespace;
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
       } else {
-        String fullPath = dfsUri + singleNamespace;
-        return new String[] {fullPath};
+        baseDir = dfsUri + singleNamespace;
+      }
+      
+      defaultBaseDir = new Path(baseDir).toString();
+      
+    }
+    
+    return defaultBaseDir;
+  }
+
+  // these are functions to delay loading the Accumulo configuration unless we must
+  public static synchronized String[] getBaseDirs() {
+    if (baseDirs == null) {
+      String singleNamespace = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_DIR);
+      String ns = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_VOLUMES);
+      
+      if (ns == null || ns.isEmpty()) {
+        baseDirs = new String[] {getDefaultBaseDir()};
+      } else {
+        String namespaces[] = ns.split(",");
+        baseDirs = prefix(namespaces, singleNamespace);
       }
     }
-
-    String namespaces[] = ns.split(",");
-    return prefix(namespaces, singleNamespace);
+    
+    return baseDirs;
   }
   
   public static String[] prefix(String bases[], String suffix) {
@@ -66,16 +92,20 @@ public class ServerConstants {
     return result;
   }
   
+  public static final String TABLE_DIR = "tables";
+  public static final String RECOVERY_DIR = "recovery";
+  public static final String WAL_DIR = "wal";
+
   public static String[] getTablesDirs() {
-    return prefix(getBaseDirs(), "tables");
+    return prefix(getBaseDirs(), TABLE_DIR);
   }
-  
+
   public static String[] getRecoveryDirs() {
-    return prefix(getBaseDirs(), "recovery");
+    return prefix(getBaseDirs(), RECOVERY_DIR);
   }
   
   public static String[] getWalDirs() {
-    return prefix(getBaseDirs(), "wal");
+    return prefix(getBaseDirs(), WAL_DIR);
   }
   
   public static String[] getWalogArchives() {

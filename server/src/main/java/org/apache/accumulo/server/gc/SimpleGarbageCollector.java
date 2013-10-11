@@ -82,6 +82,7 @@ import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -667,12 +668,8 @@ public class SimpleGarbageCollector implements Iface {
           boolean removeFlag;
           
           try {
-            Path fullPath;
-            
-            if (delete.contains(":"))
-              fullPath = new Path(delete);
-            else
-              fullPath = fs.getFullPath(ServerConstants.getTablesDirs(), delete);
+            Path fullPath = fs.getFullPath(FileType.TABLE, delete);
+
             log.debug("Deleting " + fullPath);
             
             if (moveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {

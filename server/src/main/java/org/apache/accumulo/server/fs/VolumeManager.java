@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -32,6 +33,22 @@ import org.apache.hadoop.fs.Path;
  * This also concentrates a bunch of meta-operations like waiting for SAFE_MODE, and closing WALs.
  */
 public interface VolumeManager {
+  
+  
+  
+  public static enum FileType {
+    TABLE(ServerConstants.TABLE_DIR), WAL(ServerConstants.WAL_DIR), RECOVERY(ServerConstants.RECOVERY_DIR);
+    
+    private String dir;
+    
+    FileType(String dir) {
+      this.dir = dir;
+    }
+    
+    public String getDirectory() {
+      return dir;
+    }
+  }
   
   // close the underlying FileSystems
   void close() throws IOException;
@@ -111,12 +128,15 @@ public interface VolumeManager {
   // Convert a file or directory !METADATA reference into a path
   Path getFullPath(Key key);
   
+  Path getFullPath(String tableId, String path);
+
   // Given a filename, figure out the qualified path given multiple namespaces
-  Path getFullPath(String paths[], String fileName) throws IOException;
+  Path getFullPath(FileType fileType, String fileName) throws IOException;
 
   // forward to the appropriate FileSystem object
   ContentSummary getContentSummary(Path dir) throws IOException;
 
   // decide on which of the given locations to create a new file
   String choose(String[] options);
+
 }

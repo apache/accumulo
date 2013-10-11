@@ -107,6 +107,7 @@ public class VolumeTest {
     scanner.setRange(new Range("1", "1<"));
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     int fileCount = 0;
+    
     for (Entry<Key,Value> entry : scanner) {
       boolean inV1 = entry.getKey().getColumnQualifier().toString().contains(v1.toString());
       boolean inV2 = entry.getKey().getColumnQualifier().toString().contains(v2.toString());
