@@ -29,15 +29,15 @@ import org.apache.accumulo.core.data.Value;
  * An iterator that is useful testing... for example if you want to test ingest performance w/o writing data to disk, insert this iterator for scan as follows
  * using the accumulo shell.
  * 
- * config -t ci -s table.iterator.minc.devnull=21,accumulo.core.iterators.DevNull
+ * config -t ci -s table.iterator.minc.devnull=21,org.apache.accumulo.core.iterators.DevNull
  * 
  * Could also make scans never return anything very quickly by adding it to the scan stack
  * 
- * config -t ci -s table.iterator.scan.devnull=21,accumulo.core.iterators.DevNull
+ * config -t ci -s table.iterator.scan.devnull=21,org.apache.accumulo.core.iterators.DevNull
  * 
  * And to make major compactions never write anything
  * 
- * config -t ci -s table.iterator.majc.devnull=21,accumulo.core.iterators.DevNull
+ * config -t ci -s table.iterator.majc.devnull=21,org.apache.accumulo.core.iterators.DevNull
  * 
  */
 
