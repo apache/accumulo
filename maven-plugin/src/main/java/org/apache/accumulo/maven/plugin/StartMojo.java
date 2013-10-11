@@ -37,32 +37,32 @@ import org.codehaus.plexus.util.FileUtils;
 @ThreadSafe
 @Mojo(name = "start", defaultPhase = LifecyclePhase.PRE_INTEGRATION_TEST, requiresDependencyResolution = ResolutionScope.TEST)
 public class StartMojo extends AbstractAccumuloMojo {
-  
+
   @Parameter(defaultValue = "${project.build.directory}", property = "outputDir", required = true)
   private File outputDirectory;
-  
+
   @Parameter(defaultValue = "testInstance", property = "instanceName", required = true)
   private String instanceName;
-  
+
   @Parameter(defaultValue = "secret", property = "rootPassword", required = true)
   private String rootPassword;
-  
+
   private String miniClasspath;
-  
+
   static Set<MiniAccumuloCluster> runningClusters = Collections.synchronizedSet(new HashSet<MiniAccumuloCluster>());
-  
+
   @Override
   public void execute() throws MojoExecutionException {
     File subdir = new File(new File(outputDirectory, "accumulo-maven-plugin"), instanceName);
-    
+
     try {
       subdir = subdir.getCanonicalFile();
       if (subdir.exists())
         FileUtils.forceDelete(subdir);
       subdir.mkdirs();
-      configureMiniClasspath(miniClasspath);
       MiniAccumuloConfig cfg = new MiniAccumuloConfig(subdir, rootPassword);
       cfg.setInstanceName(instanceName);
+      configureMiniClasspath(cfg, miniClasspath);
       MiniAccumuloCluster mac = new MiniAccumuloCluster(cfg);
       System.out.println("Starting MiniAccumuloCluster: " + mac.getInstanceName() + " in " + mac.getConfig().getDir());
       mac.start();
@@ -70,9 +70,9 @@ public class StartMojo extends AbstractAccumuloMojo {
     } catch (Exception e) {
       throw new MojoExecutionException("Unable to start " + MiniAccumuloCluster.class.getSimpleName(), e);
     }
-    
+
   }
-  
+
   public static void main(String[] args) throws MojoExecutionException {
     int a = 0;
     for (String arg : args) {

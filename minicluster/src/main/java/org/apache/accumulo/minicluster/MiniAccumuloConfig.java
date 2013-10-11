@@ -59,6 +59,8 @@ public class MiniAccumuloConfig {
   private boolean useMiniDFS = false;
   private boolean runGC = false;
 
+  private String[] classpathItems = null;
+
   /**
    * @param dir
    *          An empty or nonexistant directory that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava, and
@@ -371,5 +373,26 @@ public class MiniAccumuloConfig {
    */
   public void runGC(boolean shouldRunGC) {
     runGC = shouldRunGC;
+  }
+
+  /**
+   * Gets the classpath elements to use when spawning processes.
+   * 
+   * @return the classpathItems, if set
+   * @since 1.6.0
+   */
+  public String[] getClasspathItems() {
+    return classpathItems;
+  }
+
+  /**
+   * Sets the classpath elements to use when spawning processes.
+   * 
+   * @param classpathItems
+   *          the classpathItems to set
+   * @since 1.6.0
+   */
+  public void setClasspathItems(String... classpathItems) {
+    this.classpathItems = classpathItems;
   }
 }
