@@ -90,8 +90,8 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -101,6 +101,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.constraints.ConstraintChecker;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.tableOps.CompactRange.CompactionIterators;
@@ -1200,7 +1201,7 @@ public class Tablet {
       Key key = entry.getKey();
       if (key.getRow().equals(row) && key.getColumnFamily().equals(ScanFileColumnFamily.NAME)) {
         String meta = key.getColumnQualifier().toString();
-        Path path = fs.getFullPath(ServerConstants.getTablesDirs(), meta);
+        Path path = fs.getFullPath(extent.getTableId().toString(), meta);
         scanFiles.add(new FileRef(meta, path));
       }
     }
@@ -1256,7 +1257,7 @@ public class Tablet {
     if (location.find(":") >= 0) {
       locationPath = new Path(location.toString());
     } else {
-      locationPath = new Path(ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId().toString() + location.toString());
+      locationPath = fs.getFullPath(FileType.TABLE, extent.getTableId().toString() + location.toString());
     }
     this.location = locationPath.makeQualified(fs.getFileSystemByPath(locationPath));
     this.lastLocation = lastLocation;
@@ -1401,7 +1402,7 @@ public class Tablet {
       for (LogEntry logEntry : logEntries) {
         for (String log : logEntry.logSet) {
           String[] parts = log.split("/", 2);
-          Path file = fs.getFullPath(ServerConstants.getWalDirs(), parts[1]);
+          Path file = fs.getFullPath(FileType.WAL, parts[1]);
           currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), logEntry.server, file));
         }
       }

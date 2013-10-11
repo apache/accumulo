@@ -153,7 +153,7 @@ public class MiniAccumuloCluster {
 
   private boolean containsSiteFile(File f) {
     return f.isDirectory() && f.listFiles(new FileFilter() {
-      
+
       @Override
       public boolean accept(File pathname) {
         return pathname.getName().endsWith("site.xml");
@@ -161,59 +161,61 @@ public class MiniAccumuloCluster {
     }).length > 0;
   }
 
-  private void append(StringBuilder classpathBuilder, String sep, URL url) throws URISyntaxException {
+  private void append(StringBuilder classpathBuilder, URL url) throws URISyntaxException {
     File file = new File(url.toURI());
     // do not include dirs containing hadoop or accumulo site files
-    if (!containsSiteFile(file)) {
-      classpathBuilder.append(sep);
-      classpathBuilder.append(file.getAbsolutePath());
-    }
+    if (!containsSiteFile(file))
+      classpathBuilder.append(File.pathSeparator).append(file.getAbsolutePath());
   }
 
   private String getClasspath() throws IOException {
-    
+
     try {
       ArrayList<ClassLoader> classloaders = new ArrayList<ClassLoader>();
-      
+
       ClassLoader cl = this.getClass().getClassLoader();
-      
+
       while (cl != null) {
         classloaders.add(cl);
         cl = cl.getParent();
       }
-      
+
       Collections.reverse(classloaders);
-      
+
       StringBuilder classpathBuilder = new StringBuilder();
       classpathBuilder.append(config.getConfDir().getAbsolutePath());
 
-      String sep = File.pathSeparator;
-      
-      // assume 0 is the system classloader and skip it
-      for (int i = 1; i < classloaders.size(); i++) {
-        ClassLoader classLoader = classloaders.get(i);
-        
-        if (classLoader instanceof URLClassLoader) {
-          
-          URLClassLoader ucl = (URLClassLoader) classLoader;
-          
-          for (URL u : ucl.getURLs()) {
-            append(classpathBuilder, sep, u);
+      if (config.getClasspathItems() == null) {
+
+        // assume 0 is the system classloader and skip it
+        for (int i = 1; i < classloaders.size(); i++) {
+          ClassLoader classLoader = classloaders.get(i);
+
+          if (classLoader instanceof URLClassLoader) {
+
+            URLClassLoader ucl = (URLClassLoader) classLoader;
+
+            for (URL u : ucl.getURLs()) {
+              append(classpathBuilder, u);
+            }
+
+          } else if (classLoader instanceof VFSClassLoader) {
+
+            VFSClassLoader vcl = (VFSClassLoader) classLoader;
+            for (FileObject f : vcl.getFileObjects()) {
+              append(classpathBuilder, f.getURL());
+            }
+          } else {
+            throw new IllegalArgumentException("Unknown classloader type : " + classLoader.getClass().getName());
           }
-          
-        } else if (classLoader instanceof VFSClassLoader) {
-          
-          VFSClassLoader vcl = (VFSClassLoader) classLoader;
-          for (FileObject f : vcl.getFileObjects()) {
-            append(classpathBuilder, sep, f.getURL());
-          }
-        } else {
-          throw new IllegalArgumentException("Unknown classloader type : " + classLoader.getClass().getName());
         }
+      } else {
+        for (String s : config.getClasspathItems())
+          classpathBuilder.append(File.pathSeparator).append(s);
       }
-      
+
       return classpathBuilder.toString();
-      
+
     } catch (URISyntaxException e) {
       throw new IOException(e);
     }

@@ -233,9 +233,10 @@ public class Initialize {
     
     // the actual disk locations of the metadata table and tablets
     final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
-    final Path[] tableMetadataTabletDirs = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), TABLE_TABLETS_TABLET_DIR));
-    final Path[] defaultMetadataTabletDirs = paths(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
     
+    String tableMetadataTabletDir = fs.choose(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), TABLE_TABLETS_TABLET_DIR));
+    String defaultMetadataTabletDir = fs.choose(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
+
     fs.mkdirs(new Path(ServerConstants.getDataVersionLocation(), "" + ServerConstants.DATA_VERSION));
     
     // create an instance id
@@ -288,7 +289,7 @@ public class Initialize {
     // table tablet's directory
     Key tableDirKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableDirKey, new Value(TABLE_TABLETS_TABLET_DIR.getBytes()));
+    mfw.append(tableDirKey, new Value(tableMetadataTabletDir.getBytes()));
     
     // table tablet time
     Key tableTimeKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
@@ -306,7 +307,7 @@ public class Initialize {
     // default's directory
     Key defaultDirKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
+    mfw.append(defaultDirKey, new Value(defaultMetadataTabletDir.getBytes()));
     
     // default's time
     Key defaultTimeKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
@@ -321,7 +322,8 @@ public class Initialize {
     mfw.close();
     
     // create table and default tablets directories
-    for (Path dir : concat(defaultMetadataTabletDirs, tableMetadataTabletDirs)) {
+    for (String s : Arrays.asList(tableMetadataTabletDir, defaultMetadataTabletDir)) {
+      Path dir = new Path(s);
       try {
         fstat = fs.getFileStatus(dir);
         if (!fstat.isDir()) {

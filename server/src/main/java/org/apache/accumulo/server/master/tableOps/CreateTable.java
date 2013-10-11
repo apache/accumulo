@@ -115,7 +115,8 @@ class PopulateMetadata extends MasterRepo {
   public Repo<Master> call(long tid, Master environment) throws Exception {
     
     KeyExtent extent = new KeyExtent(new Text(tableInfo.tableId), null, null);
-    MetadataTableUtil.addTablet(extent, Constants.DEFAULT_TABLET_LOCATION, SystemCredentials.get(), tableInfo.timeType, environment.getMasterLock());
+    String tdir = environment.getFileSystem().choose(ServerConstants.getTablesDirs()) + "/" + tableInfo.tableId + "" + Constants.DEFAULT_TABLET_LOCATION;
+    MetadataTableUtil.addTablet(extent, tdir, SystemCredentials.get(), tableInfo.timeType, environment.getMasterLock());
     
     return new FinishCreateTable(tableInfo);
     

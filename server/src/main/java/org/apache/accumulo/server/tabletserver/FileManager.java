@@ -42,7 +42,6 @@ import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -307,7 +306,9 @@ public class FileManager {
     // open any files that need to be opened
     for (String file : filesToOpen) {
       try {
-        Path path = fs.getFullPath(ServerConstants.getTablesDirs(), file);
+        if (!file.contains(":"))
+          throw new IllegalArgumentException("Expected uri, got : " + file);
+        Path path = new Path(file);
         FileSystem ns = fs.getFileSystemByPath(path);
         //log.debug("Opening "+file + " path " + path);
         FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), false, ns, ns.getConf(), conf.getTableConfiguration(table.toString()),

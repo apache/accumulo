@@ -20,7 +20,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -389,20 +388,10 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public Path getFullPath(Key key) {
-
+    // TODO sanity check col fam
     String relPath = key.getColumnQualifierData().toString();
-    if (relPath.contains(":"))
-      return new Path(relPath);
-
     byte[] tableId = KeyExtent.tableOfMetadataRow(key.getRow());
-
-    if (relPath.startsWith("../"))
-      relPath = relPath.substring(2);
-    else
-      relPath = "/" + new String(tableId) + relPath;
-    Path fullPath = new Path(ServerConstants.getTablesDirs()[0] + relPath);
-    FileSystem fs = getFileSystemByPath(fullPath);
-    return fs.makeQualified(fullPath);
+    return getFullPath(new String(tableId), relPath);
   }
 
   @Override
@@ -427,29 +416,33 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public Path getFullPath(String[] paths, String fileName) throws IOException {
-    if (fileName.contains(":"))
-      return new Path(fileName);
-    // TODO: ACCUMULO-118
-    // How do we want it to work? Find it somewhere? or find it in the default file system?
-    // old-style name, on one of many possible "root" paths:
-    if (fileName.startsWith("../"))
-      fileName = fileName.substring(2);
-    for (String path : paths) {
-      String fullPath;
-      if (path.endsWith("/") || fileName.startsWith("/"))
-        fullPath = path + fileName;
-      else
-        fullPath = path + "/" + fileName;
-      Path exists = new Path(fullPath);
-      FileSystem ns = getFileSystemByPath(exists);
-      if (ns.exists(exists)) {
-        Path result = ns.makeQualified(exists);
-        log.debug("Found " + exists + " on " + path + " as " + result);
-        return ns.makeQualified(exists);
-      }
-    }
-    throw new IOException("Could not find file " + fileName + " in " + Arrays.asList(paths));
+  public Path getFullPath(String tableId, String path) {
+    if (path.contains(":"))
+      return new Path(path);
+    
+    if (path.startsWith("../"))
+      path = path.substring(2);
+    else if (path.startsWith("/"))
+      path = "/" + tableId + path;
+    else
+      throw new IllegalArgumentException("Unexpected path prefix " + path);
+    
+    return getFullPath(FileType.TABLE, path);
+  }
+  
+  @Override
+  public Path getFullPath(FileType fileType, String path) {
+    if (path.contains(":"))
+      return new Path(path);
+    
+    // normalize the path
+    Path fullPath = new Path(ServerConstants.getDefaultBaseDir(), fileType.getDirectory());
+    if (path.startsWith("/"))
+      path = path.substring(1);
+    fullPath = new Path(fullPath, path);
+    
+    FileSystem fs = getFileSystemByPath(fullPath);
+    return fs.makeQualified(fullPath);
   }
 
   @Override
