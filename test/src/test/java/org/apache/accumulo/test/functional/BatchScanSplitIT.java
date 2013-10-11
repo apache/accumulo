@@ -39,42 +39,42 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class BatchScanSplitIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "0"));
   }
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     c.tableOperations().create(tableName);
-    
+
     int numRows = 1 << 18;
-    
+
     BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
-    
+
     for (int i = 0; i < numRows; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i)));
       m.put(new Text("cf1"), new Text("cq1"), new Value(String.format("%016x", numRows - i).getBytes()));
       bw.addMutation(m);
     }
-    
+
     bw.close();
-    
+
     getConnector().tableOperations().flush(tableName, null, null, true);
-    
+
     getConnector().tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "4K");
-    
+
     Collection<Text> splits = getConnector().tableOperations().listSplits(tableName);
     while (splits.size() < 2) {
       UtilWaitThread.sleep(1);
       splits = getConnector().tableOperations().listSplits(tableName);
     }
-    
+
     System.out.println("splits : " + splits);
-    
+
     Random random = new Random(19011230);
     HashMap<Text,Value> expected = new HashMap<Text,Value>();
     ArrayList<Range> ranges = new ArrayList<Range>();
@@ -84,35 +84,35 @@ public class BatchScanSplitIT extends ConfigurableMacIT {
       expected.put(row, new Value(String.format("%016x", numRows - r).getBytes()));
       ranges.add(new Range(row));
     }
-    
+
     // logger.setLevel(Level.TRACE);
-    
+
     HashMap<Text,Value> found = new HashMap<Text,Value>();
-    
+
     for (int i = 0; i < 20; i++) {
       BatchScanner bs = getConnector().createBatchScanner(tableName, Authorizations.EMPTY, 4);
-      
+
       found.clear();
-      
+
       long t1 = System.currentTimeMillis();
-      
+
       bs.setRanges(ranges);
-      
+
       for (Entry<Key,Value> entry : bs) {
         found.put(entry.getKey().getRow(), entry.getValue());
       }
       bs.close();
-      
+
       long t2 = System.currentTimeMillis();
-      
+
       log.info(String.format("rate : %06.2f%n", ranges.size() / ((t2 - t1) / 1000.0)));
-      
+
       if (!found.equals(expected))
         throw new Exception("Found and expected differ " + found + " " + expected);
     }
-    
+
     splits = getConnector().tableOperations().listSplits(tableName);
     log.info("splits : " + splits);
   }
-  
+
 }

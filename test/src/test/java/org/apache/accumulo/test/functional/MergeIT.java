@@ -39,18 +39,18 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class MergeIT extends SimpleMacIT {
-  
-  SortedSet<Text> splits(String [] points) {
+
+  SortedSet<Text> splits(String[] points) {
     SortedSet<Text> result = new TreeSet<Text>();
     for (String point : points)
       result.add(new Text(point));
     return result;
   }
-  
+
   @Test(timeout = 60 * 1000)
   public void merge() throws Exception {
     Connector c = getConnector();
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
     BatchWriter bw = c.createBatchWriter(tableName, null);
@@ -64,11 +64,11 @@ public class MergeIT extends SimpleMacIT {
     c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));
     assertEquals(8, c.tableOperations().listSplits(tableName).size());
   }
-  
+
   @Test(timeout = 60 * 1000)
   public void mergeSize() throws Exception {
     Connector c = getConnector();
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
     BatchWriter bw = c.createBatchWriter(tableName, null);
@@ -94,22 +94,22 @@ public class MergeIT extends SimpleMacIT {
     }
     return result;
   }
-  
+
   private String[] ns(String... strings) {
     return strings;
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void mergeTest() throws Exception {
     int tc = 0;
     Connector c = getConnector();
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     runMergeTest(c, tableName + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
-    
+
     runMergeTest(c, tableName + tc++, ns("m"), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
     runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns("m", "n"), ns(null, "z"));
     runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns(null, "b"), ns("l", "m"));
-    
+
     runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns(), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns(null, "s"));
     runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("c", "m"));
     runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("n", "r"));
@@ -120,29 +120,31 @@ public class MergeIT extends SimpleMacIT {
     runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("r", "s"), ns(null, "z"));
     runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("l", "m"));
     runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"), ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns("q", "r"));
-    
+
   }
-  
-  private void runMergeTest(Connector c, String table, String[] splits, String[] expectedSplits, String[] inserts, String[] start, String[] end) throws Exception {
+
+  private void runMergeTest(Connector c, String table, String[] splits, String[] expectedSplits, String[] inserts, String[] start, String[] end)
+      throws Exception {
     int count = 0;
-    
+
     for (String s : start) {
       for (String e : end) {
         runMergeTest(c, table + "_" + count++, splits, expectedSplits, inserts, s, e);
       }
     }
   }
-  
-  private void runMergeTest(Connector conn, String table, String[] splits, String[] expectedSplits, String[] inserts, String start, String end) throws Exception {
+
+  private void runMergeTest(Connector conn, String table, String[] splits, String[] expectedSplits, String[] inserts, String start, String end)
+      throws Exception {
     System.out.println("Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
-    
+
     conn.tableOperations().create(table, true, TimeType.LOGICAL);
     TreeSet<Text> splitSet = new TreeSet<Text>();
     for (String split : splits) {
       splitSet.add(new Text(split));
     }
     conn.tableOperations().addSplits(table, splitSet);
-    
+
     BatchWriter bw = conn.createBatchWriter(table, null);
     HashSet<String> expected = new HashSet<String>();
     for (String row : inserts) {
@@ -151,13 +153,13 @@ public class MergeIT extends SimpleMacIT {
       bw.addMutation(m);
       expected.add(row);
     }
-    
+
     bw.close();
-    
+
     conn.tableOperations().merge(table, start == null ? null : new Text(start), end == null ? null : new Text(end));
-    
+
     Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
-    
+
     HashSet<String> observed = new HashSet<String>();
     for (Entry<Key,Value> entry : scanner) {
       String row = entry.getKey().getRowData().toString();
@@ -165,21 +167,21 @@ public class MergeIT extends SimpleMacIT {
         throw new Exception("Saw data twice " + table + " " + row);
       }
     }
-    
+
     if (!observed.equals(expected)) {
       throw new Exception("data inconsistency " + table + " " + observed + " != " + expected);
     }
-    
+
     HashSet<Text> currentSplits = new HashSet<Text>(conn.tableOperations().listSplits(table));
     HashSet<Text> ess = new HashSet<Text>();
     for (String es : expectedSplits) {
       ess.add(new Text(es));
     }
-    
+
     if (!currentSplits.equals(ess)) {
       throw new Exception("split inconsistency " + table + " " + currentSplits + " != " + ess);
     }
 
   }
-  
+
 }

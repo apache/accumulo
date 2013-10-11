@@ -34,15 +34,15 @@ import org.apache.hadoop.io.Text;
 import org.codehaus.plexus.util.Base64;
 import org.junit.Test;
 
-public class MapReduceIT extends SimpleMacIT {
-  
+public class MapReduceIT extends ConfigurableMacIT {
+
   static final String tablename = "mapredf";
   static final String input_cf = "cf-HASHTYPE";
   static final String input_cq = "cq-NOTHASHED";
   static final String input_cfcq = input_cf + ":" + input_cq;
   static final String output_cq = "cq-MD4BASE64";
-  static final String output_cfcq =  input_cf + ":" + output_cq;
-  
+  static final String output_cfcq = input_cf + ":" + output_cq;
+
   @Test(timeout = 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
@@ -54,16 +54,11 @@ public class MapReduceIT extends SimpleMacIT {
       bw.addMutation(m);
     }
     bw.close();
-    
-    Process hash = exec(RowHash.class, 
-        "-i", c.getInstance().getInstanceName(),
-        "-z", c.getInstance().getZooKeepers(),
-        "-u", "root",
-        "-p", ROOT_PASSWORD,
-        "-t", tablename,
-        "--column", input_cfcq);
+
+    Process hash = exec(RowHash.class, "-i", c.getInstance().getInstanceName(), "-z", c.getInstance().getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "-t",
+        tablename, "--column", input_cfcq);
     assertEquals(0, hash.waitFor());
-    
+
     Scanner s = c.createScanner(tablename, Authorizations.EMPTY);
     s.fetchColumn(new Text(input_cf), new Text(output_cq));
     int i = 0;
@@ -73,8 +68,7 @@ public class MapReduceIT extends SimpleMacIT {
       assertEquals(entry.getValue().toString(), new String(check));
       i++;
     }
-    
+
   }
 
-  
 }

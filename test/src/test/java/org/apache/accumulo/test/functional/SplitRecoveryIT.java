@@ -20,11 +20,11 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-public class SplitRecoveryIT extends SimpleMacIT {
-  
+public class SplitRecoveryIT extends ConfigurableMacIT {
+
   @Test(timeout = 10 * 1000)
   public void test() throws Exception {
     assertEquals(0, exec(SplitRecoveryTest.class).waitFor());
   }
-  
+
 }

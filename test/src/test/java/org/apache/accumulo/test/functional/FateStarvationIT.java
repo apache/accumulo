@@ -30,15 +30,15 @@ import org.junit.Test;
  * See ACCUMULO-779
  */
 public class FateStarvationIT extends SimpleMacIT {
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(tableName);
-    
+
     c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, 100000, 50));
-    
+
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.random = 89;
     opts.timestamp = 7;
@@ -47,20 +47,20 @@ public class FateStarvationIT extends SimpleMacIT {
     opts.cols = 1;
     opts.tableName = tableName;
     TestIngest.ingest(c, opts, new BatchWriterOpts());
-    
+
     c.tableOperations().flush(tableName, null, null, true);
-    
+
     List<Text> splits = new ArrayList<Text>(TestIngest.getSplitPoints(0, 100000, 67));
     Random rand = new Random();
-    
+
     for (int i = 0; i < 100; i++) {
       int idx1 = rand.nextInt(splits.size() - 1);
       int idx2 = rand.nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
-      
+
       c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, false);
     }
-    
+
     c.tableOperations().offline(tableName);
   }
-  
+
 }

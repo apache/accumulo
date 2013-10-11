@@ -40,7 +40,7 @@ import org.junit.Test;
 
 public class DeleteRowsIT extends SimpleMacIT {
   private static final Logger log = Logger.getLogger(DeleteRowsIT.class);
-  
+
   private static final int ROWS_PER_TABLET = 10;
   private static final String[] LETTERS = new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
       "u", "v", "w", "x", "y", "z"};
@@ -56,13 +56,13 @@ public class DeleteRowsIT extends SimpleMacIT {
     ROWS.add("A");
     ROWS.add("{");
   }
-  
+
   @Test(timeout = 10 * 60 * 1000)
   public void test() throws Exception {
     // Delete ranges of rows, and verify the tablets are removed.
     int i = 0;
     // Eliminate whole tablets
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     testSplit(tableName + i++, "f", "h", "abcdefijklmnopqrstuvwxyz", 260);
     // Eliminate whole tablets, partial first tablet
     testSplit(tableName + i++, "f1", "h", "abcdeff1ijklmnopqrstuvwxyz", 262);
@@ -89,7 +89,7 @@ public class DeleteRowsIT extends SimpleMacIT {
     // Delete everything
     testSplit(tableName + i++, null, null, "", 0);
   }
-  
+
   private void testSplit(String table, String start, String end, String result, int entries) throws Exception {
     // Put a bunch of rows on each tablet
     Connector c = getConnector();
@@ -106,7 +106,7 @@ public class DeleteRowsIT extends SimpleMacIT {
     bw.close();
     // Split the table
     c.tableOperations().addSplits(table, SPLITS);
-    
+
     Text startText = start == null ? null : new Text(start);
     Text endText = end == null ? null : new Text(end);
     c.tableOperations().deleteRows(table, startText, endText);
@@ -128,5 +128,5 @@ public class DeleteRowsIT extends SimpleMacIT {
     log.info("Finished table " + table);
     assertEquals(entries, count);
   }
-  
+
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.io.File;
 import java.util.Collections;
 
 import org.apache.accumulo.core.cli.ClientOpts.Password;
@@ -26,7 +27,9 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.fs.FileSystem;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * This test verifies that when a lot of files are bulk imported into a table with one tablet and then splits that not all map files go to the children tablets.
@@ -36,9 +39,12 @@ import org.junit.Test;
  */
 
 public class BulkSplitOptimizationIT extends ConfigurableMacIT {
-  
+
   private static final String TABLE_NAME = "test_ingest";
-  
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
@@ -54,23 +60,23 @@ public class BulkSplitOptimizationIT extends ConfigurableMacIT {
     c.tableOperations().setProperty(TABLE_NAME, Property.TABLE_MAJC_RATIO.getKey(), "1000");
     c.tableOperations().setProperty(TABLE_NAME, Property.TABLE_FILE_MAX.getKey(), "1000");
     c.tableOperations().setProperty(TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1G");
-    
+
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    FunctionalTestUtils.createRFiles(c, fs, "tmp/testmf", ROWS, SPLITS, 8);
-    FunctionalTestUtils.bulkImport(c, fs, TABLE_NAME, "tmp/testmf");
+    FunctionalTestUtils.createRFiles(c, fs, folder.getRoot() + "/testmf", ROWS, SPLITS, 8);
+    FunctionalTestUtils.bulkImport(c, fs, TABLE_NAME, folder.getRoot() + "/testmf");
     FunctionalTestUtils.checkSplits(c, TABLE_NAME, 0, 0);
     FunctionalTestUtils.checkRFiles(c, TABLE_NAME, 1, 1, 100, 100);
-    
+
     // initiate splits
     getConnector().tableOperations().setProperty(TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
-    
+
     UtilWaitThread.sleep(2000);
-    
+
     // wait until over split threshold
     while (getConnector().tableOperations().listSplits(TABLE_NAME).size() < 50) {
       UtilWaitThread.sleep(500);
     }
-    
+
     FunctionalTestUtils.checkSplits(c, TABLE_NAME, 50, 100);
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
     opts.timestamp = 1;
@@ -81,7 +87,7 @@ public class BulkSplitOptimizationIT extends ConfigurableMacIT {
     opts.cols = 1;
     opts.password = new Password(ROOT_PASSWORD);
     VerifyIngest.verifyIngest(c, opts, SOPTS);
-    
+
     // ensure each tablet does not have all map files
     FunctionalTestUtils.checkRFiles(c, TABLE_NAME, 50, 100, 1, 4);
   }

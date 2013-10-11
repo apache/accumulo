@@ -38,7 +38,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.junit.Test;
 
 public class CombinerIT extends SimpleMacIT {
-  
+
   private void checkSum(String tableName, Connector c) throws Exception {
     Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> i = s.iterator();
@@ -47,11 +47,11 @@ public class CombinerIT extends SimpleMacIT {
     assertEquals("45", entry.getValue().toString());
     assertFalse(i.hasNext());
   }
-  
+
   @Test(timeout = 60 * 1000)
   public void aggregationTest() throws Exception {
     Connector c = getConnector();
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     c.tableOperations().create(tableName);
     IteratorSetting setting = new IteratorSetting(10, SummingCombiner.class);
     SummingCombiner.setEncodingType(setting, Type.STRING);
@@ -66,5 +66,5 @@ public class CombinerIT extends SimpleMacIT {
     bw.close();
     checkSum(tableName, c);
   }
-  
+
 }

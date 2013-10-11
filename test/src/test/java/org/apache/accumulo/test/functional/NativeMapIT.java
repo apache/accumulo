@@ -20,11 +20,11 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-public class NativeMapIT extends SimpleMacIT {
-  
+public class NativeMapIT extends ConfigurableMacIT {
+
   @Test(timeout = 15 * 1000)
   public void test() throws Exception {
     assertEquals(0, exec(NativeMapTest.class).waitFor());
   }
-  
+
 }

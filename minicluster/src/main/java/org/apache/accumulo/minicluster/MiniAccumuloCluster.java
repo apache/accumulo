@@ -330,7 +330,7 @@ public class MiniAccumuloCluster {
 
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());
-    
+
     FileWriter fileWriter = new FileWriter(siteFile);
     fileWriter.append("<configuration>\n");
 
@@ -513,7 +513,7 @@ public class MiniAccumuloCluster {
         if (proc.equals(gcProcess)) {
           gcProcess.destroy();
           gcProcess = null;
-          found= true;
+          found = true;
         }
         break;
     }
@@ -586,7 +586,7 @@ public class MiniAccumuloCluster {
     Instance instance = new ZooKeeperInstance(this.getInstanceName(), this.getZooKeepers());
     return instance.getConnector(user, new PasswordToken(passwd));
   }
-  
+
   public FileSystem getFileSystem() {
     try {
       return FileSystem.get(new URI(dfsUri), new Configuration());

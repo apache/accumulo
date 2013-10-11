@@ -19,10 +19,10 @@ package org.apache.accumulo.minicluster;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.Map.Entry;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -50,12 +50,13 @@ import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class MiniAccumuloClusterTest {
 
-  public static TemporaryFolder folder = new TemporaryFolder();
+  public static File testDir;
 
   private static MiniAccumuloCluster accumulo;
 
@@ -63,8 +64,13 @@ public class MiniAccumuloClusterTest {
   public static void setupMiniCluster() throws Exception {
     Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
 
-    folder.create();
-    MiniAccumuloConfig config = new MiniAccumuloConfig(folder.getRoot(), "superSecret").setJDWPEnabled(true);
+    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    baseDir.mkdirs();
+    testDir = new File(baseDir, MiniAccumuloClusterTest.class.getName());
+    FileUtils.deleteQuietly(testDir);
+    testDir.mkdir();
+
+    MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, "superSecret").setJDWPEnabled(true);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
   }
@@ -150,6 +156,9 @@ public class MiniAccumuloClusterTest {
     conn.tableOperations().delete("table1");
   }
 
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   @Test(timeout = 60000)
   public void testPerTableClasspath() throws Exception {
 
@@ -158,9 +167,8 @@ public class MiniAccumuloClusterTest {
 
     conn.tableOperations().create("table2");
 
-    File jarFile = File.createTempFile("iterator", ".jar");
+    File jarFile = folder.newFile("iterator.jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), jarFile);
-    jarFile.deleteOnExit();
 
     conn.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
     conn.tableOperations().setProperty("table2", Property.TABLE_CLASSPATH.getKey(), "cx1");
@@ -205,18 +213,18 @@ public class MiniAccumuloClusterTest {
       Assert.assertTrue(debugPort.getSecond() > 0);
     }
   }
-  
+
   @Test(timeout = 10000)
   public void testAccurateProcessListReturned() throws Exception {
     Map<ServerType,Collection<ProcessReference>> procs = accumulo.getProcesses();
-    
+
     Assert.assertFalse(procs.containsKey(ServerType.GARBAGE_COLLECTOR));
-    
+
     for (ServerType t : new ServerType[] {ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.ZOOKEEPER}) {
       Assert.assertTrue(procs.containsKey(t));
       Collection<ProcessReference> procRefs = procs.get(t);
       Assert.assertTrue(1 <= procRefs.size());
-      
+
       for (ProcessReference procRef : procRefs) {
         Assert.assertNotNull(procRef);
       }
@@ -226,7 +234,6 @@ public class MiniAccumuloClusterTest {
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
-    folder.delete();
   }
 
 }

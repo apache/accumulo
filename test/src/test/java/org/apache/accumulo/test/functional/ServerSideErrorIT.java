@@ -37,28 +37,28 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class ServerSideErrorIT extends SimpleMacIT {
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     c.tableOperations().create(tableName);
     IteratorSetting is = new IteratorSetting(5, "Bad Aggregator", BadCombiner.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("acf")));
     c.tableOperations().attachIterator(tableName, is);
-    
+
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    
+
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
-    
+
     bw.addMutation(m);
-    
+
     bw.close();
-    
+
     // try to scan table
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    
+
     boolean caught = false;
     try {
       for (Entry<Key,Value> entry : scanner) {
@@ -67,14 +67,14 @@ public class ServerSideErrorIT extends SimpleMacIT {
     } catch (Exception e) {
       caught = true;
     }
-    
+
     if (!caught)
       throw new Exception("Scan did not fail");
-    
+
     // try to batch scan the table
     BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singleton(new Range()));
-    
+
     caught = false;
     try {
       for (Entry<Key,Value> entry : bs) {
@@ -85,27 +85,27 @@ public class ServerSideErrorIT extends SimpleMacIT {
     } finally {
       bs.close();
     }
-    
+
     if (!caught)
       throw new Exception("batch scan did not fail");
-    
+
     // remove the bad agg so accumulo can shutdown
     TableOperations to = c.tableOperations();
     for (Entry<String,String> e : to.getProperties(tableName)) {
       to.removeProperty(tableName, e.getKey());
     }
-    
+
     UtilWaitThread.sleep(500);
-    
+
     // should be able to scan now
     scanner = c.createScanner(tableName, Authorizations.EMPTY);
     for (Entry<Key,Value> entry : scanner) {
       entry.getKey();
     }
-    
+
     // set a non existant iterator, should cause scan to fail on server side
     scanner.addScanIterator(new IteratorSetting(100, "bogus", "com.bogus.iterator"));
-    
+
     caught = false;
     try {
       for (Entry<Key,Value> entry : scanner) {
@@ -115,7 +115,7 @@ public class ServerSideErrorIT extends SimpleMacIT {
     } catch (Exception e) {
       caught = true;
     }
-    
+
     if (!caught)
       throw new Exception("Scan did not fail");
   }

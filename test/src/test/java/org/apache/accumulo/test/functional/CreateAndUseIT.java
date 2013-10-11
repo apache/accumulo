@@ -34,57 +34,58 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class CreateAndUseIT extends SimpleMacIT {
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     SortedSet<Text> splits = new TreeSet<Text>();
-    
+
     for (int i = 1; i < 256; i++) {
       splits.add(new Text(String.format("%08x", i << 8)));
     }
-    
+
     // TEST 1 create a table and immediately batch write to it
-    
+
     Text cf = new Text("cf1");
     Text cq = new Text("cq1");
-    
-    String tableName = makeTableName();
+
+    String[] tableNames = getTableNames(3);
+    String tableName = tableNames[0];
     getConnector().tableOperations().create(tableName);
     getConnector().tableOperations().addSplits(tableName, splits);
     BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
-    
+
     for (int i = 1; i < 257; i++) {
       Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
       m.put(cf, cq, new Value(("" + i).getBytes()));
-      
+
       bw.addMutation(m);
     }
-    
+
     bw.close();
-    
+
     // verify data is there
     Scanner scanner1 = getConnector().createScanner(tableName, Authorizations.EMPTY);
-    
+
     int ei = 1;
-    
+
     for (Entry<Key,Value> entry : scanner1) {
       if (!entry.getKey().getRow().toString().equals(String.format("%08x", (ei << 8) - 16))) {
         throw new Exception("Expected row " + String.format("%08x", (ei << 8) - 16) + " saw " + entry.getKey().getRow());
       }
-      
+
       if (!entry.getValue().toString().equals("" + ei)) {
         throw new Exception("Expected value " + ei + " saw " + entry.getValue());
       }
-      
+
       ei++;
     }
-    
+
     if (ei != 257) {
       throw new Exception("Did not see expected number of rows, ei = " + ei);
     }
-    
+
     // TEST 2 create a table and immediately scan it
-    String table2 = makeTableName();
+    String table2 = tableNames[1];
     getConnector().tableOperations().create(table2);
     getConnector().tableOperations().addSplits(table2, splits);
     Scanner scanner2 = getConnector().createScanner(table2, Authorizations.EMPTY);
@@ -93,19 +94,19 @@ public class CreateAndUseIT extends SimpleMacIT {
       if (entry != null)
         count++;
     }
-    
+
     if (count != 0) {
       throw new Exception("Did not see expected number of entries, count = " + count);
     }
-    
+
     // TEST 3 create a table and immediately batch scan it
-    
+
     ArrayList<Range> ranges = new ArrayList<Range>();
     for (int i = 1; i < 257; i++) {
       ranges.add(new Range(new Text(String.format("%08x", (i << 8) - 16))));
     }
 
-    String table3 = makeTableName();
+    String table3 = tableNames[2];
     getConnector().tableOperations().create(table3);
     getConnector().tableOperations().addSplits(table3, splits);
     BatchScanner bs = getConnector().createBatchScanner(table3, Authorizations.EMPTY, 3);
@@ -115,13 +116,13 @@ public class CreateAndUseIT extends SimpleMacIT {
       if (entry != null)
         count++;
     }
-    
+
     if (count != 0) {
       throw new Exception("Did not see expected number of entries, count = " + count);
     }
-    
+
     bs.close();
-    
+
   }
-  
+
 }

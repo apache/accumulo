@@ -16,37 +16,45 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Collections;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class DumpConfigIT extends ConfigurableMacIT {
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     cfg.setSiteConfig(Collections.singletonMap(Property.TABLE_FILE_BLOCK_SIZE.getKey(), "1234567"));
   }
-  
-  @Test(timeout=2 * 60 * 1000)
+
+  @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
-    File siteFile = new File("target/accumulo-site.xml.bak");
-    siteFile.delete();
-    assertEquals(0, exec(Admin.class, new String[]{"dumpConfig", "-a", "-d", "target"}).waitFor());
-    assertTrue(siteFile.exists());
-    String site = FunctionalTestUtils.readAll(new FileInputStream("target/accumulo-site.xml.bak"));
+    File siteFileBackup = new File(folder.getRoot(), "accumulo-site.xml.bak");
+    assertFalse(siteFileBackup.exists());
+    assertEquals(0, exec(Admin.class, new String[] {"dumpConfig", "-a", "-d", folder.getRoot().getPath()}).waitFor());
+    assertTrue(siteFileBackup.exists());
+    String site = FunctionalTestUtils.readAll(new FileInputStream(siteFileBackup));
     assertTrue(site.contains(Property.TABLE_FILE_BLOCK_SIZE.getKey()));
     assertTrue(site.contains("1234567"));
-    String meta = FunctionalTestUtils.readAll(new FileInputStream("target/!METADATA.cfg"));
+    String meta = FunctionalTestUtils.readAll(new FileInputStream(new File(folder.getRoot(), MetadataTable.NAME + ".cfg")));
     assertTrue(meta.contains(Property.TABLE_FILE_REPLICATION.getKey()));
   }
-  
+
 }

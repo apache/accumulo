@@ -111,9 +111,9 @@ import org.junit.rules.TemporaryFolder;
  * Call every method on the proxy and try to verify that it works.
  */
 public class SimpleTest {
-  
-  public static TemporaryFolder folder = new TemporaryFolder();
-  
+
+  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   private static MiniAccumuloCluster accumulo;
   private static String secret = "superSecret";
   private static Random random = new Random();
@@ -129,20 +129,21 @@ public class SimpleTest {
     }
   };
   private static ByteBuffer creds = null;
-  
+
   private static Class<? extends TProtocolFactory> protocolClass;
-  
+
   static Class<? extends TProtocolFactory> getRandomProtocol() {
     List<Class<? extends TProtocolFactory>> protocolFactories = new ArrayList<Class<? extends TProtocolFactory>>();
     protocolFactories.add(org.apache.thrift.protocol.TJSONProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TBinaryProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TTupleProtocol.Factory.class);
     protocolFactories.add(org.apache.thrift.protocol.TCompactProtocol.Factory.class);
-    
+
     return protocolFactories.get(random.nextInt(protocolFactories.size()));
   }
-  
+
   private static final AtomicInteger tableCounter = new AtomicInteger(0);
+
   private static String makeTableName() {
     return "test" + tableCounter.getAndIncrement();
   }
@@ -150,18 +151,17 @@ public class SimpleTest {
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
     folder.create();
-    MiniAccumuloConfig config = new MiniAccumuloConfig (folder.getRoot(), secret)
-            .setNumTservers (1);
+    MiniAccumuloConfig config = new MiniAccumuloConfig(folder.getRoot(), secret).setNumTservers(1);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
-    
+
     Properties props = new Properties();
     props.put("instance", accumulo.getConfig().getInstanceName());
     props.put("zookeepers", accumulo.getConfig().getZooKeepers());
     props.put("tokenClass", PasswordToken.class.getName());
-    
+
     protocolClass = getRandomProtocol();
-    
+
     proxyPort = PortUtils.getRandomFreePort();
     proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
         protocolClass, props);
@@ -177,7 +177,7 @@ public class SimpleTest {
     client = new TestProxyClient("localhost", proxyPort, protocolClass.newInstance()).proxy();
     creds = client.login(principal, properties);
   }
-  
+
   @Test(timeout = 10000)
   public void security() throws Exception {
     client.createLocalUser(creds, "user", s2bb(secret));
@@ -185,9 +185,9 @@ public class SimpleTest {
     client.dropLocalUser(creds, "user");
     final String table = makeTableName();
     client.createTable(creds, table, false, TimeType.MILLIS);
-    
+
     final IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
-    
+
     try {
       client.addConstraint(badLogin, table, NumericValueConstraint.class.getName());
       fail("exception not thrown");
@@ -451,7 +451,7 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
   }
-  
+
   @Test(timeout = 10000)
   public void tableNotFound() throws Exception {
     final String doesNotExist = "doesNotExists";
@@ -610,7 +610,7 @@ public class SimpleTest {
       client.createConditionalWriter(creds, doesNotExist, new ConditionalWriterOptions());
     } catch (TableNotFoundException ex) {}
   }
-  
+
   @Test(timeout = 10000)
   public void testExists() throws Exception {
     client.createTable(creds, "ett1", false, TimeType.MILLIS);
@@ -628,27 +628,27 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (TableExistsException tee) {}
   }
-  
+
   @Test(timeout = 10000)
   public void testUnknownScanner() throws Exception {
     final String TABLE_TEST = makeTableName();
-    
+
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
-    
+
     String scanner = client.createScanner(creds, TABLE_TEST, null);
     assertFalse(client.hasNext(scanner));
     client.closeScanner(scanner);
-    
+
     try {
       client.hasNext(scanner);
       fail("exception not thrown");
     } catch (UnknownScanner us) {}
-    
+
     try {
       client.closeScanner(scanner);
       fail("exception not thrown");
     } catch (UnknownScanner us) {}
-    
+
     try {
       client.nextEntry("99999999");
       fail("exception not thrown");
@@ -666,22 +666,22 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (UnknownScanner us) {}
   }
-  
+
   @Test(timeout = 10000)
   public void testUnknownWriter() throws Exception {
     final String TABLE_TEST = makeTableName();
-    
+
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
-    
+
     String writer = client.createWriter(creds, TABLE_TEST, null);
     client.update(writer, mutation("row0", "cf", "cq", "value"));
     client.flush(writer);
     client.update(writer, mutation("row2", "cf", "cq", "value2"));
     client.closeWriter(writer);
-    
+
     // this is a oneway call, so it does not throw exceptions
     client.update(writer, mutation("row2", "cf", "cq", "value2"));
-    
+
     try {
       client.flush(writer);
       fail("exception not thrown");
@@ -699,7 +699,7 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (UnknownWriter uw) {}
   }
-  
+
   @Test(timeout = 10000)
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
@@ -708,14 +708,14 @@ public class SimpleTest {
       tservers++;
     }
     assertTrue(tservers > 0);
-    
+
     // get something we know is in the site config
     Map<String,String> cfg = client.getSiteConfiguration(creds);
     assertTrue(cfg.get("instance.dfs.dir").startsWith(folder.getRoot().toString()));
-    
+
     // set a property in zookeeper
     client.setProperty(creds, "table.split.threshold", "500M");
-    
+
     // check that we can read it
     for (int i = 0; i < 5; i++) {
       cfg = client.getSystemConfiguration(creds);
@@ -724,7 +724,7 @@ public class SimpleTest {
       UtilWaitThread.sleep(200);
     }
     assertEquals("500M", cfg.get("table.split.threshold"));
-    
+
     // unset the setting, check that it's not what it was
     client.removeProperty(creds, "table.split.threshold");
     for (int i = 0; i < 5; i++) {
@@ -734,11 +734,11 @@ public class SimpleTest {
       UtilWaitThread.sleep(200);
     }
     assertNotEquals("500M", cfg.get("table.split.threshold"));
-    
+
     // try to load some classes via the proxy
     assertTrue(client.testClassLoad(creds, DevNull.class.getName(), SortedKeyValueIterator.class.getName()));
     assertFalse(client.testClassLoad(creds, "foo.bar", SortedKeyValueIterator.class.getName()));
-    
+
     // create a table that's very slow, so we can look for scans/compactions
     client.createTable(creds, "slow", true, TimeType.MILLIS);
     IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
@@ -747,7 +747,7 @@ public class SimpleTest {
     client.updateAndFlush(creds, "slow", mutation("row2", "cf", "cq", "value"));
     client.updateAndFlush(creds, "slow", mutation("row3", "cf", "cq", "value"));
     client.updateAndFlush(creds, "slow", mutation("row4", "cf", "cq", "value"));
-    
+
     // scan
     Thread t = new Thread() {
       @Override
@@ -785,7 +785,7 @@ public class SimpleTest {
     assertEquals(map.get("slow"), scan.getExtent().tableId);
     assertTrue(scan.getExtent().endRow == null);
     assertTrue(scan.getExtent().prevEndRow == null);
-    
+
     // start a compaction
     t = new Thread() {
       @Override
@@ -799,7 +799,7 @@ public class SimpleTest {
       }
     };
     t.start();
-    
+
     // try to catch it in the act
     List<ActiveCompaction> compactions = Collections.emptyList();
     loop2: for (int i = 0; i < 100; i++) {
@@ -821,15 +821,15 @@ public class SimpleTest {
     assertEquals("", c.localityGroup);
     assertTrue(c.outputFile.contains("default_tablet"));
   }
-  
+
   @Test
   public void testSecurityOperations() throws Exception {
     final String TABLE_TEST = makeTableName();
-    
+
     // check password
     assertTrue(client.authenticateUser(creds, "root", s2pp(secret)));
     assertFalse(client.authenticateUser(creds, "root", s2pp("")));
-    
+
     // create a user
     client.createLocalUser(creds, "stooge", s2bb("password"));
     // change auths
@@ -839,11 +839,11 @@ public class SimpleTest {
     client.changeUserAuthorizations(creds, "stooge", auths);
     List<ByteBuffer> update = client.getUserAuthorizations(creds, "stooge");
     assertEquals(auths, new HashSet<ByteBuffer>(update));
-    
+
     // change password
     client.changeLocalUserPassword(creds, "stooge", s2bb(""));
     assertTrue(client.authenticateUser(creds, "stooge", s2pp("")));
-    
+
     // check permission failure
     @SuppressWarnings("serial")
     ByteBuffer stooge = client.login("stooge", new TreeMap<String,String>() {
@@ -851,7 +851,7 @@ public class SimpleTest {
         put("password", "");
       }
     });
-    
+
     try {
       client.createTable(stooge, "fail", true, TimeType.MILLIS);
       fail("should not create the table");
@@ -864,7 +864,7 @@ public class SimpleTest {
     assertTrue(client.hasSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE));
     client.createTable(stooge, "success", true, TimeType.MILLIS);
     client.listTables(creds).contains("succcess");
-    
+
     // revoke permissions
     client.revokeSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE);
     assertFalse(client.hasSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE));
@@ -897,27 +897,27 @@ public class SimpleTest {
       client.nextK(scanner, 100);
       fail("stooge should not read table test");
     } catch (AccumuloSecurityException ex) {}
-    
+
     // delete user
     client.dropLocalUser(creds, "stooge");
     users = client.listLocalUsers(creds);
     assertEquals(1, users.size());
-    
+
   }
-  
+
   @Test
   public void testBatchWriter() throws Exception {
     final String TABLE_TEST = makeTableName();
-    
+
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
-    
+
     WriterOptions writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
     writerOptions.setMaxMemory(2);
     writerOptions.setThreads(1);
     writerOptions.setTimeoutMs(100000);
-    
+
     String batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
     client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
     client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
@@ -929,44 +929,44 @@ public class SimpleTest {
       client.closeWriter(batchWriter);
       fail("constraint did not fire");
     } catch (MutationsRejectedException e) {}
-    
+
     client.removeConstraint(creds, TABLE_TEST, 2);
-    
+
     writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
     writerOptions.setMaxMemory(3000);
     writerOptions.setThreads(1);
     writerOptions.setTimeoutMs(100000);
-    
+
     batchWriter = client.createWriter(creds, TABLE_TEST, writerOptions);
-    
+
     client.update(batchWriter, mutation("row1", "cf", "cq", "x"));
     client.flush(batchWriter);
     client.closeWriter(batchWriter);
-    
+
     String scanner = client.createScanner(creds, TABLE_TEST, null);
     ScanResult more = client.nextK(scanner, 2);
     assertEquals(1, more.getResults().size());
     client.closeScanner(scanner);
-    
+
     client.deleteTable(creds, TABLE_TEST);
   }
-  
+
   @Test
   public void testTableOperations() throws Exception {
     final String TABLE_TEST = makeTableName();
-    
+
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     // constraints
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
-    assertEquals (2, client.listConstraints (creds, TABLE_TEST).size ());
+    assertEquals(2, client.listConstraints(creds, TABLE_TEST).size());
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));
-    
+
     try {
       client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
       fail("constraint did not fire");
     } catch (MutationsRejectedException ex) {}
-    
+
     client.removeConstraint(creds, TABLE_TEST, 2);
     assertEquals(1, client.listConstraints(creds, TABLE_TEST).size());
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
@@ -1024,14 +1024,14 @@ public class SimpleTest {
     client.closeScanner(scanner);
     assertEquals(10, more.getResults().size());
     client.deleteTable(creds, TABLE_TEST2);
-    
+
     // don't know how to test this, call it just for fun
     client.clearLocatorCache(creds, TABLE_TEST);
-    
+
     // compact
     client.compactTable(creds, TABLE_TEST, null, null, null, true, true);
     assertEquals(1, countFiles(TABLE_TEST));
-    
+
     // get disk usage
     client.cloneTable(creds, TABLE_TEST, TABLE_TEST2, true, null, null);
     Set<String> tablesToScan = new HashSet<String>();
@@ -1051,7 +1051,7 @@ public class SimpleTest {
     assertEquals(1, diskUsage.get(2).getTables().size());
     client.deleteTable(creds, "foo");
     client.deleteTable(creds, TABLE_TEST2);
-    
+
     // export/import
     String dir = folder.getRoot() + "/test";
     String destDir = folder.getRoot() + "/test_dest";
@@ -1074,7 +1074,7 @@ public class SimpleTest {
     more = client.nextK(scanner, 100);
     client.closeScanner(scanner);
     assertEquals(10, more.results.size());
-    
+
     try {
       // ACCUMULO-1558 a second import from the same dir should fail, the first import moved the files
       client.importTable(creds, "testify2", destDir);
@@ -1125,19 +1125,19 @@ public class SimpleTest {
     assertEquals(1, more.results.size());
     ByteBuffer maxRow = client.getMaxRow(creds, "bar", null, null, false, null, false);
     assertEquals(s2bb("a"), maxRow);
-    
+
     assertFalse(client.testTableClassLoad(creds, "bar", "abc123", SortedKeyValueIterator.class.getName()));
     assertTrue(client.testTableClassLoad(creds, "bar", VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName()));
   }
-  
+
   private Condition newCondition(String cf, String cq) {
     return new Condition(new Column(s2bb(cf), s2bb(cq), s2bb("")));
   }
-  
+
   private Condition newCondition(String cf, String cq, String val) {
     return newCondition(cf, cq).setValue(s2bb(val));
   }
-  
+
   private Condition newCondition(String cf, String cq, long ts, String val) {
     return newCondition(cf, cq).setValue(s2bb(val)).setTimestamp(ts);
   }
@@ -1145,7 +1145,7 @@ public class SimpleTest {
   private ColumnUpdate newColUpdate(String cf, String cq, String val) {
     return new ColumnUpdate(s2bb(cf), s2bb(cq)).setValue(s2bb(val));
   }
-  
+
   private ColumnUpdate newColUpdate(String cf, String cq, long ts, String val) {
     return new ColumnUpdate(s2bb(cf), s2bb(cq)).setTimestamp(ts).setValue(s2bb(val));
   }
@@ -1153,55 +1153,55 @@ public class SimpleTest {
   private void assertScan(String[][] expected, String table) throws Exception {
     String scid = client.createScanner(creds, table, new ScanOptions());
     ScanResult keyValues = client.nextK(scid, expected.length + 1);
-    
+
     assertEquals(expected.length, keyValues.results.size());
     assertFalse(keyValues.more);
-    
+
     for (int i = 0; i < keyValues.results.size(); i++) {
       checkKey(expected[i][0], expected[i][1], expected[i][2], expected[i][3], keyValues.results.get(i));
     }
-    
+
     client.closeScanner(scid);
   }
 
   @Test
   public void testConditionalWriter() throws Exception {
     final String TABLE_TEST = makeTableName();
-    
+
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
-    
+
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
 
     String cwid = client.createConditionalWriter(creds, TABLE_TEST, new ConditionalWriterOptions());
-    
+
     Map<ByteBuffer,ConditionalUpdates> updates = new HashMap<ByteBuffer,ConditionalUpdates>();
-    
+
     updates.put(
         s2bb("00345"),
         new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq")), Arrays.asList(newColUpdate("meta", "seq", 10, "1"),
             newColUpdate("data", "img", "73435435"))));
-    
+
     Map<ByteBuffer,ConditionalStatus> results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(1, results.size());
     assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00345")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "73435435"}, {"00345", "meta", "seq", "1"}}, TABLE_TEST);
-    
+
     // test not setting values on conditions
     updates.clear();
-    
+
     updates.put(s2bb("00345"), new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq")), Arrays.asList(newColUpdate("meta", "seq", "2"))));
     updates.put(s2bb("00346"), new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq")), Arrays.asList(newColUpdate("meta", "seq", "1"))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(2, results.size());
     assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00345")));
     assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00346")));
 
     assertScan(new String[][] { {"00345", "data", "img", "73435435"}, {"00345", "meta", "seq", "1"}, {"00346", "meta", "seq", "1"}}, TABLE_TEST);
-    
+
     // test setting values on conditions
     updates.clear();
 
@@ -1209,66 +1209,63 @@ public class SimpleTest {
         s2bb("00345"),
         new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq", "1")), Arrays.asList(newColUpdate("meta", "seq", 20, "2"),
             newColUpdate("data", "img", "567890"))));
-    
+
     updates.put(s2bb("00346"), new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq", "2")), Arrays.asList(newColUpdate("meta", "seq", "3"))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(2, results.size());
     assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00345")));
     assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00346")));
-    
-    assertScan(new String[][] { {"00345", "data", "img", "567890"}, {"00345", "meta", "seq", "2"},
-        {"00346", "meta", "seq", "1"}}, TABLE_TEST);
-    
+
+    assertScan(new String[][] { {"00345", "data", "img", "567890"}, {"00345", "meta", "seq", "2"}, {"00346", "meta", "seq", "1"}}, TABLE_TEST);
+
     // test setting timestamp on condition to a non-existant version
     updates.clear();
-    
+
     updates.put(
         s2bb("00345"),
         new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq", 10, "2")), Arrays.asList(newColUpdate("meta", "seq", 30, "3"),
             newColUpdate("data", "img", "1234567890"))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(1, results.size());
     assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00345")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "567890"}, {"00345", "meta", "seq", "2"}, {"00346", "meta", "seq", "1"}}, TABLE_TEST);
-    
 
     // test setting timestamp to an existing version
-    
+
     updates.clear();
-    
+
     updates.put(
         s2bb("00345"),
         new ConditionalUpdates(Arrays.asList(newCondition("meta", "seq", 20, "2")), Arrays.asList(newColUpdate("meta", "seq", 30, "3"),
             newColUpdate("data", "img", "1234567890"))));
-    
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(1, results.size());
     assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00345")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"}}, TABLE_TEST);
-    
+
     // run test w/ condition that has iterators
     // following should fail w/o iterator
     client.updateAndFlush(creds, TABLE_TEST, Collections.singletonMap(s2bb("00347"), Arrays.asList(newColUpdate("data", "count", "1"))));
     client.updateAndFlush(creds, TABLE_TEST, Collections.singletonMap(s2bb("00347"), Arrays.asList(newColUpdate("data", "count", "1"))));
     client.updateAndFlush(creds, TABLE_TEST, Collections.singletonMap(s2bb("00347"), Arrays.asList(newColUpdate("data", "count", "1"))));
-    
+
     updates.clear();
     updates.put(s2bb("00347"),
         new ConditionalUpdates(Arrays.asList(newCondition("data", "count", "3")), Arrays.asList(newColUpdate("data", "img", "1234567890"))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(1, results.size());
     assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00347")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "1"}}, TABLE_TEST);
 
@@ -1279,10 +1276,10 @@ public class SimpleTest {
     props.put("columns", "data:count");
     IteratorSetting is = new IteratorSetting(1, "sumc", SummingCombiner.class.getName(), props);
     iterCond.setIterators(Arrays.asList(is));
-    
+
     updates.clear();
     updates.put(s2bb("00347"), new ConditionalUpdates(Arrays.asList(iterCond), Arrays.asList(newColUpdate("data", "img", "1234567890"))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
 
     assertEquals(1, results.size());
@@ -1295,12 +1292,12 @@ public class SimpleTest {
     updates.clear();
     updates.put(s2bb("00347"),
         new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "1234567890")), Arrays.asList(newColUpdate("data", "count", "A"))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(1, results.size());
     assertEquals(ConditionalStatus.VIOLATED, results.get(s2bb("00347")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, TABLE_TEST);
 
@@ -1311,56 +1308,56 @@ public class SimpleTest {
         s2bb("00347"),
         new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "565"), newCondition("data", "count", "2")), Arrays.asList(
             newColUpdate("data", "count", "3"), newColUpdate("data", "img", "0987654321"))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(1, results.size());
     assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00347")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, TABLE_TEST);
-    
+
     // one condition should fail
     updates.clear();
     updates.put(
         s2bb("00347"),
         new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "1234567890"), newCondition("data", "count", "2")), Arrays.asList(
             newColUpdate("data", "count", "3"), newColUpdate("data", "img", "0987654321"))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(1, results.size());
     assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00347")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, TABLE_TEST);
-    
+
     // one condition should fail
     updates.clear();
     updates.put(
         s2bb("00347"),
         new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "565"), newCondition("data", "count", "1")), Arrays.asList(
             newColUpdate("data", "count", "3"), newColUpdate("data", "img", "0987654321"))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(1, results.size());
     assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00347")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "1"}, {"00347", "data", "img", "1234567890"}}, TABLE_TEST);
-    
+
     // both conditions should succeed
-    
+
     ConditionalStatus result = client.updateRowConditionally(
         creds,
         TABLE_TEST,
         s2bb("00347"),
         new ConditionalUpdates(Arrays.asList(newCondition("data", "img", "1234567890"), newCondition("data", "count", "1")), Arrays.asList(
             newColUpdate("data", "count", "3"), newColUpdate("data", "img", "0987654321"))));
-    
+
     assertEquals(ConditionalStatus.ACCEPTED, result);
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "3"}, {"00347", "data", "img", "0987654321"}}, TABLE_TEST);
 
@@ -1375,43 +1372,44 @@ public class SimpleTest {
     client.changeUserAuthorizations(creds, "cwuser", Collections.singleton(s2bb("A")));
     client.grantTablePermission(creds, "cwuser", TABLE_TEST, TablePermission.WRITE);
     client.grantTablePermission(creds, "cwuser", TABLE_TEST, TablePermission.READ);
-    
+
     ByteBuffer cwuCreds = client.login("cwuser", Collections.singletonMap("password", "bestpasswordever"));
-    
+
     cwid = client.createConditionalWriter(cwuCreds, TABLE_TEST, new ConditionalWriterOptions().setAuthorizations(Collections.singleton(s2bb("A"))));
-    
+
     updates.clear();
-    updates.put(s2bb("00348"),
+    updates.put(
+        s2bb("00348"),
         new ConditionalUpdates(Arrays.asList(new Condition(new Column(s2bb("data"), s2bb("c"), s2bb("A")))), Arrays.asList(newColUpdate("data", "seq", "1"),
             newColUpdate("data", "c", "1").setColVisibility(s2bb("A")))));
     updates.put(s2bb("00349"),
         new ConditionalUpdates(Arrays.asList(new Condition(new Column(s2bb("data"), s2bb("c"), s2bb("B")))), Arrays.asList(newColUpdate("data", "seq", "1"))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(2, results.size());
     assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00348")));
     assertEquals(ConditionalStatus.INVISIBLE_VISIBILITY, results.get(s2bb("00349")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "3"}, {"00347", "data", "img", "0987654321"}, {"00348", "data", "seq", "1"}}, TABLE_TEST);
 
     updates.clear();
-    
+
     updates.clear();
     updates.put(
         s2bb("00348"),
         new ConditionalUpdates(Arrays.asList(new Condition(new Column(s2bb("data"), s2bb("c"), s2bb("A"))).setValue(s2bb("0"))), Arrays.asList(
             newColUpdate("data", "seq", "2"), newColUpdate("data", "c", "2").setColVisibility(s2bb("A")))));
-    
+
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(1, results.size());
     assertEquals(ConditionalStatus.REJECTED, results.get(s2bb("00348")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "3"}, {"00347", "data", "img", "0987654321"}, {"00348", "data", "seq", "1"}}, TABLE_TEST);
-    
+
     updates.clear();
     updates.put(
         s2bb("00348"),
@@ -1419,10 +1417,10 @@ public class SimpleTest {
             newColUpdate("data", "seq", "2"), newColUpdate("data", "c", "2").setColVisibility(s2bb("A")))));
 
     results = client.updateRowsConditionally(cwid, updates);
-    
+
     assertEquals(1, results.size());
     assertEquals(ConditionalStatus.ACCEPTED, results.get(s2bb("00348")));
-    
+
     assertScan(new String[][] { {"00345", "data", "img", "1234567890"}, {"00345", "meta", "seq", "3"}, {"00346", "meta", "seq", "1"},
         {"00347", "data", "count", "3"}, {"00347", "data", "img", "0987654321"}, {"00348", "data", "seq", "2"}}, TABLE_TEST);
 
@@ -1466,23 +1464,23 @@ public class SimpleTest {
     }
     return result;
   }
-  
+
   private Map<ByteBuffer,List<ColumnUpdate>> mutation(String row, String cf, String cq, String value) {
     ColumnUpdate upd = new ColumnUpdate(s2bb(cf), s2bb(cq));
     upd.setValue(value.getBytes());
     return Collections.singletonMap(s2bb(row), Collections.singletonList(upd));
   }
-  
+
   private ByteBuffer s2bb(String cf) {
     return ByteBuffer.wrap(cf.getBytes());
   }
-  
+
   private Map<String,String> s2pp(String cf) {
     Map<String,String> toRet = new TreeMap<String,String>();
     toRet.put("password", cf);
     return toRet;
   }
-  
+
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();

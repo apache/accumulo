@@ -199,8 +199,7 @@
                     <argument>${project.build.directory}</argument>
                     <argument>${accumulo-it-mini-classpath}</argument>
                     <!-- InstanceName RootPassword, one pair per MiniAccumuloCluster -->
-                    <argument>testInstance1 rootPassword1</argument>
-                    <argument>testInstance2 rootPassword2</argument>
+                    <argument>testInstance1 testRootPassword1</argument>
                   </arguments>
                 </configuration>
               </execution>

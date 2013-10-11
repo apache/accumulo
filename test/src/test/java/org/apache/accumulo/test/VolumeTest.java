@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -45,15 +46,15 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class VolumeTest {
-  
+
   private static final Text EMPTY = new Text();
-  private static final Value EMPTY_VALUE = new Value(new byte[]{});
+  private static final Value EMPTY_VALUE = new Value(new byte[] {});
   private static String secret = "superSecret";
-  public static TemporaryFolder folder = new TemporaryFolder();
+  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   public static MiniAccumuloCluster cluster;
   public static Path v1;
   public static Path v2;
-  
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     folder.create();
@@ -67,13 +68,13 @@ public class VolumeTest {
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
   }
-  
+
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
     folder.delete();
   }
-  
+
   @Test
   public void test() throws Exception {
     // create a table
@@ -108,11 +109,11 @@ public class VolumeTest {
     int fileCount = 0;
     for (Entry<Key,Value> entry : scanner) {
       boolean inV1 = entry.getKey().getColumnQualifier().toString().contains(v1.toString());
-      boolean inV2 = entry.getKey().getColumnQualifier().toString().contains(v2.toString()); 
+      boolean inV2 = entry.getKey().getColumnQualifier().toString().contains(v2.toString());
       assertTrue(inV1 || inV2);
       fileCount++;
     }
     assertEquals(4, fileCount);
   }
-  
+
 }

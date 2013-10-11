@@ -39,9 +39,9 @@ import org.junit.Test;
 
 // attempt to reproduce ACCUMULO-315
 public class DeleteRowsSplitIT extends SimpleMacIT {
-  
+
   private static final Logger log = Logger.getLogger(DeleteRowsSplitIT.class);
-  
+
   private static final String LETTERS = "abcdefghijklmnopqrstuvwxyz";
   static final SortedSet<Text> SPLITS = new TreeSet<Text>();
   static final List<String> ROWS = new ArrayList<String>();
@@ -51,27 +51,27 @@ public class DeleteRowsSplitIT extends SimpleMacIT {
       ROWS.add(new String(new byte[] {b}));
     }
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void run() throws Exception {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
-    final String tableName = makeTableName();
-    
+    final String tableName = getTableNames(1)[0];
+
     // Eliminate whole tablets
     for (int test = 0; test < 10; test++) {
       // create a table
       log.info("Test " + test);
       getConnector().tableOperations().create(tableName);
-      
+
       // put some data in it
       fillTable(tableName);
-      
+
       // generate a random delete range
       final Text start = new Text();
       final Text end = new Text();
       generateRandomRange(start, end);
-      
+
       // initiate the delete range
       final boolean fail[] = {false};
       Thread t = new Thread() {
@@ -90,28 +90,28 @@ public class DeleteRowsSplitIT extends SimpleMacIT {
         }
       };
       t.start();
-      
+
       UtilWaitThread.sleep(test * 2);
-      
+
       getConnector().tableOperations().deleteRows(tableName, start, end);
-      
+
       t.join();
       synchronized (fail) {
         assertTrue(!fail[0]);
       }
-      
+
       // scan the table
       Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
       for (Entry<Key,Value> entry : scanner) {
         Text row = entry.getKey().getRow();
         assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
       }
-      
+
       // delete the table
       getConnector().tableOperations().delete(tableName);
     }
   }
-  
+
   private void generateRandomRange(Text start, Text end) {
     List<String> bunch = new ArrayList<String>(ROWS);
     Collections.shuffle(bunch);
@@ -122,9 +122,9 @@ public class DeleteRowsSplitIT extends SimpleMacIT {
       start.set(bunch.get(1));
       end.set(bunch.get(0));
     }
-    
+
   }
-  
+
   private void fillTable(String table) throws Exception {
     BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
     for (String row : ROWS) {

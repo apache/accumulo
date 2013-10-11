@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -37,10 +38,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class MultiReaderTest {
-  
+
   VolumeManager fs;
-  TemporaryFolder root = new TemporaryFolder();
-  
+  TemporaryFolder root = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   @Before
   public void setUp() throws Exception {
     // quiet log messages about compress.CodecPool
@@ -66,16 +67,16 @@ public class MultiReaderTest {
     }
     writer.close();
   }
-  
+
   @After
   public void tearDown() throws Exception {
     root.create();
   }
-  
+
   private void scan(MultiReader reader, int start) throws IOException {
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
-    
+
     for (int i = start + 1; i < 1000; i++) {
       if (i == 10)
         continue;
@@ -83,24 +84,24 @@ public class MultiReaderTest {
       assertEquals(i, key.get());
     }
   }
-  
+
   private void scanOdd(MultiReader reader, int start) throws IOException {
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
-    
+
     for (int i = start + 2; i < 1000; i += 2) {
       assertTrue(reader.next(key, value));
       assertEquals(i, key.get());
     }
   }
-  
+
   @Test
   public void testMultiReader() throws IOException {
     Path manyMaps = new Path("file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
     MultiReader reader = new MultiReader(fs, manyMaps);
     IntWritable key = new IntWritable();
     BytesWritable value = new BytesWritable();
-    
+
     for (int i = 0; i < 1000; i++) {
       if (i == 10)
         continue;
@@ -109,7 +110,7 @@ public class MultiReaderTest {
     }
     assertEquals(value.compareTo(new BytesWritable("someValue".getBytes())), 0);
     assertFalse(reader.next(key, value));
-    
+
     key.set(500);
     assertTrue(reader.seek(key));
     scan(reader, 500);
@@ -125,7 +126,7 @@ public class MultiReaderTest {
     assertTrue(reader.next(key, value));
     assertEquals(0, key.get());
     reader.close();
-    
+
     fs.deleteRecursively(new Path(manyMaps, "even"));
     reader = new MultiReader(fs, manyMaps);
     key.set(501);
@@ -140,7 +141,7 @@ public class MultiReaderTest {
     assertTrue(reader.next(key, value));
     assertEquals(1, key.get());
     reader.close();
-    
+
   }
-  
+
 }

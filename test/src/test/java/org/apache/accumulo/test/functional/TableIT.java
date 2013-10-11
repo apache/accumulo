@@ -43,12 +43,12 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class TableIT extends SimpleMacIT {
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     TableOperations to = c.tableOperations();
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     to.create(tableName);
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.tableName = tableName;
@@ -87,5 +87,5 @@ public class TableIT extends SimpleMacIT {
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     to.delete(tableName);
   }
-  
+
 }

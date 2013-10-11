@@ -27,14 +27,15 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class BinaryIT extends ConfigurableMacIT {
-  
+
   @Test(timeout = 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bt");
     runTest(c);
   }
-  
+
+  @Test(timeout = 60 * 1000)
   public void testPreSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bt");
@@ -44,7 +45,7 @@ public class BinaryIT extends ConfigurableMacIT {
     c.tableOperations().addSplits("bt", splits);
     runTest(c);
   }
-  
+
   public static void runTest(Connector c) throws Exception {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     ScannerOpts scanOpts = new ScannerOpts();
@@ -73,5 +74,5 @@ public class BinaryIT extends ConfigurableMacIT {
     opts.mode = "verifyDeleted";
     TestBinaryRows.runTest(c, opts, bwOpts, scanOpts);
   }
-  
+
 }

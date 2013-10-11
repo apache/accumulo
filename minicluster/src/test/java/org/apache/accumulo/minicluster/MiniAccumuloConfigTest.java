@@ -19,6 +19,7 @@ package org.apache.accumulo.minicluster;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +32,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class MiniAccumuloConfigTest {
 
-  static TemporaryFolder tempFolder = new TemporaryFolder();
+  static TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
   public static void setUp() throws IOException {
@@ -39,7 +40,7 @@ public class MiniAccumuloConfigTest {
   }
 
   @Test
-  public void testZookeeperPort(){
+  public void testZookeeperPort() {
 
     // set specific zookeeper port
     MiniAccumuloConfig config = new MiniAccumuloConfig(tempFolder.getRoot(), "password").setZooKeeperPort(5000).initialize();
@@ -54,7 +55,7 @@ public class MiniAccumuloConfigTest {
   public void testSiteConfig() {
 
     // constructor site config overrides default props
-    Map<String,String> siteConfig = new HashMap<String, String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), "hdfs://");
     MiniAccumuloConfig config = new MiniAccumuloConfig(tempFolder.getRoot(), "password").setSiteConfig(siteConfig).initialize();
     assertEquals("hdfs://", config.getSiteConfig().get(Property.INSTANCE_DFS_URI.getKey()));

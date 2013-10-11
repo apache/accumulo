@@ -49,6 +49,7 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.trace.TraceServer;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -58,10 +59,11 @@ import org.apache.hadoop.tools.DistCp;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class ShellServerIT {
+public class ShellServerIT extends SimpleMacIT {
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
 
@@ -98,7 +100,6 @@ public class ShellServerIT {
   }
 
   private static String secret = "superSecret";
-  public static TemporaryFolder folder = new TemporaryFolder();
   public static MiniAccumuloCluster cluster;
   public static TestOutputStream output;
   public static StringInputStream input;
@@ -759,15 +760,16 @@ public class ShellServerIT {
     exec("deletetable -f t", true);
   }
 
+  @Rule
+  public TemporaryFolder folder2 = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   @Test(timeout = 30 * 1000)
   public void testPertableClasspath() throws Exception {
-    File fooFilterJar = File.createTempFile("FooFilter", ".jar");
+    File fooFilterJar = folder2.newFile("FooFilter.jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), fooFilterJar);
-    fooFilterJar.deleteOnExit();
 
-    File fooConstraintJar = File.createTempFile("FooConstraint", ".jar");
+    File fooConstraintJar = folder2.newFile("FooConstraint.jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooConstraint.jar"), fooConstraintJar);
-    fooConstraintJar.deleteOnExit();
 
     exec(
         "config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI().toString() + "," + fooConstraintJar.toURI().toString(),
@@ -870,6 +872,12 @@ public class ShellServerIT {
   private int countFiles() throws IOException {
     exec("scan -t !METADATA -np -c file");
     return output.get().split("\n").length - 1;
+  }
+
+  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target/"));
+
+  public MiniAccumuloCluster getCluster() {
+    return cluster;
   }
 
 }

@@ -41,27 +41,27 @@ import org.junit.Test;
  * 
  */
 public class TimeoutIT extends SimpleMacIT {
-  
+
   @Test(timeout = 60 * 1000)
   public void run() throws Exception {
     Connector conn = getConnector();
-    testBatchWriterTimeout(conn);
-    testBatchScannerTimeout(conn);
+    String[] tableNames = getTableNames(2);
+    testBatchWriterTimeout(conn, tableNames[0]);
+    testBatchScannerTimeout(conn, tableNames[1]);
   }
-  
-  public void testBatchWriterTimeout(Connector conn) throws Exception {
-    String tableName = makeTableName();
+
+  public void testBatchWriterTimeout(Connector conn, String tableName) throws Exception {
     conn.tableOperations().create(tableName);
     conn.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
-    
+
     // give constraint time to propagate through zookeeper
     UtilWaitThread.sleep(1000);
-    
+
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
-    
+
     Mutation mut = new Mutation("r1");
     mut.put("cf1", "cq1", "v1");
-    
+
     bw.addMutation(mut);
     try {
       bw.close();
@@ -72,35 +72,34 @@ public class TimeoutIT extends SimpleMacIT {
       throw mre;
     }
   }
-  
-  public void testBatchScannerTimeout(Connector conn) throws Exception {
-    String tableName = makeTableName();
+
+  public void testBatchScannerTimeout(Connector conn, String tableName) throws Exception {
     getConnector().tableOperations().create(tableName);
-    
+
     BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
-    
+
     Mutation m = new Mutation("r1");
     m.put("cf1", "cq1", "v1");
     m.put("cf1", "cq2", "v2");
     m.put("cf1", "cq3", "v3");
     m.put("cf1", "cq4", "v4");
-    
+
     bw.addMutation(m);
     bw.close();
-    
+
     BatchScanner bs = getConnector().createBatchScanner(tableName, Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singletonList(new Range()));
-    
+
     // should not timeout
     for (Entry<Key,Value> entry : bs) {
       entry.getKey();
     }
-    
+
     bs.setTimeout(5, TimeUnit.SECONDS);
     IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
     iterSetting.addOption("sleepTime", 2000 + "");
     bs.addScanIterator(iterSetting);
-    
+
     try {
       for (Entry<Key,Value> entry : bs) {
         entry.getKey();
@@ -111,5 +110,5 @@ public class TimeoutIT extends SimpleMacIT {
     }
     bs.close();
   }
-  
+
 }

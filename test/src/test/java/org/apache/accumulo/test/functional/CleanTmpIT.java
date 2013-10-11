@@ -53,7 +53,7 @@ public class CleanTmpIT extends ConfigurableMacIT {
   public void test() throws Exception {
     Connector c = getConnector();
     // make a table
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     c.tableOperations().create(tableName);
     // write to it
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());

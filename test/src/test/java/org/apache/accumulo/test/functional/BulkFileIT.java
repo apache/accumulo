@@ -40,11 +40,11 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class BulkFileIT extends SimpleMacIT {
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void testBulkFile() throws Exception {
     Connector c = getConnector();
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<Text>();
     for (String split : "0333 0666 0999 1333 1666".split(" "))
@@ -53,62 +53,62 @@ public class BulkFileIT extends SimpleMacIT {
     Configuration conf = new Configuration();
     AccumuloConfiguration aconf = ServerConfiguration.getDefaultConfiguration();
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, aconf));
-    
-    String dir = "/tmp/bulk_test_diff_files_89723987592";
-    
+
+    String dir = rootPath() + "/bulk_test_diff_files_89723987592_" + getTableNames(1)[0];
+
     fs.delete(new Path(dir), true);
-    
+
     FileSKVWriter writer1 = FileOperations.getInstance().openWriter(dir + "/f1." + RFile.EXTENSION, fs, conf, aconf);
     writer1.startDefaultLocalityGroup();
     writeData(writer1, 0, 333);
     writer1.close();
-    
+
     FileSKVWriter writer2 = FileOperations.getInstance().openWriter(dir + "/f2." + RFile.EXTENSION, fs, conf, aconf);
     writer2.startDefaultLocalityGroup();
     writeData(writer2, 334, 999);
     writer2.close();
-    
+
     FileSKVWriter writer3 = FileOperations.getInstance().openWriter(dir + "/f3." + RFile.EXTENSION, fs, conf, aconf);
     writer3.startDefaultLocalityGroup();
     writeData(writer3, 1000, 1999);
     writer3.close();
-    
-    FunctionalTestUtils.bulkImport(c,  fs, tableName, dir);
-    
+
+    FunctionalTestUtils.bulkImport(c, fs, tableName, dir);
+
     FunctionalTestUtils.checkRFiles(c, tableName, 6, 6, 1, 1);
-    
+
     verifyData(tableName, 0, 1999);
-    
+
   }
-  
+
   private void verifyData(String table, int s, int e) throws Exception {
     Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
-    
+
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    
+
     for (int i = s; i <= e; i++) {
       if (!iter.hasNext())
         throw new Exception("row " + i + " not found");
-      
+
       Entry<Key,Value> entry = iter.next();
-      
+
       String row = String.format("%04d", i);
-      
+
       if (!entry.getKey().getRow().equals(new Text(row)))
         throw new Exception("unexpected row " + entry.getKey() + " " + i);
-      
+
       if (Integer.parseInt(entry.getValue().toString()) != i)
         throw new Exception("unexpected value " + entry + " " + i);
     }
-    
+
     if (iter.hasNext())
       throw new Exception("found more than expected " + iter.next());
   }
-  
+
   private void writeData(FileSKVWriter w, int s, int e) throws Exception {
     for (int i = s; i <= e; i++) {
       w.append(new Key(new Text(String.format("%04d", i))), new Value(("" + i).getBytes()));
     }
   }
-  
+
 }

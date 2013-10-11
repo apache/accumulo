@@ -16,44 +16,61 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.io.File;
+
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.MiniAccumuloInstance;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.rules.TemporaryFolder;
 
 public class SimpleMacIT extends AbstractMacIT {
   public static final Logger log = Logger.getLogger(SimpleMacIT.class);
-  
-  static private TemporaryFolder folder = new TemporaryFolder();
-  static private MiniAccumuloCluster cluster;
-  
+
+  private static File folder;
+  private static MiniAccumuloCluster cluster = null;
+
   @BeforeClass
-  synchronized public static void setUp() throws Exception {
-    if (cluster == null) {
-      folder.create();
-      MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("mac"), ROOT_PASSWORD);
+  public static synchronized void setUp() throws Exception {
+    if (getInstanceOneConnector() == null && cluster == null) {
+      folder = createSharedTestDir(SimpleMacIT.class.getName());
+      MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder, ROOT_PASSWORD);
       cluster = new MiniAccumuloCluster(cfg);
       cluster.start();
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
-          cleanUp(cluster, folder);
+          cleanUp(cluster);
         }
       });
     }
   }
-  
+
   @Override
-  public MiniAccumuloCluster getCluster() {
-    return cluster;
+  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+    Connector conn = getInstanceOneConnector();
+    return conn == null ? cluster.getConnector("root", ROOT_PASSWORD) : conn;
   }
-  
-  @After
-  public void cleanUp() throws Exception {}
-  
-  @AfterClass
-  public static void tearDown() throws Exception {}
+
+  @Override
+  public String rootPath() {
+    return (getInstanceOneConnector() == null ? cluster.getConfig().getDir() : getInstanceOnePath()).getAbsolutePath();
+  }
+
+  private static Connector getInstanceOneConnector() {
+    try {
+      return new MiniAccumuloInstance("instance1", getInstanceOnePath()).getConnector("root", new PasswordToken(ROOT_PASSWORD));
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private static File getInstanceOnePath() {
+    return new File(System.getProperty("user.dir") + "/accumulo-maven-plugin/instance1");
+  }
+
 }

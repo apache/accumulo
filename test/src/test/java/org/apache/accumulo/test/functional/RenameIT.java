@@ -24,11 +24,12 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
 public class RenameIT extends SimpleMacIT {
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void renameTest() throws Exception {
-    String name1 = makeTableName();
-    String name2 = makeTableName();
+    String[] tableNames = getTableNames(2);
+    String name1 = tableNames[0];
+    String name2 = tableNames[1];
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     ScannerOpts scanOpts = new ScannerOpts();
     TestIngest.Opts opts = new TestIngest.Opts();
@@ -46,5 +47,5 @@ public class RenameIT extends SimpleMacIT {
     vopts.tableName = name1;
     VerifyIngest.verifyIngest(c, vopts, scanOpts);
   }
-  
+
 }

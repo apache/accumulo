@@ -26,20 +26,20 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
 public class BulkIT extends SimpleMacIT {
-  
+
   static final int N = 100000;
   static final int COUNT = 5;
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    String tableName = makeTableName();
+    String tableName = getTableNames(1)[0];
     c.tableOperations().create(tableName);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     String base = "target/accumulo-maven-plugin";
     fs.delete(new Path(base + "/testrf"), true);
     fs.mkdirs(new Path(base + "/testBulkFail"));
-    
+
     Opts opts = new Opts();
     opts.timestamp = 1;
     opts.random = 56;
@@ -70,5 +70,5 @@ public class BulkIT extends SimpleMacIT {
     vopts.rows = 1;
     VerifyIngest.verifyIngest(c, vopts, SOPTS);
   }
-  
+
 }

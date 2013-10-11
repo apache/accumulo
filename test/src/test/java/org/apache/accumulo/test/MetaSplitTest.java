@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -35,11 +36,11 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class MetaSplitTest {
-  
+
   private static String secret = "superSecret";
-  public static TemporaryFolder folder = new TemporaryFolder();
+  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   public static MiniAccumuloCluster cluster;
-  
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     folder.create();
@@ -47,13 +48,13 @@ public class MetaSplitTest {
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
   }
-  
+
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
     folder.delete();
   }
-  
+
   @Test(expected = AccumuloException.class)
   public void testRootTableSplit() throws Exception {
     Connector connector = cluster.getConnector("root", secret);
@@ -62,14 +63,14 @@ public class MetaSplitTest {
     splits.add(new Text("5"));
     opts.addSplits(RootTable.NAME, splits);
   }
-  
+
   @Test
   public void testRootTableMerge() throws Exception {
     Connector connector = cluster.getConnector("root", secret);
     TableOperations opts = connector.tableOperations();
     opts.merge(RootTable.NAME, null, null);
   }
-  
+
   private void addSplits(TableOperations opts, String... points) throws Exception {
     SortedSet<Text> splits = new TreeSet<Text>();
     for (String point : points) {
@@ -77,7 +78,7 @@ public class MetaSplitTest {
     }
     opts.addSplits(MetadataTable.NAME, splits);
   }
-  
+
   @Test(timeout = 60000)
   public void testMetadataTableSplit() throws Exception {
     Connector connector = cluster.getConnector("root", secret);
@@ -98,5 +99,5 @@ public class MetaSplitTest {
     opts.merge(MetadataTable.NAME, null, null);
     assertEquals(0, opts.listSplits(MetadataTable.NAME).size());
   }
-  
+
 }

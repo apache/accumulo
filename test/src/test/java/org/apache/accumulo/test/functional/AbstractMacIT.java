@@ -16,62 +16,73 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.io.IOException;
+import java.io.File;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
 public abstract class AbstractMacIT {
   public static final Logger log = Logger.getLogger(AbstractMacIT.class);
-  
-  public static final String ROOT_PASSWORD = "secret";
+
+  public static final String ROOT_PASSWORD = "testRootPassword1";
   public static final ScannerOpts SOPTS = new ScannerOpts();
   public static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
-  
-  public abstract MiniAccumuloCluster getCluster();
-  
-  protected static void cleanUp(MiniAccumuloCluster cluster, TemporaryFolder folder) {
+
+  @Rule
+  public TestName testName = new TestName();
+
+  protected static void cleanUp(MiniAccumuloCluster cluster) {
     if (cluster != null)
       try {
         cluster.stop();
       } catch (Exception e) {}
-    folder.delete();
   }
-  
+
   static AtomicInteger tableCount = new AtomicInteger();
-  
-  static public String makeTableName() {
-    return "table" + tableCount.getAndIncrement();
+
+  protected static File createSharedTestDir(String name) {
+    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    baseDir.mkdirs();
+    if (name != null)
+      baseDir = new File(baseDir, name);
+    File testDir = new File(baseDir, System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE));
+    FileUtils.deleteQuietly(testDir);
+    testDir.mkdir();
+    return testDir;
   }
-  
-  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getCluster().getConnector("root", ROOT_PASSWORD);
+
+  protected File createTestDir(String name) {
+    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    baseDir.mkdirs();
+    if (name == null)
+      return baseDir;
+    File testDir = new File(baseDir, name);
+    FileUtils.deleteQuietly(testDir);
+    testDir.mkdir();
+    return testDir;
   }
-  
-  public String getMonitor() throws KeeperException, InterruptedException {
-    Instance instance = new ZooKeeperInstance(getCluster().getInstanceName(), getCluster().getZooKeepers());
-    ZooReader zr = new ZooReader(getCluster().getZooKeepers(), 5000);
-    return new String(zr.getData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, null));
+
+  public String[] getTableNames(int num) {
+    if (num == 1)
+      return new String[] {testName.getMethodName()};
+    String[] names = new String[num];
+    for (int i = 0; i < num; i++)
+      names[i] = this.getClass().getSimpleName() + "_" + testName.getMethodName() + i;
+    return names;
   }
-  
-  public String rootPath() {
-    return getCluster().getConfig().getDir().getAbsolutePath();
-  }
-  
-  public Process exec(Class<? extends Object> clazz, String... args) throws IOException {
-    return getCluster().exec(clazz, args);
-  }
+
+  public abstract Connector getConnector() throws AccumuloException, AccumuloSecurityException;
+
+  public abstract String rootPath();
+
 }

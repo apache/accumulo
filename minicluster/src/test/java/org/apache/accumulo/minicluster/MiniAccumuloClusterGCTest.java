@@ -38,7 +38,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -47,17 +46,18 @@ import com.google.common.collect.ImmutableMap;
  */
 public class MiniAccumuloClusterGCTest {
 
-  private static TemporaryFolder tmpDir = new TemporaryFolder();
+  private static File testDir = new File(System.getProperty("user.dir") + "/target/" + MiniAccumuloClusterGCTest.class.getName());
   private static MiniAccumuloConfig macConfig;
   private static MiniAccumuloCluster accumulo;
   private static final String passwd = "password";
 
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
-    tmpDir.create();
+    FileUtils.deleteQuietly(testDir);
+    testDir.mkdir();
     Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
 
-    macConfig = new MiniAccumuloConfig(tmpDir.getRoot(), passwd);
+    macConfig = new MiniAccumuloConfig(testDir, passwd);
     macConfig.setNumTservers(1);
 
     // Turn on the garbage collector
@@ -74,14 +74,13 @@ public class MiniAccumuloClusterGCTest {
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
-    tmpDir.delete();
   }
 
   @Test(timeout = 20000)
   public void testFilesAreGarbageCollected() throws Exception {
     ZooKeeperInstance inst = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
     Connector c = inst.getConnector("root", new PasswordToken(passwd));
-    
+
     final String table = "foobar";
     c.tableOperations().create(table);
 
@@ -108,7 +107,7 @@ public class MiniAccumuloClusterGCTest {
     c.tableOperations().compact(table, null, null, flush, wait);
     c.tableOperations().compact(MetadataTable.NAME, null, null, flush, wait);
 
-    File accumuloDir = new File(tmpDir.getRoot().getAbsolutePath(), "accumulo");
+    File accumuloDir = new File(testDir, "accumulo");
     File tables = new File(accumuloDir.getAbsolutePath(), "tables");
 
     int fileCountAfterCompaction = FileUtils.listFiles(tables, new SuffixFileFilter(".rf"), TrueFileFilter.TRUE).size();
@@ -129,12 +128,12 @@ public class MiniAccumuloClusterGCTest {
   @Test(timeout = 10000)
   public void testAccurateProcessListReturned() throws Exception {
     Map<ServerType,Collection<ProcessReference>> procs = accumulo.getProcesses();
-    
+
     for (ServerType t : new ServerType[] {ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.ZOOKEEPER, ServerType.GARBAGE_COLLECTOR}) {
       Assert.assertTrue(procs.containsKey(t));
       Collection<ProcessReference> procRefs = procs.get(t);
       Assert.assertTrue(1 <= procRefs.size());
-      
+
       for (ProcessReference procRef : procRefs) {
         Assert.assertNotNull(procRef);
       }

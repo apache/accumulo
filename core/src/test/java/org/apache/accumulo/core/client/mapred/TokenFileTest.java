@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobClient;
@@ -48,7 +49,9 @@ import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * 
@@ -59,13 +62,13 @@ public class TokenFileTest {
   private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
   private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
   private static final String TEST_TABLE_2 = PREFIX + "_mapred_table_2";
-  
+
   private static class MRTokenFileTester extends Configured implements Tool {
     private static class TestMapper implements Mapper<Key,Value,Text,Mutation> {
       Key key = null;
       int count = 0;
       OutputCollector<Text,Mutation> finalOutput;
-      
+
       @Override
       public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter) throws IOException {
         finalOutput = output;
@@ -80,62 +83,67 @@ public class TokenFileTest {
         key = new Key(k);
         count++;
       }
-      
+
       @Override
       public void configure(JobConf job) {}
-      
+
       @Override
       public void close() throws IOException {
         Mutation m = new Mutation("total");
         m.put("", "", Integer.toString(count));
         finalOutput.collect(new Text(), m);
       }
-      
+
     }
-    
+
     @Override
     public int run(String[] args) throws Exception {
-      
+
       if (args.length != 4) {
         throw new IllegalArgumentException("Usage : " + MRTokenFileTester.class.getName() + " <user> <token file> <inputtable> <outputtable>");
       }
-      
+
       String user = args[0];
       String tokenFile = args[1];
       String table1 = args[2];
       String table2 = args[3];
-      
+
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
-      
+
       job.setInputFormat(AccumuloInputFormat.class);
-      
+
       AccumuloInputFormat.setConnectorInfo(job, user, tokenFile);
       AccumuloInputFormat.setInputTableName(job, table1);
       AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
-      
+
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
       job.setOutputFormat(AccumuloOutputFormat.class);
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
-      
+
       AccumuloOutputFormat.setConnectorInfo(job, user, tokenFile);
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
       AccumuloOutputFormat.setMockInstance(job, INSTANCE_NAME);
-      
+
       job.setNumReduceTasks(0);
-      
+
       return JobClient.runJob(job).isSuccessful() ? 0 : 1;
     }
-    
+
     public static void main(String[] args) throws Exception {
-      assertEquals(0, ToolRunner.run(CachedConfiguration.getInstance(), new MRTokenFileTester(), args));
+      Configuration conf = CachedConfiguration.getInstance();
+      conf.set("hadoop.tmp.dir", new File(args[1]).getParent());
+      assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
     }
   }
-  
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   @Test
   public void testMR() throws Exception {
     MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
@@ -149,17 +157,16 @@ public class TokenFileTest {
       bw.addMutation(m);
     }
     bw.close();
-    
-    String tokenFile = "root_test.pw";
-    File tf = File.createTempFile(tokenFile, "");
+
+    File tf = folder.newFile("root_test.pw");
     PrintStream out = new PrintStream(tf);
     String outString = new Credentials("root", new PasswordToken("")).serialize();
     out.println(outString);
     out.close();
-    
+
     MRTokenFileTester.main(new String[] {"root", tf.getAbsolutePath(), TEST_TABLE_1, TEST_TABLE_2});
     assertNull(e1);
-    
+
     Scanner scanner = c.createScanner(TEST_TABLE_2, new Authorizations());
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
     assertTrue(iter.hasNext());

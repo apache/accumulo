@@ -51,12 +51,11 @@ import org.junit.Test;
 public class PermissionsIT extends SimpleMacIT {
 
   static AtomicInteger userId = new AtomicInteger(0);
-  
+
   static String makeUserName() {
     return "user_" + userId.getAndIncrement();
   }
-  
-  
+
   @Test(timeout = 60 * 1000)
   public void systemPermissionsTest() throws Exception {
     String testUser = makeUserName();
@@ -65,16 +64,16 @@ public class PermissionsIT extends SimpleMacIT {
     // verify that the test is being run by root
     Connector c = getConnector();
     verifyHasOnlyTheseSystemPermissions(c, c.whoami(), SystemPermission.values());
-    
+
     // create the test user
     c.securityOperations().createLocalUser(testUser, testPasswd);
     Connector test_user_conn = c.getInstance().getConnector(testUser, testPasswd);
     verifyHasNoSystemPermissions(c, testUser, SystemPermission.values());
-    
+
     // test each permission
     for (SystemPermission perm : SystemPermission.values()) {
       log.debug("Verifying the " + perm + " permission");
-      
+
       // verify GRANT can't be granted
       if (perm.equals(SystemPermission.GRANT)) {
         try {
@@ -85,17 +84,18 @@ public class PermissionsIT extends SimpleMacIT {
         }
         throw new IllegalStateException("Should NOT be able to grant GRANT");
       }
-      
+
       // test permission before and after granting it
-      testMissingSystemPermission(c, test_user_conn, perm);
+      String tableNamePrefix = getTableNames(1)[0];
+      testMissingSystemPermission(tableNamePrefix, c, test_user_conn, perm);
       c.securityOperations().grantSystemPermission(testUser, perm);
       verifyHasOnlyTheseSystemPermissions(c, testUser, perm);
-      testGrantedSystemPermission(c, test_user_conn, perm);
+      testGrantedSystemPermission(tableNamePrefix, c, test_user_conn, perm);
       c.securityOperations().revokeSystemPermission(testUser, perm);
       verifyHasNoSystemPermissions(c, testUser, perm);
     }
   }
-  
+
   static Map<String,String> map(Iterable<Entry<String,String>> i) {
     Map<String,String> result = new HashMap<String,String>();
     for (Entry<String,String> e : i) {
@@ -103,16 +103,16 @@ public class PermissionsIT extends SimpleMacIT {
     }
     return result;
   }
-  
-  private static void testMissingSystemPermission(Connector root_conn, Connector test_user_conn, SystemPermission perm) throws AccumuloException,
-      TableExistsException, AccumuloSecurityException, TableNotFoundException {
+
+  private static void testMissingSystemPermission(String tableNamePrefix, Connector root_conn, Connector test_user_conn, SystemPermission perm)
+      throws AccumuloException, TableExistsException, AccumuloSecurityException, TableNotFoundException {
     String tableName, user, password = "password";
     log.debug("Confirming that the lack of the " + perm + " permission properly restricts the user");
-    
+
     // test permission prior to granting it
     switch (perm) {
       case CREATE_TABLE:
-        tableName = makeTableName() + "__CREATE_TABLE_WITHOUT_PERM_TEST__";
+        tableName = tableNamePrefix + "__CREATE_TABLE_WITHOUT_PERM_TEST__";
         try {
           test_user_conn.tableOperations().create(tableName);
           throw new IllegalStateException("Should NOT be able to create a table");
@@ -122,7 +122,7 @@ public class PermissionsIT extends SimpleMacIT {
         }
         break;
       case DROP_TABLE:
-        tableName = makeTableName() + "__DROP_TABLE_WITHOUT_PERM_TEST__";
+        tableName = tableNamePrefix + "__DROP_TABLE_WITHOUT_PERM_TEST__";
         root_conn.tableOperations().create(tableName);
         try {
           test_user_conn.tableOperations().delete(tableName);
@@ -133,7 +133,7 @@ public class PermissionsIT extends SimpleMacIT {
         }
         break;
       case ALTER_TABLE:
-        tableName = makeTableName() + "__ALTER_TABLE_WITHOUT_PERM_TEST__";
+        tableName = tableNamePrefix + "__ALTER_TABLE_WITHOUT_PERM_TEST__";
         root_conn.tableOperations().create(tableName);
         try {
           test_user_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
@@ -203,29 +203,29 @@ public class PermissionsIT extends SimpleMacIT {
         throw new IllegalArgumentException("Unrecognized System Permission: " + perm);
     }
   }
-  
-  private static void testGrantedSystemPermission(Connector root_conn, Connector test_user_conn, SystemPermission perm) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, TableExistsException {
+
+  private static void testGrantedSystemPermission(String tableNamePrefix, Connector root_conn, Connector test_user_conn, SystemPermission perm)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException {
     String tableName, user, password = "password";
     log.debug("Confirming that the presence of the " + perm + " permission properly permits the user");
-    
+
     // test permission after granting it
     switch (perm) {
       case CREATE_TABLE:
-        tableName = makeTableName() + "__CREATE_TABLE_WITH_PERM_TEST__";
+        tableName = tableNamePrefix + "__CREATE_TABLE_WITH_PERM_TEST__";
         test_user_conn.tableOperations().create(tableName);
         if (!root_conn.tableOperations().list().contains(tableName))
           throw new IllegalStateException("Should be able to create a table");
         break;
       case DROP_TABLE:
-        tableName = makeTableName() + "__DROP_TABLE_WITH_PERM_TEST__";
+        tableName = tableNamePrefix + "__DROP_TABLE_WITH_PERM_TEST__";
         root_conn.tableOperations().create(tableName);
         test_user_conn.tableOperations().delete(tableName);
         if (root_conn.tableOperations().list().contains(tableName))
           throw new IllegalStateException("Should be able to delete a table");
         break;
       case ALTER_TABLE:
-        tableName = makeTableName() + "__ALTER_TABLE_WITH_PERM_TEST__";
+        tableName = tableNamePrefix + "__ALTER_TABLE_WITH_PERM_TEST__";
         String table2 = tableName + "2";
         root_conn.tableOperations().create(tableName);
         test_user_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
@@ -267,7 +267,7 @@ public class PermissionsIT extends SimpleMacIT {
         throw new IllegalArgumentException("Unrecognized System Permission: " + perm);
     }
   }
-  
+
   private static void verifyHasOnlyTheseSystemPermissions(Connector root_conn, String user, SystemPermission... perms) throws AccumuloException,
       AccumuloSecurityException {
     List<SystemPermission> permList = Arrays.asList(perms);
@@ -283,15 +283,14 @@ public class PermissionsIT extends SimpleMacIT {
       }
     }
   }
-  
+
   private static void verifyHasNoSystemPermissions(Connector root_conn, String user, SystemPermission... perms) throws AccumuloException,
       AccumuloSecurityException {
     for (SystemPermission p : perms)
       if (root_conn.securityOperations().hasSystemPermission(user, p))
         throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
   }
-  
-  
+
   @Test(timeout = 30 * 1000)
   public void tablePermissionTest() throws Exception {
     // create the test user
@@ -301,29 +300,29 @@ public class PermissionsIT extends SimpleMacIT {
     Connector c = getConnector();
     c.securityOperations().createLocalUser(testUser, testPasswd);
     Connector test_user_conn = c.getInstance().getConnector(testUser, testPasswd);
-    
+
     // check for read-only access to metadata table
     verifyHasOnlyTheseTablePermissions(c, c.whoami(), MetadataTable.NAME, TablePermission.READ, TablePermission.ALTER_TABLE);
     verifyHasOnlyTheseTablePermissions(c, testUser, MetadataTable.NAME, TablePermission.READ);
-    String tableName = makeTableName() + "__TABLE_PERMISSION_TEST__";
-      
+    String tableName = getTableNames(1)[0] + "__TABLE_PERMISSION_TEST__";
+
     // test each permission
     for (TablePermission perm : TablePermission.values()) {
       log.debug("Verifying the " + perm + " permission");
-      
+
       // test permission before and after granting it
       createTestTable(c, testUser, tableName);
       testMissingTablePermission(c, test_user_conn, perm, tableName);
       c.securityOperations().grantTablePermission(testUser, tableName, perm);
       verifyHasOnlyTheseTablePermissions(c, testUser, tableName, perm);
       testGrantedTablePermission(c, test_user_conn, perm, tableName);
-      
+
       createTestTable(c, testUser, tableName);
       c.securityOperations().revokeTablePermission(testUser, tableName, perm);
       verifyHasNoTablePermissions(c, testUser, tableName, perm);
     }
   }
-  
+
   private void createTestTable(Connector c, String testUser, String tableName) throws Exception, MutationsRejectedException {
     if (!c.tableOperations().exists(tableName)) {
       // create the test table
@@ -334,20 +333,20 @@ public class PermissionsIT extends SimpleMacIT {
       m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes()));
       writer.addMutation(m);
       writer.close();
-      
+
       // verify proper permissions for creator and test user
       verifyHasOnlyTheseTablePermissions(c, c.whoami(), tableName, TablePermission.values());
       verifyHasNoTablePermissions(c, testUser, tableName, TablePermission.values());
-      
+
     }
   }
-  
+
   private static void testMissingTablePermission(Connector root_conn, Connector test_user_conn, TablePermission perm, String tableName) throws Exception {
     Scanner scanner;
     BatchWriter writer;
     Mutation m;
     log.debug("Confirming that the lack of the " + perm + " permission properly restricts the user");
-    
+
     // test permission prior to granting it
     switch (perm) {
       case READ:
@@ -418,14 +417,14 @@ public class PermissionsIT extends SimpleMacIT {
         throw new IllegalArgumentException("Unrecognized table Permission: " + perm);
     }
   }
-  
-  private static void testGrantedTablePermission(Connector root_conn, Connector test_user_conn, TablePermission perm, String tableName) throws AccumuloException,
-      TableExistsException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
+
+  private static void testGrantedTablePermission(Connector root_conn, Connector test_user_conn, TablePermission perm, String tableName)
+      throws AccumuloException, TableExistsException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
     Scanner scanner;
     BatchWriter writer;
     Mutation m;
     log.debug("Confirming that the presence of the " + perm + " permission properly permits the user");
-    
+
     // test permission after granting it
     switch (perm) {
       case READ:
@@ -458,7 +457,7 @@ public class PermissionsIT extends SimpleMacIT {
         throw new IllegalArgumentException("Unrecognized table Permission: " + perm);
     }
   }
-  
+
   private static void verifyHasOnlyTheseTablePermissions(Connector root_conn, String user, String table, TablePermission... perms) throws AccumuloException,
       AccumuloSecurityException {
     List<TablePermission> permList = Arrays.asList(perms);
@@ -474,7 +473,7 @@ public class PermissionsIT extends SimpleMacIT {
       }
     }
   }
-  
+
   private static void verifyHasNoTablePermissions(Connector root_conn, String user, String table, TablePermission... perms) throws AccumuloException,
       AccumuloSecurityException {
     for (TablePermission p : perms)

@@ -35,45 +35,45 @@ import org.junit.Test;
  * This test recreates issue ACCUMULO-516. Until that issue is fixed this test should time out.
  */
 public class SparseColumnFamilyIT extends SimpleMacIT {
-  
+
   @Test(timeout = 60 * 1000)
   public void sparceColumnFamily() throws Exception {
-    String scftt = makeTableName();
+    String scftt = getTableNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(scftt);
-    
+
     BatchWriter bw = c.createBatchWriter(scftt, new BatchWriterConfig());
-    
+
     // create file in the tablet that has mostly column family 0, with a few entries for column family 1
-    
+
     bw.addMutation(nm(0, 1, 0));
     for (int i = 1; i < 99999; i++) {
       bw.addMutation(nm(i * 2, 0, i));
     }
     bw.addMutation(nm(99999 * 2, 1, 99999));
     bw.flush();
-    
+
     c.tableOperations().flush(scftt, null, null, true);
-    
+
     // create a file that has column family 1 and 0 interleaved
     for (int i = 0; i < 100000; i++) {
       bw.addMutation(nm(i * 2 + 1, i % 2 == 0 ? 0 : 1, i));
     }
     bw.close();
-    
+
     c.tableOperations().flush(scftt, null, null, true);
-    
+
     Scanner scanner = c.createScanner(scftt, Authorizations.EMPTY);
-    
+
     for (int i = 0; i < 200; i++) {
-      
+
       // every time we search for column family 1, it will scan the entire file
       // that has mostly column family 0 until the bug is fixed
       scanner.setRange(new Range(String.format("%06d", i), null));
       scanner.clearColumns();
       scanner.setBatchSize(3);
       scanner.fetchColumnFamily(new Text(String.format("%03d", 1)));
-      
+
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
       if (iter.hasNext()) {
         Entry<Key,Value> entry = iter.next();
@@ -83,7 +83,7 @@ public class SparseColumnFamilyIT extends SimpleMacIT {
       }
     }
   }
-  
+
   /**
    * @param i
    * @param j

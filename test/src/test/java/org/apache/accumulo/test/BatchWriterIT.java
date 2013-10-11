@@ -21,15 +21,15 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.junit.Test;
 
-public class BatchWriterIT extends ConfigurableMacIT {
-  
-  @Test(timeout=30*1000)
+public class BatchWriterIT extends SimpleMacIT {
+
+  @Test(timeout = 30 * 1000)
   public void test() throws Exception {
     // call the batchwriter with buffer of size zero
-    String table = makeTableName();
+    String table = getTableNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(table);
     BatchWriterConfig config = new BatchWriterConfig();

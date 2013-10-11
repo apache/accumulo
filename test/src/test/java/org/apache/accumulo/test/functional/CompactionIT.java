@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,10 +42,15 @@ import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.fs.FileSystem;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class CompactionIT extends ConfigurableMacIT {
-  
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     Map<String,String> map = new HashMap<String,String>();
@@ -53,17 +59,17 @@ public class CompactionIT extends ConfigurableMacIT {
     map.put(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
     cfg.setSiteConfig(map);
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     final Connector c = getConnector();
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_MAJC_RATIO.getKey(), "1.0");
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    FunctionalTestUtils.createRFiles(c, fs, "tmp/testrf", 500000, 59, 4);
-    FunctionalTestUtils.bulkImport(c, fs, "test_ingest", "tmp/testrf");
+    FunctionalTestUtils.createRFiles(c, fs, folder.getRoot() + "/testrf", 500000, 59, 4);
+    FunctionalTestUtils.bulkImport(c, fs, "test_ingest", folder.getRoot() + "/testrf");
     int beforeCount = countFiles(c);
-    
+
     final AtomicBoolean fail = new AtomicBoolean(false);
     for (int count = 0; count < 5; count++) {
       List<Thread> threads = new ArrayList<Thread>();
@@ -93,12 +99,12 @@ public class CompactionIT extends ConfigurableMacIT {
         t.join();
       assertFalse(fail.get());
     }
-    
+
     int finalCount = countFiles(c);
     assertTrue(finalCount < beforeCount);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
-  
+
   private int countFiles(Connector c) throws Exception {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.TabletColumnFamily.NAME);
@@ -109,5 +115,5 @@ public class CompactionIT extends ConfigurableMacIT {
       i++;
     return i;
   }
-  
+
 }

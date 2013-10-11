@@ -51,7 +51,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class GarbageCollectorIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     Map<String,String> settings = new HashMap<String,String>();
@@ -61,7 +61,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     settings.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     cfg.setSiteConfig(settings);
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void gcTest() throws Exception {
     Connector c = getConnector();
@@ -88,7 +88,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     assertTrue(after < before);
     gc.destroy();
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void gcLotsOfCandidatesIT() throws Exception {
     log.info("Filling !METADATA table with bogus delete flags");
@@ -101,12 +101,12 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     gc.destroy();
     assertTrue(output.contains("delete candidates has exceeded"));
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void dontGCRootLog() throws Exception {
     // dirty !METADATA
     Connector c = getConnector();
-    String table = makeTableName();
+    String table = getTableNames(1)[0];
     c.tableOperations().create(table);
     // let gc run for a bit
     Process gc = cluster.exec(SimpleGarbageCollector.class);
@@ -120,11 +120,12 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     cluster.start();
     // did it recover?
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    for (@SuppressWarnings("unused") Entry<Key,Value> unused : scanner) {
-      
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> unused : scanner) {
+
     }
   }
-  
+
   private int countFiles() throws Exception {
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     int result = 0;
@@ -135,11 +136,11 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     }
     return result;
   }
-  
+
   public static void addEntries(Connector conn, BatchWriterOpts bwOpts) throws Exception {
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, bwOpts.getBatchWriterConfig());
-    
+
     for (int i = 0; i < 100000; ++i) {
       final Text emptyText = new Text("");
       Text row = new Text(String.format("%s%s%020d%s", MetadataSchema.DeletesSection.getRowPrefix(), "/", i,
