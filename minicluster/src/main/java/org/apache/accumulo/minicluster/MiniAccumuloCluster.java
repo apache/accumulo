@@ -239,7 +239,7 @@ public class MiniAccumuloCluster {
 
     builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", config.getLogDir().getAbsolutePath());
-    builder.environment().put("ACCUMULO_CONF_DIR", config.getDir().getAbsolutePath());
+    builder.environment().put("ACCUMULO_CONF_DIR", config.getConfDir().getAbsolutePath());
 
     Process process = builder.start();
 
