@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.core.client.mapreduce;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -35,7 +35,7 @@ import org.apache.hadoop.io.Writable;
 /**
  * This class to holds a query configuration for a table. It contains all the properties needed to specify how rows should be returned from the table.
  */
-public class TableQueryConfig implements Writable {
+public class BatchScanConfig implements Writable {
   
   private String tableName;
   private List<IteratorSetting> iterators;
@@ -47,12 +47,12 @@ public class TableQueryConfig implements Writable {
   private boolean useIsolatedScanners = false;
   private boolean offlineScan = false;
   
-  public TableQueryConfig(String tableName) {
+  public BatchScanConfig(String tableName) {
     checkNotNull(tableName);
     this.tableName = tableName;
   }
   
-  public TableQueryConfig(DataInput input) throws IOException {
+  public BatchScanConfig(DataInput input) throws IOException {
     readFields(input);
   }
   
@@ -70,7 +70,7 @@ public class TableQueryConfig implements Writable {
    *          the ranges that will be mapped over
    * @since 1.6.0
    */
-  public TableQueryConfig setRanges(List<Range> ranges) {
+  public BatchScanConfig setRanges(List<Range> ranges) {
     this.ranges = ranges;
     return this;
   }
@@ -90,7 +90,7 @@ public class TableQueryConfig implements Writable {
    *          selected. An empty set is the default and is equivalent to scanning the all columns.
    * @since 1.6.0
    */
-  public TableQueryConfig fetchColumns(Set<Pair<Text,Text>> columns) {
+  public BatchScanConfig fetchColumns(Set<Pair<Text,Text>> columns) {
     this.columns = columns;
     return this;
   }
@@ -109,7 +109,7 @@ public class TableQueryConfig implements Writable {
    *          the configurations for the iterators
    * @since 1.6.0
    */
-  public TableQueryConfig setIterators(List<IteratorSetting> iterators) {
+  public BatchScanConfig setIterators(List<IteratorSetting> iterators) {
     this.iterators = iterators;
     return this;
   }
@@ -133,7 +133,7 @@ public class TableQueryConfig implements Writable {
    * @see #setRanges(java.util.List)
    * @since 1.6.0
    */
-  public TableQueryConfig setAutoAdjustRanges(boolean autoAdjustRanges) {
+  public BatchScanConfig setAutoAdjustRanges(boolean autoAdjustRanges) {
     this.autoAdjustRanges = autoAdjustRanges;
     return this;
   }
@@ -161,7 +161,7 @@ public class TableQueryConfig implements Writable {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
-  public TableQueryConfig setUseLocalIterators(boolean useLocalIterators) {
+  public BatchScanConfig setUseLocalIterators(boolean useLocalIterators) {
     this.useLocalIterators = useLocalIterators;
     return this;
   }
@@ -207,7 +207,7 @@ public class TableQueryConfig implements Writable {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
-  public TableQueryConfig setOfflineScan(boolean offlineScan) {
+  public BatchScanConfig setOfflineScan(boolean offlineScan) {
     this.offlineScan = offlineScan;
     return this;
   }
@@ -233,7 +233,7 @@ public class TableQueryConfig implements Writable {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
-  public TableQueryConfig setUseIsolatedScanners(boolean useIsolatedScanners) {
+  public BatchScanConfig setUseIsolatedScanners(boolean useIsolatedScanners) {
     this.useIsolatedScanners = useIsolatedScanners;
     return this;
   }
@@ -332,7 +332,7 @@ public class TableQueryConfig implements Writable {
     if (o == null || getClass() != o.getClass())
       return false;
     
-    TableQueryConfig that = (TableQueryConfig) o;
+    BatchScanConfig that = (BatchScanConfig) o;
     
     if (autoAdjustRanges != that.autoAdjustRanges)
       return false;

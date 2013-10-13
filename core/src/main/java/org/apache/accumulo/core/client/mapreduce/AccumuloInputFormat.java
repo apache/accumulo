@@ -41,7 +41,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * <li>{@link AccumuloInputFormat#setConnectorInfo(Job, String, String)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(Job, Authorizations)}
  * <li>{@link AccumuloInputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloInputFormat#setMockInstance(Job, String)}
- * <li>{@link AccumuloInputFormat#setTableQueryConfigs(Job, org.apache.accumulo.core.conf.TableQueryConfig...)} 
+ * <li>{@link AccumuloInputFormat#setTableQueryConfigs(Job, BatchScanConfig...)} 
  * </ul>
  * 
  * Other static methods are optional.

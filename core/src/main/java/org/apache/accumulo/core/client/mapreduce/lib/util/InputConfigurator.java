@@ -42,9 +42,9 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
+import org.apache.accumulo.core.client.mapreduce.BatchScanConfig;
 import org.apache.accumulo.core.client.mock.MockTabletLocator;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.conf.TableQueryConfig;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -480,12 +480,12 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @param tconf
-   *          an array of {@link TableQueryConfig} objects to associate with the job
+   *          an array of {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} objects to associate with the job
    * @since 1.6.0
    */
-  public static void setTableQueryConfigs(Class<?> implementingClass, Configuration conf, TableQueryConfig... tconf) {
+  public static void setTableQueryConfigs(Class<?> implementingClass, Configuration conf, BatchScanConfig... tconf) {
     List<String> tableQueryConfigStrings = new ArrayList<String>();
-    for (TableQueryConfig queryConfig : tconf) {
+    for (BatchScanConfig queryConfig : tconf) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       try {
         queryConfig.write(new DataOutputStream(baos));
@@ -499,7 +499,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
   
   /**
-   * Returns all {@link TableQueryConfig} objects associated with this job.
+   * Returns all {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} objects associated with this job.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -508,22 +508,22 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return all of the table query configs for the job
    * @since 1.6.0
    */
-  public static List<TableQueryConfig> getTableQueryConfigs(Class<?> implementingClass, Configuration conf) {
-    List<TableQueryConfig> configs = new ArrayList<TableQueryConfig>();
+  public static List<BatchScanConfig> getTableQueryConfigs(Class<?> implementingClass, Configuration conf) {
+    List<BatchScanConfig> configs = new ArrayList<BatchScanConfig>();
     Collection<String> configStrings = conf.getStringCollection(enumToConfKey(implementingClass, ScanOpts.TABLE_CONFIGS));
     if (configStrings != null) {
       for (String str : configStrings) {
         try {
           byte[] bytes = Base64.decodeBase64(str.getBytes());
           ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-          configs.add(new TableQueryConfig(new DataInputStream(bais)));
+          configs.add(new BatchScanConfig(new DataInputStream(bais)));
           bais.close();
         } catch (IOException e) {
           throw new IllegalStateException("The table query configurations could not be deserialized from the given configuration");
         }
       }
     }
-    TableQueryConfig defaultQueryConfig;
+    BatchScanConfig defaultQueryConfig;
     try {
       defaultQueryConfig = getDefaultTableConfig(implementingClass, conf);
     } catch (IOException e) {
@@ -536,7 +536,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
   
   /**
-   * Returns the {@link TableQueryConfig} for the given table
+   * Returns the {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} for the given table
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -547,9 +547,9 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return the table query config for the given table name (if it exists) and null if it does not
    * @since 1.6.0
    */
-  public static TableQueryConfig getTableQueryConfig(Class<?> implementingClass, Configuration conf, String tableName) {
-    List<TableQueryConfig> queryConfigs = getTableQueryConfigs(implementingClass, conf);
-    for (TableQueryConfig queryConfig : queryConfigs) {
+  public static BatchScanConfig getTableQueryConfig(Class<?> implementingClass, Configuration conf, String tableName) {
+    List<BatchScanConfig> queryConfigs = getTableQueryConfigs(implementingClass, conf);
+    for (BatchScanConfig queryConfig : queryConfigs) {
       if (queryConfig.getTableName().equals(tableName)) {
         return queryConfig;
       }
@@ -605,12 +605,12 @@ public class InputConfigurator extends ConfiguratorBase {
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
       
-      for (TableQueryConfig tableConfig : getTableQueryConfigs(implementingClass, conf)) {
+      for (BatchScanConfig tableConfig : getTableQueryConfigs(implementingClass, conf)) {
         if (!c.securityOperations().hasTablePermission(getPrincipal(implementingClass, conf), tableConfig.getTableName(), TablePermission.READ))
           throw new IOException("Unable to access table");
       }
       
-      for (TableQueryConfig tableConfig : getTableQueryConfigs(implementingClass, conf)) {
+      for (BatchScanConfig tableConfig : getTableQueryConfigs(implementingClass, conf)) {
         if (!tableConfig.shouldUseLocalIterators()) {
           if (tableConfig.getIterators() != null) {
             for (IteratorSetting iter : tableConfig.getIterators()) {
@@ -631,7 +631,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
   
   /**
-   * Returns the {@link TableQueryConfig} for the configuration based on the properties set using the single-table input methods.
+   * Returns the {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} for the configuration based on the properties set using the single-table input methods.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -641,10 +641,10 @@ public class InputConfigurator extends ConfiguratorBase {
    * @throws IOException
    * @since 1.6.0
    */
-  protected static TableQueryConfig getDefaultTableConfig(Class<?> implementingClass, Configuration conf) throws IOException {
+  protected static BatchScanConfig getDefaultTableConfig(Class<?> implementingClass, Configuration conf) throws IOException {
     String tableName = getInputTableName(implementingClass, conf);
     if (tableName != null) {
-      TableQueryConfig queryConfig = new TableQueryConfig(getInputTableName(implementingClass, conf));
+      BatchScanConfig queryConfig = new BatchScanConfig(getInputTableName(implementingClass, conf));
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
       if (itrs != null)
         queryConfig.setIterators(itrs);

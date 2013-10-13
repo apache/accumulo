@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.conf.TableQueryConfig;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -259,19 +258,19 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
-   * Fetches all {@link TableQueryConfig}s that have been set on the given Hadoop configuration.
+   * Fetches all {@link BatchScanConfig}s that have been set on the given Hadoop configuration.
    * 
    * @param job
    *          the Hadoop job instance to be configured
    * @return
    * @since 1.6.0
    */
-  protected static List<TableQueryConfig> getBatchScanConfigs(JobContext job) {
+  protected static List<BatchScanConfig> getBatchScanConfigs(JobContext job) {
     return InputConfigurator.getTableQueryConfigs(CLASS, getConfiguration(job));
   }
 
   /**
-   * Fetches a {@link TableQueryConfig} that has been set on the configuration for a specific table.
+   * Fetches a {@link BatchScanConfig} that has been set on the configuration for a specific table.
    * 
    * <p>
    * null is returned in the event that the table doesn't exist.
@@ -280,10 +279,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          the Hadoop job instance to be configured
    * @param tableName
    *          the table name for which to grab the config object
-   * @return the {@link TableQueryConfig} for the given table
+   * @return the {@link BatchScanConfig} for the given table
    * @since 1.6.0
    */
-  protected static TableQueryConfig getBatchScanConfig(JobContext job, String tableName) {
+  protected static BatchScanConfig getBatchScanConfig(JobContext job, String tableName) {
     return InputConfigurator.getTableQueryConfig(CLASS, getConfiguration(job), tableName);
   }
 
@@ -345,7 +344,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
      *          the table name for which to set up the iterators
      */
     protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName) {
-      TableQueryConfig config = getBatchScanConfig(context, tableName);
+      BatchScanConfig config = getBatchScanConfig(context, tableName);
       List<IteratorSetting> iterators = config.getIterators();
       for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
@@ -363,7 +362,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       Instance instance = getInstance(attempt);
       String principal = getPrincipal(attempt);
 
-      TableQueryConfig tableConfig = getBatchScanConfig(attempt, split.getTableName());
+      BatchScanConfig tableConfig = getBatchScanConfig(attempt, split.getTableName());
 
       // in case the table name changed, we can still use the previous name for terms of configuration,
       // but for the scanner, we'll need to reference the new table name.
@@ -558,8 +557,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     validateOptions(conf);
 
     LinkedList<InputSplit> splits = new LinkedList<InputSplit>();
-    List<TableQueryConfig> tableConfigs = getBatchScanConfigs(conf);
-    for (TableQueryConfig tableConfig : tableConfigs) {
+    List<BatchScanConfig> tableConfigs = getBatchScanConfigs(conf);
+    for (BatchScanConfig tableConfig : tableConfigs) {
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       String tableId = null;

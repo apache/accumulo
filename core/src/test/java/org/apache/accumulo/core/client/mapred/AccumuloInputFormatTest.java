@@ -30,9 +30,9 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.mapreduce.BatchScanConfig;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.TableQueryConfig;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -254,8 +254,8 @@ public class AccumuloInputFormatTest {
       AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
       
-      TableQueryConfig tableConfig1 = new TableQueryConfig(table1);
-      TableQueryConfig tableConfig2 = new TableQueryConfig(table2);
+      BatchScanConfig tableConfig1 = new BatchScanConfig(table1);
+      BatchScanConfig tableConfig2 = new BatchScanConfig(table2);
       
       AccumuloInputFormat.setTableQueryConfigs(job, tableConfig1, tableConfig2);
       
@@ -299,18 +299,18 @@ public class AccumuloInputFormatTest {
   }
   
   /**
-   * Verify {@link org.apache.accumulo.core.conf.TableQueryConfig} objects get correctly serialized in the JobContext.
+   * Verify {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} objects get correctly serialized in the JobContext.
    */
   @Test
   public void testTableQueryConfigSerialization() throws IOException {
     
     JobConf job = new JobConf();
     
-    TableQueryConfig table1 = new TableQueryConfig(TEST_TABLE_1).setRanges(Collections.singletonList(new Range("a", "b")))
+    BatchScanConfig table1 = new BatchScanConfig(TEST_TABLE_1).setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
     
-    TableQueryConfig table2 = new TableQueryConfig(TEST_TABLE_2).setRanges(Collections.singletonList(new Range("a", "b")))
+    BatchScanConfig table2 = new BatchScanConfig(TEST_TABLE_2).setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
     
@@ -328,11 +328,11 @@ public class AccumuloInputFormatTest {
     
     JobConf job = new JobConf();
     
-    TableQueryConfig table1 = new TableQueryConfig(TEST_TABLE_1).setRanges(Collections.singletonList(new Range("a", "b")))
+    BatchScanConfig table1 = new BatchScanConfig(TEST_TABLE_1).setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
     
-    TableQueryConfig table2 = new TableQueryConfig(TEST_TABLE_2).setRanges(Collections.singletonList(new Range("a", "b")))
+    BatchScanConfig table2 = new BatchScanConfig(TEST_TABLE_2).setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
     

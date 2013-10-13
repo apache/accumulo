@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.mapreduce.BatchScanConfig;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -38,17 +39,17 @@ import org.junit.Test;
 public class TableQueryConfigTest {
   
   private static final String TEST_TABLE = "TEST_TABLE";
-  private TableQueryConfig tableQueryConfig;
+  private BatchScanConfig tableQueryConfig;
   
   @Before
   public void setUp() {
-    tableQueryConfig = new TableQueryConfig(TEST_TABLE);
+    tableQueryConfig = new BatchScanConfig(TEST_TABLE);
   }
   
   @Test
   public void testSerialization_OnlyTable() throws IOException {
     byte[] serialized = serialize(tableQueryConfig);
-    TableQueryConfig actualConfig = deserialize(serialized);
+    BatchScanConfig actualConfig = deserialize(serialized);
     
     assertEquals(tableQueryConfig, actualConfig);
   }
@@ -61,7 +62,7 @@ public class TableQueryConfigTest {
     tableQueryConfig.setRanges(ranges);
     
     byte[] serialized = serialize(tableQueryConfig);
-    TableQueryConfig actualConfig = deserialize(serialized);
+    BatchScanConfig actualConfig = deserialize(serialized);
     
     assertEquals(ranges, actualConfig.getRanges());
   }
@@ -74,7 +75,7 @@ public class TableQueryConfigTest {
     tableQueryConfig.fetchColumns(columns);
     
     byte[] serialized = serialize(tableQueryConfig);
-    TableQueryConfig actualConfig = deserialize(serialized);
+    BatchScanConfig actualConfig = deserialize(serialized);
     
     assertEquals(actualConfig.getFetchedColumns(), columns);
   }
@@ -86,21 +87,21 @@ public class TableQueryConfigTest {
     settings.add(new IteratorSetting(55, "iter2", "iterclass2"));
     tableQueryConfig.setIterators(settings);
     byte[] serialized = serialize(tableQueryConfig);
-    TableQueryConfig actualConfig = deserialize(serialized);
+    BatchScanConfig actualConfig = deserialize(serialized);
     assertEquals(actualConfig.getIterators(), settings);
     
   }
   
-  private byte[] serialize(TableQueryConfig tableQueryConfig) throws IOException {
+  private byte[] serialize(BatchScanConfig tableQueryConfig) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     tableQueryConfig.write(new DataOutputStream(baos));
     baos.close();
     return baos.toByteArray();
   }
   
-  private TableQueryConfig deserialize(byte[] bytes) throws IOException {
+  private BatchScanConfig deserialize(byte[] bytes) throws IOException {
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-    TableQueryConfig actualConfig = new TableQueryConfig(new DataInputStream(bais));
+    BatchScanConfig actualConfig = new BatchScanConfig(new DataInputStream(bais));
     bais.close();
     return actualConfig;
   }

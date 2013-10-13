@@ -1,7 +1,6 @@
 package org.apache.accumulo.core.client.mapreduce;
 
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
-import org.apache.accumulo.core.conf.TableQueryConfig;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
@@ -18,7 +17,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value>{
   
   /**
-   * Sets the {@link org.apache.accumulo.core.conf.TableQueryConfig} objects on the given Hadoop configuration
+   * Sets the {@link BatchScanConfig} objects on the given Hadoop configuration
    * 
    * @param job
    *          the Hadoop job instance to be configured
@@ -26,7 +25,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
    *          the table query configs to be set on the configuration.
    * @since 1.6.0
    */
-  public static void setBatchScanConfigs(Job job, TableQueryConfig... configs) {
+  public static void setBatchScanConfigs(Job job, BatchScanConfig... configs) {
     checkNotNull(configs);
     InputConfigurator.setTableQueryConfigs(CLASS, getConfiguration(job), configs);
   }

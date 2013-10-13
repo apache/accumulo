@@ -6,7 +6,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.TableQueryConfig;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -88,8 +87,8 @@ public class AccumuloMultiTableInputFormatTest {
       
       AccumuloMultiTableInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       
-      TableQueryConfig tableConfig1 = new TableQueryConfig(table1);
-      TableQueryConfig tableConfig2 = new TableQueryConfig(table2);
+      BatchScanConfig tableConfig1 = new BatchScanConfig(table1);
+      BatchScanConfig tableConfig2 = new BatchScanConfig(table2);
       
       AccumuloMultiTableInputFormat.setBatchScanConfigs(job, tableConfig1, tableConfig2);
       AccumuloMultiTableInputFormat.setMockInstance(job, INSTANCE_NAME);
@@ -139,18 +138,18 @@ public class AccumuloMultiTableInputFormatTest {
   }
   
   /**
-   * Verify {@link TableQueryConfig} objects get correctly serialized in the JobContext.
+   * Verify {@link BatchScanConfig} objects get correctly serialized in the JobContext.
    */
   @Test
   public void testTableQueryConfigSerialization() throws IOException {
     
     Job job = new Job();
     
-    TableQueryConfig table1 = new TableQueryConfig(TEST_TABLE_1).setRanges(Collections.singletonList(new Range("a", "b")))
+    BatchScanConfig table1 = new BatchScanConfig(TEST_TABLE_1).setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
     
-    TableQueryConfig table2 = new TableQueryConfig(TEST_TABLE_2).setRanges(Collections.singletonList(new Range("a", "b")))
+    BatchScanConfig table2 = new BatchScanConfig(TEST_TABLE_2).setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
     
