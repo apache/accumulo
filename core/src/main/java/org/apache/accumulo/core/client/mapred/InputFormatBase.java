@@ -264,9 +264,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @param tableName
    *          the table to use when the tablename is null in the write call
    * @since 1.5.0
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   public static void setInputTableName(JobConf job, String tableName) {
     InputConfigurator.setInputTableName(CLASS, job, tableName);
   }
@@ -279,9 +277,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @return the table name
    * @since 1.5.0
    * @see #setInputTableName(JobConf, String)
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   protected static String getInputTableName(JobConf job) {
     return InputConfigurator.getInputTableName(CLASS, job);
   }
@@ -320,9 +316,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @param ranges
    *          the ranges that will be mapped over
    * @since 1.5.0
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   public static void setRanges(JobConf job, Collection<Range> ranges) {
     InputConfigurator.setRanges(CLASS, job, ranges);
   }
@@ -337,9 +331,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    *           if the ranges have been encoded improperly
    * @since 1.5.0
    * @see #setRanges(JobConf, Collection)
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   protected static List<Range> getRanges(JobConf job) throws IOException {
     return InputConfigurator.getRanges(CLASS, job);
   }
@@ -353,9 +345,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    *          a pair of {@link Text} objects corresponding to column family and column qualifier. If the column qualifier is null, the entire column family is
    *          selected. An empty set is the default and is equivalent to scanning the all columns.
    * @since 1.5.0
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   public static void fetchColumns(JobConf job, Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     InputConfigurator.fetchColumns(CLASS, job, columnFamilyColumnQualifierPairs);
   }
@@ -368,9 +358,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @return a set of columns
    * @since 1.5.0
    * @see #fetchColumns(JobConf, Collection)
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   protected static Set<Pair<Text,Text>> getFetchedColumns(JobConf job) {
     return InputConfigurator.getFetchedColumns(CLASS, job);
   }
@@ -383,9 +371,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @param cfg
    *          the configuration of the iterator
    * @since 1.5.0
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   public static void addIterator(JobConf job, IteratorSetting cfg) {
     InputConfigurator.addIterator(CLASS, job, cfg);
   }
@@ -398,9 +384,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @return a list of iterators
    * @since 1.5.0
    * @see #addIterator(JobConf, IteratorSetting)
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   protected static List<IteratorSetting> getIterators(JobConf job) {
     return InputConfigurator.getIterators(CLASS, job);
   }
@@ -418,9 +402,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @see #setRanges(JobConf, Collection)
    * @since 1.5.0
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   public static void setAutoAdjustRanges(JobConf job, boolean enableFeature) {
     InputConfigurator.setAutoAdjustRanges(CLASS, job, enableFeature);
   }
@@ -433,9 +415,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @return false if the feature is disabled, true otherwise
    * @since 1.5.0
    * @see #setAutoAdjustRanges(JobConf, boolean)
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   protected static boolean getAutoAdjustRanges(JobConf job) {
     return InputConfigurator.getAutoAdjustRanges(CLASS, job);
   }
@@ -451,9 +431,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   public static void setScanIsolation(JobConf job, boolean enableFeature) {
     InputConfigurator.setScanIsolation(CLASS, job, enableFeature);
   }
@@ -466,9 +444,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @return true if the feature is enabled, false otherwise
    * @since 1.5.0
    * @see #setScanIsolation(JobConf, boolean)
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   protected static boolean isIsolated(JobConf job) {
     return InputConfigurator.isIsolated(CLASS, job);
   }
@@ -485,9 +461,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   public static void setLocalIterators(JobConf job, boolean enableFeature) {
     InputConfigurator.setLocalIterators(CLASS, job, enableFeature);
   }
@@ -500,9 +474,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @return true if the feature is enabled, false otherwise
    * @since 1.5.0
    * @see #setLocalIterators(JobConf, boolean)
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   protected static boolean usesLocalIterators(JobConf job) {
     return InputConfigurator.usesLocalIterators(CLASS, job);
   }
@@ -537,9 +509,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   public static void setOfflineTableScan(JobConf job, boolean enableFeature) {
     InputConfigurator.setOfflineTableScan(CLASS, job, enableFeature);
   }
@@ -552,9 +522,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @return true if the feature is enabled, false otherwise
    * @since 1.5.0
    * @see #setOfflineTableScan(JobConf, boolean)
-   * @deprecated since 1.6.0
    */
-  @Deprecated
   protected static boolean isOfflineScan(JobConf job) {
     return InputConfigurator.isOfflineScan(CLASS, job);
   }
