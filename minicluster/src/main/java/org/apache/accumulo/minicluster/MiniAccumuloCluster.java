@@ -431,9 +431,10 @@ public class MiniAccumuloCluster {
       }
       initialized = true;
     }
-
-    for (int i = tabletServerProcesses.size(); i < config.getNumTservers(); i++) {
-      tabletServerProcesses.add(exec(TabletServer.class, ServerType.TABLET_SERVER));
+    synchronized (tabletServerProcesses) {
+      for (int i = tabletServerProcesses.size(); i < config.getNumTservers(); i++) {
+        tabletServerProcesses.add(exec(TabletServer.class, ServerType.TABLET_SERVER));
+      }
     }
     int ret = 0;
     for (int i = 0; i < 5; i++) {
@@ -495,12 +496,14 @@ public class MiniAccumuloCluster {
         }
         break;
       case TABLET_SERVER:
-        for (Process tserver : tabletServerProcesses) {
-          if (proc.equals(tserver)) {
-            tabletServerProcesses.remove(tserver);
-            tserver.destroy();
-            found = true;
-            break;
+        synchronized (tabletServerProcesses) {
+          for (Process tserver : tabletServerProcesses) {
+            if (proc.equals(tserver)) {
+              tabletServerProcesses.remove(tserver);
+              tserver.destroy();
+              found = true;
+              break;
+            }
           }
         }
         break;
@@ -552,9 +555,11 @@ public class MiniAccumuloCluster {
     if (masterProcess != null) {
       masterProcess.destroy();
     }
-    if (tabletServerProcesses != null) {
-      for (Process tserver : tabletServerProcesses) {
-        tserver.destroy();
+    synchronized (tabletServerProcesses) {
+      if (tabletServerProcesses != null) {
+        for (Process tserver : tabletServerProcesses) {
+          tserver.destroy();
+        }
       }
     }
     if (gcProcess != null) {
